@@ -225,8 +225,9 @@ shared/      KMP (android, wasmJs, jvm). commonMain:
                domain/  SettlementCalculator, status derivation, transfer suggestions
                auth/    Permissions.check(actor, op): Allowed | Denied(reason)
              commonTest: golden + property tests (Σ payout invariant, rounding, transfers)
-composeApp/  KMP Compose Multiplatform (androidMain, wasmJsMain, commonMain UI),
+composeApp/  KMP Compose Multiplatform library (android, wasmJs executable), commonMain UI,
              PL/EN string resources, navigation, view models, sync engine, local store
+androidApp/  Android application shell (MainActivity, manifest, signing) depending on composeApp
 server/      JVM Lambda: Handler, GoogleAuth, Storage, Routes (no web framework)
 ```
 
@@ -371,7 +372,7 @@ Workflow:
 - [ ] M0.4 Jacek: generate the keystore and set the GitHub secrets/variables (§6.3)
 
 ### M1 — Domain core (`:shared`)
-- [ ] M1.1 Gradle KMP skeleton (`shared`, `composeApp`, `server`), version catalog, `ci.yml`
+- [x] M1.1 Gradle KMP skeleton (`shared`, `composeApp`, `androidApp`, `server`), version catalog, `ci.yml`
 - [ ] M1.2 Model + serialization
 - [ ] M1.3 SettlementCalculator: shares, rounding, refunds, fund amount, loss detection
 - [ ] M1.4 Balances, suggested transfers, status derivation
@@ -418,6 +419,7 @@ Workflow:
 | 2026-10-20 | API exposed via **API Gateway HTTP API** instead of a Lambda Function URL: built-in throttling and a well-known permission model; cost is negligible. |
 | 2026-10-20 | No spreadsheet importer; `Rozliczenia.ods` and `Rozliczenia DV.ods` are used only as golden test data (§2.6). |
 | 2026-10-20 | Income sources extended with HAT, CONTRACT, SPONSORSHIP (seen in DV sheet). Refund percentages stay out despite the 50% block in the DV sheet: members enter the refundable part as the cost amount. |
+| 2026-10-20 | Separate `androidApp` module: AGP 9 no longer supports `com.android.application` inside a KMP module, so `composeApp` is a KMP library and `androidApp` is the thin app shell. compileSdk 37 (required by current Compose), targetSdk 36. Toolchain: Kotlin 2.4.21, Compose MP 1.12.2, AGP 9.4.1, Gradle 9.8.2, JDK 21. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
