@@ -74,7 +74,8 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
   | `LOSS` | net < 0 |
   | `OPEN` | some party's balance ≠ target |
   | `SETTLED` | every balance == target (exact, integer grosze) |
-  | `ARCHIVED` | lead archived it (hidden by default) |
+
+  Archiving is a separate `archived` flag (hidden from the list by default), not a status, so an archived event still shows whether it was settled.
 
 - Editing a settled event (late cost, changed share…) reopens it as `OPEN` and produces compensating suggestions. Recorded transfers are **never rewritten**.
 
@@ -379,7 +380,7 @@ Workflow:
 - [x] M1.5 Costs: outstanding amount, refund eligibility (participants only), deferral
 - [x] M1.6 Operations + reducer (patch semantics, idempotency by clientId/seq)
 - [x] M1.7 Permissions matrix
-- [ ] M1.8 Golden tests (§2.6) + invariant tests (Σ payout, transfers converge to SETTLED)
+- [x] M1.8 Golden tests (§2.6) + invariant tests (Σ payout, transfers converge to SETTLED)
 
 ### M2 — Local-only app (Android + Web)
 - [ ] M2.1 App shell: navigation, tabs, PL/EN resources, theme
@@ -420,6 +421,11 @@ Workflow:
 | 2026-10-20 | No spreadsheet importer; `Rozliczenia.ods` and `Rozliczenia DV.ods` are used only as golden test data (§2.6). |
 | 2026-10-20 | Income sources extended with HAT, CONTRACT, SPONSORSHIP (seen in DV sheet). Refund percentages stay out despite the 50% block in the DV sheet: members enter the refundable part as the cost amount. |
 | 2026-10-20 | Separate `androidApp` module: AGP 9 no longer supports `com.android.application` inside a KMP module, so `composeApp` is a KMP library and `androidApp` is the thin app shell. compileSdk 37 (required by current Compose), targetSdk 36. Toolchain: Kotlin 2.4.21, Compose MP 1.12.2, AGP 9.4.1, Gradle 9.8.2, JDK 21. |
+| 2026-10-20 | M1: archived is a flag on the event, not an `EventStatus` (see §2.3). |
+| 2026-10-20 | M1: "own cost locked once any part is refunded" refined to "locked once a refund of it sits in an event with recorded transfers, or it was refunded from the band fund". Costs incurred for an event are auto-refunded there on creation, so the literal rule would lock every cost immediately. |
+| 2026-10-20 | M1: Settle / per-member Settle / Settle All are one op, `SettleSuggestions(eventId, partyId?)`, whose transfers are computed against the state it is applied to, so a stale client never records outdated amounts. Transfer ids are `<opId>-<n>`. |
+| 2026-10-20 | M1: when the band fund and the treasurer both take part in an event's suggestions, they are paired first ("keep for band fund"); the rest is greedy largest-surplus to largest-deficit. |
+| 2026-10-20 | M1: a member may record holdings only in events they take part in; leads may record them for any participant. Guests can be promoted to the roster (admin) with all their entries in that event re-pointed. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
