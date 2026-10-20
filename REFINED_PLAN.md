@@ -378,7 +378,7 @@ Workflow:
 - [x] M1.4 Balances, suggested transfers, status derivation
 - [x] M1.5 Costs: outstanding amount, refund eligibility (participants only), deferral
 - [x] M1.6 Operations + reducer (patch semantics, idempotency by clientId/seq)
-- [ ] M1.7 Permissions matrix
+- [x] M1.7 Permissions matrix
 - [ ] M1.8 Golden tests (§2.6) + invariant tests (Σ payout, transfers converge to SETTLED)
 
 ### M2 — Local-only app (Android + Web)
