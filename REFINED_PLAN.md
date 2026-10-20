@@ -373,7 +373,7 @@ Workflow:
 
 ### M1 — Domain core (`:shared`)
 - [x] M1.1 Gradle KMP skeleton (`shared`, `composeApp`, `androidApp`, `server`), version catalog, `ci.yml`
-- [ ] M1.2 Model + serialization
+- [x] M1.2 Model + serialization
 - [ ] M1.3 SettlementCalculator: shares, rounding, refunds, fund amount, loss detection
 - [ ] M1.4 Balances, suggested transfers, status derivation
 - [ ] M1.5 Costs: outstanding amount, refund eligibility (participants only), deferral
