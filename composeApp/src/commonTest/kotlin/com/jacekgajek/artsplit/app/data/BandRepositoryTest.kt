@@ -59,4 +59,19 @@ class BandRepositoryTest {
         assertEquals(emptyList(), saved.pending)
         assertEquals(1L, saved.nextSeq)
     }
+
+    @Test
+    fun unreadableDataIsBackedUpBeforeStartingOver() = runTest {
+        val store = InMemoryStore(mapOf(BandRepository.KEY to "{ not valid"))
+        val repository = BandRepository(store, this, ids(), clock = { 42 })
+        repository.load()
+
+        val state = assertIs<BandState.Unreadable>(repository.state.value)
+        assertEquals("{ not valid", store.values[state.backupKey])
+
+        repository.startOver()
+        assertEquals(BandState.NoBand, repository.state.value)
+        assertNull(store.values[BandRepository.KEY])
+        assertEquals("{ not valid", store.values[state.backupKey], "the backup survives starting over")
+    }
 }

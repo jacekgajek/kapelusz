@@ -31,11 +31,29 @@ private fun idbPut(key: String, value: String): Promise<JsAny?> = js(
     }))""",
 )
 
+private fun idbDelete(key: String): Promise<JsAny?> = js(
+    """(globalThis.artSplitDb ??= new Promise((resolve, reject) => {
+        const open = indexedDB.open('art-split', 1);
+        open.onupgradeneeded = () => open.result.createObjectStore('kv');
+        open.onsuccess = () => resolve(open.result);
+        open.onerror = () => reject(open.error);
+    })).then(db => new Promise((resolve, reject) => {
+        const transaction = db.transaction('kv', 'readwrite');
+        transaction.objectStore('kv').delete(key);
+        transaction.oncomplete = () => resolve(null);
+        transaction.onerror = () => reject(transaction.error);
+    }))""",
+)
+
 /** Browser storage in IndexedDB (database `art-split`, object store `kv`). */
 class IndexedDbStore : KeyValueStore {
     override suspend fun read(key: String): String? = idbGet(key).await<JsString?>()?.toString()
 
     override suspend fun write(key: String, value: String) {
         idbPut(key, value).await<JsAny?>()
+    }
+
+    override suspend fun remove(key: String) {
+        idbDelete(key).await<JsAny?>()
     }
 }

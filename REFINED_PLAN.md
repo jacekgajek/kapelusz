@@ -436,6 +436,7 @@ Workflow:
 | 2026-10-21 | M2: until sign-in (M3) the device user is a fixed local identity (`local-user`) that owns the locally created band; all operations stay in the pending queue. The web build stores state in IndexedDB, Android in app-private files. The band fund tab and fund amount UI wait for M5.1. |
 | 2026-10-21 | A cost shows as refunded only once the event refunding it is settled (or it was refunded from the band fund); until then it is "Refund planned". Assigning still counts immediately, so a cost cannot be refunded twice. |
 | 2026-10-21 | Every rejection carries a stable `RejectionReason`; apps show its translated text (PL/EN), the English `message` stays for logs and server responses. A test fails if a reason has no text in a UI language. |
+| 2026-10-21 | Unreadable saved band data never crashes the app or gets discarded silently: it is copied to `band-backup-<timestamp>` and the user can start over. No export UI; the backup is for manual recovery. Unreadable settings fall back to defaults. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -55,8 +56,10 @@ import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettleScreen
+import com.jacekgajek.artsplit.app.ui.screens.UnreadableDataScreen
 import com.jacekgajek.artsplit.app.ui.screens.event.EventScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -73,6 +76,7 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     // Outside key(language), so changing the language keeps the back stack.
     val navController = rememberNavController()
     LaunchedEffect(navController) { onNavHostReady(navController) }
+    val scope = rememberCoroutineScope()
     CompositionLocalProvider(LocalAppLocale provides settings.language) {
         key(settings.language) {
             ArtSplitTheme {
@@ -83,6 +87,7 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
                             graph.bands.createBand(name, currency, yourName)
                         }
                         is BandState.Ready -> Navigation(graph, state, navController)
+                        is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
                     }
                 }
             }

@@ -186,4 +186,7 @@
     <string name="reject_cost_refunded_from_fund">This cost was refunded from the band fund.</string>
     <string name="reject_cannot_settle">This event cannot be settled yet. Check the warnings above.</string>
     <string name="reject_too_many_attachments">A cost can have at most 5 attachments.</string>
+    <string name="unreadable_title">Your saved data could not be read</string>
+    <string name="unreadable_text">A copy was kept as a backup on this device, so nothing is lost. You can start over now; the backup can be restored later if needed.</string>
+    <string name="start_over">Start over</string>
 </resources>

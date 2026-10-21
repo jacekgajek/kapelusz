@@ -4,6 +4,7 @@ package com.jacekgajek.artsplit.app.data
 interface KeyValueStore {
     suspend fun read(key: String): String?
     suspend fun write(key: String, value: String)
+    suspend fun remove(key: String)
 }
 
 class InMemoryStore(initial: Map<String, String> = emptyMap()) : KeyValueStore {
@@ -11,5 +12,9 @@ class InMemoryStore(initial: Map<String, String> = emptyMap()) : KeyValueStore {
     override suspend fun read(key: String) = values[key]
     override suspend fun write(key: String, value: String) {
         values[key] = value
+    }
+
+    override suspend fun remove(key: String) {
+        values.remove(key)
     }
 }

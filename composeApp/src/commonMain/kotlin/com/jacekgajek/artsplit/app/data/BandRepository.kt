@@ -35,6 +35,9 @@ sealed interface BandState {
     data object Loading : BandState
     data object NoBand : BandState
 
+    /** Saved data could not be read; it was copied to [backupKey] before anything else happened. */
+    data class Unreadable(val backupKey: String) : BandState
+
     /** [band] is what the UI shows: [LocalBand.base] with all pending operations applied. */
     data class Ready(val band: Band, val userId: String) : BandState {
         val me: Member? get() = band.memberOfUser(userId)
@@ -58,9 +61,28 @@ class BandRepository(
     private val writeLock = Mutex()
 
     suspend fun load() {
-        val loaded = store.read(KEY)?.let { ArtSplitJson.decodeFromString(LocalBand.serializer(), it) }
-        local = loaded
-        _state.value = loaded?.let { BandState.Ready(replay(it), it.userId) } ?: BandState.NoBand
+        val raw = store.read(KEY)
+        if (raw == null) {
+            _state.value = BandState.NoBand
+            return
+        }
+        try {
+            val loaded = ArtSplitJson.decodeFromString(LocalBand.serializer(), raw)
+            _state.value = BandState.Ready(replay(loaded), loaded.userId)
+            local = loaded
+        } catch (e: Exception) {
+            // Never lose the only copy: keep the unreadable data as a backup before offering to start over.
+            val backupKey = "$KEY-backup-${clock()}"
+            store.write(backupKey, raw)
+            _state.value = BandState.Unreadable(backupKey)
+        }
+    }
+
+    /** After [BandState.Unreadable]: drops the unreadable data (its backup stays) so a new band can be created. */
+    suspend fun startOver() {
+        store.remove(KEY)
+        local = null
+        _state.value = BandState.NoBand
     }
 
     /** Creates a band on this device; the local user becomes its owner. */

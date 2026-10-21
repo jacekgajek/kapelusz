@@ -27,7 +27,10 @@ class SettingsRepository(private val store: KeyValueStore, private val scope: Co
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     suspend fun load() {
-        store.read(KEY)?.let { _settings.value = ArtSplitJson.decodeFromString(AppSettings.serializer(), it) }
+        // Unreadable settings are not worth keeping: fall back to the defaults.
+        store.read(KEY)?.let { raw ->
+            runCatching { ArtSplitJson.decodeFromString(AppSettings.serializer(), raw) }.onSuccess { _settings.value = it }
+        }
     }
 
     fun update(transform: (AppSettings) -> AppSettings) {

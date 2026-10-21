@@ -18,5 +18,9 @@ class FileStore(private val directory: File) : KeyValueStore {
         check(temp.renameTo(file(key))) { "Could not save $key" }
     }
 
+    override suspend fun remove(key: String) {
+        withContext(Dispatchers.IO) { file(key).delete() }
+    }
+
     private fun file(key: String) = File(directory, "$key.json")
 }
