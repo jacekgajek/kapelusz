@@ -426,4 +426,23 @@
     <string name="agenda_template_hint">New events get these times to fill in; existing events keep theirs.</string>
     <string name="details_discard_title">Discard your changes?</string>
     <string name="details_discard">Discard</string>
+    <string name="reminder_prompt_added">%1$s added you to %2$s on %3$s.</string>
+    <string name="reminder_prompt_playing">You are playing %1$s on %2$s.</string>
+    <plurals name="reminder_prompt_question">
+        <item quantity="one">Get a reminder %1$d day before your gigs?</item>
+        <item quantity="other">Get a reminder %1$d days before your gigs?</item>
+    </plurals>
+    <string name="reminder_prompt_yes">Yes</string>
+    <string name="reminder_prompt_not_now">Not now</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_blocked">Android does not show notifications from Art Split yet.</string>
+    <string name="notifications_allow">Allow notifications</string>
+    <string name="notifications_reminders">Gig reminders</string>
+    <string name="notifications_days_before">Remind me before a gig I play:</string>
+    <plurals name="notifications_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="notifications_time">At</string>
+    <string name="notifications_transfers">Transfers others record with me</string>
 </resources>

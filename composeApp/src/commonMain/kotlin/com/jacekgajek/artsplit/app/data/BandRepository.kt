@@ -159,6 +159,20 @@ class BandRepository(
         _state.value = BandState.Ready(band, owner)
     }
 
+    /**
+     * Keeps a band the user belongs to on this device without opening it (background sync, VERSION_2 §5.1); an open
+     * band is left to the regular sync.
+     */
+    fun storeFromServer(band: Band, version: String) {
+        val owner = userId ?: return
+        if (band.id in locals) return
+        locals[band.id] = LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
+        persist(band.id)
+    }
+
+    /** Every band on this device as the user sees it (with unsent changes), e.g. for reminders. */
+    fun allBands(): List<Band> = locals.values.map(::replay)
+
     /** Applies [op] locally. Returns the rejection if the operation is not allowed or not valid. */
     fun dispatch(op: Operation): Rejection? {
         val bandId = currentBandId ?: error("No band open")

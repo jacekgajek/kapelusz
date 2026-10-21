@@ -21,6 +21,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -61,16 +63,45 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     val signIns: StateFlow<Int> = _signIns.asStateFlow()
 
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
-    suspend fun load() {
-        if (loaded) return
-        settings.load()
-        sessions.load()
-        sessions.session.value?.let { session ->
-            bands.load(session.userId)
-            uploads.load(session.userId)
-            sync.start()
+    suspend fun load() = loadLock.withLock {
+        if (loaded) return@withLock
+        // A background job may have loaded this user's data already (and may be syncing it): keep it, only start.
+        if (backgroundUser == null) {
+            settings.load()
+            sessions.load()
+            sessions.session.value?.let { session ->
+                bands.load(session.userId)
+                uploads.load(session.userId)
+            }
         }
+        if (sessions.session.value != null) sync.start()
         loaded = true
+    }
+
+    private val loadLock = Mutex()
+    private var backgroundUser: String? = null
+
+    /** Called after signing out, e.g. to cancel this user's reminders (Android). */
+    var afterSignOut: () -> Unit = {}
+
+    /** A gig to open, e.g. from a reminder notification: band id and event id. */
+    val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
+
+    /**
+     * Loads what a background job needs (settings, session, bands, waiting uploads) without starting the foreground
+     * sync loop; the app's own [load] later keeps it. Returns the signed-in user, if any.
+     */
+    suspend fun loadForBackground(): String? = loadLock.withLock {
+        if (!loaded && backgroundUser == null) {
+            settings.load()
+            sessions.load()
+            sessions.session.value?.userId?.let { userId ->
+                bands.load(userId)
+                uploads.load(userId)
+                backgroundUser = userId
+            }
+        }
+        sessions.session.value?.userId
     }
 
     /** Settings for a background job, which may run without the app having started (loads them if needed). */
@@ -97,6 +128,8 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     suspend fun signOut() {
         sync.stop()
         sessions.signOut()
+        pendingOpenEvent.value = null
+        afterSignOut()
     }
 
     /**

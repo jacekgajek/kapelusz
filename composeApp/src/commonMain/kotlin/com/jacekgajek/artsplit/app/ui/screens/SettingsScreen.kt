@@ -23,6 +23,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jacekgajek.artsplit.app.generated.notifications_transfers
+import com.jacekgajek.artsplit.app.generated.notifications_time
+import com.jacekgajek.artsplit.app.generated.notifications_days
+import com.jacekgajek.artsplit.app.generated.notifications_days_before
+import com.jacekgajek.artsplit.app.generated.notifications_reminders
+import com.jacekgajek.artsplit.app.generated.notifications_allow
+import com.jacekgajek.artsplit.app.generated.notifications_blocked
+import com.jacekgajek.artsplit.app.generated.notifications_title
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.jacekgajek.artsplit.app.ui.components.TimePickerDialog
+import com.jacekgajek.artsplit.app.ui.model.formatTime
+import com.jacekgajek.artsplit.app.notify.NotificationRules
+import com.jacekgajek.artsplit.app.platform.rememberNotificationPermission
+import com.jacekgajek.artsplit.app.platform.NotificationPermission
+import com.jacekgajek.artsplit.app.data.AppSettings
 import com.jacekgajek.artsplit.app.ui.model.toItem
 import com.jacekgajek.artsplit.app.ui.model.TemplateDraft
 import com.jacekgajek.artsplit.app.generated.move_up
@@ -133,6 +150,8 @@ fun SettingsScreen(
     /** The band's agenda template; [onAgendaTemplate] is null for non-admins. */
     agendaTemplate: List<AgendaTemplateItem>,
     onAgendaTemplate: ((List<AgendaTemplateItem>) -> Unit)?,
+    appSettings: AppSettings,
+    onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -232,6 +251,7 @@ fun SettingsScreen(
                 }
                 if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
             }
+            rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
             rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
             Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
             account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
@@ -371,5 +391,54 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (Li
         if (drafts.size < AgendaTime.MAX_TIMES) TextButton(onClick = { drafts = drafts + TemplateDraft(null, "") }) { Text(stringResource(Res.string.agenda_add_time)) }
         val items = drafts.map { it.toItem(builtInLabels::getValue) }
         TextButton(enabled = drafts.all { it.text.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
+    }
+}
+
+/** Android: gig reminders and transfer notifications (VERSION_2 §5.4); stored per device. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun NotificationsSection(permission: NotificationPermission, settings: AppSettings, update: ((AppSettings) -> AppSettings) -> Unit) {
+    var pickingTime by remember { mutableStateOf(false) }
+    Text(stringResource(Res.string.notifications_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+    if (permission.needsAsking && (settings.remindersEnabled || settings.transferNotifications)) {
+        Text(stringResource(Res.string.notifications_blocked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        TextButton(onClick = { permission.request { granted -> if (!granted) permission.openSettings() } }) { Text(stringResource(Res.string.notifications_allow)) }
+    }
+    SwitchRow(stringResource(Res.string.notifications_reminders), settings.remindersEnabled) { on ->
+        update { it.copy(remindersEnabled = on, notificationPromptDone = true) }
+        if (on && permission.needsAsking) permission.request {}
+    }
+    if (settings.remindersEnabled) {
+        Text(stringResource(Res.string.notifications_days_before), style = MaterialTheme.typography.bodySmall)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NotificationRules.LEAD_DAYS.forEach { days ->
+                val selected = days in settings.reminderDays
+                FilterChip(
+                    selected = selected,
+                    // At least one lead time stays ticked; turn reminders off with the switch instead.
+                    onClick = { update { it.copy(reminderDays = if (selected && it.reminderDays.size > 1) it.reminderDays - days else it.reminderDays + days) } },
+                    label = { Text(pluralStringResource(Res.plurals.notifications_days, days, days)) },
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(Res.string.notifications_time), Modifier.weight(1f))
+            TextButton(onClick = { pickingTime = true }) { Text(formatTime(settings.reminderTime)) }
+        }
+    }
+    SwitchRow(stringResource(Res.string.notifications_transfers), settings.transferNotifications) { on -> update { it.copy(transferNotifications = on) } }
+    if (pickingTime) {
+        TimePickerDialog(settings.reminderTime, stringResource(Res.string.notifications_time), onTime = { time -> update { it.copy(reminderTime = time) } }, onDismiss = { pickingTime = false })
+    }
+}
+
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = null)
     }
 }

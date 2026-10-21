@@ -13,6 +13,8 @@ import com.jacekgajek.artsplit.app.AndroidAppGraph
 import com.jacekgajek.artsplit.app.App
 import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
 import com.jacekgajek.artsplit.app.updates.UpdateWorker
+import com.jacekgajek.artsplit.app.notify.BackgroundSyncWorker
+import com.jacekgajek.artsplit.app.notify.Notifier
 import com.jacekgajek.artsplit.app.updates.Updater
 import java.lang.ref.WeakReference
 
@@ -26,6 +28,7 @@ class MainActivity : ComponentActivity() {
         Updater.appVisible = true
         UpdateWorker.schedule(this)
         UpdateWorker.checkSoon(this)
+        BackgroundSyncWorker.schedule(this)
     }
 
     override fun onStop() {
@@ -33,12 +36,23 @@ class MainActivity : ComponentActivity() {
         Updater.appVisible = false
         // A downloaded update installs while the app is out of sight (it restarts the app).
         UpdateWorker.installWhenIdle(this)
+        // Reminders follow what was just changed; transfers seen in the app are not notified later.
+        BackgroundSyncWorker.refreshLocal(this)
         super.onStop()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         takeJoinCode(intent)
+        takeEventToOpen(intent)
+    }
+
+    /** A tapped reminder or transfer notification: open its gig. */
+    private fun takeEventToOpen(intent: Intent?) {
+        val band = intent?.getStringExtra(Notifier.EXTRA_BAND) ?: return
+        val event = intent.getStringExtra(Notifier.EXTRA_EVENT) ?: return
+        graph.pendingOpenEvent.value = band to event
+        intent.removeExtra(Notifier.EXTRA_BAND)
     }
 
     /** A join link (https://artsplit.jacekgajek.com/join/CODE) opened the app: offer to join with its code. */
@@ -51,7 +65,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AndroidGoogleAuth.activity = WeakReference(this)
         // Only on a real launch: after a rotation Android re-delivers the same intent, which must not reopen a dismissed join.
-        if (savedInstanceState == null) takeJoinCode(intent)
+        if (savedInstanceState == null) {
+            takeJoinCode(intent)
+            takeEventToOpen(intent)
+        }
         setContent {
             var loaded by remember { mutableStateOf(false) }
             LaunchedEffect(graph) {
