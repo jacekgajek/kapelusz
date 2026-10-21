@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
@@ -31,6 +32,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.tab_events
 import com.jacekgajek.artsplit.app.generated.tab_my_costs
@@ -44,9 +46,6 @@ import com.jacekgajek.artsplit.app.ui.SettleRoute
 import com.jacekgajek.artsplit.app.ui.screens.PlaceholderScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -57,8 +56,9 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 }
 
 @Composable
-fun App(onNavHostReady: suspend (NavController) -> Unit = {}) {
-    var language by remember { mutableStateOf<String?>(null) }
+fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
+    val settings by graph.settings.settings.collectAsState()
+    val language = settings.language
     CompositionLocalProvider(LocalAppLocale provides language) {
         key(language) {
             ArtSplitTheme {
@@ -70,7 +70,11 @@ fun App(onNavHostReady: suspend (NavController) -> Unit = {}) {
                         composable<MyCostsRoute> { PlaceholderScreen(stringResource(Res.string.tab_my_costs), navController) }
                         composable<SettleRoute> { PlaceholderScreen(stringResource(Res.string.tab_settle), navController) }
                         composable<SettingsRoute> {
-                            SettingsScreen(language, onLanguage = { language = it }, onBack = navController::popBackStack)
+                            SettingsScreen(
+                                language = language,
+                                onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
+                                onBack = navController::popBackStack,
+                            )
                         }
                         composable<RosterRoute> { PlaceholderScreen("Roster", navController) }
                     }

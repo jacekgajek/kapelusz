@@ -386,7 +386,7 @@ Workflow:
 
 ### M2 — Local-only app (Android + Web)
 - [x] M2.1 App shell: navigation, tabs, PL/EN resources, theme
-- [ ] M2.2 Local store (Android files / web IndexedDB) + pending-op queue
+- [x] M2.2 Local store (Android files / web IndexedDB) + pending-op queue
 - [ ] M2.3 Roster (local) and event list with status, "your number", Continue card
 - [ ] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
 - [ ] M2.5 Transfers: suggestions, Settle, per-member Settle, Settle All, Hand over money
