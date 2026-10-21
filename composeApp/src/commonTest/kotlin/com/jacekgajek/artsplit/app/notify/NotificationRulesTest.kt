@@ -48,7 +48,7 @@ class NotificationRulesTest {
                 agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0))),
             ),
             CreateEvent("bobs", "Bob only", LocalDate(2026, 10, 26), participants = listOf(Participant("bob"))),
-            CreateEvent("soon", "Tomorrow", LocalDate(2026, 10, 22), participants = listOf(Participant("alice"))),
+            CreateEvent("soon", "Tomorrow", LocalDate(2026, 10, 22), location = "Klub", mapUrl = "https://maps.app.goo.gl/x", participants = listOf(Participant("alice"))),
             CreateEvent("old", "Archived", LocalDate(2026, 10, 30), participants = listOf(Participant("alice"))),
             SetEventArchived("old", true),
         )
@@ -59,6 +59,7 @@ class NotificationRulesTest {
             "past reminders (3 days before tomorrow's gig) and other people's or archived gigs are left out",
         )
         assertEquals(LocalTime(17, 0), reminders.last().firstTime?.time)
+        assertEquals(listOf("https://maps.app.goo.gl/x", null, null), reminders.map { it.navigateUrl }, "Navigate on the reminder when there is somewhere to go")
     }
 
     @Test

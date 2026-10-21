@@ -2,6 +2,7 @@ package com.jacekgajek.artsplit.ops
 
 import com.jacekgajek.artsplit.domain.BandFund
 import com.jacekgajek.artsplit.domain.CostLedger
+import com.jacekgajek.artsplit.domain.Places
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.BAND_FUND
 import com.jacekgajek.artsplit.model.AgendaTime
@@ -50,11 +51,17 @@ object Reducer {
 
             is CreateEvent -> createEvent(band, op, ctx)
             is UpdateEvent -> band.updateEvent(op.eventId) { event ->
+                val location = if (op.location != null) op.location.value.blankToNull() else event.location
                 event.copy(
                     name = op.name?.value?.validName("Event name") ?: event.name,
                     date = op.date?.value ?: event.date,
-                    location = if (op.location != null) op.location.value.blankToNull() else event.location,
-                    mapUrl = if (op.mapUrl != null) validMapUrl(op.mapUrl.value) else event.mapUrl,
+                    location = location,
+                    // Clearing the location also drops its Maps link (old apps don't know the link exists).
+                    mapUrl = when {
+                        op.mapUrl != null -> validMapUrl(op.mapUrl.value)
+                        location == null -> null
+                        else -> event.mapUrl
+                    },
                     notes = if (op.notes != null) op.notes.value.blankToNull() else event.notes,
                 )
             }
@@ -267,11 +274,9 @@ object Reducer {
     /** A link people open from the app: https only, and bounded. */
     private fun validMapUrl(url: String?): String? {
         val value = url?.trim()?.ifEmpty { null } ?: return null
-        invalidIf(!value.startsWith("https://") || value.length > MAX_URL || value.any { it.isWhitespace() }, RejectionReason.INVALID_INPUT) { "Invalid map link" }
+        invalidIf(!Places.isValidUrl(value), RejectionReason.INVALID_INPUT) { "Invalid map link" }
         return value
     }
-
-    private const val MAX_URL = 500
 
     private fun validAgenda(agenda: List<AgendaTime>): List<AgendaTime> {
         invalidIf(agenda.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }

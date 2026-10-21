@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,7 +72,9 @@ fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
     val uriHandler = LocalUriHandler.current
     val paste = rememberPaste()
     val scope = rememberCoroutineScope()
-    var noLinkInClipboard by remember { mutableStateOf(false) }
+    // The paste finishes later (the browser may ask for permission), so it must apply to the fields as they are then.
+    val current by rememberUpdatedState(state)
+    var noLinkInClipboard by remember(state.mapUrl, state.location) { mutableStateOf(false) }
     var picking by remember { mutableStateOf<AgendaTime?>(null) }
     var addingCustom by remember { mutableStateOf(false) }
     val agenda = state.agenda
@@ -85,8 +88,8 @@ fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
             AssistChip(onClick = {
                 scope.launch {
                     val place = paste()?.let(Places::parse)
+                    if (place != null) onState(current.copy(location = current.location.ifBlank { place.name.orEmpty() }, mapUrl = place.url))
                     noLinkInClipboard = place == null
-                    if (place != null) onState(state.copy(location = state.location.ifBlank { place.name.orEmpty() }, mapUrl = place.url))
                 }
             }, label = { Text(stringResource(Res.string.map_paste)) }, leadingIcon = { Icon(Icons.Default.ContentPaste, null) })
         }

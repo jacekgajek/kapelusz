@@ -349,6 +349,10 @@ private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: S
             ),
         )
     }
+    // A place shared from Google Maps while the dialog is already open.
+    LaunchedEffect(initialMapUrl) {
+        if (initialMapUrl != null && fields.mapUrl != initialMapUrl) fields = fields.copy(location = fields.location.ifBlank { initialLocation }, mapUrl = initialMapUrl)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.new_event)) },

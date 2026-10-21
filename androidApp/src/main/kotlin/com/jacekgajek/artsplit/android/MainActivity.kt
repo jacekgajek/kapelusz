@@ -52,8 +52,10 @@ class MainActivity : ComponentActivity() {
     /** Google Maps shared a place to Art Split: offer to set it as an event's location. */
     private fun takeSharedPlace(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
-        val place = intent.getStringExtra(Intent.EXTRA_TEXT)?.let(Places::parse) ?: return
-        graph.pendingSharedPlace.value = place
+        // A CharSequence: some apps share styled text, which getStringExtra would drop.
+        val place = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.let(Places::parse) ?: return
+        val subject = intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)?.toString()?.trim()?.ifEmpty { null }
+        graph.pendingSharedPlace.value = if (place.name == null && subject != null) place.copy(name = subject) else place
     }
 
     /** A tapped reminder or transfer notification: open its gig. */

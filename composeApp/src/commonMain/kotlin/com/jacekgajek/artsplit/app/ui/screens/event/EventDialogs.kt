@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +79,10 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
                 agenda = event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) } },
             ),
         )
+    }
+    // A place shared from Google Maps to this event while the dialog is open shows here instead of being undone on Save.
+    LaunchedEffect(event.mapUrl) {
+        if (event.mapUrl != null && fields.mapUrl != event.mapUrl) fields = fields.copy(location = fields.location.ifBlank { event.location.orEmpty() }, mapUrl = event.mapUrl)
     }
     AlertDialog(
         onDismissRequest = onDismiss,

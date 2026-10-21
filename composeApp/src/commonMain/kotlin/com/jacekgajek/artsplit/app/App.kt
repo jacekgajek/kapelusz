@@ -355,24 +355,29 @@ private fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEve
     val can = Can(band, state.userId)
     val events = band.events.filter { !it.archived && it.date >= today() && can.editEvent(it) }.sortedBy { it.date }
     val dismiss = { graph.pendingSharedPlace.value = null }
+    var rejected by remember(shared) { mutableStateOf<RejectionReason?>(null) }
     AlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(Res.string.place_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 shared.name?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
+                rejected?.let { Text(stringResource(it.labelRes()), color = MaterialTheme.colorScheme.error) }
                 if (events.isEmpty() && !can.createEvent()) Text(stringResource(Res.string.place_nothing))
                 events.forEach { event ->
                     TextButton(onClick = {
-                        graph.dispatch(
+                        val rejection = graph.dispatch(
                             UpdateEvent(
                                 event.id,
                                 location = Change(shared.name).takeIf { event.location.isNullOrBlank() && shared.name != null },
                                 mapUrl = Change(shared.url),
                             ),
                         )
-                        dismiss()
-                        onOpenEvent(event.id)
+                        rejected = rejection?.reason
+                        if (rejection == null) {
+                            dismiss()
+                            onOpenEvent(event.id)
+                        }
                     }) { Text("${event.name} · ${formatDate(event.date, language)}") }
                 }
                 if (can.createEvent()) {
