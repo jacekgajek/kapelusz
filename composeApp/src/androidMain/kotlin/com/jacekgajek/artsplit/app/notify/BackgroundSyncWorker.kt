@@ -16,6 +16,10 @@ import com.jacekgajek.artsplit.app.AndroidAppGraph
 import com.jacekgajek.artsplit.app.data.AppGraph
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 
@@ -25,13 +29,19 @@ import kotlin.time.Clock
  * only reschedules from the data on the device and marks what the user has just seen.
  */
 class BackgroundSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
+    // On the main thread: band data is only ever touched there (the UI, the foreground sync), never concurrently.
+    override suspend fun doWork(): Result = withContext(Dispatchers.Main) {
         val graph = AndroidAppGraph.get(applicationContext)
-        val userId = graph.loadForBackground() ?: return Result.success()
+        val userId = graph.loadForBackground()
+        if (userId == null) {
+            // Signed out: nothing of the previous user may remind anyone.
+            ReminderScheduler.reschedule(applicationContext, emptyList())
+            return@withContext Result.success()
+        }
         val local = inputData.getBoolean(LOCAL, false)
         val synced = local || graph.sync.syncAll()
         afterSync(applicationContext, graph, userId, notifyTransfers = !local)
-        return if (synced) Result.success() else Result.retry()
+        if (synced) Result.success() else Result.retry()
     }
 
     companion object {
@@ -57,25 +67,32 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
             )
         }
 
-        internal suspend fun afterSync(context: Context, graph: AppGraph, userId: String, notifyTransfers: Boolean) {
+        /** One at a time: the periodic and the local runs both reschedule alarms and update what was seen. */
+        private val afterSyncLock = Mutex()
+
+        internal suspend fun afterSync(context: Context, graph: AppGraph, userId: String, notifyTransfers: Boolean) = afterSyncLock.withLock {
             val settings = graph.settingsForBackground()
             val bands = graph.bands.allBands()
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             ReminderScheduler.reschedule(
                 context,
                 if (settings.remindersEnabled) NotificationRules.reminders(bands, userId, settings.reminderDays, settings.reminderTime, now) else emptyList(),
+                settings.language,
             )
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val key = "seen-$userId"
-            val current = NotificationRules.transferKeys(bands)
-            val seen = prefs.getStringSet(key, null)
-            // The first run only records what exists: no flood of old transfers after installing or signing in.
-            if (seen != null && notifyTransfers && settings.transferNotifications) {
-                NotificationRules.newTransfers(bands, userId, seen).forEach { notice ->
-                    bands.firstOrNull { it.id == notice.bandId }?.let { Notifier.showTransfers(context, it, notice) }
-                }
+            val check = NotificationRules.checkTransfers(
+                bands,
+                userId,
+                seen = prefs.getStringSet("seen-$userId", null).orEmpty(),
+                baselined = prefs.getStringSet("baselined-$userId", null).orEmpty(),
+            )
+            if (notifyTransfers && settings.transferNotifications) {
+                check.notices.forEach { notice -> bands.firstOrNull { it.id == notice.bandId }?.let { Notifier.showTransfers(context, it, notice, settings.language) } }
             }
-            prefs.edit { putStringSet(key, current) }
+            prefs.edit {
+                putStringSet("seen-$userId", check.seen)
+                putStringSet("baselined-$userId", check.baselined)
+            }
         }
     }
 }

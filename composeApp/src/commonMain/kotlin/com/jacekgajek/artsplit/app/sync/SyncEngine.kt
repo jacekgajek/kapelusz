@@ -137,20 +137,30 @@ class SyncEngine(
         try {
             bands.onBandList(api.me().bands)
             val ids = (bands.index.value?.bands.orEmpty().map { it.id } + bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
+            var allOk = true
             for (bandId in ids) {
-                if (bands.local(bandId) == null) {
-                    val state = api.state(bandId, null) ?: continue
-                    bands.storeFromServer(state.band, state.version)
-                    continue
+                val result = if (bands.local(bandId) == null) {
+                    // One band failing to download must not keep the others from syncing.
+                    try {
+                        api.state(bandId, null)?.let { bands.storeFromServer(it.band, it.version) }
+                        SyncStatus.SYNCED
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        classify(e)
+                    }
+                } else {
+                    syncBand(bandId, pull = true)
                 }
-                val result = syncBand(bandId, pull = true)
                 if (result == SyncStatus.NEEDS_SIGN_IN || result == SyncStatus.OFFLINE || result == SyncStatus.UPDATE_REQUIRED) {
                     _status.value = result
                     return false
                 }
+                if (result != SyncStatus.SYNCED) allOk = false
             }
             bands.flush()
-            true
+            if (allOk) _status.value = SyncStatus.SYNCED
+            allOk
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {

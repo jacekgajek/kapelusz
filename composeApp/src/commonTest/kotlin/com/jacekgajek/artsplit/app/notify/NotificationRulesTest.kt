@@ -85,4 +85,23 @@ class NotificationRulesTest {
         val (_, event) = NotificationRules.firstUpcomingGig(listOf(band), "u-alice", LocalDate(2026, 10, 21))!!
         assertEquals("bob", event.participant("alice")!!.addedBy)
     }
+
+    @Test
+    fun aNewlyJoinedBandOrOneMissingForARunDoesNotFlood() {
+        val gig = base.apply(
+            "u-bob",
+            CreateEvent("gig", "Club gig", LocalDate(2026, 10, 1), participants = listOf(Participant("alice"), Participant("bob"))),
+            AddHolding("gig", "h", "bob", Money(10000), IncomeSource.DOOR),
+            RecordTransfer("gig", "old", "bob", "alice", Money(5000)),
+        )
+        // First sight of the band (joined elsewhere): its old transfer is only recorded.
+        val first = NotificationRules.checkTransfers(listOf(gig), "u-alice", seen = emptySet(), baselined = emptySet())
+        assertTrue(first.notices.isEmpty())
+        // Missing from one run (e.g. not loaded): its keys are kept...
+        val missing = NotificationRules.checkTransfers(emptyList(), "u-alice", first.seen, first.baselined)
+        // ...so when it is back, only the genuinely new transfer is notified.
+        val back = gig.apply("u-bob", RecordTransfer("gig", "new", "bob", "alice", Money(1)))
+        val later = NotificationRules.checkTransfers(listOf(back), "u-alice", missing.seen, missing.baselined)
+        assertEquals(listOf("new"), later.notices.flatMap { notice -> notice.transfers.map { it.id } })
+    }
 }

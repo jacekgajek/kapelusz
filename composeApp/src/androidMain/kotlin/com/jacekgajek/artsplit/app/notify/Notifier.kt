@@ -8,13 +8,14 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.app.ui.model.formatAgendaTime
 import com.jacekgajek.artsplit.app.ui.model.partyName
 import com.jacekgajek.artsplit.model.AgendaKind
 import com.jacekgajek.artsplit.model.AgendaTime
+import com.jacekgajek.artsplit.model.BAND_FUND
 import com.jacekgajek.artsplit.model.Band
+import kotlinx.datetime.LocalDate
 import java.util.Locale
 
 /**
@@ -28,38 +29,50 @@ object Notifier {
     const val EXTRA_BAND = "openBand"
     const val EXTRA_EVENT = "openEvent"
 
-    private val polish get() = Locale.getDefault().language == "pl"
-    private val language get() = if (polish) "pl" else "en"
+    /** The app's language when set, otherwise the device's (the default locale). */
+    private fun polish(language: String?) = (language ?: Locale.getDefault().language) == "pl"
 
     fun canNotify(context: Context) = NotificationManagerCompat.from(context).areNotificationsEnabled()
 
-    private fun channels(context: Context) {
+    private fun channels(context: Context, pl: Boolean) {
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(REMINDERS, if (polish) "Przypomnienia o koncertach" else "Gig reminders", NotificationManager.IMPORTANCE_DEFAULT))
-        manager.createNotificationChannel(NotificationChannel(TRANSFERS, if (polish) "Przelewy" else "Transfers", NotificationManager.IMPORTANCE_LOW))
+        manager.createNotificationChannel(NotificationChannel(REMINDERS, if (pl) "Przypomnienia o koncertach" else "Gig reminders", NotificationManager.IMPORTANCE_DEFAULT))
+        manager.createNotificationChannel(NotificationChannel(TRANSFERS, if (pl) "Przelewy" else "Transfers", NotificationManager.IMPORTANCE_LOW))
     }
 
-    /** "Tomorrow: Club gig" / "Za 3 dni: Club gig", and the date with the first time ("Sat 12 Sep · Arrival 17:00"). */
-    fun reminderTexts(eventName: String, daysBefore: Int, date: kotlinx.datetime.LocalDate, firstTime: AgendaTime?): Pair<String, String> {
+    private val EN_DAYS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    private val PL_DAYS = listOf("pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz.")
+    private val EN_MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    /** "Sat 12 Sep" / "sob. 12.09" */
+    private fun dayText(date: LocalDate, pl: Boolean): String {
+        val day = date.dayOfWeek.ordinal
+        return if (pl) "${PL_DAYS[day]} ${date.day.toString().padStart(2, '0')}.${(date.month.ordinal + 1).toString().padStart(2, '0')}"
+        else "${EN_DAYS[day]} ${date.day} ${EN_MONTHS[date.month.ordinal]}"
+    }
+
+    /** "Tomorrow: Club gig" / "Za 3 dni: Club gig", and "Sat 12 Sep · Arrival 17:00". */
+    fun reminderTexts(eventName: String, daysBefore: Int, date: LocalDate, firstTime: AgendaTime?, language: String? = null): Pair<String, String> {
+        val pl = polish(language)
         val whenText = when {
-            daysBefore == 1 && polish -> "Jutro"
+            daysBefore == 1 && pl -> "Jutro"
             daysBefore == 1 -> "Tomorrow"
-            polish -> "Za $daysBefore dni"
+            pl -> "Za $daysBefore dni"
             else -> "In $daysBefore days"
         }
-        val time = firstTime?.let { "${label(it)} ${formatAgendaTime(it)}" }
-        return "$whenText: $eventName" to listOfNotNull(formatDate(date, language), time).joinToString(" · ")
+        val time = firstTime?.let { "${label(it, pl)} ${formatAgendaTime(it)}" }
+        return "$whenText: $eventName" to listOfNotNull(dayText(date, pl), time).joinToString(" · ")
     }
 
-    private fun label(time: AgendaTime) = when (time.kind) {
-        AgendaKind.ARRIVAL -> if (polish) "Przyjazd" else "Arrival"
-        AgendaKind.CONCERT_START -> if (polish) "Początek koncertu" else "Concert start"
+    private fun label(time: AgendaTime, pl: Boolean) = when (time.kind) {
+        AgendaKind.ARRIVAL -> if (pl) "Przyjazd" else "Arrival"
+        AgendaKind.CONCERT_START -> if (pl) "Początek koncertu" else "Concert start"
         null -> time.label.orEmpty()
     }
 
     fun showReminder(context: Context, id: Int, bandId: String, eventId: String, title: String, text: String) {
         if (!canNotify(context)) return
-        channels(context)
+        channels(context, polish(null))
         notify(context, id, NotificationCompat.Builder(context, REMINDERS)
             .setSmallIcon(android.R.drawable.ic_menu_today)
             .setContentTitle(title)
@@ -69,26 +82,34 @@ object Notifier {
             .build())
     }
 
-    /** One notification per event, grouping what was recorded together. */
-    fun showTransfers(context: Context, band: Band, notice: TransferNotice) {
+    /**
+     * One notification per event and check: "129,60 zł from Dave" (to you), "… to Dave" (from you), "… from Dave to
+     * the band fund" (which you hold), with who recorded it. Polish avoids gendered verb forms.
+     */
+    fun showTransfers(context: Context, band: Band, notice: TransferNotice, language: String?) {
         if (!canNotify(context)) return
-        channels(context)
+        val pl = polish(language)
+        channels(context, pl)
         val event = notice.event
-        val fund = if (polish) "Kasa zespołowa" else "Band fund"
-        val by = notice.recordedBy.mapNotNull { band.member(it)?.name }.joinToString(", ")
-        val title: String
-        val text: String
-        if (notice.transfers.size == 1) {
+        val fund = if (pl) "kasy zespołowej" else "the band fund"
+        val lang = if (pl) "pl" else "en"
+        fun name(id: String) = partyName(band, event, id, if (pl) "Kasa zespołowa" else "Band fund")
+        val title = if (notice.transfers.size == 1) {
             val t = notice.transfers.single()
-            val line = "${partyName(band, event, t.from, fund)} → ${partyName(band, event, t.to, fund)}, ${formatMoney(t.amount, band.currency, language)}"
-            title = if (polish) "Nowy przelew: $line" else "New transfer: $line"
+            val amount = formatMoney(t.amount, band.currency, lang)
+            when {
+                t.to == BAND_FUND -> if (pl) "$amount od: ${name(t.from)} do $fund" else "$amount from ${name(t.from)} to $fund"
+                t.from == BAND_FUND -> if (pl) "$amount z $fund dla: ${name(t.to)}" else "$amount from $fund to ${name(t.to)}"
+                t.to == notice.meId -> if (pl) "$amount od: ${name(t.from)}" else "$amount from ${name(t.from)}"
+                else -> if (pl) "$amount dla: ${name(t.to)}" else "$amount to ${name(t.to)}"
+            }
         } else {
             val n = notice.transfers.size
-            title = if (polish) "${event.name}: nowe przelewy z Twoim udziałem ($n)" else "${event.name}: $n new transfers with you"
+            if (pl) "Nowe przelewy z Twoim udziałem: $n" else "$n new transfers with you"
         }
-        text = listOfNotNull(event.name.takeIf { notice.transfers.size == 1 }, by.takeIf { it.isNotEmpty() }?.let { if (polish) "zapisane przez: $it" else "recorded by $it" })
-            .joinToString(" · ")
-        val id = ("t" + band.id + event.id).hashCode()
+        val by = notice.recordedBy.mapNotNull { band.member(it)?.name }.joinToString(", ")
+        val text = listOfNotNull(event.name, by.takeIf { it.isNotEmpty() }?.let { if (pl) "zapisane przez: $it" else "recorded by $it" }).joinToString(" · ")
+        val id = ("t" + band.id + event.id + notice.transfers.first().id).hashCode()
         notify(context, id, NotificationCompat.Builder(context, TRANSFERS)
             .setSmallIcon(android.R.drawable.ic_menu_send)
             .setContentTitle(title)

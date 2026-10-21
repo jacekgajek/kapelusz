@@ -247,7 +247,11 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     LaunchedEffect(openEvent) {
         val (bandId, eventId) = openEvent ?: return@LaunchedEffect
         graph.pendingOpenEvent.value = null
+        // A notification can outlive its band (deleted, access lost): then the tap only opens the app.
+        if (!graph.bands.hasStored(bandId)) return@LaunchedEffect
         if (graph.bands.currentBandId != bandId) graph.bands.open(bandId)
+        // From the event list, like switching bands: Back must not lead into the other band's screens.
+        navController.resetTo(EventsRoute)
         navController.navigate(EventRoute(eventId))
     }
     ReminderPrompt(graph, settings)
@@ -349,7 +353,9 @@ private fun ReminderPrompt(graph: AppGraph, settings: AppSettings) {
         text = { Text(text + " " + pluralStringResource(Res.plurals.reminder_prompt_question, days, days)) },
         confirmButton = {
             TextButton(onClick = {
-                permission.request { granted -> graph.settings.update { it.copy(notificationPromptDone = true, remindersEnabled = granted) } }
+                // Answered now, so a screen rotation during Android's dialog cannot bring the prompt back.
+                graph.settings.update { it.copy(notificationPromptDone = true) }
+                permission.request { granted -> graph.settings.update { it.copy(remindersEnabled = granted) } }
             }) { Text(stringResource(Res.string.reminder_prompt_yes)) }
         },
         dismissButton = {

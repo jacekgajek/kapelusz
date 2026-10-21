@@ -413,4 +413,21 @@ class SyncEngineTest {
         assertFalse(sync.syncNow())
         assertEquals(before, server.requests, "no pointless retries until the app is updated")
     }
+
+    @Test
+    fun theBackgroundSyncKeepsEveryBandWithoutSwitchingTheOpenOne() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        repository.load("alice")
+        repository.createBand("Open band", "PLN", "Alice")
+        val open = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+        // Alice joined another band elsewhere (the web, another phone).
+        server.bands["elsewhere"] = Band.create("elsewhere", "Joined elsewhere", "PLN", "m-a", "Alice", "alice")
+
+        assertTrue(sync.syncAll())
+        assertEquals("Joined elsewhere", repository.local("elsewhere")?.base?.name, "downloaded")
+        assertEquals(open, repository.currentBandId, "the open band stays open")
+        assertEquals(setOf("Open band", "Joined elsewhere"), repository.allBands().map { it.name }.toSet())
+    }
 }

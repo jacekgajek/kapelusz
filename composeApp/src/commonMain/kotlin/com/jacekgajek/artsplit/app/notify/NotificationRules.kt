@@ -29,7 +29,10 @@ data class Reminder(
 }
 
 /** New transfers involving the user in one event, recorded by others since the last check. */
-data class TransferNotice(val bandId: Id, val event: Event, val transfers: List<Transfer>, val recordedBy: List<Id>)
+data class TransferNotice(val bandId: Id, val event: Event, val transfers: List<Transfer>, val recordedBy: List<Id>, val meId: Id)
+
+/** The result of [NotificationRules.checkTransfers]. */
+data class TransferCheck(val notices: List<TransferNotice>, val seen: Set<String>, val baselined: Set<Id>)
 
 /** Which notifications exist, from the bands on this device (VERSION_2 §5); free of Android, so it can be tested. */
 object NotificationRules {
@@ -61,8 +64,20 @@ object NotificationRules {
         val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
         band.events.mapNotNull { event ->
             val fresh = event.transfers.filter { "${band.id}/${it.id}" !in seen && (it.from in mine || it.to in mine) && it.recordedBy != me.id }
-            if (fresh.isEmpty()) null else TransferNotice(band.id, event, fresh, fresh.mapNotNull { it.recordedBy }.distinct())
+            if (fresh.isEmpty()) null else TransferNotice(band.id, event, fresh, fresh.mapNotNull { it.recordedBy }.distinct(), me.id)
         }
+    }
+
+    /**
+     * One check for new transfers: what to notify, and what counts as seen afterwards. A band seen for the first time
+     * (just joined, or the first run on this device) only records what it has, so its history never floods the
+     * user; seen keys of bands missing from this run are kept for when they come back.
+     */
+    fun checkTransfers(bands: List<Band>, userId: String, seen: Set<String>, baselined: Set<Id>): TransferCheck {
+        val present = bands.map { it.id }.toSet()
+        val notices = newTransfers(bands.filter { it.id in baselined }, userId, seen)
+        val keptForAbsent = seen.filterTo(mutableSetOf()) { it.substringBefore('/') !in present }
+        return TransferCheck(notices, transferKeys(bands) + keptForAbsent, baselined + present)
     }
 
     /** For the permission prompt: the nearest upcoming event the user takes part in, with who added them. */
