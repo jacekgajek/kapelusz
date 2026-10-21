@@ -142,4 +142,9 @@
     <string name="cost_refunded_fund">%1$s refunded from the band fund</string>
     <string name="delete_cost_title">Delete cost?</string>
     <string name="delete_cost_confirm">The cost and its refunds will be removed.</string>
+    <string name="your_transfers">Your transfers</string>
+    <string name="events_to_settle">Events to settle</string>
+    <string name="nothing_to_settle">Nothing to settle. 🎉</string>
+    <string name="open_event">Open</string>
+    <string name="you_hold">You hold %1$s to hand over at %2$s</string>
 </resources>

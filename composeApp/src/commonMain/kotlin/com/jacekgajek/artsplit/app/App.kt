@@ -52,9 +52,9 @@ import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.CreateBandScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
-import com.jacekgajek.artsplit.app.ui.screens.PlaceholderScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
+import com.jacekgajek.artsplit.app.ui.screens.SettleScreen
 import com.jacekgajek.artsplit.app.ui.screens.event.EventScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
 import org.jetbrains.compose.resources.StringResource
@@ -70,6 +70,9 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     val settings by graph.settings.settings.collectAsState()
     val bandState by graph.bands.state.collectAsState()
+    // Outside key(language), so changing the language keeps the back stack.
+    val navController = rememberNavController()
+    LaunchedEffect(navController) { onNavHostReady(navController) }
     CompositionLocalProvider(LocalAppLocale provides settings.language) {
         key(settings.language) {
             ArtSplitTheme {
@@ -79,7 +82,7 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
                         BandState.NoBand -> CreateBandScreen { name, currency, yourName ->
                             graph.bands.createBand(name, currency, yourName)
                         }
-                        is BandState.Ready -> Navigation(graph, state, onNavHostReady)
+                        is BandState.Ready -> Navigation(graph, state, navController)
                     }
                 }
             }
@@ -88,10 +91,8 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
 }
 
 @Composable
-private fun Navigation(graph: AppGraph, state: BandState.Ready, onNavHostReady: suspend (NavController) -> Unit) {
+private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: NavHostController) {
     val settings by graph.settings.settings.collectAsState()
-    val navController = rememberNavController()
-    LaunchedEffect(navController) { onNavHostReady(navController) }
     val toSettings = { navController.navigate(SettingsRoute) }
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
@@ -102,7 +103,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, onNavHostReady: 
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
             }
             composable<MyCostsRoute> { MyCostsScreen(state, { navController.navigate(CostRoute(it)) }, toSettings, toRoster) }
-            composable<SettleRoute> { PlaceholderScreen(stringResource(Res.string.tab_settle), toSettings, toRoster) }
+            composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
             composable<CostRoute> { entry -> CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back) }
             composable<SettingsRoute> {

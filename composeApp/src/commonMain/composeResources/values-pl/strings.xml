@@ -142,4 +142,9 @@
     <string name="cost_refunded_fund">%1$s zwrócono z kasy zespołowej</string>
     <string name="delete_cost_title">Usunąć koszt?</string>
     <string name="delete_cost_confirm">Koszt i jego zwroty zostaną usunięte.</string>
+    <string name="your_transfers">Twoje przekazania</string>
+    <string name="events_to_settle">Wydarzenia do rozliczenia</string>
+    <string name="nothing_to_settle">Nie ma nic do rozliczenia. 🎉</string>
+    <string name="open_event">Otwórz</string>
+    <string name="you_hold">Masz %1$s do przekazania: %2$s</string>
 </resources>
