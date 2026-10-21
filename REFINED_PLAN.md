@@ -1,7 +1,7 @@
 # Art Split — Refined Plan
 
 A simple, CRM-style app for settling money between band members after concerts.
-It replaces the `Rozliczenia.ods` spreadsheet, which is now used only as golden test data.
+It replaces the band's settlement spreadsheet; the cases from it live on as golden tests (§2.6).
 
 Targets: **Android** and **Web (Compose/Wasm)**. The web app is fully featured and doubles as the iPhone/desktop client.
 UI languages: **Polish and English**, following the device language with a manual override in Settings. Code, identifiers and docs are in English.
@@ -99,17 +99,17 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 - **The whole feature is disabled until an admin picks the treasurer.** Until then the UI shows "Admin must choose who holds the band fund", with a shortcut for admins.
 
 ### 2.6 Golden tests
-Each case covers a **different behaviour**. Real cases come from `Rozliczenia.ods` and `Rozliczenia DV.ods`; the synthetic ones cover edge cases the sheets don't have.
+Each case covers a **different behaviour**. Real cases come from the band's earlier settlement spreadsheets (anonymized); the synthetic ones cover edge cases the spreadsheets don't have.
 
-| # | Behaviour under test | Source | Input | Expected |
+| # | Behaviour under test | Based on | Input | Expected |
 |---|---|---|---|---|
-| G1 | Even split + refunds of two members' costs; a roster member not taking part | Rozliczenia / Oakfield Jazz Club 2026-09-13 | DOOR 1000.00 held by Dave; costs Carol 30.00, Dave 322.00 (incurred for this event); participants Alice, Bob, Carol, Dave, Frank @100 (Eve absent) | payouts Alice 129.60, Bob 129.60, Carol 159.60, Dave 451.60, Frank 129.60; 4 suggested transfers from Dave |
-| G2 | Guest @0 who collected money; several holders; absent member | Rozliczenia / Millbrook Harvest Fair | DOOR 2000.00 held 500 each by Alice, Bob, Carol, guest Helper 2; participants Alice, Bob, Carol, Eve @100, Helper 2 @0 | payouts 500.00 ×4, Helper 2 0.00; single suggestion Helper 2 → Eve 500.00 |
-| G3 | Multiple income sources with notes; income fully consumed by one member's refund → SETTLED with no transfers | DV / Carried over | CONTRACT 1870.00 + SPONSORSHIP 200.00 ("sponsorship via Grace"), both held by Carol; Carol refund 2070.00; 5 members @100 | net 0; Carol payout 2070.00, others 0.00; status SETTLED immediately |
-| G4 | **Amortization:** one cost repaid in parts across events | DV / Carried over + Southgate Park + Grand Hotel gala | Carol cost 4970.00; refunds 2070.00 (G3), 1000.00 (CONTRACT 1000.00), 1900.00 (MERCH 400.00 + CONTRACT 1500.00) | after event 1: PARTLY_REFUNDED, outstanding 2900.00; after 2: 1900.00; after 3: REFUNDED, all three events SETTLED |
-| G5 | Whole income to band fund, collected by a non-treasurer | DV / Four Lanterns pub | HAT 710.00 held by Dave ("hat at Four Lanterns"); fundAmount 710.00; treasurer Carol | net 0, payouts 0; suggestion Dave → Band fund (Carol) 710.00 |
-| G6 | Treasurer collected the fund money themselves | DV / Elmwood village fete (adapted) | CONTRACT 813.00 held by Carol; fundAmount 813.00; treasurer Carol | suggestion "Carol: keep 813.00 for band fund"; after both G5 and G6 settle, fund balance 1523.00 |
-| G7 | Single holder owes several members; a member sitting out; OPEN until settled | DV / 2023-09 Riverside Arts Night | CONTRACT 1200.00 held by Carol; participants Carol, Grace, Dave, Ivan @100 (Heidi absent) | payouts 300.00 each; suggestions Carol → Grace/Dave/Ivan 300.00; OPEN → Settle All → SETTLED |
+| G1 | Even split + refunds of two members' costs; a roster member not taking part | Oakfield Jazz Club 2026-09-13 | DOOR 1000.00 held by Dave; costs Carol 30.00, Dave 322.00 (incurred for this event); participants Alice, Bob, Carol, Dave, Frank @100 (Eve absent) | payouts Alice 129.60, Bob 129.60, Carol 159.60, Dave 451.60, Frank 129.60; 4 suggested transfers from Dave |
+| G2 | Guest @0 who collected money; several holders; absent member | Millbrook Harvest Fair | DOOR 2000.00 held 500 each by Alice, Bob, Carol, guest Helper 2; participants Alice, Bob, Carol, Eve @100, Helper 2 @0 | payouts 500.00 ×4, Helper 2 0.00; single suggestion Helper 2 → Eve 500.00 |
+| G3 | Multiple income sources with notes; income fully consumed by one member's refund → SETTLED with no transfers | Carried over | CONTRACT 1870.00 + SPONSORSHIP 200.00 ("sponsorship via Grace"), both held by Carol; Carol refund 2070.00; 5 members @100 | net 0; Carol payout 2070.00, others 0.00; status SETTLED immediately |
+| G4 | **Amortization:** one cost repaid in parts across events | Carried over + Southgate Park + Grand Hotel gala | Carol cost 4970.00; refunds 2070.00 (G3), 1000.00 (CONTRACT 1000.00), 1900.00 (MERCH 400.00 + CONTRACT 1500.00) | after event 1: PARTLY_REFUNDED, outstanding 2900.00; after 2: 1900.00; after 3: REFUNDED, all three events SETTLED |
+| G5 | Whole income to band fund, collected by a non-treasurer | Four Lanterns pub | HAT 710.00 held by Dave ("hat at Four Lanterns"); fundAmount 710.00; treasurer Carol | net 0, payouts 0; suggestion Dave → Band fund (Carol) 710.00 |
+| G6 | Treasurer collected the fund money themselves | Elmwood village fete (adapted) | CONTRACT 813.00 held by Carol; fundAmount 813.00; treasurer Carol | suggestion "Carol: keep 813.00 for band fund"; after both G5 and G6 settle, fund balance 1523.00 |
+| G7 | Single holder owes several members; a member sitting out; OPEN until settled | 2023-09 Riverside Arts Night | CONTRACT 1200.00 held by Carol; participants Carol, Grace, Dave, Ivan @100 (Heidi absent) | payouts 300.00 each; suggestions Carol → Grace/Dave/Ivan 300.00; OPEN → Settle All → SETTLED |
 | G8 | Rounding of leftover grosze | synthetic | net 100.00, 3 participants @100 | 33.34, 33.33, 33.33 (extra grosz to first in roster order) |
 | G9 | Unequal weights | synthetic | net 1000.00, A @150, B @100, C @100 | 428.57, 285.72, 285.71 (leftover grosz: B and C tie on remainder, B wins by roster order) |
 | G10 | Loss blocks settlement; deferral fixes it | synthetic | income 100.00, refund 150.00 | LOSS, Settle disabled; defer 50.00 → net 0, settleable, cost outstanding 50.00 |
@@ -424,7 +424,7 @@ Workflow:
 |---|---|
 | 2026-10-20 | Plan refined from PLAN.md through a Q&A session (band fund, costs-as-member-debt, transfers, roles, ops-based sync, Lambda API, invites, distribution, i18n, history). |
 | 2026-10-20 | API exposed via **API Gateway HTTP API** instead of a Lambda Function URL: built-in throttling and a well-known permission model; cost is negligible. |
-| 2026-10-20 | No spreadsheet importer; `Rozliczenia.ods` and `Rozliczenia DV.ods` are used only as golden test data (§2.6). |
+| 2026-10-20 | No spreadsheet importer; the earlier spreadsheets are used only as the source of the golden tests (§2.6). |
 | 2026-10-20 | Income sources extended with HAT, CONTRACT, SPONSORSHIP (seen in DV sheet). Refund percentages stay out despite the 50% block in the DV sheet: members enter the refundable part as the cost amount. |
 | 2026-10-20 | Separate `androidApp` module: AGP 9 no longer supports `com.android.application` inside a KMP module, so `composeApp` is a KMP library and `androidApp` is the thin app shell. compileSdk/targetSdk 36. Toolchain: Kotlin 2.4.21, Compose MP 1.11.1 (1.12 needs compileSdk 37, which IntelliJ IDEA 2026.2 does not know yet), AGP 9.1.0 (newest supported by IntelliJ IDEA 2026.2; bump only together with the IDE), Gradle 9.8.2, JDK 21. |
 | 2026-10-20 | M1: archived is a flag on the event, not an `EventStatus` (see §2.3). |
