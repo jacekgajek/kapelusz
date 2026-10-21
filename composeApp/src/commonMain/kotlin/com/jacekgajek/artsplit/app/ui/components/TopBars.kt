@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
@@ -40,6 +41,8 @@ import com.jacekgajek.artsplit.app.generated.back
 import com.jacekgajek.artsplit.app.generated.menu_roster
 import com.jacekgajek.artsplit.app.generated.menu_settings
 import com.jacekgajek.artsplit.app.generated.cancel
+import com.jacekgajek.artsplit.app.generated.history
+import com.jacekgajek.artsplit.app.generated.join_band
 import com.jacekgajek.artsplit.app.generated.new_band
 import com.jacekgajek.artsplit.app.generated.sign_in_again_text
 import com.jacekgajek.artsplit.app.generated.sign_in_again_title
@@ -62,6 +65,8 @@ class TopBarState(
     val currentBandId: String?,
     val onSelectBand: (String) -> Unit,
     val onNewBand: () -> Unit,
+    val onJoinBand: () -> Unit,
+    val onHistory: () -> Unit,
     val onSyncNow: () -> Unit,
     /** Signs in again with a fresh Google token; returns false if it was a different account. */
     val onReauthenticate: suspend (String) -> Boolean,
@@ -74,6 +79,7 @@ val LocalTopBarState = staticCompositionLocalOf<TopBarState?> { null }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
+    val onHistory = LocalTopBarState.current?.onHistory
     var menuOpen by remember { mutableStateOf(false) }
     val bar = LocalTopBarState.current
     TopAppBar(
@@ -97,9 +103,17 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
                         leadingIcon = { Icon(Icons.Default.Add, null) },
                         onClick = { menuOpen = false; bar.onNewBand() },
                     )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.join_band)) },
+                        leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
+                        onClick = { menuOpen = false; bar.onJoinBand() },
+                    )
                     HorizontalDivider()
                 }
                 DropdownMenuItem(text = { Text(stringResource(Res.string.menu_roster)) }, onClick = { menuOpen = false; onRoster() })
+                if (onHistory != null) {
+                    DropdownMenuItem(text = { Text(stringResource(Res.string.history)) }, onClick = { menuOpen = false; onHistory() })
+                }
                 DropdownMenuItem(text = { Text(stringResource(Res.string.menu_settings)) }, onClick = { menuOpen = false; onSettings() })
             }
         },

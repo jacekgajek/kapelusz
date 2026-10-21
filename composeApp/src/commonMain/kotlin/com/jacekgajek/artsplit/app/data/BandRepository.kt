@@ -145,7 +145,11 @@ class BandRepository(
         val local = LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner)
         locals[band.id] = local
         persist(band.id)
-        updateIndex { it.copy(currentBandId = band.id) }
+        val me = band.memberOfUser(owner)
+        updateIndex { index ->
+            val summary = BandSummary(band.id, band.name, me?.name.orEmpty(), me?.role ?: Role.MEMBER)
+            index.copy(currentBandId = band.id, bands = index.bands.filterNot { it.id == band.id } + summary)
+        }
         _state.value = BandState.Ready(band, owner)
     }
 

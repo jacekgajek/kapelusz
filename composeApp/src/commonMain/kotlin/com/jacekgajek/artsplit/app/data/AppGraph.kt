@@ -30,6 +30,16 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
     private val _signIns = MutableStateFlow(0)
 
+    /** An invite code from a join link (web `/join/CODE`, Android App Link), waiting to be shown to the user. */
+    val pendingJoinCode = MutableStateFlow<String?>(null)
+
+    /** Accepts an invite and opens the band. Network errors and refusals surface as exceptions. */
+    suspend fun joinBand(code: String) {
+        val joined = api.acceptInvite(code)
+        bands.adoptFromServer(joined.band, joined.version)
+        sync.requestSync()
+    }
+
     /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
     val signIns: StateFlow<Int> = _signIns.asStateFlow()
 

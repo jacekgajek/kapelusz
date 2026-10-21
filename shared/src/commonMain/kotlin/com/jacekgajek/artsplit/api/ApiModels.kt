@@ -47,4 +47,39 @@ data class ErrorResponse(val error: String, val message: String)
 object ApiErrors {
     /** The band does not exist or the caller is not (or no longer) an active member. */
     const val BAND_NOT_FOUND = "band_not_found"
+
+    /** No active invite with this code (wrong, used, revoked or expired). */
+    const val INVITE_NOT_FOUND = "invite_not_found"
+
+    /** Too many wrong invite codes recently; try again later. */
+    const val TOO_MANY_ATTEMPTS = "too_many_attempts"
+
+    /** The caller is already a member of the invited band. */
+    const val ALREADY_MEMBER = "already_member"
 }
+
+// ---- invites (M4) ----
+
+@Serializable
+data class CreateInviteRequest(val memberId: Id, val role: Role)
+
+/** An active invite code; only band admins see these. */
+@Serializable
+data class InviteInfo(val code: String, val bandId: Id, val memberId: Id, val role: Role, val expiresAt: Long)
+
+@Serializable
+data class InvitesResponse(val invites: List<InviteInfo>)
+
+/** What the invited person sees before accepting. */
+@Serializable
+data class InvitePreview(val code: String, val bandId: Id, val bandName: String, val memberName: String, val role: Role, val expiresAt: Long)
+
+// ---- history (M4) ----
+
+/** One accepted push: who made it and the operations it contained. */
+@Serializable
+data class HistoryEntry(val userId: String, val memberId: String?, val at: Long, val ops: List<OpEnvelope>)
+
+/** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
+@Serializable
+data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, val next: String? = null)

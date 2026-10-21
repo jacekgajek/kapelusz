@@ -11,7 +11,9 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     val apiUrl = providers.environmentVariable("ARTSPLIT_API_URL").orElse(providers.gradleProperty("artsplit.apiUrl"))
     val webClientId = providers.environmentVariable("ARTSPLIT_GOOGLE_WEB_CLIENT_ID")
         .orElse(providers.gradleProperty("artsplit.googleWebClientId"))
+    val webUrl = providers.environmentVariable("ARTSPLIT_WEB_URL").orElse(providers.gradleProperty("artsplit.webUrl"))
     inputs.property("apiUrl", apiUrl)
+    inputs.property("webUrl", webUrl)
     inputs.property("webClientId", webClientId)
     val output = layout.buildDirectory.dir("generated/appConfig/kotlin")
     outputs.dir(output)
@@ -26,6 +28,7 @@ val generateAppConfig = tasks.register("generateAppConfig") {
             |object AppConfig {
             |    const val API_URL = "${apiUrl.get().trimEnd('/')}"
             |    const val GOOGLE_WEB_CLIENT_ID = "${webClientId.get()}"
+            |    const val WEB_URL = "${webUrl.get().trimEnd('/')}"
             |}
             |""".trimMargin(),
         )

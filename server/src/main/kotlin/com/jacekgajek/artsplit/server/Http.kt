@@ -6,6 +6,7 @@ data class HttpRequest(
     val path: String,
     val headers: Map<String, String> = emptyMap(),
     val body: String? = null,
+    val query: Map<String, String> = emptyMap(),
 ) {
     fun header(name: String): String? = headers[name.lowercase()]
 }

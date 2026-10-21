@@ -130,7 +130,7 @@ Roles form **one cumulative axis**. Every user in a band is linked to a member a
 | Record/settle transfers **they send or receive**, "Hand over money" | – | ✔ | ✔ | ✔ | ✔ |
 | Create/edit/archive/delete events, participants, guests, shares, refunds, fund amount, fund entries | – | – | ✔ | ✔ | ✔ |
 | Edit anyone's costs/holdings, Settle / Settle All on any event | – | – | ✔ | ✔ | ✔ |
-| Edit roster, roles, treasurer, invites, unlink users, band history | – | – | – | ✔ | ✔ |
+| Edit roster, roles, treasurer, invites, unlink users | – | – | – | ✔ | ✔ |
 | Delete band, transfer ownership | – | – | – | – | ✔ |
 
 - The **treasurer** counts as the band fund's party: a treasurer with the Member role may record and settle transfers to or from the band fund, like their own.
@@ -194,7 +194,8 @@ The viewer sees Events and Band fund.
 
 ### 4.4 Admin
 - **Roster:** add, rename, reorder (the order is used for tie-breaking), archive. Hard delete is allowed only if the member never took part in anything.
-- **Roles, invites, unlink, treasurer, transfer ownership** (owner only), and band-wide history.
+- **Roles, invites, unlink, treasurer, transfer ownership** (owner only).
+- The band-wide **History** (cog menu) is visible to every member, like the finances it records.
 
 ### 4.5 Attachments
 - Up to 5 per cost, images and/or PDFs.
@@ -405,10 +406,10 @@ Workflow:
 - [x] M3.6 Zero screen: create band, `/me`, band switcher
 
 ### M4 — Collaboration
-- [ ] M4.1 Role-aware UI (tab and action visibility), "Only my events" filter
-- [ ] M4.2 Invites: create/revoke/accept, `/join/{code}` web route, Android App Links + assetlinks.json
-- [ ] M4.3 Admin: roster, roles, unlink, ownership transfer
-- [ ] M4.4 History views (event + band)
+- [x] M4.1 Role-aware UI (tab and action visibility), "Only my events" filter
+- [x] M4.2 Invites: create/revoke/accept, `/join/{code}` web route, Android App Links + assetlinks.json
+- [x] M4.3 Admin: roster, roles, unlink, ownership transfer
+- [x] M4.4 History views (event + band)
 
 ### M5 — Extras
 - [ ] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
@@ -441,6 +442,8 @@ Workflow:
 | 2026-10-21 | M3: history is one S3 object per accepted push (`log/{yyyy-MM}/{millis}-{uuid}.json`) instead of a monthly `.jsonl`: S3 has no append, and separate objects need no read-modify-write. Sequence numbers are tracked per user and device (`{sub}/{clientId}`). Non-members get `404` for a band, the same as a missing band. Band ids come from the client so offline-created bands keep their ids. |
 | 2026-10-21 | M3 client: each band is stored as `band-{id}` with a `band-index` of the user's bands; the M2 band (placeholder user) is adopted by the first signed-in user and created on the server with its original ids by the first sync. Android uses Ktor's Android engine (OkHttp 5 needs compileSdk 37). Joining a band waits for invites (M4); the first screen shows it as coming soon. |
 | 2026-10-21 | Build time: CI builds the development web bundle (no wasm-opt). Production uses a single `wasm-opt -O2` pass instead of Kotlin's default 5×`-O3`/`--gufa`/`-Oz`: 10 s instead of 43 s locally, +15% compressed app wasm (~180 KB brotli; the 8 MB Skia wasm is unaffected). |
+| 2026-10-21 | M4: invite codes are stored server-side (`invites/{code}.json`, `bands/{id}/invites.json`), never in the band state that every member can read. Wrong codes count per user (10/hour) for both preview and accept. The web app sets `<base href="/">` so deep links like `/join/CODE` load the app. `assetlinks.json` is generated at deploy from the release keystore plus the optional `ANDROID_DEBUG_CERT_SHA256` variable. |
+| 2026-10-21 | M4 review: band-wide history is visible to every member (the audit trail of shared money; all underlying data is visible anyway). Invites are cancelled whenever their member's account link changes and only stand while their issuer is an active admin. Each user has 10 invite-code lookups per hour (a join uses two). History is served in pages of 100 pushes, newest first. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
