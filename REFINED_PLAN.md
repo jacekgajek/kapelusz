@@ -154,6 +154,7 @@ Mobile uses a bottom nav and web uses a side rail. Tabs are shown only if the ro
    - Your costs with Pending / Partly / Refunded filters.
    - A big **"+ Add cost"** button that opens a fast form: amount first, everything else optional, attachment from camera/gallery/file.
    - Leads see a **"Paid by"** dropdown (default: themselves) to add a cost for another member.
+   - Leads can switch the list between **Mine** and **All members** (each row then shows who paid).
 3. **Settle** (member+)
    - Every pending suggested transfer where you're sender or receiver, across events, each with **Settle**.
    - **"Hand over money"**: pick a party; the amount defaults to your whole balance in that event and can be edited.

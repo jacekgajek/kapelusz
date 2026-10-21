@@ -154,4 +154,7 @@
     <string name="settle_part_hint">Maksymalnie %1$s. Reszta zostanie do rozliczenia później.</string>
     <string name="paid_by">Kto zapłacił</string>
     <string name="paid_by_name">Zapłacił(a): %1$s</string>
+    <string name="filter_all_members">Wszyscy</string>
+    <string name="costs_outstanding_total_everyone">Do zwrotu wszystkim: %1$s</string>
+    <string name="filter_mine">Moje</string>
 </resources>

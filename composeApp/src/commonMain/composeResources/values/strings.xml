@@ -154,4 +154,7 @@
     <string name="settle_part_hint">Up to %1$s. The rest stays to be settled later.</string>
     <string name="paid_by">Paid by</string>
     <string name="paid_by_name">Paid by %1$s</string>
+    <string name="filter_all_members">All members</string>
+    <string name="costs_outstanding_total_everyone">Still to be refunded to everyone: %1$s</string>
+    <string name="filter_mine">Mine</string>
 </resources>

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.app.data.BandState
 import com.jacekgajek.artsplit.app.generated.Res
@@ -37,7 +42,10 @@ import com.jacekgajek.artsplit.app.generated.cost_status_planned
 import com.jacekgajek.artsplit.app.generated.cost_status_refunded
 import com.jacekgajek.artsplit.app.generated.costs_empty
 import com.jacekgajek.artsplit.app.generated.costs_outstanding_total
+import com.jacekgajek.artsplit.app.generated.costs_outstanding_total_everyone
 import com.jacekgajek.artsplit.app.generated.filter_all
+import com.jacekgajek.artsplit.app.generated.filter_all_members
+import com.jacekgajek.artsplit.app.generated.filter_mine
 import com.jacekgajek.artsplit.app.generated.tab_my_costs
 import com.jacekgajek.artsplit.app.generated.unnamed_cost
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
@@ -48,6 +56,7 @@ import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.domain.CostLedger
 import com.jacekgajek.artsplit.domain.CostStatus
+import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.model.sumOfMoney
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -65,7 +74,10 @@ fun CostStatus.labelRes(): StringResource = when (this) {
 fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSettings: () -> Unit, onRoster: () -> Unit) {
     val band = state.band
     var filter by rememberSaveable { mutableStateOf<CostStatus?>(null) }
-    val mine = band.costs.filter { it.memberId == state.me?.id }.sortedByDescending { it.date }
+    val isLead = state.me?.role?.atLeast(Role.LEAD) == true
+    var everyone by rememberSaveable { mutableStateOf(false) }
+    val showAll = isLead && everyone
+    val mine = band.costs.filter { showAll || it.memberId == state.me?.id }.sortedByDescending { it.date }
     val shown = mine.filter { filter == null || CostLedger.status(band, it) == filter }
     val unpaid = mine.sumOfMoney { CostLedger.unpaid(band, it) }
 
@@ -86,9 +98,25 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
         ) {
             item {
                 Text(
-                    stringResource(Res.string.costs_outstanding_total, formatMoney(unpaid, band.currency, language)),
+                    stringResource(
+                        if (showAll) Res.string.costs_outstanding_total_everyone else Res.string.costs_outstanding_total,
+                        formatMoney(unpaid, band.currency, language),
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                 )
+            }
+            if (isLead) {
+                item {
+                    SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 360.dp).fillMaxWidth()) {
+                        listOf(false to Res.string.filter_mine, true to Res.string.filter_all_members).forEachIndexed { index, (value, label) ->
+                            SegmentedButton(
+                                selected = everyone == value,
+                                onClick = { everyone = value },
+                                shape = SegmentedButtonDefaults.itemShape(index, 2),
+                            ) { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                        }
+                    }
+                }
             }
             item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -105,7 +133,11 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
                         Column(Modifier.weight(1f)) {
                             Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost), style = MaterialTheme.typography.titleSmall)
                             Text(
-                                listOfNotNull(formatDate(cost.date, language), cost.eventId?.let { band.event(it)?.name }).joinToString(" · "),
+                                listOfNotNull(
+                                    band.member(cost.memberId)?.name?.takeIf { showAll },
+                                    formatDate(cost.date, language),
+                                    cost.eventId?.let { band.event(it)?.name },
+                                ).joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
