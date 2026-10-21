@@ -78,4 +78,34 @@ class SessionRepositoryTest {
         assertEquals(true, sessions.reauthenticated(fakeIdToken("sub-1", now / 1000 + 3600)))
         assertEquals(now + 3600 * 1000, sessions.session.value!!.expiresAt)
     }
+
+    @Test
+    fun triesABackgroundRenewalOnlyOnceInAWhile() = runTest {
+        // Each API request asks for a token; on Android a renewal may show the account picker, so it must not repeat.
+        val sessions = SessionRepository(InMemoryStore(), google) { now }
+        val token = fakeIdToken("sub-1", now / 1000 + 4 * 60) // inside the renewal margin
+        sessions.signedIn(token)
+        refreshed = null
+        repeat(5) { assertEquals(token, sessions.validToken()) }
+        assertEquals(1, refreshCalls, "one attempt, not one per request")
+
+        assertNull(sessions.validToken(forceRefresh = true), "a refused token is renewed right away")
+        assertEquals(2, refreshCalls)
+
+        now += SessionRepository.REFRESH_RETRY_MS
+        refreshed = fakeIdToken("sub-1", now / 1000 + 3600)
+        assertEquals(refreshed, sessions.validToken())
+        assertEquals(3, refreshCalls)
+    }
+
+    @Test
+    fun aCachedTokenIsNoRenewal() = runTest {
+        val sessions = SessionRepository(InMemoryStore(), google) { now }
+        val token = fakeIdToken("sub-1", now / 1000 + 4 * 60)
+        sessions.signedIn(token)
+        refreshed = token // Google handed back the same token
+        assertEquals(token, sessions.validToken())
+        assertEquals(token, sessions.validToken())
+        assertEquals(1, refreshCalls)
+    }
 }

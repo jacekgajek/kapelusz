@@ -60,6 +60,9 @@ class SessionRepository(
     val session: StateFlow<Session?> = _session.asStateFlow()
     private val refreshLock = Mutex()
 
+    /** When a renewal was last attempted without the server having refused the token. */
+    private var lastBackgroundRefresh: Long? = null
+
     suspend fun load() {
         _session.value = store.read(KEY)?.let { raw -> runCatching { ArtSplitJson.decodeFromString(Session.serializer(), raw) }.getOrNull() }
     }
@@ -79,9 +82,17 @@ class SessionRepository(
         if (!forceRefresh && current.expiresAt - clock() > REFRESH_MARGIN_MS) return current.idToken
         // Without a fresh token, the current one is still fine until it actually expires (unless the server refused it).
         val stillValid = current.idToken.takeIf { !forceRefresh && current.expiresAt - clock() > EXPIRY_SKEW_MS }
+        // Every API request asks for a token. On Android a renewal that cannot auto-select shows Google's account
+        // picker, so renewing on each request near expiry popped it up every few seconds. Background renewals are
+        // tried once per REFRESH_RETRY_MS; only a token the server just refused is renewed right away.
+        val now = clock()
+        if (!forceRefresh && lastBackgroundRefresh?.let { now - it < REFRESH_RETRY_MS } == true) return stillValid
+        if (!forceRefresh) lastBackgroundRefresh = now
         val fresh = runCatching { google.refresh() }.getOrNull() ?: return stillValid
         val refreshed = runCatching { Session.fromIdToken(fresh) }.getOrNull() ?: return stillValid
         if (refreshed.userId != current.userId) return stillValid
+        // Google may hand back its cached token: that is no renewal (and saving it would ask again right away).
+        if (refreshed.expiresAt <= current.expiresAt) return stillValid
         save(refreshed)
         refreshed.idToken
     }
@@ -105,6 +116,7 @@ class SessionRepository(
     }
 
     private suspend fun save(session: Session) {
+        if (session.expiresAt != _session.value?.expiresAt) lastBackgroundRefresh = null
         store.write(KEY, ArtSplitJson.encodeToString(Session.serializer(), session))
         _session.value = session
     }
@@ -113,5 +125,6 @@ class SessionRepository(
         const val KEY = "session"
         const val REFRESH_MARGIN_MS = 5 * 60 * 1000L
         const val EXPIRY_SKEW_MS = 30 * 1000L
+        const val REFRESH_RETRY_MS = 15 * 60 * 1000L
     }
 }
