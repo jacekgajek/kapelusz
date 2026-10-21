@@ -171,7 +171,7 @@
     <string name="reject_no_treasurer">Choose who holds the band fund first.</string>
     <string name="reject_treasurer_must_stay">This member holds the band fund. Choose another treasurer first.</string>
     <string name="reject_archived_member">This member is archived.</string>
-    <string name="reject_owner_role_fixed">The owner\'s role can only change by transferring ownership.</string>
+    <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_ownership_needs_admin">Ownership can only go to an admin with an app account.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
     <string name="reject_user_already_member">This account is already in the band.</string>
@@ -190,4 +190,26 @@
     <string name="unreadable_text">A copy was kept as a backup on this device, so nothing is lost. You can start over now; the backup can be restored later if needed.</string>
     <string name="start_over">Start over</string>
     <string name="edit">Edit</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_in_intro">Sign in to share your band's settlements with your bandmates.</string>
+    <string name="sign_in_failed">Sign-in failed: %1$s</string>
+    <string name="account">Account</string>
+    <string name="sign_out">Sign out</string>
+    <string name="new_band">New band</string>
+    <string name="new_band_title">New band</string>
+    <string name="your_bands">Your bands</string>
+    <string name="open_band">Open</string>
+    <string name="or_create_band">Or create a new band</string>
+    <string name="join_band">Join a band</string>
+    <string name="join_band_soon">Joining with an invite code arrives in the next version.</string>
+    <string name="sync_syncing">Syncing</string>
+    <string name="sync_synced">Saved on the server</string>
+    <string name="sync_offline">Offline – changes are kept on this device</string>
+    <string name="sync_needs_sign_in">Sign in again to sync</string>
+    <string name="sync_error">Sync failed</string>
+    <string name="sync_refused">Not saved on the server:</string>
+    <string name="sign_in_again_title">Sign in again</string>
+    <string name="sign_in_again_text">Your sign-in expired, so changes are only saved on this device for now. Sign in again as %1$s to sync them.</string>
+    <string name="sign_in_again_wrong_account">That is a different account. Sign in as %1$s, or sign out in Settings to switch accounts.</string>
+    <string name="lost_access">You no longer have access to %1$s. Changes not yet saved there were kept as a backup on this device.</string>
 </resources>

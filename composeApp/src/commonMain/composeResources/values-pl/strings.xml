@@ -190,4 +190,26 @@
     <string name="unreadable_text">Ich kopia została zachowana na tym urządzeniu, więc nic nie przepadło. Możesz zacząć od nowa; kopię da się później przywrócić, jeśli będzie potrzebna.</string>
     <string name="start_over">Zacznij od nowa</string>
     <string name="edit">Edytuj</string>
+    <string name="sign_in_google">Zaloguj się przez Google</string>
+    <string name="sign_in_intro">Zaloguj się, aby dzielić rozliczenia zespołu z resztą członków.</string>
+    <string name="sign_in_failed">Logowanie nie powiodło się: %1$s</string>
+    <string name="account">Konto</string>
+    <string name="sign_out">Wyloguj się</string>
+    <string name="new_band">Nowy zespół</string>
+    <string name="new_band_title">Nowy zespół</string>
+    <string name="your_bands">Twoje zespoły</string>
+    <string name="open_band">Otwórz</string>
+    <string name="or_create_band">Albo utwórz nowy zespół</string>
+    <string name="join_band">Dołącz do zespołu</string>
+    <string name="join_band_soon">Dołączanie kodem zaproszenia pojawi się w następnej wersji.</string>
+    <string name="sync_syncing">Synchronizacja</string>
+    <string name="sync_synced">Zapisano na serwerze</string>
+    <string name="sync_offline">Offline – zmiany są zachowane na tym urządzeniu</string>
+    <string name="sync_needs_sign_in">Zaloguj się ponownie, aby synchronizować</string>
+    <string name="sync_error">Synchronizacja nie powiodła się</string>
+    <string name="sync_refused">Nie zapisano na serwerze:</string>
+    <string name="sign_in_again_title">Zaloguj się ponownie</string>
+    <string name="sign_in_again_text">Twoje logowanie wygasło, więc zmiany są na razie zapisywane tylko na tym urządzeniu. Zaloguj się ponownie jako %1$s, aby je zsynchronizować.</string>
+    <string name="sign_in_again_wrong_account">To inne konto. Zaloguj się jako %1$s albo wyloguj się w Ustawieniach, aby zmienić konto.</string>
+    <string name="lost_access">Nie masz już dostępu do zespołu %1$s. Niezapisane tam zmiany zachowano jako kopię na tym urządzeniu.</string>
 </resources>

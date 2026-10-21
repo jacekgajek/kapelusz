@@ -8,6 +8,14 @@ kotlinx-coroutines = "1.11.0"
 androidx-activity = "1.13.0"
 shadow = "9.6.1"
 navigation-compose = "2.9.2"
+ktor = "3.6.0"
+aws-sdk = "2.57.1"
+nimbus-jose-jwt = "10.10"
+crac = "1.5.0"
+aws-lambda-core = "1.4.1"
+slf4j = "2.0.20"
+androidx-credentials = "1.6.0"
+googleid = "1.2.1"
 material-icons = "1.7.3"
 android-compileSdk = "36"
 android-targetSdk = "36"
@@ -27,6 +35,19 @@ navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-co
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
 compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "material-icons" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws-sdk" }
+aws-url-connection-client = { module = "software.amazon.awssdk:url-connection-client", version.ref = "aws-sdk" }
+aws-lambda-core = { module = "com.amazonaws:aws-lambda-java-core", version.ref = "aws-lambda-core" }
+nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
+crac = { module = "org.crac:crac", version.ref = "crac" }
+slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
 [plugins]

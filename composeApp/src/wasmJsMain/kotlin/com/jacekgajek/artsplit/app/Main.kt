@@ -4,6 +4,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.bindToNavigation
+import com.jacekgajek.artsplit.app.auth.WebGoogleAuth
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.IndexedDbStore
 import kotlinx.browser.window
@@ -12,7 +13,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
-    val graph = AppGraph(IndexedDbStore())
+    val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
     MainScope().launch {
         graph.load()
         ComposeViewport {

@@ -1,0 +1,181 @@
+package com.jacekgajek.artsplit.app.sync
+
+import com.jacekgajek.artsplit.api.CreateBandRequest
+import com.jacekgajek.artsplit.app.data.BandRepository
+import com.jacekgajek.artsplit.model.Id
+import com.jacekgajek.artsplit.ops.Rejection
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+
+enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, ERROR }
+
+/** The server answered in a way the client cannot make progress with. */
+class SyncProtocolException(message: String) : RuntimeException(message)
+
+/**
+ * Keeps the device and the server in step (REFINED_PLAN §5.2): creates bands made offline, pushes queued operations,
+ * pulls the current band, and refreshes the band list. Runs on demand (after a change), every [interval] while the
+ * app is in the foreground, and retries with backoff while offline.
+ */
+class SyncEngine(
+    private val api: ApiClient,
+    private val bands: BandRepository,
+    private val scope: CoroutineScope,
+    private val interval: Long = 30_000,
+) {
+    private val _status = MutableStateFlow(SyncStatus.IDLE)
+    val status: StateFlow<SyncStatus> = _status.asStateFlow()
+
+    private val _rejections = MutableSharedFlow<Rejection>(extraBufferCapacity = 16)
+
+    /** Operations the server refused (e.g. permissions changed meanwhile); shown to the user. */
+    val rejections: SharedFlow<Rejection> = _rejections.asSharedFlow()
+
+    private val _lostAccess = MutableSharedFlow<String>(extraBufferCapacity = 4)
+
+    /** Names of bands the user can no longer access (removed from the band, or the band is gone). */
+    val lostAccess: SharedFlow<String> = _lostAccess.asSharedFlow()
+
+    private val runLock = Mutex()
+    private val wakeUp = Channel<Unit>(1, BufferOverflow.DROP_OLDEST)
+    private var loop: Job? = null
+
+    /** Starts the periodic loop (idempotent). */
+    fun start() {
+        if (loop?.isActive == true) return
+        loop = scope.launch {
+            var backoff = 0L
+            while (true) {
+                val ok = syncNow()
+                backoff = if (ok) 0 else (if (backoff == 0L) 5_000 else backoff * 2).coerceAtMost(5 * 60_000)
+                withTimeoutOrNull(if (ok) interval else backoff) { wakeUp.receive() }
+                delay(DEBOUNCE)
+            }
+        }
+    }
+
+    /** Pauses the periodic loop, e.g. while the Android app is in the background. */
+    fun stop() {
+        loop?.cancel()
+        loop = null
+    }
+
+    /** The user signed in again: leave [SyncStatus.NEEDS_SIGN_IN] and sync right away. */
+    fun resumeAfterSignIn() {
+        if (_status.value == SyncStatus.NEEDS_SIGN_IN) _status.value = SyncStatus.IDLE
+        requestSync()
+    }
+
+    /** Asks for a sync soon, e.g. after a local change. */
+    fun requestSync() {
+        wakeUp.trySend(Unit)
+    }
+
+    /**
+     * One full round; returns false when it should be retried later. Bands are synced independently, so a problem
+     * with one band never blocks the others.
+     */
+    suspend fun syncNow(): Boolean = runLock.withLock {
+        // Waiting for the user to sign in again: retrying would only repeat silent renewal attempts (and on the web
+        // possibly Google prompts) while hiding the "sign in again" state.
+        if (_status.value == SyncStatus.NEEDS_SIGN_IN) return false
+        _status.value = SyncStatus.SYNCING
+        var result = SyncStatus.SYNCED
+        try {
+            val current = bands.currentBandId
+            val toSync = (bands.bandsToPush() + listOfNotNull(current)).distinct()
+            for (bandId in toSync) {
+                val bandResult = syncBand(bandId, pull = bandId == current)
+                if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE) {
+                    // Affects every band: stop this round.
+                    result = bandResult
+                    break
+                }
+                if (bandResult == SyncStatus.ERROR) result = SyncStatus.ERROR
+            }
+            if (result == SyncStatus.SYNCED || result == SyncStatus.ERROR) bands.onBandList(api.me().bands)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // Not only Exception: on the web, browser errors (e.g. "Failed to fetch") are JsException, a Throwable.
+            result = classify(e)
+        }
+        _status.value = result
+        result == SyncStatus.SYNCED
+    }
+
+    private suspend fun syncBand(bandId: Id, pull: Boolean): SyncStatus = try {
+        pushBand(bandId)
+        if (pull) pullBand(bandId)
+        SyncStatus.SYNCED
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: ApiException) {
+        if (e.status == 404 && !(bands.local(bandId)?.needsCreate ?: true)) {
+            // The band is gone or the user was removed from it: keep unsent changes as a backup and let go of it.
+            val name = bands.loseAccess(bandId)
+            _lostAccess.tryEmit(name)
+            SyncStatus.SYNCED
+        } else {
+            SyncStatus.ERROR
+        }
+    } catch (e: Throwable) {
+        classify(e)
+    }
+
+    private fun classify(e: Throwable): SyncStatus = when (e) {
+        is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
+        is ApiException, is SyncProtocolException -> SyncStatus.ERROR
+        else -> SyncStatus.OFFLINE
+    }
+
+    /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */
+    suspend fun download(bandId: Id) {
+        val response = api.state(bandId, null) ?: return
+        bands.adoptFromServer(response.band, response.version)
+    }
+
+    private suspend fun pushBand(bandId: Id) {
+        val local = bands.local(bandId) ?: return
+        if (local.needsCreate) {
+            val owner = local.base.owner ?: return
+            val created = api.createBand(CreateBandRequest(local.base.id, local.base.name, local.base.currency, owner.id, owner.name))
+            bands.onCreated(bandId, created.band, created.version)
+        }
+        while (true) {
+            val batch = bands.local(bandId)?.pending?.take(BATCH_SIZE).orEmpty()
+            if (batch.isEmpty()) return
+            val response = api.push(bandId, batch)
+            bands.onPushed(bandId, response)
+            response.rejected.values.forEach { _rejections.tryEmit(it) }
+            val handled = (response.accepted + response.rejected.keys + response.duplicates).toSet()
+            if (batch.none { it.opId in handled }) throw SyncProtocolException("Server did not process the pushed operations")
+        }
+    }
+
+    private suspend fun pullBand(bandId: Id) {
+        val local = bands.local(bandId) ?: return
+        if (local.needsCreate) return
+        val response = api.state(bandId, local.version) ?: return
+        bands.onPulled(bandId, response.band, response.version)
+    }
+
+    companion object {
+        const val BATCH_SIZE = 200
+        const val DEBOUNCE = 1_000L
+    }
+}

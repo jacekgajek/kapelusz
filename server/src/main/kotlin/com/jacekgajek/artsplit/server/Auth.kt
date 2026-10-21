@@ -1,0 +1,50 @@
+package com.jacekgajek.artsplit.server
+
+import com.nimbusds.jose.JWSAlgorithm
+import com.nimbusds.jose.jwk.source.JWKSource
+import com.nimbusds.jose.jwk.source.JWKSourceBuilder
+import com.nimbusds.jose.proc.JWSVerificationKeySelector
+import com.nimbusds.jose.proc.SecurityContext
+import com.nimbusds.jwt.JWTClaimsSet
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
+import com.nimbusds.jwt.proc.DefaultJWTProcessor
+import java.net.URI
+
+data class VerifiedUser(val userId: String, val email: String?, val name: String?)
+
+fun interface TokenVerifier {
+    /** Returns the user for a valid token, or null for an invalid, expired or foreign one. */
+    fun verify(token: String): VerifiedUser?
+}
+
+/** Verifies Google ID tokens: RS256 signature against Google's keys, issuer, audience, expiry, verified email. */
+class GoogleTokenVerifier(
+    private val clientIds: Set<String>,
+    keys: JWKSource<SecurityContext> = JWKSourceBuilder.create<SecurityContext>(URI(GOOGLE_KEYS).toURL()).build(),
+) : TokenVerifier {
+    private val processor = DefaultJWTProcessor<SecurityContext>().apply {
+        jwsKeySelector = JWSVerificationKeySelector(JWSAlgorithm.RS256, keys)
+        jwtClaimsSetVerifier = DefaultJWTClaimsVerifier(clientIds, JWTClaimsSet.Builder().build(), setOf("sub", "iss", "exp"), null)
+    }
+
+    override fun verify(token: String): VerifiedUser? {
+        val claims = try {
+            processor.process(token, null)
+        } catch (e: Exception) {
+            return null
+        }
+        if (claims.issuer !in ISSUERS) return null
+        if (claims.getBooleanClaim("email_verified") == false) return null
+        return VerifiedUser(claims.subject, claims.getStringClaim("email"), claims.getStringClaim("name"))
+    }
+
+    /** Fetches Google's signing keys once, e.g. while priming a SnapStart snapshot. */
+    fun warmUp() {
+        verify("not-a-token")
+    }
+
+    companion object {
+        const val GOOGLE_KEYS = "https://www.googleapis.com/oauth2/v3/certs"
+        val ISSUERS = setOf("accounts.google.com", "https://accounts.google.com")
+    }
+}
