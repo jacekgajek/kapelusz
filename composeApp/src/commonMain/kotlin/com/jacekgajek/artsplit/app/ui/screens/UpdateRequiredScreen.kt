@@ -21,6 +21,10 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.update_required_button
 import com.jacekgajek.artsplit.app.generated.update_required_text
 import com.jacekgajek.artsplit.app.generated.update_required_title
+import com.jacekgajek.artsplit.app.generated.updates_checking
+import com.jacekgajek.artsplit.app.generated.updates_downloading
+import com.jacekgajek.artsplit.app.generated.updates_failed
+import com.jacekgajek.artsplit.app.generated.updates_installing
 import com.jacekgajek.artsplit.app.platform.UpdateStatus
 import com.jacekgajek.artsplit.app.platform.appReloader
 import com.jacekgajek.artsplit.app.platform.rememberUpdateControls
@@ -47,9 +51,18 @@ fun UpdateRequiredScreen() {
                     // Without the install permission, or in a debug build, the browser download still works.
                     updates == null || status is UpdateStatus.Unavailable || status is UpdateStatus.NeedsInstallPermission ->
                         uriHandler.openUri("${AppConfig.WEB_URL}/download/art-split.apk")
+                    status is UpdateStatus.NeedsConfirmation -> updates.confirm()
                     else -> updates.installNow()
                 }
             }) { Text(stringResource(Res.string.update_required_button)) }
+            // Android: where the update stands, so a tap visibly does something.
+            when (status) {
+                is UpdateStatus.Checking -> stringResource(Res.string.updates_checking)
+                is UpdateStatus.Downloading -> stringResource(Res.string.updates_downloading, status.versionName)
+                is UpdateStatus.Installing -> stringResource(Res.string.updates_installing, status.versionName)
+                is UpdateStatus.Failed, is UpdateStatus.InstallFailed -> stringResource(Res.string.updates_failed)
+                else -> null
+            }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
         VersionLabel(Modifier.align(Alignment.BottomEnd))
     }

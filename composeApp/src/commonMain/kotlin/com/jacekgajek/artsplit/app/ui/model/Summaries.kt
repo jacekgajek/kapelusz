@@ -75,7 +75,7 @@ fun unsettledEvent(band: Band, today: LocalDate): Event? =
  * The "Upcoming" card (VERSION_2 §3.2): the nearest non-archived event from [today] on that [me] takes part in, or,
  * if there is none, the nearest band event.
  */
-fun upcomingEvent(band: Band, me: Member?, today: LocalDate): Event? {
-    val upcoming = band.events.filter { !it.archived && it.date >= today }.sortedWith(compareBy<Event> { it.date }.thenBy { it.name })
+fun upcomingEvent(band: Band, me: Member?, today: LocalDate, except: Id? = null): Event? {
+    val upcoming = band.events.filter { !it.archived && it.date >= today && it.id != except }.sortedWith(compareBy<Event> { it.date }.thenBy { it.name })
     return upcoming.firstOrNull { event -> me != null && event.participant(me.id) != null } ?: upcoming.firstOrNull()
 }

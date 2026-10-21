@@ -31,5 +31,6 @@ class HistoryReadingTest {
         val item = history.entries.single()
         assertEquals(listOf(RenameBand("Night Owls")), item.entry.ops.map { it.op })
         assertEquals(listOf(UnreadableOp("o2", "e1")), item.unreadable, "kept, with its event, so the event screen lists it")
+        assertEquals(listOf("o1", "o2"), item.ops.map { (it as? ReadOp.Known)?.envelope?.opId ?: (it as ReadOp.Unknown).op.opId }, "in order")
     }
 }

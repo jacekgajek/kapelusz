@@ -111,4 +111,24 @@ class PresentationTest {
         assertEquals("bobs", upcomingEvent(band.apply(SetEventArchived("mine", true)), me, today)?.id)
         assertEquals("mine", upcomingEvent(band, me, LocalDate(2026, 11, 2))?.id, "today counts")
     }
+
+    @Test
+    fun oneCardPerEventAndTheLatestEditWinsOnTheSameDate() {
+        val today = LocalDate(2026, 10, 21)
+        val base = Band.create("b", "Band", "PLN", "me", "Me", "user")
+        val tonight = base.apply(
+            AddMember("bob", "Bob"),
+            CreateEvent("tonight", "Tonight", today, participants = listOf(Participant("me"), Participant("bob"))),
+            AddHolding("tonight", "h", "me", Money(100), IncomeSource.DOOR),
+        )
+        val unsettled = unsettledEvent(tonight, today)
+        assertEquals("tonight", unsettled?.id, "open tonight: unsettled business")
+        assertEquals(null, upcomingEvent(tonight, tonight.member("me"), today, except = unsettled?.id), "not also upcoming")
+
+        // Two unsettled drafts on the same past date: the one edited last.
+        val sameDay = LocalDate(2026, 10, 1)
+        val twoDrafts = base.apply(CreateEvent("a", "A", sameDay), CreateEvent("b", "B", sameDay))
+        val edited = twoDrafts.copy(events = twoDrafts.events.map { if (it.id == "a") it.copy(updatedAt = 99) else it })
+        assertEquals("a", unsettledEvent(edited, today)?.id)
+    }
 }

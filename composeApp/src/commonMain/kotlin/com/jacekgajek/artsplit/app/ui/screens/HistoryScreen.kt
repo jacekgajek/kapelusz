@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.api.HistoryEntry
 import com.jacekgajek.artsplit.app.sync.HistoryItem
+import com.jacekgajek.artsplit.app.sync.ReadOp
 import com.jacekgajek.artsplit.app.generated.history_newer_version
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
@@ -67,8 +68,12 @@ fun historyMonth(offset: Int): String {
 /** One history line: an operation with who made it and when; [envelope] is null for one this app cannot read. */
 data class HistoryLine(val entry: HistoryEntry, val envelope: OpEnvelope?, val opId: String, val unreadableEventId: String? = null)
 
-fun HistoryItem.toLines(): List<HistoryLine> =
-    entry.ops.map { HistoryLine(entry, it, it.opId) } + unreadable.map { HistoryLine(entry, null, it.opId, it.eventId) }
+fun HistoryItem.toLines(): List<HistoryLine> = ops.map { op ->
+    when (op) {
+        is ReadOp.Known -> HistoryLine(entry, op.envelope, op.envelope.opId)
+        is ReadOp.Unknown -> HistoryLine(entry, null, op.op.opId, op.op.eventId)
+    }
+}
 
 /** Band-wide history, one month at a time, newest first. */
 @Composable
@@ -120,7 +125,7 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                     if (next != null) {
                         item {
                             if (loadingMore) CircularProgressIndicator(Modifier.padding(8.dp).size(24.dp))
-                else TextButton(onClick = loadMore) { Text(stringResource(Res.string.load_more)) }
+                            else TextButton(onClick = loadMore) { Text(stringResource(Res.string.load_more)) }
                         }
                     }
                 }

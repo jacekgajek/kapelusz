@@ -522,8 +522,12 @@ class Api(
 
     companion object {
         /**
-         * The oldest app version (deploy run number) the server still serves. Raise it in the same change that would
-         * break older apps (e.g. a new kind of operation they would receive); they then show "update required".
+         * The oldest app version (deploy run number) the server still serves; older apps show "update required".
+         *
+         * Raise it in two steps, never in the change that needs it: first deploy apps that handle the new data, then
+         * set this to **that deploy's run number** (already live, so its web app and APK exist). Setting it to a
+         * number not yet deployed would refuse every app, and during a deploy the server switches before the new web
+         * app and APK are uploaded.
          */
         const val MIN_APP_VERSION = 0
 

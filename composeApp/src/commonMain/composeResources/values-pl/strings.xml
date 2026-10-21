@@ -32,7 +32,7 @@
     <string name="event_date">Data</string>
     <string name="event_location">Miejsce (opcjonalnie)</string>
     <string name="events_empty">Nie ma jeszcze wydarzeń. Utwórz pierwsze!</string>
-    <string name="continue_event">Kontynuuj: %1$s, %2$s</string>
+    <string name="continue_event">Kontynuuj: %1$s · %2$s</string>
     <string name="filter_only_mine">Tylko moje</string>
     <string name="filter_show_archived">Pokaż archiwalne</string>
     <string name="my_get">dostajesz %1$s</string>
@@ -396,7 +396,7 @@
     <string name="update_required_text">Ta wersja Art Split jest za stara dla serwera. Zaktualizuj aplikację, aby kontynuować; zmiany na tym urządzeniu zostaną zachowane i zsynchronizowane po aktualizacji.</string>
     <string name="update_required_button">Aktualizuj</string>
     <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Art Split</string>
-    <string name="upcoming_event">Najbliższe: %1$s, %2$s</string>
+    <string name="upcoming_event">Najbliższe: %1$s · %2$s</string>
     <string name="select_events">Zaznacz wydarzenia</string>
     <string name="select_all">Zaznacz wszystkie</string>
     <string name="undo">Cofnij</string>

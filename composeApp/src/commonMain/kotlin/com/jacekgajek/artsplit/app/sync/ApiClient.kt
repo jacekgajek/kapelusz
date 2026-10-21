@@ -38,13 +38,21 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
 
 /** An operation in the history that this app version cannot read (made by a newer version). */
 data class UnreadableOp(val opId: String, val eventId: String?)
 
-/** A history entry as far as this app version can read it. */
-data class HistoryItem(val entry: HistoryEntry, val unreadable: List<UnreadableOp> = emptyList())
+/** One operation of a history entry, as far as this app version can read it. */
+sealed interface ReadOp {
+    data class Known(val envelope: OpEnvelope) : ReadOp
+    data class Unknown(val op: UnreadableOp) : ReadOp
+}
+
+/** A history entry as far as this app version can read it; [ops] keeps the original order. */
+data class HistoryItem(val entry: HistoryEntry, val ops: List<ReadOp>) {
+    val unreadable: List<UnreadableOp> get() = ops.filterIsInstance<ReadOp.Unknown>().map { it.op }
+}
 
 data class HistoryPage(val month: String, val entries: List<HistoryItem>, val next: String?)
 
@@ -114,25 +122,26 @@ class ApiClient(
         val page = call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer())
         val entries = page["entries"]?.jsonArray.orEmpty().mapNotNull { element ->
             val entry = element as? JsonObject ?: return@mapNotNull null
-            val ops = entry["ops"]?.jsonArray.orEmpty()
-            val readable = ops.mapNotNull { op -> runCatching { ArtSplitJson.decodeFromJsonElement(OpEnvelope.serializer(), op) }.getOrNull() }
-            val unreadable = ops.filter { op -> runCatching { ArtSplitJson.decodeFromJsonElement(OpEnvelope.serializer(), op) }.isFailure }
-                .mapNotNull { it as? JsonObject }
-                .map { op ->
-                    UnreadableOp(
-                        opId = op["opId"]?.jsonPrimitive?.contentOrNull.orEmpty(),
-                        eventId = (op["op"] as? JsonObject)?.get("eventId")?.jsonPrimitive?.contentOrNull,
+            val at = entry["at"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
+            // Each operation on its own, in order: one this version cannot read becomes a placeholder.
+            val ops = entry["ops"]?.jsonArray.orEmpty().mapIndexed { index, op ->
+                runCatching { ReadOp.Known(ArtSplitJson.decodeFromJsonElement(OpEnvelope.serializer(), op)) }.getOrElse {
+                    val raw = op as? JsonObject
+                    ReadOp.Unknown(
+                        UnreadableOp(
+                            opId = raw?.get("opId")?.jsonPrimitive?.contentOrNull ?: "$at-$index",
+                            eventId = (raw?.get("op") as? JsonObject)?.get("eventId")?.jsonPrimitive?.contentOrNull,
+                        ),
                     )
                 }
-            val header = runCatching {
-                HistoryEntry(
-                    userId = entry.getValue("userId").jsonPrimitive.content,
-                    memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
-                    at = entry.getValue("at").jsonPrimitive.long,
-                    ops = readable,
-                )
-            }.getOrNull() ?: return@mapNotNull null
-            HistoryItem(header, unreadable)
+            }
+            val header = HistoryEntry(
+                userId = entry["userId"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null,
+                memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
+                at = at,
+                ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
+            )
+            HistoryItem(header, ops)
         }
         return HistoryPage(page["month"]?.jsonPrimitive?.contentOrNull ?: month, entries, page["next"]?.jsonPrimitive?.contentOrNull)
     }
