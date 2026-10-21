@@ -6,13 +6,19 @@ import com.jacekgajek.artsplit.app.auth.Session
 import com.jacekgajek.artsplit.app.auth.SessionRepository
 import com.jacekgajek.artsplit.app.sync.ApiClient
 import com.jacekgajek.artsplit.app.sync.SyncEngine
+import com.jacekgajek.artsplit.app.platform.PreparedFile
+import com.jacekgajek.artsplit.model.Attachment
+import com.jacekgajek.artsplit.model.Id
+import com.jacekgajek.artsplit.ops.AddAttachment
 import com.jacekgajek.artsplit.ops.Operation
+import com.jacekgajek.artsplit.ops.RemoveAttachment
 import com.jacekgajek.artsplit.ops.Rejection
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +30,8 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     val sessions = SessionRepository(store, google, ::nowMillis)
     val bands = BandRepository(store, scope)
     val api = ApiClient(http, AppConfig.API_URL) { force -> sessions.validToken(force) }
-    val sync = SyncEngine(api, bands, scope)
+    val uploads = AttachmentUploads(store, api, bands)
+    val sync = SyncEngine(api, bands, scope, uploads = uploads)
 
     private var loaded = false
 
@@ -50,6 +57,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         sessions.load()
         sessions.session.value?.let { session ->
             bands.load(session.userId)
+            uploads.load(session.userId)
             sync.start()
         }
         loaded = true
@@ -63,6 +71,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     suspend fun onSignedIn(idToken: String) = scope.async {
         val userId = Session.fromIdToken(idToken).userId
         bands.load(userId)
+        uploads.load(userId)
         sessions.signedIn(idToken)
         _signIns.value++
         sync.start()
@@ -72,6 +81,36 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     suspend fun signOut() {
         sync.stop()
         sessions.signOut()
+    }
+
+    /**
+     * Attaches a prepared file to a cost: the attachment is added like any change, and the file waits on the device
+     * until the sync has uploaded it.
+     */
+    suspend fun attach(costId: Id, file: PreparedFile): Rejection? {
+        val bandId = bands.currentBandId ?: return null
+        val attachment = Attachment(newId(), file.kind, file.fileName, file.sizeBytes)
+        dispatch(AddAttachment(costId, attachment))?.let { return it }
+        uploads.enqueue(PendingUpload(bandId, costId, attachment.id), file.base64)
+        sync.requestSync()
+        return null
+    }
+
+    /** Attaches the files picked while adding [costId]; runs in the app scope because the form closes on save. */
+    fun attachAfterSave(costId: Id, files: List<PreparedFile>) {
+        if (files.isNotEmpty()) scope.launch { files.forEach { attach(costId, it) } }
+    }
+
+    fun removeAttachment(costId: Id, attachmentId: Id): Rejection? {
+        val rejection = dispatch(RemoveAttachment(costId, attachmentId))
+        if (rejection == null) scope.launch { uploads.cancel(attachmentId) }
+        return rejection
+    }
+
+    /** A URL to open an attachment, or null when its file is not available (yet). */
+    suspend fun attachmentUrl(attachmentId: Id): String? {
+        val bandId = bands.currentBandId ?: return null
+        return runCatching { api.attachmentUrl(bandId, attachmentId) }.getOrNull()
     }
 
     /** Applies an operation locally, remembers the touched event for the "Continue" card, and schedules a sync. */

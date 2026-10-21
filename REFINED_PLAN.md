@@ -269,7 +269,7 @@ All endpoints require `Authorization: Bearer <Google ID token>`. The server veri
 | `GET /bands/{id}/log?month=yyyy-MM` | history |
 | `POST /bands/{id}/invites` / `DELETE /bands/{id}/invites/{code}` | create / revoke invite |
 | `GET /invites/{code}` / `POST /invites/{code}/accept` | preview / accept invite |
-| `POST /bands/{id}/attachments` | returns `{attachmentId, putUrl}` |
+| `POST /bands/{id}/attachments` | `{costId, attachmentId}` → `{putUrl, headers}` for an attachment already on the cost |
 | `GET /bands/{id}/attachments/{attachmentId}` | returns a short-lived GET URL |
 
 Band management ops (roles, treasurer, unlink, ownership) go through the same `/ops` endpoint.
@@ -413,7 +413,7 @@ Workflow:
 
 ### M5 — Extras
 - [x] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
-- [ ] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
+- [x] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
 - [x] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
 - [ ] M5.4 Polish: empty states, error states, accessibility pass
 - [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
@@ -450,6 +450,7 @@ Workflow:
 | 2026-10-21 | M5.1: the band fund is a fourth tab, shown only once someone holds the fund (balance, money from events and whether it has been handed over, other entries). The holder is chosen in Settings and can be changed but not cleared. A cost refund from the fund is linked to its cost only when the entry is created. |
 | 2026-10-21 | M5.7: the website shows a quiet strip above the tab bar suggesting the Android app. It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac with touch), after "Don't show again" (localStorage), and while `/download/version.json` is missing, so it never links to an unpublished APK. |
 | 2026-10-21 | M5.3: every deploy builds the release APK (R8-shrunk, about 2.6 MB), signed with the keystore secrets. Its version code is the deploy run number; the version name is `artsplit.versionName` in gradle.properties, bumped by hand. The deploy uploads the APK before `version.json`, and the web sync never deletes `download/`. Each deploy also creates a GitHub Release `build-N`. The app checks `version.json` once per launch and offers an update (not in debug builds); dismissing it hides that version only. CI builds the unsigned release too, so R8 problems fail before merge. |
+| 2026-10-21 | M5.2: the client chooses attachment ids, so attaching works offline: `AddAttachment` syncs like any change, and the file waits on the device (base64, per user) until the server has the attachment, then goes to a 15-minute presigned PUT. That URL is signed for the exact size and content type and only creates the object (`If-None-Match: *`), so a file can never be replaced. Any non-viewer member may upload a listed attachment, so an upload still finishes if a refund locks the cost meanwhile. Limits: photos 3 MB after compression, PDFs 10 MB. Removing an attachment or deleting its cost deletes the file. Files open through a presigned GET; on the web the tab opens at click time so popup blockers allow it. A file still waiting for upload cannot be opened yet. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

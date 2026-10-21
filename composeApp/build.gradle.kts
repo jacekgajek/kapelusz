@@ -78,6 +78,8 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.android)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.exifinterface)
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services)
             implementation(libs.googleid)

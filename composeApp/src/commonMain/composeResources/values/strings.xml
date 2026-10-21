@@ -334,4 +334,16 @@
     <string name="fund_amount_to_hint">Taken off the income before it is shared. Leave empty for nothing.</string>
     <string name="fund_amount_from_hint">The band fund adds this to the money shared, e.g. to cover a loss.</string>
     <string name="reject_attachment_too_large">The file is too large (photos up to 3 MB, PDFs up to 10 MB).</string>
+    <string name="attachments">Attachments</string>
+    <string name="attachment_add_file">Add photo or PDF</string>
+    <string name="attachment_take_photo">Take photo</string>
+    <string name="attachment_hint">Receipts and invoices: photos or PDFs, up to %1$d.</string>
+    <string name="attachment_uploading">uploading</string>
+    <string name="attachment_waiting_for_save">attached when you save</string>
+    <string name="attachment_not_available">Not available yet: the file has not been uploaded.</string>
+    <string name="attachment_too_large">The file is too large (PDFs up to 10 MB).</string>
+    <string name="attachment_unsupported">Only photos and PDFs can be attached.</string>
+    <string name="attachment_failed">Could not read the file.</string>
+    <string name="attachment_remove_title">Remove attachment?</string>
+    <string name="attachment_remove_confirm">%1$s will be removed from this cost.</string>
 </resources>

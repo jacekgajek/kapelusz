@@ -2,6 +2,7 @@ package com.jacekgajek.artsplit.app.sync
 
 import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.CreateBandRequest
+import com.jacekgajek.artsplit.app.data.AttachmentUploads
 import com.jacekgajek.artsplit.app.data.BandRepository
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.ops.Rejection
@@ -37,6 +38,8 @@ class SyncEngine(
     private val bands: BandRepository,
     private val scope: CoroutineScope,
     private val interval: Long = 30_000,
+    /** Attachment files waiting for upload; none in tests that only cover operations. */
+    private val uploads: AttachmentUploads? = null,
 ) {
     private val _status = MutableStateFlow(SyncStatus.IDLE)
     val status: StateFlow<SyncStatus> = _status.asStateFlow()
@@ -98,7 +101,7 @@ class SyncEngine(
         var result = SyncStatus.SYNCED
         try {
             val current = bands.currentBandId
-            val toSync = (bands.bandsToPush() + listOfNotNull(current)).distinct()
+            val toSync = (bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty() + listOfNotNull(current)).distinct()
             for (bandId in toSync) {
                 val bandResult = syncBand(bandId, pull = bandId == current)
                 if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE) {
@@ -121,6 +124,8 @@ class SyncEngine(
 
     private suspend fun syncBand(bandId: Id, pull: Boolean): SyncStatus = try {
         pushBand(bandId)
+        // After the push: a file can only be uploaded once the server has its attachment.
+        uploads?.uploadFor(bandId)
         if (pull) pullBand(bandId)
         SyncStatus.SYNCED
     } catch (e: CancellationException) {

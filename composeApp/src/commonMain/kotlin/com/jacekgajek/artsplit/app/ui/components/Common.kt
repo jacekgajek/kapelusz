@@ -61,6 +61,7 @@ import com.jacekgajek.artsplit.app.ui.theme.MoneyColors
 import com.jacekgajek.artsplit.domain.EventStatus
 import com.jacekgajek.artsplit.model.Money
 import com.jacekgajek.artsplit.ops.Operation
+import com.jacekgajek.artsplit.ops.Rejection
 import com.jacekgajek.artsplit.ops.RejectionReason
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -76,10 +77,17 @@ class Actions(
     private val scope: CoroutineScope,
     private val reasonTexts: Map<RejectionReason, String>,
 ) {
-    fun run(op: Operation): Boolean {
-        val rejection = graph.dispatch(op) ?: return true
-        scope.launch { snackbar.showSnackbar(reasonTexts.getValue(rejection.reason)) }
+    fun run(op: Operation): Boolean = show(graph.dispatch(op))
+
+    /** Shows [rejection] (if any) in the snackbar; true when there was none. */
+    fun show(rejection: Rejection?): Boolean {
+        if (rejection == null) return true
+        say(reasonTexts.getValue(rejection.reason))
         return false
+    }
+
+    fun say(message: String) {
+        scope.launch { snackbar.showSnackbar(message) }
     }
 }
 

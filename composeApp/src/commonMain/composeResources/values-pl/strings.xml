@@ -334,4 +334,16 @@
     <string name="fund_amount_to_hint">Odejmowane od przychodu przed podziałem. Zostaw puste, jeśli nic.</string>
     <string name="fund_amount_from_hint">Kasa zespołowa dokłada tę kwotę do podziału, np. żeby pokryć stratę.</string>
     <string name="reject_attachment_too_large">Plik jest za duży (zdjęcia do 3 MB, PDF do 10 MB).</string>
+    <string name="attachments">Załączniki</string>
+    <string name="attachment_add_file">Dodaj zdjęcie lub PDF</string>
+    <string name="attachment_take_photo">Zrób zdjęcie</string>
+    <string name="attachment_hint">Paragony i faktury: zdjęcia lub pliki PDF, maksymalnie %1$d.</string>
+    <string name="attachment_uploading">wysyłanie</string>
+    <string name="attachment_waiting_for_save">zostanie dołączony po zapisaniu</string>
+    <string name="attachment_not_available">Jeszcze niedostępny: plik nie został wysłany.</string>
+    <string name="attachment_too_large">Plik jest za duży (PDF do 10 MB).</string>
+    <string name="attachment_unsupported">Można dołączać tylko zdjęcia i pliki PDF.</string>
+    <string name="attachment_failed">Nie udało się odczytać pliku.</string>
+    <string name="attachment_remove_title">Usunąć załącznik?</string>
+    <string name="attachment_remove_confirm">%1$s zostanie usunięty z tego kosztu.</string>
 </resources>
