@@ -124,4 +124,22 @@
     <string name="recorded_transfers">Recorded transfers</string>
     <string name="remove_transfer_title">Remove transfer?</string>
     <string name="remove_transfer_confirm">%1$s → %2$s: %3$s. Remove it only if it was recorded by mistake.</string>
+    <string name="add_cost">Add cost</string>
+    <string name="edit_cost">Cost</string>
+    <string name="filter_all">All</string>
+    <string name="cost_status_pending">Pending</string>
+    <string name="cost_status_partly">Partly refunded</string>
+    <string name="cost_status_refunded">Refunded</string>
+    <string name="costs_empty">No costs here.</string>
+    <string name="costs_outstanding_total">Still to be refunded: %1$s</string>
+    <string name="category">Category (optional)</string>
+    <string name="cost_date">Date</string>
+    <string name="cost_event">Incurred for event</string>
+    <string name="cost_no_event">No specific event</string>
+    <string name="description_optional">Description (optional)</string>
+    <string name="cost_locked">This cost was refunded in an event that is already being settled. Only a lead can change it now.</string>
+    <string name="cost_refunded_at">%1$s refunded at %2$s</string>
+    <string name="cost_refunded_fund">%1$s refunded from the band fund</string>
+    <string name="delete_cost_title">Delete cost?</string>
+    <string name="delete_cost_confirm">The cost and its refunds will be removed.</string>
 </resources>

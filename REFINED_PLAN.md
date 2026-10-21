@@ -390,7 +390,7 @@ Workflow:
 - [x] M2.3 Roster (local) and event list with status, "your number", Continue card
 - [x] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
 - [x] M2.5 Transfers: suggestions, Settle, per-member Settle, Settle All, Hand over money
-- [ ] M2.6 My costs + fast add-cost form (no attachments yet)
+- [x] M2.6 My costs + fast add-cost form (no attachments yet)
 - [ ] M2.7 Settle tab; archive/delete event rules
 
 ### M3 — Backend and sync

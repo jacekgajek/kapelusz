@@ -124,4 +124,22 @@
     <string name="recorded_transfers">Zapisane przekazania</string>
     <string name="remove_transfer_title">Usunąć przekazanie?</string>
     <string name="remove_transfer_confirm">%1$s → %2$s: %3$s. Usuń tylko, jeśli zostało zapisane przez pomyłkę.</string>
+    <string name="add_cost">Dodaj koszt</string>
+    <string name="edit_cost">Koszt</string>
+    <string name="filter_all">Wszystkie</string>
+    <string name="cost_status_pending">Oczekuje</string>
+    <string name="cost_status_partly">Częściowo zwrócony</string>
+    <string name="cost_status_refunded">Zwrócony</string>
+    <string name="costs_empty">Brak kosztów.</string>
+    <string name="costs_outstanding_total">Do zwrotu: %1$s</string>
+    <string name="category">Kategoria (opcjonalnie)</string>
+    <string name="cost_date">Data</string>
+    <string name="cost_event">Dotyczy wydarzenia</string>
+    <string name="cost_no_event">Bez konkretnego wydarzenia</string>
+    <string name="description_optional">Opis (opcjonalnie)</string>
+    <string name="cost_locked">Ten koszt został zwrócony w wydarzeniu, które jest już rozliczane. Teraz może go zmienić tylko lider.</string>
+    <string name="cost_refunded_at">%1$s zwrócono w: %2$s</string>
+    <string name="cost_refunded_fund">%1$s zwrócono z kasy zespołowej</string>
+    <string name="delete_cost_title">Usunąć koszt?</string>
+    <string name="delete_cost_confirm">Koszt i jego zwroty zostaną usunięte.</string>
 </resources>

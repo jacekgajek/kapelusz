@@ -48,8 +48,10 @@ import com.jacekgajek.artsplit.app.ui.MyCostsRoute
 import com.jacekgajek.artsplit.app.ui.RosterRoute
 import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
+import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.CreateBandScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
+import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
 import com.jacekgajek.artsplit.app.ui.screens.PlaceholderScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
@@ -99,10 +101,10 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, onNavHostReady: 
             composable<EventsRoute> {
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
             }
-            composable<MyCostsRoute> { PlaceholderScreen(stringResource(Res.string.tab_my_costs), toSettings, toRoster) }
+            composable<MyCostsRoute> { MyCostsScreen(state, { navController.navigate(CostRoute(it)) }, toSettings, toRoster) }
             composable<SettleRoute> { PlaceholderScreen(stringResource(Res.string.tab_settle), toSettings, toRoster) }
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
-            composable<CostRoute> { PlaceholderScreen("", toSettings, toRoster) }
+            composable<CostRoute> { entry -> CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back) }
             composable<SettingsRoute> {
                 SettingsScreen(
                     language = settings.language,
