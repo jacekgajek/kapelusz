@@ -54,6 +54,8 @@ jobs:
         run: |
           set -euo pipefail
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          # The size is not secret; a truncated ANDROID_KEYSTORE_BASE64 shows up here (keytool then says EOFException).
+          echo "Keystore from ANDROID_KEYSTORE_BASE64: $(stat -c %s "$RUNNER_TEMP/release.jks") bytes"
           # keytool reports errors on stdout: keep its output, and on failure show its error and the keystore's aliases
           # (neither is secret), e.g. a wrong ANDROID_KEY_ALIAS or keystore password.
           if ! LISTING=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" 2>&1); then
