@@ -388,7 +388,7 @@ Workflow:
 - [x] M2.1 App shell: navigation, tabs, PL/EN resources, theme
 - [x] M2.2 Local store (Android files / web IndexedDB) + pending-op queue
 - [x] M2.3 Roster (local) and event list with status, "your number", Continue card
-- [ ] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
+- [x] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
 - [ ] M2.5 Transfers: suggestions, Settle, per-member Settle, Settle All, Hand over money
 - [ ] M2.6 My costs + fast add-cost form (no attachments yet)
 - [ ] M2.7 Settle tab; archive/delete event rules

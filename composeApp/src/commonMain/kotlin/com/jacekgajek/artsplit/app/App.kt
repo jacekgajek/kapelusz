@@ -53,6 +53,7 @@ import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.PlaceholderScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
+import com.jacekgajek.artsplit.app.ui.screens.event.EventScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -100,10 +101,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, onNavHostReady: 
             }
             composable<MyCostsRoute> { PlaceholderScreen(stringResource(Res.string.tab_my_costs), toSettings, toRoster) }
             composable<SettleRoute> { PlaceholderScreen(stringResource(Res.string.tab_settle), toSettings, toRoster) }
-            composable<EventRoute> { entry ->
-                val route = entry.toRoute<EventRoute>()
-                PlaceholderScreen(state.band.event(route.eventId)?.name ?: "", toSettings, toRoster)
-            }
+            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
             composable<CostRoute> { PlaceholderScreen("", toSettings, toRoster) }
             composable<SettingsRoute> {
                 SettingsScreen(
