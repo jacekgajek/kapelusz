@@ -2,6 +2,7 @@ package com.jacekgajek.artsplit.server
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
+import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.IncomeSource
@@ -83,7 +84,7 @@ class Handler : RequestStreamHandler {
             System.getenv("GOOGLE_CLIENT_IDS").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
         )
         private val store = S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data")
-        private val api = Api(store, verifier)
+        private val api = Api(store, verifier, minAppVersion = Api.MIN_APP_VERSION)
 
         init {
             Core.getGlobalContext().register(this)
@@ -107,7 +108,8 @@ class Handler : RequestStreamHandler {
                 ArtSplitJson.decodeFromString(Band.serializer(), ArtSplitJson.encodeToString(Band.serializer(), sample))
                 sample.events.forEach { SettlementCalculator.settle(sample, it) }
             }
-            api.handle(HttpRequest("GET", "/me"))
+            // As a development build (always allowed), so priming goes past the version check into authentication.
+            api.handle(HttpRequest("GET", "/me", query = mapOf(ApiErrors.APP_VERSION_PARAMETER to "0")))
         }
 
         override fun afterRestore(context: org.crac.Context<out Resource>?) = Unit

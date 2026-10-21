@@ -48,6 +48,10 @@ import com.jacekgajek.artsplit.app.generated.undo
 import com.jacekgajek.artsplit.app.generated.unarchive
 import com.jacekgajek.artsplit.app.generated.archive
 import com.jacekgajek.artsplit.ops.SetEventArchived
+import com.jacekgajek.artsplit.model.AgendaTime
+import com.jacekgajek.artsplit.app.ui.model.setTimes
+import com.jacekgajek.artsplit.app.ui.model.formatAgendaTime
+import com.jacekgajek.artsplit.model.effectiveAgendaTemplate
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -248,7 +252,12 @@ fun EventsScreen(
             onCreate = { name, date, location ->
                 val eventId = newId()
                 val ok = actions.run(
-                    CreateEvent(eventId, name, date, location, participants = lineupOfLastEvent(band, state.me?.id)),
+                    CreateEvent(
+                        eventId, name, date, location,
+                        participants = lineupOfLastEvent(band, state.me?.id),
+                        // The band's agenda template, times still to be set (VERSION_2 §4.1).
+                        agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
+                    ),
                 )
                 if (ok) onOpenEvent(eventId)
             },
@@ -280,7 +289,8 @@ private fun EventRow(band: Band, summary: EventSummary, selected: Boolean?, onLo
                 Column(Modifier.weight(1f)) {
                     Text(event.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        listOfNotNull(formatDate(event.date, language), event.location).joinToString(" · "),
+                        listOfNotNull(formatDate(event.date, language), event.setTimes().firstOrNull()?.let(::formatAgendaTime), event.location)
+                            .joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }

@@ -149,10 +149,10 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M2.5 Bulk archive with selection mode (§3.3)
 
 ### V2-M3 — Event agenda and details
-- [ ] V2-M3.1 Model and operations: band agenda template, per-event times, who added each participant
-- [ ] V2-M3.2 Settings → Event agenda (admins)
-- [ ] V2-M3.3 Event times in the edit dialog behind More details, one-off times, after-midnight rule, display in header and list
-- [ ] V2-M3.4 Details section with full-screen editor; notes removed from the dialogs
+- [x] V2-M3.1 Model and operations: band agenda template, per-event times, who added each participant
+- [x] V2-M3.2 Settings → Event agenda (admins)
+- [x] V2-M3.3 Event times in the edit dialog behind More details, one-off times, after-midnight rule, display in header and list
+- [x] V2-M3.4 Details section with full-screen editor; notes removed from the dialogs
 
 ### V2-M4 — Background sync and notifications
 - [ ] V2-M4.1 Periodic background sync of all bands (WorkManager), rescheduling after restart
@@ -194,4 +194,6 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | Google Calendar through a per-user subscription link rather than a one-off button or the Calendar API (which needs a sensitive scope and Google's app verification). Refresh timing is Google's. |
 | 2026-10-21 | V2-M1 review: a downloaded update installs **30 minutes** after the app left the screen (or with the daily check while it is hidden), so stepping out briefly, e.g. to take a photo for a cost, never restarts it. A declined or failed version, or one Android asked to confirm, is not tried again on its own; Settings offers "Install now", and the strip offers a pending confirmation. The "ready to install" notification needs the notification permission, which the app asks for with gig reminders (V2-M4); until then the strip in the app is the way. |
 | 2026-10-21 | V2-M2: the app version goes as the query parameter `appVersion`, because a new header would need the API's CORS allow-list (terraform) changed. On the web, the browser's Back button goes back a page rather than leaving selection mode (a page cannot intercept it); ✕ in the top bar leaves it. On Android, Back leaves selection mode. |
+| 2026-10-21 | V2-M3 review: a band stored by an older app (which dropped the new fields but kept the server's version) is downloaded in full once (`LocalBand.schema`), so agenda times are never shown missing and then overwritten. Unknown enum values from newer versions fall back to defaults (`coerceInputValues`). Template entries are marked `fromTemplate` instead of being recognised by label; the template editor keeps whole entries, so moving or removing one never turns built-in times into fixed labels. |
+| 2026-10-21 | `MIN_APP_VERSION` raised to 11 (the V2-M2 deploy, already live) together with V2-M3: older apps cannot read the history entries of agenda changes, and build-11 apps read history leniently and show "update required". Build 10 updates itself (V2-M1). |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |

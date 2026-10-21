@@ -36,6 +36,12 @@ data class LocalBand(
     val nextSeq: Long = 1,
     val userId: String,
     val needsCreate: Boolean = false,
+    /**
+     * The data format [base] was stored with. An older app drops fields it does not know (e.g. agenda times) but
+     * keeps the server's [version], so the server would keep answering "not modified"; a band stored with an older
+     * format is therefore downloaded in full once. Missing (0) for bands stored before this field existed.
+     */
+    val schema: Int = 0,
 )
 
 /** The signed-in user's bands on this device and which one is open. */
@@ -130,7 +136,7 @@ class BandRepository(
     fun createBand(name: String, currency: String, yourName: String) {
         val owner = requireNotNull(userId) { "Not signed in" }
         val band = Band.create(idGenerator(), name.trim(), currency, idGenerator(), yourName.trim(), owner)
-        val local = LocalBand(base = band, clientId = idGenerator(), userId = owner, needsCreate = true)
+        val local = LocalBand(base = band, clientId = idGenerator(), userId = owner, needsCreate = true, schema = CURRENT_SCHEMA)
         locals[band.id] = local
         persist(band.id)
         updateIndex { index ->
@@ -142,7 +148,7 @@ class BandRepository(
     /** Stores a band downloaded from the server and opens it. */
     fun adoptFromServer(band: Band, version: String) {
         val owner = requireNotNull(userId) { "Not signed in" }
-        val local = LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner)
+        val local = LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
         locals[band.id] = local
         persist(band.id)
         val me = band.memberOfUser(owner)
@@ -243,7 +249,11 @@ class BandRepository(
         val key = bandKey(requireUser(), bandId)
         val raw = store.read(key) ?: return null
         return try {
-            ArtSplitJson.decodeFromString(LocalBand.serializer(), raw).also { replay(it) }
+            ArtSplitJson.decodeFromString(LocalBand.serializer(), raw).also { replay(it) }.let { local ->
+                if (local.schema >= CURRENT_SCHEMA) local
+                // Forget the version: the next pull gets the full state instead of "not modified".
+                else local.copy(version = null, schema = CURRENT_SCHEMA).also { dirty += bandId }
+            }
         } catch (e: Exception) {
             // Never lose the only copy: keep the unreadable data as a backup before offering to start over.
             val backupKey = "$key-backup-${clock()}"
@@ -344,6 +354,9 @@ class BandRepository(
 
         /** M3 stored the index without the user id. */
         const val UNSCOPED_INDEX_KEY = "band-index"
+
+        /** Raise when the band model gains fields an older app would drop (V2-M3: agenda times). */
+        const val CURRENT_SCHEMA = 3
 
         /** Identity of the device user in M2, before Google sign-in. */
         const val LOCAL_USER_ID = "local-user"

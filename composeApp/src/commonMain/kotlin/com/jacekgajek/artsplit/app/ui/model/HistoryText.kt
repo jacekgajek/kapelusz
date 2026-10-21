@@ -76,6 +76,10 @@ import com.jacekgajek.artsplit.ops.RenameBand
 import com.jacekgajek.artsplit.ops.RenameGuest
 import com.jacekgajek.artsplit.ops.RenameMember
 import com.jacekgajek.artsplit.ops.SetEventArchived
+import com.jacekgajek.artsplit.ops.SetEventAgenda
+import com.jacekgajek.artsplit.ops.SetAgendaTemplate
+import com.jacekgajek.artsplit.app.generated.h_set_agenda
+import com.jacekgajek.artsplit.app.generated.h_set_agenda_template
 import com.jacekgajek.artsplit.ops.SetFundAmount
 import com.jacekgajek.artsplit.ops.SetMemberArchived
 import com.jacekgajek.artsplit.ops.SetMemberRole
@@ -120,6 +124,8 @@ fun describe(op: Operation, band: Band): String {
         is CreateEvent -> stringResource(Res.string.h_create_event, op.name)
         is UpdateEvent -> stringResource(Res.string.h_edit_event, event(op.eventId))
         is SetEventArchived -> stringResource(if (op.archived) Res.string.h_archive_event else Res.string.h_restore_event, event(op.eventId))
+        is SetEventAgenda -> stringResource(Res.string.h_set_agenda, event(op.eventId))
+        is SetAgendaTemplate -> stringResource(Res.string.h_set_agenda_template)
         is DeleteEvent -> stringResource(Res.string.h_delete_event)
         is AddParticipant -> stringResource(Res.string.h_add_participant, member(op.memberId), event(op.eventId))
         is AddGuest -> stringResource(Res.string.h_add_guest, op.name, event(op.eventId))

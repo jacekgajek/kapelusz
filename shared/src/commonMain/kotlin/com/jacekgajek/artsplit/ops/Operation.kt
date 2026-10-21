@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.ops
 
+import com.jacekgajek.artsplit.model.AgendaTemplateItem
+import com.jacekgajek.artsplit.model.AgendaTime
 import com.jacekgajek.artsplit.model.Attachment
 import com.jacekgajek.artsplit.model.CostCategory
 import com.jacekgajek.artsplit.model.DEFAULT_WEIGHT
@@ -85,7 +87,17 @@ data class CreateEvent(
     val notes: String? = null,
     val guests: List<Guest> = emptyList(),
     val participants: List<Participant> = emptyList(),
+    /** The band's agenda template at creation time, times not set yet (VERSION_2 §4.1). */
+    val agenda: List<AgendaTime> = emptyList(),
 ) : Operation
+
+/** Replaces an event's agenda times (lead+); last write wins, like other event details. */
+@Serializable @SerialName("SetEventAgenda")
+data class SetEventAgenda(override val eventId: Id, val agenda: List<AgendaTime>) : Operation
+
+/** The agenda times new events get (admin+); existing events keep theirs. */
+@Serializable @SerialName("SetAgendaTemplate")
+data class SetAgendaTemplate(val items: List<AgendaTemplateItem>) : Operation
 
 @Serializable @SerialName("UpdateEvent")
 data class UpdateEvent(

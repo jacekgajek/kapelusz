@@ -284,10 +284,11 @@ fun EditButton(onClick: () -> Unit) {
     IconButton(onClick = onClick) { Icon(Icons.Default.Edit, stringResource(Res.string.edit)) }
 }
 
-/** Visible remove affordance at the end of a tappable row. */
+/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers. */
 @Composable
-fun RemoveButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, stringResource(Res.string.remove)) }
+fun RemoveButton(what: String? = null, onClick: () -> Unit) {
+    val remove = stringResource(Res.string.remove)
+    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, what?.let { "$remove: $it" } ?: remove) }
 }
 
 /** The app version in a corner (sign-in screen, Settings), so it is easy to tell which build is running. */

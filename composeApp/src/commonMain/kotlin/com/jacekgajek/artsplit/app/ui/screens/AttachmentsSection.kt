@@ -161,7 +161,7 @@ private fun AttachmentRow(kind: AttachmentKind, name: String, size: Long?, statu
             Text(name, maxLines = 1)
             Text(listOfNotNull(size?.let(::formatSize), status).joinToString(" · "), style = MaterialTheme.typography.bodySmall)
         }
-        if (onRemove != null) RemoveButton(onRemove)
+        if (onRemove != null) RemoveButton(name, onRemove)
     }
 }
 
