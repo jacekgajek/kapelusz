@@ -385,7 +385,7 @@ Workflow:
 - [x] M1.8 Golden tests (§2.6) + invariant tests (Σ payout, transfers converge to SETTLED)
 
 ### M2 — Local-only app (Android + Web)
-- [ ] M2.1 App shell: navigation, tabs, PL/EN resources, theme
+- [x] M2.1 App shell: navigation, tabs, PL/EN resources, theme
 - [ ] M2.2 Local store (Android files / web IndexedDB) + pending-op queue
 - [ ] M2.3 Roster (local) and event list with status, "your number", Continue card
 - [ ] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
@@ -429,6 +429,7 @@ Workflow:
 | 2026-10-20 | M1: when the band fund and the treasurer both take part in an event's suggestions, they are paired first ("keep for band fund"); the rest is greedy largest-surplus to largest-deficit. |
 | 2026-10-20 | M1: a member may record holdings only in events they take part in; leads may record them for any participant. Guests can be promoted to the roster (admin) with all their entries in that event re-pointed. |
 | 2026-10-21 | PR #1 review: the band fund balance may go negative (shown in red, never blocked). A treasurer with the Member role acts for the band fund when recording/settling transfers. |
+| 2026-10-21 | M2: `composeApp` commonTest runs as Android host (JVM) tests; the wasm browser test task is disabled (needs a headless browser, and the code under test is platform-independent). Navigation uses type-safe routes; the web build binds them to browser history. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

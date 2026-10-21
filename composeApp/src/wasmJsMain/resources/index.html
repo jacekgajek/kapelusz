@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Art Split</title>
+    <script>
+        // In-app language override: Compose resources read navigator.languages.
+        const languages = Object.getOwnPropertyDescriptor(Navigator.prototype, "languages");
+        Object.defineProperty(Navigator.prototype, "languages", Object.assign({}, languages, {
+            get: function () {
+                return window.__customLocale ? [window.__customLocale] : languages.get.apply(this);
+            }
+        }));
+    </script>
     <script type="application/javascript" src="composeApp.js"></script>
 </head>
 <body></body>

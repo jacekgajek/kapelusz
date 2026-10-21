@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Art Split</string>
+    <string name="back">Wstecz</string>
+    <string name="settings">Ustawienia</string>
+    <string name="menu_settings">Ustawienia</string>
+    <string name="menu_roster">Członkowie zespołu</string>
+    <string name="tab_events">Wydarzenia</string>
+    <string name="tab_my_costs">Moje koszty</string>
+    <string name="tab_settle">Rozliczenia</string>
+    <string name="language">Język</string>
+    <string name="language_system">Język urządzenia</string>
+    <string name="language_en">English</string>
+    <string name="language_pl">Polski</string>
+</resources>
