@@ -51,6 +51,7 @@ import com.jacekgajek.artsplit.app.ui.components.Dropdown
 import com.jacekgajek.artsplit.app.ui.components.MoneyField
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
+import com.jacekgajek.artsplit.app.ui.components.TransferParties
 import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.components.parseMoney
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
@@ -104,7 +105,7 @@ fun TransfersSection(context: EventContext) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("${partyName(context.band, event, transfer.from, fundLabel)} → ${partyName(context.band, event, transfer.to, fundLabel)}")
+                    TransferParties(partyName(context.band, event, transfer.from, fundLabel), partyName(context.band, event, transfer.to, fundLabel))
                     transfer.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
                 MoneyText(transfer.amount, context.currency)
@@ -146,7 +147,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                     ),
                 )
             } else {
-                Text("${partyName(band, context.event, suggestion.from, fundLabel)} → ${partyName(band, context.event, suggestion.to, fundLabel)}")
+                TransferParties(partyName(band, context.event, suggestion.from, fundLabel), partyName(band, context.event, suggestion.to, fundLabel))
                 MoneyText(suggestion.amount, context.currency, bold = true)
             }
         }

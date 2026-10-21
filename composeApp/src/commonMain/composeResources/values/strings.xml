@@ -123,7 +123,7 @@
     <string name="hand_over_to">To</string>
     <string name="recorded_transfers">Recorded transfers</string>
     <string name="remove_transfer_title">Remove transfer?</string>
-    <string name="remove_transfer_confirm">%1$s → %2$s: %3$s. Remove it only if it was recorded by mistake.</string>
+    <string name="remove_transfer_confirm">%3$s from %1$s to %2$s. Remove it only if it was recorded by mistake.</string>
     <string name="add_cost">Add cost</string>
     <string name="edit_cost">Cost</string>
     <string name="filter_all">All</string>
@@ -144,7 +144,7 @@
     <string name="delete_cost_confirm">The cost and its refunds will be removed.</string>
     <string name="your_transfers">Your transfers</string>
     <string name="events_to_settle">Events to settle</string>
-    <string name="nothing_to_settle">Nothing to settle. 🎉</string>
+    <string name="nothing_to_settle">Nothing to settle.</string>
     <string name="open_event">Open</string>
     <string name="you_hold">You hold %1$s to hand over at %2$s</string>
 </resources>

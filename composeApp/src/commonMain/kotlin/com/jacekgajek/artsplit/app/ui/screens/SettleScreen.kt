@@ -36,6 +36,7 @@ import com.jacekgajek.artsplit.app.generated.you_hold
 import com.jacekgajek.artsplit.app.generated.your_transfers
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
+import com.jacekgajek.artsplit.app.ui.components.TransferParties
 import com.jacekgajek.artsplit.app.ui.components.StatusChip
 import com.jacekgajek.artsplit.app.ui.components.TabTopBar
 import com.jacekgajek.artsplit.app.ui.components.language
@@ -109,7 +110,7 @@ fun SettleScreen(
                         suggestions.forEach { suggestion ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("${partyName(band, event, suggestion.from, fundLabel)} → ${partyName(band, event, suggestion.to, fundLabel)}")
+                                    TransferParties(partyName(band, event, suggestion.from, fundLabel), partyName(band, event, suggestion.to, fundLabel))
                                     MoneyText(suggestion.amount, band.currency, bold = true)
                                 }
                                 FilledTonalButton(onClick = {

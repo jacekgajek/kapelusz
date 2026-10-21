@@ -123,7 +123,7 @@
     <string name="hand_over_to">Do</string>
     <string name="recorded_transfers">Zapisane przekazania</string>
     <string name="remove_transfer_title">Usunąć przekazanie?</string>
-    <string name="remove_transfer_confirm">%1$s → %2$s: %3$s. Usuń tylko, jeśli zostało zapisane przez pomyłkę.</string>
+    <string name="remove_transfer_confirm">%3$s (od: %1$s, do: %2$s). Usuń tylko, jeśli zostało zapisane przez pomyłkę.</string>
     <string name="add_cost">Dodaj koszt</string>
     <string name="edit_cost">Koszt</string>
     <string name="filter_all">Wszystkie</string>
@@ -144,7 +144,7 @@
     <string name="delete_cost_confirm">Koszt i jego zwroty zostaną usunięte.</string>
     <string name="your_transfers">Twoje przekazania</string>
     <string name="events_to_settle">Wydarzenia do rozliczenia</string>
-    <string name="nothing_to_settle">Nie ma nic do rozliczenia. 🎉</string>
+    <string name="nothing_to_settle">Nie ma nic do rozliczenia.</string>
     <string name="open_event">Otwórz</string>
     <string name="you_hold">Masz %1$s do przekazania: %2$s</string>
 </resources>
