@@ -400,7 +400,7 @@ Workflow:
 - [x] M3.1 `:server` handler, routing, Google token verification
 - [x] M3.2 S3 storage with ETag conditional writes, `/state`, `/ops`, op log
 - [x] M3.3 SnapStart priming, shadow jar, `deploy.yml` (API + web), `scripts/deploy.sh`
-- [ ] M3.4 Google sign-in on Android and Web
+- [x] M3.4 Google sign-in on Android and Web
 - [ ] M3.5 Sync engine (push/pull/backoff/rejections UI)
 - [ ] M3.6 Zero screen: create band, `/me`, band switcher
 

@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.app
 
 import android.content.Context
+import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.FileStore
 import java.io.File
@@ -10,5 +11,5 @@ object AndroidAppGraph {
     private var instance: AppGraph? = null
 
     fun get(context: Context): AppGraph =
-        instance ?: AppGraph(FileStore(File(context.applicationContext.filesDir, "art-split"))).also { instance = it }
+        instance ?: AppGraph(FileStore(File(context.applicationContext.filesDir, "art-split")), AndroidGoogleAuth).also { instance = it }
 }

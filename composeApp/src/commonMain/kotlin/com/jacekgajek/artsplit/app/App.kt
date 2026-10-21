@@ -56,9 +56,11 @@ import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettleScreen
+import com.jacekgajek.artsplit.app.ui.screens.SignInScreen
 import com.jacekgajek.artsplit.app.ui.screens.UnreadableDataScreen
 import com.jacekgajek.artsplit.app.ui.screens.event.EventScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -73,6 +75,7 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     val settings by graph.settings.settings.collectAsState()
     val bandState by graph.bands.state.collectAsState()
+    val session by graph.sessions.session.collectAsState()
     // Outside key(language), so changing the language keeps the back stack.
     val navController = rememberNavController()
     LaunchedEffect(navController) { onNavHostReady(navController) }
@@ -81,17 +84,25 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
         key(settings.language) {
             ArtSplitTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    when (val state = bandState) {
-                        BandState.Loading -> {}
-                        BandState.NoBand -> CreateBandScreen { name, currency, yourName ->
-                            graph.bands.createBand(name, currency, yourName)
-                        }
-                        is BandState.Ready -> Navigation(graph, state, navController)
-                        is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
+                    val state = bandState
+                    when {
+                        state == BandState.Loading -> {}
+                        session == null -> SignInScreen(graph.sessions)
+                        else -> BandContent(graph, state, navController, scope)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BandContent(graph: AppGraph, bandState: BandState, navController: NavHostController, scope: CoroutineScope) {
+    when (bandState) {
+        BandState.Loading -> {}
+        BandState.NoBand -> CreateBandScreen { name, currency, yourName -> graph.bands.createBand(name, currency, yourName) }
+        is BandState.Ready -> Navigation(graph, bandState, navController)
+        is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
     }
 }
 
@@ -112,9 +123,13 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
             composable<CostRoute> { entry -> CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back) }
             composable<SettingsRoute> {
+                val session by graph.sessions.session.collectAsState()
+                val scope = rememberCoroutineScope()
                 SettingsScreen(
                     language = settings.language,
                     onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
+                    account = session?.let { it.email ?: it.name },
+                    onSignOut = { scope.launch { graph.sessions.signOut() } },
                     onBack = back,
                 )
             }

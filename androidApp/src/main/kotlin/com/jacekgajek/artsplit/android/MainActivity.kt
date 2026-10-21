@@ -10,11 +10,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jacekgajek.artsplit.app.AndroidAppGraph
 import com.jacekgajek.artsplit.app.App
+import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
+import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val graph = AndroidAppGraph.get(this)
+        AndroidGoogleAuth.activity = WeakReference(this)
         setContent {
             var loaded by remember { mutableStateOf(false) }
             LaunchedEffect(graph) {

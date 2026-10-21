@@ -171,7 +171,7 @@
     <string name="reject_no_treasurer">Choose who holds the band fund first.</string>
     <string name="reject_treasurer_must_stay">This member holds the band fund. Choose another treasurer first.</string>
     <string name="reject_archived_member">This member is archived.</string>
-    <string name="reject_owner_role_fixed">The owner\'s role can only change by transferring ownership.</string>
+    <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_ownership_needs_admin">Ownership can only go to an admin with an app account.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
     <string name="reject_user_already_member">This account is already in the band.</string>
@@ -190,4 +190,9 @@
     <string name="unreadable_text">A copy was kept as a backup on this device, so nothing is lost. You can start over now; the backup can be restored later if needed.</string>
     <string name="start_over">Start over</string>
     <string name="edit">Edit</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_in_intro">Sign in to share your band's settlements with your bandmates.</string>
+    <string name="sign_in_failed">Sign-in failed: %1$s</string>
+    <string name="account">Account</string>
+    <string name="sign_out">Sign out</string>
 </resources>

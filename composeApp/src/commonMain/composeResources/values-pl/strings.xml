@@ -190,4 +190,9 @@
     <string name="unreadable_text">Ich kopia została zachowana na tym urządzeniu, więc nic nie przepadło. Możesz zacząć od nowa; kopię da się później przywrócić, jeśli będzie potrzebna.</string>
     <string name="start_over">Zacznij od nowa</string>
     <string name="edit">Edytuj</string>
+    <string name="sign_in_google">Zaloguj się przez Google</string>
+    <string name="sign_in_intro">Zaloguj się, aby dzielić rozliczenia zespołu z resztą członków.</string>
+    <string name="sign_in_failed">Logowanie nie powiodło się: %1$s</string>
+    <string name="account">Konto</string>
+    <string name="sign_out">Wyloguj się</string>
 </resources>
