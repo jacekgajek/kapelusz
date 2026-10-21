@@ -112,4 +112,16 @@
     <string name="line_hands_over">hands over %1$s</string>
     <string name="line_settled">settled</string>
     <string name="line_payout_share_only">payout %1$s</string>
+    <string name="to_settle">To settle</string>
+    <string name="settle">Settle</string>
+    <string name="settle_all">Settle all</string>
+    <string name="confirm">Confirm</string>
+    <string name="keep_for_fund">%1$s keeps %2$s for the band fund</string>
+    <string name="hand_over">Hand over money</string>
+    <string name="hand_over_hint">Record money given to someone else, e.g. all collected money to the person who pays everyone out.</string>
+    <string name="hand_over_from">From</string>
+    <string name="hand_over_to">To</string>
+    <string name="recorded_transfers">Recorded transfers</string>
+    <string name="remove_transfer_title">Remove transfer?</string>
+    <string name="remove_transfer_confirm">%1$s → %2$s: %3$s. Remove it only if it was recorded by mistake.</string>
 </resources>

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +21,7 @@ import com.jacekgajek.artsplit.app.generated.line_holds
 import com.jacekgajek.artsplit.app.generated.line_payout
 import com.jacekgajek.artsplit.app.generated.line_payout_share_only
 import com.jacekgajek.artsplit.app.generated.line_settled
+import com.jacekgajek.artsplit.app.generated.settle
 import com.jacekgajek.artsplit.app.generated.summary
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
 import com.jacekgajek.artsplit.app.ui.components.language
@@ -29,6 +31,7 @@ import com.jacekgajek.artsplit.app.ui.theme.MoneyColors
 import com.jacekgajek.artsplit.domain.EventStatus
 import com.jacekgajek.artsplit.domain.PartyLine
 import com.jacekgajek.artsplit.model.BAND_FUND
+import com.jacekgajek.artsplit.ops.SettleSuggestions
 import org.jetbrains.compose.resources.stringResource
 
 /** Per party: what they should end up with (share + refunds), what they hold now, and the difference. */
@@ -69,22 +72,33 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
             }
             Text(stringResource(Res.string.line_holds, formatMoney(line.balance, currency, lang)), style = MaterialTheme.typography.bodySmall)
         }
-        val labelModifier = Modifier.padding(start = 12.dp)
-        when {
-            context.settlement.status == EventStatus.DRAFT -> {}
-            line.delta.isNegative -> Text(
-                stringResource(Res.string.line_gets, formatMoney(-line.delta, currency, lang)),
-                labelModifier,
-                color = MoneyColors.positive,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            line.delta.isPositive -> Text(
-                stringResource(Res.string.line_hands_over, formatMoney(line.delta, currency, lang)),
-                labelModifier,
-                color = MoneyColors.negative,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            else -> Text(stringResource(Res.string.line_settled), labelModifier, style = MaterialTheme.typography.labelLarge)
+        Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {
+            DeltaLabel(context, line)
+            if (context.settlement.canSettle && context.settlement.suggestionsFor(line.partyId).isNotEmpty()) {
+                TextButton(onClick = { context.actions.run(SettleSuggestions(context.event.id, line.partyId)) }) {
+                    Text(stringResource(Res.string.settle))
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun DeltaLabel(context: EventContext, line: PartyLine) {
+    val currency = context.currency
+    val lang = language
+    when {
+        context.settlement.status == EventStatus.DRAFT -> {}
+        line.delta.isNegative -> Text(
+            stringResource(Res.string.line_gets, formatMoney(-line.delta, currency, lang)),
+            color = MoneyColors.positive,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        line.delta.isPositive -> Text(
+            stringResource(Res.string.line_hands_over, formatMoney(line.delta, currency, lang)),
+            color = MoneyColors.negative,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        else -> Text(stringResource(Res.string.line_settled), style = MaterialTheme.typography.labelLarge)
     }
 }
