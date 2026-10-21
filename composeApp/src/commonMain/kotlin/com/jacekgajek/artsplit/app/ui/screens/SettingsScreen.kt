@@ -346,7 +346,8 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
 private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (List<AgendaTemplateItem>) -> Unit) {
     val builtInLabels = AgendaKind.entries.associateWith { it.label() }
     fun toEdit(items: List<AgendaTemplateItem>) = items.map { item -> item.kind?.let { builtInLabels.getValue(it) } ?: item.label.orEmpty() }
-    var labels by remember(template) { mutableStateOf(toEdit(template)) }
+    // Keyed on the built-in labels too: on the web the texts load asynchronously and are empty at first.
+    var labels by remember(template, builtInLabels) { mutableStateOf(toEdit(template)) }
     fun toItems(texts: List<String>): List<AgendaTemplateItem> = texts.mapIndexed { index, text ->
         // An untouched built-in entry stays built-in (shown in each user's language).
         val original = template.getOrNull(index)
