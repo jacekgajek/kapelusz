@@ -155,10 +155,10 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M3.4 Details section with full-screen editor; notes removed from the dialogs
 
 ### V2-M4 — Background sync and notifications
-- [ ] V2-M4.1 Periodic background sync of all bands (WorkManager), rescheduling after restart
-- [ ] V2-M4.2 Gig reminders and Settings → Notifications
-- [ ] V2-M4.3 Personal permission prompt (Android 13+)
-- [ ] V2-M4.4 Transfer notifications, grouped per event, with the first-sync baseline
+- [x] V2-M4.1 Periodic background sync of all bands (WorkManager), rescheduling after restart
+- [x] V2-M4.2 Gig reminders and Settings → Notifications
+- [x] V2-M4.3 Personal permission prompt (Android 13+)
+- [x] V2-M4.4 Transfer notifications, grouped per event, with the first-sync baseline
 
 ### V2-M5 — Calendar subscription
 - [ ] V2-M5.1 Server: secret links, `GET /calendar/{secret}.ics`, reset
@@ -196,4 +196,5 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | V2-M2: the app version goes as the query parameter `appVersion`, because a new header would need the API's CORS allow-list (terraform) changed. On the web, the browser's Back button goes back a page rather than leaving selection mode (a page cannot intercept it); ✕ in the top bar leaves it. On Android, Back leaves selection mode. |
 | 2026-10-21 | V2-M3 review: a band stored by an older app (which dropped the new fields but kept the server's version) is downloaded in full once (`LocalBand.schema`), so agenda times are never shown missing and then overwritten. Unknown enum values from newer versions fall back to defaults (`coerceInputValues`). Template entries are marked `fromTemplate` instead of being recognised by label; the template editor keeps whole entries, so moving or removing one never turns built-in times into fixed labels. |
 | 2026-10-21 | `MIN_APP_VERSION` raised to 11 (the V2-M2 deploy, already live) together with V2-M3: older apps cannot read the history entries of agenda changes, and build-11 apps read history leniently and show "update required". Build 10 updates itself (V2-M1). |
+| 2026-10-21 | V2-M4: reminders are inexact alarms (no exact-alarm permission), so Android delivers them within its window, typically up to an hour after the set time; the background sync runs every 4 hours with a connection. Transfers already on the device when the app leaves the screen count as seen (the user had the app open), so only later ones are notified. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |

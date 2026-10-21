@@ -73,6 +73,23 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         loaded = true
     }
 
+    /** A gig to open, e.g. from a reminder notification: band id and event id. */
+    val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
+
+    /**
+     * Loads what a background job needs (settings, session, bands, waiting uploads) without starting the foreground
+     * sync loop; a later [load] by the app loads afresh. Returns the signed-in user, if any.
+     */
+    suspend fun loadForBackground(): String? {
+        if (loaded) return sessions.session.value?.userId
+        settings.load()
+        sessions.load()
+        val userId = sessions.session.value?.userId ?: return null
+        bands.load(userId)
+        uploads.load(userId)
+        return userId
+    }
+
     /** Settings for a background job, which may run without the app having started (loads them if needed). */
     suspend fun settingsForBackground(): AppSettings {
         if (!loaded) settings.load()

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 
 /** Per-device preferences. */
@@ -19,6 +20,14 @@ data class AppSettings(
     val showArchived: Boolean = false,
     /** Android: download and install new versions automatically. */
     val autoUpdate: Boolean = true,
+    /** Android: gig reminders (VERSION_2 §5.2), [reminderDays] before the event at [reminderTime]. */
+    val remindersEnabled: Boolean = true,
+    val reminderDays: Set<Int> = setOf(1),
+    val reminderTime: LocalTime = LocalTime(18, 0),
+    /** Android: notifications about transfers others recorded with you (VERSION_2 §5.3). */
+    val transferNotifications: Boolean = true,
+    /** The one-time "get a reminder before your gigs?" prompt was answered. */
+    val notificationPromptDone: Boolean = false,
 )
 
 class SettingsRepository(private val store: KeyValueStore, private val scope: CoroutineScope) {

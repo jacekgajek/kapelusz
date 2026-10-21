@@ -127,6 +127,38 @@ class SyncEngine(
         result == SyncStatus.SYNCED
     }
 
+    /**
+     * The background sync (Android, VERSION_2 §5.1): every band the user belongs to, not only the open one, so
+     * reminders and transfer notifications see current data. Bands not on this device yet are downloaded without
+     * opening them. Returns false when it should be retried.
+     */
+    suspend fun syncAll(): Boolean = runLock.withLock {
+        if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return false
+        try {
+            bands.onBandList(api.me().bands)
+            val ids = (bands.index.value?.bands.orEmpty().map { it.id } + bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
+            for (bandId in ids) {
+                if (bands.local(bandId) == null) {
+                    val state = api.state(bandId, null) ?: continue
+                    bands.storeFromServer(state.band, state.version)
+                    continue
+                }
+                val result = syncBand(bandId, pull = true)
+                if (result == SyncStatus.NEEDS_SIGN_IN || result == SyncStatus.OFFLINE || result == SyncStatus.UPDATE_REQUIRED) {
+                    _status.value = result
+                    return false
+                }
+            }
+            bands.flush()
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            classify(e).let { if (it == SyncStatus.NEEDS_SIGN_IN || it == SyncStatus.UPDATE_REQUIRED) _status.value = it }
+            false
+        }
+    }
+
     private suspend fun syncBand(bandId: Id, pull: Boolean): SyncStatus = try {
         pushBand(bandId)
         // After the push: a file can only be uploaded once the server has its attachment.

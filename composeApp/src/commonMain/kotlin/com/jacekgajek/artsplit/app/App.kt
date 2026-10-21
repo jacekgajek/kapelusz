@@ -104,6 +104,17 @@ import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import com.jacekgajek.artsplit.app.generated.reminder_prompt_not_now
+import com.jacekgajek.artsplit.app.generated.reminder_prompt_yes
+import com.jacekgajek.artsplit.app.generated.reminder_prompt_question
+import com.jacekgajek.artsplit.app.generated.reminder_prompt_playing
+import com.jacekgajek.artsplit.app.generated.reminder_prompt_added
+import com.jacekgajek.artsplit.app.ui.model.formatDate
+import com.jacekgajek.artsplit.app.data.today
+import com.jacekgajek.artsplit.app.data.AppSettings
+import com.jacekgajek.artsplit.app.platform.rememberNotificationPermission
+import com.jacekgajek.artsplit.app.notify.NotificationRules
 
 private enum class Tab(val route: Any, val icon: ImageVector, val label: StringResource) {
     EVENTS(EventsRoute, Icons.Default.Event, Res.string.tab_events),
@@ -231,6 +242,15 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     // (e.g. Settings, where the user signed out).
     val signIns by graph.signIns.collectAsState()
     LaunchedEffect(signIns) { if (signIns > 0) navController.resetTo(EventsRoute) }
+    // A tapped reminder or transfer notification (Android): open its gig, switching band if needed.
+    val openEvent by graph.pendingOpenEvent.collectAsState()
+    LaunchedEffect(openEvent) {
+        val (bandId, eventId) = openEvent ?: return@LaunchedEffect
+        graph.pendingOpenEvent.value = null
+        if (graph.bands.currentBandId != bandId) graph.bands.open(bandId)
+        navController.navigate(EventRoute(eventId))
+    }
+    ReminderPrompt(graph, settings)
     val toSettings = { navController.navigate(SettingsRoute) }
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
@@ -282,6 +302,8 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                         .takeIf { state.me?.role == Role.OWNER },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
                     autoUpdate = settings.autoUpdate,
+                    appSettings = settings,
+                    onAppSettings = { change -> graph.settings.update(change) },
                     agendaTemplate = state.band.effectiveAgendaTemplate,
                     onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
@@ -304,6 +326,39 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
 
 /** Saved state key of the "everyone's costs" switch on the costs tab. */
 private const val SHOW_EVERYONE = "showEveryone"
+
+/**
+ * Asks once, when the first upcoming gig of the user appears, whether they want reminders, naming who added them
+ * (VERSION_2 §5.2). Android 13+ only; elsewhere no permission is needed or there are no notifications.
+ */
+@Composable
+private fun ReminderPrompt(graph: AppGraph, settings: AppSettings) {
+    val permission = rememberNotificationPermission() ?: return
+    if (settings.notificationPromptDone || !settings.remindersEnabled || !permission.needsAsking) return
+    val userId = graph.sessions.session.collectAsState().value?.userId ?: return
+    val bandState by graph.bands.state.collectAsState()
+    val (band, event) = remember(bandState) { NotificationRules.firstUpcomingGig(graph.bands.allBands(), userId, today()) } ?: return
+    val me = band.memberOfUser(userId) ?: return
+    val adder = event.participant(me.id)?.addedBy?.takeIf { it != me.id }?.let { band.member(it)?.name }
+    val days = settings.reminderDays.minOrNull() ?: 1
+    val date = formatDate(event.date, language)
+    val text = if (adder != null) stringResource(Res.string.reminder_prompt_added, adder, event.name, date)
+    else stringResource(Res.string.reminder_prompt_playing, event.name, date)
+    AlertDialog(
+        onDismissRequest = {},
+        text = { Text(text + " " + pluralStringResource(Res.plurals.reminder_prompt_question, days, days)) },
+        confirmButton = {
+            TextButton(onClick = {
+                permission.request { granted -> graph.settings.update { it.copy(notificationPromptDone = true, remindersEnabled = granted) } }
+            }) { Text(stringResource(Res.string.reminder_prompt_yes)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { graph.settings.update { it.copy(notificationPromptDone = true, remindersEnabled = false) } }) {
+                Text(stringResource(Res.string.reminder_prompt_not_now))
+            }
+        },
+    )
+}
 
 /** Navigates to [route] and drops everything else from the back stack. */
 private fun NavHostController.resetTo(route: Any) = navigate(route) {

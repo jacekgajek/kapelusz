@@ -1,0 +1,81 @@
+package com.jacekgajek.artsplit.app.notify
+
+import android.content.Context
+import androidx.core.content.edit
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import androidx.work.workDataOf
+import com.jacekgajek.artsplit.app.AndroidAppGraph
+import com.jacekgajek.artsplit.app.data.AppGraph
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
+
+/**
+ * The background sync (VERSION_2 §5.1): every few hours, all bands; then gig reminders are scheduled again and new
+ * transfers involving the user are notified. The local variant (after a restart, or when the app leaves the screen)
+ * only reschedules from the data on the device and marks what the user has just seen.
+ */
+class BackgroundSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val graph = AndroidAppGraph.get(applicationContext)
+        val userId = graph.loadForBackground() ?: return Result.success()
+        val local = inputData.getBoolean(LOCAL, false)
+        val synced = local || graph.sync.syncAll()
+        afterSync(applicationContext, graph, userId, notifyTransfers = !local)
+        return if (synced) Result.success() else Result.retry()
+    }
+
+    companion object {
+        private const val PERIODIC = "background-sync"
+        private const val LOCAL = "local"
+        private const val PREFS = "art-split-transfers"
+
+        fun schedule(context: Context) {
+            val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                PERIODIC,
+                ExistingPeriodicWorkPolicy.KEEP,
+                PeriodicWorkRequestBuilder<BackgroundSyncWorker>(4, TimeUnit.HOURS).setConstraints(network).build(),
+            )
+        }
+
+        /** Reschedule reminders from the data on the device (no network), e.g. after the app was used. */
+        fun refreshLocal(context: Context) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "reminders-local",
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<BackgroundSyncWorker>().setInputData(workDataOf(LOCAL to true)).build(),
+            )
+        }
+
+        internal suspend fun afterSync(context: Context, graph: AppGraph, userId: String, notifyTransfers: Boolean) {
+            val settings = graph.settingsForBackground()
+            val bands = graph.bands.allBands()
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            ReminderScheduler.reschedule(
+                context,
+                if (settings.remindersEnabled) NotificationRules.reminders(bands, userId, settings.reminderDays, settings.reminderTime, now) else emptyList(),
+            )
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val key = "seen-$userId"
+            val current = NotificationRules.transferKeys(bands)
+            val seen = prefs.getStringSet(key, null)
+            // The first run only records what exists: no flood of old transfers after installing or signing in.
+            if (seen != null && notifyTransfers && settings.transferNotifications) {
+                NotificationRules.newTransfers(bands, userId, seen).forEach { notice ->
+                    bands.firstOrNull { it.id == notice.bandId }?.let { Notifier.showTransfers(context, it, notice) }
+                }
+            }
+            prefs.edit { putStringSet(key, current) }
+        }
+    }
+}
