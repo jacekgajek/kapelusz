@@ -24,8 +24,14 @@ private enum class Phase { STARTING, OTHER_TAB, READY }
 
 private const val JOIN_CODE_KEY = "art-split-join-code"
 
+// The running build, for smoke tests of a deploy: `artSplitVersion` in the browser console.
+private fun exposeVersion(label: String) {
+    js("globalThis.artSplitVersion = label")
+}
+
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
+    exposeVersion(AppConfig.VERSION_LABEL)
     val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
     // keeps it.

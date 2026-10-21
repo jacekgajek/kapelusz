@@ -65,6 +65,12 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         loaded = true
     }
 
+    /** Settings for a background job, which may run without the app having started (loads them if needed). */
+    suspend fun settingsForBackground(): AppSettings {
+        if (!loaded) settings.load()
+        return settings.settings.value
+    }
+
     /**
      * Runs in the app scope, not the caller's: the sign-in screen leaves the composition as soon as the session
      * appears, which would cancel the loading half-way and leave a blank screen. The bands are loaded before the

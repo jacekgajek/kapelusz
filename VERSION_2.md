@@ -134,10 +134,11 @@ Workflow as in version 1: one branch + PR per milestone (the user creates the br
 commit that completes them, task IDs in commit messages, plan changes in the decision log.
 
 ### V2-M1 — Auto-update
-- [ ] V2-M1.1 Background job: daily `version.json` check and APK download
-- [ ] V2-M1.2 Install through `PackageInstaller`: silent where allowed, otherwise an "Install" notification; never while the app is in the foreground
-- [ ] V2-M1.3 "Install unknown apps" explanation and permission flow
-- [ ] V2-M1.4 Settings: Automatic updates switch, current version, Check now
+- [x] V2-M1.1 Background job: daily `version.json` check and APK download
+- [x] V2-M1.2 Install through `PackageInstaller`: silent where allowed, otherwise an "Install" notification; never while the app is in the foreground
+- [x] V2-M1.3 "Install unknown apps" explanation and permission flow
+- [x] V2-M1.4 Settings: Automatic updates switch, current version, Check now
+- [x] V2-M1.5 Version label in a corner of the sign-in screen and Settings (and `artSplitVersion` on the web), to check what a deploy put live
 
 ### V2-M2 — Foundations and quick wins
 - [ ] V2-M2.1 Version header, server minimum version, `426 update_required` and the "too old" screen
@@ -190,4 +191,5 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | The "Planned" filter and the calendar view were dropped in favour of an "Upcoming" card; the calendar view may come later. |
 | 2026-10-21 | Agenda: a band template of times (default Arrival, Concert start), copied into each new event, plus one-off times per event. Calendar entries run from the earliest to the latest time (one hour for a single time, all-day without times); times before 05:00 are the next day. Free text goes into a Details section that replaces notes. |
 | 2026-10-21 | Google Calendar through a per-user subscription link rather than a one-off button or the Calendar API (which needs a sensitive scope and Google's app verification). Refresh timing is Google's. |
+| 2026-10-21 | V2-M1 review: a downloaded update installs **30 minutes** after the app left the screen (or with the daily check while it is hidden), so stepping out briefly, e.g. to take a photo for a cost, never restarts it. A declined or failed version, or one Android asked to confirm, is not tried again on its own; Settings offers "Install now", and the strip offers a pending confirmation. The "ready to install" notification needs the notification permission, which the app asks for with gig reminders (V2-M4); until then the strip in the app is the way. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |

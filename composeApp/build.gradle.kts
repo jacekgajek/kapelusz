@@ -12,6 +12,11 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     val webClientId = providers.environmentVariable("ARTSPLIT_GOOGLE_WEB_CLIENT_ID")
         .orElse(providers.gradleProperty("artsplit.googleWebClientId"))
     val webUrl = providers.environmentVariable("ARTSPLIT_WEB_URL").orElse(providers.gradleProperty("artsplit.webUrl"))
+    val versionName = providers.gradleProperty("artsplit.versionName")
+    // CI passes the deploy run number; local builds are "dev".
+    val versionCode = providers.environmentVariable("ARTSPLIT_VERSION_CODE").orElse("0")
+    inputs.property("versionName", versionName)
+    inputs.property("versionCode", versionCode)
     inputs.property("apiUrl", apiUrl)
     inputs.property("webUrl", webUrl)
     inputs.property("webClientId", webClientId)
@@ -29,6 +34,11 @@ val generateAppConfig = tasks.register("generateAppConfig") {
             |    const val API_URL = "${apiUrl.get().trimEnd('/')}"
             |    const val GOOGLE_WEB_CLIENT_ID = "${webClientId.get()}"
             |    const val WEB_URL = "${webUrl.get().trimEnd('/')}"
+            |    const val VERSION_NAME = "${versionName.get()}"
+            |    const val VERSION_CODE = ${versionCode.get().toInt()}
+            |
+            |    /** Shown in a corner of the app, e.g. "0.5.0 (7)"; local builds say "dev". */
+            |    val VERSION_LABEL: String get() = if (VERSION_CODE > 0) "${'$'}VERSION_NAME (${'$'}VERSION_CODE)" else "${'$'}VERSION_NAME (dev)"
             |}
             |""".trimMargin(),
         )
@@ -80,6 +90,7 @@ kotlin {
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.exifinterface)
+            implementation(libs.androidx.work.runtime)
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services)
             implementation(libs.googleid)

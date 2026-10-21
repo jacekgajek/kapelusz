@@ -19,6 +19,8 @@ data class AppSettings(
     val showArchived: Boolean = false,
     /** Drives the "Continue" card on the event list. */
     val lastEditedEventId: String? = null,
+    /** Android: download and install new versions automatically. */
+    val autoUpdate: Boolean = true,
 )
 
 class SettingsRepository(private val store: KeyValueStore, private val scope: CoroutineScope) {

@@ -12,6 +12,8 @@ import androidx.compose.runtime.setValue
 import com.jacekgajek.artsplit.app.AndroidAppGraph
 import com.jacekgajek.artsplit.app.App
 import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
+import com.jacekgajek.artsplit.app.updates.UpdateWorker
+import com.jacekgajek.artsplit.app.updates.Updater
 import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
@@ -21,10 +23,16 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (graph.sessions.session.value != null) graph.sync.start()
+        Updater.appVisible = true
+        UpdateWorker.schedule(this)
+        UpdateWorker.checkSoon(this)
     }
 
     override fun onStop() {
         graph.sync.stop()
+        Updater.appVisible = false
+        // A downloaded update installs while the app is out of sight (it restarts the app).
+        UpdateWorker.installWhenIdle(this)
         super.onStop()
     }
 

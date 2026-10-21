@@ -274,6 +274,8 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     onDeleteBand = suspend { graph.deleteBand(); navController.resetTo(EventsRoute) }
                         .takeIf { state.me?.role == Role.OWNER },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
+                    autoUpdate = settings.autoUpdate,
+                    onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },
                     onBack = back,
                 )
             }
@@ -322,7 +324,7 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, tabs
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 Column {
-                    if (current != null) AndroidAppBanner()
+                    if (current != null) AndroidAppBanner(autoUpdate = graph.settings.settings.collectAsState().value.autoUpdate)
                     if (!wide && current != null) NavigationBar {
                         tabs.forEach { tab ->
                             NavigationBarItem(

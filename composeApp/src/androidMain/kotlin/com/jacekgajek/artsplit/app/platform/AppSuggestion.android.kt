@@ -21,12 +21,12 @@ private const val PREFS = "art-split-updates"
 private const val DISMISSED_VERSION = "dismissedVersionCode"
 private val json = Json { ignoreUnknownKeys = true }
 
-private fun installedVersionCode(context: Context): Long {
+internal fun installedVersionCode(context: Context): Long {
     val info = context.packageManager.getPackageInfo(context.packageName, 0)
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else @Suppress("DEPRECATION") info.versionCode.toLong()
 }
 
-private fun fetchPublished(): PublishedVersion? {
+internal fun fetchPublished(): PublishedVersion? {
     val connection = URL("${AppConfig.WEB_URL}/download/version.json").openConnection() as HttpURLConnection
     return try {
         connection.connectTimeout = 10_000
