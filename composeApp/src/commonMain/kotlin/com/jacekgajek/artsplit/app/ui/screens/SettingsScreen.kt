@@ -30,7 +30,16 @@ import com.jacekgajek.artsplit.app.generated.band
 import com.jacekgajek.artsplit.app.generated.band_name
 import com.jacekgajek.artsplit.app.generated.fund_treasurer
 import com.jacekgajek.artsplit.app.generated.fund_treasurer_hint
-import com.jacekgajek.artsplit.app.generated.fund_treasurer_none
+import com.jacekgajek.artsplit.app.generated.fund_treasurer_choose
+import com.jacekgajek.artsplit.app.generated.fund_enable
+import com.jacekgajek.artsplit.app.generated.fund_cannot_disable
+import com.jacekgajek.artsplit.app.generated.fund_disabled_hint
+import com.jacekgajek.artsplit.app.generated.fund_disable_title
+import com.jacekgajek.artsplit.app.generated.fund_disable_text
+import com.jacekgajek.artsplit.app.generated.fund_disable_confirm
+import com.jacekgajek.artsplit.app.ui.components.ConfirmDialog
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
 import com.jacekgajek.artsplit.app.generated.save
 import com.jacekgajek.artsplit.app.generated.language
 import com.jacekgajek.artsplit.app.generated.language_en
@@ -53,6 +62,9 @@ fun SettingsScreen(
     treasurer: String?,
     treasurerOptions: List<Pair<String, String>>,
     onTreasurer: ((String) -> Unit)?,
+    /** Turns the band fund off; null while it holds or owes money ([fundBalance] says how much it holds). */
+    onDisableFund: (() -> Unit)?,
+    fundBalance: String,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -88,16 +100,55 @@ fun SettingsScreen(
                 }
             }
             if (onTreasurer != null) {
-                // The holder can be changed but not cleared: the band fund keeps its history.
-                val names = treasurerOptions.toMap()
-                Dropdown(
-                    treasurer,
-                    treasurerOptions.map { it.first },
-                    { it?.let(onTreasurer) },
-                    stringResource(Res.string.fund_treasurer),
-                    Modifier.fillMaxWidth().padding(top = 12.dp),
-                ) { id -> id?.let { names[it] } ?: stringResource(Res.string.fund_treasurer_none) }
-                Text(stringResource(Res.string.fund_treasurer_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
+                var enabling by remember { mutableStateOf(false) }
+                var confirmDisable by remember { mutableStateOf(false) }
+                val enabled = treasurer != null
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 12.dp)
+                        .toggleable(
+                            value = enabled || enabling,
+                            enabled = !enabled || onDisableFund != null,
+                            role = Role.Switch,
+                            onValueChange = { on -> if (on) enabling = true else if (enabled) confirmDisable = true else enabling = false },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(Res.string.fund_enable), Modifier.weight(1f))
+                    Switch(checked = enabled || enabling, onCheckedChange = null, enabled = !enabled || onDisableFund != null)
+                }
+                if (enabled || enabling) {
+                    val names = treasurerOptions.toMap()
+                    Dropdown(
+                        treasurer,
+                        treasurerOptions.map { it.first },
+                        {
+                            it?.let(onTreasurer)
+                            enabling = false
+                        },
+                        stringResource(Res.string.fund_treasurer),
+                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                    ) { id -> id?.let { names[it] } ?: stringResource(Res.string.fund_treasurer_choose) }
+                    Text(stringResource(Res.string.fund_treasurer_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                    if (enabled && onDisableFund == null) {
+                        Text(
+                            stringResource(Res.string.fund_cannot_disable, fundBalance),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                } else {
+                    Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                }
+                if (confirmDisable && onDisableFund != null) {
+                    ConfirmDialog(
+                        title = stringResource(Res.string.fund_disable_title),
+                        text = stringResource(Res.string.fund_disable_text),
+                        confirmLabel = stringResource(Res.string.fund_disable_confirm),
+                        onConfirm = onDisableFund,
+                        onDismiss = { confirmDisable = false },
+                    )
+                }
             }
             Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
             account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }

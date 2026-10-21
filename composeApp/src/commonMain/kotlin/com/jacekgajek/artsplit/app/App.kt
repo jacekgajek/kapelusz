@@ -60,6 +60,10 @@ import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
 import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.RenameBand
 import com.jacekgajek.artsplit.ops.SetTreasurer
+import com.jacekgajek.artsplit.ops.DisableBandFund
+import com.jacekgajek.artsplit.domain.BandFund
+import com.jacekgajek.artsplit.app.ui.model.formatMoney
+import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
@@ -261,6 +265,9 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     treasurerOptions = state.band.members.filter { !it.archived }.map { it.id to it.name },
                     onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
+                    onDisableFund = { graph.dispatch(DisableBandFund); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(DisableBandFund) && BandFund.canDisable(state.band) },
+                    fundBalance = formatMoney(BandFund.balance(state.band), state.band.currency, language),
                     onBack = back,
                 )
             }

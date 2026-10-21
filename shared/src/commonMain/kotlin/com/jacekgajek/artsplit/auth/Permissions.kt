@@ -38,6 +38,7 @@ import com.jacekgajek.artsplit.ops.SetMemberArchived
 import com.jacekgajek.artsplit.ops.SetMemberRole
 import com.jacekgajek.artsplit.ops.SetRefund
 import com.jacekgajek.artsplit.ops.SetTreasurer
+import com.jacekgajek.artsplit.ops.DisableBandFund
 import com.jacekgajek.artsplit.ops.SetWeight
 import com.jacekgajek.artsplit.ops.SettleSuggestions
 import com.jacekgajek.artsplit.ops.TransferOwnership
@@ -79,7 +80,7 @@ object Permissions {
         is TransferOwnership -> Role.OWNER
 
         is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,
-        is SetMemberRole, is UnlinkUser, is SetTreasurer, is PromoteGuest, is LinkUser,
+        is SetMemberRole, is UnlinkUser, is SetTreasurer, is DisableBandFund, is PromoteGuest, is LinkUser,
         -> Role.ADMIN
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is DeleteEvent, is AddParticipant, is AddGuest,

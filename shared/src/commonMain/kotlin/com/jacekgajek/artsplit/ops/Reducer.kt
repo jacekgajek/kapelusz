@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.ops
 
+import com.jacekgajek.artsplit.domain.BandFund
 import com.jacekgajek.artsplit.domain.CostLedger
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.BAND_FUND
@@ -39,6 +40,10 @@ object Reducer {
             is LinkUser -> linkUser(band, op)
             is UnlinkUser -> unlinkUser(band, op)
             is SetTreasurer -> setTreasurer(band, op)
+            is DisableBandFund -> {
+                conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
+                band.copy(treasurerMemberId = null)
+            }
             is TransferOwnership -> transferOwnership(band, op)
 
             is CreateEvent -> createEvent(band, op, ctx)

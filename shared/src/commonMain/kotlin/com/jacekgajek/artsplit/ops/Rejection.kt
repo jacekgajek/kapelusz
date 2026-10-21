@@ -39,6 +39,7 @@ enum class RejectionReason {
     CANNOT_SETTLE,
     TOO_MANY_ATTACHMENTS,
     ATTACHMENT_TOO_LARGE,
+    FUND_NOT_EMPTY,
 }
 
 /** Why an operation was not applied: [reason] for users, [message] as a developer-facing English description. */

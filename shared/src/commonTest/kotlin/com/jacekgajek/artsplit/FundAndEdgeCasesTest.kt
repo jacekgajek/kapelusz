@@ -15,7 +15,9 @@ import com.jacekgajek.artsplit.ops.AddHolding
 import com.jacekgajek.artsplit.ops.Change
 import com.jacekgajek.artsplit.ops.CreateEvent
 import com.jacekgajek.artsplit.ops.RecordTransfer
+import com.jacekgajek.artsplit.ops.DisableBandFund
 import com.jacekgajek.artsplit.ops.RejectionCode
+import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.SetFundAmount
 import com.jacekgajek.artsplit.ops.SetTreasurer
 import com.jacekgajek.artsplit.ops.SetWeight
@@ -111,5 +113,36 @@ class FundAndEdgeCasesTest {
 
         scenario.apply(RecordTransfer("e", "t2", "alice", "bob", pln("50")))
         assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
+    }
+
+    @Test
+    fun theFundCanBeTurnedOffOnlyWhenItIsEmptyAndNothingIsOwed() {
+        val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice")).event("e", "Alice", "Bob")
+            .apply(AddHolding("e", "h", "bob", pln("300"), DOOR))
+            .apply(SetFundAmount("e", pln("100")))
+        assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(DisableBandFund).reason, "the event still owes the fund 100")
+
+        scenario.apply(SettleSuggestions("e"))
+        assertEquals(pln("100"), BandFund.balance(scenario.band))
+        assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(DisableBandFund).reason, "the fund holds 100")
+
+        // Spent on the band: empty again, though it had transfers in the past.
+        scenario.apply(AddFundEntry("f", DATE, "Van rental", pln("-100")))
+        scenario.apply(DisableBandFund)
+        assertEquals(null, scenario.band.treasurerMemberId)
+        assertEquals(EventStatus.SETTLED, scenario.settle("e").status, "a settled event stays settled without the fund")
+        assertTrue(scenario.settle("e").problems.isEmpty())
+
+        scenario.apply(SetTreasurer("bob"))
+        assertEquals("bob", scenario.band.treasurerMemberId, "choosing a holder turns it on again")
+    }
+
+    @Test
+    fun owedAmountsOfDifferentEventsDoNotCancelOut() {
+        val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice"))
+            .event("a", "Alice", "Bob").apply(AddHolding("a", "h1", "bob", pln("300"), DOOR)).apply(SetFundAmount("a", pln("100")))
+            .event("b", "Alice", "Bob").apply(AddHolding("b", "h2", "bob", pln("300"), DOOR)).apply(SetFundAmount("b", pln("-100")))
+        assertEquals(pln("0"), BandFund.notHandedOver(scenario.band))
+        assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(DisableBandFund).reason)
     }
 }
