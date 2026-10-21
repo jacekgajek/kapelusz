@@ -221,7 +221,14 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
 
-    MainScaffold(navController, graph) {
+    // The band fund tab appears once someone holds the fund (admins choose the holder in Settings).
+    val fundEnabled = state.band.treasurerMemberId != null
+    val tabs = Tab.entries.filter { it != Tab.FUND || fundEnabled }
+    // E.g. after switching to a band without a band fund while on its tab.
+    LaunchedEffect(fundEnabled) {
+        if (!fundEnabled && navController.currentDestination?.hasRoute(FundRoute::class) == true) navController.resetTo(EventsRoute)
+    }
+    MainScaffold(navController, graph, tabs) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
             composable<EventsRoute> {
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
@@ -280,7 +287,7 @@ private fun NavHostController.resetTo(route: Any) = navigate(route) {
 
 /** Bottom navigation on phones, a rail on wide screens; shown only on the tab screens. */
 @Composable
-private fun MainScaffold(navController: NavHostController, graph: AppGraph, content: @Composable () -> Unit) {
+private fun MainScaffold(navController: NavHostController, graph: AppGraph, tabs: List<Tab>, content: @Composable () -> Unit) {
     val entry by navController.currentBackStackEntryAsState()
     // Changes the server refused during sync (e.g. a role changed meanwhile).
     val snackbar = remember { SnackbarHostState() }
@@ -304,7 +311,7 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, cont
                 Column {
                     if (current != null) AndroidAppBanner()
                     if (!wide && current != null) NavigationBar {
-                        Tab.entries.forEach { tab ->
+                        tabs.forEach { tab ->
                             NavigationBarItem(
                                 selected = tab == current,
                                 onClick = { select(tab) },
@@ -319,7 +326,7 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, cont
             Row(Modifier.padding(padding)) {
                 if (wide && current != null) {
                     NavigationRail {
-                        Tab.entries.forEach { tab ->
+                        tabs.forEach { tab ->
                             NavigationRailItem(
                                 selected = tab == current,
                                 onClick = { select(tab) },
