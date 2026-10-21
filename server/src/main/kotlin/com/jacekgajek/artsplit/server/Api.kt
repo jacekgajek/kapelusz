@@ -68,7 +68,8 @@ class Api(
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
     private val sessions: SessionTokens = SessionTokens(store, clock),
-    private val minAppVersion: Int = MIN_APP_VERSION,
+    /** No minimum by default (tests); the Lambda handler passes [MIN_APP_VERSION]. */
+    private val minAppVersion: Int = 0,
 ) {
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
