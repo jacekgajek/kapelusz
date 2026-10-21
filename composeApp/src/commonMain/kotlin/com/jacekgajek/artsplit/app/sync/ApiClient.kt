@@ -8,7 +8,7 @@ import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.CreateInviteRequest
 import com.jacekgajek.artsplit.api.ErrorResponse
-import com.jacekgajek.artsplit.api.HistoryResponse
+import com.jacekgajek.artsplit.api.HistoryEntry
 import com.jacekgajek.artsplit.api.InviteInfo
 import com.jacekgajek.artsplit.api.InvitePreview
 import com.jacekgajek.artsplit.api.InvitesResponse
@@ -34,6 +34,19 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+
+/** An operation in the history that this app version cannot read (made by a newer version). */
+data class UnreadableOp(val opId: String, val eventId: String?)
+
+/** A history entry as far as this app version can read it. */
+data class HistoryItem(val entry: HistoryEntry, val unreadable: List<UnreadableOp> = emptyList())
+
+data class HistoryPage(val month: String, val entries: List<HistoryItem>, val next: String?)
 
 /** The server answered with an error. */
 class ApiException(val status: Int, val code: String, message: String) : RuntimeException(message)
@@ -92,9 +105,37 @@ class ApiClient(
 
     suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
 
-    /** One page of a month's history, newest first; [before] is the previous page's `next`. */
-    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryResponse =
-        call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), HistoryResponse.serializer())
+    /**
+     * One page of a month's history, newest first; [before] is the previous page's `next`. Read entry by entry and
+     * operation by operation, so a change made by a newer app version (an operation this one does not know) shows
+     * as such instead of failing the whole page.
+     */
+    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage {
+        val page = call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer())
+        val entries = page["entries"]?.jsonArray.orEmpty().mapNotNull { element ->
+            val entry = element as? JsonObject ?: return@mapNotNull null
+            val ops = entry["ops"]?.jsonArray.orEmpty()
+            val readable = ops.mapNotNull { op -> runCatching { ArtSplitJson.decodeFromJsonElement(OpEnvelope.serializer(), op) }.getOrNull() }
+            val unreadable = ops.filter { op -> runCatching { ArtSplitJson.decodeFromJsonElement(OpEnvelope.serializer(), op) }.isFailure }
+                .mapNotNull { it as? JsonObject }
+                .map { op ->
+                    UnreadableOp(
+                        opId = op["opId"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        eventId = (op["op"] as? JsonObject)?.get("eventId")?.jsonPrimitive?.contentOrNull,
+                    )
+                }
+            val header = runCatching {
+                HistoryEntry(
+                    userId = entry.getValue("userId").jsonPrimitive.content,
+                    memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
+                    at = entry.getValue("at").jsonPrimitive.long,
+                    ops = readable,
+                )
+            }.getOrNull() ?: return@mapNotNull null
+            HistoryItem(header, unreadable)
+        }
+        return HistoryPage(page["month"]?.jsonPrimitive?.contentOrNull ?: month, entries, page["next"]?.jsonPrimitive?.contentOrNull)
+    }
 
     /** A URL to upload the file of an attachment the server already has. */
     suspend fun requestUpload(bandId: Id, costId: Id, attachmentId: Id): AttachmentUploadResponse = call(

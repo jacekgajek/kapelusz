@@ -395,4 +395,5 @@
     <string name="update_required_title">Zaktualizuj Art Split</string>
     <string name="update_required_text">Ta wersja Art Split jest za stara dla serwera. Zaktualizuj aplikację, aby kontynuować; zmiany na tym urządzeniu zostaną zachowane i zsynchronizowane po aktualizacji.</string>
     <string name="update_required_button">Aktualizuj</string>
+    <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Art Split</string>
 </resources>

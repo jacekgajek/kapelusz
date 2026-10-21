@@ -142,8 +142,8 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 
 ### V2-M2 — Foundations and quick wins
 - [x] V2-M2.1 Version header, server minimum version, `426 update_required` and the "too old" screen
-- [ ] V2-M2.2 Unreadable history entries shown as "a change from a newer version"
-- [ ] V2-M2.3 History spinners (§7)
+- [x] V2-M2.2 Unreadable history entries shown as "a change from a newer version"
+- [x] V2-M2.3 History spinners (§7)
 - [ ] V2-M2.4 Continue card rule (§3.1) and Upcoming card (§3.2)
 - [ ] V2-M2.5 Bulk archive with selection mode (§3.3)
 
