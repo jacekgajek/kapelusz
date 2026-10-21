@@ -22,3 +22,10 @@ actual fun rememberShare(): suspend (text: String) -> ShareResult = remember {
         }
     }
 }
+
+private fun copyToClipboard(text: String): Promise<JsBoolean> = js("navigator.clipboard.writeText(text).then(() => true, () => false)")
+
+@Composable
+actual fun rememberCopy(): suspend (text: String) -> Boolean = remember {
+    { text -> runCatching { copyToClipboard(text).await<JsBoolean>().toBoolean() }.getOrDefault(false) }
+}
