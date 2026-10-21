@@ -32,7 +32,7 @@ enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, ERROR }
 class SyncProtocolException(message: String) : RuntimeException(message)
 
 /**
- * Keeps the device and the server in step (REFINED_PLAN §5.2): creates bands made offline, pushes queued operations,
+ * Keeps the device and the server in step (VERSION_1 §5.2): creates bands made offline, pushes queued operations,
  * pulls the current band, and refreshes the band list. Runs on demand (after a change), every [interval] while the
  * app is in the foreground, and retries with backoff while offline.
  */

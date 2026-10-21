@@ -58,7 +58,7 @@ sealed interface Actor {
 }
 
 /**
- * The role matrix (REFINED_PLAN §3). Runs on clients (to hide actions) and on the server (to enforce them).
+ * The role matrix (VERSION_1 §3). Runs on clients (to hide actions) and on the server (to enforce them).
  * Data validity is not checked here; that is the reducer's job.
  */
 object Permissions {

@@ -20,7 +20,7 @@ import kotlinx.serialization.builtins.ListSerializer
 data class PendingUpload(val bandId: Id, val costId: Id, val attachmentId: Id)
 
 /**
- * The offline queue of attachment files (REFINED_PLAN §4.5). A picked file is stored locally (base64, scoped to the
+ * The offline queue of attachment files (VERSION_1 §4.5). A picked file is stored locally (base64, scoped to the
  * user) while its `AddAttachment` operation goes through the normal sync; once the server has the attachment, the
  * file is uploaded to a presigned URL and the local copy dropped.
  */
