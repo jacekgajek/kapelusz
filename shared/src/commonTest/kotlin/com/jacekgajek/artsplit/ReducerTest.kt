@@ -167,7 +167,8 @@ class ReducerTest {
         assertEquals(3L, first.band.lastSeq["phone"])
 
         val retry = Engine.applyBatch(first.band, owner, batch + OpEnvelope("d", "phone", 4, 4, RenameBand("Newer")))
-        assertEquals(listOf("a", "b", "c"), retry.duplicates)
+        assertEquals(listOf("a", "c"), retry.duplicates)
+        assertEquals(RejectionCode.NOT_FOUND, retry.rejected.getValue("b").code, "a retried refusal is reported again")
         assertEquals(listOf("d"), retry.accepted)
         assertEquals(1, retry.band.costs.size)
         assertEquals("Newer", retry.band.name)

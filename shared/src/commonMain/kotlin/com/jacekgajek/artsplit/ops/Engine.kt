@@ -4,6 +4,7 @@ import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.auth.Permissions
 import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Id
+import com.jacekgajek.artsplit.model.RecordedRejection
 
 sealed interface ApplyResult {
     data class Applied(val band: Band) : ApplyResult
@@ -20,6 +21,9 @@ data class BatchResult(
 
 /** Permission check + reducer: the single entry point used by both clients and the server. */
 object Engine {
+    /** Refusals remembered per client install for re-reporting on retried pushes. */
+    const val REMEMBERED_REJECTIONS = 20
+
 
     fun apply(band: Band, actor: Actor, op: Operation, opId: Id, timestamp: Long): ApplyResult {
         Permissions.check(band, actor, op)?.let { return ApplyResult.Rejected(it) }
@@ -42,7 +46,9 @@ object Engine {
         val duplicates = mutableListOf<Id>()
         for (envelope in envelopes) {
             if (envelope.seq <= (state.lastSeq[envelope.clientId] ?: 0L)) {
-                duplicates += envelope.opId
+                // Already seen. If it was refused, say so again: the client may never have received the first answer.
+                val earlier = state.recentRejections[envelope.clientId]?.firstOrNull { it.opId == envelope.opId }
+                if (earlier != null) rejected[envelope.opId] = earlier.rejection else duplicates += envelope.opId
                 continue
             }
             when (val result = apply(state, actor, envelope.op, envelope.opId, envelope.timestamp)) {
@@ -50,7 +56,12 @@ object Engine {
                     state = result.band
                     accepted += envelope.opId
                 }
-                is ApplyResult.Rejected -> rejected[envelope.opId] = result.rejection
+                is ApplyResult.Rejected -> {
+                    rejected[envelope.opId] = result.rejection
+                    val remembered = (state.recentRejections[envelope.clientId].orEmpty() + RecordedRejection(envelope.opId, result.rejection))
+                        .takeLast(REMEMBERED_REJECTIONS)
+                    state = state.copy(recentRejections = state.recentRejections + (envelope.clientId to remembered))
+                }
             }
             state = state.copy(lastSeq = state.lastSeq + (envelope.clientId to envelope.seq))
         }

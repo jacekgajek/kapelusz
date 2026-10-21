@@ -144,4 +144,30 @@ class ApiTest {
         assertEquals(400, createBand(bandId = "../etc").status)
         assertEquals(404, call("GET", "/nothing").status)
     }
+
+    private fun pushAs(user: String, vararg envelopes: OpEnvelope) = call(
+        "POST", "/bands/band1/ops", user, ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())),
+    )
+
+    @Test
+    fun deviceIdsAreBoundedSoNobodyCanBloatTheBand() {
+        createBand()
+        val long = "x".repeat(65)
+        assertEquals(400, pushAs("alice", OpEnvelope("a", long, 1, 1, RenameBand("X"))).status)
+        assertEquals(400, pushAs("alice", OpEnvelope("a", "phone", 1, 1, RenameBand("X")), OpEnvelope("b", "tablet", 1, 1, RenameBand("Y"))).status)
+
+        repeat(Api.MAX_DEVICES_PER_USER) { i -> assertEquals(200, pushAs("alice", OpEnvelope("op$i", "device-$i", 1, 1, RenameBand("N$i"))).status) }
+        val tooMany = pushAs("alice", OpEnvelope("over", "device-new", 1, 1, RenameBand("Z")))
+        assertEquals(400, tooMany.status)
+        assertTrue("too_many_devices" in tooMany.body!!)
+        assertEquals(200, pushAs("alice", OpEnvelope("again", "device-3", 2, 2, RenameBand("Known device"))).status)
+    }
+
+    @Test
+    fun missingBandHasItsOwnErrorCode() {
+        val response = call("GET", "/bands/nope/state")
+        assertEquals(404, response.status)
+        assertTrue(Api.BAND_NOT_FOUND in response.body!!)
+        assertTrue(Api.BAND_NOT_FOUND !in call("GET", "/no/such/route").body!!)
+    }
 }
