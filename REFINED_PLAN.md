@@ -317,8 +317,8 @@ invites/{code}.json                       bandId, memberId, role, expiresAt, cre
   2. `aws-actions/configure-aws-credentials` using OIDC (`role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}`).
   3. **API:** `update-function-code` → `wait function-updated` → `publish-version` (SnapStart snapshot) → `update-alias live`. Rollback = move the alias back.
   4. **Web:**
-     - `aws s3 sync … --delete`
-     - re-upload `*.wasm` with `--content-type application/wasm`
+     - `aws s3 sync … --delete` with `Cache-Control: no-cache` (index.html, composeApp.js and resources have fixed names)
+     - `*.wasm` (content-hashed names) with `--content-type application/wasm` and an immutable one-year cache
      - upload `/.well-known/assetlinks.json`
      - invalidate `/index.html`, `/.well-known/*`
   5. **Android:** a signed release APK published to a GitHub Release (tag `v<versionName>`). The web join page links to `releases/latest`.
@@ -399,7 +399,7 @@ Workflow:
 ### M3 — Backend and sync
 - [x] M3.1 `:server` handler, routing, Google token verification
 - [x] M3.2 S3 storage with ETag conditional writes, `/state`, `/ops`, op log
-- [ ] M3.3 SnapStart priming, shadow jar, `deploy.yml` (API + web), `scripts/deploy.sh`
+- [x] M3.3 SnapStart priming, shadow jar, `deploy.yml` (API + web), `scripts/deploy.sh`
 - [ ] M3.4 Google sign-in on Android and Web
 - [ ] M3.5 Sync engine (push/pull/backoff/rejections UI)
 - [ ] M3.6 Zero screen: create band, `/me`, band switcher
