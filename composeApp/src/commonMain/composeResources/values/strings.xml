@@ -324,4 +324,7 @@
     <string name="fund_amount_hint">Leave empty for nothing. A negative amount takes money out of the fund to add to the payouts.</string>
     <string name="filter_pending">Pending</string>
     <string name="filter_refunded">Refunded</string>
+    <string name="app_banner_text">Art Split is also an Android app: faster, and it works offline.</string>
+    <string name="app_banner_download">Get the app</string>
+    <string name="app_banner_dismiss">Don’t show again</string>
 </resources>

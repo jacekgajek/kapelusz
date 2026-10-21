@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.app
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -49,6 +50,7 @@ import com.jacekgajek.artsplit.app.generated.sync_refused
 import com.jacekgajek.artsplit.app.sync.SyncStatus
 import com.jacekgajek.artsplit.app.ui.HistoryRoute
 import com.jacekgajek.artsplit.app.ui.NewBandRoute
+import com.jacekgajek.artsplit.app.ui.components.AndroidAppBanner
 import com.jacekgajek.artsplit.app.ui.components.LocalTopBarState
 import com.jacekgajek.artsplit.app.ui.components.SignInAgainDialog
 import com.jacekgajek.artsplit.app.ui.components.TopBarState
@@ -299,8 +301,9 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, cont
         Scaffold(
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
-                if (!wide && current != null) {
-                    NavigationBar {
+                Column {
+                    if (current != null) AndroidAppBanner()
+                    if (!wide && current != null) NavigationBar {
                         Tab.entries.forEach { tab ->
                             NavigationBarItem(
                                 selected = tab == current,

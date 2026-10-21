@@ -324,4 +324,7 @@
     <string name="fund_amount_hint">Zostaw puste, jeśli nic. Kwota ujemna wypłaca pieniądze z kasy i dodaje je do wypłat.</string>
     <string name="filter_pending">Oczekujące</string>
     <string name="filter_refunded">Zwrócone</string>
+    <string name="app_banner_text">Art Split jest też aplikacją na Androida: działa szybciej i bez internetu.</string>
+    <string name="app_banner_download">Pobierz</string>
+    <string name="app_banner_dismiss">Nie pokazuj więcej</string>
 </resources>

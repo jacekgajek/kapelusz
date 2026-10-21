@@ -418,7 +418,7 @@ Workflow:
 - [ ] M5.4 Polish: empty states, error states, accessibility pass
 - [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 - [x] M5.6 "Copy link" button next to Share on an invite
-- [ ] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
+- [x] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
 
 ---
 
@@ -448,6 +448,7 @@ Workflow:
 | 2026-10-21 | M4 review: band-wide history is visible to every member (the audit trail of shared money; all underlying data is visible anyway). Invites are cancelled whenever their member's account link changes and only stand while their issuer is an active admin. Each user has 10 invite-code lookups per hour (a join uses two). History is served in pages of 100 pushes, newest first. |
 | 2026-10-21 | The APK is published on the website (`/download/art-split.apk`, `/download/version.json`) because the repository is private: bandmates could not download from its GitHub Releases. The release is still attached to a GitHub Release as a record. |
 | 2026-10-21 | M5.1: the band fund is a fourth tab (balance, money from events and whether it has been handed over, other entries). The holder is chosen in Settings and can be changed but not cleared. A cost refund from the fund is linked to its cost only when the entry is created. |
+| 2026-10-21 | M5.7: the website shows a quiet strip above the tab bar suggesting the Android app. It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac with touch), after "Don't show again" (localStorage), and while `/download/version.json` is missing, so it never links to an unpublished APK. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
