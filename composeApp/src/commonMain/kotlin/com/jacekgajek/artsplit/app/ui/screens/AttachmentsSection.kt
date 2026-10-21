@@ -33,6 +33,7 @@ import com.jacekgajek.artsplit.app.generated.attachment_add_file
 import com.jacekgajek.artsplit.app.generated.attachment_failed
 import com.jacekgajek.artsplit.app.generated.attachment_hint
 import com.jacekgajek.artsplit.app.generated.attachment_not_available
+import com.jacekgajek.artsplit.app.generated.attachment_open_failed
 import com.jacekgajek.artsplit.app.generated.attachment_remove_confirm
 import com.jacekgajek.artsplit.app.generated.attachment_remove_title
 import com.jacekgajek.artsplit.app.generated.attachment_take_photo
@@ -42,7 +43,9 @@ import com.jacekgajek.artsplit.app.generated.attachment_uploading
 import com.jacekgajek.artsplit.app.generated.attachment_waiting_for_save
 import com.jacekgajek.artsplit.app.generated.attachments
 import com.jacekgajek.artsplit.app.generated.remove
+import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.app.platform.PickResult
+import com.jacekgajek.artsplit.app.sync.ApiException
 import com.jacekgajek.artsplit.app.platform.PreparedFile
 import com.jacekgajek.artsplit.app.platform.rememberAttachmentPicker
 import com.jacekgajek.artsplit.app.platform.rememberUrlOpener
@@ -78,6 +81,7 @@ fun AttachmentsSection(
     val unsupported = stringResource(Res.string.attachment_unsupported)
     val failed = stringResource(Res.string.attachment_failed)
     val notAvailable = stringResource(Res.string.attachment_not_available)
+    val openFailed = stringResource(Res.string.attachment_open_failed)
     val picker = rememberAttachmentPicker { result ->
         when (result) {
             is PickResult.Picked -> if (costId == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attach(costId, result.file)) }
@@ -99,7 +103,13 @@ fun AttachmentsSection(
                 status = if (uploading) stringResource(Res.string.attachment_uploading) else null,
                 onOpen = {
                     if (uploading) actions.say(notAvailable)
-                    else open { graph.attachmentUrl(attachment.id) ?: null.also { actions.say(notAvailable) } }
+                    else open {
+                        graph.attachmentUrl(attachment.id).getOrElse { error ->
+                            val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
+                            actions.say(if (notUploaded) notAvailable else openFailed)
+                            null
+                        }
+                    }
                 },
                 onRemove = { removing = attachment }.takeIf { editable },
             )

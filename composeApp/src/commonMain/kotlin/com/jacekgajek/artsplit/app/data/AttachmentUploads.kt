@@ -76,7 +76,9 @@ class AttachmentUploads(
                 api.requestUpload(bandId, upload.costId, upload.attachmentId)
             } catch (e: ApiException) {
                 // Already uploaded (e.g. an interrupted earlier attempt), or gone from the server: nothing left to do.
-                if (e.code == ApiErrors.ATTACHMENT_EXISTS || e.status == 404) drop(upload)
+                // Only these explicit answers discard the file; anything else (an older server without this route,
+                // a server error) keeps it for the next sync, because the local copy is the only one.
+                if (e.code == ApiErrors.ATTACHMENT_EXISTS || e.code == ApiErrors.ATTACHMENT_NOT_FOUND) drop(upload)
                 continue
             }
             val status = put(target.putUrl, target.headers, base64)

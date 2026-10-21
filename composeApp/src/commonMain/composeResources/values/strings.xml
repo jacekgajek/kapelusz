@@ -350,4 +350,5 @@
     <string name="events_filtered_empty">No events match the filters.</string>
     <string name="costs_none">No costs yet. Add what you paid for the band and get it back from the next events.</string>
     <string name="costs_none_everyone">Nobody has added a cost yet.</string>
+    <string name="attachment_open_failed">Could not open the attachment. Check your connection and try again.</string>
 </resources>

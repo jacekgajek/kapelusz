@@ -350,4 +350,5 @@
     <string name="events_filtered_empty">Żadne wydarzenie nie pasuje do filtrów.</string>
     <string name="costs_none">Nie ma jeszcze kosztów. Dodaj swoje wydatki na zespół, a zwrot dostaniesz z kolejnych wydarzeń.</string>
     <string name="costs_none_everyone">Nikt jeszcze nie dodał kosztu.</string>
+    <string name="attachment_open_failed">Nie udało się otworzyć załącznika. Sprawdź połączenie i spróbuj ponownie.</string>
 </resources>

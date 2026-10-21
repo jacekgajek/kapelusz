@@ -14,6 +14,7 @@ import com.jacekgajek.artsplit.ops.Operation
 import com.jacekgajek.artsplit.ops.RemoveAttachment
 import com.jacekgajek.artsplit.ops.Rejection
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -107,10 +108,17 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         return rejection
     }
 
-    /** A URL to open an attachment, or null when its file is not available (yet). */
-    suspend fun attachmentUrl(attachmentId: Id): String? {
-        val bandId = bands.currentBandId ?: return null
-        return runCatching { api.attachmentUrl(bandId, attachmentId) }.getOrNull()
+    /** A URL to open an attachment; fails with [ApiException] `attachment_not_uploaded` while its file is not on the server. */
+    suspend fun attachmentUrl(attachmentId: Id): Result<String> {
+        val bandId = bands.currentBandId ?: return Result.failure(IllegalStateException("No band open"))
+        // Throwable, not only Exception: browser network errors are JsException.
+        return try {
+            Result.success(api.attachmentUrl(bandId, attachmentId))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
     }
 
     /** Applies an operation locally, remembers the touched event for the "Continue" card, and schedules a sync. */

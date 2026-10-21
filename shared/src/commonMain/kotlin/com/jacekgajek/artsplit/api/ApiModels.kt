@@ -57,6 +57,12 @@ object ApiErrors {
     /** The caller is already a member of the invited band. */
     const val ALREADY_MEMBER = "already_member"
 
+    /**
+     * No such attachment on the cost (it was removed, or its operation refused). Distinct from a generic 404 so a
+     * client only ever discards a waiting file on this answer, never on e.g. an older server without the route.
+     */
+    const val ATTACHMENT_NOT_FOUND = "attachment_not_found"
+
     /** The attachment is listed on its cost, but its file has not been uploaded yet. */
     const val ATTACHMENT_NOT_UPLOADED = "attachment_not_uploaded"
 

@@ -213,7 +213,7 @@ class Api(
         val (band, _) = loadBandForMember(user, bandId)
         if (!band.memberOfUser(user.userId)!!.role.atLeast(Role.MEMBER)) throw ApiError(403, "forbidden", "Viewers cannot upload")
         val attachment = band.cost(request.costId)?.attachments?.firstOrNull { it.id == request.attachmentId }
-            ?: throw ApiError(404, "not_found", "No such attachment")
+            ?: throw ApiError(404, ApiErrors.ATTACHMENT_NOT_FOUND, "No such attachment")
         val key = attachmentKey(bandId, attachment)
         if (store.exists(key)) throw ApiError(409, ApiErrors.ATTACHMENT_EXISTS, "Already uploaded")
         val presigned = store.presignPut(key, attachment.kind.contentType, attachment.sizeBytes ?: throw ApiError(400, "bad_request", "No size"))
@@ -224,7 +224,7 @@ class Api(
     private fun downloadAttachment(user: VerifiedUser, bandId: String, attachmentId: String): HttpResponse {
         val (band, _) = loadBandForMember(user, bandId)
         val attachment = band.costs.firstNotNullOfOrNull { cost -> cost.attachments.firstOrNull { it.id == attachmentId } }
-            ?: throw ApiError(404, "not_found", "No such attachment")
+            ?: throw ApiError(404, ApiErrors.ATTACHMENT_NOT_FOUND, "No such attachment")
         val key = attachmentKey(bandId, attachment)
         if (!store.exists(key)) throw ApiError(404, ApiErrors.ATTACHMENT_NOT_UPLOADED, "Not uploaded yet")
         val fileName = attachment.fileName ?: "${attachment.id}.${attachment.kind.extension}"
