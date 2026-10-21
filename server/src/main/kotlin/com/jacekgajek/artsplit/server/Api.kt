@@ -49,6 +49,10 @@ data class JoinAttempts(val windowStart: Long, val failures: Int)
 @Serializable
 data class InviteCodes(val codes: List<String>)
 
+/** What is left of a deleted band, `bands/{id}/deleted.json`: who may learn that it was deleted, and by whom. */
+@Serializable
+data class DeletedBand(val name: String, val deletedBy: String, val deletedAt: Long, val userIds: List<String>)
+
 /** An invite as stored in `invites/{code}.json`. */
 @Serializable
 data class StoredInvite(val info: InviteInfo, val createdBy: String)
@@ -91,6 +95,7 @@ class Api(
                 state(user, segments[1], request.header("if-none-match"))
             request.method == "POST" && segments.size == 3 && segments[0] == "bands" && segments[2] == "ops" ->
                 push(user, segments[1], parse(request, PushRequest.serializer()))
+            request.method == "DELETE" && segments.size == 2 && segments[0] == "bands" -> deleteBand(user, segments[1])
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "log" ->
                 history(user, segments[1], request.query["month"], request.query["before"])
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "invites" ->
@@ -209,6 +214,38 @@ class Api(
         val entries = page.mapNotNull { key -> store.get(key)?.let { decode(HistoryEntry.serializer(), it.content) } }
         val next = if (keys.size > page.size) page.last().removePrefix(prefix) else null
         return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
+    }
+
+    /**
+     * Deletes a band for everyone (owner only): its state first, so every member's next request finds it gone, then the
+     * members' band lists, invites, history and attachment files. A small marker tells former members that it was
+     * deleted. Bucket versioning keeps the objects for 30 days, so a mistake can still be undone by hand.
+     */
+    private fun deleteBand(user: VerifiedUser, bandId: String): HttpResponse {
+        val (band, _) = loadBandForMember(user, bandId)
+        val me = band.memberOfUser(user.userId)!!
+        if (me.role != Role.OWNER) throw ApiError(403, "forbidden", "Only the owner can delete the band")
+        val userIds = band.members.mapNotNull { it.userId }
+        store.put(deletedKey(bandId), encode(DeletedBand.serializer(), DeletedBand(band.name, me.name, clock(), userIds)))
+        store.delete(bandKey(bandId))
+        userIds.forEach { runCatching { removeBandFromUser(it, bandId) } }
+        loadInviteCodes(bandId).forEach { code -> runCatching { store.delete(inviteKey(code)) } }
+        store.deleteAll(store.list("bands/$bandId/").filter { it != deletedKey(bandId) })
+        return HttpResponse(204)
+    }
+
+    private fun removeBandFromUser(userId: String, bandId: String) {
+        repeat(MAX_ATTEMPTS) {
+            val blob = store.get(userKey(userId)) ?: return
+            val record = decode(UserRecord.serializer(), blob.content)
+            if (bandId !in record.bandIds) return
+            try {
+                store.put(userKey(userId), encode(UserRecord.serializer(), record.copy(bandIds = record.bandIds - bandId)), ifMatch = blob.etag)
+                return
+            } catch (e: PreconditionFailed) {
+                // retry with the fresh record
+            }
+        }
     }
 
     // ---- attachments ----
@@ -412,12 +449,22 @@ class Api(
         store.get(bandKey(bandId))?.let { decode(Band.serializer(), it.content) to it.etag }
 
     private fun loadBandForMember(user: VerifiedUser, bandId: String): Pair<Band, String> {
-        val loaded = loadBand(bandId) ?: throw ApiError(404, BAND_NOT_FOUND, "No such band")
+        val loaded = loadBand(bandId) ?: throw bandGone(user, bandId)
         val member = loaded.first.memberOfUser(user.userId)
         // Same answer for "no such band" and "not your band", so band ids cannot be probed. A distinct code (not the
         // generic route 404) lets clients drop the band only when the band itself is gone for them.
         if (member == null || member.archived) throw ApiError(404, BAND_NOT_FOUND, "No such band")
         return loaded
+    }
+
+    /** "Deleted" for the band's former members, the usual "not found" for everyone else (no probing of ids). */
+    private fun bandGone(user: VerifiedUser, bandId: String): ApiError {
+        val deleted = store.get(deletedKey(bandId))?.let { decode(DeletedBand.serializer(), it.content) }
+        return if (deleted != null && user.userId in deleted.userIds) {
+            ApiError(404, ApiErrors.BAND_DELETED, "${deleted.name} was deleted by ${deleted.deletedBy}")
+        } else {
+            ApiError(404, BAND_NOT_FOUND, "No such band")
+        }
     }
 
     private fun loadUser(userId: String): UserRecord =
@@ -478,6 +525,7 @@ class Api(
         fun attemptsKey(userId: String) = "users/${safe(userId)}-join-attempts.json"
         fun inviteKey(code: String) = "invites/$code.json"
         fun bandInvitesKey(bandId: String) = "bands/${safe(bandId)}/invites.json"
+        fun deletedKey(bandId: String) = "bands/${safe(bandId)}/deleted.json"
         fun attachmentKey(bandId: String, attachment: Attachment) =
             "bands/${safe(bandId)}/attachments/${safe(attachment.id)}.${attachment.kind.extension}"
 

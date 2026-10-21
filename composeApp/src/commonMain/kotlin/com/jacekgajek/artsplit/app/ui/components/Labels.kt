@@ -36,6 +36,7 @@ import com.jacekgajek.artsplit.app.generated.reject_role_required
 import com.jacekgajek.artsplit.app.generated.reject_same_party
 import com.jacekgajek.artsplit.app.generated.reject_too_many_attachments
 import com.jacekgajek.artsplit.app.generated.reject_attachment_too_large
+import com.jacekgajek.artsplit.app.generated.reject_fund_not_empty
 import com.jacekgajek.artsplit.app.generated.reject_treasurer_must_stay
 import com.jacekgajek.artsplit.app.generated.reject_user_already_member
 import com.jacekgajek.artsplit.app.generated.role_admin
@@ -127,4 +128,5 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.CANNOT_SETTLE -> Res.string.reject_cannot_settle
     RejectionReason.TOO_MANY_ATTACHMENTS -> Res.string.reject_too_many_attachments
     RejectionReason.ATTACHMENT_TOO_LARGE -> Res.string.reject_attachment_too_large
+    RejectionReason.FUND_NOT_EMPTY -> Res.string.reject_fund_not_empty
 }

@@ -319,7 +319,6 @@
     <string name="open_settings">Otwórz Ustawienia</string>
     <string name="description">Opis</string>
     <string name="fund_treasurer">Kasę zespołową trzyma</string>
-    <string name="fund_treasurer_none">Jeszcze nikt</string>
     <string name="fund_treasurer_hint">Ta osoba przechowuje pieniądze z kasy zespołowej. Kwoty do kasy z wydarzeń są przekazywane właśnie jej.</string>
     <string name="filter_pending">Oczekujące</string>
     <string name="filter_refunded">Zwrócone</string>
@@ -351,4 +350,29 @@
     <string name="costs_none">Nie ma jeszcze kosztów. Dodaj swoje wydatki na zespół, a zwrot dostaniesz z kolejnych wydarzeń.</string>
     <string name="costs_none_everyone">Nikt jeszcze nie dodał kosztu.</string>
     <string name="attachment_open_failed">Nie udało się otworzyć załącznika. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="fund_enable">Kasa zespołowa</string>
+    <string name="fund_treasurer_choose">Wybierz, kto ją trzyma</string>
+    <string name="fund_disabled_hint">Wyłączona: wydarzenia dzielą całe pieniądze. Włącz ją, by odkładać pieniądze dla zespołu.</string>
+    <string name="fund_cannot_disable">Można ją wyłączyć, gdy jest pusta i każde wydarzenie przekazało swoją kwotę (teraz jest w niej %1$s).</string>
+    <string name="fund_disable_title">Wyłączyć kasę zespołową?</string>
+    <string name="fund_disable_text">Zakładka Kasa zostanie ukryta, a wydarzenia nie będą mogły odkładać pieniędzy. Historia zostaje i można ją w każdej chwili włączyć ponownie.</string>
+    <string name="fund_disable_confirm">Wyłącz</string>
+    <string name="h_disable_fund">Wyłączono kasę zespołową</string>
+    <string name="reject_fund_not_empty">Kasę zespołową można wyłączyć tylko, gdy jest pusta i nic nie czeka na przekazanie.</string>
+    <string name="band_was_deleted">Zespół %1$s został usunięty przez właściciela. Nie ma go już na tym urządzeniu.</string>
+    <string name="delete_band">Usuń zespół</string>
+    <string name="delete_band_title">Usunąć zespół %1$s?</string>
+    <string name="delete_band_everything">Wszystkie wydarzenia, koszty, zwroty, przelewy, kasa zespołowa, załączniki i historia zostaną usunięte dla wszystkich.</string>
+    <plurals name="delete_band_members">
+        <item quantity="one">%1$d inny członek od razu straci dostęp.</item>
+        <item quantity="few">%1$d innych członków od razu straci dostęp.</item>
+        <item quantity="many">%1$d innych członków od razu straci dostęp.</item>
+        <item quantity="other">%1$d innych członków od razu straci dostęp.</item>
+    </plurals>
+    <string name="delete_band_no_members">Nikt inny nie dołączył do zespołu.</string>
+    <string name="delete_band_unsynced">Przepadną też zmiany, które nie zostały jeszcze zsynchronizowane z czyichkolwiek urządzeń.</string>
+    <string name="delete_band_final">Tego nie da się cofnąć.</string>
+    <string name="delete_band_type_name">Wpisz %1$s, aby potwierdzić</string>
+    <string name="delete_band_confirm">Usuń na zawsze</string>
+    <string name="delete_band_failed">Zespół nie został usunięty. Sprawdź połączenie i spróbuj ponownie.</string>
 </resources>

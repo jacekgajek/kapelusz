@@ -67,6 +67,10 @@ data class UnlinkUser(val memberId: Id) : Operation
 @Serializable @SerialName("SetTreasurer")
 data class SetTreasurer(val memberId: Id) : Operation
 
+/** Turns the band fund off (only while it holds nothing); choosing a holder with [SetTreasurer] turns it on again. */
+@Serializable @SerialName("DisableBandFund")
+data object DisableBandFund : Operation
+
 @Serializable @SerialName("TransferOwnership")
 data class TransferOwnership(val toMemberId: Id) : Operation
 

@@ -45,6 +45,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jacekgajek.artsplit.app.generated.lost_access
+import com.jacekgajek.artsplit.app.generated.band_was_deleted
+import com.jacekgajek.artsplit.app.sync.LostBand
 import com.jacekgajek.artsplit.app.generated.ok
 import com.jacekgajek.artsplit.app.generated.sync_refused
 import com.jacekgajek.artsplit.app.sync.SyncStatus
@@ -60,6 +62,11 @@ import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
 import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.RenameBand
 import com.jacekgajek.artsplit.ops.SetTreasurer
+import com.jacekgajek.artsplit.model.Role
+import com.jacekgajek.artsplit.ops.DisableBandFund
+import com.jacekgajek.artsplit.domain.BandFund
+import com.jacekgajek.artsplit.app.ui.model.formatMoney
+import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
@@ -170,12 +177,12 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         )
     }
     // A dialog, not a snackbar: losing the open band leaves its screens, so they cannot show the message.
-    var lostBand by remember { mutableStateOf<String?>(null) }
+    var lostBand by remember { mutableStateOf<LostBand?>(null) }
     LaunchedEffect(graph) { graph.sync.lostAccess.collect { lostBand = it } }
-    lostBand?.let { name ->
+    lostBand?.let { lost ->
         AlertDialog(
             onDismissRequest = { lostBand = null },
-            text = { Text(stringResource(Res.string.lost_access, name)) },
+            text = { Text(stringResource(if (lost.deleted) Res.string.band_was_deleted else Res.string.lost_access, lost.name)) },
             confirmButton = { TextButton(onClick = { lostBand = null }) { Text(stringResource(Res.string.ok)) } },
         )
     }
@@ -261,6 +268,12 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     treasurerOptions = state.band.members.filter { !it.archived }.map { it.id to it.name },
                     onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
+                    onDisableFund = { graph.dispatch(DisableBandFund); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(DisableBandFund) && BandFund.canDisable(state.band) },
+                    fundBalance = formatMoney(BandFund.balance(state.band), state.band.currency, language),
+                    onDeleteBand = suspend { graph.deleteBand(); navController.resetTo(EventsRoute) }
+                        .takeIf { state.me?.role == Role.OWNER },
+                    otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
                     onBack = back,
                 )
             }

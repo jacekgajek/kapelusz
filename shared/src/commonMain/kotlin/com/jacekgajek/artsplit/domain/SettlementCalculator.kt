@@ -71,7 +71,8 @@ object SettlementCalculator {
         val problems = buildSet {
             if (net.isNegative) add(SettlementProblem.LOSS)
             if (net.isPositive && totalWeight == 0L) add(SettlementProblem.NO_SHARES)
-            if (!event.fundAmount.isZero && band.treasurerMemberId == null) add(SettlementProblem.NO_TREASURER)
+            // Only while money for the fund is still to move: a settled event stays settled after the fund is turned off.
+            if (band.treasurerMemberId == null && !BandFund.isHandedOver(event)) add(SettlementProblem.NO_TREASURER)
         }
 
         val shares = if (net.isPositive && totalWeight > 0) splitByWeight(net, order, event, totalWeight) else emptyMap()

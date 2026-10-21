@@ -39,6 +39,7 @@ import com.jacekgajek.artsplit.app.generated.h_set_fund_amount
 import com.jacekgajek.artsplit.app.generated.h_set_refund
 import com.jacekgajek.artsplit.app.generated.h_set_role
 import com.jacekgajek.artsplit.app.generated.h_set_treasurer
+import com.jacekgajek.artsplit.app.generated.h_disable_fund
 import com.jacekgajek.artsplit.app.generated.h_set_weight
 import com.jacekgajek.artsplit.app.generated.h_settle_all
 import com.jacekgajek.artsplit.app.generated.h_settle_party
@@ -80,6 +81,7 @@ import com.jacekgajek.artsplit.ops.SetMemberArchived
 import com.jacekgajek.artsplit.ops.SetMemberRole
 import com.jacekgajek.artsplit.ops.SetRefund
 import com.jacekgajek.artsplit.ops.SetTreasurer
+import com.jacekgajek.artsplit.ops.DisableBandFund
 import com.jacekgajek.artsplit.ops.SetWeight
 import com.jacekgajek.artsplit.ops.SettleSuggestions
 import com.jacekgajek.artsplit.ops.TransferOwnership
@@ -113,6 +115,7 @@ fun describe(op: Operation, band: Band): String {
         is LinkUser -> stringResource(Res.string.h_link_user, member(op.memberId), op.role.label())
         is UnlinkUser -> stringResource(Res.string.h_unlink_user, member(op.memberId))
         is SetTreasurer -> stringResource(Res.string.h_set_treasurer, member(op.memberId))
+        is DisableBandFund -> stringResource(Res.string.h_disable_fund)
         is TransferOwnership -> stringResource(Res.string.h_transfer_ownership, member(op.toMemberId))
         is CreateEvent -> stringResource(Res.string.h_create_event, op.name)
         is UpdateEvent -> stringResource(Res.string.h_edit_event, event(op.eventId))

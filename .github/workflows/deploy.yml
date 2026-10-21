@@ -54,7 +54,16 @@ jobs:
         run: |
           set -euo pipefail
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          RELEASE=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" | sed -n 's/.*SHA256: *//p' | head -1)
+          # keytool reports errors on stdout: keep its output, and on failure show its error and the keystore's aliases
+          # (neither is secret), e.g. a wrong ANDROID_KEY_ALIAS or keystore password.
+          if ! LISTING=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" 2>&1); then
+            echo "::error::$(echo "$LISTING" | grep -i 'keytool error' | head -1)"
+            echo "Aliases in the keystore (needs the right keystore password):"
+            keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" 2>&1 | grep -iE 'Entry|keytool error' || true
+            rm -f "$RUNNER_TEMP/release.jks"
+            exit 1
+          fi
+          RELEASE=$(echo "$LISTING" | sed -n 's/.*SHA256: *//p' | head -1)
           rm "$RUNNER_TEMP/release.jks"
           # Without a fingerprint the deploy would silently drop assetlinks.json and break Android App Links.
           if [[ -z "$RELEASE" ]]; then echo "::error::Could not read the release certificate fingerprint"; exit 1; fi

@@ -60,6 +60,9 @@ if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
   printf '{"versionCode": %d, "versionName": "%s"}\n' "$ARTSPLIT_VERSION_CODE" "$VERSION_NAME" |
     aws s3 cp - "s3://$WEB_BUCKET/download/version.json" --cache-control "no-cache" --content-type application/json
   if [[ -n "${GITHUB_ENV:-}" ]]; then echo "APK_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"; fi
+else
+  # Not an error (web and API are deployed), but the website banner and the update check need a published APK.
+  echo "== APK: not published (set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ARTSPLIT_VERSION_CODE)"
 fi
 aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" >/dev/null
 echo "== Done"

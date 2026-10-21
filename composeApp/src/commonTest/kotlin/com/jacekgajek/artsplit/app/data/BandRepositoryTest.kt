@@ -206,4 +206,22 @@ class BandRepositoryTest {
         val saved = ArtSplitJson.decodeFromString(LocalBand.serializer(), store.values.getValue(BandRepository.bandKey("alice", repository.currentBandId!!)))
         assertEquals(2L, saved.nextSeq)
     }
+
+    @Test
+    fun forgettingADeletedBandOpensAnotherOne() = runTest {
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        repository.createBand("Kept", "PLN", "Alice")
+        val kept = repository.currentBandId!!
+        repository.createBand("Deleted", "PLN", "Alice")
+        val deleted = repository.currentBandId!!
+        repository.flush()
+
+        repository.forgetDeleted(deleted)
+        assertEquals(kept, repository.currentBandId)
+        assertEquals(listOf("Kept"), repository.index.value!!.bands.map { it.name })
+        assertEquals(null, store.read(BandRepository.bandKey("alice", deleted)))
+        assertTrue(store.values.keys.none { it.contains(deleted) }, "no backup is kept for a band deleted on purpose")
+    }
 }

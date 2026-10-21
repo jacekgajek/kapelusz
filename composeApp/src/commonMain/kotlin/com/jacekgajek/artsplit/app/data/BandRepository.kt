@@ -211,6 +211,15 @@ class BandRepository(
     }
 
     /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
+    /** Forgets a band deleted on purpose (nothing is kept) and opens another of the user's bands, if any. */
+    suspend fun forgetDeleted(bandId: Id) {
+        locals.remove(bandId)
+        dirty -= bandId
+        store.remove(bandKey(requireUser(), bandId))
+        updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
+        open(_index.value?.bands?.firstOrNull { hasStored(it.id) }?.id)
+    }
+
     suspend fun startOver() {
         val bandId = currentBandId
         if (bandId != null) store.remove(bandKey(requireUser(), bandId))

@@ -1,16 +1,20 @@
 package com.jacekgajek.artsplit.app.ui
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Serializable data object EventsRoute
-@Serializable data object MyCostsRoute
-@Serializable data object SettleRoute
-@Serializable data object FundRoute
-@Serializable data class EventRoute(val eventId: String)
+// The serial names are the route strings, which the web app shows in the address bar (`#settings`, `#event/<id>`):
+// keep them short and stable, since bookmarks and shared links contain them.
+
+@Serializable @SerialName("events") data object EventsRoute
+@Serializable @SerialName("costs") data object MyCostsRoute
+@Serializable @SerialName("settle") data object SettleRoute
+@Serializable @SerialName("fund") data object FundRoute
+@Serializable @SerialName("event") data class EventRoute(val eventId: String)
 
 /** Add (`costId == null`) or edit a cost. */
-@Serializable data class CostRoute(val costId: String? = null)
-@Serializable data object SettingsRoute
-@Serializable data object RosterRoute
-@Serializable data object NewBandRoute
-@Serializable data object HistoryRoute
+@Serializable @SerialName("cost") data class CostRoute(val costId: String? = null)
+@Serializable @SerialName("settings") data object SettingsRoute
+@Serializable @SerialName("members") data object RosterRoute
+@Serializable @SerialName("new-band") data object NewBandRoute
+@Serializable @SerialName("history") data object HistoryRoute
