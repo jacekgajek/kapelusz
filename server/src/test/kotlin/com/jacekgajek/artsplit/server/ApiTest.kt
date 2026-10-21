@@ -170,4 +170,10 @@ class ApiTest {
         assertTrue(Api.BAND_NOT_FOUND in response.body!!)
         assertTrue(Api.BAND_NOT_FOUND !in call("GET", "/no/such/route").body!!)
     }
+
+    @Test
+    fun answersCorsPreflightWithoutToken() {
+        assertEquals(204, call("OPTIONS", "/me", user = null).status)
+        assertEquals(204, call("OPTIONS", "/bands/band1/ops", user = null).status)
+    }
 }

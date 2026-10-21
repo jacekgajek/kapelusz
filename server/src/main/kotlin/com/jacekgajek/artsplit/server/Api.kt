@@ -49,6 +49,9 @@ class Api(
     }
 
     private fun route(request: HttpRequest): HttpResponse {
+        // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
+        // need a 2xx answer; API Gateway adds the CORS headers.
+        if (request.method == "OPTIONS") return HttpResponse(204)
         val user = authenticate(request)
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
