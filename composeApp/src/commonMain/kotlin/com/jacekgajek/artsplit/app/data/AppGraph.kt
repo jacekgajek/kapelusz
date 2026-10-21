@@ -2,6 +2,7 @@ package com.jacekgajek.artsplit.app.data
 
 import com.jacekgajek.artsplit.app.AppConfig
 import com.jacekgajek.artsplit.app.auth.GoogleAuth
+import com.jacekgajek.artsplit.app.auth.Session
 import com.jacekgajek.artsplit.app.auth.SessionRepository
 import com.jacekgajek.artsplit.app.sync.ApiClient
 import com.jacekgajek.artsplit.app.sync.SyncEngine
@@ -11,6 +12,10 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** Process-wide objects, created once per app start (no DI framework). */
 class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
@@ -22,6 +27,11 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     val sync = SyncEngine(api, bands, scope)
 
     private var loaded = false
+
+    private val _signIns = MutableStateFlow(0)
+
+    /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
+    val signIns: StateFlow<Int> = _signIns.asStateFlow()
 
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
     suspend fun load() {
@@ -35,12 +45,19 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         loaded = true
     }
 
-    suspend fun onSignedIn(idToken: String) {
-        val session = sessions.signedIn(idToken)
-        bands.load(session.userId)
+    /**
+     * Runs in the app scope, not the caller's: the sign-in screen leaves the composition as soon as the session
+     * appears, which would cancel the loading half-way and leave a blank screen. The bands are loaded before the
+     * session is published, so the UI switches straight to the loaded band.
+     */
+    suspend fun onSignedIn(idToken: String) = scope.async {
+        val userId = Session.fromIdToken(idToken).userId
+        bands.load(userId)
+        sessions.signedIn(idToken)
+        _signIns.value++
         sync.start()
         sync.resumeAfterSignIn()
-    }
+    }.await()
 
     suspend fun signOut() {
         sync.stop()

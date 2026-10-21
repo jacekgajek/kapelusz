@@ -93,8 +93,9 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     val settings by graph.settings.settings.collectAsState()
     val bandState by graph.bands.state.collectAsState()
     val session by graph.sessions.session.collectAsState()
-    // Outside key(language), so changing the language keeps the back stack.
-    val navController = rememberNavController()
+    // Outside key(language), so changing the language keeps the back stack. A new controller per signed-in account:
+    // after signing out and in again the app starts on the event list instead of restoring the old back stack.
+    val navController = key(session?.userId) { rememberNavController() }
     LaunchedEffect(navController) { onNavHostReady(navController) }
     CompositionLocalProvider(LocalAppLocale provides settings.language) {
         key(settings.language) {
@@ -181,6 +182,10 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
 @Composable
 private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: NavHostController, defaultName: String) {
     val settings by graph.settings.settings.collectAsState()
+    // After signing in, start from the event list: on the web the URL would otherwise restore the last screen
+    // (e.g. Settings, where the user signed out).
+    val signIns by graph.signIns.collectAsState()
+    LaunchedEffect(signIns) { if (signIns > 0) navController.resetTo(EventsRoute) }
     val toSettings = { navController.navigate(SettingsRoute) }
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
