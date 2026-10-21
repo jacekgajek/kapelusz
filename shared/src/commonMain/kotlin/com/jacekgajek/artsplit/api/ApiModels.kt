@@ -88,6 +88,16 @@ object ApiErrors {
 @Serializable
 data class SessionResponse(val token: String, val expiresAt: Long)
 
+// ---- calendar subscription (V2) ----
+
+/** The user's private calendar feed link (`webcal`-able) and whether it includes events they do not take part in. */
+@Serializable
+data class CalendarSubscription(val url: String, val includeAll: Boolean)
+
+/** Changes the subscription: [reset] makes a new link (the old one stops working). */
+@Serializable
+data class CalendarSubscriptionChange(val includeAll: Boolean? = null, val reset: Boolean = false)
+
 // ---- attachments (M5) ----
 
 /** Asks to upload the file of an attachment that is already on the cost (its `AddAttachment` was pushed first). */

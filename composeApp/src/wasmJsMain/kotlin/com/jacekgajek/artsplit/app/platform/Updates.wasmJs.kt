@@ -11,3 +11,5 @@ private fun reload() {
 }
 
 actual fun appReloader(): (() -> Unit)? = ::reload
+
+actual fun isAndroidApp(): Boolean = false

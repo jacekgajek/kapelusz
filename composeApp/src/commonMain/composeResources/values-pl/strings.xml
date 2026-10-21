@@ -457,4 +457,15 @@
     </plurals>
     <string name="notifications_time">O godzinie</string>
     <string name="notifications_transfers">Przelewy zapisane przez innych z moim udziałem</string>
+    <string name="calendar_title">Subskrypcja kalendarza</string>
+    <string name="calendar_hint">Twoje koncerty ze wszystkich zespołów w Kalendarzu Google (lub innej aplikacji kalendarza), zawsze aktualne. Link jest prywatny: każdy, kto go ma, widzi Twoje koncerty (bez kwot).</string>
+    <string name="calendar_get">Pobierz mój link do kalendarza</string>
+    <string name="calendar_add_google">Dodaj do Kalendarza Google</string>
+    <string name="calendar_include_all">Uwzględnij wydarzenia, w których nie gram</string>
+    <string name="calendar_reset">Zmień link</string>
+    <string name="calendar_reset_title">Utworzyć nowy link?</string>
+    <string name="calendar_reset_text">Obecny link przestanie działać, a kalendarze z niego korzystające nie będą się aktualizować. Dodaj zamiast niego nowy link.</string>
+    <string name="calendar_refresh_note">Kalendarz Google odświeża subskrybowane kalendarze według własnego harmonogramu, zwykle co kilka godzin, czasem raz na dobę.</string>
+    <string name="calendar_failed">Nie udało się. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="calendar_add_on_computer">Aby zasubskrybować, otwórz calendar.google.com na komputerze, wybierz Inne kalendarze › Z adresu URL i wklej link.</string>
 </resources>

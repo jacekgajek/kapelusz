@@ -5,6 +5,8 @@ import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.AttachmentUrlResponse
 import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.BandStateResponse
+import com.jacekgajek.artsplit.api.CalendarSubscription
+import com.jacekgajek.artsplit.api.CalendarSubscriptionChange
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.CreateInviteRequest
 import com.jacekgajek.artsplit.api.ErrorResponse
@@ -73,6 +75,14 @@ class ApiClient(
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
+
+    /** The user's private calendar feed link (created on first use). */
+    suspend fun calendar(): CalendarSubscription = call(HttpMethod.Get, "/me/calendar", CalendarSubscription.serializer())
+
+    suspend fun changeCalendar(change: CalendarSubscriptionChange): CalendarSubscription = call(
+        HttpMethod.Post, "/me/calendar", CalendarSubscription.serializer(),
+        body = ArtSplitJson.encodeToString(CalendarSubscriptionChange.serializer(), change),
+    )
 
     /** A new Art Split session for [bearer] (a Google ID token or the current session); bypasses the token provider. */
     suspend fun createSession(bearer: String): SessionResponse =

@@ -6,6 +6,8 @@ import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.AttachmentUrlResponse
 import com.jacekgajek.artsplit.model.Attachment
 import com.jacekgajek.artsplit.api.BandStateResponse
+import com.jacekgajek.artsplit.api.CalendarSubscription
+import com.jacekgajek.artsplit.api.CalendarSubscriptionChange
 import com.jacekgajek.artsplit.api.BandSummary
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.ErrorResponse
@@ -53,6 +55,14 @@ data class InviteCodes(val codes: List<String>)
 @Serializable
 data class DeletedBand(val name: String, val deletedBy: String, val deletedAt: Long, val userIds: List<String>)
 
+/** A user's calendar feed, `users/{sub}-calendar.json`. */
+@Serializable
+data class StoredCalendar(val secret: String, val includeAll: Boolean = false)
+
+/** Whose feed a secret opens, `calendar/{secret}.json`. */
+@Serializable
+data class CalendarOwner(val userId: String)
+
 /** An invite as stored in `invites/{code}.json`. */
 @Serializable
 data class StoredInvite(val info: InviteInfo, val createdBy: String)
@@ -83,6 +93,11 @@ class Api(
         // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
         // need a 2xx answer; API Gateway adds the CORS headers.
         if (request.method == "OPTIONS") return HttpResponse(204)
+        // The calendar feed is fetched by calendar apps: no sign-in, no app version; the secret in the path is the key.
+        val calendarFeed = Regex("^/calendar/([A-Za-z0-9_-]{20,64})\\.ics$").find(request.path)
+        if ((request.method == "GET" || request.method == "HEAD") && calendarFeed != null) {
+            return calendarFeed(calendarFeed.groupValues[1]).let { if (request.method == "HEAD") it.copy(body = null) else it }
+        }
         if (!appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER])) {
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of Art Split is too old; update it")
         }
@@ -90,6 +105,9 @@ class Api(
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
             request.method == "GET" && segments == listOf("me") -> me(user)
+            request.method == "GET" && segments == listOf("me", "calendar") -> calendarSubscription(user, request, CalendarSubscriptionChange())
+            request.method == "POST" && segments == listOf("me", "calendar") ->
+                calendarSubscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))
             // A new session for a Google ID token, or a renewed one for a current session (sliding expiry).
             request.method == "POST" && segments == listOf("session") -> {
                 val (token, expiresAt) = sessions.issue(user)
@@ -262,6 +280,47 @@ class Api(
             }
         }
     }
+
+    // ---- calendar subscription ----
+
+    /** The user's feed link, created on first use; [change] can switch "include all" or make a new link. */
+    private fun calendarSubscription(user: VerifiedUser, request: HttpRequest, change: CalendarSubscriptionChange): HttpResponse {
+        repeat(MAX_ATTEMPTS) {
+            val blob = store.get(calendarKey(user.userId))
+            val current = blob?.let { decode(StoredCalendar.serializer(), it.content) }
+            val secret = if (current == null || change.reset) newCalendarSecret() else current.secret
+            val updated = StoredCalendar(secret, change.includeAll ?: current?.includeAll ?: false)
+            if (updated != current) {
+                // The new secret's mapping first: a link handed out must always resolve. A mapping left over from a
+                // failed attempt is harmless, since the feed also checks the user's current secret.
+                if (secret != current?.secret) store.put(calendarSecretKey(secret), encode(CalendarOwner.serializer(), CalendarOwner(user.userId)))
+                try {
+                    store.put(calendarKey(user.userId), encode(StoredCalendar.serializer(), updated), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+                } catch (e: PreconditionFailed) {
+                    return@repeat
+                }
+                if (current != null && secret != current.secret) runCatching { store.delete(calendarSecretKey(current.secret)) }
+            }
+            // The link points at this API, whichever address the app used.
+            val host = request.header("host") ?: throw ApiError(400, "bad_request", "No host")
+            return ok(CalendarSubscription.serializer(), CalendarSubscription("https://$host/calendar/$secret.ics", updated.includeAll))
+        }
+        throw ApiError(409, "busy", "Try again")
+    }
+
+    private fun calendarFeed(secret: String): HttpResponse {
+        val owner = store.get(calendarSecretKey(secret))?.let { decode(CalendarOwner.serializer(), it.content) }
+            ?: return error(404, "not_found", "No such calendar")
+        val settings = store.get(calendarKey(owner.userId))?.let { decode(StoredCalendar.serializer(), it.content) }
+        if (settings?.secret != secret) return error(404, "not_found", "No such calendar")
+        val bands = loadUser(owner.userId).bandIds.mapNotNull { loadBand(it)?.first }
+        val now = Instant.ofEpochMilli(clock()).atZone(ZoneOffset.UTC).toLocalDateTime()
+        val stamp = kotlinx.datetime.LocalDateTime(now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute)
+        val body = CalendarFeed.build(bands, owner.userId, settings.includeAll, stamp.date, WEB_URL, stamp)
+        return HttpResponse(200, body, mapOf("content-type" to "text/calendar; charset=utf-8", "cache-control" to "private, max-age=900"))
+    }
+
+    private fun newCalendarSecret(): String = ByteArray(24).also { random.nextBytes(it) }.let { java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
 
     // ---- attachments ----
 
@@ -551,6 +610,11 @@ class Api(
         fun inviteKey(code: String) = "invites/$code.json"
         fun bandInvitesKey(bandId: String) = "bands/${safe(bandId)}/invites.json"
         fun deletedKey(bandId: String) = "bands/${safe(bandId)}/deleted.json"
+        fun calendarKey(userId: String) = "users/${safe(userId)}-calendar.json"
+        fun calendarSecretKey(secret: String) = "calendar/$secret.json"
+
+        /** For links in calendar entries. */
+        private val WEB_URL = System.getenv("WEB_URL") ?: "https://artsplit.jacekgajek.com"
         fun attachmentKey(bandId: String, attachment: Attachment) =
             "bands/${safe(bandId)}/attachments/${safe(attachment.id)}.${attachment.kind.extension}"
 

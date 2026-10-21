@@ -68,7 +68,9 @@ class Handler : RequestStreamHandler {
         val response = try {
             api.handle(request)
         } catch (e: Exception) {
-            System.err.println("Unhandled error for ${request.method} ${request.path}: ${e.stackTraceToString()}")
+            // A calendar feed path carries its secret: never log it.
+            val path = request.path.replace(Regex("^/calendar/.*"), "/calendar/…")
+            System.err.println("Unhandled error for ${request.method} $path: ${e.stackTraceToString()}")
             HttpResponse(500, """{"error":"internal","message":"Internal error"}""", mapOf("content-type" to "application/json"))
         }
         respond(output, response)
