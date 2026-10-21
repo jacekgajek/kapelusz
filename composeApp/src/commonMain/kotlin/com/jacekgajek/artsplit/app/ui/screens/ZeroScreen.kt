@@ -28,7 +28,6 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.app_name
 import com.jacekgajek.artsplit.app.generated.create_band_intro
 import com.jacekgajek.artsplit.app.generated.join_band
-import com.jacekgajek.artsplit.app.generated.join_band_soon
 import com.jacekgajek.artsplit.app.generated.new_band_title
 import com.jacekgajek.artsplit.app.generated.open_band
 import com.jacekgajek.artsplit.app.generated.open_band_failed
@@ -58,6 +57,7 @@ fun ZeroScreen(
     onOpen: (String) -> Unit,
     onCreate: (name: String, currency: String, yourName: String) -> Unit,
     onSignOut: () -> Unit,
+    onJoin: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -94,8 +94,7 @@ fun ZeroScreen(
                 Text(stringResource(Res.string.create_band_intro), style = MaterialTheme.typography.bodyMedium)
             }
             CreateBandForm(onCreate, defaultYourName)
-            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.join_band)) }
-            Text(stringResource(Res.string.join_band_soon), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = onJoin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.join_band)) }
             TextButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
         }
     }

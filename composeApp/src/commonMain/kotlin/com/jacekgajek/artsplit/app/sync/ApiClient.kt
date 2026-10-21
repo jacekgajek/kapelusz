@@ -2,12 +2,18 @@ package com.jacekgajek.artsplit.app.sync
 
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.CreateBandRequest
+import com.jacekgajek.artsplit.api.CreateInviteRequest
 import com.jacekgajek.artsplit.api.ErrorResponse
+import com.jacekgajek.artsplit.api.HistoryResponse
+import com.jacekgajek.artsplit.api.InviteInfo
+import com.jacekgajek.artsplit.api.InvitePreview
+import com.jacekgajek.artsplit.api.InvitesResponse
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
 import com.jacekgajek.artsplit.api.PushResponse
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Id
+import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -49,6 +55,25 @@ class ApiClient(
 
     suspend fun push(bandId: Id, ops: List<OpEnvelope>): PushResponse =
         call(HttpMethod.Post, "/bands/$bandId/ops", PushResponse.serializer(), body = ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
+
+    suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
+
+    suspend fun createInvite(bandId: Id, memberId: Id, role: Role): InviteInfo = call(
+        HttpMethod.Post, "/bands/$bandId/invites", InviteInfo.serializer(),
+        body = ArtSplitJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(memberId, role)),
+    )
+
+    suspend fun revokeInvite(bandId: Id, code: String) {
+        val response = send(HttpMethod.Delete, "/bands/$bandId/invites/$code") {}
+        if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
+    }
+
+    suspend fun previewInvite(code: String): InvitePreview = call(HttpMethod.Get, "/invites/$code", InvitePreview.serializer())
+
+    suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
+
+    suspend fun history(bandId: Id, month: String): HistoryResponse =
+        call(HttpMethod.Get, "/bands/$bandId/log?month=$month", HistoryResponse.serializer())
 
     private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T =
         parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)

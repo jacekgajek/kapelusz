@@ -24,6 +24,16 @@ aws lambda wait published-version-active --function-name "$FUNCTION_NAME" --qual
 aws lambda update-alias --function-name "$FUNCTION_NAME" --name live --function-version "$VERSION" >/dev/null
 echo "   alias live -> version $VERSION"
 
+# Android App Links: the site vouches for the app (package + signing certificate fingerprints).
+if [[ -n "${ANDROID_CERT_SHA256:-}" ]]; then
+  mkdir -p "$DIST/.well-known"
+  FINGERPRINTS=$(echo "$ANDROID_CERT_SHA256" | tr ',' '\n' | sed '/^$/d; s/.*/"&"/' | paste -sd, -)
+  cat > "$DIST/.well-known/assetlinks.json" <<JSON
+[{"relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {"namespace": "android_app", "package_name": "com.jacekgajek.artsplit", "sha256_cert_fingerprints": [$FINGERPRINTS]}}]
+JSON
+fi
+
 echo "== Web: syncing $DIST to s3://$WEB_BUCKET"
 # Order matters: new wasm files first (content-hashed names, cached forever), then the files that reference them
 # (revalidated on every load), and only then delete the old wasm files. A page loaded mid-deploy never points at a

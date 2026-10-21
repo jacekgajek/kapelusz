@@ -201,7 +201,6 @@
     <string name="open_band">Otwórz</string>
     <string name="or_create_band">Albo utwórz nowy zespół</string>
     <string name="join_band">Dołącz do zespołu</string>
-    <string name="join_band_soon">Dołączanie kodem zaproszenia pojawi się w następnej wersji.</string>
     <string name="sync_syncing">Synchronizacja</string>
     <string name="sync_synced">Zapisano na serwerze</string>
     <string name="sync_offline">Offline – zmiany są zachowane na tym urządzeniu</string>
@@ -216,4 +215,29 @@
     <string name="other_tab_text">Aby Twoje zmiany były bezpieczne, Art Split może działać tylko w jednej karcie naraz. Możesz kontynuować tutaj; druga karta przestanie działać.</string>
     <string name="use_here">Użyj tutaj</string>
     <string name="open_band_failed">Nie udało się otworzyć zespołu. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="close">Zamknij</string>
+    <string name="role">Rola</string>
+    <string name="invite_role">Rola po dołączeniu</string>
+    <string name="invite_hint">Zaproś tę osobę do aplikacji: dołączy za pomocą kodu i zobaczy ten zespół.</string>
+    <string name="create_invite">Utwórz kod zaproszenia</string>
+    <string name="invite_active_until">Zaproszenie %1$s, ważne do %2$s</string>
+    <string name="share_invite">Udostępnij</string>
+    <string name="share_invite_text">Dołącz do zespołu %1$s w Art Split kodem %2$s: %3$s</string>
+    <string name="invite_copied">Skopiowano zaproszenie do schowka</string>
+    <string name="revoke_invite">Unieważnij</string>
+    <string name="invite_failed">Nie udało się. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="invites_unavailable">Zaproszenia wymagają połączenia z serwerem.</string>
+    <string name="unlink">Odłącz konto</string>
+    <string name="unlink_confirm">%1$s straci dostęp do zespołu, dopóki nie zostanie zaproszony ponownie. Koszty i historia zostają.</string>
+    <string name="make_owner">Przekaż własność</string>
+    <string name="make_owner_confirm">%1$s zostanie właścicielem; Ty pozostaniesz administratorem.</string>
+    <string name="invite_code">Kod zaproszenia</string>
+    <string name="check_code">Sprawdź</string>
+    <string name="join">Dołącz</string>
+    <string name="join_hint">Wpisz 6-znakowy kod, który przysłał Ci administrator zespołu.</string>
+    <string name="join_preview">Dołączysz do zespołu %1$s jako %2$s (%3$s).</string>
+    <string name="join_invalid_code">Ten kod jest nieprawidłowy. Może zawierać literówkę, został już użyty, unieważniony lub wygasł.</string>
+    <string name="join_too_many_attempts">Zbyt wiele błędnych kodów. Spróbuj ponownie za godzinę.</string>
+    <string name="join_already_member">Już należysz do tego zespołu.</string>
+    <string name="join_failed">Nie udało się dołączyć. Sprawdź połączenie i spróbuj ponownie.</string>
 </resources>

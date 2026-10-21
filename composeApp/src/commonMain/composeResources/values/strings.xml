@@ -201,7 +201,6 @@
     <string name="open_band">Open</string>
     <string name="or_create_band">Or create a new band</string>
     <string name="join_band">Join a band</string>
-    <string name="join_band_soon">Joining with an invite code arrives in the next version.</string>
     <string name="sync_syncing">Syncing</string>
     <string name="sync_synced">Saved on the server</string>
     <string name="sync_offline">Offline – changes are kept on this device</string>
@@ -216,4 +215,29 @@
     <string name="other_tab_text">To keep your changes safe, only one tab can use Art Split at a time. You can continue here; the other tab will stop.</string>
     <string name="use_here">Use here</string>
     <string name="open_band_failed">Could not open the band. Check your connection and try again.</string>
+    <string name="close">Close</string>
+    <string name="role">Role</string>
+    <string name="invite_role">Role after joining</string>
+    <string name="invite_hint">Invite this member to use the app: they will join with the code below and see this band.</string>
+    <string name="create_invite">Create invite code</string>
+    <string name="invite_active_until">Invite %1$s, valid until %2$s</string>
+    <string name="share_invite">Share</string>
+    <string name="share_invite_text">Join %1$s in Art Split with code %2$s: %3$s</string>
+    <string name="invite_copied">Invite copied to the clipboard</string>
+    <string name="revoke_invite">Revoke</string>
+    <string name="invite_failed">That did not work. Check your connection and try again.</string>
+    <string name="invites_unavailable">Invites need a connection to the server.</string>
+    <string name="unlink">Unlink app account</string>
+    <string name="unlink_confirm">%1$s will lose access to the band until invited again. Their costs and history stay.</string>
+    <string name="make_owner">Make owner</string>
+    <string name="make_owner_confirm">%1$s becomes the owner; you stay an admin.</string>
+    <string name="invite_code">Invite code</string>
+    <string name="check_code">Check</string>
+    <string name="join">Join</string>
+    <string name="join_hint">Enter the 6-character code your band's admin sent you.</string>
+    <string name="join_preview">You will join %1$s as %2$s (%3$s).</string>
+    <string name="join_invalid_code">This code is not valid. It may be mistyped, used already, revoked or expired.</string>
+    <string name="join_too_many_attempts">Too many wrong codes. Try again in an hour.</string>
+    <string name="join_already_member">You are already a member of this band.</string>
+    <string name="join_failed">Could not join. Check your connection and try again.</string>
 </resources>

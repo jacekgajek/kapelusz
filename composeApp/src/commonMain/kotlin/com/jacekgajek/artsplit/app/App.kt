@@ -70,6 +70,7 @@ import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
 import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
+import com.jacekgajek.artsplit.app.ui.screens.JoinDialog
 import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
@@ -141,6 +142,21 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         graph.sessions.reauthenticated(token).also { ok -> if (ok) graph.sync.resumeAfterSignIn() }
     }
     if (signingInAgain) SignInAgainDialog(session?.email, reauthenticate, onDismiss = { signingInAgain = false })
+    // Joining: from a join link (pending code) or the "Join a band" buttons.
+    val pendingJoinCode by graph.pendingJoinCode.collectAsState()
+    var joining by remember { mutableStateOf(false) }
+    if (joining || pendingJoinCode != null) {
+        JoinDialog(
+            graph = graph,
+            initialCode = pendingJoinCode,
+            onJoined = {
+                joining = false
+                graph.pendingJoinCode.value = null
+                if (bandState is BandState.Ready) navController.resetTo(EventsRoute)
+            },
+            onDismiss = { joining = false; graph.pendingJoinCode.value = null },
+        )
+    }
     // A dialog, not a snackbar: losing the open band leaves its screens, so they cannot show the message.
     var lostBand by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(graph) { graph.sync.lostAccess.collect { lostBand = it } }
@@ -162,6 +178,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             onOpen = { openBand(it, false) },
             onCreate = { name, currency, yourName -> graph.bands.createBand(name, currency, yourName); graph.sync.requestSync() },
             onSignOut = { scope.launch { graph.signOut() } },
+            onJoin = { joining = true },
         )
         is BandState.Ready -> CompositionLocalProvider(
             LocalTopBarState provides TopBarState(
@@ -170,6 +187,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 currentBandId = index?.currentBandId,
                 onSelectBand = { openBand(it, true) },
                 onNewBand = { navController.navigate(NewBandRoute) },
+                onJoinBand = { joining = true },
                 onSyncNow = { graph.sync.requestSync() },
                 onReauthenticate = reauthenticate,
                 accountEmail = session?.email,

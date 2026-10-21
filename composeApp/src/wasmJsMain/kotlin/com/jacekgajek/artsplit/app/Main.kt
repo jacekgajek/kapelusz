@@ -24,6 +24,7 @@ private enum class Phase { STARTING, OTHER_TAB, READY }
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
     val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
+    takeJoinCodeFromUrl()?.let { graph.pendingJoinCode.value = it }
     ComposeViewport {
         var phase by remember { mutableStateOf(Phase.STARTING) }
         val scope = rememberCoroutineScope()
@@ -51,4 +52,14 @@ fun main() {
             Phase.READY -> App(graph, onNavHostReady = { window.bindToNavigation(it) })
         }
     }
+}
+
+/**
+ * A join link (`/join/ABC123`, served by CloudFront's SPA fallback) carries an invite code. It is taken once, and the
+ * address is reset to the app root so a reload does not offer the same invite again.
+ */
+private fun takeJoinCodeFromUrl(): String? {
+    val match = Regex("^/join/([A-Za-z0-9]{6})/?$").find(window.location.pathname) ?: return null
+    window.history.replaceState(null, "", "/" + window.location.hash)
+    return match.groupValues[1].uppercase()
 }
