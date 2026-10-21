@@ -7,6 +7,10 @@ import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.app.ui.model.formatMonth
 import com.jacekgajek.artsplit.app.ui.model.initials
+import com.jacekgajek.artsplit.app.ui.model.TemplateDraft
+import com.jacekgajek.artsplit.app.ui.model.toItem
+import com.jacekgajek.artsplit.model.AgendaKind
+import com.jacekgajek.artsplit.model.AgendaTemplateItem
 import com.jacekgajek.artsplit.app.ui.model.unsettledEvent
 import com.jacekgajek.artsplit.app.ui.model.upcomingEvent
 import com.jacekgajek.artsplit.auth.Actor
@@ -130,5 +134,14 @@ class PresentationTest {
         val twoDrafts = base.apply(CreateEvent("a", "A", sameDay), CreateEvent("b", "B", sameDay))
         val edited = twoDrafts.copy(events = twoDrafts.events.map { if (it.id == "a") it.copy(updatedAt = 99) else it })
         assertEquals("a", unsettledEvent(edited, today)?.id)
+    }
+
+    @Test
+    fun templateEditorKeepsBuiltInEntriesWhenMovedOrNeighboursRemoved() {
+        val labels = mapOf(AgendaKind.ARRIVAL to "Przyjazd", AgendaKind.CONCERT_START to "Początek koncertu")
+        val drafts = listOf(TemplateDraft(AgendaKind.CONCERT_START, "Początek koncertu"), TemplateDraft(AgendaKind.ARRIVAL, "Przyjazd"))
+        assertEquals(listOf(AgendaTemplateItem(AgendaKind.CONCERT_START), AgendaTemplateItem(AgendaKind.ARRIVAL)), drafts.map { it.toItem(labels::getValue) })
+        assertEquals(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL)), drafts.drop(1).map { it.toItem(labels::getValue) })
+        assertEquals(AgendaTemplateItem(label = "Zbiórka"), TemplateDraft(AgendaKind.ARRIVAL, " Zbiórka ").toItem(labels::getValue), "renamed: custom")
     }
 }

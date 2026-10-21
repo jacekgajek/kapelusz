@@ -256,7 +256,7 @@ fun EventsScreen(
                         eventId, name, date, location,
                         participants = lineupOfLastEvent(band, state.me?.id),
                         // The band's agenda template, times still to be set (VERSION_2 §4.1).
-                        agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label) },
+                        agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
                     ),
                 )
                 if (ok) onOpenEvent(eventId)

@@ -224,4 +224,21 @@ class BandRepositoryTest {
         assertEquals(null, store.read(BandRepository.bandKey("alice", deleted)))
         assertTrue(store.values.keys.none { it.contains(deleted) }, "no backup is kept for a band deleted on purpose")
     }
+
+    @Test
+    fun aBandStoredByAnOlderAppIsDownloadedInFullOnce() = runTest {
+        // An older app dropped fields it did not know but kept the server's version, so "not modified" would never
+        // bring them back.
+        val store = InMemoryStore()
+        val band = Band.create("b1", "Night Owls", "PLN", "m1", "Alice", "alice")
+        val old = LocalBand(base = band, version = "\"etag-1\"", clientId = "c", userId = "alice")
+        store.write(BandRepository.bandKey("alice", "b1"), ArtSplitJson.encodeToString(LocalBand.serializer(), old))
+        store.write(BandRepository.indexKey("alice"), ArtSplitJson.encodeToString(BandIndex.serializer(), BandIndex("alice", "b1", listOf(BandSummary("b1", "Night Owls", "Alice", Role.OWNER)))))
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        assertNull(repository.local("b1")!!.version)
+        repository.flush()
+        val saved = ArtSplitJson.decodeFromString(LocalBand.serializer(), store.read(BandRepository.bandKey("alice", "b1"))!!)
+        assertEquals(BandRepository.CURRENT_SCHEMA, saved.schema)
+    }
 }

@@ -32,6 +32,9 @@ import com.jacekgajek.artsplit.app.generated.save
 import com.jacekgajek.artsplit.app.generated.show_all
 import com.jacekgajek.artsplit.app.generated.show_less
 import com.jacekgajek.artsplit.app.ui.components.BackTopBar
+import com.jacekgajek.artsplit.app.ui.components.ConfirmDialog
+import com.jacekgajek.artsplit.app.generated.details_discard
+import com.jacekgajek.artsplit.app.generated.details_discard_title
 import com.jacekgajek.artsplit.app.ui.components.EditButton
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
 import com.jacekgajek.artsplit.ops.Change
@@ -75,7 +78,8 @@ fun DetailsSection(context: EventContext) {
     }
     if (editing) {
         DetailsEditor(text.orEmpty(), onSave = { value ->
-            val cleaned = value.trimEnd().ifBlank { null }
+            // Trimmed like the server does, so an unchanged text sends nothing.
+            val cleaned = value.trim().ifBlank { null }
             if (cleaned != text) context.actions.run(UpdateEvent(event.id, notes = Change(cleaned)))
         }, onDismiss = { editing = false })
     }
@@ -85,10 +89,13 @@ fun DetailsSection(context: EventContext) {
 @Composable
 private fun DetailsEditor(initial: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
     var value by remember { mutableStateOf(initial) }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    var confirmDiscard by remember { mutableStateOf(false) }
+    // A pasted setlist is easy to lose: leaving with changes asks first.
+    val leave = { if (value != initial) confirmDiscard = true else onDismiss() }
+    Dialog(onDismissRequest = leave, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Scaffold(
             topBar = {
-                BackTopBar(stringResource(Res.string.details), onDismiss) {
+                BackTopBar(stringResource(Res.string.details), leave) {
                     TextButton(onClick = { onSave(value); onDismiss() }) { Text(stringResource(Res.string.save)) }
                 }
             },
@@ -102,5 +109,14 @@ private fun DetailsEditor(initial: String, onSave: (String) -> Unit, onDismiss: 
                 )
             }
         }
+    }
+    if (confirmDiscard) {
+        ConfirmDialog(
+            title = stringResource(Res.string.details_discard_title),
+            text = null,
+            confirmLabel = stringResource(Res.string.details_discard),
+            onConfirm = onDismiss,
+            onDismiss = { confirmDiscard = false },
+        )
     }
 }

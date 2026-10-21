@@ -3,6 +3,7 @@ package com.jacekgajek.artsplit
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.auth.Permissions
 import com.jacekgajek.artsplit.model.AgendaKind
+import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.AgendaTemplateItem
 import com.jacekgajek.artsplit.model.AgendaTime
 import com.jacekgajek.artsplit.model.Participant
@@ -67,5 +68,22 @@ class AgendaTest {
         assertTrue(Permissions.isAllowed(band, owner, SetAgendaTemplate(emptyList())))
         assertTrue(Permissions.isAllowed(band, owner, SetEventAgenda("e", emptyList())))
         assertFalse(Permissions.isAllowed(band, Actor.User("stranger"), SetEventAgenda("e", emptyList())))
+    }
+
+    @Test
+    fun labelsAndIdsAreBounded() {
+        val scenario = Scenario("Alice").apply(CreateEvent("e", "Gig", DATE))
+        val long = "x".repeat(AgendaTime.MAX_LABEL + 1)
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", label = long)))).reason)
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", AgendaKind.ARRIVAL, label = long)))).reason, "also on a built-in entry")
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("i".repeat(65), AgendaKind.ARRIVAL)))).reason)
+        val tooMany = (1..AgendaTime.MAX_TIMES + 1).map { AgendaTime("t$it", label = "T$it") }
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", tooMany)).reason)
+    }
+
+    @Test
+    fun aKindFromANewerVersionDoesNotBreakReading() {
+        val time = ArtSplitJson.decodeFromString(AgendaTime.serializer(), """{"id":"a","kind":"SOUND_CHECK","label":"Sound check","time":"18:00"}""")
+        assertEquals(AgendaTime("a", kind = null, label = "Sound check", time = LocalTime(18, 0)), time)
     }
 }

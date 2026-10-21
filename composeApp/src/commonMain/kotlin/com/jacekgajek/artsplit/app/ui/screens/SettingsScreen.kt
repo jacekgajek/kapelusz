@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jacekgajek.artsplit.app.ui.model.toItem
+import com.jacekgajek.artsplit.app.ui.model.TemplateDraft
 import com.jacekgajek.artsplit.app.generated.move_up
 import com.jacekgajek.artsplit.app.generated.agenda_add_time
 import com.jacekgajek.artsplit.app.generated.agenda_template_hint
@@ -345,29 +347,29 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
 @Composable
 private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (List<AgendaTemplateItem>) -> Unit) {
     val builtInLabels = AgendaKind.entries.associateWith { it.label() }
-    fun toEdit(items: List<AgendaTemplateItem>) = items.map { item -> item.kind?.let { builtInLabels.getValue(it) } ?: item.label.orEmpty() }
     // Keyed on the built-in labels too: on the web the texts load asynchronously and are empty at first.
-    var labels by remember(template, builtInLabels) { mutableStateOf(toEdit(template)) }
-    fun toItems(texts: List<String>): List<AgendaTemplateItem> = texts.mapIndexed { index, text ->
-        // An untouched built-in entry stays built-in (shown in each user's language).
-        val original = template.getOrNull(index)
-        val kind = original?.kind
-        if (kind != null && text.trim() == builtInLabels.getValue(kind)) original else AgendaTemplateItem(label = text.trim())
+    var drafts by remember(template, builtInLabels) {
+        mutableStateOf(template.map { TemplateDraft(it.kind, it.kind?.let { kind -> builtInLabels.getValue(kind) } ?: it.label.orEmpty()) })
     }
     Text(stringResource(Res.string.agenda_template_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 16.dp))
     Text(stringResource(Res.string.agenda_template_hint), style = MaterialTheme.typography.bodySmall)
-    labels.forEachIndexed { index, label ->
+    drafts.forEachIndexed { index, draft ->
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(label, { value -> labels = labels.toMutableList().also { it[index] = value.take(AgendaTime.MAX_LABEL) } }, singleLine = true, modifier = Modifier.weight(1f))
-            IconButton(onClick = { labels = labels.toMutableList().also { it.add(index - 1, it.removeAt(index)) } }, enabled = index > 0) {
-                Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up))
+            OutlinedTextField(
+                draft.text,
+                { value -> drafts = drafts.toMutableList().also { it[index] = draft.copy(text = value.take(AgendaTime.MAX_LABEL)) } },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = { drafts = drafts.toMutableList().also { it.add(index - 1, it.removeAt(index)) } }, enabled = index > 0) {
+                Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + draft.text)
             }
-            RemoveButton { labels = labels.toMutableList().also { it.removeAt(index) } }
+            RemoveButton(draft.text) { drafts = drafts.toMutableList().also { it.removeAt(index) } }
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (labels.size < AgendaTime.MAX_TIMES) TextButton(onClick = { labels = labels + "" }) { Text(stringResource(Res.string.agenda_add_time)) }
-        val items = toItems(labels)
-        TextButton(enabled = labels.all { it.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
+        if (drafts.size < AgendaTime.MAX_TIMES) TextButton(onClick = { drafts = drafts + TemplateDraft(null, "") }) { Text(stringResource(Res.string.agenda_add_time)) }
+        val items = drafts.map { it.toItem(builtInLabels::getValue) }
+        TextButton(enabled = drafts.all { it.text.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
     }
 }

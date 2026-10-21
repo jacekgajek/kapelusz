@@ -19,6 +19,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.jacekgajek.artsplit.ops.SetEventAgenda
 import com.jacekgajek.artsplit.model.effectiveAgendaTemplate
 import com.jacekgajek.artsplit.model.AgendaTime
@@ -71,7 +73,7 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
     var location by remember { mutableStateOf(event.location.orEmpty()) }
     // Events from before agenda times get the band's template, all unset (VERSION_2 §4.1).
     var agenda by remember {
-        mutableStateOf(event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label) } })
+        mutableStateOf(event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) } })
     }
     // Unset times stay behind "More details" until picked, like address fields in a phone's contacts.
     var moreDetails by remember { mutableStateOf(false) }
@@ -88,9 +90,12 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
                 agenda.filter { it.time != null }.sortedBy { it.minutesOfEventDay }.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(item.displayLabel(), Modifier.weight(1f))
-                        TextButton(onClick = { picking = item }) { Text(formatAgendaTime(item)) }
+                        val label = item.displayLabel()
+                        TextButton(onClick = { picking = item }, modifier = Modifier.semantics { contentDescription = "$label ${formatAgendaTime(item)}" }) {
+                            Text(formatAgendaTime(item))
+                        }
                         // Built-in and template times go back behind "More details"; one-off times disappear.
-                        RemoveButton { agenda = if (item.kind != null || isFromTemplate(band, item)) agenda.map { if (it.id == item.id) it.copy(time = null) else it } else agenda - item }
+                        RemoveButton(label) { agenda = if (item.kind != null || item.fromTemplate) agenda.map { if (it.id == item.id) it.copy(time = null) else it } else agenda - item }
                     }
                 }
                 val unset = agenda.filter { it.time == null }
@@ -136,9 +141,6 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
         )
     }
 }
-
-/** A custom time that came with the band's template (kept, unset, when removed) rather than a one-off. */
-private fun isFromTemplate(band: Band, item: AgendaTime) = band.effectiveAgendaTemplate.any { it.kind == null && it.label == item.label }
 
 /** Overflow menu: archive / restore, delete (only events without recorded transfers can be deleted). */
 @Composable

@@ -52,7 +52,14 @@ enum class AgendaKind { ARRIVAL, CONCERT_START }
  * [AgendaTime.NEXT_DAY_BEFORE_HOUR] are on the next day (a gig ending after midnight).
  */
 @Serializable
-data class AgendaTime(val id: Id, val kind: AgendaKind? = null, val label: String? = null, val time: LocalTime? = null) {
+data class AgendaTime(
+    val id: Id,
+    val kind: AgendaKind? = null,
+    val label: String? = null,
+    val time: LocalTime? = null,
+    /** Copied from the band's template: removing its time keeps it (unset) instead of deleting it. */
+    val fromTemplate: Boolean = false,
+) {
     /** Minutes from the event day's midnight, counting early-morning times as the next day. */
     val minutesOfEventDay: Int? get() = time?.let { it.hour * 60 + it.minute + if (it.hour < NEXT_DAY_BEFORE_HOUR) 24 * 60 else 0 }
 
@@ -62,6 +69,7 @@ data class AgendaTime(val id: Id, val kind: AgendaKind? = null, val label: Strin
         const val NEXT_DAY_BEFORE_HOUR = 5
         const val MAX_LABEL = 40
         const val MAX_TIMES = 12
+        const val MAX_ID = 64
     }
 }
 

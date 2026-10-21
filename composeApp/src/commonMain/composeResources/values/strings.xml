@@ -422,6 +422,8 @@
     <string name="details_hint">Anything the band should know, e.g. the setlist, one song per line.</string>
     <string name="show_all">Show all</string>
     <string name="show_less">Show less</string>
-    <string name="agenda_template_title">Agenda times of new events</string>
+    <string name="agenda_template_title">Event agenda</string>
     <string name="agenda_template_hint">New events get these times to fill in; existing events keep theirs.</string>
+    <string name="details_discard_title">Discard your changes?</string>
+    <string name="details_discard">Discard</string>
 </resources>

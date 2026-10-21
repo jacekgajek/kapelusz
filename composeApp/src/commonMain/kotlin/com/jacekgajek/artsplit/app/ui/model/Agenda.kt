@@ -37,3 +37,13 @@ fun Event.setTimes(): List<AgendaTime> = agenda.filter { it.time != null }.sorte
 /** "Arrival 17:00 · Concert start 20:00", or null when no time is set. */
 @Composable
 fun Event.agendaLine(): String? = setTimes().takeIf { it.isNotEmpty() }?.map { "${it.displayLabel()} ${formatAgendaTime(it)}" }?.joinToString(" · ")
+
+/** An entry in the agenda template editor: the built-in [kind] it started as (if any) and the text shown. */
+data class TemplateDraft(val kind: AgendaKind?, val text: String)
+
+/**
+ * Back to a template entry: a built-in one stays built-in (shown in each user's language) as long as its text is
+ * untouched; edited, it becomes a custom label. Entries keep their kind when moved or when others are removed.
+ */
+fun TemplateDraft.toItem(builtInLabel: (AgendaKind) -> String): AgendaTemplateItem =
+    if (kind != null && text.trim() == builtInLabel(kind)) AgendaTemplateItem(kind) else AgendaTemplateItem(label = text.trim())

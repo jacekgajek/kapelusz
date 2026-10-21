@@ -265,15 +265,15 @@ object Reducer {
     private fun validAgenda(agenda: List<AgendaTime>): List<AgendaTime> {
         invalidIf(agenda.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }
         invalidIf(agenda.map { it.id }.toSet().size != agenda.size, RejectionReason.DUPLICATE_ID) { "Duplicate agenda ids" }
+        invalidIf(agenda.any { it.id.isBlank() || it.id.length > AgendaTime.MAX_ID }, RejectionReason.INVALID_INPUT) { "Invalid agenda id" }
         agenda.forEach { validAgendaLabel(it.kind, it.label) }
         return agenda.map { it.copy(label = it.label?.trim()) }
     }
 
-    /** A built-in kind needs no label; a custom entry needs a short one. */
+    /** A built-in kind needs no label; a custom entry needs one. Any label is short. */
     private fun validAgendaLabel(kind: AgendaKind?, label: String?) {
-        if (kind != null) return
-        invalidIf(label.isNullOrBlank(), RejectionReason.EMPTY_NAME) { "Agenda label is required" }
-        invalidIf(label!!.trim().length > AgendaTime.MAX_LABEL, RejectionReason.INVALID_INPUT) { "Agenda label is too long" }
+        invalidIf(kind == null && label.isNullOrBlank(), RejectionReason.EMPTY_NAME) { "Agenda label is required" }
+        invalidIf((label?.trim()?.length ?: 0) > AgendaTime.MAX_LABEL, RejectionReason.INVALID_INPUT) { "Agenda label is too long" }
     }
 
     private fun addParticipant(band: Band, op: AddParticipant, ctx: OpContext): Band {
