@@ -28,9 +28,10 @@ import kotlinx.coroutines.flow.asStateFlow
 class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     val settings = SettingsRepository(store, scope)
-    val sessions = SessionRepository(store, google, ::nowMillis)
+    // The exchange runs only after construction, when api exists.
+    val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
     val bands = BandRepository(store, scope)
-    val api = ApiClient(http, AppConfig.API_URL) { force -> sessions.validToken(force) }
+    val api: ApiClient = ApiClient(http, AppConfig.API_URL) { force -> sessions.validToken(force) }
     val uploads = AttachmentUploads(store, api, bands)
     val sync = SyncEngine(api, bands, scope, uploads = uploads)
 

@@ -23,6 +23,7 @@ import java.security.SecureRandom
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
 import com.jacekgajek.artsplit.api.PushResponse
+import com.jacekgajek.artsplit.api.SessionResponse
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Band
@@ -62,6 +63,7 @@ class Api(
     private val store: BlobStore,
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val sessions: SessionTokens = SessionTokens(store, clock),
 ) {
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -79,6 +81,11 @@ class Api(
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
             request.method == "GET" && segments == listOf("me") -> me(user)
+            // A new session for a Google ID token, or a renewed one for a current session (sliding expiry).
+            request.method == "POST" && segments == listOf("session") -> {
+                val (token, expiresAt) = sessions.issue(user)
+                ok(SessionResponse.serializer(), SessionResponse(token, expiresAt))
+            }
             request.method == "POST" && segments == listOf("bands") -> createBand(user, parse(request, CreateBandRequest.serializer()))
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "state" ->
                 state(user, segments[1], request.header("if-none-match"))
@@ -106,7 +113,9 @@ class Api(
     private fun authenticate(request: HttpRequest): VerifiedUser {
         val token = request.header("authorization")?.removePrefix("Bearer ")?.trim()
             ?: throw ApiError(401, "unauthorized", "Missing bearer token")
-        return verifier.verify(token) ?: throw ApiError(401, "unauthorized", "Invalid or expired token")
+        // Art Split sessions are recognised by their prefix; anything else must be a Google ID token.
+        val user = if (token.startsWith(SessionTokens.PREFIX)) sessions.verify(token) else verifier.verify(token)
+        return user ?: throw ApiError(401, "unauthorized", "Invalid or expired token")
     }
 
     // ---- endpoints ----

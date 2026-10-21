@@ -262,6 +262,7 @@ All endpoints require `Authorization: Bearer <Google ID token>`. The server veri
 
 | Method & path | Purpose |
 |---|---|
+| `POST /session` | with a Google ID token or a current session → `{token, expiresAt}` (Art Split session, 30 days) |
 | `GET /me` | profile + band list |
 | `POST /bands` | create band (caller = owner) |
 | `GET /bands/{id}/state` | state + version (ETag) |
@@ -451,6 +452,7 @@ Workflow:
 | 2026-10-21 | M5.7: the website shows a quiet strip above the tab bar suggesting the Android app. It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac with touch), after "Don't show again" (localStorage), and while `/download/version.json` is missing, so it never links to an unpublished APK. |
 | 2026-10-21 | M5.3: every deploy builds the release APK (R8-shrunk, about 2.6 MB), signed with the keystore secrets. Its version code is the deploy run number; the version name is `artsplit.versionName` in gradle.properties, bumped by hand. The deploy uploads the APK before `version.json`, and the web sync never deletes `download/`. Each deploy also creates a GitHub Release `build-N`. The app checks `version.json` once per launch and offers an update (not in debug builds); dismissing it hides that version only. CI builds the unsigned release too, so R8 problems fail before merge. |
 | 2026-10-21 | M5.2: the client chooses attachment ids, so attaching works offline: `AddAttachment` syncs like any change, and the file waits on the device (base64, per user) until the server has the attachment, then goes to a 15-minute presigned PUT. That URL is signed for the exact size and content type and only creates the object (`If-None-Match: *`), so a file can never be replaced. Any non-viewer member may upload a listed attachment, so an upload still finishes if a refund locks the cost meanwhile. Limits: photos 3 MB after compression, PDFs 10 MB. Removing an attachment or deleting its cost deletes the file. Files open through a presigned GET; on the web the tab opens at click time so popup blockers allow it. A file still waiting for upload cannot be opened yet. |
+| 2026-10-21 | Server sessions: the apps trade the Google ID token for an Art Split session token at sign-in (`POST /session`, HMAC-SHA256, 30 days) and renew it with itself once 10 days old, so Google is asked only when signing in or after a month unused. Renewing Google\'s one-hour token on Android can show the account picker, which made it pop up during syncs. The signing key is created on first use in the data bucket (`server/session-key.json`), so no infrastructure change is needed. The server still accepts Google tokens directly, and the apps fall back to them while `/session` is unavailable. Signing out drops the session on the device; tokens are not revoked server-side. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

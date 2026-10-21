@@ -14,6 +14,7 @@ import com.jacekgajek.artsplit.api.InvitesResponse
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
 import com.jacekgajek.artsplit.api.PushResponse
+import com.jacekgajek.artsplit.api.SessionResponse
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Role
@@ -45,6 +46,10 @@ class ApiClient(
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
+
+    /** A new Art Split session for [bearer] (a Google ID token or the current session); bypasses the token provider. */
+    suspend fun createSession(bearer: String): SessionResponse =
+        parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
 
     suspend fun createBand(request: CreateBandRequest): BandStateResponse =
         call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = ArtSplitJson.encodeToString(CreateBandRequest.serializer(), request))

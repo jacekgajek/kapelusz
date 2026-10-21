@@ -70,6 +70,15 @@ object ApiErrors {
     const val ATTACHMENT_EXISTS = "attachment_exists"
 }
 
+// ---- sessions ----
+
+/**
+ * An Art Split session token (from `POST /session`, called with a Google ID token or a current session token) and
+ * its expiry in epoch millis. Send it as the bearer token instead of the Google one.
+ */
+@Serializable
+data class SessionResponse(val token: String, val expiresAt: Long)
+
 // ---- attachments (M5) ----
 
 /** Asks to upload the file of an attachment that is already on the cost (its `AddAttachment` was pushed first). */
