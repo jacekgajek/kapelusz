@@ -1,8 +1,10 @@
 package com.jacekgajek.artsplit
 
 import com.jacekgajek.artsplit.auth.Actor
+import com.jacekgajek.artsplit.model.Guest
 import com.jacekgajek.artsplit.model.IncomeSource.DOOR
 import com.jacekgajek.artsplit.model.Money
+import com.jacekgajek.artsplit.model.Participant
 import com.jacekgajek.artsplit.model.Refund
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.AddCost
@@ -10,6 +12,7 @@ import com.jacekgajek.artsplit.ops.AddGuest
 import com.jacekgajek.artsplit.ops.AddHolding
 import com.jacekgajek.artsplit.ops.AddParticipant
 import com.jacekgajek.artsplit.ops.Change
+import com.jacekgajek.artsplit.ops.CreateEvent
 import com.jacekgajek.artsplit.ops.DeleteCost
 import com.jacekgajek.artsplit.ops.DeleteEvent
 import com.jacekgajek.artsplit.ops.DeleteMember
@@ -165,5 +168,31 @@ class ReducerTest {
         assertEquals(listOf("d"), retry.accepted)
         assertEquals(1, retry.band.costs.size)
         assertEquals("Newer", retry.band.name)
+    }
+
+    @Test
+    fun guestIdCannotShadowMember() {
+        val op = CreateEvent("x", "x", DATE, guests = listOf(Guest("bob", "Fake")), participants = listOf(Participant("bob")))
+        assertEquals(RejectionCode.INVALID, gig().rejected(op).code)
+    }
+
+    @Test
+    fun movingCostToAnotherEventPreIncludesItThere() {
+        val scenario = gig().event("other-gig", "Bob")
+            .apply(AddCost("c", "bob", pln("40"), DATE))
+            .apply(UpdateCost("c", incurredForEventId = Change("other-gig")))
+        assertEquals(pln("40"), scenario.band.event("other-gig")!!.refundOf("c")!!.amount)
+        assertNull(scenario.band.event("gig")!!.refundOf("c"))
+    }
+
+    @Test
+    fun costChangesStampTheEventsTheyRefund() {
+        val scenario = gig()
+        val created = scenario.band.event("gig")!!.updatedAt
+        scenario.apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
+        val afterAdd = scenario.band.event("gig")!!.updatedAt
+        assertTrue(afterAdd > created)
+        scenario.apply(DeleteCost("c"))
+        assertTrue(scenario.band.event("gig")!!.updatedAt > afterAdd)
     }
 }

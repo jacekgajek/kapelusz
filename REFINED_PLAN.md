@@ -93,6 +93,7 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 ### 2.5 Band fund
 - **Balance** = Σ settled fund transfers from events + Σ manual fund entries.
 - **"Not yet handed over"** = Σ event `fundAmount` − Σ settled fund transfers.
+- The balance **may go negative** (the treasurer covered the difference); the UI shows it in red. Nothing blocks it.
 - **Manual entries:** description + signed amount (e.g. "Mic −400", "Refund Dave's train −322" linked to the cost). Lead+ only.
 - **The whole feature is disabled until an admin picks the treasurer.** Until then the UI shows "Admin must choose who holds the band fund", with a shortcut for admins.
 
@@ -131,6 +132,7 @@ Roles form **one cumulative axis**. Every user in a band is linked to a member a
 | Edit roster, roles, treasurer, invites, unlink users, band history | – | – | – | ✔ | ✔ |
 | Delete band, transfer ownership | – | – | – | – | ✔ |
 
+- The **treasurer** counts as the band fund's party: a treasurer with the Member role may record and settle transfers to or from the band fund, like their own.
 - There is exactly **one owner**: the band's creator. The owner is always an admin, so there is always at least one admin. Ownership transfer goes to an admin, and the former owner stays an admin.
 - An admin cannot demote the owner. The last-admin rule is satisfied automatically.
 - Permissions are enforced **on the server** (shared code) and mirrored in the UI: actions you can't perform are hidden.
@@ -426,6 +428,7 @@ Workflow:
 | 2026-10-20 | M1: Settle / per-member Settle / Settle All are one op, `SettleSuggestions(eventId, partyId?)`, whose transfers are computed against the state it is applied to, so a stale client never records outdated amounts. Transfer ids are `<opId>-<n>`. |
 | 2026-10-20 | M1: when the band fund and the treasurer both take part in an event's suggestions, they are paired first ("keep for band fund"); the rest is greedy largest-surplus to largest-deficit. |
 | 2026-10-20 | M1: a member may record holdings only in events they take part in; leads may record them for any participant. Guests can be promoted to the roster (admin) with all their entries in that event re-pointed. |
+| 2026-10-21 | PR #1 review: the band fund balance may go negative (shown in red, never blocked). A treasurer with the Member role acts for the band fund when recording/settling transfers. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

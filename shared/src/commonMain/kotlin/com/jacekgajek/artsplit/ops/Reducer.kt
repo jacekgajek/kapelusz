@@ -41,7 +41,7 @@ object Reducer {
             is SetTreasurer -> setTreasurer(band, op)
             is TransferOwnership -> transferOwnership(band, op)
 
-            is CreateEvent -> createEvent(band, op)
+            is CreateEvent -> createEvent(band, op, ctx)
             is UpdateEvent -> band.updateEvent(op.eventId) { event ->
                 event.copy(
                     name = op.name?.value?.validName("Event name") ?: event.name,
@@ -52,7 +52,7 @@ object Reducer {
             }
             is SetEventArchived -> band.updateEvent(op.eventId) { it.copy(archived = op.archived) }
             is DeleteEvent -> deleteEvent(band, op)
-            is AddParticipant -> addParticipant(band, op)
+            is AddParticipant -> addParticipant(band, op, ctx)
             is AddGuest -> addGuest(band, op)
             is RenameGuest -> band.updateEvent(op.eventId) { event ->
                 event.guest(op.guestId).orNotFound { "Guest ${op.guestId}" }
@@ -118,8 +118,8 @@ object Reducer {
             }
 
             is AddCost -> addCost(band, op, ctx)
-            is UpdateCost -> updateCost(band, op)
-            is DeleteCost -> deleteCost(band, op)
+            is UpdateCost -> updateCost(band, op, ctx)
+            is DeleteCost -> deleteCost(band, op, ctx)
             is AddAttachment -> band.updateCost(op.costId) { cost ->
                 invalidIf(cost.attachments.size >= MAX_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
                 invalidIf(cost.attachments.any { it.id == op.attachment.id }) { "Attachment ${op.attachment.id} already exists" }
@@ -210,10 +210,11 @@ object Reducer {
 
     // ---- events ----
 
-    private fun createEvent(band: Band, op: CreateEvent): Band {
+    private fun createEvent(band: Band, op: CreateEvent, ctx: OpContext): Band {
         invalidIf(band.event(op.eventId) != null) { "Event ${op.eventId} already exists" }
         val guestIds = op.guests.map { it.id }.toSet()
         invalidIf(guestIds.size != op.guests.size) { "Duplicate guest ids" }
+        invalidIf(guestIds.any { band.member(it) != null }) { "Guest id already used by a member" }
         invalidIf(op.participants.map { it.partyId }.toSet().size != op.participants.size) { "Duplicate participants" }
         op.participants.forEach { participant ->
             validateWeight(participant.weight)
@@ -229,7 +230,7 @@ object Reducer {
             participants = op.participants,
         )
         val created = band.copy(events = band.events + event)
-        return op.participants.fold(created) { acc, participant -> includeOwnCosts(acc, op.eventId, participant.partyId) }
+        return op.participants.fold(created) { acc, participant -> includeOwnCosts(acc, op.eventId, participant.partyId, ctx) }
     }
 
     private fun deleteEvent(band: Band, op: DeleteEvent): Band {
@@ -241,14 +242,14 @@ object Reducer {
         )
     }
 
-    private fun addParticipant(band: Band, op: AddParticipant): Band {
+    private fun addParticipant(band: Band, op: AddParticipant, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
         validateWeight(op.weight)
         val updated = band.updateEvent(op.eventId) { event ->
             invalidIf(event.participant(op.memberId) != null) { "Member already takes part" }
             event.copy(participants = event.participants + Participant(op.memberId, op.weight))
         }
-        return includeOwnCosts(updated, op.eventId, op.memberId)
+        return includeOwnCosts(updated, op.eventId, op.memberId, ctx)
     }
 
     private fun addGuest(band: Band, op: AddGuest): Band = band.updateEvent(op.eventId) { event ->
@@ -372,10 +373,10 @@ object Reducer {
             createdAt = ctx.timestamp,
         )
         val added = band.copy(costs = band.costs + cost)
-        return op.incurredForEventId?.let { includeOwnCosts(added, it, op.memberId) } ?: added
+        return op.incurredForEventId?.let { includeOwnCosts(added, it, op.memberId, ctx) } ?: added
     }
 
-    private fun updateCost(band: Band, op: UpdateCost): Band {
+    private fun updateCost(band: Band, op: UpdateCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
         op.incurredForEventId?.value?.let { band.event(it).orNotFound { "Event $it" } }
         val newAmount = op.amount?.value ?: cost.amount
@@ -398,31 +399,47 @@ object Reducer {
                 val adjusted = newAmount - refundedElsewhere
                 invalidIf(adjusted.isNegative) { "Cost amount is below what was already refunded" }
                 result = result.updateEvent(ownEvent.id) { event ->
-                    event.copy(refunds = event.refunds.map { if (it.costId == cost.id) it.copy(amount = adjusted) else it })
+                    event.copy(
+                        refunds = event.refunds.map { if (it.costId == cost.id) it.copy(amount = adjusted) else it },
+                        updatedAt = ctx.timestamp,
+                    )
                 }
             }
         }
         invalidIf(newAmount < CostLedger.refunded(result, cost.id)) { "Cost amount is below what was already refunded" }
+        // Moving the cost to another event pre-includes it there, as when it is added.
+        val newEventId = op.incurredForEventId?.value
+        if (newEventId != null && newEventId != cost.eventId) result = includeOwnCosts(result, newEventId, cost.memberId, ctx)
         return result
     }
 
-    private fun deleteCost(band: Band, op: DeleteCost): Band {
+    private fun deleteCost(band: Band, op: DeleteCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
         conflictIf(band.fundEntries.any { it.costId == cost.id }) { "Cost was refunded from the band fund" }
         return band.copy(
             costs = band.costs.filterNot { it.id == cost.id },
-            events = band.events.map { event -> event.copy(refunds = event.refunds.filterNot { it.costId == cost.id }) },
+            events = band.events.map { event ->
+                if (event.refundOf(cost.id) == null) {
+                    event
+                } else {
+                    event.copy(refunds = event.refunds.filterNot { it.costId == cost.id }, updatedAt = ctx.timestamp)
+                }
+            },
         )
     }
 
     /** Pre-includes, in full, the member's outstanding costs incurred for this event. */
-    private fun includeOwnCosts(band: Band, eventId: Id, memberId: Id): Band {
+    private fun includeOwnCosts(band: Band, eventId: Id, memberId: Id, ctx: OpContext): Band {
         val event = band.event(eventId) ?: return band
         if (event.participant(memberId) == null) return band
         val newRefunds = band.costs
             .filter { it.memberId == memberId && it.eventId == eventId && event.refundOf(it.id) == null }
             .mapNotNull { cost -> CostLedger.outstanding(band, cost).takeIf { it.isPositive }?.let { Refund(cost.id, it) } }
-        return if (newRefunds.isEmpty()) band else band.updateEvent(eventId) { it.copy(refunds = it.refunds + newRefunds) }
+        return if (newRefunds.isEmpty()) {
+            band
+        } else {
+            band.updateEvent(eventId) { it.copy(refunds = it.refunds + newRefunds, updatedAt = ctx.timestamp) }
+        }
     }
 
     // ---- helpers ----
