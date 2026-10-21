@@ -19,12 +19,14 @@ import org.crac.Core
 import org.crac.Resource
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.URLDecoder
 import java.util.Base64
 
 /** API Gateway HTTP API, payload format 2.0 (only the fields we use). */
 @Serializable
 data class ApiGatewayRequest(
     val rawPath: String,
+    val rawQueryString: String = "",
     val headers: Map<String, String> = emptyMap(),
     val body: String? = null,
     val isBase64Encoded: Boolean = false,
@@ -51,6 +53,10 @@ class Handler : RequestStreamHandler {
             path = event.rawPath,
             headers = event.headers.mapKeys { it.key.lowercase() },
             body = body,
+            query = event.rawQueryString.split('&').filter { '=' in it }.associate {
+                val (key, value) = it.split('=', limit = 2)
+                URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
+            },
         )
         val response = try {
             api.handle(request)

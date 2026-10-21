@@ -4,7 +4,9 @@ import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.S3Exception
@@ -25,6 +27,11 @@ interface BlobStore {
      * [ifNoneMatch] only if the object does not exist yet. Returns the new ETag or throws [PreconditionFailed].
      */
     fun put(key: String, content: String, ifMatch: String? = null, ifNoneMatch: Boolean = false): String
+
+    fun delete(key: String)
+
+    /** Keys under [prefix], in lexicographic order. */
+    fun list(prefix: String): List<String>
 }
 
 class S3BlobStore(private val bucket: String, private val s3: S3Client = defaultClient()) : BlobStore {
@@ -50,6 +57,14 @@ class S3BlobStore(private val bucket: String, private val s3: S3Client = default
         }
     }
 
+    override fun delete(key: String) {
+        s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build())
+    }
+
+    override fun list(prefix: String): List<String> =
+        s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
+            .contents().map { it.key() }.sorted()
+
     companion object {
         fun defaultClient(): S3Client = S3Client.builder()
             .httpClient(UrlConnectionHttpClient.create())
@@ -73,4 +88,10 @@ class InMemoryBlobStore : BlobStore {
         objects[key] = Blob(content, etag)
         return etag
     }
+
+    override fun delete(key: String) {
+        objects.remove(key)
+    }
+
+    override fun list(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }.sorted()
 }
