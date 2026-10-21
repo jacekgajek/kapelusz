@@ -141,7 +141,6 @@ private fun SignInAgainDialog(bar: TopBarState, onDismiss: () -> Unit) {
                         scope.launch {
                             if (bar.onReauthenticate(token)) {
                                 onDismiss()
-                                bar.onSyncNow()
                             } else {
                                 wrongAccount = true
                             }

@@ -74,6 +74,12 @@ class SyncEngine(
         loop = null
     }
 
+    /** The user signed in again: leave [SyncStatus.NEEDS_SIGN_IN] and sync right away. */
+    fun resumeAfterSignIn() {
+        if (_status.value == SyncStatus.NEEDS_SIGN_IN) _status.value = SyncStatus.IDLE
+        requestSync()
+    }
+
     /** Asks for a sync soon, e.g. after a local change. */
     fun requestSync() {
         wakeUp.trySend(Unit)
@@ -84,6 +90,9 @@ class SyncEngine(
      * with one band never blocks the others.
      */
     suspend fun syncNow(): Boolean = runLock.withLock {
+        // Waiting for the user to sign in again: retrying would only repeat silent renewal attempts (and on the web
+        // possibly Google prompts) while hiding the "sign in again" state.
+        if (_status.value == SyncStatus.NEEDS_SIGN_IN) return false
         _status.value = SyncStatus.SYNCING
         var result = SyncStatus.SYNCED
         try {

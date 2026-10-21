@@ -229,4 +229,25 @@ class SyncEngineTest {
         assertEquals(listOf("Kept and renamed"), repository.index.value!!.bands.map { it.name })
         assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey(lost) + "-unsent-") }, "unsent changes are kept")
     }
+
+    @Test
+    fun waitsForTheUserAfterSignInIsNeeded() = runTest {
+        val server = FakeServer()
+        var token: String? = null
+        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { token }, repository, this)
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+
+        assertEquals(false, sync.syncNow())
+        assertEquals(SyncStatus.NEEDS_SIGN_IN, sync.status.value)
+        token = "alice:1"
+        assertEquals(false, sync.syncNow(), "no retries until the user signs in again")
+        assertEquals(SyncStatus.NEEDS_SIGN_IN, sync.status.value)
+        assertTrue(server.tokensSeen.isEmpty())
+
+        sync.resumeAfterSignIn()
+        assertTrue(sync.syncNow())
+        assertEquals(SyncStatus.SYNCED, sync.status.value)
+    }
 }

@@ -39,7 +39,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         val session = sessions.signedIn(idToken)
         bands.load(session.userId)
         sync.start()
-        sync.requestSync()
+        sync.resumeAfterSignIn()
     }
 
     suspend fun signOut() {

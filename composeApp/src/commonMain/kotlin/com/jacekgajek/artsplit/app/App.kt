@@ -154,7 +154,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onSelectBand = { openBand(it, true) },
                 onNewBand = { navController.navigate(NewBandRoute) },
                 onSyncNow = { graph.sync.requestSync() },
-                onReauthenticate = { token -> graph.sessions.reauthenticated(token) },
+                onReauthenticate = { token -> graph.sessions.reauthenticated(token).also { ok -> if (ok) graph.sync.resumeAfterSignIn() } },
                 accountEmail = session?.email,
             ),
         ) { Navigation(graph, bandState, navController, defaultName) }
