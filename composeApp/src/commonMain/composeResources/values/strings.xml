@@ -321,10 +321,14 @@
     <string name="fund_treasurer">Band fund held by</string>
     <string name="fund_treasurer_none">Nobody yet</string>
     <string name="fund_treasurer_hint">This person keeps the band fund's money. Money for the fund from events is handed over to them.</string>
-    <string name="fund_amount_hint">Leave empty for nothing. A negative amount takes money out of the fund to add to the payouts.</string>
     <string name="filter_pending">Pending</string>
     <string name="filter_refunded">Refunded</string>
     <string name="app_banner_text">Art Split is also an Android app: faster, and it works offline.</string>
     <string name="app_banner_download">Get the app</string>
     <string name="app_banner_dismiss">Don’t show again</string>
+    <string name="total_from_fund">From band fund</string>
+    <string name="fund_direction_to">To the fund</string>
+    <string name="fund_direction_from">From the fund</string>
+    <string name="fund_amount_to_hint">Taken off the income before it is shared. Leave empty for nothing.</string>
+    <string name="fund_amount_from_hint">The band fund adds this to the money shared, e.g. to cover a loss.</string>
 </resources>
