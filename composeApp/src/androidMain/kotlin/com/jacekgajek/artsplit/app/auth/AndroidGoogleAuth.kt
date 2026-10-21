@@ -1,6 +1,8 @@
 package com.jacekgajek.artsplit.app.auth
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -66,7 +68,8 @@ object AndroidGoogleAuth : GoogleAuth {
 
 @Composable
 actual fun GoogleSignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier) {
-    val activity = LocalContext.current as Activity
+    // Inside a dialog the context is a ContextThemeWrapper around the activity, not the activity itself.
+    val activity = LocalContext.current.findActivity()
     val scope = rememberCoroutineScope()
     Button(
         onClick = {
@@ -80,4 +83,10 @@ actual fun GoogleSignInButton(onIdToken: (String) -> Unit, onError: (String) -> 
         },
         modifier = modifier.fillMaxWidth(),
     ) { Text(stringResource(Res.string.sign_in_google)) }
+}
+
+private tailrec fun Context.findActivity(): Activity = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> error("No activity for $this")
 }
