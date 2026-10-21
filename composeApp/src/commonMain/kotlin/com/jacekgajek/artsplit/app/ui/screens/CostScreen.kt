@@ -83,13 +83,15 @@ import com.jacekgajek.artsplit.model.Money
 import com.jacekgajek.artsplit.ops.AddCost
 import com.jacekgajek.artsplit.ops.Change
 import com.jacekgajek.artsplit.ops.DeleteCost
+import com.jacekgajek.artsplit.ops.RemoveAttachment
 import com.jacekgajek.artsplit.ops.UpdateCost
+import com.jacekgajek.artsplit.app.platform.PreparedFile
 import org.jetbrains.compose.resources.stringResource
 
 /** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack: () -> Unit) {
+fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack: () -> Unit, onAddedForOther: () -> Unit = {}) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
@@ -103,6 +105,7 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
     var category by remember { mutableStateOf(existing?.category) }
     var description by remember { mutableStateOf(existing?.description.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (existing == null) focus.requestFocus() }
 
@@ -114,7 +117,10 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
     val canSave = editable && parsed != null && paidBy != null
     fun save() {
         val ok = if (existing == null) {
-            actions.run(AddCost(newId(), paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
+            val id = newId()
+            actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
+                .also { if (it) graph.attachAfterSave(id, drafts) }
+                .also { if (it && paidBy != state.me?.id) onAddedForOther() }
         } else {
             actions.run(
                 UpdateCost(
@@ -182,6 +188,15 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
                     { if (editable) description = it },
                     label = { Text(stringResource(Res.string.description_optional)) },
                     modifier = Modifier.fillMaxWidth(),
+                )
+                AttachmentsSection(
+                    graph,
+                    costId = existing?.id,
+                    attachments = existing?.attachments.orEmpty(),
+                    drafts = drafts,
+                    onDrafts = { drafts = it },
+                    editable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
+                    actions = actions,
                 )
             }
         }

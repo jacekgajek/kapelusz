@@ -1,6 +1,26 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.jacekgajek.artsplit.app.generated.amount
+import com.jacekgajek.artsplit.app.generated.cancel
+import com.jacekgajek.artsplit.app.generated.band_fund
+import com.jacekgajek.artsplit.app.generated.fund_amount_from_hint
+import com.jacekgajek.artsplit.app.generated.fund_amount_to_hint
+import com.jacekgajek.artsplit.app.generated.fund_direction_from
+import com.jacekgajek.artsplit.app.generated.fund_direction_to
+import com.jacekgajek.artsplit.app.generated.total_from_fund
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import kotlin.math.abs
+import com.jacekgajek.artsplit.app.generated.save
+import com.jacekgajek.artsplit.app.ui.components.EditButton
+import com.jacekgajek.artsplit.app.ui.components.MoneyField
+import com.jacekgajek.artsplit.app.ui.components.parseMoney
+import com.jacekgajek.artsplit.app.ui.model.formatMoneyInput
+import com.jacekgajek.artsplit.ops.SetFundAmount
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -119,6 +139,8 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
 private fun Header(context: EventContext) {
     val event = context.event
     val s = context.settlement
+    var editingFund by remember { mutableStateOf(false) }
+    if (editingFund) FundAmountDialog(context, onDismiss = { editingFund = false })
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -132,7 +154,16 @@ private fun Header(context: EventContext) {
         Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
-                if (!s.fundAmount.isZero) TotalRow(stringResource(Res.string.total_fund), -s.fundAmount, context.currency)
+                val canSetFund = context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
+                if (!s.fundAmount.isZero || canSetFund) {
+                    // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
+                    TotalRow(
+                        stringResource(if (s.fundAmount.isNegative) Res.string.total_from_fund else Res.string.total_fund),
+                        -s.fundAmount,
+                        context.currency,
+                        onEdit = { editingFund = true }.takeIf { canSetFund },
+                    )
+                }
                 if (!s.refundsTotal.isZero) TotalRow(stringResource(Res.string.total_refunds), -s.refundsTotal, context.currency)
                 TotalRow(stringResource(Res.string.total_net), s.net, context.currency, bold = true)
             }
@@ -141,11 +172,49 @@ private fun Header(context: EventContext) {
 }
 
 @Composable
-private fun TotalRow(label: String, amount: Money, currency: String, bold: Boolean = false) {
-    Row {
+private fun TotalRow(label: String, amount: Money, currency: String, bold: Boolean = false, onEdit: (() -> Unit)? = null) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = if (bold) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
         MoneyText(amount, currency, bold = bold)
+        if (onEdit != null) EditButton(onEdit)
     }
+}
+
+/**
+ * How much of this event goes to the band fund, or comes from it to top up the payouts. The direction is a choice
+ * rather than a minus sign: phone keyboards for amounts often have no minus key.
+ */
+@Composable
+private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
+    val lang = language
+    val current = context.event.fundAmount
+    var fromFund by remember { mutableStateOf(current.isNegative) }
+    var amount by remember { mutableStateOf(if (current.isZero) "" else formatMoneyInput(Money(abs(current.minor)), lang)) }
+    val parsed = if (amount.isBlank()) Money.ZERO else parseMoney(amount)?.takeIf { !it.isNegative }
+    val signed = parsed?.let { if (fromFund) -it else it }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.band_fund)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(false to Res.string.fund_direction_to, true to Res.string.fund_direction_from).forEachIndexed { index, (value, label) ->
+                        SegmentedButton(selected = fromFund == value, onClick = { fromFund = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
+                            Text(stringResource(label))
+                        }
+                    }
+                }
+                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
+                Text(stringResource(if (fromFund) Res.string.fund_amount_from_hint else Res.string.fund_amount_to_hint), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = signed != null, onClick = {
+                if (signed == current || context.actions.run(SetFundAmount(context.event.id, signed!!))) onDismiss()
+            }) { Text(stringResource(Res.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
 }
 
 @Composable

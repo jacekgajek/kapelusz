@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.sync
 
+import com.jacekgajek.artsplit.api.AttachmentUploadRequest
+import com.jacekgajek.artsplit.api.AttachmentUploadResponse
+import com.jacekgajek.artsplit.api.AttachmentUrlResponse
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.CreateInviteRequest
@@ -11,6 +14,7 @@ import com.jacekgajek.artsplit.api.InvitesResponse
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
 import com.jacekgajek.artsplit.api.PushResponse
+import com.jacekgajek.artsplit.api.SessionResponse
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Role
@@ -42,6 +46,10 @@ class ApiClient(
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
+
+    /** A new Art Split session for [bearer] (a Google ID token or the current session); bypasses the token provider. */
+    suspend fun createSession(bearer: String): SessionResponse =
+        parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
 
     suspend fun createBand(request: CreateBandRequest): BandStateResponse =
         call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = ArtSplitJson.encodeToString(CreateBandRequest.serializer(), request))
@@ -75,6 +83,16 @@ class ApiClient(
     /** One page of a month's history, newest first; [before] is the previous page's `next`. */
     suspend fun history(bandId: Id, month: String, before: String? = null): HistoryResponse =
         call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), HistoryResponse.serializer())
+
+    /** A URL to upload the file of an attachment the server already has. */
+    suspend fun requestUpload(bandId: Id, costId: Id, attachmentId: Id): AttachmentUploadResponse = call(
+        HttpMethod.Post, "/bands/$bandId/attachments", AttachmentUploadResponse.serializer(),
+        body = ArtSplitJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest(costId, attachmentId)),
+    )
+
+    /** A short-lived URL to open an attachment. */
+    suspend fun attachmentUrl(bandId: Id, attachmentId: Id): String =
+        call(HttpMethod.Get, "/bands/$bandId/attachments/$attachmentId", AttachmentUrlResponse.serializer()).url
 
     private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T =
         parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)

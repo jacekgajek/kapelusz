@@ -56,7 +56,42 @@ object ApiErrors {
 
     /** The caller is already a member of the invited band. */
     const val ALREADY_MEMBER = "already_member"
+
+    /**
+     * No such attachment on the cost (it was removed, or its operation refused). Distinct from a generic 404 so a
+     * client only ever discards a waiting file on this answer, never on e.g. an older server without the route.
+     */
+    const val ATTACHMENT_NOT_FOUND = "attachment_not_found"
+
+    /** The attachment is listed on its cost, but its file has not been uploaded yet. */
+    const val ATTACHMENT_NOT_UPLOADED = "attachment_not_uploaded"
+
+    /** The attachment's file is already uploaded (files are never replaced). */
+    const val ATTACHMENT_EXISTS = "attachment_exists"
 }
+
+// ---- sessions ----
+
+/**
+ * An Art Split session token (from `POST /session`, called with a Google ID token or a current session token) and
+ * its expiry in epoch millis. Send it as the bearer token instead of the Google one.
+ */
+@Serializable
+data class SessionResponse(val token: String, val expiresAt: Long)
+
+// ---- attachments (M5) ----
+
+/** Asks to upload the file of an attachment that is already on the cost (its `AddAttachment` was pushed first). */
+@Serializable
+data class AttachmentUploadRequest(val costId: Id, val attachmentId: Id)
+
+/** A short-lived URL to `PUT` the file to, with the headers the request must carry exactly. */
+@Serializable
+data class AttachmentUploadResponse(val putUrl: String, val headers: Map<String, String>)
+
+/** A short-lived URL to download (open) an attachment. */
+@Serializable
+data class AttachmentUrlResponse(val url: String)
 
 // ---- invites (M4) ----
 

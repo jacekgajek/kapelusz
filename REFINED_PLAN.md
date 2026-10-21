@@ -262,6 +262,7 @@ All endpoints require `Authorization: Bearer <Google ID token>`. The server veri
 
 | Method & path | Purpose |
 |---|---|
+| `POST /session` | with a Google ID token or a current session → `{token, expiresAt}` (Art Split session, 30 days) |
 | `GET /me` | profile + band list |
 | `POST /bands` | create band (caller = owner) |
 | `GET /bands/{id}/state` | state + version (ETag) |
@@ -269,7 +270,7 @@ All endpoints require `Authorization: Bearer <Google ID token>`. The server veri
 | `GET /bands/{id}/log?month=yyyy-MM` | history |
 | `POST /bands/{id}/invites` / `DELETE /bands/{id}/invites/{code}` | create / revoke invite |
 | `GET /invites/{code}` / `POST /invites/{code}/accept` | preview / accept invite |
-| `POST /bands/{id}/attachments` | returns `{attachmentId, putUrl}` |
+| `POST /bands/{id}/attachments` | `{costId, attachmentId}` → `{putUrl, headers}` for an attachment already on the cost |
 | `GET /bands/{id}/attachments/{attachmentId}` | returns a short-lived GET URL |
 
 Band management ops (roles, treasurer, unlink, ownership) go through the same `/ops` endpoint.
@@ -412,11 +413,13 @@ Workflow:
 - [x] M4.4 History views (event + band)
 
 ### M5 — Extras
-- [ ] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
-- [ ] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
-- [ ] M5.3 Signed release APK to GitHub Releases + in-app update check
-- [ ] M5.4 Polish: empty states, error states, accessibility pass
-- [ ] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
+- [x] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
+- [x] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
+- [x] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
+- [x] M5.4 Polish: empty states, error states, accessibility pass
+- [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
+- [x] M5.6 "Copy link" button next to Share on an invite
+- [x] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
 
 ---
 
@@ -444,6 +447,12 @@ Workflow:
 | 2026-10-21 | Build time: CI builds the development web bundle (no wasm-opt). Production uses a single `wasm-opt -O2` pass instead of Kotlin's default 5×`-O3`/`--gufa`/`-Oz`: 10 s instead of 43 s locally, +15% compressed app wasm (~180 KB brotli; the 8 MB Skia wasm is unaffected). |
 | 2026-10-21 | M4: invite codes are stored server-side (`invites/{code}.json`, `bands/{id}/invites.json`), never in the band state that every member can read. Wrong codes count per user (10/hour) for both preview and accept. The web app sets `<base href="/">` so deep links like `/join/CODE` load the app. `assetlinks.json` is generated at deploy from the release keystore plus the optional `ANDROID_DEBUG_CERT_SHA256` variable. |
 | 2026-10-21 | M4 review: band-wide history is visible to every member (the audit trail of shared money; all underlying data is visible anyway). Invites are cancelled whenever their member's account link changes and only stand while their issuer is an active admin. Each user has 10 invite-code lookups per hour (a join uses two). History is served in pages of 100 pushes, newest first. |
+| 2026-10-21 | The APK is published on the website (`/download/art-split.apk`, `/download/version.json`) because the repository is private: bandmates could not download from its GitHub Releases. The release is still attached to a GitHub Release as a record. |
+| 2026-10-21 | M5.1: the band fund is a fourth tab, shown only once someone holds the fund (balance, money from events and whether it has been handed over, other entries). The holder is chosen in Settings and can be changed but not cleared. A cost refund from the fund is linked to its cost only when the entry is created. |
+| 2026-10-21 | M5.7: the website shows a quiet strip above the tab bar suggesting the Android app. It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac with touch), after "Don't show again" (localStorage), and while `/download/version.json` is missing, so it never links to an unpublished APK. |
+| 2026-10-21 | M5.3: every deploy builds the release APK (R8-shrunk, about 2.6 MB), signed with the keystore secrets. Its version code is the deploy run number; the version name is `artsplit.versionName` in gradle.properties, bumped by hand. The deploy uploads the APK before `version.json`, and the web sync never deletes `download/`. Each deploy also creates a GitHub Release `build-N`. The app checks `version.json` once per launch and offers an update (not in debug builds); dismissing it hides that version only. CI builds the unsigned release too, so R8 problems fail before merge. |
+| 2026-10-21 | M5.2: the client chooses attachment ids, so attaching works offline: `AddAttachment` syncs like any change, and the file waits on the device (base64, per user) until the server has the attachment, then goes to a 15-minute presigned PUT. That URL is signed for the exact size and content type and only creates the object (`If-None-Match: *`), so a file can never be replaced. Any non-viewer member may upload a listed attachment, so an upload still finishes if a refund locks the cost meanwhile. Limits: photos 3 MB after compression, PDFs 10 MB. Removing an attachment or deleting its cost deletes the file. Files open through a presigned GET; on the web the tab opens at click time so popup blockers allow it. A file still waiting for upload cannot be opened yet. |
+| 2026-10-21 | Server sessions: the apps trade the Google ID token for an Art Split session token at sign-in (`POST /session`, HMAC-SHA256, 30 days) and renew it with itself once 10 days old, so Google is asked only when signing in or after a month unused. Renewing Google\'s one-hour token on Android can show the account picker, which made it pop up during syncs. The signing key is created on first use in the data bucket (`server/session-key.json`), so no infrastructure change is needed. The server still accepts Google tokens directly, and the apps fall back to them while `/session` is unavailable. Signing out drops the session on the device; tokens are not revoked server-side. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

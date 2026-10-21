@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.app.sync
 
+import com.jacekgajek.artsplit.api.AttachmentUploadRequest
+import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.BandSummary
 import com.jacekgajek.artsplit.api.CreateBandRequest
@@ -19,6 +21,14 @@ import com.jacekgajek.artsplit.ops.RenameBand
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.AddMember
 import com.jacekgajek.artsplit.ops.ApplyResult
+import com.jacekgajek.artsplit.app.data.AttachmentUploads
+import com.jacekgajek.artsplit.app.data.PendingUpload
+import com.jacekgajek.artsplit.model.Attachment
+import com.jacekgajek.artsplit.model.AttachmentKind
+import com.jacekgajek.artsplit.model.Money
+import com.jacekgajek.artsplit.ops.AddAttachment
+import com.jacekgajek.artsplit.ops.AddCost
+import kotlinx.datetime.LocalDate
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import io.ktor.client.engine.mock.MockEngine
@@ -27,6 +37,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -41,6 +52,9 @@ private class FakeServer {
     val bands = mutableMapOf<String, Band>()
     var version = 0
     var unauthorizedOnce = false
+
+    /** False simulates a server from before attachments: the route does not exist. */
+    var attachmentsRoute = true
 
     /** Simulates no network; a Throwable that is not an Exception, like the browser's JsException. */
     var offline = false
@@ -84,6 +98,13 @@ private class FakeServer {
                 val result = Engine.applyBatch(bands.getValue(bandId), Actor.User(user), push.ops)
                 bands[bandId] = result.band
                 ok(PushResponse.serializer(), PushResponse("v${++version}", result.band, result.accepted, result.rejected, result.duplicates))
+            }
+            path.endsWith("/attachments") && !attachmentsRoute -> respond("""{"error":"not_found","message":"No route"}""", HttpStatusCode.NotFound, json)
+            path.endsWith("/attachments") -> {
+                val upload = ArtSplitJson.decodeFromString(AttachmentUploadRequest.serializer(), body!!)
+                val listed = bands.getValue(path.split('/')[2]).cost(upload.costId)?.attachments?.any { it.id == upload.attachmentId } == true
+                if (!listed) respond("""{"error":"attachment_not_found","message":"No such attachment"}""", HttpStatusCode.NotFound, json)
+                else ok(AttachmentUploadResponse.serializer(), AttachmentUploadResponse("https://s3.test/${upload.attachmentId}", mapOf("content-type" to "image/jpeg")))
             }
             else -> respond("", HttpStatusCode.NotFound)
         }
@@ -141,7 +162,7 @@ class SyncEngineTest {
         server.bands[bandId] = server.bands.getValue(bandId).let { band ->
             band.copy(members = band.members.map { if (it.userId == "alice") it.copy(role = Role.VIEWER) else it })
         }
-        val refused = backgroundScope.async { sync.rejections.first() }
+        val refused = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { sync.rejections.first() }
         sync.syncNow()
         assertEquals(RejectionReason.ROLE_REQUIRED, refused.await().reason)
         assertEquals(emptyList(), repository.local(bandId)!!.pending)
@@ -222,7 +243,7 @@ class SyncEngineTest {
         repository.dispatch(RenameBand("Kept and renamed"))
         server.bands.remove(lost)
 
-        val message = backgroundScope.async { sync.lostAccess.first() }
+        val message = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { sync.lostAccess.first() }
         assertTrue(sync.syncNow())
         assertEquals("Lost Band", message.await())
         assertEquals("Kept and renamed", server.bands.getValue(kept).name)
@@ -261,5 +282,80 @@ class SyncEngineTest {
         sync.syncNow()
         assertEquals(SyncStatus.ERROR, sync.status.value)
         assertEquals("Synced", assertIs<BandState.Ready>(repository.state.value).band.name)
+    }
+
+    @Test
+    fun uploadsAnAttachmentFileOnceTheServerHasTheAttachment() = runTest {
+        val server = FakeServer()
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, { "id${nextId++}" })
+        val api = ApiClient(server.client, "https://api.test") { "alice:0" }
+        val puts = mutableListOf<Pair<String, String>>()
+        val uploads = AttachmentUploads(store, api, repository) { url, _, base64 -> puts += url to base64; 200 }
+        val sync = SyncEngine(api, repository, this, uploads = uploads)
+        repository.load("alice")
+        uploads.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val bandId = repository.currentBandId!!
+        val me = (repository.state.value as BandState.Ready).me!!.id
+        assertEquals(null, repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1))))
+        assertEquals(null, repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4))))
+        uploads.enqueue(PendingUpload(bandId, "c1", "a1"), "AAAA")
+        // Also queued: a file whose attachment is not on the cost (refused or removed meanwhile): dropped, not uploaded.
+        uploads.enqueue(PendingUpload(bandId, "c1", "gone"), "BBBB")
+
+        assertTrue(sync.syncNow())
+        assertEquals(listOf("https://s3.test/a1" to "AAAA"), puts)
+        assertTrue(uploads.pending.value.isEmpty())
+        assertEquals(null, store.read(AttachmentUploads.fileKey("alice", "a1")))
+        assertEquals(null, store.read(AttachmentUploads.fileKey("alice", "gone")))
+    }
+
+    @Test
+    fun keepsTheFileWhileTheUploadFails() = runTest {
+        val server = FakeServer()
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, { "id${nextId++}" })
+        val api = ApiClient(server.client, "https://api.test") { "alice:0" }
+        var status = 500
+        val uploads = AttachmentUploads(store, api, repository) { _, _, _ -> status }
+        val sync = SyncEngine(api, repository, this, uploads = uploads)
+        repository.load("alice")
+        uploads.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val me = (repository.state.value as BandState.Ready).me!!.id
+        repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
+        repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.PDF, "invoice.pdf", 4)))
+        uploads.enqueue(PendingUpload(repository.currentBandId!!, "c1", "a1"), "AAAA")
+
+        sync.syncNow()
+        assertEquals(listOf("a1"), uploads.pending.value.map { it.attachmentId })
+        // A later sync retries; the band itself has nothing left to push, but its upload still brings it in.
+        status = 200
+        sync.syncNow()
+        assertTrue(uploads.pending.value.isEmpty())
+    }
+
+    @Test
+    fun keepsTheFileWhenTheServerDoesNotKnowTheRoute() = runTest {
+        // An older server (no attachment endpoints) answers with a generic 404: the only copy must survive.
+        val server = FakeServer()
+        server.attachmentsRoute = false
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, { "id${nextId++}" })
+        val api = ApiClient(server.client, "https://api.test") { "alice:0" }
+        val uploads = AttachmentUploads(store, api, repository) { _, _, _ -> 200 }
+        val sync = SyncEngine(api, repository, this, uploads = uploads)
+        repository.load("alice")
+        uploads.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val me = (repository.state.value as BandState.Ready).me!!.id
+        repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
+        repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4)))
+        uploads.enqueue(PendingUpload(repository.currentBandId!!, "c1", "a1"), "AAAA")
+
+        sync.syncNow()
+        assertEquals(listOf("a1"), uploads.pending.value.map { it.attachmentId })
+        assertEquals("AAAA", store.read(AttachmentUploads.fileKey("alice", "a1")))
     }
 }

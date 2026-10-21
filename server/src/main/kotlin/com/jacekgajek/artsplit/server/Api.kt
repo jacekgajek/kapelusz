@@ -1,6 +1,10 @@
 package com.jacekgajek.artsplit.server
 
 import com.jacekgajek.artsplit.api.ApiErrors
+import com.jacekgajek.artsplit.api.AttachmentUploadRequest
+import com.jacekgajek.artsplit.api.AttachmentUploadResponse
+import com.jacekgajek.artsplit.api.AttachmentUrlResponse
+import com.jacekgajek.artsplit.model.Attachment
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.BandSummary
 import com.jacekgajek.artsplit.api.CreateBandRequest
@@ -19,6 +23,7 @@ import java.security.SecureRandom
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
 import com.jacekgajek.artsplit.api.PushResponse
+import com.jacekgajek.artsplit.api.SessionResponse
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Band
@@ -58,6 +63,7 @@ class Api(
     private val store: BlobStore,
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val sessions: SessionTokens = SessionTokens(store, clock),
 ) {
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -75,6 +81,11 @@ class Api(
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
             request.method == "GET" && segments == listOf("me") -> me(user)
+            // A new session for a Google ID token, or a renewed one for a current session (sliding expiry).
+            request.method == "POST" && segments == listOf("session") -> {
+                val (token, expiresAt) = sessions.issue(user)
+                ok(SessionResponse.serializer(), SessionResponse(token, expiresAt))
+            }
             request.method == "POST" && segments == listOf("bands") -> createBand(user, parse(request, CreateBandRequest.serializer()))
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "state" ->
                 state(user, segments[1], request.header("if-none-match"))
@@ -88,6 +99,10 @@ class Api(
                 createInvite(user, segments[1], parse(request, CreateInviteRequest.serializer()))
             request.method == "DELETE" && segments.size == 4 && segments[0] == "bands" && segments[2] == "invites" ->
                 revokeInvite(user, segments[1], segments[3])
+            request.method == "POST" && segments.size == 3 && segments[0] == "bands" && segments[2] == "attachments" ->
+                uploadAttachment(user, segments[1], parse(request, AttachmentUploadRequest.serializer()))
+            request.method == "GET" && segments.size == 4 && segments[0] == "bands" && segments[2] == "attachments" ->
+                downloadAttachment(user, segments[1], segments[3])
             request.method == "GET" && segments.size == 2 && segments[0] == "invites" -> previewInvite(user, segments[1])
             request.method == "POST" && segments.size == 3 && segments[0] == "invites" && segments[2] == "accept" ->
                 acceptInvite(user, segments[1])
@@ -98,7 +113,9 @@ class Api(
     private fun authenticate(request: HttpRequest): VerifiedUser {
         val token = request.header("authorization")?.removePrefix("Bearer ")?.trim()
             ?: throw ApiError(401, "unauthorized", "Missing bearer token")
-        return verifier.verify(token) ?: throw ApiError(401, "unauthorized", "Invalid or expired token")
+        // Art Split sessions are recognised by their prefix; anything else must be a Google ID token.
+        val user = if (token.startsWith(SessionTokens.PREFIX)) sessions.verify(token) else verifier.verify(token)
+        return user ?: throw ApiError(401, "unauthorized", "Invalid or expired token")
     }
 
     // ---- endpoints ----
@@ -163,6 +180,9 @@ class Api(
                 envelopes.filter { it.opId in result.accepted }.map { it.op }
                     .mapNotNull { (it as? UnlinkUser)?.memberId }
                     .forEach { memberId -> runCatching { revokeInvitesFor(bandId, memberId) } }
+                // Files of attachments that are gone (removed, or their cost deleted); versioning keeps them for 30 days.
+                runCatching { deleteRemovedAttachments(bandId, band, result.band) }
+                    .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
                 // The change is already saved; a failed log write must not make the client retry it.
                 runCatching { appendLog(user, band, bandId, envelopes.filter { it.opId in result.accepted }) }
                     .onFailure { System.err.println("Could not append history for band $bandId: $it") }
@@ -189,6 +209,40 @@ class Api(
         val entries = page.mapNotNull { key -> store.get(key)?.let { decode(HistoryEntry.serializer(), it.content) } }
         val next = if (keys.size > page.size) page.last().removePrefix(prefix) else null
         return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
+    }
+
+    // ---- attachments ----
+
+    /**
+     * A URL to upload the file of an attachment already listed on its cost. Any member who can add costs may upload
+     * (the attachment op itself was permission-checked); the URL can only create the file, never replace it, and is
+     * signed for exactly the declared size.
+     */
+    private fun uploadAttachment(user: VerifiedUser, bandId: String, request: AttachmentUploadRequest): HttpResponse {
+        val (band, _) = loadBandForMember(user, bandId)
+        if (!band.memberOfUser(user.userId)!!.role.atLeast(Role.MEMBER)) throw ApiError(403, "forbidden", "Viewers cannot upload")
+        val attachment = band.cost(request.costId)?.attachments?.firstOrNull { it.id == request.attachmentId }
+            ?: throw ApiError(404, ApiErrors.ATTACHMENT_NOT_FOUND, "No such attachment")
+        val key = attachmentKey(bandId, attachment)
+        if (store.exists(key)) throw ApiError(409, ApiErrors.ATTACHMENT_EXISTS, "Already uploaded")
+        val presigned = store.presignPut(key, attachment.kind.contentType, attachment.sizeBytes ?: throw ApiError(400, "bad_request", "No size"))
+        return ok(AttachmentUploadResponse.serializer(), AttachmentUploadResponse(presigned.url, presigned.headers))
+    }
+
+    /** A URL to open an attachment; anyone who sees the cost (every member) may. */
+    private fun downloadAttachment(user: VerifiedUser, bandId: String, attachmentId: String): HttpResponse {
+        val (band, _) = loadBandForMember(user, bandId)
+        val attachment = band.costs.firstNotNullOfOrNull { cost -> cost.attachments.firstOrNull { it.id == attachmentId } }
+            ?: throw ApiError(404, ApiErrors.ATTACHMENT_NOT_FOUND, "No such attachment")
+        val key = attachmentKey(bandId, attachment)
+        if (!store.exists(key)) throw ApiError(404, ApiErrors.ATTACHMENT_NOT_UPLOADED, "Not uploaded yet")
+        val fileName = attachment.fileName ?: "${attachment.id}.${attachment.kind.extension}"
+        return ok(AttachmentUrlResponse.serializer(), AttachmentUrlResponse(store.presignGet(key, attachment.kind.contentType, fileName)))
+    }
+
+    private fun deleteRemovedAttachments(bandId: String, before: Band, after: Band) {
+        val kept = after.costs.flatMap { it.attachments }.map { it.id }.toSet()
+        before.costs.flatMap { it.attachments }.filter { it.id !in kept }.forEach { store.delete(attachmentKey(bandId, it)) }
     }
 
     // ---- invites ----
@@ -424,6 +478,8 @@ class Api(
         fun attemptsKey(userId: String) = "users/${safe(userId)}-join-attempts.json"
         fun inviteKey(code: String) = "invites/$code.json"
         fun bandInvitesKey(bandId: String) = "bands/${safe(bandId)}/invites.json"
+        fun attachmentKey(bandId: String, attachment: Attachment) =
+            "bands/${safe(bandId)}/attachments/${safe(attachment.id)}.${attachment.kind.extension}"
 
         /** Ids end up in storage keys: allow only id-like characters. */
         private fun safe(id: String): String {

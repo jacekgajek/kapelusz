@@ -3,6 +3,8 @@ package com.jacekgajek.artsplit.app.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,6 +59,7 @@ import com.jacekgajek.artsplit.app.generated.change_own_role_confirm
 import com.jacekgajek.artsplit.app.generated.change_own_role_text
 import com.jacekgajek.artsplit.app.generated.change_own_role_title
 import com.jacekgajek.artsplit.app.generated.close
+import com.jacekgajek.artsplit.app.generated.copy_link
 import com.jacekgajek.artsplit.app.generated.create_invite
 import com.jacekgajek.artsplit.app.generated.invite_active_until
 import com.jacekgajek.artsplit.app.generated.invite_copied
@@ -64,6 +67,7 @@ import com.jacekgajek.artsplit.app.generated.invite_failed
 import com.jacekgajek.artsplit.app.generated.invite_hint
 import com.jacekgajek.artsplit.app.generated.invite_role
 import com.jacekgajek.artsplit.app.generated.invites_unavailable
+import com.jacekgajek.artsplit.app.generated.link_copied
 import com.jacekgajek.artsplit.app.generated.make_owner
 import com.jacekgajek.artsplit.app.generated.make_owner_confirm
 import com.jacekgajek.artsplit.app.generated.member_name
@@ -80,6 +84,7 @@ import com.jacekgajek.artsplit.app.generated.unarchive
 import com.jacekgajek.artsplit.app.generated.unlink
 import com.jacekgajek.artsplit.app.generated.unlink_confirm
 import com.jacekgajek.artsplit.app.platform.ShareResult
+import com.jacekgajek.artsplit.app.platform.rememberCopy
 import com.jacekgajek.artsplit.app.platform.rememberShare
 import com.jacekgajek.artsplit.app.ui.components.Actions
 import com.jacekgajek.artsplit.app.ui.components.Avatar
@@ -210,6 +215,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
 private fun expiryText(invite: InviteInfo): String =
     formatDate(Instant.fromEpochMilliseconds(invite.expiresAt).toLocalDateTime(TimeZone.currentSystemDefault()).date, language)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MemberDialog(
     graph: AppGraph,
@@ -226,6 +232,7 @@ private fun MemberDialog(
 ) {
     val scope = rememberCoroutineScope()
     val share = rememberShare()
+    val copy = rememberCopy()
     var name by remember(member.id) { mutableStateOf(member.name) }
     var inviteRole by remember(member.id) { mutableStateOf(if (member.role == Role.OWNER) Role.MEMBER else member.role) }
     var shownInvite by remember(member.id) { mutableStateOf(invite) }
@@ -270,12 +277,18 @@ private fun MemberDialog(
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(current.code, fontFamily = FontFamily.Monospace, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)
                                 Text("${current.role.label()} · ${stringResource(Res.string.invite_active_until, current.code, expiryText(current))}", style = MaterialTheme.typography.bodySmall)
-                                val text = stringResource(Res.string.share_invite_text, band.name, current.code, "${AppConfig.WEB_URL}/join/${current.code}")
+                                val link = "${AppConfig.WEB_URL}/join/${current.code}"
+                                val text = stringResource(Res.string.share_invite_text, band.name, current.code, link)
                                 val copied = stringResource(Res.string.invite_copied)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val linkCopied = stringResource(Res.string.link_copied)
+                                Text(link, style = MaterialTheme.typography.bodySmall)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     FilledTonalButton(onClick = {
                                         scope.launch { if (share(text) == ShareResult.COPIED) message = copied }
                                     }) { Text(stringResource(Res.string.share_invite)) }
+                                    OutlinedButton(onClick = {
+                                        scope.launch { message = if (copy(link)) linkCopied else getString(Res.string.invite_failed) }
+                                    }) { Text(stringResource(Res.string.copy_link)) }
                                     OutlinedButton(onClick = {
                                         scope.launch {
                                             runCatching { graph.api.revokeInvite(band.id, current.code) }

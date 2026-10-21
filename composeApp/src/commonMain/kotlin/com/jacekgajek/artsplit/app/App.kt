@@ -1,12 +1,14 @@
 package com.jacekgajek.artsplit.app
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -48,6 +50,7 @@ import com.jacekgajek.artsplit.app.generated.sync_refused
 import com.jacekgajek.artsplit.app.sync.SyncStatus
 import com.jacekgajek.artsplit.app.ui.HistoryRoute
 import com.jacekgajek.artsplit.app.ui.NewBandRoute
+import com.jacekgajek.artsplit.app.ui.components.AndroidAppBanner
 import com.jacekgajek.artsplit.app.ui.components.LocalTopBarState
 import com.jacekgajek.artsplit.app.ui.components.SignInAgainDialog
 import com.jacekgajek.artsplit.app.ui.components.TopBarState
@@ -55,12 +58,16 @@ import com.jacekgajek.artsplit.app.ui.components.labelRes
 import com.jacekgajek.artsplit.app.ui.screens.NewBandScreen
 import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
 import com.jacekgajek.artsplit.ops.RejectionReason
+import com.jacekgajek.artsplit.ops.RenameBand
+import com.jacekgajek.artsplit.ops.SetTreasurer
+import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.tab_events
 import com.jacekgajek.artsplit.app.generated.tab_my_costs
 import com.jacekgajek.artsplit.app.generated.tab_settle
+import com.jacekgajek.artsplit.app.generated.tab_fund
 import com.jacekgajek.artsplit.app.ui.CostRoute
 import com.jacekgajek.artsplit.app.ui.EventRoute
 import com.jacekgajek.artsplit.app.ui.EventsRoute
@@ -69,6 +76,8 @@ import com.jacekgajek.artsplit.app.ui.MyCostsRoute
 import com.jacekgajek.artsplit.app.ui.RosterRoute
 import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
+import com.jacekgajek.artsplit.app.ui.FundRoute
+import com.jacekgajek.artsplit.app.ui.screens.BandFundScreen
 import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.HistoryScreen
@@ -89,6 +98,7 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
     EVENTS(EventsRoute, Icons.Default.Event, Res.string.tab_events),
     MY_COSTS(MyCostsRoute, Icons.AutoMirrored.Filled.ReceiptLong, Res.string.tab_my_costs),
     SETTLE(SettleRoute, Icons.Default.SwapHoriz, Res.string.tab_settle),
+    FUND(FundRoute, Icons.Default.Savings, Res.string.tab_fund),
 }
 
 @Composable
@@ -211,15 +221,31 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
 
-    MainScaffold(navController, graph) {
+    // The band fund tab appears once someone holds the fund (admins choose the holder in Settings).
+    val fundEnabled = state.band.treasurerMemberId != null
+    val tabs = Tab.entries.filter { it != Tab.FUND || fundEnabled }
+    // E.g. after switching to a band without a band fund while on its tab.
+    LaunchedEffect(fundEnabled) {
+        if (!fundEnabled && navController.currentDestination?.hasRoute(FundRoute::class) == true) navController.resetTo(EventsRoute)
+    }
+    MainScaffold(navController, graph, tabs) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
             composable<EventsRoute> {
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
             }
-            composable<MyCostsRoute> { MyCostsScreen(state, { navController.navigate(CostRoute(it)) }, toSettings, toRoster) }
+            composable<MyCostsRoute> { entry ->
+                val everyone by entry.savedStateHandle.getStateFlow(SHOW_EVERYONE, false).collectAsState()
+                MyCostsScreen(state, everyone, { entry.savedStateHandle[SHOW_EVERYONE] = it }, { navController.navigate(CostRoute(it)) }, toSettings, toRoster)
+            }
             composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
+            composable<FundRoute> { BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) }) }
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
-            composable<CostRoute> { entry -> CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back) }
+            composable<CostRoute> { entry ->
+                CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back, onAddedForOther = {
+                    // Otherwise a lead adding a cost for someone else would not see it in "My costs".
+                    navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
+                })
+            }
             composable<SettingsRoute> {
                 val session by graph.sessions.session.collectAsState()
                 val scope = rememberCoroutineScope()
@@ -228,6 +254,13 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
                     account = session?.let { it.email ?: it.name },
                     onSignOut = { scope.launch { graph.signOut() } },
+                    bandName = state.band.name,
+                    onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(RenameBand("probe")) },
+                    treasurer = state.band.treasurerMemberId,
+                    treasurerOptions = state.band.members.filter { !it.archived }.map { it.id to it.name },
+                    onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
                     onBack = back,
                 )
             }
@@ -244,6 +277,9 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     }
 }
 
+/** Saved state key of the "everyone's costs" switch on the costs tab. */
+private const val SHOW_EVERYONE = "showEveryone"
+
 /** Navigates to [route] and drops everything else from the back stack. */
 private fun NavHostController.resetTo(route: Any) = navigate(route) {
     popUpTo(graph.id) { inclusive = true }
@@ -251,7 +287,7 @@ private fun NavHostController.resetTo(route: Any) = navigate(route) {
 
 /** Bottom navigation on phones, a rail on wide screens; shown only on the tab screens. */
 @Composable
-private fun MainScaffold(navController: NavHostController, graph: AppGraph, content: @Composable () -> Unit) {
+private fun MainScaffold(navController: NavHostController, graph: AppGraph, tabs: List<Tab>, content: @Composable () -> Unit) {
     val entry by navController.currentBackStackEntryAsState()
     // Changes the server refused during sync (e.g. a role changed meanwhile).
     val snackbar = remember { SnackbarHostState() }
@@ -272,9 +308,10 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, cont
         Scaffold(
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
-                if (!wide && current != null) {
-                    NavigationBar {
-                        Tab.entries.forEach { tab ->
+                Column {
+                    if (current != null) AndroidAppBanner()
+                    if (!wide && current != null) NavigationBar {
+                        tabs.forEach { tab ->
                             NavigationBarItem(
                                 selected = tab == current,
                                 onClick = { select(tab) },
@@ -289,7 +326,7 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, cont
             Row(Modifier.padding(padding)) {
                 if (wide && current != null) {
                     NavigationRail {
-                        Tab.entries.forEach { tab ->
+                        tabs.forEach { tab ->
                             NavigationRailItem(
                                 selected = tab == current,
                                 onClick = { select(tab) },

@@ -123,6 +123,11 @@ object Reducer {
             is AddAttachment -> band.updateCost(op.costId) { cost ->
                 invalidIf(cost.attachments.size >= MAX_ATTACHMENTS, RejectionReason.TOO_MANY_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
                 invalidIf(cost.attachments.any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
+                // The size is signed into the upload URL, so the stored file cannot be larger than declared here.
+                val size = op.attachment.sizeBytes
+                invalidIf(size == null || size <= 0, RejectionReason.INVALID_INPUT) { "Attachment size is required" }
+                invalidIf(size!! > op.attachment.kind.maxBytes, RejectionReason.ATTACHMENT_TOO_LARGE) { "Attachment exceeds ${op.attachment.kind.maxBytes} bytes" }
+                invalidIf(!op.attachment.id.matches(Regex("[A-Za-z0-9_-]{1,64}")), RejectionReason.INVALID_INPUT) { "Invalid attachment id" }
                 cost.copy(attachments = cost.attachments + op.attachment)
             }
             is RemoveAttachment -> band.updateCost(op.costId) { cost ->

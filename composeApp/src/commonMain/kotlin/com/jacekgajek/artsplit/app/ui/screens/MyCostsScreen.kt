@@ -42,11 +42,15 @@ import com.jacekgajek.artsplit.app.generated.cost_status_pending
 import com.jacekgajek.artsplit.app.generated.cost_status_planned
 import com.jacekgajek.artsplit.app.generated.cost_status_refunded
 import com.jacekgajek.artsplit.app.generated.costs_empty
+import com.jacekgajek.artsplit.app.generated.costs_none
+import com.jacekgajek.artsplit.app.generated.costs_none_everyone
 import com.jacekgajek.artsplit.app.generated.costs_outstanding_total
 import com.jacekgajek.artsplit.app.generated.costs_outstanding_total_everyone
 import com.jacekgajek.artsplit.app.generated.filter_all
 import com.jacekgajek.artsplit.app.generated.filter_all_members
 import com.jacekgajek.artsplit.app.generated.filter_mine
+import com.jacekgajek.artsplit.app.generated.filter_pending
+import com.jacekgajek.artsplit.app.generated.filter_refunded
 import com.jacekgajek.artsplit.app.generated.tab_my_costs
 import com.jacekgajek.artsplit.app.generated.unnamed_cost
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
@@ -70,18 +74,41 @@ fun CostStatus.labelRes(): StringResource = when (this) {
     CostStatus.REFUNDED -> Res.string.cost_status_refunded
 }
 
-/** The current member's own costs and how much of each has been refunded. */
+/** Coarse refund filter: anything not fully refunded yet counts as pending. */
+private enum class CostFilter(val label: StringResource) {
+    PENDING(Res.string.filter_pending),
+    REFUNDED(Res.string.filter_refunded),
+    ALL(Res.string.filter_all),
+    ;
+
+    fun matches(status: CostStatus) = when (this) {
+        PENDING -> status != CostStatus.REFUNDED
+        REFUNDED -> status == CostStatus.REFUNDED
+        ALL -> true
+    }
+}
+
+/**
+ * The current member's own costs and how much of each has been refunded. Leads can switch to everyone's costs with
+ * [everyone]; the flag is owned by the caller so adding a cost for someone else can switch to it.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSettings: () -> Unit, onRoster: () -> Unit) {
+fun MyCostsScreen(
+    state: BandState.Ready,
+    everyone: Boolean,
+    onEveryone: (Boolean) -> Unit,
+    onOpenCost: (String?) -> Unit,
+    onSettings: () -> Unit,
+    onRoster: () -> Unit,
+) {
     val band = state.band
-    var filter by rememberSaveable { mutableStateOf<CostStatus?>(null) }
+    var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
-    var everyone by rememberSaveable { mutableStateOf(false) }
     val showAll = isLead && everyone
     val mine = band.costs.filter { showAll || it.memberId == state.me?.id }.sortedByDescending { it.date }
     val statuses = remember(band) { CostStatuses(band) }
-    val shown = mine.filter { filter == null || statuses.status(it) == filter }
+    val shown = mine.filter { filter.matches(statuses.status(it)) }
     val unpaid = mine.sumOfMoney { statuses.unpaid(it) }
 
     Scaffold(
@@ -114,7 +141,7 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
                         listOf(false to Res.string.filter_mine, true to Res.string.filter_all_members).forEachIndexed { index, (value, label) ->
                             SegmentedButton(
                                 selected = everyone == value,
-                                onClick = { everyone = value },
+                                onClick = { onEveryone(value) },
                                 shape = SegmentedButtonDefaults.itemShape(index, 2),
                             ) { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
@@ -123,13 +150,19 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
             }
             item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(filter == null, { filter = null }, { Text(stringResource(Res.string.filter_all)) })
-                    CostStatus.entries.forEach { status ->
-                        FilterChip(filter == status, { filter = status }, { Text(stringResource(status.labelRes())) })
+                    CostFilter.entries.forEach { option ->
+                        FilterChip(filter == option, { filter = option }, { Text(stringResource(option.label)) })
                     }
                 }
             }
-            if (shown.isEmpty()) item { Text(stringResource(Res.string.costs_empty), Modifier.padding(vertical = 32.dp)) }
+            if (shown.isEmpty()) {
+                val text = when {
+                    mine.isNotEmpty() -> Res.string.costs_empty
+                    showAll -> Res.string.costs_none_everyone
+                    else -> Res.string.costs_none
+                }
+                item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
+            }
             items(shown, key = { it.id }) { cost ->
                 Card(onClick = { onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
