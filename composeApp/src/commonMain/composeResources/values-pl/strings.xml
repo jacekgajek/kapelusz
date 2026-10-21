@@ -300,4 +300,26 @@
     <string name="copy_link">Kopiuj link</string>
     <string name="link_copied">Skopiowano link</string>
     <string name="band">Zespół</string>
+    <string name="tab_fund">Kasa</string>
+    <string name="fund_balance">Stan kasy</string>
+    <string name="fund_not_handed_over">Jeszcze nieprzekazane</string>
+    <string name="fund_held_by">Trzyma: %1$s</string>
+    <string name="fund_from_events">Z wydarzeń</string>
+    <string name="fund_handed_over">przekazane</string>
+    <string name="fund_waiting">czeka na przekazanie</string>
+    <string name="fund_entries">Inne wpisy</string>
+    <string name="fund_entries_empty">Brak innych wpisów. Dodaj wpłaty do kasy lub wydatki z niej.</string>
+    <string name="fund_add_entry">Dodaj wpis</string>
+    <string name="fund_in">Wpłata do kasy</string>
+    <string name="fund_out">Wypłata z kasy</string>
+    <string name="fund_refund_cost">Zwrot kosztu</string>
+    <string name="fund_refund_none">Brak (zwykły wpis)</string>
+    <string name="fund_no_treasurer">Kasa zespołowa nie jest jeszcze ustawiona. Najpierw ktoś musi trzymać pieniądze.</string>
+    <string name="fund_no_treasurer_admin">Wybierz osobę trzymającą kasę zespołową w Ustawieniach.</string>
+    <string name="open_settings">Otwórz Ustawienia</string>
+    <string name="description">Opis</string>
+    <string name="fund_treasurer">Kasę zespołową trzyma</string>
+    <string name="fund_treasurer_none">Jeszcze nikt</string>
+    <string name="fund_treasurer_hint">Ta osoba przechowuje pieniądze z kasy zespołowej. Kwoty do kasy z wydarzeń są przekazywane właśnie jej.</string>
+    <string name="fund_amount_hint">Zostaw puste, jeśli nic. Kwota ujemna wypłaca pieniądze z kasy i dodaje je do wypłat.</string>
 </resources>

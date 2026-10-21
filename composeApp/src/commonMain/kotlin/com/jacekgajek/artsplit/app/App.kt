@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -56,6 +57,7 @@ import com.jacekgajek.artsplit.app.ui.screens.NewBandScreen
 import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
 import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.RenameBand
+import com.jacekgajek.artsplit.ops.SetTreasurer
 import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
@@ -63,6 +65,7 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.tab_events
 import com.jacekgajek.artsplit.app.generated.tab_my_costs
 import com.jacekgajek.artsplit.app.generated.tab_settle
+import com.jacekgajek.artsplit.app.generated.tab_fund
 import com.jacekgajek.artsplit.app.ui.CostRoute
 import com.jacekgajek.artsplit.app.ui.EventRoute
 import com.jacekgajek.artsplit.app.ui.EventsRoute
@@ -71,6 +74,8 @@ import com.jacekgajek.artsplit.app.ui.MyCostsRoute
 import com.jacekgajek.artsplit.app.ui.RosterRoute
 import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
+import com.jacekgajek.artsplit.app.ui.FundRoute
+import com.jacekgajek.artsplit.app.ui.screens.BandFundScreen
 import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.HistoryScreen
@@ -91,6 +96,7 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
     EVENTS(EventsRoute, Icons.Default.Event, Res.string.tab_events),
     MY_COSTS(MyCostsRoute, Icons.AutoMirrored.Filled.ReceiptLong, Res.string.tab_my_costs),
     SETTLE(SettleRoute, Icons.Default.SwapHoriz, Res.string.tab_settle),
+    FUND(FundRoute, Icons.Default.Savings, Res.string.tab_fund),
 }
 
 @Composable
@@ -220,6 +226,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
             }
             composable<MyCostsRoute> { MyCostsScreen(state, { navController.navigate(CostRoute(it)) }, toSettings, toRoster) }
             composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
+            composable<FundRoute> { BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) }) }
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
             composable<CostRoute> { entry -> CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back) }
             composable<SettingsRoute> {
@@ -233,6 +240,10 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     bandName = state.band.name,
                     onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(RenameBand("probe")) },
+                    treasurer = state.band.treasurerMemberId,
+                    treasurerOptions = state.band.members.filter { !it.archived }.map { it.id to it.name },
+                    onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
                     onBack = back,
                 )
             }

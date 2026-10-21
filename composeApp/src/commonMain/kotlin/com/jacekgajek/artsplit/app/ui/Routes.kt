@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object EventsRoute
 @Serializable data object MyCostsRoute
 @Serializable data object SettleRoute
+@Serializable data object FundRoute
 @Serializable data class EventRoute(val eventId: String)
 
 /** Add (`costId == null`) or edit a cost. */

@@ -1,6 +1,17 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.jacekgajek.artsplit.app.generated.amount
+import com.jacekgajek.artsplit.app.generated.cancel
+import com.jacekgajek.artsplit.app.generated.fund_amount_hint
+import com.jacekgajek.artsplit.app.generated.save
+import com.jacekgajek.artsplit.app.ui.components.EditButton
+import com.jacekgajek.artsplit.app.ui.components.MoneyField
+import com.jacekgajek.artsplit.app.ui.components.parseMoney
+import com.jacekgajek.artsplit.app.ui.model.formatMoneyInput
+import com.jacekgajek.artsplit.ops.SetFundAmount
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -119,6 +130,8 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
 private fun Header(context: EventContext) {
     val event = context.event
     val s = context.settlement
+    var editingFund by remember { mutableStateOf(false) }
+    if (editingFund) FundAmountDialog(context, onDismiss = { editingFund = false })
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -132,7 +145,10 @@ private fun Header(context: EventContext) {
         Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
-                if (!s.fundAmount.isZero) TotalRow(stringResource(Res.string.total_fund), -s.fundAmount, context.currency)
+                val canSetFund = context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
+                if (!s.fundAmount.isZero || canSetFund) {
+                    TotalRow(stringResource(Res.string.total_fund), -s.fundAmount, context.currency, onEdit = { editingFund = true }.takeIf { canSetFund })
+                }
                 if (!s.refundsTotal.isZero) TotalRow(stringResource(Res.string.total_refunds), -s.refundsTotal, context.currency)
                 TotalRow(stringResource(Res.string.total_net), s.net, context.currency, bold = true)
             }
@@ -141,11 +157,37 @@ private fun Header(context: EventContext) {
 }
 
 @Composable
-private fun TotalRow(label: String, amount: Money, currency: String, bold: Boolean = false) {
-    Row {
+private fun TotalRow(label: String, amount: Money, currency: String, bold: Boolean = false, onEdit: (() -> Unit)? = null) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = if (bold) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
         MoneyText(amount, currency, bold = bold)
+        if (onEdit != null) EditButton(onEdit)
     }
+}
+
+/** How much of this event goes to the band fund; negative when the fund covers part of the payouts. */
+@Composable
+private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
+    val lang = language
+    val current = context.event.fundAmount
+    var amount by remember { mutableStateOf(if (current.isZero) "" else formatMoneyInput(current, lang)) }
+    val parsed = if (amount.isBlank()) Money.ZERO else parseMoney(amount)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.total_fund)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MoneyField(amount, { amount = it }, stringResource(Res.string.amount), allowNegative = true)
+                Text(stringResource(Res.string.fund_amount_hint), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = parsed != null, onClick = {
+                if (parsed == current || context.actions.run(SetFundAmount(context.event.id, parsed!!))) onDismiss()
+            }) { Text(stringResource(Res.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
 }
 
 @Composable

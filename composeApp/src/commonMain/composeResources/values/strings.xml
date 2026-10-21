@@ -300,4 +300,26 @@
     <string name="copy_link">Copy link</string>
     <string name="link_copied">Link copied</string>
     <string name="band">Band</string>
+    <string name="tab_fund">Band fund</string>
+    <string name="fund_balance">Balance</string>
+    <string name="fund_not_handed_over">Not handed over yet</string>
+    <string name="fund_held_by">Held by %1$s</string>
+    <string name="fund_from_events">From events</string>
+    <string name="fund_handed_over">handed over</string>
+    <string name="fund_waiting">waiting to be handed over</string>
+    <string name="fund_entries">Other entries</string>
+    <string name="fund_entries_empty">No other entries. Add money paid into the fund or spent from it.</string>
+    <string name="fund_add_entry">Add entry</string>
+    <string name="fund_in">Into the fund</string>
+    <string name="fund_out">Out of the fund</string>
+    <string name="fund_refund_cost">Refund a cost</string>
+    <string name="fund_refund_none">None (a regular entry)</string>
+    <string name="fund_no_treasurer">The band fund is not set up yet. Someone has to hold the money first.</string>
+    <string name="fund_no_treasurer_admin">Choose the holder of the band fund in Settings.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="description">Description</string>
+    <string name="fund_treasurer">Band fund held by</string>
+    <string name="fund_treasurer_none">Nobody yet</string>
+    <string name="fund_treasurer_hint">This person keeps the band fund's money. Money for the fund from events is handed over to them.</string>
+    <string name="fund_amount_hint">Leave empty for nothing. A negative amount takes money out of the fund to add to the payouts.</string>
 </resources>
