@@ -414,7 +414,7 @@ Workflow:
 ### M5 — Extras
 - [x] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
 - [ ] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
-- [ ] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
+- [x] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
 - [ ] M5.4 Polish: empty states, error states, accessibility pass
 - [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 - [x] M5.6 "Copy link" button next to Share on an invite
@@ -449,6 +449,7 @@ Workflow:
 | 2026-10-21 | The APK is published on the website (`/download/art-split.apk`, `/download/version.json`) because the repository is private: bandmates could not download from its GitHub Releases. The release is still attached to a GitHub Release as a record. |
 | 2026-10-21 | M5.1: the band fund is a fourth tab, shown only once someone holds the fund (balance, money from events and whether it has been handed over, other entries). The holder is chosen in Settings and can be changed but not cleared. A cost refund from the fund is linked to its cost only when the entry is created. |
 | 2026-10-21 | M5.7: the website shows a quiet strip above the tab bar suggesting the Android app. It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac with touch), after "Don't show again" (localStorage), and while `/download/version.json` is missing, so it never links to an unpublished APK. |
+| 2026-10-21 | M5.3: every deploy builds the release APK (R8-shrunk, about 2.6 MB), signed with the keystore secrets. Its version code is the deploy run number; the version name is `artsplit.versionName` in gradle.properties, bumped by hand. The deploy uploads the APK before `version.json`, and the web sync never deletes `download/`. Each deploy also creates a GitHub Release `build-N`. The app checks `version.json` once per launch and offers an update (not in debug builds); dismissing it hides that version only. CI builds the unsigned release too, so R8 problems fail before merge. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

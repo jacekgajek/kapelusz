@@ -13,7 +13,7 @@ concurrency:
 
 permissions:
   id-token: write   # GitHub OIDC -> AWS role, no stored AWS keys
-  contents: read
+  contents: write   # GitHub Release with the APK
 
 jobs:
   deploy:
@@ -60,5 +60,35 @@ jobs:
           if [[ -z "$RELEASE" ]]; then echo "::error::Could not read the release certificate fingerprint"; exit 1; fi
           echo "ANDROID_CERT_SHA256=${RELEASE}${DEBUG_SHA256:+,$DEBUG_SHA256}" >> "$GITHUB_ENV"
 
-      - name: Deploy API and web
+      - name: Release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Deploy API, web and APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
+          # Android installs an update only with a higher version code; every deploy run has a higher number.
+          ARTSPLIT_VERSION_CODE: ${{ github.run_number }}
         run: scripts/deploy.sh
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CODE: ${{ github.run_number }}
+        run: |
+          # A re-run of the same deploy keeps its run number, and with it the release.
+          if gh release view "build-$CODE" >/dev/null 2>&1; then exit 0; fi
+          FILE="$RUNNER_TEMP/art-split-$APK_VERSION_NAME-$CODE.apk"
+          cp androidApp/build/outputs/apk/release/androidApp-release.apk "$FILE"
+          gh release create "build-$CODE" "$FILE" --target "$SHA" --title "Art Split $APK_VERSION_NAME (build $CODE)" \
+            --notes "Bandmates download it from https://artsplit.jacekgajek.com/download/art-split.apk"
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"

@@ -15,8 +15,30 @@ android {
         applicationId = "com.jacekgajek.artsplit"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        // CI passes an increasing number (the deploy run number); Android only installs updates with a higher one.
+        versionCode = providers.environmentVariable("ARTSPLIT_VERSION_CODE").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("artsplit.versionName").get()
+    }
+
+    // Release signing comes from the environment (CI secrets); without it the release build is unsigned.
+    val keystore = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+    signingConfigs {
+        if (keystore != null) create("release") {
+            storeFile = file(keystore)
+            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").get()
+            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").get()
+            // A PKCS12 keystore has one password for the store and its keys; a separate key password is optional.
+            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull?.takeIf { it.isNotBlank() } ?: storePassword
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (keystore != null) signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     buildFeatures {

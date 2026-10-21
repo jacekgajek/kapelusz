@@ -326,6 +326,8 @@
     <string name="app_banner_text">Art Split is also an Android app: faster, and it works offline.</string>
     <string name="app_banner_download">Get the app</string>
     <string name="app_banner_dismiss">Don’t show again</string>
+    <string name="app_update_text">A new version of Art Split is available (%1$s).</string>
+    <string name="app_update_download">Update</string>
     <string name="total_from_fund">From band fund</string>
     <string name="fund_direction_to">To the fund</string>
     <string name="fund_direction_from">From the fund</string>

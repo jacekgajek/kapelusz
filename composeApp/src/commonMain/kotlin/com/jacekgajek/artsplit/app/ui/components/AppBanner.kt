@@ -26,30 +26,38 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.app_banner_dismiss
 import com.jacekgajek.artsplit.app.generated.app_banner_download
 import com.jacekgajek.artsplit.app.generated.app_banner_text
-import com.jacekgajek.artsplit.app.platform.androidAppDownloadUrl
-import com.jacekgajek.artsplit.app.platform.dismissAndroidAppSuggestion
+import com.jacekgajek.artsplit.app.generated.app_update_download
+import com.jacekgajek.artsplit.app.generated.app_update_text
+import com.jacekgajek.artsplit.app.platform.AppDownload
+import com.jacekgajek.artsplit.app.platform.appDownload
+import com.jacekgajek.artsplit.app.platform.dismissAppDownload
 import org.jetbrains.compose.resources.stringResource
 
-/** A quiet strip on the website suggesting the Android app; nothing is shown where it does not apply. */
+/**
+ * A quiet strip suggesting the Android app on the website, or a newer version in the app; nothing is shown where it
+ * does not apply.
+ */
 @Composable
 fun AndroidAppBanner(modifier: Modifier = Modifier) {
-    var url by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) { url = androidAppDownloadUrl() }
-    val link = url ?: return
+    var download by remember { mutableStateOf<AppDownload?>(null) }
+    LaunchedEffect(Unit) { download = appDownload() }
+    val current = download ?: return
     val uriHandler = LocalUriHandler.current
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Android, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                stringResource(Res.string.app_banner_text),
+                if (current.isUpdate) stringResource(Res.string.app_update_text, current.versionName) else stringResource(Res.string.app_banner_text),
                 Modifier.weight(1f).padding(horizontal = 12.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(onClick = { uriHandler.openUri(link) }) { Text(stringResource(Res.string.app_banner_download)) }
+            TextButton(onClick = { uriHandler.openUri(current.url) }) {
+                Text(stringResource(if (current.isUpdate) Res.string.app_update_download else Res.string.app_banner_download))
+            }
             IconButton(onClick = {
-                dismissAndroidAppSuggestion()
-                url = null
+                dismissAppDownload(current)
+                download = null
             }) { Icon(Icons.Default.Close, stringResource(Res.string.app_banner_dismiss)) }
         }
     }

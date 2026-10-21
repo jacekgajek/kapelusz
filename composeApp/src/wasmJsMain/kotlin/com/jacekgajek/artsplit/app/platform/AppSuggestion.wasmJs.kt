@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.app.platform
 
 import kotlinx.coroutines.await
+import kotlinx.serialization.json.Json
 import kotlin.js.Promise
 
 private const val APK_URL = "/download/art-split.apk"
@@ -16,16 +17,20 @@ private fun markDismissed() {
     js("(() => { try { localStorage.setItem('art-split-app-banner-dismissed', '1'); } catch (e) {} })()")
 }
 
-// The APK is published next to version.json; no version.json means there is nothing to download yet.
-private fun apkPublished(): Promise<JsBoolean> = js("fetch('/download/version.json', { cache: 'no-cache' }).then((r) => r.ok, () => false)")
+// Resolves to the text of version.json, or null when nothing is published yet.
+private fun fetchVersion(): Promise<JsString?> = js("fetch('/download/version.json', { cache: 'no-cache' }).then((r) => r.ok ? r.text() : null, () => null)")
 
-// Checked once per page load; the banner is composed again on every tab screen.
-private var published: Boolean? = null
+private val json = Json { ignoreUnknownKeys = true }
 
-actual suspend fun androidAppDownloadUrl(): String? {
+// Fetched once per page load; the banner is composed again on every tab screen.
+private var published: Result<PublishedVersion?>? = null
+
+actual suspend fun appDownload(): AppDownload? {
     if (isAppleMobile() || isDismissed()) return null
-    val available = published ?: runCatching { apkPublished().await<JsBoolean>().toBoolean() }.getOrDefault(false).also { published = it }
-    return APK_URL.takeIf { available }
+    val version = (published ?: runCatching {
+        fetchVersion().await<JsString?>()?.toString()?.let { json.decodeFromString<PublishedVersion>(it) }
+    }.also { published = it }).getOrNull() ?: return null
+    return AppDownload(APK_URL, isUpdate = false, version.versionCode, version.versionName)
 }
 
-actual fun dismissAndroidAppSuggestion() = markDismissed()
+actual fun dismissAppDownload(download: AppDownload) = markDismissed()
