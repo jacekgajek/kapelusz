@@ -41,7 +41,6 @@ import com.jacekgajek.artsplit.app.generated.amount
 import com.jacekgajek.artsplit.app.generated.amount_invalid
 import com.jacekgajek.artsplit.app.generated.cancel
 import com.jacekgajek.artsplit.app.generated.ok
-import com.jacekgajek.artsplit.app.generated.rejected
 import com.jacekgajek.artsplit.app.generated.settle
 import com.jacekgajek.artsplit.app.generated.settle_part_hint
 import com.jacekgajek.artsplit.app.generated.settle_part_title
@@ -59,6 +58,7 @@ import com.jacekgajek.artsplit.model.Money
 import com.jacekgajek.artsplit.ops.Operation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 /** Language code of the current UI locale (`en`, `pl`), for formatting. */
@@ -69,11 +69,10 @@ class Actions(
     private val graph: AppGraph,
     private val snackbar: SnackbarHostState,
     private val scope: CoroutineScope,
-    private val rejectedLabel: String,
 ) {
     fun run(op: Operation): Boolean {
         val rejection = graph.dispatch(op) ?: return true
-        scope.launch { snackbar.showSnackbar("$rejectedLabel: ${rejection.message}") }
+        scope.launch { snackbar.showSnackbar(getString(rejection.reason.labelRes())) }
         return false
     }
 }
@@ -81,8 +80,7 @@ class Actions(
 @Composable
 fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState): Actions {
     val scope = rememberCoroutineScope()
-    val label = stringResource(Res.string.rejected)
-    return remember(graph, snackbar, label) { Actions(graph, snackbar, scope, label) }
+    return remember(graph, snackbar) { Actions(graph, snackbar, scope) }
 }
 
 @Composable

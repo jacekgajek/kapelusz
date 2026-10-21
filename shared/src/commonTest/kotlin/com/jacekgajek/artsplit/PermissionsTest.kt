@@ -14,6 +14,7 @@ import com.jacekgajek.artsplit.ops.LinkUser
 import com.jacekgajek.artsplit.ops.Operation
 import com.jacekgajek.artsplit.ops.RecordTransfer
 import com.jacekgajek.artsplit.ops.RejectionCode
+import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.SetMemberArchived
 import com.jacekgajek.artsplit.ops.SetMemberRole
 import com.jacekgajek.artsplit.ops.SetRefund
@@ -97,7 +98,10 @@ class PermissionsTest {
 
     @Test
     fun outsidersArchivedMembersAndLinkingAreForbidden() {
-        assertEquals(RejectionCode.FORBIDDEN, Permissions.check(scenario.band, Actor.User("stranger"), AddCost("c", "member", pln("1"), DATE))!!.code)
+        val stranger = Permissions.check(scenario.band, Actor.User("stranger"), AddCost("c", "member", pln("1"), DATE))!!
+        assertEquals(RejectionCode.FORBIDDEN, stranger.code)
+        assertEquals(RejectionReason.NOT_A_MEMBER, stranger.reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, Permissions.check(scenario.band, member, CreateEvent("e2", "e2", DATE))!!.reason)
         assertFalse(allowed(owner, LinkUser("other", "someone", Role.MEMBER)))
         assertTrue(allowed(Actor.System, LinkUser("other", "someone", Role.MEMBER)))
 

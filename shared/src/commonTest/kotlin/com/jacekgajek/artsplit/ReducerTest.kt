@@ -21,6 +21,7 @@ import com.jacekgajek.artsplit.ops.OpEnvelope
 import com.jacekgajek.artsplit.ops.PromoteGuest
 import com.jacekgajek.artsplit.ops.RecordTransfer
 import com.jacekgajek.artsplit.ops.RejectionCode
+import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.RemoveParticipant
 import com.jacekgajek.artsplit.ops.RenameBand
 import com.jacekgajek.artsplit.ops.SetFundAmount
@@ -97,7 +98,9 @@ class ReducerTest {
     @Test
     fun participantWithEntriesCannotBeRemoved() {
         val scenario = gig().apply(AddHolding("gig", "h", "bob", pln("100"), DOOR))
-        assertEquals(RejectionCode.CONFLICT, scenario.rejected(RemoveParticipant("gig", "bob")).code)
+        val rejection = scenario.rejected(RemoveParticipant("gig", "bob"))
+        assertEquals(RejectionCode.CONFLICT, rejection.code)
+        assertEquals(RejectionReason.PARTICIPANT_HAS_MONEY, rejection.reason)
         scenario.apply(RemoveParticipant("gig", "alice"))
         assertNull(scenario.band.event("gig")!!.participant("alice"))
     }

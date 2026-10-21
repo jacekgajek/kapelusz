@@ -23,6 +23,7 @@ import com.jacekgajek.artsplit.ops.PromoteGuest
 import com.jacekgajek.artsplit.ops.RecordTransfer
 import com.jacekgajek.artsplit.ops.Rejection
 import com.jacekgajek.artsplit.ops.RejectionCode
+import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.RemoveAttachment
 import com.jacekgajek.artsplit.ops.RemoveFundEntry
 import com.jacekgajek.artsplit.ops.RemoveHolding
@@ -64,11 +65,11 @@ object Permissions {
     fun check(band: Band, actor: Actor, op: Operation): Rejection? {
         if (actor is Actor.System) return null
         val me = band.memberOfUser((actor as Actor.User).userId)?.takeIf { !it.archived }
-            ?: return forbidden("You are not an active member of this band")
-        if (op is LinkUser) return forbidden("Users are linked only by accepting an invite")
+            ?: return forbidden(RejectionReason.NOT_A_MEMBER, "You are not an active member of this band")
+        if (op is LinkUser) return forbidden(RejectionReason.INVITE_ONLY, "Users are linked only by accepting an invite")
 
         val required = requiredRole(band, me, op)
-        return if (me.role.atLeast(required)) null else forbidden("Requires role $required")
+        return if (me.role.atLeast(required)) null else forbidden(RejectionReason.ROLE_REQUIRED, "Requires role $required")
     }
 
     fun isAllowed(band: Band, actor: Actor, op: Operation): Boolean = check(band, actor, op) == null
@@ -111,5 +112,5 @@ object Permissions {
         return ownIf(cost.memberId == me.id && !CostLedger.isLockedForOwner(band, cost))
     }
 
-    private fun forbidden(message: String) = Rejection(RejectionCode.FORBIDDEN, message)
+    private fun forbidden(reason: RejectionReason, message: String) = Rejection(RejectionCode.FORBIDDEN, message, reason)
 }
