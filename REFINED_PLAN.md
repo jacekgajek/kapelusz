@@ -415,6 +415,7 @@ Workflow:
 - [ ] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
 - [ ] M5.3 Signed release APK to GitHub Releases + in-app update check
 - [ ] M5.4 Polish: empty states, error states, accessibility pass
+- [ ] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 
 ---
 
