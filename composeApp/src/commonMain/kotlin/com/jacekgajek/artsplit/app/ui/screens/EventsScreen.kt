@@ -33,6 +33,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.PluralStringResource
+import kotlinx.coroutines.launch
+import com.jacekgajek.artsplit.app.generated.events_restored
+import com.jacekgajek.artsplit.app.generated.events_archived
+import com.jacekgajek.artsplit.app.generated.selected_count
+import com.jacekgajek.artsplit.app.generated.select_all
+import com.jacekgajek.artsplit.app.generated.select_events
+import com.jacekgajek.artsplit.app.generated.undo
+import com.jacekgajek.artsplit.app.generated.unarchive
+import com.jacekgajek.artsplit.app.generated.archive
+import com.jacekgajek.artsplit.ops.SetEventArchived
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import com.jacekgajek.artsplit.app.generated.upcoming_event
 import com.jacekgajek.artsplit.app.ui.model.upcomingEvent
 import com.jacekgajek.artsplit.app.ui.model.unsettledEvent
@@ -101,11 +128,52 @@ fun EventsScreen(
     val continueEvent = unsettledEvent(band, today)
     val upcoming = upcomingEvent(band, state.me, today)
 
+    // Bulk archive (VERSION_2 §3.3): null when not selecting. Leads and above only, like archiving one event.
+    var selection by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    val canArchive = Can(band, state.userId).allowed(SetEventArchived(PROBE_ID, true))
+    val scope = rememberCoroutineScope()
+    // Back leaves selection mode instead of the screen.
+    NavigationBackHandler(rememberNavigationEventState(NavigationEventInfo.None), isBackEnabled = selection != null) { selection = null }
+    val archivedText = pluralResourceTexts(Res.plurals.events_archived)
+    val restoredText = pluralResourceTexts(Res.plurals.events_restored)
+    val undoText = stringResource(Res.string.undo)
+    fun archiveSelected(archive: Boolean) {
+        val changed = selection.orEmpty().mapNotNull { band.event(it) }.filter { it.archived != archive }
+        changed.forEach { actions.run(SetEventArchived(it.id, archive)) }
+        selection = null
+        if (changed.isEmpty()) return
+        scope.launch {
+            val message = (if (archive) archivedText else restoredText)(changed.size)
+            if (snackbar.showSnackbar(message, actionLabel = undoText, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) {
+                changed.forEach { actions.run(SetEventArchived(it.id, !archive)) }
+            }
+        }
+    }
+
     Scaffold(
-        topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
+        topBar = {
+            val selected = selection
+            if (selected != null) {
+                val chosen = selected.mapNotNull { band.event(it) }
+                SelectionTopBar(
+                    count = chosen.size,
+                    onClose = { selection = null },
+                    onSelectAll = { selection = summaries.map { it.event.id }.toSet() },
+                    restore = chosen.isNotEmpty() && chosen.all { it.archived },
+                    onArchive = ::archiveSelected,
+                )
+            } else {
+                TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) {
+                    // Long-press selects on phones; with a mouse this is the natural way in.
+                    if (canArchive && summaries.isNotEmpty()) {
+                        IconButton(onClick = { selection = emptySet() }) { Icon(Icons.Default.Checklist, stringResource(Res.string.select_events)) }
+                    }
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (Can(band, state.userId).createEvent()) ExtendedFloatingActionButton(
+            if (selection == null && Can(band, state.userId).createEvent()) ExtendedFloatingActionButton(
                 onClick = { creating = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(Res.string.new_event)) },
@@ -154,7 +222,18 @@ fun EventsScreen(
                 val text = if (band.events.isEmpty()) Res.string.events_empty else Res.string.events_filtered_empty
                 item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
             }
-            items(summaries, key = { it.event.id }) { summary -> EventRow(band, summary) { onOpenEvent(summary.event.id) } }
+            items(summaries, key = { it.event.id }) { summary ->
+                val id = summary.event.id
+                val selected = selection
+                EventRow(
+                    band,
+                    summary,
+                    selected = selected?.contains(id) == true,
+                    onLongClick = { if (canArchive) selection = (selected ?: emptySet()) + id }.takeIf { canArchive },
+                ) {
+                    if (selected != null) selection = if (id in selected) selected - id else selected + id else onOpenEvent(id)
+                }
+            }
         }
     }
 
@@ -182,9 +261,13 @@ private fun lineupOfLastEvent(band: Band, myId: String?): List<Participant> {
 }
 
 @Composable
-private fun EventRow(band: Band, summary: EventSummary, onClick: () -> Unit) {
+private fun EventRow(band: Band, summary: EventSummary, selected: Boolean, onLongClick: (() -> Unit)?, onClick: () -> Unit) {
     val event = summary.event
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        colors = if (selected) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer) else CardDefaults.cardColors(),
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -259,3 +342,29 @@ private fun EventCard(icon: ImageVector, text: String, color: Color, onClick: ()
         }
     }
 }
+
+/** The top bar while selecting events: how many, select all, and archive (or restore when only archived are chosen). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(count: Int, onClose: () -> Unit, onSelectAll: () -> Unit, restore: Boolean, onArchive: (Boolean) -> Unit) {
+    TopAppBar(
+        navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.Default.Close, stringResource(Res.string.cancel)) } },
+        title = { Text(pluralStringResource(Res.plurals.selected_count, count, count)) },
+        actions = {
+            TextButton(onClick = onSelectAll) { Text(stringResource(Res.string.select_all)) }
+            TextButton(onClick = { onArchive(!restore) }, enabled = count > 0) {
+                Text(stringResource(if (restore) Res.string.unarchive else Res.string.archive))
+            }
+        },
+    )
+}
+
+/** A plural text resolved during composition (in the app's language), usable later from a callback. */
+@Composable
+private fun pluralResourceTexts(resource: PluralStringResource): (Int) -> String {
+    val texts = (1..20).associateWith { pluralStringResource(resource, it, it) }
+    val many = pluralStringResource(resource, 100, 100)
+    return { n -> texts[n] ?: many.replace("100", n.toString()) }
+}
+
+private const val PROBE_ID = "probe"

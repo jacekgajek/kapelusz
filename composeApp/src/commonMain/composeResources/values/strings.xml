@@ -395,4 +395,19 @@
     <string name="update_required_button">Update</string>
     <string name="history_newer_version">A change made with a newer version of Art Split</string>
     <string name="upcoming_event">Upcoming: %1$s, %2$s</string>
+    <string name="select_events">Select events</string>
+    <string name="select_all">Select all</string>
+    <string name="undo">Undo</string>
+    <plurals name="selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="events_archived">
+        <item quantity="one">%1$d event archived</item>
+        <item quantity="other">%1$d events archived</item>
+    </plurals>
+    <plurals name="events_restored">
+        <item quantity="one">%1$d event restored</item>
+        <item quantity="other">%1$d events restored</item>
+    </plurals>
 </resources>

@@ -79,13 +79,14 @@ val LocalTopBarState = staticCompositionLocalOf<TopBarState?> { null }
 /** Top bar of a tab screen: sync indicator and the cog menu (band switcher, band members, settings). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
+fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extraActions: @Composable () -> Unit = {}) {
     val onHistory = LocalTopBarState.current?.onHistory
     var menuOpen by remember { mutableStateOf(false) }
     val bar = LocalTopBarState.current
     TopAppBar(
         title = { Text(title) },
         actions = {
+            extraActions()
             bar?.let { SyncIndicator(it) }
             IconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(Res.string.settings))

@@ -145,7 +145,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M2.2 Unreadable history entries shown as "a change from a newer version"
 - [x] V2-M2.3 History spinners (§7)
 - [x] V2-M2.4 Continue card rule (§3.1) and Upcoming card (§3.2)
-- [ ] V2-M2.5 Bulk archive with selection mode (§3.3)
+- [x] V2-M2.5 Bulk archive with selection mode (§3.3)
 
 ### V2-M3 — Event agenda and details
 - [ ] V2-M3.1 Model and operations: band agenda template, per-event times, who added each participant
