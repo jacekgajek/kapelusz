@@ -161,9 +161,9 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M4.4 Transfer notifications, grouped per event, with the first-sync baseline
 
 ### V2-M5 — Calendar subscription
-- [ ] V2-M5.1 Server: secret links, `GET /calendar/{secret}.ics`, reset
-- [ ] V2-M5.2 Feed contents and timing rules (§6)
-- [ ] V2-M5.3 Settings → Calendar subscription: copy, add to Google Calendar, include-all switch, reset
+- [x] V2-M5.1 Server: secret links, `GET /calendar/{secret}.ics`, reset
+- [x] V2-M5.2 Feed contents and timing rules (§6)
+- [x] V2-M5.3 Settings → Calendar subscription: copy, add to Google Calendar, include-all switch, reset
 
 ### V2-M6 — Release 1.0
 - [ ] V2-M6.1 Release checklist (§10) passed on real phones

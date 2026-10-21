@@ -23,6 +23,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jacekgajek.artsplit.app.generated.link_copied
+import com.jacekgajek.artsplit.app.generated.copy_link
+import com.jacekgajek.artsplit.app.generated.calendar_failed
+import com.jacekgajek.artsplit.app.generated.calendar_refresh_note
+import com.jacekgajek.artsplit.app.generated.calendar_reset_text
+import com.jacekgajek.artsplit.app.generated.calendar_reset_title
+import com.jacekgajek.artsplit.app.generated.calendar_reset
+import com.jacekgajek.artsplit.app.generated.calendar_include_all
+import com.jacekgajek.artsplit.app.generated.calendar_add_google
+import com.jacekgajek.artsplit.app.generated.calendar_get
+import com.jacekgajek.artsplit.app.generated.calendar_hint
+import com.jacekgajek.artsplit.app.generated.calendar_title
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalUriHandler
+import com.jacekgajek.artsplit.app.platform.rememberCopy
+import com.jacekgajek.artsplit.api.CalendarSubscriptionChange
+import com.jacekgajek.artsplit.api.CalendarSubscription
 import com.jacekgajek.artsplit.app.generated.notifications_transfers
 import com.jacekgajek.artsplit.app.generated.notifications_time
 import com.jacekgajek.artsplit.app.generated.notifications_days
@@ -152,6 +169,8 @@ fun SettingsScreen(
     onAgendaTemplate: ((List<AgendaTemplateItem>) -> Unit)?,
     appSettings: AppSettings,
     onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
+    /** The calendar subscription (needs the server): get it, or change it. */
+    calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -252,6 +271,7 @@ fun SettingsScreen(
                 if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
             }
             rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
+            CalendarSection(calendar)
             rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
             Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
             account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
@@ -440,5 +460,71 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
     ) {
         Text(label, Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/**
+ * The private calendar feed (VERSION_2 §6): fetched on request (it needs the server), then copy, add to Google
+ * Calendar, include the whole band, or make a new link.
+ */
+@Composable
+private fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription) {
+    val scope = rememberCoroutineScope()
+    val copy = rememberCopy()
+    val uriHandler = LocalUriHandler.current
+    var subscription by remember { mutableStateOf<CalendarSubscription?>(null) }
+    var working by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    var confirmReset by remember { mutableStateOf(false) }
+    fun run(change: CalendarSubscriptionChange?) {
+        working = true
+        failed = false
+        scope.launch {
+            try {
+                subscription = calendar(change)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // Throwable: on the web, network errors are JsException.
+                failed = true
+            }
+            working = false
+        }
+    }
+    Text(stringResource(Res.string.calendar_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+    Text(stringResource(Res.string.calendar_hint), style = MaterialTheme.typography.bodySmall)
+    val current = subscription
+    if (current == null) {
+        OutlinedButton(onClick = { run(null) }, enabled = !working, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.calendar_get)) }
+    } else {
+        SelectionContainer { Text(current.url, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp)) }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { uriHandler.openUri("https://calendar.google.com/calendar/r?cid=" + urlEncode(current.url.replaceFirst("https://", "webcal://"))) }) {
+                Text(stringResource(Res.string.calendar_add_google))
+            }
+            OutlinedButton(onClick = { scope.launch { copied = copy(current.url) } }) { Text(stringResource(if (copied) Res.string.link_copied else Res.string.copy_link)) }
+        }
+        SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
+        TextButton(onClick = { confirmReset = true }, enabled = !working) { Text(stringResource(Res.string.calendar_reset)) }
+        Text(stringResource(Res.string.calendar_refresh_note), style = MaterialTheme.typography.bodySmall)
+    }
+    if (failed) Text(stringResource(Res.string.calendar_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    if (confirmReset) {
+        ConfirmDialog(
+            title = stringResource(Res.string.calendar_reset_title),
+            text = stringResource(Res.string.calendar_reset_text),
+            confirmLabel = stringResource(Res.string.calendar_reset),
+            onConfirm = { copied = false; run(CalendarSubscriptionChange(reset = true)) },
+            onDismiss = { confirmReset = false },
+        )
+    }
+}
+
+/** Percent-encoding for a URL query value. */
+private fun urlEncode(value: String): String = buildString {
+    value.encodeToByteArray().forEach { byte ->
+        val c = byte.toInt().toChar()
+        if (c.isLetterOrDigit() && byte >= 0 || c in "-_.~") append(c) else append("%" + (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))
     }
 }
