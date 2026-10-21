@@ -19,6 +19,7 @@ object ReminderScheduler {
     private const val KEY_SCHEDULED = "scheduled"
     private const val EXTRA_TITLE = "title"
     private const val EXTRA_TEXT = "text"
+    private const val EXTRA_NAVIGATE = "navigate"
 
     fun reschedule(context: Context, reminders: List<Reminder>, language: String? = null) {
         val alarms = context.getSystemService(AlarmManager::class.java)
@@ -32,6 +33,7 @@ object ReminderScheduler {
                 .putExtra(Notifier.EXTRA_EVENT, reminder.eventId)
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_TEXT, text)
+                .putExtra(EXTRA_NAVIGATE, reminder.navigateUrl)
             val pending = pending(context, reminder.key, intent)
             // No exact-alarm permission needed either way. Before Android 12 an inexact alarm may come very late, so a
             // 15-minute window is asked for; from 12 on, allow-while-idle alarms arrive within about an hour.
@@ -51,7 +53,10 @@ object ReminderScheduler {
     internal fun show(context: Context, intent: Intent) {
         val band = intent.getStringExtra(Notifier.EXTRA_BAND) ?: return
         val event = intent.getStringExtra(Notifier.EXTRA_EVENT) ?: return
-        Notifier.showReminder(context, ("r$band$event").hashCode(), band, event, intent.getStringExtra(EXTRA_TITLE).orEmpty(), intent.getStringExtra(EXTRA_TEXT).orEmpty())
+        Notifier.showReminder(
+            context, ("r$band$event").hashCode(), band, event,
+            intent.getStringExtra(EXTRA_TITLE).orEmpty(), intent.getStringExtra(EXTRA_TEXT).orEmpty(), intent.getStringExtra(EXTRA_NAVIGATE),
+        )
     }
 }
 

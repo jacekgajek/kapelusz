@@ -457,4 +457,12 @@
     <string name="calendar_failed">That did not work. Check your connection and try again.</string>
     <string name="calendar_add_on_computer">To subscribe, open calendar.google.com on a computer, choose Other calendars › From URL, and paste the link.</string>
     <string name="agenda_sound_check">Sound check</string>
+    <string name="map_select">Select on map</string>
+    <string name="map_paste">Paste from Maps</string>
+    <string name="map_linked">Linked to a place on Google Maps</string>
+    <string name="map_no_link">No Google Maps link to paste. In Google Maps, use Share › Copy link first.</string>
+    <string name="navigate">Navigate</string>
+    <string name="place_title">Set the location of…</string>
+    <string name="place_nothing">There is no upcoming event you can change, and you cannot create events in this band.</string>
+    <string name="place_new_event">+ New event at this place</string>
 </resources>

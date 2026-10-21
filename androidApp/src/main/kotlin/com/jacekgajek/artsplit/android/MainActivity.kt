@@ -15,6 +15,7 @@ import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
 import com.jacekgajek.artsplit.app.updates.UpdateWorker
 import com.jacekgajek.artsplit.app.notify.BackgroundSyncWorker
 import com.jacekgajek.artsplit.app.notify.Notifier
+import com.jacekgajek.artsplit.domain.Places
 import com.jacekgajek.artsplit.app.updates.Updater
 import java.lang.ref.WeakReference
 
@@ -45,6 +46,14 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         takeJoinCode(intent)
         takeEventToOpen(intent)
+        takeSharedPlace(intent)
+    }
+
+    /** Google Maps shared a place to Art Split: offer to set it as an event's location. */
+    private fun takeSharedPlace(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        val place = intent.getStringExtra(Intent.EXTRA_TEXT)?.let(Places::parse) ?: return
+        graph.pendingSharedPlace.value = place
     }
 
     /** A tapped reminder or transfer notification: open its gig. */
@@ -68,6 +77,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             takeJoinCode(intent)
             takeEventToOpen(intent)
+            takeSharedPlace(intent)
         }
         setContent {
             var loaded by remember { mutableStateOf(false) }

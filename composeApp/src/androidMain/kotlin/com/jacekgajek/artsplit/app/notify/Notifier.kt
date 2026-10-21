@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
@@ -71,16 +72,25 @@ object Notifier {
         null -> time.label.orEmpty()
     }
 
-    fun showReminder(context: Context, id: Int, bandId: String, eventId: String, title: String, text: String) {
+    fun showReminder(context: Context, id: Int, bandId: String, eventId: String, title: String, text: String, navigateUrl: String?) {
         if (!canNotify(context)) return
-        channels(context, polish(null))
-        notify(context, id, NotificationCompat.Builder(context, REMINDERS)
+        val pl = polish(null)
+        channels(context, pl)
+        val builder = NotificationCompat.Builder(context, REMINDERS)
             .setSmallIcon(android.R.drawable.ic_menu_today)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(openEvent(context, id, bandId, eventId))
             .setAutoCancel(true)
-            .build())
+        // Straight to Google Maps for the gig's place.
+        navigateUrl?.let { url ->
+            val maps = PendingIntent.getActivity(
+                context, id + 1, Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(0, if (pl) "Nawiguj" else "Navigate", maps)
+        }
+        notify(context, id, builder.build())
     }
 
     /**

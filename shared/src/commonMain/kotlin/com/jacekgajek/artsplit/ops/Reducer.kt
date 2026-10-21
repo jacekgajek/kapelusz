@@ -54,6 +54,7 @@ object Reducer {
                     name = op.name?.value?.validName("Event name") ?: event.name,
                     date = op.date?.value ?: event.date,
                     location = if (op.location != null) op.location.value.blankToNull() else event.location,
+                    mapUrl = if (op.mapUrl != null) validMapUrl(op.mapUrl.value) else event.mapUrl,
                     notes = if (op.notes != null) op.notes.value.blankToNull() else event.notes,
                 )
             }
@@ -243,6 +244,7 @@ object Reducer {
             name = op.name.validName("Event name"),
             date = op.date,
             location = op.location.blankToNull(),
+            mapUrl = validMapUrl(op.mapUrl),
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
             // Who added each participant (the creator), for a personal reminder prompt (VERSION_2 §5.2).
@@ -261,6 +263,15 @@ object Reducer {
             costs = band.costs.map { if (it.eventId == event.id) it.copy(eventId = null) else it },
         )
     }
+
+    /** A link people open from the app: https only, and bounded. */
+    private fun validMapUrl(url: String?): String? {
+        val value = url?.trim()?.ifEmpty { null } ?: return null
+        invalidIf(!value.startsWith("https://") || value.length > MAX_URL || value.any { it.isWhitespace() }, RejectionReason.INVALID_INPUT) { "Invalid map link" }
+        return value
+    }
+
+    private const val MAX_URL = 500
 
     private fun validAgenda(agenda: List<AgendaTime>): List<AgendaTime> {
         invalidIf(agenda.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }

@@ -69,6 +69,11 @@ import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.components.rememberActions
 import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.agendaLine
+import com.jacekgajek.artsplit.domain.Places
+import com.jacekgajek.artsplit.app.generated.navigate
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material3.AssistChip
+import androidx.compose.ui.platform.LocalUriHandler
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.domain.Settlement
 import com.jacekgajek.artsplit.domain.SettlementCalculator
@@ -153,6 +158,15 @@ private fun Header(context: EventContext) {
             StatusChip(s.status, event.archived)
         }
         event.agendaLine()?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        // Google Maps: the stored link (the exact pin), otherwise directions to the location text.
+        Places.navigateUrl(event)?.let { url ->
+            val uriHandler = LocalUriHandler.current
+            AssistChip(
+                onClick = { uriHandler.openUri(url) },
+                label = { Text(stringResource(Res.string.navigate)) },
+                leadingIcon = { Icon(Icons.Default.Directions, null) },
+            )
+        }
         Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)

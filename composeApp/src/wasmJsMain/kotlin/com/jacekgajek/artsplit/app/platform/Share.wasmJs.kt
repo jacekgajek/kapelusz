@@ -29,3 +29,11 @@ private fun copyToClipboard(text: String): Promise<JsBoolean> = js("navigator.cl
 actual fun rememberCopy(): suspend (text: String) -> Boolean = remember {
     { text -> runCatching { copyToClipboard(text).await<JsBoolean>().toBoolean() }.getOrDefault(false) }
 }
+
+// The browser asks the user once whether the site may read the clipboard.
+private fun readClipboard(): Promise<JsString?> = js("navigator.clipboard.readText().then((t) => t, () => null)")
+
+@Composable
+actual fun rememberPaste(): suspend () -> String? = remember {
+    { runCatching { readClipboard().await<JsString?>()?.toString() }.getOrNull() }
+}

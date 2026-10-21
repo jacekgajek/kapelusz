@@ -469,4 +469,12 @@
     <string name="calendar_failed">Nie udało się. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="calendar_add_on_computer">Aby zasubskrybować, otwórz calendar.google.com na komputerze, wybierz Inne kalendarze › Z adresu URL i wklej link.</string>
     <string name="agenda_sound_check">Próba dźwięku</string>
+    <string name="map_select">Wybierz na mapie</string>
+    <string name="map_paste">Wklej z Map</string>
+    <string name="map_linked">Połączone z miejscem w Mapach Google</string>
+    <string name="map_no_link">Brak linku z Map Google do wklejenia. W Mapach Google użyj najpierw Udostępnij › Kopiuj link.</string>
+    <string name="navigate">Nawiguj</string>
+    <string name="place_title">Ustaw miejsce wydarzenia…</string>
+    <string name="place_nothing">Nie ma nadchodzącego wydarzenia, które możesz zmienić, a w tym zespole nie możesz tworzyć wydarzeń.</string>
+    <string name="place_new_event">+ Nowe wydarzenie w tym miejscu</string>
 </resources>

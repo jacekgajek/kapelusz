@@ -86,6 +86,8 @@ data class CreateEvent(
     val location: String? = null,
     val notes: String? = null,
     val guests: List<Guest> = emptyList(),
+    /** A Google Maps link to the place. */
+    val mapUrl: String? = null,
     val participants: List<Participant> = emptyList(),
     /** The band's agenda template at creation time, times not set yet (VERSION_2 §4.1). */
     val agenda: List<AgendaTime> = emptyList(),
@@ -106,6 +108,7 @@ data class UpdateEvent(
     val date: Change<LocalDate>? = null,
     val location: Change<String?>? = null,
     val notes: Change<String?>? = null,
+    val mapUrl: Change<String?>? = null,
 ) : Operation
 
 @Serializable @SerialName("SetEventArchived")

@@ -33,6 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import com.jacekgajek.artsplit.app.ui.screens.event.EventFieldsState
+import com.jacekgajek.artsplit.app.ui.screens.event.EventFields
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -246,17 +251,23 @@ fun EventsScreen(
         }
     }
 
+    // "New event at this place", from a place shared from Google Maps (VERSION_2 §4.4).
+    val sharedPlace by graph.pendingNewEventPlace.collectAsState()
+    LaunchedEffect(sharedPlace) { if (sharedPlace != null) creating = true }
     if (creating) {
         NewEventDialog(
-            onDismiss = { creating = false },
-            onCreate = { name, date, location ->
+            band,
+            initialLocation = sharedPlace?.name.orEmpty(),
+            initialMapUrl = sharedPlace?.url,
+            onDismiss = { creating = false; graph.pendingNewEventPlace.value = null },
+            onCreate = { fields ->
                 val eventId = newId()
                 val ok = actions.run(
                     CreateEvent(
-                        eventId, name, date, location,
+                        eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
                         participants = lineupOfLastEvent(band, state.me?.id),
-                        // The band's agenda template, times still to be set (VERSION_2 §4.1).
-                        agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
+                        agenda = fields.agenda,
+                        mapUrl = fields.mapUrl,
                     ),
                 )
                 if (ok) onOpenEvent(eventId)
@@ -325,23 +336,30 @@ private fun MyNumberText(number: MyNumber, currency: String) {
 }
 
 @Composable
-private fun NewEventDialog(onDismiss: () -> Unit, onCreate: (String, LocalDate, String?) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf(today()) }
+private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: String?, onDismiss: () -> Unit, onCreate: (EventFieldsState) -> Unit) {
+    var fields by remember {
+        mutableStateOf(
+            EventFieldsState(
+                name = "",
+                date = today(),
+                location = initialLocation,
+                mapUrl = initialMapUrl,
+                // The band's agenda template, to fill in now or later (VERSION_2 §4.3).
+                agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
+            ),
+        )
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.new_event)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.event_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                DateField(date, { date = it }, stringResource(Res.string.event_date))
-                OutlinedTextField(location, { location = it }, label = { Text(stringResource(Res.string.event_location)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                EventFields(fields) { fields = it }
                 Text(stringResource(Res.string.new_event_lineup_hint), style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank(), onClick = { onDismiss(); onCreate(name, date, location.ifBlank { null }) }) {
+            TextButton(enabled = fields.name.isNotBlank(), onClick = { onDismiss(); onCreate(fields) }) {
                 Text(stringResource(Res.string.create))
             }
         },

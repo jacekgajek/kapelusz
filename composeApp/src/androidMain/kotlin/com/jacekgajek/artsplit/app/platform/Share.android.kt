@@ -31,3 +31,14 @@ actual fun rememberCopy(): suspend (text: String) -> Boolean {
         }
     }
 }
+
+@Composable
+actual fun rememberPaste(): suspend () -> String? {
+    val context = LocalContext.current
+    return remember(context) {
+        {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString()
+        }
+    }
+}
