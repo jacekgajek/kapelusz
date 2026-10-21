@@ -414,9 +414,11 @@ Workflow:
 ### M5 — Extras
 - [ ] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
 - [ ] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
-- [ ] M5.3 Signed release APK to GitHub Releases + in-app update check
+- [ ] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
 - [ ] M5.4 Polish: empty states, error states, accessibility pass
 - [ ] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
+- [ ] M5.6 "Copy link" button next to Share on an invite
+- [ ] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
 
 ---
 
@@ -444,6 +446,7 @@ Workflow:
 | 2026-10-21 | Build time: CI builds the development web bundle (no wasm-opt). Production uses a single `wasm-opt -O2` pass instead of Kotlin's default 5×`-O3`/`--gufa`/`-Oz`: 10 s instead of 43 s locally, +15% compressed app wasm (~180 KB brotli; the 8 MB Skia wasm is unaffected). |
 | 2026-10-21 | M4: invite codes are stored server-side (`invites/{code}.json`, `bands/{id}/invites.json`), never in the band state that every member can read. Wrong codes count per user (10/hour) for both preview and accept. The web app sets `<base href="/">` so deep links like `/join/CODE` load the app. `assetlinks.json` is generated at deploy from the release keystore plus the optional `ANDROID_DEBUG_CERT_SHA256` variable. |
 | 2026-10-21 | M4 review: band-wide history is visible to every member (the audit trail of shared money; all underlying data is visible anyway). Invites are cancelled whenever their member's account link changes and only stand while their issuer is an active admin. Each user has 10 invite-code lookups per hour (a join uses two). History is served in pages of 100 pushes, newest first. |
+| 2026-10-21 | The APK is published on the website (`/download/art-split.apk`, `/download/version.json`) because the repository is private: bandmates could not download from its GitHub Releases. The release is still attached to a GitHub Release as a record. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
