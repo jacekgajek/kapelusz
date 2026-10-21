@@ -21,6 +21,9 @@ import com.jacekgajek.artsplit.app.ui.screens.HistoryLine
 import com.jacekgajek.artsplit.app.ui.screens.HistoryRow
 import com.jacekgajek.artsplit.app.ui.screens.historyMonth
 import com.jacekgajek.artsplit.app.ui.screens.toLines
+import com.jacekgajek.artsplit.ops.AddCost
+import com.jacekgajek.artsplit.ops.Operation
+import com.jacekgajek.artsplit.ops.UpdateCost
 import org.jetbrains.compose.resources.stringResource
 
 /** How far back the event history looks; older changes are in the band-wide history. */
@@ -39,9 +42,10 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     }
     LaunchedEffect(context.event.id) {
         runCatching {
-            (MONTHS - 1 downTo 0).flatMap { offset -> graph.api.history(context.band.id, historyMonth(offset)).entries }
+            // Newest month first; each page is newest first. The first page of each month is enough for one event.
+            (0 until MONTHS).flatMap { offset -> graph.api.history(context.band.id, historyMonth(offset)).entries }
         }.onSuccess { entries ->
-            lines = entries.flatMap { it.toLines() }.filter { it.envelope.op.eventId == context.event.id }.asReversed()
+            lines = entries.flatMap { it.toLines() }.filter { concernsEvent(it.envelope.op, context.event.id) }
         }.onFailure { failed = true }
     }
     val loaded = lines
@@ -53,4 +57,11 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
             else -> loaded.forEach { HistoryRow(context.band, it) }
         }
     }
+}
+
+/** Operations on the event itself, plus costs added or moved to it. */
+private fun concernsEvent(op: Operation, eventId: String): Boolean = when (op) {
+    is AddCost -> op.incurredForEventId == eventId
+    is UpdateCost -> op.incurredForEventId?.value == eventId
+    else -> op.eventId == eventId
 }

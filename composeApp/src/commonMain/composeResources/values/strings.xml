@@ -288,4 +288,8 @@
     <string name="history_unavailable">History needs a connection to the server.</string>
     <string name="previous_month">Previous month</string>
     <string name="next_month">Next month</string>
+    <string name="change_own_role_title">Change your own role?</string>
+    <string name="change_own_role_text">You will become %1$s and may lose access to this screen. Only another admin or the owner can give the role back.</string>
+    <string name="change_own_role_confirm">Change my role</string>
+    <string name="load_more">Load more</string>
 </resources>

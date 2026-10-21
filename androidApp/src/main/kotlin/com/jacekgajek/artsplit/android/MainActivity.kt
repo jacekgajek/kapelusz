@@ -42,7 +42,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AndroidGoogleAuth.activity = WeakReference(this)
-        takeJoinCode(intent)
+        // Only on a real launch: after a rotation Android re-delivers the same intent, which must not reopen a dismissed join.
+        if (savedInstanceState == null) takeJoinCode(intent)
         setContent {
             var loaded by remember { mutableStateOf(false) }
             LaunchedEffect(graph) {

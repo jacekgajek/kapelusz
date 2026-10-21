@@ -17,14 +17,24 @@ import com.jacekgajek.artsplit.app.data.IndexedDbStore
 import com.jacekgajek.artsplit.app.ui.screens.OtherTabScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
 import kotlinx.browser.window
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
 private enum class Phase { STARTING, OTHER_TAB, READY }
 
+private const val JOIN_CODE_KEY = "art-split-join-code"
+
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
     val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
-    takeJoinCodeFromUrl()?.let { graph.pendingJoinCode.value = it }
+    // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
+    // keeps it.
+    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.pendingJoinCode.value = it }
+    MainScope().launch {
+        graph.pendingJoinCode.collect { code ->
+            if (code == null) window.sessionStorage.removeItem(JOIN_CODE_KEY) else window.sessionStorage.setItem(JOIN_CODE_KEY, code)
+        }
+    }
     ComposeViewport {
         var phase by remember { mutableStateOf(Phase.STARTING) }
         val scope = rememberCoroutineScope()

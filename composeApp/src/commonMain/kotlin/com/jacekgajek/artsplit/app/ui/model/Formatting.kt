@@ -30,3 +30,13 @@ fun formatDate(date: LocalDate, language: String): String {
         "$day ${EN_MONTHS[date.month.ordinal]} ${date.year}"
     }
 }
+
+private val EN_MONTH_NAMES = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+private val PL_MONTH_NAMES = listOf("styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec", "lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień")
+
+/** `2026-10` as `October 2026` / `październik 2026`. */
+fun formatMonth(yearMonth: String, language: String): String {
+    val (year, month) = yearMonth.split('-').map { it.toInt() }
+    val names = if (language == "pl") PL_MONTH_NAMES else EN_MONTH_NAMES
+    return "${names[month - 1]} $year"
+}

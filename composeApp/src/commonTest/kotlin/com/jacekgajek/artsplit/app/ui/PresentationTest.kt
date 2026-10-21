@@ -5,6 +5,7 @@ import com.jacekgajek.artsplit.app.ui.model.MyNumber
 import com.jacekgajek.artsplit.app.ui.model.eventSummaries
 import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
+import com.jacekgajek.artsplit.app.ui.model.formatMonth
 import com.jacekgajek.artsplit.app.ui.model.initials
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.model.Band
@@ -36,6 +37,12 @@ class PresentationTest {
     fun formatsDatesPerLanguage() {
         assertEquals("13.09.2026", formatDate(LocalDate(2026, 9, 13), "pl"))
         assertEquals("03 Feb 2026", formatDate(LocalDate(2026, 2, 3), "en"))
+    }
+
+    @Test
+    fun formatsMonthsPerLanguage() {
+        assertEquals("October 2026", formatMonth("2026-10", "en"))
+        assertEquals("styczeń 2027", formatMonth("2027-01", "pl"))
     }
 
     @Test

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -52,6 +53,9 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.add_member
 import com.jacekgajek.artsplit.app.generated.archive
 import com.jacekgajek.artsplit.app.generated.archived_member
+import com.jacekgajek.artsplit.app.generated.change_own_role_confirm
+import com.jacekgajek.artsplit.app.generated.change_own_role_text
+import com.jacekgajek.artsplit.app.generated.change_own_role_title
 import com.jacekgajek.artsplit.app.generated.close
 import com.jacekgajek.artsplit.app.generated.create_invite
 import com.jacekgajek.artsplit.app.generated.invite_active_until
@@ -193,6 +197,8 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             graph = graph,
             band = band,
             member = member,
+            myUserId = state.userId,
+            invitesLoaded = invites != null,
             invite = invites?.firstOrNull { it.memberId == member.id },
             can = can,
             actions = actions,
@@ -211,6 +217,8 @@ private fun MemberDialog(
     graph: AppGraph,
     band: Band,
     member: Member,
+    myUserId: String,
+    invitesLoaded: Boolean,
     invite: InviteInfo?,
     can: Can,
     actions: Actions,
@@ -225,7 +233,17 @@ private fun MemberDialog(
     var message by remember { mutableStateOf<String?>(null) }
     var confirmUnlink by remember { mutableStateOf(false) }
     var confirmOwner by remember { mutableStateOf(false) }
+    var confirmOwnRole by remember { mutableStateOf<Role?>(null) }
     val isOwner = member.role == Role.OWNER
+    val isMe = member.userId == myUserId
+    // An invite created before the list has loaded would silently replace a code that may already have been shared.
+    var shownInviteKnown by remember(member.id) { mutableStateOf(invitesLoaded) }
+    LaunchedEffect(invitesLoaded, invite) {
+        if (invitesLoaded && !shownInviteKnown) {
+            shownInvite = invite
+            shownInviteKnown = true
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -240,7 +258,10 @@ private fun MemberDialog(
                 }
                 // Without an account the role only takes effect when they join, which the invite's role decides.
                 if (!isOwner && member.userId != null) {
-                    Dropdown(member.role, ASSIGNABLE_ROLES, { actions.run(SetMemberRole(member.id, it)) }, stringResource(Res.string.role)) { it.label() }
+                    Dropdown(member.role, ASSIGNABLE_ROLES, { role ->
+                        // Changing your own role can take away the rights you are using right now: ask first.
+                        if (isMe && role != member.role) confirmOwnRole = role else actions.run(SetMemberRole(member.id, role))
+                    }, stringResource(Res.string.role)) { it.label() }
                 }
                 if (member.userId == null && !member.archived) {
                     HorizontalDivider()
@@ -266,6 +287,8 @@ private fun MemberDialog(
                                 }
                             }
                         }
+                    } else if (!shownInviteKnown) {
+                        CircularProgressIndicator()
                     } else {
                         Text(stringResource(Res.string.invite_hint), style = MaterialTheme.typography.bodySmall)
                         Dropdown(inviteRole, ASSIGNABLE_ROLES, { inviteRole = it }, stringResource(Res.string.invite_role)) { it.label() }
@@ -278,7 +301,8 @@ private fun MemberDialog(
                         }) { Text(stringResource(Res.string.create_invite)) }
                     }
                 }
-                if (member.userId != null && !isOwner) {
+                // Unlinking your own account would lock you out of the band.
+                if (member.userId != null && !isOwner && !isMe) {
                     OutlinedButton(onClick = { confirmUnlink = true }) { Text(stringResource(Res.string.unlink)) }
                 }
                 if (can.transferOwnership() && member.userId != null && member.role == Role.ADMIN) {
@@ -302,6 +326,15 @@ private fun MemberDialog(
             confirmLabel = stringResource(Res.string.unlink),
             onConfirm = { actions.run(UnlinkUser(member.id)) },
             onDismiss = { confirmUnlink = false },
+        )
+    }
+    confirmOwnRole?.let { role ->
+        ConfirmDialog(
+            title = stringResource(Res.string.change_own_role_title),
+            text = stringResource(Res.string.change_own_role_text, role.label()),
+            confirmLabel = stringResource(Res.string.change_own_role_confirm),
+            onConfirm = { actions.run(SetMemberRole(member.id, role)) },
+            onDismiss = { confirmOwnRole = null },
         )
     }
     if (confirmOwner) {

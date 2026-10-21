@@ -19,11 +19,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,14 +38,17 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.history
 import com.jacekgajek.artsplit.app.generated.history_empty
 import com.jacekgajek.artsplit.app.generated.history_unavailable
+import com.jacekgajek.artsplit.app.generated.load_more
 import com.jacekgajek.artsplit.app.generated.next_month
 import com.jacekgajek.artsplit.app.generated.previous_month
 import com.jacekgajek.artsplit.app.ui.components.BackTopBar
 import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.model.describe
 import com.jacekgajek.artsplit.app.ui.model.formatDate
+import com.jacekgajek.artsplit.app.ui.model.formatMonth
 import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.ops.OpEnvelope
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
@@ -66,20 +71,33 @@ fun HistoryEntry.toLines(): List<HistoryLine> = ops.map { HistoryLine(this, it) 
 fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     var offset by remember { mutableStateOf(0) }
     var lines by remember { mutableStateOf<List<HistoryLine>?>(null) }
+    var next by remember { mutableStateOf<String?>(null) }
     var failed by remember { mutableStateOf(false) }
+    var loadingMore by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val month = historyMonth(offset)
     LaunchedEffect(state.band.id, month) {
         lines = null
+        next = null
         failed = false
         runCatching { graph.api.history(state.band.id, month) }
-            .onSuccess { response -> lines = response.entries.flatMap { it.toLines() }.asReversed() }
+            .onSuccess { response -> lines = response.entries.flatMap { it.toLines() }; next = response.next }
             .onFailure { failed = true }
+    }
+    val loadMore: () -> Unit = {
+        scope.launch {
+            loadingMore = true
+            runCatching { graph.api.history(state.band.id, month, next) }
+                .onSuccess { response -> lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next }
+                .onFailure { failed = true }
+            loadingMore = false
+        }
     }
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { offset++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month)) }
-                Text(month, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                Text(formatMonth(month, language), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 IconButton(onClick = { offset-- }, enabled = offset > 0) {
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
                 }
@@ -94,6 +112,11 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                     items(loaded, key = { it.envelope.opId }) { line ->
                         HistoryRow(state.band, line)
                         HorizontalDivider()
+                    }
+                    if (next != null) {
+                        item {
+                            TextButton(onClick = loadMore, enabled = !loadingMore) { Text(stringResource(Res.string.load_more)) }
+                        }
                     }
                 }
             }

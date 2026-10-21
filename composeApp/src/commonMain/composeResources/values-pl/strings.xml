@@ -288,4 +288,8 @@
     <string name="history_unavailable">Historia wymaga połączenia z serwerem.</string>
     <string name="previous_month">Poprzedni miesiąc</string>
     <string name="next_month">Następny miesiąc</string>
+    <string name="change_own_role_title">Zmienić własną rolę?</string>
+    <string name="change_own_role_text">Twoja rola zmieni się na: %1$s i możesz stracić dostęp do tego ekranu. Przywrócić ją może tylko inny administrator lub właściciel.</string>
+    <string name="change_own_role_confirm">Zmień moją rolę</string>
+    <string name="load_more">Pokaż więcej</string>
 </resources>

@@ -72,8 +72,9 @@ class ApiClient(
 
     suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
 
-    suspend fun history(bandId: Id, month: String): HistoryResponse =
-        call(HttpMethod.Get, "/bands/$bandId/log?month=$month", HistoryResponse.serializer())
+    /** One page of a month's history, newest first; [before] is the previous page's `next`. */
+    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryResponse =
+        call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), HistoryResponse.serializer())
 
     private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T =
         parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)
