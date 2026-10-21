@@ -529,7 +529,7 @@ class Api(
          * number not yet deployed would refuse every app, and during a deploy the server switches before the new web
          * app and APK are uploaded.
          */
-        const val MIN_APP_VERSION = 0
+        const val MIN_APP_VERSION = 11
 
         const val MAX_ATTEMPTS = 5
         const val MAX_OPS_PER_PUSH = 500
