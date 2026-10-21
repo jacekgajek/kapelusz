@@ -46,10 +46,17 @@ class BandRepositoryTest {
 
     @Test
     fun rejectedOperationsAreNotQueued() = runTest {
-        val repository = BandRepository(InMemoryStore(), this, ids())
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, ids())
         repository.createBand("The Band", "PLN", "Alice")
+        val before = (repository.state.value as BandState.Ready).band
         val rejection = repository.dispatch(SetRefund("missing", "cost", Money(1)))
         assertEquals(RejectionCode.NOT_FOUND, rejection?.code)
         testScheduler.advanceUntilIdle()
+
+        assertEquals(before, (repository.state.value as BandState.Ready).band)
+        val saved = ArtSplitJson.decodeFromString(LocalBand.serializer(), store.values.getValue(BandRepository.KEY))
+        assertEquals(emptyList(), saved.pending)
+        assertEquals(1L, saved.nextSeq)
     }
 }

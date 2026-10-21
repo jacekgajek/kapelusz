@@ -76,8 +76,7 @@ import com.jacekgajek.artsplit.app.ui.model.formatMoneyInput
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.auth.Permissions
 import com.jacekgajek.artsplit.domain.CostLedger
-import com.jacekgajek.artsplit.domain.EventStatus
-import com.jacekgajek.artsplit.domain.SettlementCalculator
+import com.jacekgajek.artsplit.domain.CostStatuses
 import com.jacekgajek.artsplit.model.Cost
 import com.jacekgajek.artsplit.model.CostCategory
 import com.jacekgajek.artsplit.model.Money
@@ -204,15 +203,15 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
 private fun RefundInfo(state: BandState.Ready, cost: Cost) {
     val band = state.band
     val lang = language
-    val refundedAt = band.events.mapNotNull { event -> event.refundOf(cost.id)?.let { event to it.amount } }
-        .map { (event, amount) -> Triple(event, amount, SettlementCalculator.settle(band, event).status == EventStatus.SETTLED) }
+    val statuses = remember(band) { CostStatuses(band) }
+    val refundedAt = band.events.mapNotNull { event -> event.refundOf(cost.id)?.let { Triple(event, it.amount, statuses.isSettled(event)) } }
     val fundRefund = band.fundEntries.filter { it.costId == cost.id }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row {
-                Text(stringResource(CostLedger.status(band, cost).labelRes()), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(statuses.status(cost).labelRes()), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "${formatMoney(CostLedger.paid(band, cost.id), band.currency, lang)} / ${formatMoney(cost.amount, band.currency, lang)}",
+                    "${formatMoney(statuses.paid(cost.id), band.currency, lang)} / ${formatMoney(cost.amount, band.currency, lang)}",
                     style = MaterialTheme.typography.titleSmall,
                 )
             }

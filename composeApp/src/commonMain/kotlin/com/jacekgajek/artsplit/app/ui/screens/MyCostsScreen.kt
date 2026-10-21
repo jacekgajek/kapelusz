@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,7 +55,7 @@ import com.jacekgajek.artsplit.app.ui.components.label
 import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
-import com.jacekgajek.artsplit.domain.CostLedger
+import com.jacekgajek.artsplit.domain.CostStatuses
 import com.jacekgajek.artsplit.domain.CostStatus
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.model.sumOfMoney
@@ -78,8 +79,9 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
     var everyone by rememberSaveable { mutableStateOf(false) }
     val showAll = isLead && everyone
     val mine = band.costs.filter { showAll || it.memberId == state.me?.id }.sortedByDescending { it.date }
-    val shown = mine.filter { filter == null || CostLedger.status(band, it) == filter }
-    val unpaid = mine.sumOfMoney { CostLedger.unpaid(band, it) }
+    val statuses = remember(band) { CostStatuses(band) }
+    val shown = mine.filter { filter == null || statuses.status(it) == filter }
+    val unpaid = mine.sumOfMoney { statuses.unpaid(it) }
 
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs), onSettings, onRoster) },
@@ -143,7 +145,7 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             MoneyText(cost.amount, band.currency, bold = true)
-                            Text(stringResource(CostLedger.status(band, cost).labelRes()), style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(statuses.status(cost).labelRes()), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }

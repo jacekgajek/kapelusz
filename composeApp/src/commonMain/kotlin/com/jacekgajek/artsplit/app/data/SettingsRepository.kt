@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 
 /** Per-device preferences. */
@@ -21,6 +23,7 @@ data class AppSettings(
 
 class SettingsRepository(private val store: KeyValueStore, private val scope: CoroutineScope) {
     private val _settings = MutableStateFlow(AppSettings())
+    private val writeLock = Mutex()
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     suspend fun load() {
@@ -31,7 +34,10 @@ class SettingsRepository(private val store: KeyValueStore, private val scope: Co
         val updated = transform(_settings.value)
         if (updated == _settings.value) return
         _settings.value = updated
-        scope.launch { store.write(KEY, ArtSplitJson.encodeToString(AppSettings.serializer(), updated)) }
+        // Writes run one at a time and always save the latest settings, so a slower earlier write never wins.
+        scope.launch {
+            writeLock.withLock { store.write(KEY, ArtSplitJson.encodeToString(AppSettings.serializer(), _settings.value)) }
+        }
     }
 
     companion object {

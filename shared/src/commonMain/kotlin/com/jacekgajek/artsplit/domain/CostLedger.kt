@@ -26,26 +26,15 @@ object CostLedger {
     /** Part of the cost not assigned to any refund yet. */
     fun outstanding(band: Band, cost: Cost): Money = cost.amount - refunded(band, cost.id)
 
-    /** Total actually paid back: refunds in settled events plus fund refunds. */
-    fun paid(band: Band, costId: Id): Money =
-        band.events
-            .filter { it.refundOf(costId) != null && SettlementCalculator.settle(band, it).status == EventStatus.SETTLED }
-            .sumOfMoney { it.refundOf(costId)!!.amount } + fundRefunds(band, costId)
+    /** Total actually paid back: refunds in settled events plus fund refunds. For many costs use [CostStatuses]. */
+    fun paid(band: Band, costId: Id): Money = CostStatuses(band).paid(costId)
 
     /** Part of the cost the owner has not been paid back yet. */
-    fun unpaid(band: Band, cost: Cost): Money = cost.amount - paid(band, cost.id)
+    fun unpaid(band: Band, cost: Cost): Money = CostStatuses(band).unpaid(cost)
 
-    fun status(band: Band, cost: Cost): CostStatus {
-        val paid = paid(band, cost.id)
-        return when {
-            paid >= cost.amount -> CostStatus.REFUNDED
-            paid.isPositive -> CostStatus.PARTLY_REFUNDED
-            refunded(band, cost.id).isPositive -> CostStatus.REFUND_PLANNED
-            else -> CostStatus.PENDING
-        }
-    }
+    fun status(band: Band, cost: Cost): CostStatus = CostStatuses(band).status(cost)
 
-    private fun fundRefunds(band: Band, costId: Id): Money = band.fundEntries.filter { it.costId == costId }.sumOfMoney { -it.amount }
+    internal fun fundRefunds(band: Band, costId: Id): Money = band.fundEntries.filter { it.costId == costId }.sumOfMoney { -it.amount }
 
     /** Costs may only be refunded at events their owner takes part in. */
     fun isRefundableAt(cost: Cost, event: Event): Boolean = event.participant(cost.memberId) != null
@@ -70,4 +59,32 @@ object CostLedger {
     fun isLockedForOwner(band: Band, cost: Cost): Boolean =
         band.events.any { it.refundOf(cost.id) != null && it.transfers.isNotEmpty() } ||
             band.fundEntries.any { it.costId == cost.id }
+}
+
+/**
+ * Paid amounts and statuses of costs for one band state. Which events are settled is computed once, so listing many
+ * costs does not recompute every event's settlement for every cost.
+ */
+class CostStatuses(private val band: Band) {
+    private val settledEventIds: Set<Id> by lazy {
+        band.events.filter { SettlementCalculator.settle(band, it).status == EventStatus.SETTLED }.map { it.id }.toSet()
+    }
+
+    fun isSettled(event: Event): Boolean = event.id in settledEventIds
+
+    fun paid(costId: Id): Money =
+        band.events.filter { it.id in settledEventIds }.sumOfMoney { it.refundOf(costId)?.amount ?: Money.ZERO } +
+            CostLedger.fundRefunds(band, costId)
+
+    fun unpaid(cost: Cost): Money = cost.amount - paid(cost.id)
+
+    fun status(cost: Cost): CostStatus {
+        val paid = paid(cost.id)
+        return when {
+            paid >= cost.amount -> CostStatus.REFUNDED
+            paid.isPositive -> CostStatus.PARTLY_REFUNDED
+            CostLedger.refunded(band, cost.id).isPositive -> CostStatus.REFUND_PLANNED
+            else -> CostStatus.PENDING
+        }
+    }
 }
