@@ -58,6 +58,8 @@ import com.jacekgajek.artsplit.app.generated.delete_cost_title
 import com.jacekgajek.artsplit.app.generated.description_optional
 import com.jacekgajek.artsplit.app.generated.edit_cost
 import com.jacekgajek.artsplit.app.generated.event_not_found
+import com.jacekgajek.artsplit.app.generated.paid_by
+import com.jacekgajek.artsplit.app.generated.paid_by_name
 import com.jacekgajek.artsplit.app.generated.save
 import com.jacekgajek.artsplit.app.ui.components.BackTopBar
 import com.jacekgajek.artsplit.app.ui.components.ConfirmDialog
@@ -78,6 +80,7 @@ import com.jacekgajek.artsplit.domain.EventStatus
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.Cost
 import com.jacekgajek.artsplit.model.CostCategory
+import com.jacekgajek.artsplit.model.Money
 import com.jacekgajek.artsplit.ops.AddCost
 import com.jacekgajek.artsplit.ops.Change
 import com.jacekgajek.artsplit.ops.DeleteCost
@@ -95,6 +98,7 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
     val lang = language
 
     var amount by remember { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
+    var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id) }
     var date by remember { mutableStateOf(existing?.date ?: today()) }
     var eventId by remember { mutableStateOf(existing?.eventId) }
     var category by remember { mutableStateOf(existing?.category) }
@@ -106,10 +110,12 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
     val actor = Actor.User(state.userId)
     val editable = existing == null || Permissions.isAllowed(band, actor, UpdateCost(existing.id))
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
-    val canSave = editable && parsed != null && state.me != null
+    // Leads may add costs for anyone; others only for themselves (the permission check decides).
+    val payers = band.members.filter { !it.archived && Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date)) }
+    val canSave = editable && parsed != null && paidBy != null
     fun save() {
         val ok = if (existing == null) {
-            actions.run(AddCost(newId(), state.me!!.id, parsed!!, date, eventId, category, description.ifBlank { null }))
+            actions.run(AddCost(newId(), paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
         } else {
             actions.run(
                 UpdateCost(
@@ -147,6 +153,15 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (existing != null) RefundInfo(state, existing)
+                when {
+                    existing == null && payers.size > 1 -> Dropdown(paidBy, payers.map { it.id }, { paidBy = it }, stringResource(Res.string.paid_by)) { id ->
+                        id?.let { band.member(it)?.name }.orEmpty()
+                    }
+                    existing != null && existing.memberId != state.me?.id -> Text(
+                        stringResource(Res.string.paid_by_name, band.member(existing.memberId)?.name.orEmpty()),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
                 if (!editable) Text(stringResource(Res.string.cost_locked), color = MaterialTheme.colorScheme.error)
                 MoneyField(amount, { if (editable) amount = it }, stringResource(Res.string.amount), Modifier.focusRequester(focus))
                 DateField(date, { if (editable) date = it }, stringResource(Res.string.cost_date))

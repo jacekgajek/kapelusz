@@ -152,4 +152,6 @@
     <string name="settle_part">Part…</string>
     <string name="settle_part_title">Settle part</string>
     <string name="settle_part_hint">Up to %1$s. The rest stays to be settled later.</string>
+    <string name="paid_by">Paid by</string>
+    <string name="paid_by_name">Paid by %1$s</string>
 </resources>

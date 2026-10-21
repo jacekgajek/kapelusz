@@ -152,4 +152,6 @@
     <string name="settle_part">Część…</string>
     <string name="settle_part_title">Rozlicz część</string>
     <string name="settle_part_hint">Maksymalnie %1$s. Reszta zostanie do rozliczenia później.</string>
+    <string name="paid_by">Kto zapłacił</string>
+    <string name="paid_by_name">Zapłacił(a): %1$s</string>
 </resources>
