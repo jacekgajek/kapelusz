@@ -7,7 +7,7 @@ import com.jacekgajek.artsplit.ops.OpEnvelope
 import com.jacekgajek.artsplit.ops.Rejection
 import kotlinx.serialization.Serializable
 
-/** Request and response bodies of the HTTP API (REFINED_PLAN §5.3), shared by the server and the apps. */
+/** Request and response bodies of the HTTP API (VERSION_1 §5.3), shared by the server and the apps. */
 
 @Serializable
 data class BandSummary(val id: Id, val name: String, val memberName: String, val role: Role)

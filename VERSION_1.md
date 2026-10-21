@@ -1,7 +1,11 @@
-# Art Split — Refined Plan
+# Art Split — Version 1
 
 A simple, CRM-style app for settling money between band members after concerts.
 It replaces the band's settlement spreadsheet; the cases from it live on as golden tests (§2.6).
+
+This document describes version 1 **as built** (milestones M0–M5 and the follow-ups in §7). It started as the refined
+plan; the decision log (§8) records where and why the result differs from the plan. Work beyond version 1 is planned
+in `VERSION_2.md`.
 
 Targets: **Android** and **Web (Compose/Wasm)**. The web app is fully featured and doubles as the iPhone/desktop client.
 UI languages: **Polish and English**, following the device language with a manual override in Settings. Code, identifiers and docs are in English.
@@ -21,8 +25,8 @@ UI languages: **Polish and English**, following the device language with a manua
 | **Cost** | Money a member spent on behalf of the band. It belongs to the **member**, not to an event. |
 | **Refund** | Part (or all) of a cost repaid out of a specific event's income. |
 | **Transfer** | Money handed from one party to another (participant ↔ participant, or ↔ band fund). |
-| **Band fund** | Shared band money ("Kasa zespołowa"), physically held by the **treasurer**. |
-| **Treasurer** | A band **setting**: which member holds the band fund. It is **not a role** and grants no permissions. |
+| **Band fund** | Shared band money ("Kasa zespołowa"), physically held by the **treasurer**. Optional: switched on by choosing a treasurer. |
+| **Treasurer** | A band **setting**: which member holds the band fund (shown in the app as "Band fund held by"). It is **not a role**; it only lets that member act for the band fund in transfers (§3). |
 
 ---
 
@@ -40,7 +44,7 @@ All money is stored as `Long` minor units (grosze). Never use floating point. Th
 - **Band fund amount** (`fundAmount`, may be negative):
   - Positive: taken off the top and handed to the treasurer.
   - Negative: the fund covers part of the event, paid out by the treasurer.
-  - Disabled until a treasurer is set.
+  - Available only while the band fund is on (a treasurer is chosen). The app asks for a direction (to / from the fund) and a positive amount, since phone amount keyboards often have no minus key.
 - **Refunds:** a list of *(costId, amount)*. Only costs of **participants of this event** may be refunded here.
 
 ### 2.2 Computation
@@ -96,7 +100,8 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 - **"Not yet handed over"** = Σ event `fundAmount` − Σ settled fund transfers.
 - The balance **may go negative** (the treasurer covered the difference); the UI shows it in red. Nothing blocks it.
 - **Manual entries:** description + signed amount (e.g. "Mic −400", "Refund Dave's train −322" linked to the cost). Lead+ only.
-- **The whole feature is disabled until an admin picks the treasurer.** Until then the UI shows "Admin must choose who holds the band fund", with a shortcut for admins.
+- **On/off:** the band fund is off until an admin switches it on in Settings and chooses who holds it. While it is off, the Band fund tab is hidden and events cannot set money aside.
+- **Turning it off** (`DisableBandFund`, admin+) is allowed only when the balance is 0 **and every event has handed over its fund amount**. This is checked per event, so one event owing 100 and another expecting 100 do not cancel out. Past transfers do not prevent it. Settled events stay settled; history and entries are kept, and choosing a holder turns the fund on again.
 
 ### 2.6 Golden tests
 Each case covers a **different behaviour**. Real cases come from the band's earlier settlement spreadsheets (anonymized); the synthetic ones cover edge cases the spreadsheets don't have.
@@ -130,7 +135,7 @@ Roles form **one cumulative axis**. Every user in a band is linked to a member a
 | Record/settle transfers **they send or receive**, "Hand over money" | – | ✔ | ✔ | ✔ | ✔ |
 | Create/edit/archive/delete events, participants, guests, shares, refunds, fund amount, fund entries | – | – | ✔ | ✔ | ✔ |
 | Edit anyone's costs/holdings, Settle / Settle All on any event | – | – | ✔ | ✔ | ✔ |
-| Edit roster, roles, treasurer, invites, unlink users | – | – | – | ✔ | ✔ |
+| Edit roster, roles, band name, band fund on/off and holder, invites, unlink users | – | – | – | ✔ | ✔ |
 | Delete band, transfer ownership | – | – | – | – | ✔ |
 
 - The **treasurer** counts as the band fund's party: a treasurer with the Member role may record and settle transfers to or from the band fund, like their own.
@@ -144,25 +149,29 @@ Roles form **one cumulative axis**. Every user in a band is linked to a member a
 ## 4. Screens and UX
 
 ### 4.1 Navigation
-Mobile uses a bottom nav and web uses a side rail. Tabs are shown only if the role can use them.
+Narrow screens (phones) use a bottom nav; wide screens (≥ 600 dp, e.g. the desktop web) use a side rail. Every member
+sees the same tabs; actions their role cannot perform are hidden.
 
 1. **Events** (home)
    - A **"Continue: <last edited event>"** card at the top, and a **"+ New event"** button (lead+).
    - Each row shows: name, date, location, participant avatars, status chip, and **your** number ("you get 129,60 zł" / "you hand over 451,60 zł").
-   - Filters: "Only my events", show archived.
-2. **My costs** (member+)
-   - Your costs with Pending / Partly / Refunded filters.
-   - A big **"+ Add cost"** button that opens a fast form: amount first, everything else optional, attachment from camera/gallery/file.
+   - Filters: "Only my events", show archived. An empty list says whether the filters hide everything or there are no events yet.
+2. **My costs**
+   - Your costs, filtered **Pending** (anything not fully refunded: pending, planned, partly refunded; the default) / **Refunded** / **All**.
+   - A big **"+ Add cost"** button (member+) that opens a fast form: amount first, everything else optional, attachments (§4.5).
    - Leads see a **"Paid by"** dropdown (default: themselves) to add a cost for another member.
-   - Leads can switch the list between **Mine** and **All members** (each row then shows who paid).
-3. **Settle** (member+)
+   - Leads can switch the list between **Mine** and **All members** (each row then shows who paid). Adding a cost for someone else switches to All members, so the new cost is visible.
+3. **Settle**
    - Every pending suggested transfer where you're sender or receiver, across events, each with **Settle**.
    - **"Hand over money"**: pick a party; the amount defaults to your whole balance in that event and can be edited.
    - For leads, a second section lists all `OPEN`/`LOSS` events.
-4. **Band fund** (everyone sees it, lead+ edits it).
-5. **⚙ Cog** in the top bar: band switcher, Settings (language), profile, sign-out, and **Admin** (admin+).
+4. **Band fund**, shown only while the band fund is on: balance (red if negative), "not handed over yet", the holder, money from events (handed over or waiting), and other entries. Everyone sees it; lead+ adds, edits and removes entries, including refunding a pending cost from the fund.
+5. **⚙ Cog** in the top bar: band switcher, New band, Join a band, Band members (roster), History, Settings.
+   - **Settings:** language (device / English / Polski); for admins the band name and the band fund switch with its holder; for the owner a red **Delete band** button (§4.4); the account and sign-out.
 
-The viewer sees Events and Band fund.
+A sync indicator next to the cog shows offline / syncing / errors; when the server needs a new sign-in it opens a "Sign in again" dialog.
+
+**Website banner:** the web app shows a quiet strip above the tab bar suggesting the Android app (it links to the APK, §6.2). It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac), after "Don't show again", and while no APK is published. In the Android app the same strip offers an update when a newer APK is published.
 
 ### 4.2 Event screen
 - **Header:** name, date, location, notes, status chip.
@@ -170,7 +179,7 @@ The viewer sees Events and Band fund.
   - Removing a participant who has holdings, transfers or refunds is blocked ("move or delete their entries first").
 - **Collected money:** a list of holdings with + Add.
 - **Refunds:** included costs, plus "Pending from earlier" (§2.4).
-- **Band fund amount** (if a treasurer is set).
+- **Band fund amount** (while the band fund is on): "To band fund" / "From band fund" in the totals, edited with a direction toggle (§2.1).
 - **Summary table:** each participant's share, refunds, payout, current balance, delta, and a per-member **Settle** button.
 - **Suggested transfers** with **Settle** each, plus **Settle All**. Disabled while `LOSS`.
 - **Recorded transfers.**
@@ -183,31 +192,38 @@ The viewer sees Events and Band fund.
   - Created on an *unlinked* member, with a chosen role (default Member).
   - Produces a **6-character code** from the alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`. It is valid for **72 h** and single use.
   - A new code for the same member revokes the old one. Admins see active codes and can revoke them.
-  - The share sheet sends: "Join <Band> in Art Split: code ABC123 — https://artsplit.jacekgajek.com/join/ABC123".
+  - The share sheet sends: "Join <Band> in Art Split: code ABC123 — https://artsplit.jacekgajek.com/join/ABC123". **Copy link** next to Share copies just the link.
 - **Join link** behaviour:
   - Android with the app installed: an App Link opens the app.
-  - Otherwise: the web app opens, signs in with Google, and joins in the browser. The page offers "Get the Android app" (latest APK).
+  - Otherwise: the web app opens, signs in with Google, and joins in the browser. Its banner suggests the Android app (§4.1).
   - Typing the code manually also works.
 - The confirmation screen reads: "You'll join *Band* as *Alice* (Member)".
 - **Brute-force protection:** 10 failed code attempts per user per hour, plus API throttling.
 - An admin can **unlink** a user from a member (e.g. lost account), so the member can be invited again.
 
 ### 4.4 Admin
-- **Roster:** add, rename, reorder (the order is used for tie-breaking), archive. Hard delete is allowed only if the member never took part in anything.
-- **Roles, invites, unlink, treasurer, transfer ownership** (owner only).
+- **Roster** (Band members): add, rename, reorder (the order is used for tie-breaking), archive. Hard delete is allowed only if the member never took part in anything.
+- **Roles** are picked with radio buttons that explain what each role allows; changing your own role asks for confirmation. **Invites, unlink** (not your own account), **band name, band fund on/off and holder**; **transfer ownership** (owner only).
+- **Delete band** (owner only, online only): a red button in Settings. The confirmation lists everything that is deleted for everyone, how many other members lose access, that unsynced changes are lost, and that it cannot be undone; the band name must be typed to enable the red **Delete forever** button. Other members' apps then say the band was deleted and remove it. The server keeps deleted objects for 30 days (bucket versioning), so a mistake can still be undone by hand.
 - The band-wide **History** (cog menu) is visible to every member, like the finances it records.
 
 ### 4.5 Attachments
-- Up to 5 per cost, images and/or PDFs.
-- **Images** are compressed on the device: longest edge 1600 px, JPEG quality ~80, EXIF/GPS stripped.
-- **PDFs** are uploaded as-is, max 10 MB, and open in the system viewer or a new browser tab.
-- Uploads go through **presigned PUT URLs** in the background. The file is stored locally first and shows an "uploading" indicator until it's sent.
-- Anyone who can see the cost can see its attachments. Deletion removes the S3 object; bucket versioning keeps it for 30 days.
+- Up to 5 per cost, images and/or PDFs: **Add photo or PDF** (gallery or files) everywhere, **Take photo** on Android; on phones the browser's file chooser offers the camera itself.
+- **Images** are compressed on the device: orientation applied, longest edge 1600 px, JPEG quality ~80, EXIF/GPS dropped; at most 3 MB after compression.
+- **PDFs** are uploaded as-is, max 10 MB.
+- **Offline first:** the attachment is added like any change (`AddAttachment`, synced as an operation); the file waits on the device, marked "uploading", until the server has the attachment. The sync then uploads it through a **presigned PUT URL** (§5.3) and drops the local copy. Files picked while adding a new cost are attached when the cost is saved.
+- Tapping an attachment opens it in the browser or system viewer through a short-lived presigned GET URL. A file still waiting for upload cannot be opened yet.
+- Anyone who can see the cost can see its attachments. Removing an attachment or deleting its cost deletes the file; bucket versioning keeps it for 30 days.
 
 ### 4.6 History (audit log)
 - Every accepted operation is appended server-side to the band's log.
-- It is shown as human-readable entries ("Alice recorded transfer Dave → Bob 129,60 zł · 2 h ago") per event and band-wide.
+- It is shown as human-readable entries ("Alice recorded transfer Dave → Bob 129,60 zł · 2 h ago") per event and band-wide, in pages of 100 pushes, newest first.
 - Read-only. No undo in v1.
+
+### 4.7 Web addresses and accessibility
+- The web app keeps the screen in the address: `#events`, `#costs`, `#settle`, `#fund`, `#event/<id>`, `#cost?costId=<id>`, `#settings`, `#members`, `#history`, `#new-band`. Back/forward work, and a reload or a link opens the same screen. Unknown addresses open the event list.
+- Only one browser tab can use the app at a time (Web Locks); another tab offers to take over.
+- Screen readers hear transfers as one phrase ("Bob to Alice"), avatars by name, section titles as headings, and status labels as text (not as buttons).
 
 ---
 
@@ -217,7 +233,7 @@ The viewer sees Events and Band fund.
 ┌──────────────┐  ops batch / state   ┌─────────────────────┐   JSON    ┌──────────────────────────┐
 │ Android app  │ ───────────────────► │ API Gateway HTTP API │ ────────► │ Lambda art-split-api     │
 │ Web (Wasm)   │ ◄─────────────────── │ (throttled)          │           │ JVM21 arm64 SnapStart    │
-└──────┬───────┘  Google ID token     └─────────────────────┘           │ :shared reducer+perms    │
+└──────┬───────┘  session token       └─────────────────────┘           │ :shared reducer+perms    │
        │                                                                 └────────────┬─────────────┘
        │ presigned PUT/GET (attachments)                                              │
        └─────────────────────────────► S3 jacekgajek-art-split-data ◄─────────────────┘
@@ -235,10 +251,11 @@ shared/      KMP (android, wasmJs, jvm). commonMain:
 composeApp/  KMP Compose Multiplatform library (android, wasmJs executable), commonMain UI,
              PL/EN string resources, navigation, view models, sync engine, local store
 androidApp/  Android application shell (MainActivity, manifest, signing) depending on composeApp
-server/      JVM Lambda: Handler, GoogleAuth, Storage, Routes (no web framework)
+server/      JVM Lambda (no web framework): Handler (API Gateway + SnapStart priming), Api (routes), Auth
+             (Google tokens), Sessions (Art Split session tokens), BlobStore (S3 with conditional writes, presigning)
 ```
 
-**Libraries:** Compose Multiplatform, Navigation Compose, lifecycle-viewmodel, kotlinx.serialization, kotlinx.datetime, Ktor client, and Coil 3 (images). Server: AWS SDK for Java v2 (`s3` only, `UrlConnectionHttpClient`), nimbus-jose-jwt. There is no DI framework; wiring is done by hand. Use the latest stable versions at implementation time.
+**Libraries:** Compose Multiplatform (Material 3, extended icons, resources), Navigation Compose, kotlinx.serialization, kotlinx.datetime, kotlinx.coroutines, and Ktor client (Android and JS engines). Android also uses Credential Manager + Google ID, activity-compose and ExifInterface. Server: AWS SDK for Java v2 (`s3` only, `UrlConnectionHttpClient`), nimbus-jose-jwt, CRaC. There is no DI framework and no view models: wiring is done by hand (`AppGraph`). Versions are pinned in `gradle/libs.versions.toml` (see §8 for the IDE constraints).
 
 **Web target:** `wasmJs`. It needs WasmGC browsers: Chrome/Edge 119+, Firefox 120+, Safari 18.2+.
 
@@ -254,11 +271,13 @@ server/      JVM Lambda: Handler, GoogleAuth, Storage, Routes (no web framework)
   4. Append accepted ops to the log.
   5. Return the new state, version, and a list of rejected ops with reasons.
 - **Rejected ops** are dropped on the client, with a snackbar: "Your change to X was rejected: <reason>".
-- **Pull:** on app open, after every push, and every 30 s while in the foreground. `If-None-Match` → `304`.
+- **Pull:** on app open, after every push, and every 30 s while in the foreground (Android syncs only while visible). `If-None-Match` → `304`. Offline, it retries with backoff (5 s doubling up to 5 min).
+- **Attachments:** after a band's push, the sync uploads the files of attachments the server now has (§4.5).
+- **Bands** are synced independently, so a problem with one never blocks the others. A band the server says is gone (`band_not_found`, or `band_deleted` after its owner deleted it) is removed from the device, with a message; unsent changes of a band the user was removed from are kept as a backup.
 - **Conflicts:** last write wins per field/entity, in server-received order. There is no other conflict resolution.
 
 ### 5.3 API
-All endpoints require `Authorization: Bearer <Google ID token>`. The server verifies the signature (Google JWKS, cached), `iss`, `exp`, `email_verified`, and that `aud ∈ GOOGLE_CLIENT_IDS`. The user key is `sub`.
+All endpoints require `Authorization: Bearer <token>`: an **Art Split session token** (`as1.…`, from `POST /session`) or a **Google ID token**. For Google tokens the server verifies the signature (Google JWKS, cached), `iss`, `exp`, `email_verified`, and that `aud ∈ GOOGLE_CLIENT_IDS`; session tokens are HMAC-signed by the server and expire after 30 days. The user key is Google's `sub` either way. CORS preflights are answered without authentication.
 
 | Method & path | Purpose |
 |---|---|
@@ -281,14 +300,20 @@ Band management ops (roles, treasurer, unlink, ownership) go through the same `/
 users/{googleSub}.json                    profile + bandIds
 bands/{bandId}/state.json                 full band state incl. lastSeq per clientId
 bands/{bandId}/log/{yyyy-MM}/{millis}-{uuid}.json   one object per accepted push
-bands/{bandId}/attachments/{uuid}.{jpg|pdf}
+bands/{bandId}/attachments/{attachmentId}.{jpg|pdf}
+bands/{bandId}/invites.json               the band's active invite codes (admins only)
+bands/{bandId}/deleted.json               marker left by deleting the band: name, who deleted it, former members
 invites/{code}.json                       bandId, memberId, role, expiresAt, createdBy
+users/{googleSub}-join-attempts.json      invite-code lookups in the current hour (limit 10)
+server/session-key.json                   signing key of session tokens, created on first use
 ```
 
 ### 5.5 Auth on clients
-- **Android:** Credential Manager + Google ID (`GetGoogleIdOption` with `serverClientId` = web client ID) gives an ID token. The client re-requests it silently (auto-select) when it is about to expire.
-- **Web:** Google Identity Services (One Tap / button) gives an ID token, refreshed via auto-select.
-- ID tokens live about 1 h. On a `401` the client refreshes once and retries.
+- **Sign-in** gives a Google ID token: on **Android** via Credential Manager + Google ID (`serverClientId` = web client ID), on the **web** via Google Identity Services (the official button).
+- The app trades it for an **Art Split session** (`POST /session`, 30 days) and sends that with every request. Once a session is 10 days old, the app renews it with the session itself, so Google is asked only at sign-in or after a month unused. Renewing Google's one-hour token on Android can show the account picker, which is why the app does not rely on it.
+- When there is no usable session (an older server, offline), the app falls back to the Google token. A silent Google renewal is tried at most once every 15 minutes, and a cached token handed back by Google does not count as renewed.
+- On a `401` the client refreshes once and retries; if that fails too, sync waits in "Sign in again" (same account only) instead of retrying.
+- Each device's data is stored per user, so another account signed in on the same device never sees it.
 
 ### 5.6 Lambda performance
 - JVM 21 with **SnapStart** on published versions, called via the `live` alias.
@@ -310,23 +335,24 @@ invites/{code}.json                       bandId, memberId, role, expiresAt, cre
   - IAM role scoped to the data bucket; log group with 14 d retention.
   - Env: `DATA_BUCKET`, `GOOGLE_CLIENT_IDS`, `JAVA_TOOL_OPTIONS`.
 - API Gateway **HTTP API** → alias `live`. It has CORS for the web origin and dev origin, and throttling (burst 50, rate 20/s).
-- GitHub **OIDC provider** + role `art-split-github-deploy`. It trusts only `repo:jacekgajek/band_settlement:ref:refs/heads/main` and may only update/publish the Lambda, move the alias, write the web bucket, and invalidate CloudFront.
+- GitHub **OIDC provider** + role `art-split-github-deploy`. It trusts only the repository's `main` branch (both the name-based subject `repo:jacekgajek/band_settlement:ref:refs/heads/main` and the id-based one GitHub may send) and may only update/publish the Lambda, move the alias, write the web bucket, and invalidate CloudFront.
 - **Outputs:** `art_split_deploy_role_arn`, `art_split_api_url`, `art_split_web_bucket`, `art_split_cloudfront_distribution_id`, `art_split_web_url`.
 
 ### 6.2 GitHub Actions
-- **`ci.yml`** (PRs and main): `./gradlew check` (shared tests on JVM + wasmJs, server tests, Android lint/unit tests), plus builds of the Android debug APK and the wasm distribution.
-- **`deploy.yml`** (push to `main`, after CI passes):
-  1. `./gradlew :server:shadowJar :composeApp:wasmJsBrowserDistribution :composeApp:assembleRelease`
-  2. `aws-actions/configure-aws-credentials` using OIDC (`role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}`).
-  3. **API:** `update-function-code` → `wait function-updated` → `publish-version` (SnapStart snapshot) → `update-alias live`. Rollback = move the alias back.
-  4. **Web:**
-     - `aws s3 sync … --delete` with `Cache-Control: no-cache` (index.html, composeApp.js and resources have fixed names)
-     - `*.wasm` (content-hashed names) with `--content-type application/wasm` and an immutable one-year cache
-     - upload `/.well-known/assetlinks.json`
-     - invalidate `/index.html`, `/.well-known/*`
-  5. **Android:** a signed release APK published to a GitHub Release (tag `v<versionName>`). The web join page links to `releases/latest`.
-- **`scripts/deploy.sh`:** the same steps, using a local AWS profile.
-- **Android updates:** on start, the app checks the GitHub Releases API for the latest tag. If it is newer, it shows "New version available → Download". The Play Store (closed testing) may come later.
+- **`ci.yml`** (PRs and pushes to main): `./gradlew check` (shared tests on JVM, server tests, app tests as Android host tests), plus builds of the Android debug **and release** APK (the release runs R8, which deploy relies on), the development web bundle (no wasm-opt) and the server jar.
+- **`deploy.yml`** (runs after CI succeeds on a push to `main`, and deploys exactly the commit CI tested):
+  1. AWS credentials through OIDC (`role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}`).
+  2. **Fingerprints** of the release signing certificate (from the keystore secret) plus the optional debug one, for Android App Links. On failure it prints keytool's error, the keystore's aliases and the decoded keystore size.
+  3. `scripts/deploy.sh`, with the keystore and `ARTSPLIT_VERSION_CODE` = the Deploy run number:
+     - builds `:server:shadowJar`, `:composeApp:wasmJsBrowserDistribution` (single `wasm-opt -O2` pass) and `:androidApp:assembleRelease` (R8, signed);
+     - **API:** `update-function-code` → `wait function-updated` → `publish-version` (SnapStart snapshot) → `update-alias live`. Rollback = move the alias back;
+     - **Web:** generates `/.well-known/assetlinks.json`, uploads new `*.wasm` (content-hashed names, immutable one-year cache) first, then everything else with `Cache-Control: no-cache`, then deletes old wasm files, so a page loaded mid-deploy never points at a missing file. `download/` is never deleted by the sync;
+     - **APK:** uploads `/download/art-split.apk`, then `/download/version.json` (`versionCode`, `versionName`);
+     - invalidates CloudFront `/*`.
+  4. **GitHub Release** `build-N` with the APK attached, as a record (the repository is private, so bandmates download from the website).
+- **`scripts/deploy.sh`** runs the same steps locally with an AWS profile. Without `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ARTSPLIT_VERSION_CODE` it skips the APK and says so. A local version code must not exceed CI's next run number, or phones would not accept CI's later builds as updates.
+- **Versions:** the version code is the deploy run number; the version name is `artsplit.versionName` in `gradle.properties`, bumped by hand.
+- **Android updates:** on each fresh start, release builds read `/download/version.json`. If the published build is newer, the app shows "A new version of Art Split is available · Update", which downloads the APK in the browser; the user installs it. Dismissing hides that version only. It is not silent: that would need the Play Store.
 
 ### 6.3 Secrets and variables to configure (Jacek)
 Set them in Repo → Settings → Secrets and variables → Actions, or with `gh secret set` / `gh variable set`.
@@ -339,10 +365,11 @@ Set them in Repo → Settings → Secrets and variables → Actions, or with `gh
 | `WEB_BUCKET` | Variable | `terraform output art_split_web_bucket` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Variable | `terraform output art_split_cloudfront_distribution_id` |
 | `GOOGLE_WEB_CLIENT_ID` | Variable | Google Cloud Console → APIs & Services → Credentials → OAuth client "Web application". JS origins: `https://artsplit.jacekgajek.com`, `http://localhost:8080` |
-| `ANDROID_KEYSTORE_BASE64` | Secret | `keytool -genkeypair -v -keystore artsplit.jks -alias artsplit -keyalg RSA -keysize 4096 -validity 10000`, then `base64 -w0 artsplit.jks`. **Back up the .jks.** |
+| `ANDROID_KEYSTORE_BASE64` | Secret | `keytool -genkeypair -v -keystore artsplit.jks -alias artsplit -keyalg RSA -keysize 4096 -validity 10000`, then set it straight from the file: `gh secret set ANDROID_KEYSTORE_BASE64 < <(base64 -w0 artsplit.jks)` (a pasted value can get truncated; keytool then reports `EOFException`). **Back up the .jks** (it is git-ignored in the repo folder). |
 | `ANDROID_KEYSTORE_PASSWORD` | Secret | from keytool |
 | `ANDROID_KEY_ALIAS` | Variable | `artsplit` |
-| `ANDROID_KEY_PASSWORD` | Secret | from keytool |
+| `ANDROID_KEY_PASSWORD` | Secret | from keytool; optional when it equals the keystore password |
+| `ANDROID_DEBUG_CERT_SHA256` | Variable (optional) | SHA-256 of the debug keystore, so App Links also open debug builds |
 
 **Google sign-in setup (one-time, free, ~15 min, no billing account needed):**
 1. Open https://console.cloud.google.com, sign in with your normal Google account, and accept the terms.
@@ -422,6 +449,15 @@ Workflow:
 - [x] M5.6 "Copy link" button next to Share on an invite
 - [x] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
 
+### After M5 (still version 1)
+- [x] Coarser cost filter (Pending / Refunded / All, default Pending); switch to All members after adding a cost for someone else
+- [x] Fix: event fund amount edited with a direction toggle instead of a minus sign
+- [x] Fix: Google account picker popping up during syncs on Android; then Art Split server sessions (§5.5)
+- [x] Fix: a waiting attachment file was discarded on a generic 404 (older server)
+- [x] Short, readable web addresses (§4.7)
+- [x] Explicit band fund on/off switch (§2.5)
+- [x] Delete band (owner, §4.4)
+
 ---
 
 ## 8. Decision log
@@ -453,9 +489,11 @@ Workflow:
 | 2026-10-21 | M5.7: the website shows a quiet strip above the tab bar suggesting the Android app. It is hidden on iPhone/iPad (including iPadOS, which reports itself as a Mac with touch), after "Don't show again" (localStorage), and while `/download/version.json` is missing, so it never links to an unpublished APK. |
 | 2026-10-21 | M5.3: every deploy builds the release APK (R8-shrunk, about 2.6 MB), signed with the keystore secrets. Its version code is the deploy run number; the version name is `artsplit.versionName` in gradle.properties, bumped by hand. The deploy uploads the APK before `version.json`, and the web sync never deletes `download/`. Each deploy also creates a GitHub Release `build-N`. The app checks `version.json` once per launch and offers an update (not in debug builds); dismissing it hides that version only. CI builds the unsigned release too, so R8 problems fail before merge. |
 | 2026-10-21 | M5.2: the client chooses attachment ids, so attaching works offline: `AddAttachment` syncs like any change, and the file waits on the device (base64, per user) until the server has the attachment, then goes to a 15-minute presigned PUT. That URL is signed for the exact size and content type and only creates the object (`If-None-Match: *`), so a file can never be replaced. Any non-viewer member may upload a listed attachment, so an upload still finishes if a refund locks the cost meanwhile. Limits: photos 3 MB after compression, PDFs 10 MB. Removing an attachment or deleting its cost deletes the file. Files open through a presigned GET; on the web the tab opens at click time so popup blockers allow it. A file still waiting for upload cannot be opened yet. |
-| 2026-10-21 | Server sessions: the apps trade the Google ID token for an Art Split session token at sign-in (`POST /session`, HMAC-SHA256, 30 days) and renew it with itself once 10 days old, so Google is asked only when signing in or after a month unused. Renewing Google\'s one-hour token on Android can show the account picker, which made it pop up during syncs. The signing key is created on first use in the data bucket (`server/session-key.json`), so no infrastructure change is needed. The server still accepts Google tokens directly, and the apps fall back to them while `/session` is unavailable. Signing out drops the session on the device; tokens are not revoked server-side. |
+| 2026-10-21 | Server sessions: the apps trade the Google ID token for an Art Split session token at sign-in (`POST /session`, HMAC-SHA256, 30 days) and renew it with itself once 10 days old, so Google is asked only when signing in or after a month unused. Renewing Google's one-hour token on Android can show the account picker, which made it pop up during syncs. The signing key is created on first use in the data bucket (`server/session-key.json`), so no infrastructure change is needed. The server still accepts Google tokens directly, and the apps fall back to them while `/session` is unavailable. Signing out drops the session on the device; tokens are not revoked server-side. |
 | 2026-10-21 | The band fund has an explicit on/off switch next to its holder (admins). It can be turned off (`DisableBandFund`) only when it is empty and every event has handed over its fund amount; that is checked per event, so amounts owed by different events do not cancel out. Past transfers do not prevent it. A settled event stays settled after the fund is off: "choose a holder" only applies while fund money is still to move. Choosing a holder turns it on again, with its history intact. |
 | 2026-10-21 | Deleting a band: the owner only, online only, from a red button in Settings. The confirmation lists what is lost and how many members lose access, and requires typing the band name. The server deletes the state first (so concurrent pushes fail), then the members' band lists, invites, history and attachment files. A marker `bands/{id}/deleted.json` lets former members be told "was deleted" (others get the usual not-found). Bucket versioning keeps everything for 30 days, so a mistake can still be undone by hand. Not an operation: it cannot be queued offline. |
 
+| 2026-10-21 | Version 1 finalized: `REFINED_PLAN.md` became `VERSION_1.md` and describes the app as built. Further work goes to `VERSION_2.md`. |
+
 ## 9. Out of scope (v1)
-Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
+Multi-currency, push notifications, real-time sync, undo, Play Store (and with it silent auto-updates), iOS native app, spreadsheet import, refund percentages, PDF/CSV export, server-side revocation of sessions.

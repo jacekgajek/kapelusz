@@ -27,7 +27,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Golden cases from REFINED_PLAN §2.6, based on the (anonymized) spreadsheets. */
+/** Golden cases from VERSION_1 §2.6, based on the (anonymized) spreadsheets. */
 class GoldenTest {
 
     private fun firstBand() = Scenario("Alice", "Bob", "Carol", "Dave", "Eve", "Frank")

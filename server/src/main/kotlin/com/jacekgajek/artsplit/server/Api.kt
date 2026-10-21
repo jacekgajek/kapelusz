@@ -60,7 +60,7 @@ data class StoredInvite(val info: InviteInfo, val createdBy: String)
 private class ApiError(val status: Int, val code: String, message: String) : RuntimeException(message)
 
 /**
- * The HTTP API (REFINED_PLAN §5.3). Every operation goes through the shared [Engine], i.e. the same permission
+ * The HTTP API (VERSION_1 §5.3). Every operation goes through the shared [Engine], i.e. the same permission
  * checks and reducer the apps run, so clients cannot bypass the role rules.
  */
 class Api(
