@@ -370,9 +370,9 @@ Workflow:
 
 ### M0 — Infrastructure (applied by Jacek)
 - [x] M0.1 Write `my-aws/terraform/art_split.tf` (+ `archive` provider), passing `terraform fmt` and `validate`
-- [ ] M0.2 Jacek: `terraform init -upgrade && terraform plan && terraform apply` in `my-aws/terraform`
-- [ ] M0.3 Jacek: Google sign-in setup (§6.3: project, consent screen, web + 2 Android clients), put the web client ID into `art_split_google_client_ids`, re-apply
-- [ ] M0.4 Jacek: generate the keystore and set the GitHub secrets/variables (§6.3)
+- [x] M0.2 Jacek: `terraform init -upgrade && terraform plan && terraform apply` in `my-aws/terraform`
+- [x] M0.3 Jacek: Google sign-in setup (§6.3: project, consent screen, web + 2 Android clients), put the web client ID into `art_split_google_client_ids`, re-apply
+- [x] M0.4 Jacek: generate the keystore and set the GitHub secrets/variables (§6.3)
 
 ### M1 — Domain core (`:shared`)
 - [x] M1.1 Gradle KMP skeleton (`shared`, `composeApp`, `androidApp`, `server`), version catalog, `ci.yml`
