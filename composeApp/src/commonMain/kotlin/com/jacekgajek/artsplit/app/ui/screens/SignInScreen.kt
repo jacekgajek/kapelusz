@@ -24,6 +24,7 @@ import com.jacekgajek.artsplit.app.generated.sign_in_failed
 import com.jacekgajek.artsplit.app.generated.sign_in_intro
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import com.jacekgajek.artsplit.app.ui.components.VersionLabel
 
 @Composable
 fun SignInScreen(onIdToken: suspend (String) -> Unit) {
@@ -41,5 +42,6 @@ fun SignInScreen(onIdToken: suspend (String) -> Unit) {
             )
             error?.let { Text(stringResource(Res.string.sign_in_failed, it), color = MaterialTheme.colorScheme.error) }
         }
+        VersionLabel(Modifier.align(Alignment.BottomEnd))
     }
 }

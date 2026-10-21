@@ -30,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jacekgajek.artsplit.app.AppConfig
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -287,4 +288,15 @@ fun EditButton(onClick: () -> Unit) {
 @Composable
 fun RemoveButton(onClick: () -> Unit) {
     IconButton(onClick = onClick) { Icon(Icons.Default.Delete, stringResource(Res.string.remove)) }
+}
+
+/** The app version in a corner (sign-in screen, Settings), so it is easy to tell which build is running. */
+@Composable
+fun VersionLabel(modifier: Modifier = Modifier) {
+    Text(
+        AppConfig.VERSION_LABEL,
+        modifier,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+    )
 }
