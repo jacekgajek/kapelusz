@@ -375,7 +375,6 @@
     <string name="delete_band_failed">The band was not deleted. Check your connection and try again.</string>
     <string name="updates_title">App updates</string>
     <string name="updates_auto">Install updates automatically</string>
-    <string name="updates_version">Version %1$s</string>
     <string name="updates_check_now">Check now</string>
     <string name="updates_checking">Checking for updates…</string>
     <string name="updates_up_to_date">Art Split is up to date.</string>
@@ -386,6 +385,9 @@
     <string name="updates_allow">Allow</string>
     <string name="updates_needs_confirmation">Art Split %1$s is ready to install.</string>
     <string name="updates_install">Install</string>
-    <string name="updates_failed">Could not check for updates. It tries again later.</string>
+    <string name="updates_failed">Could not check for updates. Art Split will try again later.</string>
     <string name="updates_unavailable">Debug builds do not update themselves.</string>
+    <string name="updates_installing">Installing %1$s… The app restarts when it is done.</string>
+    <string name="updates_declined">You did not install %1$s. It is not offered again automatically.</string>
+    <string name="updates_install_failed">Android could not install %1$s.</string>
 </resources>

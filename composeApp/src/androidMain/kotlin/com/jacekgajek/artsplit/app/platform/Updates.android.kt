@@ -15,7 +15,7 @@ actual fun rememberUpdateControls(): UpdateControls? {
 
             override fun checkNow() = Updater.launch { Updater.checkAndDownload(context) }
 
-            override fun installNow() = Updater.launch { Updater.checkAndDownload(context, installNow = true) }
+            override fun installNow() = Updater.installNow(context)
 
             override fun openInstallPermission() = Updater.openInstallPermission(context)
 

@@ -54,11 +54,12 @@ import com.jacekgajek.artsplit.app.ui.components.VersionLabel
 import com.jacekgajek.artsplit.app.platform.UpdateControls
 import com.jacekgajek.artsplit.app.platform.UpdateStatus
 import com.jacekgajek.artsplit.app.platform.rememberUpdateControls
-import com.jacekgajek.artsplit.app.AppConfig
 import androidx.compose.runtime.collectAsState
 import com.jacekgajek.artsplit.app.generated.updates_title
 import com.jacekgajek.artsplit.app.generated.updates_auto
-import com.jacekgajek.artsplit.app.generated.updates_version
+import com.jacekgajek.artsplit.app.generated.updates_installing
+import com.jacekgajek.artsplit.app.generated.updates_declined
+import com.jacekgajek.artsplit.app.generated.updates_install_failed
 import com.jacekgajek.artsplit.app.generated.updates_check_now
 import com.jacekgajek.artsplit.app.generated.updates_checking
 import com.jacekgajek.artsplit.app.generated.updates_up_to_date
@@ -297,7 +298,6 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
         Text(stringResource(Res.string.updates_auto), Modifier.weight(1f))
         Switch(checked = autoUpdate, onCheckedChange = null)
     }
-    Text(stringResource(Res.string.updates_version, AppConfig.VERSION_LABEL), style = MaterialTheme.typography.bodySmall)
     val (message, action) = when (val s = status) {
         UpdateStatus.Idle -> null to null
         UpdateStatus.Checking -> stringResource(Res.string.updates_checking) to null
@@ -306,6 +306,9 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
         is UpdateStatus.Ready -> stringResource(Res.string.updates_ready, s.versionName) to (Res.string.updates_install_now to controls::installNow)
         is UpdateStatus.NeedsInstallPermission -> stringResource(Res.string.updates_needs_permission, s.versionName) to (Res.string.updates_allow to controls::openInstallPermission)
         is UpdateStatus.NeedsConfirmation -> stringResource(Res.string.updates_needs_confirmation, s.versionName) to (Res.string.updates_install to controls::confirm)
+        is UpdateStatus.Installing -> stringResource(Res.string.updates_installing, s.versionName) to null
+        is UpdateStatus.Declined -> stringResource(Res.string.updates_declined, s.versionName) to (Res.string.updates_install_now to controls::installNow)
+        is UpdateStatus.InstallFailed -> stringResource(Res.string.updates_install_failed, s.versionName) to (Res.string.updates_install_now to controls::installNow)
         UpdateStatus.Failed -> stringResource(Res.string.updates_failed) to null
         UpdateStatus.Unavailable -> stringResource(Res.string.updates_unavailable) to null
     }

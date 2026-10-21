@@ -14,18 +14,23 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
+import com.jacekgajek.artsplit.app.AndroidAppGraph
 import com.jacekgajek.artsplit.app.AppConfig
 import com.jacekgajek.artsplit.app.platform.PublishedVersion
+import com.jacekgajek.artsplit.app.platform.UpdateMemory
+import com.jacekgajek.artsplit.app.platform.UpdatePolicy
 import com.jacekgajek.artsplit.app.platform.UpdateStatus
 import com.jacekgajek.artsplit.app.platform.fetchPublished
 import com.jacekgajek.artsplit.app.platform.installedVersionCode
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -36,77 +41,88 @@ import java.net.URL
 /**
  * Automatic updates without the Play Store (VERSION_2 §1): find a newer published build, download and verify it, and
  * install it with [PackageInstaller], silently where Android allows (Android 12+, once Art Split installed itself),
- * otherwise after the user confirms. Installing replaces the running app, so it only happens while the app is in the
- * background, unless the user asks for it.
+ * otherwise after the user confirms. The rules of when that happens live in [UpdatePolicy]; this object does the
+ * Android side and remembers declined and failed versions, so nobody is asked again and again.
  */
 object Updater {
     private val _status = MutableStateFlow<UpdateStatus>(UpdateStatus.Idle)
     val status: StateFlow<UpdateStatus> = _status.asStateFlow()
     private val lock = Mutex()
 
-    /** Downloads and installs outlive the screen that started them. */
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    /** The downloaded build waiting to be installed. */
-    private var pending: Pair<PublishedVersion, File>? = null
+    /** Downloads and installs outlive the screen that started them; a failure must never crash the app. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e -> Log.w(TAG, "Update failed", e) })
 
     /** Set by MainActivity: the app is on screen. */
     @Volatile
     var appVisible = false
 
-    /** Android's confirmation screen for the last install it would not do silently. */
+    /** Android's confirmation screen for the last install it would not do silently (lost with the process). */
     @SuppressLint("StaticFieldLeak")
     private var confirmation: Intent? = null
 
     private const val CHANNEL = "updates"
     private const val NOTIFICATION_ID = 1
+    private const val PREFS = "art-split-updater"
 
     fun isDebugBuild(context: Context) = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
 
     /**
-     * Checks for a newer build and downloads it; installs it right away when the app is in the background (or
-     * [installNow]). Returns false when the check should be retried (e.g. offline).
+     * Checks for a newer build and downloads it, then installs it if [UpdatePolicy] allows (or right away when the
+     * user asked: [installNow]). Returns false when the check should be retried soon (offline).
      */
     suspend fun checkAndDownload(context: Context, installNow: Boolean = false): Boolean = lock.withLock {
         if (isDebugBuild(context)) {
             _status.value = UpdateStatus.Unavailable
             return true
         }
-        _status.value = UpdateStatus.Checking
-        val published = withContext(Dispatchers.IO) { runCatching { fetchPublished() }.getOrNull() }
-        if (published == null) {
-            Log.i(TAG, "Check failed: no version.json")
-            _status.value = UpdateStatus.Failed
-            return false
-        }
-        Log.i(TAG, "Published ${published.versionCode}, installed ${installedVersionCode(context)}")
-        if (published.versionCode <= installedVersionCode(context)) {
-            clearDownloads(context)
-            _status.value = UpdateStatus.UpToDate
-            return true
-        }
-        val apk = apkFile(context, published.versionCode)
-        if (!apk.exists()) {
-            _status.value = UpdateStatus.Downloading(published.versionName)
-            if (!download(context, published, apk)) {
-                Log.i(TAG, "Download of ${published.versionCode} failed")
+        if (!installNow || pendingApk(context) == null) {
+            _status.value = UpdateStatus.Checking
+            val published = withContext(Dispatchers.IO) { runCatching { fetchPublished() }.getOrNull() }
+            if (published == null) {
+                Log.i(TAG, "Check failed: no version.json")
                 _status.value = UpdateStatus.Failed
                 return false
             }
+            Log.i(TAG, "Published ${published.versionCode}, installed ${installedVersionCode(context)}")
+            if (published.versionCode <= installedVersionCode(context)) {
+                clearDownloads(context)
+                confirmation = null
+                _status.value = UpdateStatus.UpToDate
+                return true
+            }
+            if (apkFile(context, published.versionCode).let { !it.exists() }) {
+                _status.value = UpdateStatus.Downloading(published.versionName)
+                if (!download(context, published)) {
+                    Log.i(TAG, "Download of ${published.versionCode} failed")
+                    _status.value = UpdateStatus.Failed
+                    // A mismatch between version.json and the APK (mid-deploy) is not retried with backoff, which
+                    // would download it again and again; the next daily check tries again.
+                    return true
+                }
+                saveName(context, published)
+            }
         }
-        pending = published to apk
-        _status.value = UpdateStatus.Ready(published.versionName)
-        if (installNow || !appVisible) install(context, published, apk)
+        val (published, apk) = pendingApk(context) ?: return true
+        val memory = memory(context)
+        val autoUpdate = AndroidAppGraph.get(context).settingsForBackground().autoUpdate
+        val now = System.currentTimeMillis()
+        when {
+            installNow || UpdatePolicy.mayInstallAutomatically(published.versionCode, autoUpdate, appVisible, memory, now) ->
+                install(context, published, apk)
+            // An install in flight is not interrupted by a new check.
+            UpdatePolicy.isInstalling(published.versionCode, memory, now) -> _status.value = UpdateStatus.Installing(published.versionName)
+            else -> _status.value = UpdatePolicy.waitingStatus(published.versionCode, published.versionName, canInstallApps(context), memory)
+        }
         true
     }
 
-    /** The app is in the background: install a downloaded update (also one that waited for the install permission). */
+    /** The app is out of sight: install a downloaded update if [UpdatePolicy] allows. */
     suspend fun installIfReady(context: Context) = lock.withLock {
-        if (appVisible) return@withLock
-        val status = _status.value
-        if (status !is UpdateStatus.Ready && status !is UpdateStatus.NeedsInstallPermission) return@withLock
-        val (published, apk) = pending ?: return@withLock
-        if (apk.exists()) install(context, published, apk)
+        val (published, apk) = pendingApk(context) ?: return@withLock
+        val autoUpdate = AndroidAppGraph.get(context).settingsForBackground().autoUpdate
+        if (UpdatePolicy.mayInstallAutomatically(published.versionCode, autoUpdate, appVisible, memory(context), System.currentTimeMillis())) {
+            install(context, published, apk)
+        }
     }
 
     /** For buttons: work that must not stop when the screen goes away. */
@@ -116,55 +132,77 @@ object Updater {
 
     private fun install(context: Context, published: PublishedVersion, apk: File) {
         Log.i(TAG, "Installing ${published.versionCode}")
-        if (!context.packageManager.canRequestPackageInstalls()) {
+        if (!canInstallApps(context)) {
             Log.i(TAG, "Not allowed to install apps yet")
             _status.value = UpdateStatus.NeedsInstallPermission(published.versionName)
             return
         }
         val installer = context.packageManager.packageInstaller
-        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
-            setAppPackageName(context.packageName)
-            // Without asking when Art Split is the app's installer of record (Android 12+); Android decides.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
-        }
-        val sessionId = installer.createSession(params)
+        var sessionId: Int? = null
         try {
-            installer.openSession(sessionId).use { session ->
+            val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
+                setAppPackageName(context.packageName)
+                // Without asking when Art Split is the app's installer of record (Android 12+); Android decides.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            }
+            val id = installer.createSession(params).also { sessionId = it }
+            installer.openSession(id).use { session ->
                 session.openWrite("art-split.apk", 0, apk.length()).use { out ->
                     apk.inputStream().use { it.copyTo(out) }
                     session.fsync(out)
                 }
-                val result = Intent(context, InstallResultReceiver::class.java).putExtra(EXTRA_VERSION_NAME, published.versionName)
+                val result = Intent(context, InstallResultReceiver::class.java)
+                    .putExtra(EXTRA_VERSION_NAME, published.versionName)
+                    .putExtra(EXTRA_VERSION_CODE, published.versionCode)
                 // Mutable: the installer adds the status and, if needed, its confirmation intent.
-                val pending = PendingIntent.getBroadcast(context, sessionId, result, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+                val pending = PendingIntent.getBroadcast(context, id, result, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+                remember(context) { it.copy(installingVersion = published.versionCode, installingSince = System.currentTimeMillis()) }
+                _status.value = UpdateStatus.Installing(published.versionName)
                 session.commit(pending.intentSender)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Install session failed", e)
-            runCatching { installer.abandonSession(sessionId) }
-            _status.value = UpdateStatus.Failed
+            sessionId?.let { runCatching { installer.abandonSession(it) } }
+            remember(context) { it.copy(installingVersion = null, failedVersion = published.versionCode) }
+            _status.value = UpdateStatus.InstallFailed(published.versionName)
         }
     }
 
     /** From [InstallResultReceiver]: Android wants the user to confirm. */
-    internal fun onNeedsConfirmation(context: Context, intent: Intent, versionName: String) {
+    internal fun onNeedsConfirmation(context: Context, intent: Intent, versionCode: Long, versionName: String) {
         confirmation = intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        remember(context) { it.copy(installingVersion = null, confirmVersion = versionCode) }
         _status.value = UpdateStatus.NeedsConfirmation(versionName)
-        if (appVisible) {
-            confirm(context)
+        if (appVisible) confirm(context) else notifyReady(context, versionName, intent)
+    }
+
+    /** From [InstallResultReceiver]: the user declined, or Android could not install it. */
+    internal fun onFinishedWithoutInstall(context: Context, versionCode: Long, versionName: String, declined: Boolean) {
+        confirmation = null
+        remember(context) {
+            if (declined) it.copy(installingVersion = null, declinedVersion = versionCode)
+            else it.copy(installingVersion = null, failedVersion = versionCode)
+        }
+        _status.value = if (declined) UpdateStatus.Declined(versionName) else UpdateStatus.InstallFailed(versionName)
+    }
+
+    /**
+     * Shows Android's confirmation. Without one at hand (the app was restarted meanwhile), installing again brings it
+     * up, since the app is on screen.
+     */
+    fun confirm(context: Context) {
+        val intent = confirmation
+        if (intent != null) {
+            runCatching { context.startActivity(intent) }
         } else {
-            notifyReady(context, versionName, intent)
+            launch { checkAndDownload(context, installNow = true) }
         }
     }
 
-    internal fun onFailed() {
-        _status.value = UpdateStatus.Failed
-    }
-
-    /** Shows the pending confirmation, if any. */
-    fun confirm(context: Context) {
-        val intent = confirmation ?: return
-        runCatching { context.startActivity(intent) }
+    /** The user asked for it (Settings): forget earlier declines and failures of this version and install now. */
+    fun installNow(context: Context) {
+        remember(context) { it.copy(declinedVersion = null, failedVersion = null, installingVersion = null) }
+        launch { checkAndDownload(context, installNow = true) }
     }
 
     fun openInstallPermission(context: Context) {
@@ -173,19 +211,19 @@ object Updater {
         runCatching { context.startActivity(intent) }
     }
 
+    private fun canInstallApps(context: Context) = context.packageManager.canRequestPackageInstalls()
+
     private fun notifyReady(context: Context, versionName: String, confirmIntent: Intent) {
         val notifications = NotificationManagerCompat.from(context)
-        // Without the notification permission the in-app strip and Settings still offer the install.
+        // Without the notification permission (asked for with gig reminders) the in-app strip offers the install.
         if (!notifications.areNotificationsEnabled()) return
-        val manager = context.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(NotificationChannel(CHANNEL, Strings.channelName(context), NotificationManager.IMPORTANCE_DEFAULT))
-        }
+        context.getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(NotificationChannel(CHANNEL, Strings.channelName(), NotificationManager.IMPORTANCE_DEFAULT))
         val tap = PendingIntent.getActivity(context, 0, confirmIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle(Strings.readyTitle(context, versionName))
-            .setContentText(Strings.readyText(context))
+            .setContentTitle(Strings.readyTitle(versionName))
+            .setContentText(Strings.readyText())
             .setContentIntent(tap)
             .setAutoCancel(true)
             .build()
@@ -193,8 +231,9 @@ object Updater {
         notifications.notify(NOTIFICATION_ID, notification)
     }
 
-    private suspend fun download(context: Context, published: PublishedVersion, target: File): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun download(context: Context, published: PublishedVersion): Boolean = withContext(Dispatchers.IO) {
         clearDownloads(context)
+        val target = apkFile(context, published.versionCode)
         val partial = File(target.path + ".part")
         val ok = runCatching {
             val connection = URL("${AppConfig.WEB_URL}/download/art-split.apk").openConnection() as HttpURLConnection
@@ -217,6 +256,40 @@ object Updater {
         ok
     }
 
+    /** The downloaded, verified build waiting to be installed, if it is still newer than the installed one. */
+    private fun pendingApk(context: Context): Pair<PublishedVersion, File>? {
+        val apk = updatesDir(context).listFiles { f -> f.extension == "apk" }?.firstOrNull() ?: return null
+        val code = apk.nameWithoutExtension.substringAfterLast('-').toLongOrNull() ?: return null
+        if (code <= installedVersionCode(context)) return null
+        val name = prefs(context).getString(KEY_NAME, null) ?: ""
+        return PublishedVersion(code, name) to apk
+    }
+
+    private fun saveName(context: Context, published: PublishedVersion) = prefs(context).edit { putString(KEY_NAME, published.versionName) }
+
+    private fun memory(context: Context): UpdateMemory = prefs(context).let { p ->
+        UpdateMemory(
+            declinedVersion = p.getLong(KEY_DECLINED, 0).takeIf { it > 0 },
+            failedVersion = p.getLong(KEY_FAILED, 0).takeIf { it > 0 },
+            confirmVersion = p.getLong(KEY_CONFIRM, 0).takeIf { it > 0 },
+            installingVersion = p.getLong(KEY_INSTALLING, 0).takeIf { it > 0 },
+            installingSince = p.getLong(KEY_INSTALLING_SINCE, 0),
+        )
+    }
+
+    private fun remember(context: Context, change: (UpdateMemory) -> UpdateMemory) {
+        val next = change(memory(context))
+        prefs(context).edit {
+            putLong(KEY_DECLINED, next.declinedVersion ?: 0)
+            putLong(KEY_FAILED, next.failedVersion ?: 0)
+            putLong(KEY_CONFIRM, next.confirmVersion ?: 0)
+            putLong(KEY_INSTALLING, next.installingVersion ?: 0)
+            putLong(KEY_INSTALLING_SINCE, next.installingSince)
+        }
+    }
+
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
     private fun updatesDir(context: Context) = File(context.cacheDir, "updates").apply { mkdirs() }
 
     private fun apkFile(context: Context, versionCode: Long) = File(updatesDir(context), "art-split-$versionCode.apk")
@@ -226,5 +299,12 @@ object Updater {
     }
 
     internal const val EXTRA_VERSION_NAME = "versionName"
+    internal const val EXTRA_VERSION_CODE = "versionCode"
     internal const val TAG = "ArtSplitUpdater"
+    private const val KEY_NAME = "pendingVersionName"
+    private const val KEY_DECLINED = "declinedVersion"
+    private const val KEY_FAILED = "failedVersion"
+    private const val KEY_CONFIRM = "confirmVersion"
+    private const val KEY_INSTALLING = "installingVersion"
+    private const val KEY_INSTALLING_SINCE = "installingSince"
 }

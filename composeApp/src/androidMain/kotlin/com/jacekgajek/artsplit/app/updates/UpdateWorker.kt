@@ -30,6 +30,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private const val DAILY = "update-check"
         private const val NOW = "update-now"
         private const val INSTALL_ONLY = "installOnly"
+        private const val INSTALL_DELAY_MINUTES = 30L
         private val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
         /** Keeps the daily check scheduled (idempotent); called on app start. */
@@ -55,9 +56,11 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             WorkManager.getInstance(context).enqueueUniqueWork(
                 "update-install",
                 ExistingWorkPolicy.REPLACE,
-                // A short delay: rotating the screen also stops the activity for a moment.
+                // Installing restarts the app, so it waits until the app has been out of sight for a while: leaving it
+                // briefly (a photo for a cost, looking something up in another app) must not lose what is on screen.
+                // Coming back cancels nothing; the install checks again that the app is not visible.
                 OneTimeWorkRequestBuilder<UpdateWorker>().setInputData(workDataOf(INSTALL_ONLY to true))
-                    .setInitialDelay(10, TimeUnit.SECONDS).build(),
+                    .setInitialDelay(INSTALL_DELAY_MINUTES, TimeUnit.MINUTES).build(),
             )
         }
     }

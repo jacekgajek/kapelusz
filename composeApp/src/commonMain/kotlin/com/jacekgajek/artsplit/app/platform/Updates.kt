@@ -19,6 +19,16 @@ sealed interface UpdateStatus {
     /** Android wants the user to confirm this install. */
     data class NeedsConfirmation(val versionName: String) : UpdateStatus
 
+    /** Handed to Android; the app restarts once it is installed. */
+    data class Installing(val versionName: String) : UpdateStatus
+
+    /** The user declined installing this version; it is not offered again automatically. */
+    data class Declined(val versionName: String) : UpdateStatus
+
+    /** Android could not install this version; it is not retried automatically. */
+    data class InstallFailed(val versionName: String) : UpdateStatus
+
+    /** The check itself failed (e.g. offline); it is retried later. */
     data object Failed : UpdateStatus
 
     /** Debug builds (installDebug) never update themselves. */

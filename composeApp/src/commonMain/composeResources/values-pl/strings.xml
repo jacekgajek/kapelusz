@@ -377,7 +377,6 @@
     <string name="delete_band_failed">Zespół nie został usunięty. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="updates_title">Aktualizacje aplikacji</string>
     <string name="updates_auto">Instaluj aktualizacje automatycznie</string>
-    <string name="updates_version">Wersja %1$s</string>
     <string name="updates_check_now">Sprawdź teraz</string>
     <string name="updates_checking">Sprawdzanie aktualizacji…</string>
     <string name="updates_up_to_date">Art Split jest aktualny.</string>
@@ -388,6 +387,9 @@
     <string name="updates_allow">Zezwól</string>
     <string name="updates_needs_confirmation">Art Split %1$s jest gotowy do instalacji.</string>
     <string name="updates_install">Zainstaluj</string>
-    <string name="updates_failed">Nie udało się sprawdzić aktualizacji. Spróbuje ponownie później.</string>
+    <string name="updates_failed">Nie udało się sprawdzić aktualizacji. Art Split spróbuje ponownie później.</string>
     <string name="updates_unavailable">Wersje debug nie aktualizują się same.</string>
+    <string name="updates_installing">Instalowanie %1$s… Po zakończeniu aplikacja uruchomi się ponownie.</string>
+    <string name="updates_declined">Wersja %1$s nie została zainstalowana. Nie będzie proponowana automatycznie.</string>
+    <string name="updates_install_failed">Android nie mógł zainstalować wersji %1$s.</string>
 </resources>
