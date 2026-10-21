@@ -1,0 +1,32 @@
+package com.jacekgajek.artsplit.app.ui.model
+
+import com.jacekgajek.artsplit.model.Money
+import kotlinx.datetime.LocalDate
+import kotlin.math.absoluteValue
+
+/** Locale-aware money text: `1 000,00 zł` in Polish, `1,000.00 PLN` in English. */
+fun formatMoney(money: Money, currency: String, language: String): String {
+    val polish = language == "pl"
+    val abs = money.minor.absoluteValue
+    val whole = (abs / 100).toString().reversed().chunked(3).joinToString(if (polish) " " else ",").reversed()
+    val fraction = (abs % 100).toString().padStart(2, '0')
+    val sign = if (money.isNegative) "−" else ""
+    val symbol = if (polish && currency == "PLN") "zł" else currency
+    return "$sign$whole${if (polish) "," else "."}$fraction $symbol"
+}
+
+/** Amount as typed in a text field, e.g. `129,60` in Polish. */
+fun formatMoneyInput(money: Money, language: String): String =
+    money.toString().let { if (language == "pl") it.replace('.', ',') else it }
+
+private val EN_MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+/** `13.09.2026` in Polish, `13 Sep 2026` in English. */
+fun formatDate(date: LocalDate, language: String): String {
+    val day = date.day.toString().padStart(2, '0')
+    return if (language == "pl") {
+        "$day.${date.month.ordinal.plus(1).toString().padStart(2, '0')}.${date.year}"
+    } else {
+        "$day ${EN_MONTHS[date.month.ordinal]} ${date.year}"
+    }
+}

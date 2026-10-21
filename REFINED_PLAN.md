@@ -65,7 +65,7 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 - **Suggested transfers:** greedy matching of the largest surplus to the largest deficit until everyone hits their target. This gives ≤ n−1 transfers. They are recomputed live from current balances and never stored.
   - When the treasurer holds the surplus personally, the fund transfer shows as "Alice: keep 100 zł for band fund [Confirm]".
 - **Manual transfers:** any party may hand money to any other party (e.g. Dave gives all hat money to Alice so that Alice does the distribution). Suggestions recompute afterwards.
-- **Settle** on a suggested transfer records it as a transfer. **Settle** next to a member records all of that member's pending suggested transfers. **Settle All** records every suggested transfer of the event.
+- **Settle** on a suggested transfer records it as a transfer. **Part…** records only part of it (e.g. the cash someone has on them, at most the suggested amount); the remainder stays suggested. **Settle** next to a member records all of that member's pending suggested transfers. **Settle All** records every suggested transfer of the event.
 - **Status**, always derived and never set by hand:
 
   | Status | When |
@@ -81,7 +81,8 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 
 ### 2.4 Costs and amortization
 - **Cost fields:** member, amount (required), date (default today), optional "incurred for" event, optional category (`TRAVEL | ACCOMMODATION | EQUIPMENT | FOOD | OTHER`), optional description, up to **5 attachments** (images and/or PDFs).
-- **Outstanding** = amount − Σ refunds across all events. A cost is `PENDING`, `PARTLY_REFUNDED` or `REFUNDED`.
+- **Outstanding** = amount − Σ refunds assigned across all events and the fund. This prevents refunding a cost twice.
+- **Paid** = Σ refunds in **settled** events + fund refunds. The owner sees a status based on this: `PENDING` (nothing assigned), `REFUND_PLANNED` (assigned, not paid yet), `PARTLY_REFUNDED`, or `REFUNDED`. If a settled event reopens, its refunds count as planned again.
 - Refunds are always 100% of what you choose to refund. There are no refund percentages; to refund less, enter the refundable amount.
 - **Defaults** when a lead opens an event's Refunds section:
   - Costs **incurred for this event** are pre-included in full.
@@ -152,6 +153,8 @@ Mobile uses a bottom nav and web uses a side rail. Tabs are shown only if the ro
 2. **My costs** (member+)
    - Your costs with Pending / Partly / Refunded filters.
    - A big **"+ Add cost"** button that opens a fast form: amount first, everything else optional, attachment from camera/gallery/file.
+   - Leads see a **"Paid by"** dropdown (default: themselves) to add a cost for another member.
+   - Leads can switch the list between **Mine** and **All members** (each row then shows who paid).
 3. **Settle** (member+)
    - Every pending suggested transfer where you're sender or receiver, across events, each with **Settle**.
    - **"Hand over money"**: pick a party; the amount defaults to your whole balance in that event and can be edited.
@@ -385,13 +388,13 @@ Workflow:
 - [x] M1.8 Golden tests (§2.6) + invariant tests (Σ payout, transfers converge to SETTLED)
 
 ### M2 — Local-only app (Android + Web)
-- [ ] M2.1 App shell: navigation, tabs, PL/EN resources, theme
-- [ ] M2.2 Local store (Android files / web IndexedDB) + pending-op queue
-- [ ] M2.3 Roster (local) and event list with status, "your number", Continue card
-- [ ] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
-- [ ] M2.5 Transfers: suggestions, Settle, per-member Settle, Settle All, Hand over money
-- [ ] M2.6 My costs + fast add-cost form (no attachments yet)
-- [ ] M2.7 Settle tab; archive/delete event rules
+- [x] M2.1 App shell: navigation, tabs, PL/EN resources, theme
+- [x] M2.2 Local store (Android files / web IndexedDB) + pending-op queue
+- [x] M2.3 Roster (local) and event list with status, "your number", Continue card
+- [x] M2.4 Event screen: participants/guests/shares, holdings, refunds, summary
+- [x] M2.5 Transfers: suggestions, Settle, per-member Settle, Settle All, Hand over money
+- [x] M2.6 My costs + fast add-cost form (no attachments yet)
+- [x] M2.7 Settle tab; archive/delete event rules
 
 ### M3 — Backend and sync
 - [ ] M3.1 `:server` handler, routing, Google token verification
@@ -412,6 +415,7 @@ Workflow:
 - [ ] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
 - [ ] M5.3 Signed release APK to GitHub Releases + in-app update check
 - [ ] M5.4 Polish: empty states, error states, accessibility pass
+- [ ] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 
 ---
 
@@ -429,6 +433,11 @@ Workflow:
 | 2026-10-20 | M1: when the band fund and the treasurer both take part in an event's suggestions, they are paired first ("keep for band fund"); the rest is greedy largest-surplus to largest-deficit. |
 | 2026-10-20 | M1: a member may record holdings only in events they take part in; leads may record them for any participant. Guests can be promoted to the roster (admin) with all their entries in that event re-pointed. |
 | 2026-10-21 | PR #1 review: the band fund balance may go negative (shown in red, never blocked). A treasurer with the Member role acts for the band fund when recording/settling transfers. |
+| 2026-10-21 | M2: `composeApp` commonTest runs as Android host (JVM) tests; the wasm browser test task is disabled (needs a headless browser, and the code under test is platform-independent). Navigation uses type-safe routes; the web build binds them to browser history. |
+| 2026-10-21 | M2: until sign-in (M3) the device user is a fixed local identity (`local-user`) that owns the locally created band; all operations stay in the pending queue. The web build stores state in IndexedDB, Android in app-private files. The band fund tab and fund amount UI wait for M5.1. |
+| 2026-10-21 | A cost shows as refunded only once the event refunding it is settled (or it was refunded from the band fund); until then it is "Refund planned". Assigning still counts immediately, so a cost cannot be refunded twice. |
+| 2026-10-21 | Every rejection carries a stable `RejectionReason`; apps show its translated text (PL/EN), the English `message` stays for logs and server responses. A test fails if a reason has no text in a UI language. |
+| 2026-10-21 | Unreadable saved band data never crashes the app or gets discarded silently: it is copied to `band-backup-<timestamp>` and the user can start over. No export UI; the backup is for manual recovery. Unreadable settings fall back to defaults. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

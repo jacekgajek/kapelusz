@@ -67,8 +67,8 @@ object Reducer {
             is RemoveParticipant -> removeParticipant(band, op)
 
             is AddHolding -> band.updateEvent(op.eventId) { event ->
-                invalidIf(event.holdings.any { it.id == op.holdingId }) { "Holding ${op.holdingId} already exists" }
-                invalidIf(event.participant(op.partyId) == null) { "Only participants can hold event money" }
+                invalidIf(event.holdings.any { it.id == op.holdingId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.holdingId} already exists" }
+                invalidIf(event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
                 validatePositive(op.amount, "Holding amount")
                 event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull()))
             }
@@ -93,7 +93,7 @@ object Reducer {
 
             is SetRefund -> setRefund(band, op)
             is SetFundAmount -> band.updateEvent(op.eventId) { event ->
-                invalidIf(!op.amount.isZero && band.treasurerMemberId == null) { "Choose a treasurer before using the band fund" }
+                invalidIf(!op.amount.isZero && band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
                 event.copy(fundAmount = op.amount)
             }
             is AddFundEntry -> addFundEntry(band, op)
@@ -104,10 +104,10 @@ object Reducer {
             }
 
             is RecordTransfer -> band.updateEvent(op.eventId) { event ->
-                invalidIf(event.transfers.any { it.id == op.transferId }) { "Transfer ${op.transferId} already exists" }
+                invalidIf(event.transfers.any { it.id == op.transferId }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
                 validateTransferParty(band, event, op.from)
                 validateTransferParty(band, event, op.to)
-                invalidIf(op.from == op.to) { "Cannot transfer to the same party" }
+                invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
                 validatePositive(op.amount, "Transfer amount")
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }
@@ -121,8 +121,8 @@ object Reducer {
             is UpdateCost -> updateCost(band, op, ctx)
             is DeleteCost -> deleteCost(band, op, ctx)
             is AddAttachment -> band.updateCost(op.costId) { cost ->
-                invalidIf(cost.attachments.size >= MAX_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
-                invalidIf(cost.attachments.any { it.id == op.attachment.id }) { "Attachment ${op.attachment.id} already exists" }
+                invalidIf(cost.attachments.size >= MAX_ATTACHMENTS, RejectionReason.TOO_MANY_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
+                invalidIf(cost.attachments.any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
                 cost.copy(attachments = cost.attachments + op.attachment)
             }
             is RemoveAttachment -> band.updateCost(op.costId) { cost ->
@@ -139,63 +139,63 @@ object Reducer {
     // ---- roster ----
 
     private fun addMember(band: Band, op: AddMember): Band {
-        invalidIf(band.member(op.memberId) != null) { "Member ${op.memberId} already exists" }
+        invalidIf(band.member(op.memberId) != null, RejectionReason.DUPLICATE_ID) { "Member ${op.memberId} already exists" }
         return band.copy(members = band.members + Member(op.memberId, op.name.validName("Member name")))
     }
 
     private fun moveMember(band: Band, op: MoveMember): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        invalidIf(op.toIndex !in band.members.indices) { "Index ${op.toIndex} out of range" }
+        invalidIf(op.toIndex !in band.members.indices, RejectionReason.INVALID_INPUT) { "Index ${op.toIndex} out of range" }
         val others = band.members.filterNot { it.id == op.memberId }
         return band.copy(members = others.take(op.toIndex) + member + others.drop(op.toIndex))
     }
 
     private fun setMemberArchived(band: Band, op: SetMemberArchived): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        invalidIf(op.archived && member.role == Role.OWNER) { "The owner cannot be archived" }
-        invalidIf(op.archived && band.treasurerMemberId == op.memberId) { "Choose another treasurer first" }
+        invalidIf(op.archived && member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner cannot be archived" }
+        invalidIf(op.archived && band.treasurerMemberId == op.memberId, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
         return band.updateMember(op.memberId) { it.copy(archived = op.archived) }
     }
 
     private fun deleteMember(band: Band, op: DeleteMember): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        conflictIf(member.userId != null) { "Unlink the user before deleting the member" }
-        conflictIf(band.treasurerMemberId == member.id) { "Choose another treasurer first" }
-        conflictIf(band.costs.any { it.memberId == member.id }) { "Member has costs; archive instead" }
-        conflictIf(band.events.any { it.participant(member.id) != null }) { "Member took part in events; archive instead" }
+        conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Unlink the user before deleting the member" }
+        conflictIf(band.treasurerMemberId == member.id, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
+        conflictIf(band.costs.any { it.memberId == member.id }, RejectionReason.MEMBER_HAS_HISTORY) { "Member has costs; archive instead" }
+        conflictIf(band.events.any { it.participant(member.id) != null }, RejectionReason.MEMBER_HAS_HISTORY) { "Member took part in events; archive instead" }
         return band.copy(members = band.members.filterNot { it.id == member.id })
     }
 
     private fun setMemberRole(band: Band, op: SetMemberRole): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        invalidIf(op.role == Role.OWNER) { "Use ownership transfer to make someone the owner" }
-        invalidIf(member.role == Role.OWNER) { "The owner's role cannot be changed" }
+        invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Use ownership transfer to make someone the owner" }
+        invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner's role cannot be changed" }
         return band.updateMember(op.memberId) { it.copy(role = op.role) }
     }
 
     private fun linkUser(band: Band, op: LinkUser): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        conflictIf(member.userId != null) { "Member is already linked to a user" }
-        conflictIf(band.memberOfUser(op.userId) != null) { "User is already a member of this band" }
-        invalidIf(op.role == Role.OWNER) { "Invites cannot grant ownership" }
+        conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Member is already linked to a user" }
+        conflictIf(band.memberOfUser(op.userId) != null, RejectionReason.USER_ALREADY_MEMBER) { "User is already a member of this band" }
+        invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Invites cannot grant ownership" }
         return band.updateMember(op.memberId) { it.copy(userId = op.userId, role = op.role, archived = false) }
     }
 
     private fun unlinkUser(band: Band, op: UnlinkUser): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        invalidIf(member.role == Role.OWNER) { "Transfer ownership before unlinking the owner" }
+        invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Transfer ownership before unlinking the owner" }
         return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER) }
     }
 
     private fun setTreasurer(band: Band, op: SetTreasurer): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        invalidIf(member.archived) { "An archived member cannot hold the band fund" }
+        invalidIf(member.archived, RejectionReason.ARCHIVED_MEMBER) { "An archived member cannot hold the band fund" }
         return band.copy(treasurerMemberId = member.id)
     }
 
     private fun transferOwnership(band: Band, op: TransferOwnership): Band {
         val target = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
-        invalidIf(target.userId == null || target.role != Role.ADMIN) { "Ownership can only go to a linked admin" }
+        invalidIf(target.userId == null || target.role != Role.ADMIN, RejectionReason.OWNERSHIP_NEEDS_ADMIN) { "Ownership can only go to a linked admin" }
         val currentOwner = band.owner
         return band.copy(
             members = band.members.map {
@@ -211,11 +211,11 @@ object Reducer {
     // ---- events ----
 
     private fun createEvent(band: Band, op: CreateEvent, ctx: OpContext): Band {
-        invalidIf(band.event(op.eventId) != null) { "Event ${op.eventId} already exists" }
+        invalidIf(band.event(op.eventId) != null, RejectionReason.DUPLICATE_ID) { "Event ${op.eventId} already exists" }
         val guestIds = op.guests.map { it.id }.toSet()
-        invalidIf(guestIds.size != op.guests.size) { "Duplicate guest ids" }
-        invalidIf(guestIds.any { band.member(it) != null }) { "Guest id already used by a member" }
-        invalidIf(op.participants.map { it.partyId }.toSet().size != op.participants.size) { "Duplicate participants" }
+        invalidIf(guestIds.size != op.guests.size, RejectionReason.DUPLICATE_ID) { "Duplicate guest ids" }
+        invalidIf(guestIds.any { band.member(it) != null }, RejectionReason.DUPLICATE_ID) { "Guest id already used by a member" }
+        invalidIf(op.participants.map { it.partyId }.toSet().size != op.participants.size, RejectionReason.INVALID_INPUT) { "Duplicate participants" }
         op.participants.forEach { participant ->
             validateWeight(participant.weight)
             if (participant.partyId !in guestIds) validateActiveMember(band, participant.partyId)
@@ -235,7 +235,7 @@ object Reducer {
 
     private fun deleteEvent(band: Band, op: DeleteEvent): Band {
         val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
-        conflictIf(event.transfers.isNotEmpty()) { "Event has recorded transfers; archive it instead" }
+        conflictIf(event.transfers.isNotEmpty(), RejectionReason.EVENT_HAS_TRANSFERS) { "Event has recorded transfers; archive it instead" }
         return band.copy(
             events = band.events.filterNot { it.id == event.id },
             costs = band.costs.map { if (it.eventId == event.id) it.copy(eventId = null) else it },
@@ -246,14 +246,14 @@ object Reducer {
         validateActiveMember(band, op.memberId)
         validateWeight(op.weight)
         val updated = band.updateEvent(op.eventId) { event ->
-            invalidIf(event.participant(op.memberId) != null) { "Member already takes part" }
+            invalidIf(event.participant(op.memberId) != null, RejectionReason.ALREADY_PARTICIPANT) { "Member already takes part" }
             event.copy(participants = event.participants + Participant(op.memberId, op.weight))
         }
         return includeOwnCosts(updated, op.eventId, op.memberId, ctx)
     }
 
     private fun addGuest(band: Band, op: AddGuest): Band = band.updateEvent(op.eventId) { event ->
-        invalidIf(event.guest(op.guestId) != null || band.member(op.guestId) != null) { "Id ${op.guestId} already in use" }
+        invalidIf(event.guest(op.guestId) != null || band.member(op.guestId) != null, RejectionReason.DUPLICATE_ID) { "Id ${op.guestId} already in use" }
         validateWeight(op.weight)
         event.copy(
             guests = event.guests + Guest(op.guestId, op.name.validName("Guest name")),
@@ -264,7 +264,7 @@ object Reducer {
     private fun promoteGuest(band: Band, op: PromoteGuest): Band {
         val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
         val guest = event.guest(op.guestId).orNotFound { "Guest ${op.guestId}" }
-        invalidIf(band.member(op.memberId) != null) { "Member ${op.memberId} already exists" }
+        invalidIf(band.member(op.memberId) != null, RejectionReason.DUPLICATE_ID) { "Member ${op.memberId} already exists" }
         fun Id.repoint() = if (this == guest.id) op.memberId else this
         val promoted = event.copy(
             guests = event.guests.filterNot { it.id == guest.id },
@@ -280,9 +280,9 @@ object Reducer {
 
     private fun removeParticipant(band: Band, op: RemoveParticipant): Band = band.updateEvent(op.eventId) { event ->
         event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
-        conflictIf(event.holdings.any { it.partyId == op.partyId }) { "Participant holds event money; remove it first" }
-        conflictIf(event.transfers.any { it.from == op.partyId || it.to == op.partyId }) { "Participant has recorded transfers" }
-        conflictIf(event.refunds.any { band.cost(it.costId)?.memberId == op.partyId }) { "Participant has refunds here; defer them first" }
+        conflictIf(event.holdings.any { it.partyId == op.partyId }, RejectionReason.PARTICIPANT_HAS_MONEY) { "Participant holds event money; remove it first" }
+        conflictIf(event.transfers.any { it.from == op.partyId || it.to == op.partyId }, RejectionReason.PARTICIPANT_HAS_TRANSFERS) { "Participant has recorded transfers" }
+        conflictIf(event.refunds.any { band.cost(it.costId)?.memberId == op.partyId }, RejectionReason.PARTICIPANT_HAS_REFUNDS) { "Participant has refunds here; defer them first" }
         event.copy(
             participants = event.participants.filterNot { it.partyId == op.partyId },
             guests = event.guests.filterNot { it.id == op.partyId },
@@ -294,11 +294,11 @@ object Reducer {
     private fun setRefund(band: Band, op: SetRefund): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
         return band.updateEvent(op.eventId) { event ->
-            invalidIf(op.amount.isNegative) { "Refund cannot be negative" }
+            invalidIf(op.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "Refund cannot be negative" }
             if (op.amount.isZero) return@updateEvent event.copy(refunds = event.refunds.filterNot { it.costId == cost.id })
-            invalidIf(!CostLedger.isRefundableAt(cost, event)) { "Costs can only be refunded at events their owner takes part in" }
+            invalidIf(!CostLedger.isRefundableAt(cost, event), RejectionReason.NOT_REFUNDABLE_HERE) { "Costs can only be refunded at events their owner takes part in" }
             val max = CostLedger.maxRefundAt(band, cost, event)
-            invalidIf(op.amount > max) { "Refund ${op.amount} exceeds outstanding $max" }
+            invalidIf(op.amount > max, RejectionReason.REFUND_TOO_LARGE) { "Refund ${op.amount} exceeds outstanding $max" }
             val refunds = if (event.refundOf(cost.id) != null) {
                 event.refunds.map { if (it.costId == cost.id) it.copy(amount = op.amount) else it }
             } else {
@@ -309,13 +309,13 @@ object Reducer {
     }
 
     private fun addFundEntry(band: Band, op: AddFundEntry): Band {
-        invalidIf(band.treasurerMemberId == null) { "Choose a treasurer before using the band fund" }
-        invalidIf(band.fundEntries.any { it.id == op.entryId }) { "Fund entry ${op.entryId} already exists" }
-        invalidIf(op.amount.isZero) { "Fund entry amount cannot be zero" }
+        invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
+        invalidIf(band.fundEntries.any { it.id == op.entryId }, RejectionReason.DUPLICATE_ID) { "Fund entry ${op.entryId} already exists" }
+        invalidIf(op.amount.isZero, RejectionReason.INVALID_AMOUNT) { "Fund entry amount cannot be zero" }
         op.costId?.let { costId ->
             val cost = band.cost(costId).orNotFound { "Cost $costId" }
-            invalidIf(!op.amount.isNegative) { "A cost refund from the fund must be negative" }
-            invalidIf(-op.amount > CostLedger.outstanding(band, cost)) { "Refund exceeds the outstanding amount" }
+            invalidIf(!op.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "A cost refund from the fund must be negative" }
+            invalidIf(-op.amount > CostLedger.outstanding(band, cost), RejectionReason.REFUND_TOO_LARGE) { "Refund exceeds the outstanding amount" }
         }
         return band.copy(fundEntries = band.fundEntries + FundEntry(op.entryId, op.date, op.description.validName("Description"), op.amount, op.costId))
     }
@@ -327,11 +327,11 @@ object Reducer {
             description = op.description?.value?.validName("Description") ?: entry.description,
             amount = op.amount?.value ?: entry.amount,
         )
-        invalidIf(updated.amount.isZero) { "Fund entry amount cannot be zero" }
+        invalidIf(updated.amount.isZero, RejectionReason.INVALID_AMOUNT) { "Fund entry amount cannot be zero" }
         updated.costId?.let { costId ->
             val cost = band.cost(costId).orNotFound { "Cost $costId" }
-            invalidIf(!updated.amount.isNegative) { "A cost refund from the fund must be negative" }
-            invalidIf(-updated.amount > CostLedger.outstanding(band, cost) - entry.amount) { "Refund exceeds the outstanding amount" }
+            invalidIf(!updated.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "A cost refund from the fund must be negative" }
+            invalidIf(-updated.amount > CostLedger.outstanding(band, cost) - entry.amount, RejectionReason.REFUND_TOO_LARGE) { "Refund exceeds the outstanding amount" }
         }
         return band.copy(fundEntries = band.fundEntries.map { if (it.id == entry.id) updated else it })
     }
@@ -339,7 +339,7 @@ object Reducer {
     private fun settleSuggestions(band: Band, op: SettleSuggestions, ctx: OpContext): Band {
         val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
         val settlement = SettlementCalculator.settle(band, event)
-        conflictIf(!settlement.canSettle) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }
+        conflictIf(!settlement.canSettle, RejectionReason.CANNOT_SETTLE) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }
         val suggestions = op.partyId?.let { settlement.suggestionsFor(it) } ?: settlement.suggestions
         val transfers = suggestions.mapIndexed { index, suggestion ->
             Transfer("${ctx.opId}-$index", suggestion.from, suggestion.to, suggestion.amount, null, ctx.timestamp, ctx.memberId)
@@ -349,16 +349,16 @@ object Reducer {
 
     private fun validateTransferParty(band: Band, event: Event, partyId: Id) {
         if (partyId == BAND_FUND) {
-            invalidIf(band.treasurerMemberId == null) { "Choose a treasurer before using the band fund" }
+            invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
         } else {
-            invalidIf(event.participant(partyId) == null) { "$partyId does not take part in the event" }
+            invalidIf(event.participant(partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "$partyId does not take part in the event" }
         }
     }
 
     // ---- costs ----
 
     private fun addCost(band: Band, op: AddCost, ctx: OpContext): Band {
-        invalidIf(band.cost(op.costId) != null) { "Cost ${op.costId} already exists" }
+        invalidIf(band.cost(op.costId) != null, RejectionReason.DUPLICATE_ID) { "Cost ${op.costId} already exists" }
         validateActiveMember(band, op.memberId)
         validatePositive(op.amount, "Cost amount")
         op.incurredForEventId?.let { band.event(it).orNotFound { "Event $it" } }
@@ -397,7 +397,7 @@ object Reducer {
             val refundedElsewhere = CostLedger.refunded(band, cost.id) - ownRefund.amount
             if (ownRefund.amount == cost.amount - refundedElsewhere) {
                 val adjusted = newAmount - refundedElsewhere
-                invalidIf(adjusted.isNegative) { "Cost amount is below what was already refunded" }
+                invalidIf(adjusted.isNegative, RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }
                 result = result.updateEvent(ownEvent.id) { event ->
                     event.copy(
                         refunds = event.refunds.map { if (it.costId == cost.id) it.copy(amount = adjusted) else it },
@@ -406,7 +406,7 @@ object Reducer {
                 }
             }
         }
-        invalidIf(newAmount < CostLedger.refunded(result, cost.id)) { "Cost amount is below what was already refunded" }
+        invalidIf(newAmount < CostLedger.refunded(result, cost.id), RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }
         // Moving the cost to another event pre-includes it there, as when it is added.
         val newEventId = op.incurredForEventId?.value
         if (newEventId != null && newEventId != cost.eventId) result = includeOwnCosts(result, newEventId, cost.memberId, ctx)
@@ -415,7 +415,7 @@ object Reducer {
 
     private fun deleteCost(band: Band, op: DeleteCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
-        conflictIf(band.fundEntries.any { it.costId == cost.id }) { "Cost was refunded from the band fund" }
+        conflictIf(band.fundEntries.any { it.costId == cost.id }, RejectionReason.COST_REFUNDED_FROM_FUND) { "Cost was refunded from the band fund" }
         return band.copy(
             costs = band.costs.filterNot { it.id == cost.id },
             events = band.events.map { event ->
@@ -446,14 +446,14 @@ object Reducer {
 
     private fun validateActiveMember(band: Band, memberId: Id) {
         val member = band.member(memberId).orNotFound { "Member $memberId" }
-        invalidIf(member.archived) { "Member ${member.name} is archived" }
+        invalidIf(member.archived, RejectionReason.ARCHIVED_MEMBER) { "Member ${member.name} is archived" }
     }
 
-    private fun validateWeight(weight: Int) = invalidIf(weight !in 0..10_000) { "Share weight must be between 0 and 10000" }
+    private fun validateWeight(weight: Int) = invalidIf(weight !in 0..10_000, RejectionReason.INVALID_SHARE) { "Share weight must be between 0 and 10000" }
 
-    private fun validatePositive(amount: Money, what: String) = invalidIf(!amount.isPositive) { "$what must be positive" }
+    private fun validatePositive(amount: Money, what: String) = invalidIf(!amount.isPositive, RejectionReason.INVALID_AMOUNT) { "$what must be positive" }
 
-    private fun String.validName(what: String): String = trim().also { invalidIf(it.isEmpty()) { "$what cannot be empty" } }
+    private fun String.validName(what: String): String = trim().also { invalidIf(it.isEmpty(), RejectionReason.EMPTY_NAME) { "$what cannot be empty" } }
 
     private fun String?.blankToNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
 
