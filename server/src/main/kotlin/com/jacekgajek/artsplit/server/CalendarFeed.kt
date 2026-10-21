@@ -75,11 +75,13 @@ object CalendarFeed {
     private fun commonLines(band: Band, event: Event, times: List<AgendaTime>, webUrl: String): List<String> {
         val agenda = times.joinToString("\n") { listOf(label(it), hhmm(it.time!!)).filter(String::isNotBlank).joinToString(" ") }
         // The app's address, not the event's: an event link only resolves in the band that is open.
-        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · $webUrl").joinToString("\n\n")
+        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, event.mapUrl, "${band.name} · $webUrl").joinToString("\n\n")
         return listOfNotNull(
             "SUMMARY:${text(event.name)}",
             event.location?.let { "LOCATION:${text(it)}" },
             "DESCRIPTION:${text(description)}",
+            // Calendar apps open the place from here (VERSION_2 §4.4).
+            event.mapUrl?.let { "URL:$it" },
         )
     }
 

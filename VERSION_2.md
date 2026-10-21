@@ -62,7 +62,7 @@ makes this explicit, so the data format can change later without silently broken
 - **Band template** (admins, Settings → **Event agenda**): the list of agenda times new events get. They can rename, reorder, add and remove entries. Default: **Arrival**, **Sound check**, **Concert start**.
 - A new event **copies the template** as it is at that moment; changing the template later does not change existing events.
 - **Per event**, leads add **one-off times** with their own label ("+ Add time", e.g. "Sound check 18:00", "Dinner 19:00").
-- **Hidden until set:** unset times sit behind **More details** in the edit dialog ("+ Arrival", "+ Concert start", …). Once a time is set it always shows, like address fields in Android Contacts.
+- **Unset times as chips** ("+ Arrival", "+ Sound check", "+ Concert start", "+ Add time") below the set ones, in the create and the edit dialog (§4.3). Once a time is set it shows as a row, like address fields in Android Contacts.
 - **After midnight:** times before **05:00** count as the next day and are shown with **(+1)**. Nobody arrives or does a sound check between midnight and 05:00.
 - **Display:** the event header shows "Arrival 17:00 · Concert start 20:00"; event list rows show the first time next to the date.
 - **Data:** each event stores its own list of *(id, label, time?)*; the band stores the template (labels in order). New operations set the template and an event's times.
@@ -74,6 +74,18 @@ makes this explicit, so the data format can change later without silently broken
   - the text can be selected and copied;
   - edited **in place** with a pen button that opens a full-screen editor;
   - **leads and above** edit it, like the rest of the event.
+
+### 4.3 Times when creating an event
+- The create dialog has the same agenda section as the edit dialog: set times as rows (tap to change, ✕ to clear), and the unset ones as chips ("+ Arrival", "+ Sound check", "+ Concert start", "+ Add time"), shown directly. No "More details" in either dialog.
+
+### 4.4 Event location on Google Maps
+No in-app map (Google's map and place APIs need an API key and a billing account); Google Maps itself does the picking.
+- An event has the readable **location** text and, separately, a **Maps link** (from Google Maps' Share).
+- **Select on map** (next to the location field) opens Google Maps (the Maps app on Android, a new tab on the web) at the typed location. There you find the place or drop a pin, and *Share → Copy link*; **Paste from Maps** fills the field from the clipboard: a place name goes into the location if it is empty, the link is stored.
+- **Share from Google Maps to Art Split** (Android): Art Split asks *"Set the location of…"* with the upcoming events the user may edit (nearest first) and **New event at this place** (the create dialog with the location filled in). If there is nothing to choose and the user cannot create events, it says so.
+- **Navigate** on the event (next to the location, for everyone, when there is a location): opens the stored Maps link (the exact pin; directions are one tap away there), otherwise directions to the location text.
+- Editing the location: leads and above, like the rest of the event.
+- The calendar feed puts the Maps link into each entry; gig reminders with a location have a **Navigate** action.
 
 ## 5. Notifications (Android)
 
@@ -165,9 +177,15 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M5.2 Feed contents and timing rules (§6)
 - [x] V2-M5.3 Settings → Calendar subscription: copy, add to Google Calendar, include-all switch, reset
 
-### V2-M6 — Release 1.0
-- [ ] V2-M6.1 Release checklist (§10) passed on real phones
-- [ ] V2-M6.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
+### V2-M6 — Times at creation and event locations
+- [x] V2-M6.1 Agenda section shared by the create and edit dialogs; no "More details" (§4.3)
+- [x] V2-M6.2 Maps link on events, Select on map, Paste from Maps (§4.4)
+- [x] V2-M6.3 Share from Google Maps to Art Split (Android) with the "Set the location of…" picker and "New event at this place"
+- [x] V2-M6.4 Navigate on the event, the Maps link in the calendar feed, Navigate on reminders
+
+### V2-M7 — Release 1.0
+- [ ] V2-M7.1 Release checklist (§10) passed on real phones
+- [ ] V2-M7.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
 1. CI deploy green, including the APK step (keystore secret set from the file).
@@ -198,4 +216,5 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | `MIN_APP_VERSION` raised to 11 (the V2-M2 deploy, already live) together with V2-M3: older apps cannot read the history entries of agenda changes, and build-11 apps read history leniently and show "update required". Build 10 updates itself (V2-M1). |
 | 2026-10-21 | V2-M4: reminders are inexact alarms (no exact-alarm permission): from Android 12 they arrive within about an hour of the set time, before that within a 15-minute window; the background sync runs every 4 hours with a connection. Transfers already on the device when the app leaves the screen count as seen (the user had the app open), so only later ones are notified. |
 | 2026-10-21 | Sound check (Próba dźwięku) is a third built-in agenda time and part of the default template. Builds before 12 cannot read an unknown kind of time, so `MIN_APP_VERSION` is 12 (live since V2-M3). |
+| 2026-10-21 | Event locations without an API key or billing: Google Maps does the picking (Select on map, Paste from Maps, or share from Maps to Art Split on Android), the event stores the Maps link, and Navigate opens it. Times can be set when creating an event, and the unset ones are shown as chips directly. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |

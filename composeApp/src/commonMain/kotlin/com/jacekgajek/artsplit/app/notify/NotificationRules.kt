@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.notify
 
+import com.jacekgajek.artsplit.domain.Places
 import com.jacekgajek.artsplit.model.AgendaTime
 import com.jacekgajek.artsplit.model.BAND_FUND
 import com.jacekgajek.artsplit.model.Band
@@ -23,6 +24,8 @@ data class Reminder(
     val at: LocalDateTime,
     /** The first agenda time set, mentioned in the text ("arrival 17:00"). */
     val firstTime: AgendaTime?,
+    /** Google Maps for the gig's place, for a Navigate action (VERSION_2 §4.4). */
+    val navigateUrl: String? = null,
 ) {
     /** Stable per event and lead time, so rescheduling replaces rather than duplicates. */
     val key: String get() = "$bandId/$eventId/$daysBefore"
@@ -46,7 +49,11 @@ object NotificationRules {
                 days.mapNotNull { daysBefore ->
                     val at = event.date.minus(DatePeriod(days = daysBefore)).atTime(time)
                     if (at <= now) return@mapNotNull null
-                    Reminder(band.id, event.id, event.name, event.date, daysBefore, at, event.agenda.filter { it.time != null }.minByOrNull { it.minutesOfEventDay ?: 0 })
+                    Reminder(
+                        band.id, event.id, event.name, event.date, daysBefore, at,
+                        event.agenda.filter { it.time != null }.minByOrNull { it.minutesOfEventDay ?: 0 },
+                        Places.navigateUrl(event),
+                    )
                 }
             }
         }.sortedBy { it.at }

@@ -104,6 +104,16 @@ import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import com.jacekgajek.artsplit.app.generated.cancel
+import com.jacekgajek.artsplit.app.generated.place_new_event
+import com.jacekgajek.artsplit.app.generated.place_nothing
+import com.jacekgajek.artsplit.app.generated.place_title
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import com.jacekgajek.artsplit.ops.Change
+import com.jacekgajek.artsplit.ops.UpdateEvent
 import org.jetbrains.compose.resources.pluralStringResource
 import com.jacekgajek.artsplit.app.generated.reminder_prompt_not_now
 import com.jacekgajek.artsplit.app.generated.reminder_prompt_yes
@@ -255,6 +265,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
         navController.navigate(EventRoute(eventId))
     }
     ReminderPrompt(graph, settings)
+    SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
     val toSettings = { navController.navigate(SettingsRoute) }
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
@@ -331,6 +342,57 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
 
 /** Saved state key of the "everyone's costs" switch on the costs tab. */
 private const val SHOW_EVERYONE = "showEveryone"
+
+/**
+ * A place shared from Google Maps (Android, VERSION_2 §4.4): "Set the location of…" one of the upcoming events the
+ * user may edit (nearest first), or "New event at this place". The name fills an empty location; the link replaces.
+ */
+@Composable
+private fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEvent: (String) -> Unit, onNewEvent: () -> Unit) {
+    val place by graph.pendingSharedPlace.collectAsState()
+    val shared = place ?: return
+    val band = state.band
+    val can = Can(band, state.userId)
+    val events = band.events.filter { !it.archived && it.date >= today() && can.editEvent(it) }.sortedBy { it.date }
+    val dismiss = { graph.pendingSharedPlace.value = null }
+    var rejected by remember(shared) { mutableStateOf<RejectionReason?>(null) }
+    AlertDialog(
+        onDismissRequest = dismiss,
+        title = { Text(stringResource(Res.string.place_title)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                shared.name?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
+                rejected?.let { Text(stringResource(it.labelRes()), color = MaterialTheme.colorScheme.error) }
+                if (events.isEmpty() && !can.createEvent()) Text(stringResource(Res.string.place_nothing))
+                events.forEach { event ->
+                    TextButton(onClick = {
+                        val rejection = graph.dispatch(
+                            UpdateEvent(
+                                event.id,
+                                location = Change(shared.name).takeIf { event.location.isNullOrBlank() && shared.name != null },
+                                mapUrl = Change(shared.url),
+                            ),
+                        )
+                        rejected = rejection?.reason
+                        if (rejection == null) {
+                            dismiss()
+                            onOpenEvent(event.id)
+                        }
+                    }) { Text("${event.name} · ${formatDate(event.date, language)}") }
+                }
+                if (can.createEvent()) {
+                    TextButton(onClick = {
+                        graph.pendingNewEventPlace.value = shared
+                        dismiss()
+                        onNewEvent()
+                    }) { Text(stringResource(Res.string.place_new_event)) }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
 
 /**
  * Asks once, when the first upcoming gig of the user appears, whether they want reminders, naming who added them

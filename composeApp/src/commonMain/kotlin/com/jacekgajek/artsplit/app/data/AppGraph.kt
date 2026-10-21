@@ -8,6 +8,7 @@ import com.jacekgajek.artsplit.app.sync.ApiClient
 import com.jacekgajek.artsplit.app.sync.SyncEngine
 import com.jacekgajek.artsplit.app.platform.PreparedFile
 import com.jacekgajek.artsplit.model.Attachment
+import com.jacekgajek.artsplit.domain.SharedPlace
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.ops.AddAttachment
 import com.jacekgajek.artsplit.ops.Operation
@@ -83,6 +84,12 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
     /** Called after signing out, e.g. to cancel this user's reminders (Android). */
     var afterSignOut: () -> Unit = {}
+
+    /** A place shared from Google Maps, waiting for "Set the location of…" (Android, VERSION_2 §4.4). */
+    val pendingSharedPlace = MutableStateFlow<SharedPlace?>(null)
+
+    /** The user chose "New event at this place": the create dialog opens with it. */
+    val pendingNewEventPlace = MutableStateFlow<SharedPlace?>(null)
 
     /** A gig to open, e.g. from a reminder notification: band id and event id. */
     val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)

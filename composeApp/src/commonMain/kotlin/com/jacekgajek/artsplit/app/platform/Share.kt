@@ -12,3 +12,7 @@ expect fun rememberShare(): suspend (text: String) -> ShareResult
 /** Returns a function that copies [text] to the clipboard; true on success. */
 @Composable
 expect fun rememberCopy(): suspend (text: String) -> Boolean
+
+/** Returns a function that reads the clipboard's text (null if empty or not allowed). */
+@Composable
+expect fun rememberPaste(): suspend () -> String?
