@@ -4,7 +4,6 @@ Build a fully functional, CRM-style yet simple app for band settlements, named "
 
 The goal of an app is to simplify distribution of money between band members.
 
-As a logic base, see the Rozliczenia.ods file.
 
 
 # Features
@@ -24,7 +23,7 @@ In an event creation/edition screen, it must be possible to
   Add option to add an ad-hoc person outside from the predefined pool (like a guest artist)
 - It must be possible to input incurred costs by each band member - like fuel or train tickets.
 - It must be possible to input where the money currently sits. For example, member A collected money from a hat and has all of it, another collected money from ticket service
-- For each event, a share of payout can be defined (eg the leader/composer might want more). By default it's 100% for every body, which means an even split (see the spreadsheet)
+- For each event, a share of payout can be defined (eg the leader/composer might want more). By default it's 100% for every body, which means an even split
 
 
 The final result of settlement is a situation where money which currently sits at people is equal to their payout share plus return of all costs.
