@@ -6,14 +6,22 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.S3Exception
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
+import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 data class Blob(val content: String, val etag: String)
+
+/** A presigned request: the URL plus the headers the client must send exactly as signed. */
+data class PresignedRequest(val url: String, val headers: Map<String, String>)
 
 /** Someone else changed the object since it was read (or it already exists). */
 class PreconditionFailed : RuntimeException()
@@ -32,9 +40,24 @@ interface BlobStore {
 
     /** Keys under [prefix], in lexicographic order. */
     fun list(prefix: String): List<String>
+
+    fun exists(key: String): Boolean
+
+    /**
+     * A URL to upload a file of exactly [contentLength] bytes to [key]. It only creates the object: an existing file
+     * is never replaced.
+     */
+    fun presignPut(key: String, contentType: String, contentLength: Long): PresignedRequest
+
+    /** A URL to download [key], served as [contentType] and opened in place (not saved) by browsers. */
+    fun presignGet(key: String, contentType: String, fileName: String): String
 }
 
-class S3BlobStore(private val bucket: String, private val s3: S3Client = defaultClient()) : BlobStore {
+class S3BlobStore(
+    private val bucket: String,
+    private val s3: S3Client = defaultClient(),
+    private val presigner: S3Presigner = S3Presigner.builder().region(region()).build(),
+) : BlobStore {
 
     override fun get(key: String): Blob? = try {
         val response = s3.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).build())
@@ -65,10 +88,42 @@ class S3BlobStore(private val bucket: String, private val s3: S3Client = default
         s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
             .contents().map { it.key() }.sorted()
 
+    override fun exists(key: String): Boolean = try {
+        s3.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build())
+        true
+    } catch (e: NoSuchKeyException) {
+        false
+    }
+
+    override fun presignPut(key: String, contentType: String, contentLength: Long): PresignedRequest {
+        val put = PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).contentLength(contentLength)
+            .ifNoneMatch("*").build()
+        val presigned = presigner.presignPutObject(
+            PutObjectPresignRequest.builder().signatureDuration(PRESIGN_DURATION).putObjectRequest(put).build(),
+        )
+        // Browsers set Host and Content-Length themselves (and refuse to set them); the rest the client must send.
+        val headers = presigned.signedHeaders()
+            .filterKeys { it.lowercase() !in setOf("host", "content-length") }
+            .mapValues { it.value.joinToString(",") }
+        return PresignedRequest(presigned.url().toString(), headers)
+    }
+
+    override fun presignGet(key: String, contentType: String, fileName: String): String {
+        val get = GetObjectRequest.builder().bucket(bucket).key(key).responseContentType(contentType)
+            .responseContentDisposition("inline; filename=\"${fileName.replace(Regex("[^A-Za-z0-9._ -]"), "_")}\"").build()
+        return presigner.presignGetObject(
+            GetObjectPresignRequest.builder().signatureDuration(PRESIGN_DURATION).getObjectRequest(get).build(),
+        ).url().toString()
+    }
+
     companion object {
+        private val PRESIGN_DURATION: Duration = Duration.ofMinutes(15)
+
+        private fun region(): Region = Region.of(System.getenv("AWS_REGION") ?: "eu-central-1")
+
         fun defaultClient(): S3Client = S3Client.builder()
             .httpClient(UrlConnectionHttpClient.create())
-            .region(Region.of(System.getenv("AWS_REGION") ?: "eu-central-1"))
+            .region(region())
             .build()
     }
 }
@@ -89,9 +144,20 @@ class InMemoryBlobStore : BlobStore {
         return etag
     }
 
+    override fun list(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }.sorted()
+
+    /** Keys of uploaded files; tests add to it to simulate a client's upload. */
+    val files: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    override fun exists(key: String): Boolean = objects.containsKey(key) || key in files
+
+    override fun presignPut(key: String, contentType: String, contentLength: Long) =
+        PresignedRequest("memory://put/$key?length=$contentLength", mapOf("content-type" to contentType, "if-none-match" to "*"))
+
+    override fun presignGet(key: String, contentType: String, fileName: String) = "memory://get/$key"
+
     override fun delete(key: String) {
         objects.remove(key)
+        files.remove(key)
     }
-
-    override fun list(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }.sorted()
 }

@@ -333,4 +333,5 @@
     <string name="fund_direction_from">Z kasy</string>
     <string name="fund_amount_to_hint">Odejmowane od przychodu przed podziałem. Zostaw puste, jeśli nic.</string>
     <string name="fund_amount_from_hint">Kasa zespołowa dokłada tę kwotę do podziału, np. żeby pokryć stratę.</string>
+    <string name="reject_attachment_too_large">Plik jest za duży (zdjęcia do 3 MB, PDF do 10 MB).</string>
 </resources>

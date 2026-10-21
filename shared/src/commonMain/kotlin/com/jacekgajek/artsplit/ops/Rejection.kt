@@ -38,6 +38,7 @@ enum class RejectionReason {
     COST_REFUNDED_FROM_FUND,
     CANNOT_SETTLE,
     TOO_MANY_ATTACHMENTS,
+    ATTACHMENT_TOO_LARGE,
 }
 
 /** Why an operation was not applied: [reason] for users, [message] as a developer-facing English description. */

@@ -333,4 +333,5 @@
     <string name="fund_direction_from">From the fund</string>
     <string name="fund_amount_to_hint">Taken off the income before it is shared. Leave empty for nothing.</string>
     <string name="fund_amount_from_hint">The band fund adds this to the money shared, e.g. to cover a loss.</string>
+    <string name="reject_attachment_too_large">The file is too large (photos up to 3 MB, PDFs up to 10 MB).</string>
 </resources>
