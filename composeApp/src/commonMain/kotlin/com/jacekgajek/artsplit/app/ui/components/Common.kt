@@ -61,9 +61,9 @@ import com.jacekgajek.artsplit.app.ui.theme.MoneyColors
 import com.jacekgajek.artsplit.domain.EventStatus
 import com.jacekgajek.artsplit.model.Money
 import com.jacekgajek.artsplit.ops.Operation
+import com.jacekgajek.artsplit.ops.RejectionReason
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 /** Language code of the current UI locale (`en`, `pl`), for formatting. */
@@ -74,10 +74,11 @@ class Actions(
     private val graph: AppGraph,
     private val snackbar: SnackbarHostState,
     private val scope: CoroutineScope,
+    private val reasonTexts: Map<RejectionReason, String>,
 ) {
     fun run(op: Operation): Boolean {
         val rejection = graph.dispatch(op) ?: return true
-        scope.launch { snackbar.showSnackbar(getString(rejection.reason.labelRes())) }
+        scope.launch { snackbar.showSnackbar(reasonTexts.getValue(rejection.reason)) }
         return false
     }
 }
@@ -85,7 +86,10 @@ class Actions(
 @Composable
 fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState): Actions {
     val scope = rememberCoroutineScope()
-    return remember(graph, snackbar) { Actions(graph, snackbar, scope) }
+    // Resolved during composition so they follow the in-app language; a non-composable getString() would use the
+    // system language on the web.
+    val reasonTexts = RejectionReason.entries.associateWith { stringResource(it.labelRes()) }
+    return remember(graph, snackbar, reasonTexts) { Actions(graph, snackbar, scope, reasonTexts) }
 }
 
 @Composable
