@@ -60,7 +60,7 @@ private class FakeServer {
         val json = headersOf(HttpHeaders.ContentType, "application/json")
         val bandInPath = path.split('/').getOrNull(2)
         if (path.startsWith("/bands/") && bandInPath !in bands) {
-            return@MockEngine respond("""{"error":"not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
+            return@MockEngine respond("""{"error":"band_not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
         }
         fun <T> ok(serializer: KSerializer<T>, value: T) = respond(ArtSplitJson.encodeToString(serializer, value), HttpStatusCode.OK, json)
         when {
@@ -227,7 +227,7 @@ class SyncEngineTest {
         assertEquals("Lost Band", message.await())
         assertEquals("Kept and renamed", server.bands.getValue(kept).name)
         assertEquals(listOf("Kept and renamed"), repository.index.value!!.bands.map { it.name })
-        assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey(lost) + "-unsent-") }, "unsent changes are kept")
+        assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
     }
 
     @Test
@@ -249,5 +249,17 @@ class SyncEngineTest {
         sync.resumeAfterSignIn()
         assertTrue(sync.syncNow())
         assertEquals(SyncStatus.SYNCED, sync.status.value)
+    }
+
+    @Test
+    fun aGeneric404NeverDeletesBands() = runTest {
+        val wrongUrl = HttpClient(MockEngine { respond("""{"message":"Not Found"}""", HttpStatusCode.NotFound) })
+        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
+        val sync = SyncEngine(ApiClient(wrongUrl, "https://api.test") { "alice:0" }, repository, this)
+        repository.load("alice")
+        repository.adoptFromServer(Band.create("b1", "Synced", "PLN", "m1", "Alice", "alice"), "v1")
+        sync.syncNow()
+        assertEquals(SyncStatus.ERROR, sync.status.value)
+        assertEquals("Synced", assertIs<BandState.Ready>(repository.state.value).band.name)
     }
 }

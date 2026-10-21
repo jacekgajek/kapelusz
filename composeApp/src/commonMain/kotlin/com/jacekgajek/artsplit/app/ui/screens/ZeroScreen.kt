@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,12 @@ import com.jacekgajek.artsplit.app.generated.join_band
 import com.jacekgajek.artsplit.app.generated.join_band_soon
 import com.jacekgajek.artsplit.app.generated.new_band_title
 import com.jacekgajek.artsplit.app.generated.open_band
+import com.jacekgajek.artsplit.app.generated.open_band_failed
+import com.jacekgajek.artsplit.app.generated.sign_in_again_title
+import com.jacekgajek.artsplit.app.generated.sync_error
+import com.jacekgajek.artsplit.app.generated.sync_needs_sign_in
+import com.jacekgajek.artsplit.app.generated.sync_offline
+import com.jacekgajek.artsplit.app.sync.SyncStatus
 import com.jacekgajek.artsplit.app.generated.or_create_band
 import com.jacekgajek.artsplit.app.generated.sign_out
 import com.jacekgajek.artsplit.app.generated.your_bands
@@ -44,7 +51,9 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ZeroScreen(
     bands: List<BandSummary>,
-    checking: Boolean,
+    syncStatus: SyncStatus,
+    openError: Boolean,
+    onSignInAgain: () -> Unit,
     defaultYourName: String,
     onOpen: (String) -> Unit,
     onCreate: (name: String, currency: String, yourName: String) -> Unit,
@@ -53,7 +62,20 @@ fun ZeroScreen(
     Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(top = 32.dp))
+            val checking = syncStatus == SyncStatus.IDLE || syncStatus == SyncStatus.SYNCING
             if (checking && bands.isEmpty()) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+            when (syncStatus) {
+                SyncStatus.NEEDS_SIGN_IN -> Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(Res.string.sync_needs_sign_in))
+                        FilledTonalButton(onClick = onSignInAgain) { Text(stringResource(Res.string.sign_in_again_title)) }
+                    }
+                }
+                SyncStatus.OFFLINE -> Text(stringResource(Res.string.sync_offline), color = MaterialTheme.colorScheme.error)
+                SyncStatus.ERROR -> Text(stringResource(Res.string.sync_error), color = MaterialTheme.colorScheme.error)
+                else -> {}
+            }
+            if (openError) Text(stringResource(Res.string.open_band_failed), color = MaterialTheme.colorScheme.error)
             if (bands.isNotEmpty()) {
                 Text(stringResource(Res.string.your_bands), style = MaterialTheme.typography.titleMedium)
                 bands.forEach { band ->

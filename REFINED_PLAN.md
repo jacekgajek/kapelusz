@@ -440,6 +440,7 @@ Workflow:
 | 2026-10-21 | Unreadable saved band data never crashes the app or gets discarded silently: it is copied to `band-backup-<timestamp>` and the user can start over. No export UI; the backup is for manual recovery. Unreadable settings fall back to defaults. |
 | 2026-10-21 | M3: history is one S3 object per accepted push (`log/{yyyy-MM}/{millis}-{uuid}.json`) instead of a monthly `.jsonl`: S3 has no append, and separate objects need no read-modify-write. Sequence numbers are tracked per user and device (`{sub}/{clientId}`). Non-members get `404` for a band, the same as a missing band. Band ids come from the client so offline-created bands keep their ids. |
 | 2026-10-21 | M3 client: each band is stored as `band-{id}` with a `band-index` of the user's bands; the M2 band (placeholder user) is adopted by the first signed-in user and created on the server with its original ids by the first sync. Android uses Ktor's Android engine (OkHttp 5 needs compileSdk 37). Joining a band waits for invites (M4); the first screen shows it as coming soon. |
+| 2026-10-21 | Build time: CI builds the development web bundle (no wasm-opt). Production uses a single `wasm-opt -O2` pass instead of Kotlin's default 5×`-O3`/`--gufa`/`-Oz`: 10 s instead of 43 s locally, +15% compressed app wasm (~180 KB brotli; the 8 MB Skia wasm is unaffected). |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

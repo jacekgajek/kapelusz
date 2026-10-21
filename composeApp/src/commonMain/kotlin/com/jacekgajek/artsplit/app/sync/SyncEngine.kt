@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.sync
 
+import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.app.data.BandRepository
 import com.jacekgajek.artsplit.model.Id
@@ -125,7 +126,9 @@ class SyncEngine(
     } catch (e: CancellationException) {
         throw e
     } catch (e: ApiException) {
-        if (e.status == 404 && !(bands.local(bandId)?.needsCreate ?: true)) {
+        // Only the server's explicit "band not found for you" means access is gone; any other 404 (a wrong URL, an
+        // unknown route) must never make the app delete bands from the device.
+        if (e.code == ApiErrors.BAND_NOT_FOUND && bands.local(bandId)?.needsCreate == false) {
             // The band is gone or the user was removed from it: keep unsent changes as a backup and let go of it.
             val name = bands.loseAccess(bandId)
             _lostAccess.tryEmit(name)
@@ -150,6 +153,8 @@ class SyncEngine(
     }
 
     private suspend fun pushBand(bandId: Id) {
+        // What is pushed must already be on disk, or a crash after the push could make later ops reuse sequence numbers.
+        bands.flush()
         val local = bands.local(bandId) ?: return
         if (local.needsCreate) {
             val owner = local.base.owner ?: return

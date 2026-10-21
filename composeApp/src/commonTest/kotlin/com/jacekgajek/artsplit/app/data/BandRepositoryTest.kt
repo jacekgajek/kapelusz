@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.data
 
+import com.jacekgajek.artsplit.api.BandSummary
 import com.jacekgajek.artsplit.api.PushResponse
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Band
@@ -99,7 +100,7 @@ class BandRepositoryTest {
         assertEquals(Role.OWNER, state.me?.role)
         assertTrue(repository.local("b1")!!.needsCreate)
         assertNull(store.values[BandRepository.LEGACY_KEY])
-        assertTrue(store.values.containsKey(BandRepository.bandKey("b1")))
+        assertTrue(store.values.containsKey(BandRepository.bandKey("google-sub", "b1")))
     }
 
     @Test
@@ -123,7 +124,7 @@ class BandRepositoryTest {
         repository.createBand("The Band", "PLN", "Alice")
         val bandId = ready(repository).band.id
         testScheduler.advanceUntilIdle()
-        store.values[BandRepository.bandKey(bandId)] = "{ not valid"
+        store.values[BandRepository.bandKey("alice", bandId)] = "{ not valid"
 
         val reloaded = BandRepository(store, TestScope(testScheduler), ids(), clock = { 42 })
         reloaded.load("alice")
@@ -132,7 +133,77 @@ class BandRepositoryTest {
 
         reloaded.startOver()
         assertEquals(BandState.NoBand, reloaded.state.value)
-        assertNull(store.values[BandRepository.bandKey(bandId)])
+        assertNull(store.values[BandRepository.bandKey("alice", bandId)])
         assertEquals("{ not valid", store.values[state.backupKey], "the backup survives starting over")
+    }
+
+    @Test
+    fun bandsThatAreNotOpenStillSyncAfterARestart() = runTest {
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        repository.createBand("Made offline", "PLN", "Alice")
+        val offline = repository.currentBandId!!
+        repository.createBand("Open one", "PLN", "Alice")
+        testScheduler.advanceUntilIdle()
+
+        val restarted = BandRepository(store, TestScope(testScheduler), ids())
+        restarted.load("alice")
+        assertEquals("Open one", ready(restarted).band.name)
+        assertTrue(offline in restarted.bandsToPush(), "the band made offline is still queued for upload")
+        restarted.onBandList(emptyList()) // the server does not know it yet
+        assertTrue(restarted.index.value!!.bands.any { it.id == offline }, "and it stays in the band list")
+    }
+
+    @Test
+    fun anotherAccountOnTheSameDeviceDoesNotSeeTheBands() = runTest {
+        val store = InMemoryStore()
+        val alice = BandRepository(store, this, ids())
+        alice.load("alice")
+        alice.createBand("Alice's band", "PLN", "Alice")
+        alice.dispatch(AddMember("bob", "Bob"))
+        val bandId = alice.currentBandId!!
+        testScheduler.advanceUntilIdle()
+
+        val bob = BandRepository(store, TestScope(testScheduler), ids())
+        bob.load("bob")
+        assertEquals(BandState.NoBand, bob.state.value)
+        assertEquals(emptyList(), bob.bandsToPush())
+        assertEquals(false, bob.hasStored(bandId))
+
+        val aliceAgain = BandRepository(store, TestScope(testScheduler), ids())
+        aliceAgain.load("alice")
+        assertEquals(1, aliceAgain.local(bandId)!!.pending.size, "Alice's unsent change is still there")
+    }
+
+    @Test
+    fun movesUnscopedKeysOfTheSameUser() = runTest {
+        val band = Band.create("b1", "M3 Band", "PLN", "m1", "Alice", "alice")
+        val local = LocalBand(base = band, version = "v1", clientId = "c", userId = "alice")
+        val index = BandIndex("alice", "b1", listOf(BandSummary("b1", "M3 Band", "Alice", Role.OWNER)))
+        val store = InMemoryStore(
+            mapOf(
+                BandRepository.UNSCOPED_INDEX_KEY to ArtSplitJson.encodeToString(BandIndex.serializer(), index),
+                "band-b1" to ArtSplitJson.encodeToString(LocalBand.serializer(), local),
+            ),
+        )
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        assertEquals("M3 Band", ready(repository).band.name)
+        assertNull(store.values["band-b1"])
+        assertNull(store.values[BandRepository.UNSCOPED_INDEX_KEY])
+        assertTrue(store.values.containsKey(BandRepository.bandKey("alice", "b1")))
+    }
+
+    @Test
+    fun flushWritesPendingChangesImmediately() = runTest {
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        repository.createBand("The Band", "PLN", "Alice")
+        repository.dispatch(AddMember("bob", "Bob"))
+        repository.flush()
+        val saved = ArtSplitJson.decodeFromString(LocalBand.serializer(), store.values.getValue(BandRepository.bandKey("alice", repository.currentBandId!!)))
+        assertEquals(2L, saved.nextSeq)
     }
 }

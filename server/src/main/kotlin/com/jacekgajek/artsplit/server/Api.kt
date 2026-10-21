@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.server
 
+import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.BandSummary
 import com.jacekgajek.artsplit.api.CreateBandRequest
@@ -48,6 +49,9 @@ class Api(
     }
 
     private fun route(request: HttpRequest): HttpResponse {
+        // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
+        // need a 2xx answer; API Gateway adds the CORS headers.
+        if (request.method == "OPTIONS") return HttpResponse(204)
         val user = authenticate(request)
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
@@ -104,10 +108,20 @@ class Api(
 
     private fun push(user: VerifiedUser, bandId: String, request: PushRequest): HttpResponse {
         badRequestIf(request.ops.size > MAX_OPS_PER_PUSH) { "At most $MAX_OPS_PER_PUSH operations per push" }
+        // One push comes from one device. Device ids are short, and each user has a bounded number of them, so no
+        // member (not even a viewer, whose ops are all refused) can bloat the band's state.
+        val clientIds = request.ops.map { it.clientId }.toSet()
+        badRequestIf(clientIds.size > 1) { "All operations of a push must come from one device" }
+        clientIds.firstOrNull()?.let { badRequestIf(!it.matches(Regex("[A-Za-z0-9-]{1,64}"))) { "Invalid device id" } }
         // Sequence numbers are tracked per user and device, so one user cannot block another user's device.
         val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}") }
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBandForMember(user, bandId)
+            val device = envelopes.firstOrNull()?.clientId
+            val userDevices = band.lastSeq.keys.count { it.startsWith("${user.userId}/") }
+            if (device != null && device !in band.lastSeq && userDevices >= MAX_DEVICES_PER_USER) {
+                throw ApiError(400, "too_many_devices", "Too many devices for this user in this band")
+            }
             val result = Engine.applyBatch(band, Actor.User(user.userId), envelopes)
             val newEtag = try {
                 if (result.band == band) etag else store.put(bandKey(bandId), encode(Band.serializer(), result.band), ifMatch = etag)
@@ -133,10 +147,11 @@ class Api(
         store.get(bandKey(bandId))?.let { decode(Band.serializer(), it.content) to it.etag }
 
     private fun loadBandForMember(user: VerifiedUser, bandId: String): Pair<Band, String> {
-        val loaded = loadBand(bandId) ?: throw ApiError(404, "not_found", "No such band")
+        val loaded = loadBand(bandId) ?: throw ApiError(404, BAND_NOT_FOUND, "No such band")
         val member = loaded.first.memberOfUser(user.userId)
-        // Same answer for "no such band" and "not your band", so band ids cannot be probed.
-        if (member == null || member.archived) throw ApiError(404, "not_found", "No such band")
+        // Same answer for "no such band" and "not your band", so band ids cannot be probed. A distinct code (not the
+        // generic route 404) lets clients drop the band only when the band itself is gone for them.
+        if (member == null || member.archived) throw ApiError(404, BAND_NOT_FOUND, "No such band")
         return loaded
     }
 
@@ -180,6 +195,8 @@ class Api(
     companion object {
         const val MAX_ATTEMPTS = 5
         const val MAX_OPS_PER_PUSH = 500
+        const val MAX_DEVICES_PER_USER = 50
+        const val BAND_NOT_FOUND = ApiErrors.BAND_NOT_FOUND
         private val JSON = mapOf("content-type" to "application/json")
 
         fun bandKey(bandId: String) = "bands/${safe(bandId)}/state.json"

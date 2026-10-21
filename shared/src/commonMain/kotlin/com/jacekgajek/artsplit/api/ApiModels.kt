@@ -43,3 +43,8 @@ data class PushResponse(
 
 @Serializable
 data class ErrorResponse(val error: String, val message: String)
+
+object ApiErrors {
+    /** The band does not exist or the caller is not (or no longer) an active member. */
+    const val BAND_NOT_FOUND = "band_not_found"
+}

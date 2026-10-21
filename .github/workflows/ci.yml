@@ -24,4 +24,5 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Test and build
-        run: ./gradlew check :androidApp:assembleDebug :composeApp:wasmJsBrowserDistribution :server:shadowJar
+        # The development web bundle skips wasm-opt: CI only needs to prove the app compiles and links.
+        run: ./gradlew check :androidApp:assembleDebug :composeApp:wasmJsBrowserDevelopmentExecutableDistribution :server:shadowJar
