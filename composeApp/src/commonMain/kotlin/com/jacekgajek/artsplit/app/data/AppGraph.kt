@@ -31,7 +31,15 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     // The exchange runs only after construction, when api exists.
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
     val bands = BandRepository(store, scope)
-    val api: ApiClient = ApiClient(http, AppConfig.API_URL) { force -> sessions.validToken(force) }
+    /** The server no longer serves this app version (VERSION_2 §2): the app shows "update to continue". */
+    val updateRequired = MutableStateFlow(false)
+    val api: ApiClient = ApiClient(
+        http,
+        AppConfig.API_URL,
+        token = { force -> sessions.validToken(force) },
+        appVersion = AppConfig.VERSION_CODE,
+        onUpdateRequired = { updateRequired.value = true },
+    )
     val uploads = AttachmentUploads(store, api, bands)
     val sync = SyncEngine(api, bands, scope, uploads = uploads)
 

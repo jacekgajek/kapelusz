@@ -29,8 +29,8 @@ The app keeps itself up to date without the Play Store.
 Version 1 apps fail to read new kinds of data (a new operation type in history, a new rejection reason). Version 2
 makes this explicit, so the data format can change later without silently broken apps.
 
-- Apps send their version code with every request: `X-Art-Split-Version: <versionCode>`.
-- The server has a **minimum supported version** in its code, raised whenever a change would break older apps. Below it, it answers `426` with `update_required`.
+- Apps send their version code with every request as the query parameter `appVersion=<versionCode>` (0 for local development builds, which are always allowed). A header would have needed the API's CORS allow-list changed.
+- The server has a **minimum supported version** in its code (`Api.MIN_APP_VERSION`, 0 = everyone), raised whenever a change would break older apps. Below it, or without a version (apps from before version 2), it answers `426` with `update_required`. Sync then stops retrying.
 - The app then shows a blocking screen: **"This version of Art Split is too old. Update to continue"** with **Update** (Android: download and install, §1; web: reload).
 - History entries an app cannot read are shown as **"A change from a newer version"** instead of failing the whole page.
 - Initial users are known personally, so the policy is pragmatic: raise the minimum when needed and tell people to update.
@@ -141,7 +141,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M1.5 Version label in a corner of the sign-in screen and Settings (and `artSplitVersion` on the web), to check what a deploy put live
 
 ### V2-M2 — Foundations and quick wins
-- [ ] V2-M2.1 Version header, server minimum version, `426 update_required` and the "too old" screen
+- [x] V2-M2.1 Version header, server minimum version, `426 update_required` and the "too old" screen
 - [ ] V2-M2.2 Unreadable history entries shown as "a change from a newer version"
 - [ ] V2-M2.3 History spinners (§7)
 - [ ] V2-M2.4 Continue card rule (§3.1) and Upcoming card (§3.2)

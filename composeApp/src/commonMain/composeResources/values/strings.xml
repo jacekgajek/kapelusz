@@ -390,4 +390,7 @@
     <string name="updates_installing">Installing %1$s… The app restarts when it is done.</string>
     <string name="updates_declined">You did not install %1$s. It is not offered again automatically.</string>
     <string name="updates_install_failed">Android could not install %1$s.</string>
+    <string name="update_required_title">Update Art Split</string>
+    <string name="update_required_text">This version of Art Split is too old for the server. Update to continue; your changes on this device are kept and sync after the update.</string>
+    <string name="update_required_button">Update</string>
 </resources>

@@ -85,6 +85,7 @@ import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
 import com.jacekgajek.artsplit.app.ui.FundRoute
 import com.jacekgajek.artsplit.app.ui.screens.BandFundScreen
+import com.jacekgajek.artsplit.app.ui.screens.UpdateRequiredScreen
 import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.HistoryScreen
@@ -120,8 +121,11 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     CompositionLocalProvider(LocalAppLocale provides settings.language) {
         key(settings.language) {
             ArtSplitTheme {
+                val updateRequired by graph.updateRequired.collectAsState()
                 Surface(Modifier.fillMaxSize()) {
-                    if (session == null) {
+                    if (updateRequired) {
+                        UpdateRequiredScreen()
+                    } else if (session == null) {
                         SignInScreen(onIdToken = graph::onSignedIn)
                     } else {
                         BandContent(graph, bandState, navController)

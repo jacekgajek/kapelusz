@@ -50,6 +50,7 @@ import com.jacekgajek.artsplit.app.generated.sign_in_again_wrong_account
 import com.jacekgajek.artsplit.app.generated.sign_in_failed
 import com.jacekgajek.artsplit.app.generated.settings
 import com.jacekgajek.artsplit.app.generated.sync_error
+import com.jacekgajek.artsplit.app.generated.update_required_title
 import com.jacekgajek.artsplit.app.generated.sync_needs_sign_in
 import com.jacekgajek.artsplit.app.generated.sync_offline
 import com.jacekgajek.artsplit.app.generated.sync_synced
@@ -130,6 +131,7 @@ private fun SyncIndicator(bar: TopBarState) {
         SyncStatus.OFFLINE -> Icons.Default.CloudOff to Res.string.sync_offline
         SyncStatus.NEEDS_SIGN_IN -> Icons.Default.Warning to Res.string.sync_needs_sign_in
         SyncStatus.ERROR -> Icons.Default.Warning to Res.string.sync_error
+        SyncStatus.UPDATE_REQUIRED -> Icons.Default.Warning to Res.string.update_required_title
     }
     val tint = if (status == SyncStatus.NEEDS_SIGN_IN || status == SyncStatus.ERROR) MaterialTheme.colorScheme.error else LocalContentColor.current
     IconButton(onClick = { if (status == SyncStatus.NEEDS_SIGN_IN) signingIn = true else bar.onSyncNow() }) {

@@ -44,6 +44,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.KSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -52,6 +53,11 @@ private class FakeServer {
     val bands = mutableMapOf<String, Band>()
     var version = 0
     var unauthorizedOnce = false
+
+    /** The server no longer serves this app version. */
+    var updateRequired = false
+    var requests = 0
+    val appVersionsSeen = mutableListOf<String?>()
 
     /** Bands their owner deleted: former members get band_deleted. */
     val deletedBands = mutableSetOf<String>()
@@ -65,6 +71,11 @@ private class FakeServer {
 
     val client = HttpClient(MockEngine { request ->
         if (offline) throw object : Throwable("Failed to fetch") {}
+        requests++
+        appVersionsSeen += request.url.parameters["appVersion"]
+        if (updateRequired) {
+            return@MockEngine respond("""{"error":"update_required","message":"Too old"}""", HttpStatusCode.UpgradeRequired, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
         val token = request.headers[HttpHeaders.Authorization]!!.removePrefix("Bearer ")
         tokensSeen += token
         if (unauthorizedOnce) {
@@ -380,5 +391,26 @@ class SyncEngineTest {
         sync.syncNow()
         assertEquals(LostBand("Night Owls", deleted = true), message.await())
         assertEquals(null, repository.local(bandId))
+    }
+
+    @Test
+    fun anOutdatedAppStopsSyncingAndSaysSo() = runTest {
+        val server = FakeServer()
+        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
+        var told = false
+        val api = ApiClient(server.client, "https://api.test", appVersion = 11, onUpdateRequired = { told = true }) { "alice:0" }
+        val sync = SyncEngine(api, repository, this)
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        assertTrue(sync.syncNow())
+        assertTrue(server.appVersionsSeen.all { it == "11" }, "every request carries the app version")
+
+        server.updateRequired = true
+        assertFalse(sync.syncNow())
+        assertTrue(told)
+        assertEquals(SyncStatus.UPDATE_REQUIRED, sync.status.value)
+        val before = server.requests
+        assertFalse(sync.syncNow())
+        assertEquals(before, server.requests, "no pointless retries until the app is updated")
     }
 }

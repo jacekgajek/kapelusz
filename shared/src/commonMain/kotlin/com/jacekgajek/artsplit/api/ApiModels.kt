@@ -48,6 +48,12 @@ object ApiErrors {
     /** The band does not exist or the caller is not (or no longer) an active member. */
     const val BAND_NOT_FOUND = "band_not_found"
 
+    /** The app is older than the server supports (`426`); it has to be updated before it can sync again. */
+    const val UPDATE_REQUIRED = "update_required"
+
+    /** Query parameter carrying the app's version code on every request; 0 for local development builds. */
+    const val APP_VERSION_PARAMETER = "appVersion"
+
     /** The band was deleted by its owner; only its former members get this (others get [BAND_NOT_FOUND]). */
     const val BAND_DELETED = "band_deleted"
 

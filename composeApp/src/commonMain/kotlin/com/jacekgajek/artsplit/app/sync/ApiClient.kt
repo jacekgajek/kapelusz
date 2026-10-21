@@ -3,6 +3,7 @@ package com.jacekgajek.artsplit.app.sync
 import com.jacekgajek.artsplit.api.AttachmentUploadRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.AttachmentUrlResponse
+import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.CreateInviteRequest
@@ -22,6 +23,7 @@ import com.jacekgajek.artsplit.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -43,6 +45,10 @@ class NeedsSignInException : RuntimeException("Sign in again")
 class ApiClient(
     private val http: HttpClient,
     private val baseUrl: String,
+    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (VERSION_2 §2). */
+    private val appVersion: Int = 0,
+    /** The server answered "update required". */
+    private val onUpdateRequired: () -> Unit = {},
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
@@ -116,6 +122,8 @@ class ApiClient(
     private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) =
         http.request("$baseUrl$path") {
             this.method = method
+            // A query parameter, not a header: a new header would need the API's CORS allow-list changed.
+            parameter(ApiErrors.APP_VERSION_PARAMETER, appVersion)
             header(HttpHeaders.Authorization, "Bearer $bearer")
             configure()
         }
@@ -124,6 +132,7 @@ class ApiClient(
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
             val error = runCatching { ArtSplitJson.decodeFromString(ErrorResponse.serializer(), text) }.getOrNull()
+            if (error?.error == ApiErrors.UPDATE_REQUIRED) onUpdateRequired()
             throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
         }
         return ArtSplitJson.decodeFromString(serializer, text)
