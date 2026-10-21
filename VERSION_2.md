@@ -134,10 +134,11 @@ Workflow as in version 1: one branch + PR per milestone (the user creates the br
 commit that completes them, task IDs in commit messages, plan changes in the decision log.
 
 ### V2-M1 — Auto-update
-- [ ] V2-M1.1 Background job: daily `version.json` check and APK download
-- [ ] V2-M1.2 Install through `PackageInstaller`: silent where allowed, otherwise an "Install" notification; never while the app is in the foreground
-- [ ] V2-M1.3 "Install unknown apps" explanation and permission flow
-- [ ] V2-M1.4 Settings: Automatic updates switch, current version, Check now
+- [x] V2-M1.1 Background job: daily `version.json` check and APK download
+- [x] V2-M1.2 Install through `PackageInstaller`: silent where allowed, otherwise an "Install" notification; never while the app is in the foreground
+- [x] V2-M1.3 "Install unknown apps" explanation and permission flow
+- [x] V2-M1.4 Settings: Automatic updates switch, current version, Check now
+- [x] V2-M1.5 Version label in a corner of the sign-in screen and Settings (and `artSplitVersion` on the web), to check what a deploy put live
 
 ### V2-M2 — Foundations and quick wins
 - [ ] V2-M2.1 Version header, server minimum version, `426 update_required` and the "too old" screen

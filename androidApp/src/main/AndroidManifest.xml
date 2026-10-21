@@ -3,6 +3,10 @@
 
     <!-- Sync with the Art Split API. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Automatic updates without the Play Store (VERSION_2 §1). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="false"
@@ -25,6 +29,10 @@
                 <data android:scheme="https" android:host="artsplit.jacekgajek.com" android:pathPrefix="/join/" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name="com.jacekgajek.artsplit.app.updates.InstallResultReceiver"
+            android:exported="false" />
 
         <!-- Hands the camera app a file to write a photo for a cost attachment into (cache/photos). -->
         <provider

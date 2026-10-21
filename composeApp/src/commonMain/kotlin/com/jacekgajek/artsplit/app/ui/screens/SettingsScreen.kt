@@ -50,6 +50,27 @@ import com.jacekgajek.artsplit.app.generated.settings
 import com.jacekgajek.artsplit.app.generated.sign_out
 import com.jacekgajek.artsplit.app.ui.components.BackTopBar
 import com.jacekgajek.artsplit.app.ui.components.Dropdown
+import com.jacekgajek.artsplit.app.ui.components.VersionLabel
+import com.jacekgajek.artsplit.app.platform.UpdateControls
+import com.jacekgajek.artsplit.app.platform.UpdateStatus
+import com.jacekgajek.artsplit.app.platform.rememberUpdateControls
+import com.jacekgajek.artsplit.app.AppConfig
+import androidx.compose.runtime.collectAsState
+import com.jacekgajek.artsplit.app.generated.updates_title
+import com.jacekgajek.artsplit.app.generated.updates_auto
+import com.jacekgajek.artsplit.app.generated.updates_version
+import com.jacekgajek.artsplit.app.generated.updates_check_now
+import com.jacekgajek.artsplit.app.generated.updates_checking
+import com.jacekgajek.artsplit.app.generated.updates_up_to_date
+import com.jacekgajek.artsplit.app.generated.updates_downloading
+import com.jacekgajek.artsplit.app.generated.updates_ready
+import com.jacekgajek.artsplit.app.generated.updates_install_now
+import com.jacekgajek.artsplit.app.generated.updates_needs_permission
+import com.jacekgajek.artsplit.app.generated.updates_allow
+import com.jacekgajek.artsplit.app.generated.updates_needs_confirmation
+import com.jacekgajek.artsplit.app.generated.updates_install
+import com.jacekgajek.artsplit.app.generated.updates_failed
+import com.jacekgajek.artsplit.app.generated.updates_unavailable
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.BorderStroke
@@ -93,6 +114,8 @@ fun SettingsScreen(
     /** Deletes the band for everyone; only for its owner. Throws when it did not work (e.g. offline). */
     onDeleteBand: (suspend () -> Unit)?,
     otherMembers: Int,
+    autoUpdate: Boolean,
+    onAutoUpdate: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -191,9 +214,11 @@ fun SettingsScreen(
                 }
                 if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
             }
+            rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
             Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
             account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
             OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
+            VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp))
         }
     }
 }
@@ -258,4 +283,39 @@ private fun DeleteBandDialog(bandName: String, otherMembers: Int, onDelete: susp
         },
         dismissButton = { TextButton(enabled = !working, onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
+}
+
+/** Android: automatic updates (VERSION_2 §1): the switch, where the update stands, and what can be done about it. */
+@Composable
+private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onAutoUpdate: (Boolean) -> Unit) {
+    val status by controls.status.collectAsState()
+    Text(stringResource(Res.string.updates_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp).toggleable(value = autoUpdate, role = Role.Switch, onValueChange = onAutoUpdate),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(Res.string.updates_auto), Modifier.weight(1f))
+        Switch(checked = autoUpdate, onCheckedChange = null)
+    }
+    Text(stringResource(Res.string.updates_version, AppConfig.VERSION_LABEL), style = MaterialTheme.typography.bodySmall)
+    val (message, action) = when (val s = status) {
+        UpdateStatus.Idle -> null to null
+        UpdateStatus.Checking -> stringResource(Res.string.updates_checking) to null
+        UpdateStatus.UpToDate -> stringResource(Res.string.updates_up_to_date) to null
+        is UpdateStatus.Downloading -> stringResource(Res.string.updates_downloading, s.versionName) to null
+        is UpdateStatus.Ready -> stringResource(Res.string.updates_ready, s.versionName) to (Res.string.updates_install_now to controls::installNow)
+        is UpdateStatus.NeedsInstallPermission -> stringResource(Res.string.updates_needs_permission, s.versionName) to (Res.string.updates_allow to controls::openInstallPermission)
+        is UpdateStatus.NeedsConfirmation -> stringResource(Res.string.updates_needs_confirmation, s.versionName) to (Res.string.updates_install to controls::confirm)
+        UpdateStatus.Failed -> stringResource(Res.string.updates_failed) to null
+        UpdateStatus.Unavailable -> stringResource(Res.string.updates_unavailable) to null
+    }
+    message?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp)) }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+        action?.let { (label, onClick) -> Button(onClick = onClick) { Text(stringResource(label)) } }
+        if (status != UpdateStatus.Unavailable) {
+            OutlinedButton(onClick = controls::checkNow, enabled = status !is UpdateStatus.Checking && status !is UpdateStatus.Downloading) {
+                Text(stringResource(Res.string.updates_check_now))
+            }
+        }
+    }
 }

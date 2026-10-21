@@ -29,6 +29,14 @@ import com.jacekgajek.artsplit.app.generated.app_banner_text
 import com.jacekgajek.artsplit.app.generated.app_update_download
 import com.jacekgajek.artsplit.app.generated.app_update_text
 import com.jacekgajek.artsplit.app.platform.AppDownload
+import com.jacekgajek.artsplit.app.platform.UpdateControls
+import com.jacekgajek.artsplit.app.platform.UpdateStatus
+import com.jacekgajek.artsplit.app.platform.rememberUpdateControls
+import com.jacekgajek.artsplit.app.generated.updates_needs_confirmation
+import com.jacekgajek.artsplit.app.generated.updates_needs_permission
+import com.jacekgajek.artsplit.app.generated.updates_install
+import com.jacekgajek.artsplit.app.generated.updates_allow
+import androidx.compose.runtime.collectAsState
 import com.jacekgajek.artsplit.app.platform.appDownload
 import com.jacekgajek.artsplit.app.platform.dismissAppDownload
 import org.jetbrains.compose.resources.stringResource
@@ -38,7 +46,13 @@ import org.jetbrains.compose.resources.stringResource
  * does not apply.
  */
 @Composable
-fun AndroidAppBanner(modifier: Modifier = Modifier) {
+fun AndroidAppBanner(autoUpdate: Boolean, modifier: Modifier = Modifier) {
+    // With automatic updates the app updates itself; the strip only asks for what Android needs from the user.
+    val updates = rememberUpdateControls()
+    if (updates != null && autoUpdate) {
+        UpdateStrip(updates, modifier)
+        return
+    }
     var download by remember { mutableStateOf<AppDownload?>(null) }
     LaunchedEffect(Unit) { download = appDownload() }
     val current = download ?: return
@@ -59,6 +73,23 @@ fun AndroidAppBanner(modifier: Modifier = Modifier) {
                 dismissAppDownload(current)
                 download = null
             }) { Icon(Icons.Default.Close, stringResource(Res.string.app_banner_dismiss)) }
+        }
+    }
+}
+
+@Composable
+private fun UpdateStrip(controls: UpdateControls, modifier: Modifier) {
+    val status by controls.status.collectAsState()
+    val (text, button, action) = when (val s = status) {
+        is UpdateStatus.NeedsConfirmation -> Triple(stringResource(Res.string.updates_needs_confirmation, s.versionName), Res.string.updates_install, controls::confirm)
+        is UpdateStatus.NeedsInstallPermission -> Triple(stringResource(Res.string.updates_needs_permission, s.versionName), Res.string.updates_allow, controls::openInstallPermission)
+        else -> return
+    }
+    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Android, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text, Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TextButton(onClick = action) { Text(stringResource(button)) }
         }
     }
 }

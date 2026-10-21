@@ -373,4 +373,19 @@
     <string name="delete_band_type_name">Type %1$s to confirm</string>
     <string name="delete_band_confirm">Delete forever</string>
     <string name="delete_band_failed">The band was not deleted. Check your connection and try again.</string>
+    <string name="updates_title">App updates</string>
+    <string name="updates_auto">Install updates automatically</string>
+    <string name="updates_version">Version %1$s</string>
+    <string name="updates_check_now">Check now</string>
+    <string name="updates_checking">Checking for updates…</string>
+    <string name="updates_up_to_date">Art Split is up to date.</string>
+    <string name="updates_downloading">Downloading %1$s…</string>
+    <string name="updates_ready">%1$s is downloaded. It installs when you leave the app.</string>
+    <string name="updates_install_now">Install now</string>
+    <string name="updates_needs_permission">To update itself to %1$s, Art Split needs your permission to install apps.</string>
+    <string name="updates_allow">Allow</string>
+    <string name="updates_needs_confirmation">Art Split %1$s is ready to install.</string>
+    <string name="updates_install">Install</string>
+    <string name="updates_failed">Could not check for updates. It tries again later.</string>
+    <string name="updates_unavailable">Debug builds do not update themselves.</string>
 </resources>
