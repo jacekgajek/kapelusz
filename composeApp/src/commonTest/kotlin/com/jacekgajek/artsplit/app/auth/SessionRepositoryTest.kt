@@ -56,4 +56,26 @@ class SessionRepositoryTest {
         assertNull(reloaded.session.value)
         assertNull(store.values[SessionRepository.KEY])
     }
+
+    @Test
+    fun keepsTheCurrentTokenUntilItReallyExpiresWhenRenewalFails() = runTest {
+        val sessions = SessionRepository(InMemoryStore(), google) { now }
+        val token = fakeIdToken("sub-1", now / 1000 + 3 * 60) // expires in 3 minutes: inside the renewal margin
+        sessions.signedIn(token)
+        refreshed = null
+        assertEquals(token, sessions.validToken(), "renewal failed, but the token still works")
+        assertNull(sessions.validToken(forceRefresh = true), "the server refused it: no fallback")
+
+        now += 3 * 60 * 1000
+        assertNull(sessions.validToken())
+    }
+
+    @Test
+    fun reauthenticationMustBeTheSameAccount() = runTest {
+        val sessions = SessionRepository(InMemoryStore(), google) { now }
+        sessions.signedIn(fakeIdToken("sub-1", now / 1000 + 60))
+        assertEquals(false, sessions.reauthenticated(fakeIdToken("sub-2", now / 1000 + 3600)))
+        assertEquals(true, sessions.reauthenticated(fakeIdToken("sub-1", now / 1000 + 3600)))
+        assertEquals(now + 3600 * 1000, sessions.session.value!!.expiresAt)
+    }
 }

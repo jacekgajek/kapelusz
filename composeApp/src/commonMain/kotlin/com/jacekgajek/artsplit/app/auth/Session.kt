@@ -77,11 +77,25 @@ class SessionRepository(
     suspend fun validToken(forceRefresh: Boolean = false): String? = refreshLock.withLock {
         val current = _session.value ?: return null
         if (!forceRefresh && current.expiresAt - clock() > REFRESH_MARGIN_MS) return current.idToken
-        val fresh = runCatching { google.refresh() }.getOrNull() ?: return null
-        val refreshed = Session.fromIdToken(fresh)
-        if (refreshed.userId != current.userId) return null
+        // Without a fresh token, the current one is still fine until it actually expires (unless the server refused it).
+        val stillValid = current.idToken.takeIf { !forceRefresh && current.expiresAt - clock() > EXPIRY_SKEW_MS }
+        val fresh = runCatching { google.refresh() }.getOrNull() ?: return stillValid
+        val refreshed = runCatching { Session.fromIdToken(fresh) }.getOrNull() ?: return stillValid
+        if (refreshed.userId != current.userId) return stillValid
         save(refreshed)
         refreshed.idToken
+    }
+
+    /**
+     * After the user signed in again interactively (e.g. from the "Sign in again" dialog). Must be the same account,
+     * because this device's data belongs to it. Returns false for a different account.
+     */
+    suspend fun reauthenticated(idToken: String): Boolean {
+        val current = _session.value ?: return false
+        val refreshed = Session.fromIdToken(idToken)
+        if (refreshed.userId != current.userId) return false
+        save(refreshed)
+        return true
     }
 
     suspend fun signOut() {
@@ -98,5 +112,6 @@ class SessionRepository(
     companion object {
         const val KEY = "session"
         const val REFRESH_MARGIN_MS = 5 * 60 * 1000L
+        const val EXPIRY_SKEW_MS = 30 * 1000L
     }
 }

@@ -176,6 +176,23 @@ class BandRepository(
         index.copy(bands = bands + offline)
     }
 
+    /**
+     * The server no longer lets the user see this band. Unsent changes are kept under a backup key, then the band is
+     * removed from this device. Returns the band's name for the message to the user.
+     */
+    suspend fun loseAccess(bandId: Id): String {
+        val local = locals.remove(bandId)
+        val name = local?.let { replay(it).name } ?: _index.value?.bands?.firstOrNull { it.id == bandId }?.name ?: bandId
+        if (local != null && local.pending.isNotEmpty()) {
+            store.write("${bandKey(bandId)}-unsent-${clock()}", ArtSplitJson.encodeToString(LocalBand.serializer(), local))
+        }
+        store.remove(bandKey(bandId))
+        val wasCurrent = currentBandId == bandId
+        updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
+        if (wasCurrent) _state.value = BandState.NoBand
+        return name
+    }
+
     /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
     suspend fun startOver() {
         val bandId = currentBandId

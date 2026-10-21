@@ -208,4 +208,8 @@
     <string name="sync_needs_sign_in">Sign in again to sync</string>
     <string name="sync_error">Sync failed</string>
     <string name="sync_refused">Not saved on the server:</string>
+    <string name="sign_in_again_title">Sign in again</string>
+    <string name="sign_in_again_text">Your sign-in expired, so changes are only saved on this device for now. Sign in again as %1$s to sync them.</string>
+    <string name="sign_in_again_wrong_account">That is a different account. Sign in as %1$s, or sign out in Settings to switch accounts.</string>
+    <string name="lost_access">You no longer have access to %1$s. Changes not yet saved there were kept as a backup on this device.</string>
 </resources>

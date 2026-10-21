@@ -80,6 +80,8 @@ object WebGoogleAuth : GoogleAuth {
 
     /** FedCM / One Tap auto re-authentication for a returning user; null if Google wants interaction. */
     override suspend fun refresh(): String? = withTimeoutOrNull(15_000) {
+        // Also needed when the sign-in button was never shown in this page (the user was already signed in).
+        init()
         suspendCancellableCoroutine { continuation ->
             pending = { token -> pending = null; if (continuation.isActive) continuation.resumeWith(Result.success(token)) }
             continuation.invokeOnCancellation { pending = null }

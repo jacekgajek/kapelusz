@@ -41,9 +41,13 @@ private class FakeServer {
     val bands = mutableMapOf<String, Band>()
     var version = 0
     var unauthorizedOnce = false
+
+    /** Simulates no network; a Throwable that is not an Exception, like the browser's JsException. */
+    var offline = false
     val tokensSeen = mutableListOf<String>()
 
     val client = HttpClient(MockEngine { request ->
+        if (offline) throw object : Throwable("Failed to fetch") {}
         val token = request.headers[HttpHeaders.Authorization]!!.removePrefix("Bearer ")
         tokensSeen += token
         if (unauthorizedOnce) {
@@ -54,6 +58,10 @@ private class FakeServer {
         val body = (request.body as? TextContent)?.text
         val path = request.url.encodedPath
         val json = headersOf(HttpHeaders.ContentType, "application/json")
+        val bandInPath = path.split('/').getOrNull(2)
+        if (path.startsWith("/bands/") && bandInPath !in bands) {
+            return@MockEngine respond("""{"error":"not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
+        }
         fun <T> ok(serializer: KSerializer<T>, value: T) = respond(ArtSplitJson.encodeToString(serializer, value), HttpStatusCode.OK, json)
         when {
             path == "/me" -> ok(MeResponse.serializer(), MeResponse(user, bands = bands.values.mapNotNull { band ->
@@ -174,5 +182,51 @@ class SyncEngineTest {
         assertEquals(false, sync.syncNow())
         assertEquals(SyncStatus.OFFLINE, sync.status.value)
         assertTrue(repository.local(repository.currentBandId!!)!!.needsCreate, "nothing is lost while offline")
+    }
+
+    @Test
+    fun loopRecoversAfterNetworkErrorsThatAreNotExceptions() = runTest {
+        val server = FakeServer()
+        val repository = BandRepository(InMemoryStore(), backgroundScope, { "id${nextId++}" })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { "alice:0" }, repository, backgroundScope)
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        server.offline = true
+
+        // The mock HTTP engine answers on a real thread, so wait for status changes rather than stepping time.
+        sync.start()
+        sync.status.first { it == SyncStatus.OFFLINE }
+
+        server.offline = false
+        sync.status.first { it == SyncStatus.SYNCED } // after the backoff, the loop tries again
+        assertEquals(false, repository.local(repository.currentBandId!!)!!.needsCreate)
+        sync.stop()
+    }
+
+    @Test
+    fun losingAccessToOneBandDoesNotBlockTheOthers() = runTest {
+        val server = FakeServer()
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, { "id${nextId++}" }, clock = { 7 })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { "alice:0" }, repository, this)
+        repository.load("alice")
+        repository.createBand("Lost Band", "PLN", "Alice")
+        val lost = repository.currentBandId!!
+        repository.createBand("Kept Band", "PLN", "Alice")
+        val kept = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+
+        repository.open(lost)
+        repository.dispatch(AddMember("bob", "Bob")) // unsent when access is lost
+        repository.open(kept)
+        repository.dispatch(RenameBand("Kept and renamed"))
+        server.bands.remove(lost)
+
+        val message = backgroundScope.async { sync.lostAccess.first() }
+        assertTrue(sync.syncNow())
+        assertEquals("Lost Band", message.await())
+        assertEquals("Kept and renamed", server.bands.getValue(kept).name)
+        assertEquals(listOf("Kept and renamed"), repository.index.value!!.bands.map { it.name })
+        assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey(lost) + "-unsent-") }, "unsent changes are kept")
     }
 }

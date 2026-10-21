@@ -10,6 +10,9 @@ import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,19 +22,29 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.ui.unit.dp
+import com.jacekgajek.artsplit.app.auth.GoogleSignInButton
+import kotlinx.coroutines.launch
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.back
 import com.jacekgajek.artsplit.app.generated.menu_roster
 import com.jacekgajek.artsplit.app.generated.menu_settings
+import com.jacekgajek.artsplit.app.generated.cancel
 import com.jacekgajek.artsplit.app.generated.new_band
+import com.jacekgajek.artsplit.app.generated.sign_in_again_text
+import com.jacekgajek.artsplit.app.generated.sign_in_again_title
+import com.jacekgajek.artsplit.app.generated.sign_in_again_wrong_account
+import com.jacekgajek.artsplit.app.generated.sign_in_failed
 import com.jacekgajek.artsplit.app.generated.settings
 import com.jacekgajek.artsplit.app.generated.sync_error
 import com.jacekgajek.artsplit.app.generated.sync_needs_sign_in
@@ -50,6 +63,9 @@ class TopBarState(
     val onSelectBand: (String) -> Unit,
     val onNewBand: () -> Unit,
     val onSyncNow: () -> Unit,
+    /** Signs in again with a fresh Google token; returns false if it was a different account. */
+    val onReauthenticate: suspend (String) -> Boolean,
+    val accountEmail: String?,
 )
 
 val LocalTopBarState = staticCompositionLocalOf<TopBarState?> { null }
@@ -63,7 +79,7 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
     TopAppBar(
         title = { Text(title) },
         actions = {
-            bar?.let { SyncIndicator(it.syncStatus, it.onSyncNow) }
+            bar?.let { SyncIndicator(it) }
             IconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(Res.string.settings))
             }
@@ -91,7 +107,9 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
 }
 
 @Composable
-private fun SyncIndicator(status: SyncStatus, onSyncNow: () -> Unit) {
+private fun SyncIndicator(bar: TopBarState) {
+    val status = bar.syncStatus
+    var signingIn by remember { mutableStateOf(false) }
     val (icon, label) = when (status) {
         SyncStatus.IDLE, SyncStatus.SYNCING -> Icons.Default.CloudSync to Res.string.sync_syncing
         SyncStatus.SYNCED -> Icons.Default.CloudDone to Res.string.sync_synced
@@ -100,7 +118,44 @@ private fun SyncIndicator(status: SyncStatus, onSyncNow: () -> Unit) {
         SyncStatus.ERROR -> Icons.Default.Warning to Res.string.sync_error
     }
     val tint = if (status == SyncStatus.NEEDS_SIGN_IN || status == SyncStatus.ERROR) MaterialTheme.colorScheme.error else LocalContentColor.current
-    IconButton(onClick = onSyncNow) { Icon(icon, contentDescription = stringResource(label), tint = tint) }
+    IconButton(onClick = { if (status == SyncStatus.NEEDS_SIGN_IN) signingIn = true else bar.onSyncNow() }) {
+        Icon(icon, contentDescription = stringResource(label), tint = tint)
+    }
+    if (signingIn) SignInAgainDialog(bar, onDismiss = { signingIn = false })
+}
+
+/** Shown when sync needs a new Google sign-in (the old one could not be renewed without the user). */
+@Composable
+private fun SignInAgainDialog(bar: TopBarState, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var wrongAccount by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.sign_in_again_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(Res.string.sign_in_again_text, bar.accountEmail.orEmpty()))
+                GoogleSignInButton(
+                    onIdToken = { token ->
+                        scope.launch {
+                            if (bar.onReauthenticate(token)) {
+                                onDismiss()
+                                bar.onSyncNow()
+                            } else {
+                                wrongAccount = true
+                            }
+                        }
+                    },
+                    onError = { error = it },
+                )
+                if (wrongAccount) Text(stringResource(Res.string.sign_in_again_wrong_account, bar.accountEmail.orEmpty()), color = MaterialTheme.colorScheme.error)
+                error?.let { Text(stringResource(Res.string.sign_in_failed, it), color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
 }
 
 /** Top bar of a pushed screen, with a back arrow. */

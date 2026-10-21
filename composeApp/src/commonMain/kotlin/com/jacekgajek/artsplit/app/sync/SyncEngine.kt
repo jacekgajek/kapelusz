@@ -23,6 +23,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, ERROR }
 
+/** The server answered in a way the client cannot make progress with. */
+class SyncProtocolException(message: String) : RuntimeException(message)
+
 /**
  * Keeps the device and the server in step (REFINED_PLAN §5.2): creates bands made offline, pushes queued operations,
  * pulls the current band, and refreshes the band list. Runs on demand (after a change), every [interval] while the
@@ -41,6 +44,11 @@ class SyncEngine(
 
     /** Operations the server refused (e.g. permissions changed meanwhile); shown to the user. */
     val rejections: SharedFlow<Rejection> = _rejections.asSharedFlow()
+
+    private val _lostAccess = MutableSharedFlow<String>(extraBufferCapacity = 4)
+
+    /** Names of bands the user can no longer access (removed from the band, or the band is gone). */
+    val lostAccess: SharedFlow<String> = _lostAccess.asSharedFlow()
 
     private val runLock = Mutex()
     private val wakeUp = Channel<Unit>(1, BufferOverflow.DROP_OLDEST)
@@ -71,25 +79,59 @@ class SyncEngine(
         wakeUp.trySend(Unit)
     }
 
-    /** One full round; returns false when it should be retried later. */
+    /**
+     * One full round; returns false when it should be retried later. Bands are synced independently, so a problem
+     * with one band never blocks the others.
+     */
     suspend fun syncNow(): Boolean = runLock.withLock {
         _status.value = SyncStatus.SYNCING
-        val result = try {
-            bands.bandsToPush().forEach { pushBand(it) }
-            bands.currentBandId?.let { pullBand(it) }
-            bands.onBandList(api.me().bands)
-            SyncStatus.SYNCED
+        var result = SyncStatus.SYNCED
+        try {
+            val current = bands.currentBandId
+            val toSync = (bands.bandsToPush() + listOfNotNull(current)).distinct()
+            for (bandId in toSync) {
+                val bandResult = syncBand(bandId, pull = bandId == current)
+                if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE) {
+                    // Affects every band: stop this round.
+                    result = bandResult
+                    break
+                }
+                if (bandResult == SyncStatus.ERROR) result = SyncStatus.ERROR
+            }
+            if (result == SyncStatus.SYNCED || result == SyncStatus.ERROR) bands.onBandList(api.me().bands)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: NeedsSignInException) {
-            SyncStatus.NEEDS_SIGN_IN
-        } catch (e: ApiException) {
-            SyncStatus.ERROR
-        } catch (e: Exception) {
-            SyncStatus.OFFLINE
+        } catch (e: Throwable) {
+            // Not only Exception: on the web, browser errors (e.g. "Failed to fetch") are JsException, a Throwable.
+            result = classify(e)
         }
         _status.value = result
         result == SyncStatus.SYNCED
+    }
+
+    private suspend fun syncBand(bandId: Id, pull: Boolean): SyncStatus = try {
+        pushBand(bandId)
+        if (pull) pullBand(bandId)
+        SyncStatus.SYNCED
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: ApiException) {
+        if (e.status == 404 && !(bands.local(bandId)?.needsCreate ?: true)) {
+            // The band is gone or the user was removed from it: keep unsent changes as a backup and let go of it.
+            val name = bands.loseAccess(bandId)
+            _lostAccess.tryEmit(name)
+            SyncStatus.SYNCED
+        } else {
+            SyncStatus.ERROR
+        }
+    } catch (e: Throwable) {
+        classify(e)
+    }
+
+    private fun classify(e: Throwable): SyncStatus = when (e) {
+        is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
+        is ApiException, is SyncProtocolException -> SyncStatus.ERROR
+        else -> SyncStatus.OFFLINE
     }
 
     /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */
@@ -112,7 +154,7 @@ class SyncEngine(
             bands.onPushed(bandId, response)
             response.rejected.values.forEach { _rejections.tryEmit(it) }
             val handled = (response.accepted + response.rejected.keys + response.duplicates).toSet()
-            check(batch.any { it.opId in handled }) { "Server did not process the pushed operations" }
+            if (batch.none { it.opId in handled }) throw SyncProtocolException("Server did not process the pushed operations")
         }
     }
 
