@@ -58,3 +58,6 @@ expect fun rememberUpdateControls(): UpdateControls?
 
 /** Reloads the app from the server (the web's way to update); null where updating works differently (Android). */
 expect fun appReloader(): (() -> Unit)?
+
+/** True in the Android app, false on the web. */
+expect fun isAndroidApp(): Boolean

@@ -85,4 +85,27 @@ class CalendarTest {
         assertEquals(200, feed(fresh.url).status)
         assertEquals(404, call("GET", "/calendar/abcdefghijklmnopqrstuvwxyz.ics", null).status)
     }
+
+    @Test
+    fun aRemovedMemberNoLongerSeesTheBand() {
+        setup()
+        val sub = subscription("alice")
+        assertTrue("Club gig" in feed(sub.url).body!!)
+        // Alice archived (removed) from the band by the system, as an admin would.
+        val (band, etag) = store.get(Api.bandKey("band1"))!!.let { ArtSplitJson.decodeFromString(com.jacekgajek.artsplit.model.Band.serializer(), it.content) to it.etag }
+        val removed = band.copy(members = band.members.map { if (it.id == "m-alice") it.copy(archived = true) else it })
+        store.put(Api.bandKey("band1"), ArtSplitJson.encodeToString(com.jacekgajek.artsplit.model.Band.serializer(), removed), ifMatch = etag)
+        assertFalse("Club gig" in feed(sub.url).body!!)
+    }
+
+    @Test
+    fun timestampsAreUtcAndEqualTimesStillLastAnHour() {
+        setup()
+        val gig = CreateEvent("same", "Same times", LocalDate(2026, 11, 2), participants = listOf(Participant("m-alice")),
+            agenda = listOf(AgendaTime("x", label = "A", time = LocalTime(20, 0)), AgendaTime("y", label = "B", time = LocalTime(20, 0))))
+        call("POST", "/bands/band1/ops", "alice", ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("same", "phone", 100, 1, gig)))))
+        val ics = feed(subscription("alice").url).body!!.replace("\r\n ", "")
+        assertTrue(Regex("DTSTAMP:\\d{8}T\\d{6}Z").containsMatchIn(ics), ics)
+        assertTrue("DTSTART:20261102T200000\r\nDTEND:20261102T210000" in ics)
+    }
 }

@@ -449,10 +449,11 @@
     <string name="calendar_hint">Your gigs from all your bands in Google Calendar (or any calendar app), kept up to date. The link is private: anyone with it sees your gigs (no money).</string>
     <string name="calendar_get">Get my calendar link</string>
     <string name="calendar_add_google">Add to Google Calendar</string>
-    <string name="calendar_include_all">Include events I do not play</string>
+    <string name="calendar_include_all">Include events I don’t take part in</string>
     <string name="calendar_reset">Reset link</string>
     <string name="calendar_reset_title">Make a new link?</string>
     <string name="calendar_reset_text">The current link stops working; calendars that use it no longer update. Add the new link instead.</string>
     <string name="calendar_refresh_note">Google Calendar refreshes subscribed calendars on its own schedule, usually every few hours, sometimes up to a day.</string>
     <string name="calendar_failed">That did not work. Check your connection and try again.</string>
+    <string name="calendar_add_on_computer">To subscribe, open calendar.google.com on a computer, choose Other calendars › From URL, and paste the link.</string>
 </resources>

@@ -25,3 +25,5 @@ actual fun rememberUpdateControls(): UpdateControls? {
 }
 
 actual fun appReloader(): (() -> Unit)? = null
+
+actual fun isAndroidApp(): Boolean = true

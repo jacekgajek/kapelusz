@@ -38,6 +38,8 @@ import com.jacekgajek.artsplit.app.generated.calendar_title
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.LocalUriHandler
 import com.jacekgajek.artsplit.app.platform.rememberCopy
+import com.jacekgajek.artsplit.app.platform.isAndroidApp
+import com.jacekgajek.artsplit.app.generated.calendar_add_on_computer
 import com.jacekgajek.artsplit.api.CalendarSubscriptionChange
 import com.jacekgajek.artsplit.api.CalendarSubscription
 import com.jacekgajek.artsplit.app.generated.notifications_transfers
@@ -453,13 +455,13 @@ private fun NotificationsSection(permission: NotificationPermission, settings: A
 }
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(label: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(top = 8.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+        Modifier.fillMaxWidth().padding(top = 8.dp).toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = null)
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 
@@ -500,12 +502,16 @@ private fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> C
     } else {
         SelectionContainer { Text(current.url, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp)) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { uriHandler.openUri("https://calendar.google.com/calendar/r?cid=" + urlEncode(current.url.replaceFirst("https://", "webcal://"))) }) {
+            // Google Calendar adds a calendar by URL only on its website; on a phone that page cannot, so the app says
+            // where to add it instead. The https address (not webcal://, which Google may fetch over plain http).
+            if (!isAndroidApp()) Button(onClick = { uriHandler.openUri("https://calendar.google.com/calendar/r?cid=" + urlEncode(current.url)) }) {
                 Text(stringResource(Res.string.calendar_add_google))
             }
             OutlinedButton(onClick = { scope.launch { copied = copy(current.url) } }) { Text(stringResource(if (copied) Res.string.link_copied else Res.string.copy_link)) }
         }
-        SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
+        if (isAndroidApp()) Text(stringResource(Res.string.calendar_add_on_computer), style = MaterialTheme.typography.bodySmall)
+        // Not while a change is under way: a late answer could otherwise show a link that a reset just replaced.
+        SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !working) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
         TextButton(onClick = { confirmReset = true }, enabled = !working) { Text(stringResource(Res.string.calendar_reset)) }
         Text(stringResource(Res.string.calendar_refresh_note), style = MaterialTheme.typography.bodySmall)
     }

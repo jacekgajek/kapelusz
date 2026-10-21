@@ -95,7 +95,9 @@ class Api(
         if (request.method == "OPTIONS") return HttpResponse(204)
         // The calendar feed is fetched by calendar apps: no sign-in, no app version; the secret in the path is the key.
         val calendarFeed = Regex("^/calendar/([A-Za-z0-9_-]{20,64})\\.ics$").find(request.path)
-        if (request.method == "GET" && calendarFeed != null) return calendarFeed(calendarFeed.groupValues[1])
+        if ((request.method == "GET" || request.method == "HEAD") && calendarFeed != null) {
+            return calendarFeed(calendarFeed.groupValues[1]).let { if (request.method == "HEAD") it.copy(body = null) else it }
+        }
         if (!appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER])) {
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of Art Split is too old; update it")
         }
@@ -289,15 +291,15 @@ class Api(
             val secret = if (current == null || change.reset) newCalendarSecret() else current.secret
             val updated = StoredCalendar(secret, change.includeAll ?: current?.includeAll ?: false)
             if (updated != current) {
+                // The new secret's mapping first: a link handed out must always resolve. A mapping left over from a
+                // failed attempt is harmless, since the feed also checks the user's current secret.
+                if (secret != current?.secret) store.put(calendarSecretKey(secret), encode(CalendarOwner.serializer(), CalendarOwner(user.userId)))
                 try {
                     store.put(calendarKey(user.userId), encode(StoredCalendar.serializer(), updated), ifMatch = blob?.etag, ifNoneMatch = blob == null)
                 } catch (e: PreconditionFailed) {
                     return@repeat
                 }
-                if (secret != current?.secret) {
-                    store.put(calendarSecretKey(secret), encode(CalendarOwner.serializer(), CalendarOwner(user.userId)))
-                    current?.let { store.delete(calendarSecretKey(it.secret)) }
-                }
+                if (current != null && secret != current.secret) runCatching { store.delete(calendarSecretKey(current.secret)) }
             }
             // The link points at this API, whichever address the app used.
             val host = request.header("host") ?: throw ApiError(400, "bad_request", "No host")

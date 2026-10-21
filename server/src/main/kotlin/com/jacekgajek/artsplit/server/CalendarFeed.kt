@@ -32,7 +32,8 @@ object CalendarFeed {
             "X-WR-CALNAME:Art Split",
         )
         for (band in bands) {
-            val me = band.memberOfUser(userId) ?: continue
+            // A removed (archived) member no longer sees the band's gigs.
+            val me = band.memberOfUser(userId)?.takeUnless { it.archived } ?: continue
             for (event in band.events) {
                 if (event.archived || event.date < from) continue
                 if (!includeAll && event.participant(me.id) == null) continue
@@ -50,27 +51,31 @@ object CalendarFeed {
             times.isEmpty() -> return listOf(
                 "BEGIN:VEVENT",
                 "UID:${event.id}@artsplit",
-                "DTSTAMP:${dateTime(stamp)}",
+                "DTSTAMP:${utc(stamp)}",
                 "DTSTART;VALUE=DATE:${date(event.date)}",
                 "DTEND;VALUE=DATE:${date(event.date.plus(DatePeriod(days = 1)))}",
             ) + commonLines(band, event, times, webUrl) + "END:VEVENT"
             // One time: an hour from it.
             times.size == 1 -> at(event.date, times.first().time!!).let { it to plusHour(it) }
-            // Several: from the earliest to the latest.
-            else -> at(event.date, times.first().time!!) to at(event.date, times.last().time!!)
+            // Several: from the earliest to the latest; equal times still get an hour (DTEND must be later).
+            else -> at(event.date, times.first().time!!).let { start ->
+                val last = at(event.date, times.last().time!!)
+                start to if (last > start) last else plusHour(start)
+            }
         }
         return listOf(
             "BEGIN:VEVENT",
             "UID:${event.id}@artsplit",
-            "DTSTAMP:${dateTime(stamp)}",
+            "DTSTAMP:${utc(stamp)}",
             "DTSTART:${dateTime(start)}",
             "DTEND:${dateTime(end)}",
         ) + commonLines(band, event, times, webUrl) + "END:VEVENT"
     }
 
     private fun commonLines(band: Band, event: Event, times: List<AgendaTime>, webUrl: String): List<String> {
-        val agenda = times.joinToString("\n") { "${label(it)} ${hhmm(it.time!!)}" }
-        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · $webUrl/#event/${event.id}").joinToString("\n\n")
+        val agenda = times.joinToString("\n") { listOf(label(it), hhmm(it.time!!)).filter(String::isNotBlank).joinToString(" ") }
+        // The app's address, not the event's: an event link only resolves in the band that is open.
+        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · $webUrl").joinToString("\n\n")
         return listOfNotNull(
             "SUMMARY:${text(event.name)}",
             event.location?.let { "LOCATION:${text(it)}" },
@@ -97,6 +102,9 @@ object CalendarFeed {
     private fun two(n: Int) = n.toString().padStart(2, '0')
     private fun date(d: LocalDate) = "${d.year}${two(d.month.ordinal + 1)}${two(d.day)}"
     private fun dateTime(t: LocalDateTime) = "${date(t.date)}T${two(t.hour)}${two(t.minute)}00"
+
+    /** DTSTAMP must be UTC (RFC 5545 §3.8.7.2); [t] is UTC already. */
+    private fun utc(t: LocalDateTime) = dateTime(t) + "Z"
     private fun hhmm(t: LocalTime) = "${two(t.hour)}:${two(t.minute)}"
 
     /** iCalendar text escaping (RFC 5545 §3.3.11). */
