@@ -95,3 +95,17 @@ compose.resources {
     packageOfResClass = "com.jacekgajek.artsplit.app.generated"
     generateResClass = always
 }
+
+// Kotlin's default wasm-opt pipeline runs -O3 five times plus --gufa and -Oz: ~4x slower than a single -O2 pass for
+// ~15% smaller compressed output. The feature flags are required; everything after them is a speed/size trade-off.
+tasks.withType<org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenExec>().configureEach {
+    binaryenArguments.set(
+        listOf(
+            "--enable-gc", "--enable-reference-types", "--enable-exception-handling", "--enable-bulk-memory",
+            "--enable-stack-switching", "--enable-multivalue", "--enable-nontrapping-float-to-int",
+            "--no-inline=kotlin.wasm.internal.throwValue", "--no-inline=kotlin.wasm.internal.getKotlinException",
+            "--no-inline=kotlin.wasm.internal.jsToKotlinStringAdapter",
+            "--inline-functions-with-loops", "--traps-never-happen", "--fast-math", "--closed-world", "-O2",
+        ),
+    )
+}
