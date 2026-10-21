@@ -23,6 +23,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jacekgajek.artsplit.app.generated.move_up
+import com.jacekgajek.artsplit.app.generated.agenda_add_time
+import com.jacekgajek.artsplit.app.generated.agenda_template_hint
+import com.jacekgajek.artsplit.app.generated.agenda_template_title
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import com.jacekgajek.artsplit.app.ui.components.RemoveButton
+import com.jacekgajek.artsplit.app.ui.model.label
+import com.jacekgajek.artsplit.model.AgendaTime
+import com.jacekgajek.artsplit.model.AgendaKind
+import com.jacekgajek.artsplit.model.AgendaTemplateItem
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.app.generated.Res
@@ -117,6 +128,9 @@ fun SettingsScreen(
     otherMembers: Int,
     autoUpdate: Boolean,
     onAutoUpdate: (Boolean) -> Unit,
+    /** The band's agenda template; [onAgendaTemplate] is null for non-admins. */
+    agendaTemplate: List<AgendaTemplateItem>,
+    onAgendaTemplate: ((List<AgendaTemplateItem>) -> Unit)?,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -202,6 +216,7 @@ fun SettingsScreen(
                     )
                 }
             }
+            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, onAgendaTemplate)
             if (onDeleteBand != null) {
                 var deleting by remember { mutableStateOf(false) }
                 OutlinedButton(
@@ -320,5 +335,38 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
                 Text(stringResource(Res.string.updates_check_now))
             }
         }
+    }
+}
+
+/**
+ * The agenda times new events get (admins, VERSION_2 §4.1): rename, reorder, add, remove. Built-in entries keep
+ * following the user's language until renamed. Changes apply to events created from now on.
+ */
+@Composable
+private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (List<AgendaTemplateItem>) -> Unit) {
+    val builtInLabels = AgendaKind.entries.associateWith { it.label() }
+    fun toEdit(items: List<AgendaTemplateItem>) = items.map { item -> item.kind?.let { builtInLabels.getValue(it) } ?: item.label.orEmpty() }
+    var labels by remember(template) { mutableStateOf(toEdit(template)) }
+    fun toItems(texts: List<String>): List<AgendaTemplateItem> = texts.mapIndexed { index, text ->
+        // An untouched built-in entry stays built-in (shown in each user's language).
+        val original = template.getOrNull(index)
+        val kind = original?.kind
+        if (kind != null && text.trim() == builtInLabels.getValue(kind)) original else AgendaTemplateItem(label = text.trim())
+    }
+    Text(stringResource(Res.string.agenda_template_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 16.dp))
+    Text(stringResource(Res.string.agenda_template_hint), style = MaterialTheme.typography.bodySmall)
+    labels.forEachIndexed { index, label ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(label, { value -> labels = labels.toMutableList().also { it[index] = value.take(AgendaTime.MAX_LABEL) } }, singleLine = true, modifier = Modifier.weight(1f))
+            IconButton(onClick = { labels = labels.toMutableList().also { it.add(index - 1, it.removeAt(index)) } }, enabled = index > 0) {
+                Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up))
+            }
+            RemoveButton { labels = labels.toMutableList().also { it.removeAt(index) } }
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (labels.size < AgendaTime.MAX_TIMES) TextButton(onClick = { labels = labels + "" }) { Text(stringResource(Res.string.agenda_add_time)) }
+        val items = toItems(labels)
+        TextButton(enabled = labels.all { it.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
     }
 }

@@ -62,6 +62,9 @@ import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
 import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.RenameBand
 import com.jacekgajek.artsplit.ops.SetTreasurer
+import com.jacekgajek.artsplit.ops.SetAgendaTemplate
+import com.jacekgajek.artsplit.model.AgendaTemplateItem
+import com.jacekgajek.artsplit.model.effectiveAgendaTemplate
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.DisableBandFund
 import com.jacekgajek.artsplit.domain.BandFund
@@ -279,6 +282,9 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                         .takeIf { state.me?.role == Role.OWNER },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
                     autoUpdate = settings.autoUpdate,
+                    agendaTemplate = state.band.effectiveAgendaTemplate,
+                    onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
                     onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },
                     onBack = back,
                 )

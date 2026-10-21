@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 
 const val DEFAULT_WEIGHT = 100
@@ -21,6 +22,8 @@ data class Event(
     val transfers: List<Transfer> = emptyList(),
     /** Positive: taken off the top for the band fund. Negative: the fund covers part of the event. */
     val fundAmount: Money = Money.ZERO,
+    /** Agenda times of the day (VERSION_2 §4.1), copied from the band's template when the event is created. */
+    val agenda: List<AgendaTime> = emptyList(),
     /** Epoch millis of the last operation touching this event. */
     val updatedAt: Long = 0,
 ) {
@@ -33,9 +36,38 @@ data class Event(
 @Serializable
 data class Guest(val id: Id, val name: String)
 
-/** A member or guest taking part in an event. [weight] is a share in percent: 100 = one normal share. */
+/**
+ * A member or guest taking part in an event. [weight] is a share in percent: 100 = one normal share. [addedBy] is the
+ * member who added them (unknown for events from before version 2).
+ */
 @Serializable
-data class Participant(val partyId: Id, val weight: Int = DEFAULT_WEIGHT)
+data class Participant(val partyId: Id, val weight: Int = DEFAULT_WEIGHT, val addedBy: Id? = null)
+
+/** The built-in agenda times; shown in the user's language as long as nobody renamed them. */
+@Serializable
+enum class AgendaKind { ARRIVAL, CONCERT_START }
+
+/**
+ * One agenda time of an event: a built-in [kind] or a custom [label], and the [time] once set. Times before
+ * [AgendaTime.NEXT_DAY_BEFORE_HOUR] are on the next day (a gig ending after midnight).
+ */
+@Serializable
+data class AgendaTime(val id: Id, val kind: AgendaKind? = null, val label: String? = null, val time: LocalTime? = null) {
+    /** Minutes from the event day's midnight, counting early-morning times as the next day. */
+    val minutesOfEventDay: Int? get() = time?.let { it.hour * 60 + it.minute + if (it.hour < NEXT_DAY_BEFORE_HOUR) 24 * 60 else 0 }
+
+    val isNextDay: Boolean get() = time != null && time.hour < NEXT_DAY_BEFORE_HOUR
+
+    companion object {
+        const val NEXT_DAY_BEFORE_HOUR = 5
+        const val MAX_LABEL = 40
+        const val MAX_TIMES = 12
+    }
+}
+
+/** An entry of the band's agenda template: a built-in [kind] or a custom [label]. */
+@Serializable
+data class AgendaTemplateItem(val kind: AgendaKind? = null, val label: String? = null)
 
 @Serializable
 enum class IncomeSource { TICKETS_ONLINE, DOOR, HAT, MERCH, CONTRACT, SPONSORSHIP, OWN_CONTRIBUTION, OTHER }

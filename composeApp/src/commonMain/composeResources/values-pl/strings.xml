@@ -418,4 +418,18 @@
         <item quantity="many">Przywrócono %1$d wydarzeń</item>
         <item quantity="other">Przywrócono %1$d wydarzenia</item>
     </plurals>
+    <string name="h_set_agenda">Zmieniono harmonogram: %1$s</string>
+    <string name="h_set_agenda_template">Zmieniono godziny dla nowych wydarzeń</string>
+    <string name="agenda_arrival">Przyjazd</string>
+    <string name="agenda_concert_start">Początek koncertu</string>
+    <string name="more_details">Więcej szczegółów</string>
+    <string name="agenda_add_time">+ Dodaj godzinę</string>
+    <string name="agenda_label">Co (np. Próba dźwięku)</string>
+    <string name="details">Szczegóły</string>
+    <string name="details_add">+ Dodaj szczegóły</string>
+    <string name="details_hint">Wszystko, co zespół powinien wiedzieć, np. setlista, jedna piosenka w wierszu.</string>
+    <string name="show_all">Pokaż wszystko</string>
+    <string name="show_less">Pokaż mniej</string>
+    <string name="agenda_template_title">Godziny w nowych wydarzeniach</string>
+    <string name="agenda_template_hint">Nowe wydarzenia dostaną te godziny do uzupełnienia; istniejące zachowują swoje.</string>
 </resources>

@@ -410,4 +410,18 @@
         <item quantity="one">%1$d event restored</item>
         <item quantity="other">%1$d events restored</item>
     </plurals>
+    <string name="h_set_agenda">Changed the agenda of %1$s</string>
+    <string name="h_set_agenda_template">Changed the agenda times of new events</string>
+    <string name="agenda_arrival">Arrival</string>
+    <string name="agenda_concert_start">Concert start</string>
+    <string name="more_details">More details</string>
+    <string name="agenda_add_time">+ Add time</string>
+    <string name="agenda_label">What (e.g. Sound check)</string>
+    <string name="details">Details</string>
+    <string name="details_add">+ Add details</string>
+    <string name="details_hint">Anything the band should know, e.g. the setlist, one song per line.</string>
+    <string name="show_all">Show all</string>
+    <string name="show_less">Show less</string>
+    <string name="agenda_template_title">Agenda times of new events</string>
+    <string name="agenda_template_hint">New events get these times to fill in; existing events keep theirs.</string>
 </resources>

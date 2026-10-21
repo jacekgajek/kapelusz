@@ -4,6 +4,8 @@ import com.jacekgajek.artsplit.domain.BandFund
 import com.jacekgajek.artsplit.domain.CostLedger
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.BAND_FUND
+import com.jacekgajek.artsplit.model.AgendaTime
+import com.jacekgajek.artsplit.model.AgendaKind
 import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Cost
 import com.jacekgajek.artsplit.model.Event
@@ -56,6 +58,12 @@ object Reducer {
                 )
             }
             is SetEventArchived -> band.updateEvent(op.eventId) { it.copy(archived = op.archived) }
+            is SetEventAgenda -> band.updateEvent(op.eventId) { it.copy(agenda = validAgenda(op.agenda)) }
+            is SetAgendaTemplate -> {
+                invalidIf(op.items.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }
+                op.items.forEach { validAgendaLabel(it.kind, it.label) }
+                band.copy(agendaTemplate = op.items.map { it.copy(label = it.label?.trim()) })
+            }
             is DeleteEvent -> deleteEvent(band, op)
             is AddParticipant -> addParticipant(band, op, ctx)
             is AddGuest -> addGuest(band, op)
@@ -237,7 +245,9 @@ object Reducer {
             location = op.location.blankToNull(),
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
-            participants = op.participants,
+            // Who added each participant (the creator), for a personal reminder prompt (VERSION_2 §5.2).
+            participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
+            agenda = validAgenda(op.agenda),
         )
         val created = band.copy(events = band.events + event)
         return op.participants.fold(created) { acc, participant -> includeOwnCosts(acc, op.eventId, participant.partyId, ctx) }
@@ -252,12 +262,26 @@ object Reducer {
         )
     }
 
+    private fun validAgenda(agenda: List<AgendaTime>): List<AgendaTime> {
+        invalidIf(agenda.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }
+        invalidIf(agenda.map { it.id }.toSet().size != agenda.size, RejectionReason.DUPLICATE_ID) { "Duplicate agenda ids" }
+        agenda.forEach { validAgendaLabel(it.kind, it.label) }
+        return agenda.map { it.copy(label = it.label?.trim()) }
+    }
+
+    /** A built-in kind needs no label; a custom entry needs a short one. */
+    private fun validAgendaLabel(kind: AgendaKind?, label: String?) {
+        if (kind != null) return
+        invalidIf(label.isNullOrBlank(), RejectionReason.EMPTY_NAME) { "Agenda label is required" }
+        invalidIf(label!!.trim().length > AgendaTime.MAX_LABEL, RejectionReason.INVALID_INPUT) { "Agenda label is too long" }
+    }
+
     private fun addParticipant(band: Band, op: AddParticipant, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
         validateWeight(op.weight)
         val updated = band.updateEvent(op.eventId) { event ->
             invalidIf(event.participant(op.memberId) != null, RejectionReason.ALREADY_PARTICIPANT) { "Member already takes part" }
-            event.copy(participants = event.participants + Participant(op.memberId, op.weight))
+            event.copy(participants = event.participants + Participant(op.memberId, op.weight, addedBy = ctx.memberId))
         }
         return includeOwnCosts(updated, op.eventId, op.memberId, ctx)
     }

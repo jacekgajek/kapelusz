@@ -149,10 +149,10 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M2.5 Bulk archive with selection mode (§3.3)
 
 ### V2-M3 — Event agenda and details
-- [ ] V2-M3.1 Model and operations: band agenda template, per-event times, who added each participant
-- [ ] V2-M3.2 Settings → Event agenda (admins)
-- [ ] V2-M3.3 Event times in the edit dialog behind More details, one-off times, after-midnight rule, display in header and list
-- [ ] V2-M3.4 Details section with full-screen editor; notes removed from the dialogs
+- [x] V2-M3.1 Model and operations: band agenda template, per-event times, who added each participant
+- [x] V2-M3.2 Settings → Event agenda (admins)
+- [x] V2-M3.3 Event times in the edit dialog behind More details, one-off times, after-midnight rule, display in header and list
+- [x] V2-M3.4 Details section with full-screen editor; notes removed from the dialogs
 
 ### V2-M4 — Background sync and notifications
 - [ ] V2-M4.1 Periodic background sync of all bands (WorkManager), rescheduling after restart

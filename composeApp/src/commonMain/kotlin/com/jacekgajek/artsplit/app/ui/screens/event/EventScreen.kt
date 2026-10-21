@@ -68,6 +68,7 @@ import com.jacekgajek.artsplit.app.ui.components.StatusChip
 import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.components.rememberActions
 import com.jacekgajek.artsplit.app.ui.model.formatDate
+import com.jacekgajek.artsplit.app.ui.model.agendaLine
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.domain.Settlement
 import com.jacekgajek.artsplit.domain.SettlementCalculator
@@ -122,6 +123,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
                 contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
             ) {
                 item { Header(context) }
+                item { DetailsSection(context) }
                 item { Problems(context) }
                 item { ParticipantsSection(context) }
                 item { CollectedSection(context) }
@@ -131,7 +133,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
                 item { HistorySection(context, graph) }
             }
         }
-        if (editing) EditDetailsDialog(event, actions, onDismiss = { editing = false })
+        if (editing) EditDetailsDialog(state.band, event, actions, onDismiss = { editing = false })
     }
 }
 
@@ -150,7 +152,7 @@ private fun Header(context: EventContext) {
             )
             StatusChip(s.status, event.archived)
         }
-        event.notes?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        event.agendaLine()?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
