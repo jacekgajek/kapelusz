@@ -17,8 +17,6 @@ data class AppSettings(
     val language: String? = null,
     val onlyMyEvents: Boolean = false,
     val showArchived: Boolean = false,
-    /** Drives the "Continue" card on the event list. */
-    val lastEditedEventId: String? = null,
     /** Android: download and install new versions automatically. */
     val autoUpdate: Boolean = true,
 )

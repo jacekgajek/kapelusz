@@ -394,4 +394,5 @@
     <string name="update_required_text">This version of Art Split is too old for the server. Update to continue; your changes on this device are kept and sync after the update.</string>
     <string name="update_required_button">Update</string>
     <string name="history_newer_version">A change made with a newer version of Art Split</string>
+    <string name="upcoming_event">Upcoming: %1$s, %2$s</string>
 </resources>

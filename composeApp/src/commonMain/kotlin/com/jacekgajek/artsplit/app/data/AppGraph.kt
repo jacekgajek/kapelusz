@@ -146,11 +146,10 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         }
     }
 
-    /** Applies an operation locally, remembers the touched event for the "Continue" card, and schedules a sync. */
+    /** Applies an operation locally and schedules a sync. */
     fun dispatch(op: Operation): Rejection? {
         val rejection = bands.dispatch(op)
         if (rejection == null) {
-            op.eventId?.let { eventId -> settings.update { it.copy(lastEditedEventId = eventId) } }
             sync.requestSync()
         }
         return rejection

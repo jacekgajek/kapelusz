@@ -33,6 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jacekgajek.artsplit.app.generated.upcoming_event
+import com.jacekgajek.artsplit.app.ui.model.upcomingEvent
+import com.jacekgajek.artsplit.app.ui.model.unsettledEvent
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.app.data.AppGraph
@@ -91,7 +97,9 @@ fun EventsScreen(
     val actions = rememberActions(graph, snackbar)
     var creating by remember { mutableStateOf(false) }
     val summaries = eventSummaries(band, state.me, settings)
-    val continueEvent = settings.lastEditedEventId?.let { band.event(it) }?.takeIf { !it.archived }
+    val today = today()
+    val continueEvent = unsettledEvent(band, today)
+    val upcoming = upcomingEvent(band, state.me, today)
 
     Scaffold(
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
@@ -111,20 +119,20 @@ fun EventsScreen(
         ) {
             if (continueEvent != null) {
                 item {
-                    Card(
-                        onClick = { onOpenEvent(continueEvent.id) },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null)
-                            Text(
-                                stringResource(Res.string.continue_event, continueEvent.name, formatDate(continueEvent.date, language)),
-                                Modifier.padding(start = 12.dp),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        }
-                    }
+                    EventCard(
+                        Icons.Default.PlayArrow,
+                        stringResource(Res.string.continue_event, continueEvent.name, formatDate(continueEvent.date, language)),
+                        MaterialTheme.colorScheme.primaryContainer,
+                    ) { onOpenEvent(continueEvent.id) }
+                }
+            }
+            if (upcoming != null) {
+                item {
+                    EventCard(
+                        Icons.Default.Event,
+                        stringResource(Res.string.upcoming_event, upcoming.name, formatDate(upcoming.date, language)),
+                        MaterialTheme.colorScheme.secondaryContainer,
+                    ) { onOpenEvent(upcoming.id) }
                 }
             }
             item {
@@ -239,4 +247,15 @@ private fun NewEventDialog(onDismiss: () -> Unit, onCreate: (String, LocalDate, 
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
+}
+
+/** A compact one-line shortcut card above the list ("Continue", "Upcoming"). */
+@Composable
+private fun EventCard(icon: ImageVector, text: String, color: Color, onClick: () -> Unit) {
+    Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = color), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null)
+            Text(text, Modifier.padding(start = 12.dp), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
 }

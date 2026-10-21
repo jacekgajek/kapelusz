@@ -7,6 +7,8 @@ import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.app.ui.model.formatMonth
 import com.jacekgajek.artsplit.app.ui.model.initials
+import com.jacekgajek.artsplit.app.ui.model.unsettledEvent
+import com.jacekgajek.artsplit.app.ui.model.upcomingEvent
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.IncomeSource
@@ -78,5 +80,35 @@ class PresentationTest {
             eventSummaries(band, alice, AppSettings(showArchived = true)).map { it.event.id },
         )
         assertEquals(MyNumber.HandOver(Money(5000)), eventSummaries(band, band.member("bob"), AppSettings()).first().myNumber)
+    }
+
+    @Test
+    fun continueCardShowsTheMostRecentUnsettledEvent() {
+        val today = LocalDate(2026, 10, 21)
+        val base = Band.create("b", "Band", "PLN", "me", "Me", "user").apply(AddMember("bob", "Bob"))
+        val open = CreateEvent("open", "Open gig", LocalDate(2026, 9, 1), participants = listOf(Participant("me"), Participant("bob")))
+        val draftPast = CreateEvent("draft", "Past draft", LocalDate(2026, 10, 1), participants = listOf(Participant("me")))
+        val future = CreateEvent("future", "Future", LocalDate(2026, 11, 1), participants = listOf(Participant("me")))
+        val band = base.apply(open, AddHolding("open", "h", "me", Money(1000), IncomeSource.DOOR), draftPast, future)
+        assertEquals("draft", unsettledEvent(band, today)?.id, "a past draft is unfinished business, and newer than the open gig")
+        assertEquals("open", unsettledEvent(band.apply(SetEventArchived("draft", true)), today)?.id)
+        assertEquals(null, unsettledEvent(base.apply(future), today), "future events are not unsettled business")
+        assertEquals(null, unsettledEvent(base.apply(CreateEvent("today", "Tonight", today)), today), "a draft today is not overdue yet")
+    }
+
+    @Test
+    fun upcomingCardPrefersMyNextGig() {
+        val today = LocalDate(2026, 10, 21)
+        val band = Band.create("b", "Band", "PLN", "me", "Me", "user").apply(
+            AddMember("bob", "Bob"),
+            CreateEvent("bobs", "Bob's gig", LocalDate(2026, 10, 25), participants = listOf(Participant("bob"))),
+            CreateEvent("mine", "My gig", LocalDate(2026, 11, 2), participants = listOf(Participant("me"))),
+            CreateEvent("past", "Past", LocalDate(2026, 10, 1), participants = listOf(Participant("me"))),
+        )
+        val me = band.member("me")
+        assertEquals("mine", upcomingEvent(band, me, today)?.id)
+        assertEquals("bobs", upcomingEvent(band, band.member("nobody"), today)?.id, "not in any: the band's nearest")
+        assertEquals("bobs", upcomingEvent(band.apply(SetEventArchived("mine", true)), me, today)?.id)
+        assertEquals("mine", upcomingEvent(band, me, LocalDate(2026, 11, 2))?.id, "today counts")
     }
 }
