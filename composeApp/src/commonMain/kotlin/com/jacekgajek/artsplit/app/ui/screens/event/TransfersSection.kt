@@ -45,11 +45,13 @@ import com.jacekgajek.artsplit.app.generated.remove_transfer_confirm
 import com.jacekgajek.artsplit.app.generated.remove_transfer_title
 import com.jacekgajek.artsplit.app.generated.settle
 import com.jacekgajek.artsplit.app.generated.settle_all
+import com.jacekgajek.artsplit.app.generated.settle_part
 import com.jacekgajek.artsplit.app.generated.to_settle
 import com.jacekgajek.artsplit.app.ui.components.ConfirmDialog
 import com.jacekgajek.artsplit.app.ui.components.Dropdown
 import com.jacekgajek.artsplit.app.ui.components.MoneyField
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
+import com.jacekgajek.artsplit.app.ui.components.PartialSettleDialog
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
 import com.jacekgajek.artsplit.app.ui.components.TransferParties
 import com.jacekgajek.artsplit.app.ui.components.language
@@ -136,6 +138,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val band = context.band
     val fundLabel = stringResource(Res.string.band_fund)
     val keepsForFund = suggestion.to == BAND_FUND && suggestion.from == band.treasurerMemberId
+    var partial by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             if (keepsForFund) {
@@ -151,9 +154,20 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                 MoneyText(suggestion.amount, context.currency, bold = true)
             }
         }
+        if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
         FilledTonalButton(onClick = {
             context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
         }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
+    }
+    if (partial) {
+        PartialSettleDialog(
+            from = partyName(band, context.event, suggestion.from, fundLabel),
+            to = partyName(band, context.event, suggestion.to, fundLabel),
+            suggested = suggestion.amount,
+            currency = context.currency,
+            onConfirm = { context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, it)) },
+            onDismiss = { partial = false },
+        )
     }
 }
 

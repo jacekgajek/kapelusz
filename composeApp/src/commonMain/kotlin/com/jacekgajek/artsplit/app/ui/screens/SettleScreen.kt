@@ -18,7 +18,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,10 +34,12 @@ import com.jacekgajek.artsplit.app.generated.events_to_settle
 import com.jacekgajek.artsplit.app.generated.nothing_to_settle
 import com.jacekgajek.artsplit.app.generated.open_event
 import com.jacekgajek.artsplit.app.generated.settle
+import com.jacekgajek.artsplit.app.generated.settle_part
 import com.jacekgajek.artsplit.app.generated.tab_settle
 import com.jacekgajek.artsplit.app.generated.you_hold
 import com.jacekgajek.artsplit.app.generated.your_transfers
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
+import com.jacekgajek.artsplit.app.ui.components.PartialSettleDialog
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
 import com.jacekgajek.artsplit.app.ui.components.TransferParties
 import com.jacekgajek.artsplit.app.ui.components.StatusChip
@@ -108,14 +113,23 @@ fun SettleScreen(
                             TextButton(onClick = { onOpenEvent(event.id) }) { Text(stringResource(Res.string.open_event)) }
                         }
                         suggestions.forEach { suggestion ->
+                            val from = partyName(band, event, suggestion.from, fundLabel)
+                            val to = partyName(band, event, suggestion.to, fundLabel)
+                            var partial by remember { mutableStateOf(false) }
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    TransferParties(partyName(band, event, suggestion.from, fundLabel), partyName(band, event, suggestion.to, fundLabel))
+                                    TransferParties(from, to)
                                     MoneyText(suggestion.amount, band.currency, bold = true)
                                 }
+                                TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                                 FilledTonalButton(onClick = {
                                     actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
                                 }) { Text(stringResource(Res.string.settle)) }
+                            }
+                            if (partial) {
+                                PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
+                                    actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it))
+                                }, onDismiss = { partial = false })
                             }
                         }
                     }

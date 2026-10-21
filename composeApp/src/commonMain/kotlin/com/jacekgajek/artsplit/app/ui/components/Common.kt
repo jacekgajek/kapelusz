@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,16 +37,21 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.generated.Res
+import com.jacekgajek.artsplit.app.generated.amount
 import com.jacekgajek.artsplit.app.generated.amount_invalid
 import com.jacekgajek.artsplit.app.generated.cancel
 import com.jacekgajek.artsplit.app.generated.ok
 import com.jacekgajek.artsplit.app.generated.rejected
+import com.jacekgajek.artsplit.app.generated.settle
+import com.jacekgajek.artsplit.app.generated.settle_part_hint
+import com.jacekgajek.artsplit.app.generated.settle_part_title
 import com.jacekgajek.artsplit.app.generated.status_archived
 import com.jacekgajek.artsplit.app.generated.status_draft
 import com.jacekgajek.artsplit.app.generated.status_loss
 import com.jacekgajek.artsplit.app.generated.status_open
 import com.jacekgajek.artsplit.app.generated.status_settled
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
+import com.jacekgajek.artsplit.app.ui.model.formatMoneyInput
 import com.jacekgajek.artsplit.app.ui.model.initials
 import com.jacekgajek.artsplit.app.ui.theme.MoneyColors
 import com.jacekgajek.artsplit.domain.EventStatus
@@ -213,4 +219,39 @@ fun TransferParties(from: String, to: String, modifier: Modifier = Modifier) {
         )
         Text(to)
     }
+}
+
+/** Records only part of a suggested transfer, e.g. the cash someone has on them; the rest stays suggested. */
+@Composable
+fun PartialSettleDialog(
+    from: String,
+    to: String,
+    suggested: Money,
+    currency: String,
+    onConfirm: (Money) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val lang = language
+    var amount by remember { mutableStateOf(formatMoneyInput(suggested, lang)) }
+    val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= suggested }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.settle_part_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TransferParties(from, to)
+                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
+                Text(
+                    stringResource(Res.string.settle_part_hint, formatMoney(suggested, currency, lang)),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = parsed != null, onClick = { onConfirm(parsed!!); onDismiss() }) {
+                Text(stringResource(Res.string.settle))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
 }

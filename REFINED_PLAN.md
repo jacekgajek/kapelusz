@@ -65,7 +65,7 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 - **Suggested transfers:** greedy matching of the largest surplus to the largest deficit until everyone hits their target. This gives ≤ n−1 transfers. They are recomputed live from current balances and never stored.
   - When the treasurer holds the surplus personally, the fund transfer shows as "Alice: keep 100 zł for band fund [Confirm]".
 - **Manual transfers:** any party may hand money to any other party (e.g. Dave gives all hat money to Alice so that Alice does the distribution). Suggestions recompute afterwards.
-- **Settle** on a suggested transfer records it as a transfer. **Settle** next to a member records all of that member's pending suggested transfers. **Settle All** records every suggested transfer of the event.
+- **Settle** on a suggested transfer records it as a transfer. **Part…** records only part of it (e.g. the cash someone has on them, at most the suggested amount); the remainder stays suggested. **Settle** next to a member records all of that member's pending suggested transfers. **Settle All** records every suggested transfer of the event.
 - **Status**, always derived and never set by hand:
 
   | Status | When |

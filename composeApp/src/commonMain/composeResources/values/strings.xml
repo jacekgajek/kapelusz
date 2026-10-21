@@ -149,4 +149,7 @@
     <string name="you_hold">You hold %1$s to hand over at %2$s</string>
     <string name="cost_status_planned">Refund planned</string>
     <string name="cost_planned_at">%1$s to be refunded at %2$s (not settled yet)</string>
+    <string name="settle_part">Part…</string>
+    <string name="settle_part_title">Settle part</string>
+    <string name="settle_part_hint">Up to %1$s. The rest stays to be settled later.</string>
 </resources>

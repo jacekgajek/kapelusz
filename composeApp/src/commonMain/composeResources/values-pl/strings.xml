@@ -149,4 +149,7 @@
     <string name="you_hold">Masz %1$s do przekazania: %2$s</string>
     <string name="cost_status_planned">Zwrot zaplanowany</string>
     <string name="cost_planned_at">%1$s do zwrotu w: %2$s (jeszcze nierozliczone)</string>
+    <string name="settle_part">Część…</string>
+    <string name="settle_part_title">Rozlicz część</string>
+    <string name="settle_part_hint">Maksymalnie %1$s. Reszta zostanie do rozliczenia później.</string>
 </resources>

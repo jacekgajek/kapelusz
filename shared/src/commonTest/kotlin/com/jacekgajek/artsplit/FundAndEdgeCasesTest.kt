@@ -14,6 +14,7 @@ import com.jacekgajek.artsplit.ops.AddFundEntry
 import com.jacekgajek.artsplit.ops.AddHolding
 import com.jacekgajek.artsplit.ops.Change
 import com.jacekgajek.artsplit.ops.CreateEvent
+import com.jacekgajek.artsplit.ops.RecordTransfer
 import com.jacekgajek.artsplit.ops.RejectionCode
 import com.jacekgajek.artsplit.ops.SetFundAmount
 import com.jacekgajek.artsplit.ops.SetTreasurer
@@ -97,5 +98,18 @@ class FundAndEdgeCasesTest {
 
         scenario.apply(AddHolding("e", "h2", "alice", pln("10"), DOOR))
         assertEquals(CostStatus.REFUND_PLANNED, CostLedger.status(scenario.band, cost()), "reopened event: not final any more")
+    }
+
+    /** Paying part of a suggested transfer leaves the rest suggested. */
+    @Test
+    fun partialSettlementLeavesRemainder() {
+        val scenario = Scenario("Alice", "Bob").event("e", "Alice", "Bob")
+            .apply(AddHolding("e", "h", "alice", pln("300"), DOOR))
+            .apply(RecordTransfer("e", "t1", "alice", "bob", pln("100")))
+        assertEquals(listOf(SuggestedTransfer("alice", "bob", pln("50"))), scenario.settle("e").suggestions)
+        assertEquals(EventStatus.OPEN, scenario.settle("e").status)
+
+        scenario.apply(RecordTransfer("e", "t2", "alice", "bob", pln("50")))
+        assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
     }
 }
