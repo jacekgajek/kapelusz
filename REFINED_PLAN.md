@@ -81,7 +81,8 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 
 ### 2.4 Costs and amortization
 - **Cost fields:** member, amount (required), date (default today), optional "incurred for" event, optional category (`TRAVEL | ACCOMMODATION | EQUIPMENT | FOOD | OTHER`), optional description, up to **5 attachments** (images and/or PDFs).
-- **Outstanding** = amount − Σ refunds across all events. A cost is `PENDING`, `PARTLY_REFUNDED` or `REFUNDED`.
+- **Outstanding** = amount − Σ refunds assigned across all events and the fund. This prevents refunding a cost twice.
+- **Paid** = Σ refunds in **settled** events + fund refunds. The owner sees a status based on this: `PENDING` (nothing assigned), `REFUND_PLANNED` (assigned, not paid yet), `PARTLY_REFUNDED`, or `REFUNDED`. If a settled event reopens, its refunds count as planned again.
 - Refunds are always 100% of what you choose to refund. There are no refund percentages; to refund less, enter the refundable amount.
 - **Defaults** when a lead opens an event's Refunds section:
   - Costs **incurred for this event** are pre-included in full.
@@ -431,6 +432,7 @@ Workflow:
 | 2026-10-21 | PR #1 review: the band fund balance may go negative (shown in red, never blocked). A treasurer with the Member role acts for the band fund when recording/settling transfers. |
 | 2026-10-21 | M2: `composeApp` commonTest runs as Android host (JVM) tests; the wasm browser test task is disabled (needs a headless browser, and the code under test is platform-independent). Navigation uses type-safe routes; the web build binds them to browser history. |
 | 2026-10-21 | M2: until sign-in (M3) the device user is a fixed local identity (`local-user`) that owns the locally created band; all operations stay in the pending queue. The web build stores state in IndexedDB, Android in app-private files. The band fund tab and fund amount UI wait for M5.1. |
+| 2026-10-21 | A cost shows as refunded only once the event refunding it is settled (or it was refunded from the band fund); until then it is "Refund planned". Assigning still counts immediately, so a cost cannot be refunded twice. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.

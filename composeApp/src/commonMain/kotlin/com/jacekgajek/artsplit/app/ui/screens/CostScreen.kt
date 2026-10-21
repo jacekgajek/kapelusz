@@ -49,6 +49,7 @@ import com.jacekgajek.artsplit.app.generated.cost_date
 import com.jacekgajek.artsplit.app.generated.cost_event
 import com.jacekgajek.artsplit.app.generated.cost_locked
 import com.jacekgajek.artsplit.app.generated.cost_no_event
+import com.jacekgajek.artsplit.app.generated.cost_planned_at
 import com.jacekgajek.artsplit.app.generated.cost_refunded_at
 import com.jacekgajek.artsplit.app.generated.cost_refunded_fund
 import com.jacekgajek.artsplit.app.generated.delete
@@ -73,6 +74,8 @@ import com.jacekgajek.artsplit.app.ui.model.formatMoneyInput
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.auth.Permissions
 import com.jacekgajek.artsplit.domain.CostLedger
+import com.jacekgajek.artsplit.domain.EventStatus
+import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.Cost
 import com.jacekgajek.artsplit.model.CostCategory
 import com.jacekgajek.artsplit.ops.AddCost
@@ -187,19 +190,24 @@ private fun RefundInfo(state: BandState.Ready, cost: Cost) {
     val band = state.band
     val lang = language
     val refundedAt = band.events.mapNotNull { event -> event.refundOf(cost.id)?.let { event to it.amount } }
+        .map { (event, amount) -> Triple(event, amount, SettlementCalculator.settle(band, event).status == EventStatus.SETTLED) }
     val fundRefund = band.fundEntries.filter { it.costId == cost.id }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row {
                 Text(stringResource(CostLedger.status(band, cost).labelRes()), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "${formatMoney(CostLedger.refunded(band, cost.id), band.currency, lang)} / ${formatMoney(cost.amount, band.currency, lang)}",
+                    "${formatMoney(CostLedger.paid(band, cost.id), band.currency, lang)} / ${formatMoney(cost.amount, band.currency, lang)}",
                     style = MaterialTheme.typography.titleSmall,
                 )
             }
-            refundedAt.forEach { (event, amount) ->
+            refundedAt.forEach { (event, amount, paid) ->
                 Text(
-                    stringResource(Res.string.cost_refunded_at, formatMoney(amount, band.currency, lang), event.name),
+                    stringResource(
+                        if (paid) Res.string.cost_refunded_at else Res.string.cost_planned_at,
+                        formatMoney(amount, band.currency, lang),
+                        event.name,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

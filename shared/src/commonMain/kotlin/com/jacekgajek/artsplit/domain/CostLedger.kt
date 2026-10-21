@@ -7,26 +7,45 @@ import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Money
 import com.jacekgajek.artsplit.model.sumOfMoney
 
-enum class CostStatus { PENDING, PARTLY_REFUNDED, REFUNDED }
+/** What the cost's owner sees: nothing assigned, assigned but not paid yet, partly paid, fully paid. */
+enum class CostStatus { PENDING, REFUND_PLANNED, PARTLY_REFUNDED, REFUNDED }
 
-/** Refund bookkeeping of costs across events and the band fund. */
+/**
+ * Refund bookkeeping of costs across events and the band fund.
+ *
+ * A refund is *assigned* as soon as an event includes it ([refunded], [outstanding]; used to prevent refunding a cost
+ * twice) and *paid* once that event is settled ([paid]; used for what the owner sees). Refunds from the band fund are
+ * paid immediately.
+ */
 object CostLedger {
 
-    /** Total refunded so far: event refunds plus fund entries linked to the cost. */
+    /** Total assigned to refunds so far: event refunds plus fund entries linked to the cost. */
     fun refunded(band: Band, costId: Id): Money =
-        band.events.sumOfMoney { event -> event.refundOf(costId)?.amount ?: Money.ZERO } +
-            band.fundEntries.filter { it.costId == costId }.sumOfMoney { -it.amount }
+        band.events.sumOfMoney { event -> event.refundOf(costId)?.amount ?: Money.ZERO } + fundRefunds(band, costId)
 
+    /** Part of the cost not assigned to any refund yet. */
     fun outstanding(band: Band, cost: Cost): Money = cost.amount - refunded(band, cost.id)
 
+    /** Total actually paid back: refunds in settled events plus fund refunds. */
+    fun paid(band: Band, costId: Id): Money =
+        band.events
+            .filter { it.refundOf(costId) != null && SettlementCalculator.settle(band, it).status == EventStatus.SETTLED }
+            .sumOfMoney { it.refundOf(costId)!!.amount } + fundRefunds(band, costId)
+
+    /** Part of the cost the owner has not been paid back yet. */
+    fun unpaid(band: Band, cost: Cost): Money = cost.amount - paid(band, cost.id)
+
     fun status(band: Band, cost: Cost): CostStatus {
-        val refunded = refunded(band, cost.id)
+        val paid = paid(band, cost.id)
         return when {
-            refunded.isZero -> CostStatus.PENDING
-            refunded >= cost.amount -> CostStatus.REFUNDED
-            else -> CostStatus.PARTLY_REFUNDED
+            paid >= cost.amount -> CostStatus.REFUNDED
+            paid.isPositive -> CostStatus.PARTLY_REFUNDED
+            refunded(band, cost.id).isPositive -> CostStatus.REFUND_PLANNED
+            else -> CostStatus.PENDING
         }
     }
+
+    private fun fundRefunds(band: Band, costId: Id): Money = band.fundEntries.filter { it.costId == costId }.sumOfMoney { -it.amount }
 
     /** Costs may only be refunded at events their owner takes part in. */
     fun isRefundableAt(cost: Cost, event: Event): Boolean = event.participant(cost.memberId) != null

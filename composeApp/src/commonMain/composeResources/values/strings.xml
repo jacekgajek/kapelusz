@@ -147,4 +147,6 @@
     <string name="nothing_to_settle">Nothing to settle.</string>
     <string name="open_event">Open</string>
     <string name="you_hold">You hold %1$s to hand over at %2$s</string>
+    <string name="cost_status_planned">Refund planned</string>
+    <string name="cost_planned_at">%1$s to be refunded at %2$s (not settled yet)</string>
 </resources>

@@ -2,6 +2,8 @@ package com.jacekgajek.artsplit.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +33,7 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.add_cost
 import com.jacekgajek.artsplit.app.generated.cost_status_partly
 import com.jacekgajek.artsplit.app.generated.cost_status_pending
+import com.jacekgajek.artsplit.app.generated.cost_status_planned
 import com.jacekgajek.artsplit.app.generated.cost_status_refunded
 import com.jacekgajek.artsplit.app.generated.costs_empty
 import com.jacekgajek.artsplit.app.generated.costs_outstanding_total
@@ -51,18 +54,20 @@ import org.jetbrains.compose.resources.stringResource
 
 fun CostStatus.labelRes(): StringResource = when (this) {
     CostStatus.PENDING -> Res.string.cost_status_pending
+    CostStatus.REFUND_PLANNED -> Res.string.cost_status_planned
     CostStatus.PARTLY_REFUNDED -> Res.string.cost_status_partly
     CostStatus.REFUNDED -> Res.string.cost_status_refunded
 }
 
 /** The current member's own costs and how much of each has been refunded. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSettings: () -> Unit, onRoster: () -> Unit) {
     val band = state.band
     var filter by rememberSaveable { mutableStateOf<CostStatus?>(null) }
     val mine = band.costs.filter { it.memberId == state.me?.id }.sortedByDescending { it.date }
     val shown = mine.filter { filter == null || CostLedger.status(band, it) == filter }
-    val outstanding = mine.sumOfMoney { CostLedger.outstanding(band, it) }
+    val unpaid = mine.sumOfMoney { CostLedger.unpaid(band, it) }
 
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs), onSettings, onRoster) },
@@ -81,12 +86,12 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
         ) {
             item {
                 Text(
-                    stringResource(Res.string.costs_outstanding_total, formatMoney(outstanding, band.currency, language)),
+                    stringResource(Res.string.costs_outstanding_total, formatMoney(unpaid, band.currency, language)),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(filter == null, { filter = null }, { Text(stringResource(Res.string.filter_all)) })
                     CostStatus.entries.forEach { status ->
                         FilterChip(filter == status, { filter = status }, { Text(stringResource(status.labelRes())) })
