@@ -66,6 +66,7 @@ object Notifier {
 
     private fun label(time: AgendaTime, pl: Boolean) = when (time.kind) {
         AgendaKind.ARRIVAL -> if (pl) "Przyjazd" else "Arrival"
+        AgendaKind.SOUND_CHECK -> if (pl) "Próba dźwięku" else "Sound check"
         AgendaKind.CONCERT_START -> if (pl) "Początek koncertu" else "Concert start"
         null -> time.label.orEmpty()
     }

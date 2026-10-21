@@ -456,4 +456,5 @@
     <string name="calendar_refresh_note">Google Calendar refreshes subscribed calendars on its own schedule, usually every few hours, sometimes up to a day.</string>
     <string name="calendar_failed">That did not work. Check your connection and try again.</string>
     <string name="calendar_add_on_computer">To subscribe, open calendar.google.com on a computer, choose Other calendars › From URL, and paste the link.</string>
+    <string name="agenda_sound_check">Sound check</string>
 </resources>

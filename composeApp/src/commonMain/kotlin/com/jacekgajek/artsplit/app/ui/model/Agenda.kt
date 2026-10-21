@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.agenda_arrival
 import com.jacekgajek.artsplit.app.generated.agenda_concert_start
+import com.jacekgajek.artsplit.app.generated.agenda_sound_check
 import com.jacekgajek.artsplit.model.AgendaKind
 import com.jacekgajek.artsplit.model.AgendaTemplateItem
 import com.jacekgajek.artsplit.model.AgendaTime
@@ -22,6 +23,7 @@ fun AgendaTemplateItem.displayLabel(): String = kind?.label() ?: label.orEmpty()
 fun AgendaKind.label(): String = stringResource(
     when (this) {
         AgendaKind.ARRIVAL -> Res.string.agenda_arrival
+        AgendaKind.SOUND_CHECK -> Res.string.agenda_sound_check
         AgendaKind.CONCERT_START -> Res.string.agenda_concert_start
     },
 )

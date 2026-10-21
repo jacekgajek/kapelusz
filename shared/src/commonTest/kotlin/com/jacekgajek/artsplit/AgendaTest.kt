@@ -23,7 +23,7 @@ class AgendaTest {
     @Test
     fun theDefaultTemplateIsArrivalAndConcertStart() {
         val scenario = Scenario("Alice")
-        assertEquals(listOf(AgendaKind.ARRIVAL, AgendaKind.CONCERT_START), scenario.band.effectiveAgendaTemplate.map { it.kind })
+        assertEquals(listOf(AgendaKind.ARRIVAL, AgendaKind.SOUND_CHECK, AgendaKind.CONCERT_START), scenario.band.effectiveAgendaTemplate.map { it.kind })
         scenario.apply(SetAgendaTemplate(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = " Sound check "))))
         assertEquals(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = "Sound check")), scenario.band.effectiveAgendaTemplate)
         assertEquals(RejectionReason.EMPTY_NAME, scenario.rejected(SetAgendaTemplate(listOf(AgendaTemplateItem(label = " ")))).reason)
@@ -83,7 +83,7 @@ class AgendaTest {
 
     @Test
     fun aKindFromANewerVersionDoesNotBreakReading() {
-        val time = ArtSplitJson.decodeFromString(AgendaTime.serializer(), """{"id":"a","kind":"SOUND_CHECK","label":"Sound check","time":"18:00"}""")
-        assertEquals(AgendaTime("a", kind = null, label = "Sound check", time = LocalTime(18, 0)), time)
+        val time = ArtSplitJson.decodeFromString(AgendaTime.serializer(), """{"id":"a","kind":"LOAD_IN","label":"Load-in","time":"18:00"}""")
+        assertEquals(AgendaTime("a", kind = null, label = "Load-in", time = LocalTime(18, 0)), time)
     }
 }
