@@ -18,4 +18,12 @@ class HandlerTest {
         assertEquals("/bands/b1/state", parsed.rawPath)
         assertEquals("\"e1\"", parsed.headers["if-none-match"])
     }
+
+    @Test
+    fun malformedQueryStringIsABadRequest() {
+        val event = """{"rawPath":"/bands/b1/log","rawQueryString":"month=%zz","requestContext":{"http":{"method":"GET"}}}"""
+        val output = java.io.ByteArrayOutputStream()
+        Handler().handleRequest(event.byteInputStream(), output, null)
+        assertEquals(400, ArtSplitJson.decodeFromString(ApiGatewayResponse.serializer(), output.toString()).statusCode)
+    }
 }

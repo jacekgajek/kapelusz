@@ -14,6 +14,7 @@ import com.jacekgajek.artsplit.api.InvitesResponse
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.ApplyResult
 import com.jacekgajek.artsplit.ops.LinkUser
+import com.jacekgajek.artsplit.ops.UnlinkUser
 import java.security.SecureRandom
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
@@ -35,7 +36,7 @@ import java.util.UUID
 @Serializable
 data class UserRecord(val userId: String, val bandIds: List<String> = emptyList())
 
-/** Who failed to guess invite codes recently, stored as `users/{googleSub}-join-attempts.json`. */
+/** Invite code lookups in the current hour, stored as `users/{googleSub}-join-attempts.json`. */
 @Serializable
 data class JoinAttempts(val windowStart: Long, val failures: Int)
 
@@ -80,7 +81,7 @@ class Api(
             request.method == "POST" && segments.size == 3 && segments[0] == "bands" && segments[2] == "ops" ->
                 push(user, segments[1], parse(request, PushRequest.serializer()))
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "log" ->
-                history(user, segments[1], request.query["month"])
+                history(user, segments[1], request.query["month"], request.query["before"])
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "invites" ->
                 listInvites(user, segments[1])
             request.method == "POST" && segments.size == 3 && segments[0] == "bands" && segments[2] == "invites" ->
@@ -158,6 +159,10 @@ class Api(
                 return@repeat
             }
             if (result.accepted.isNotEmpty()) {
+                // A member whose account was linked or unlinked must not keep any invite (see revokeInvitesFor).
+                envelopes.filter { it.opId in result.accepted }.map { it.op }
+                    .mapNotNull { (it as? UnlinkUser)?.memberId }
+                    .forEach { memberId -> runCatching { revokeInvitesFor(bandId, memberId) } }
                 // The change is already saved; a failed log write must not make the client retry it.
                 runCatching { appendLog(user, band, bandId, envelopes.filter { it.opId in result.accepted }) }
                     .onFailure { System.err.println("Could not append history for band $bandId: $it") }
@@ -170,14 +175,20 @@ class Api(
         throw ApiError(409, "busy", "Too many concurrent changes, try again")
     }
 
-    private fun history(user: VerifiedUser, bandId: String, month: String?): HttpResponse {
+    /**
+     * One page of a month's history, newest first. [before] is the `next` cursor of the previous page; listing keys is
+     * cheap, only the page's entries are fetched, so a busy month never times out.
+     */
+    private fun history(user: VerifiedUser, bandId: String, month: String?, before: String?): HttpResponse {
         loadBandForMember(user, bandId)
         val selected = month ?: monthOf(clock())
         badRequestIf(!selected.matches(Regex("\\d{4}-\\d{2}"))) { "month must be yyyy-MM" }
-        val entries = store.list("bands/$bandId/log/$selected/")
-            .mapNotNull { key -> store.get(key)?.let { decode(HistoryEntry.serializer(), it.content) } }
-            .sortedBy { it.at }
-        return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries))
+        val prefix = "bands/$bandId/log/$selected/"
+        val keys = store.list(prefix).asReversed().let { all -> if (before == null) all else all.dropWhile { it >= prefix + before } }
+        val page = keys.take(HISTORY_PAGE)
+        val entries = page.mapNotNull { key -> store.get(key)?.let { decode(HistoryEntry.serializer(), it.content) } }
+        val next = if (keys.size > page.size) page.last().removePrefix(prefix) else null
+        return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
     }
 
     // ---- invites ----
@@ -223,23 +234,33 @@ class Api(
     }
 
     private fun previewInvite(user: VerifiedUser, code: String): HttpResponse {
-        val invite = findInvite(user, code)
+        val invite = findInvite(user, code).info
         val band = loadBand(invite.bandId)?.first ?: throw inviteNotFound()
         val member = band.member(invite.memberId) ?: throw inviteNotFound()
         return ok(InvitePreview.serializer(), InvitePreview(invite.code, band.id, band.name, member.name, invite.role, invite.expiresAt))
     }
 
     private fun acceptInvite(user: VerifiedUser, code: String): HttpResponse {
-        val invite = findInvite(user, code)
+        val stored = findInvite(user, code)
+        val invite = stored.info
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBand(invite.bandId) ?: throw inviteNotFound()
             band.memberOfUser(user.userId)?.let { existing ->
-                if (existing.id == invite.memberId) return ok(BandStateResponse.serializer(), BandStateResponse(etag, band))
-                throw ApiError(409, ApiErrors.ALREADY_MEMBER, "You are already a member of this band")
+                if (existing.id != invite.memberId) throw ApiError(409, ApiErrors.ALREADY_MEMBER, "You are already a member of this band")
+                // A retry after an interrupted accept: the link is done, finish what may not have been.
+                finishJoin(user, band.id, invite.memberId)
+                return ok(BandStateResponse.serializer(), BandStateResponse(etag, band))
+            }
+            // The invite only stands while its issuer is still an active admin and the member is still in the band.
+            val issuer = band.memberOfUser(stored.createdBy)
+            val member = band.member(invite.memberId)
+            if (issuer == null || issuer.archived || !issuer.role.atLeast(Role.ADMIN) || member == null || member.archived) {
+                deleteInvite(band.id, invite.code)
+                throw inviteNotFound()
             }
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
                 is ApplyResult.Applied -> result.band
-                // The member was linked meanwhile or no longer exists.
+                // The member was linked meanwhile.
                 is ApplyResult.Rejected -> throw inviteNotFound()
             }
             val newEtag = try {
@@ -247,31 +268,59 @@ class Api(
             } catch (e: PreconditionFailed) {
                 return@repeat
             }
-            addBandToUser(user.userId, band.id)
-            deleteInvite(band.id, invite.code)
+            finishJoin(user, band.id, invite.memberId)
             runCatching { appendLog(user, linked, band.id, listOf(OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role)))) }
             return ok(BandStateResponse.serializer(), BandStateResponse(newEtag, linked))
         }
         throw ApiError(409, "busy", "Too many concurrent changes, try again")
     }
 
-    /** Looks up an active invite; wrong codes count towards a per-user limit, against guessing. */
-    private fun findInvite(user: VerifiedUser, rawCode: String): InviteInfo {
+    /** After a join: list the band for the user and cancel every invite for the member (both idempotent). */
+    private fun finishJoin(user: VerifiedUser, bandId: String, memberId: String) {
+        addBandToUser(user.userId, bandId)
+        revokeInvitesFor(bandId, memberId)
+    }
+
+    /**
+     * Cancels all invites for a member. Called whenever the member's account link changes, so no leftover code (from a
+     * race or an interrupted request) can link someone after an admin unlinked them.
+     */
+    private fun revokeInvitesFor(bandId: String, memberId: String) {
+        loadInviteCodes(bandId).forEach { code ->
+            val invite = loadInvite(code)
+            if (invite == null || invite.info.memberId == memberId) deleteInvite(bandId, code)
+        }
+    }
+
+    /**
+     * Looks up an active invite. Every lookup first reserves one of the user's [MAX_JOIN_ATTEMPTS] attempts per hour
+     * with a conditional write, so parallel requests cannot get around the limit. A real join needs two (preview, accept).
+     */
+    private fun findInvite(user: VerifiedUser, rawCode: String): StoredInvite {
+        reserveJoinAttempt(user.userId)
         val code = rawCode.uppercase()
-        val attemptsKey = attemptsKey(user.userId)
-        val attempts = store.get(attemptsKey)?.let { decode(JoinAttempts.serializer(), it.content) }
-            ?.takeIf { clock() - it.windowStart < ATTEMPT_WINDOW_MS }
-        if (attempts != null && attempts.failures >= MAX_FAILED_JOIN_ATTEMPTS) {
-            throw ApiError(429, ApiErrors.TOO_MANY_ATTEMPTS, "Too many wrong codes, try again later")
+        return code.takeIf { it.matches(Regex("[$INVITE_ALPHABET]{$INVITE_LENGTH}")) }?.let { loadInvite(it) }
+            ?.takeIf { it.info.expiresAt > clock() }
+            ?: throw inviteNotFound()
+    }
+
+    private fun reserveJoinAttempt(userId: String) {
+        val key = attemptsKey(userId)
+        repeat(MAX_ATTEMPTS) {
+            val blob = store.get(key)
+            val current = blob?.let { decode(JoinAttempts.serializer(), it.content) }?.takeIf { clock() - it.windowStart < ATTEMPT_WINDOW_MS }
+            if (current != null && current.failures >= MAX_JOIN_ATTEMPTS) {
+                throw ApiError(429, ApiErrors.TOO_MANY_ATTEMPTS, "Too many attempts, try again later")
+            }
+            val updated = current?.copy(failures = current.failures + 1) ?: JoinAttempts(clock(), 1)
+            try {
+                store.put(key, encode(JoinAttempts.serializer(), updated), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+                return
+            } catch (e: PreconditionFailed) {
+                // a parallel request counted first: read again
+            }
         }
-        val invite = code.takeIf { it.matches(Regex("[$INVITE_ALPHABET]{$INVITE_LENGTH}")) }?.let { loadInvite(it)?.info }
-            ?.takeIf { it.expiresAt > clock() }
-        if (invite == null) {
-            val updated = attempts?.copy(failures = attempts.failures + 1) ?: JoinAttempts(clock(), 1)
-            store.put(attemptsKey, encode(JoinAttempts.serializer(), updated))
-            throw inviteNotFound()
-        }
-        return invite
+        throw ApiError(429, ApiErrors.TOO_MANY_ATTEMPTS, "Too many attempts, try again later")
     }
 
     private fun inviteNotFound() = ApiError(404, ApiErrors.INVITE_NOT_FOUND, "No such invite")
@@ -360,10 +409,11 @@ class Api(
         const val MAX_ATTEMPTS = 5
         const val MAX_OPS_PER_PUSH = 500
         const val MAX_DEVICES_PER_USER = 50
+        const val HISTORY_PAGE = 100
         const val INVITE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
         const val INVITE_LENGTH = 6
         const val INVITE_LIFETIME_MS = 72 * 3600 * 1000L
-        const val MAX_FAILED_JOIN_ATTEMPTS = 10
+        const val MAX_JOIN_ATTEMPTS = 10
         const val ATTEMPT_WINDOW_MS = 3600 * 1000L
         private val random = SecureRandom()
         const val BAND_NOT_FOUND = ApiErrors.BAND_NOT_FOUND

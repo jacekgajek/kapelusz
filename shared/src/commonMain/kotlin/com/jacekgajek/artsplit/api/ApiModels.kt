@@ -80,6 +80,6 @@ data class InvitePreview(val code: String, val bandId: Id, val bandName: String,
 @Serializable
 data class HistoryEntry(val userId: String, val memberId: String?, val at: Long, val ops: List<OpEnvelope>)
 
-/** History of one calendar month (UTC), oldest first. */
+/** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
 @Serializable
-data class HistoryResponse(val month: String, val entries: List<HistoryEntry>)
+data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, val next: String? = null)

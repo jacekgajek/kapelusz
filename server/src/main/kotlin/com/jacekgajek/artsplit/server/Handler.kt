@@ -48,7 +48,8 @@ class Handler : RequestStreamHandler {
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context?) {
         val event = ArtSplitJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
         val body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it }
-        val request = HttpRequest(
+        val request = try {
+            HttpRequest(
             method = event.requestContext.http.method,
             path = event.rawPath,
             headers = event.headers.mapKeys { it.key.lowercase() },
@@ -58,12 +59,21 @@ class Handler : RequestStreamHandler {
                 URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
             },
         )
+        } catch (e: IllegalArgumentException) {
+            // A malformed %-escape in the query string.
+            respond(output, HttpResponse(400, """{"error":"bad_request","message":"Malformed query string"}""", mapOf("content-type" to "application/json")))
+            return
+        }
         val response = try {
             api.handle(request)
         } catch (e: Exception) {
             System.err.println("Unhandled error for ${request.method} ${request.path}: ${e.stackTraceToString()}")
             HttpResponse(500, """{"error":"internal","message":"Internal error"}""", mapOf("content-type" to "application/json"))
         }
+        respond(output, response)
+    }
+
+    private fun respond(output: OutputStream, response: HttpResponse) {
         val payload = ApiGatewayResponse(response.status, response.headers, response.body)
         output.write(ArtSplitJson.encodeToString(ApiGatewayResponse.serializer(), payload).toByteArray())
     }
