@@ -25,9 +25,12 @@ aws lambda update-alias --function-name "$FUNCTION_NAME" --name live --function-
 echo "   alias live -> version $VERSION"
 
 echo "== Web: syncing $DIST to s3://$WEB_BUCKET"
-# Wasm files have content hashes in their names: cache forever. Everything else must be revalidated.
+# Order matters: new wasm files first (content-hashed names, cached forever), then the files that reference them
+# (revalidated on every load), and only then delete the old wasm files. A page loaded mid-deploy never points at a
+# missing file.
+WASM_ARGS=(--exclude "*" --include "*.wasm" --content-type application/wasm --cache-control "public, max-age=31536000, immutable")
+aws s3 sync "$DIST" "s3://$WEB_BUCKET" "${WASM_ARGS[@]}"
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*.wasm" --cache-control "no-cache"
-aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*" --include "*.wasm" \
-  --content-type application/wasm --cache-control "public, max-age=31536000, immutable"
+aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete "${WASM_ARGS[@]}"
 aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" >/dev/null
 echo "== Done"
