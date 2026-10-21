@@ -121,12 +121,12 @@ private fun SyncIndicator(bar: TopBarState) {
     IconButton(onClick = { if (status == SyncStatus.NEEDS_SIGN_IN) signingIn = true else bar.onSyncNow() }) {
         Icon(icon, contentDescription = stringResource(label), tint = tint)
     }
-    if (signingIn) SignInAgainDialog(bar, onDismiss = { signingIn = false })
+    if (signingIn) SignInAgainDialog(bar.accountEmail, bar.onReauthenticate, onDismiss = { signingIn = false })
 }
 
 /** Shown when sync needs a new Google sign-in (the old one could not be renewed without the user). */
 @Composable
-private fun SignInAgainDialog(bar: TopBarState, onDismiss: () -> Unit) {
+fun SignInAgainDialog(accountEmail: String?, onReauthenticate: suspend (String) -> Boolean, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var wrongAccount by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -135,11 +135,11 @@ private fun SignInAgainDialog(bar: TopBarState, onDismiss: () -> Unit) {
         title = { Text(stringResource(Res.string.sign_in_again_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(Res.string.sign_in_again_text, bar.accountEmail.orEmpty()))
+                Text(stringResource(Res.string.sign_in_again_text, accountEmail.orEmpty()))
                 GoogleSignInButton(
                     onIdToken = { token ->
                         scope.launch {
-                            if (bar.onReauthenticate(token)) {
+                            if (onReauthenticate(token)) {
                                 onDismiss()
                             } else {
                                 wrongAccount = true
@@ -148,7 +148,7 @@ private fun SignInAgainDialog(bar: TopBarState, onDismiss: () -> Unit) {
                     },
                     onError = { error = it },
                 )
-                if (wrongAccount) Text(stringResource(Res.string.sign_in_again_wrong_account, bar.accountEmail.orEmpty()), color = MaterialTheme.colorScheme.error)
+                if (wrongAccount) Text(stringResource(Res.string.sign_in_again_wrong_account, accountEmail.orEmpty()), color = MaterialTheme.colorScheme.error)
                 error?.let { Text(stringResource(Res.string.sign_in_failed, it), color = MaterialTheme.colorScheme.error) }
             }
         },

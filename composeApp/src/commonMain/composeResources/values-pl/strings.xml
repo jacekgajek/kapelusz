@@ -212,4 +212,8 @@
     <string name="sign_in_again_text">Twoje logowanie wygasło, więc zmiany są na razie zapisywane tylko na tym urządzeniu. Zaloguj się ponownie jako %1$s, aby je zsynchronizować.</string>
     <string name="sign_in_again_wrong_account">To inne konto. Zaloguj się jako %1$s albo wyloguj się w Ustawieniach, aby zmienić konto.</string>
     <string name="lost_access">Nie masz już dostępu do zespołu %1$s. Niezapisane tam zmiany zachowano jako kopię na tym urządzeniu.</string>
+    <string name="other_tab_title">Art Split jest otwarty w innej karcie</string>
+    <string name="other_tab_text">Aby Twoje zmiany były bezpieczne, Art Split może działać tylko w jednej karcie naraz. Możesz kontynuować tutaj; druga karta przestanie działać.</string>
+    <string name="use_here">Użyj tutaj</string>
+    <string name="open_band_failed">Nie udało się otworzyć zespołu. Sprawdź połączenie i spróbuj ponownie.</string>
 </resources>

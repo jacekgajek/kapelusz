@@ -73,21 +73,34 @@ class BandRepository(
     val index: StateFlow<BandIndex?> = _index.asStateFlow()
 
     private val locals = mutableMapOf<Id, LocalBand>()
+    private val dirty = mutableSetOf<Id>()
+    private var indexDirty = false
     private var userId: String? = null
     private val writeLock = Mutex()
 
     val currentBandId: Id? get() = _index.value?.currentBandId
 
-    /** Loads the user's bands and opens the last used one. Also adopts a band created before sign-in existed (M2). */
+    /**
+     * Loads all of the user's bands stored on this device and opens the last used one. Storage keys include the user
+     * id, so another account signed in on the same device never sees (or pushes) these bands. Also adopts data saved
+     * by older versions.
+     */
     suspend fun load(userId: String) {
         this.userId = userId
         locals.clear()
-        val index = store.read(INDEX_KEY)
+        dirty.clear()
+        migrateUnscopedKeys(userId)
+        val index = store.read(indexKey(userId))
             ?.let { raw -> runCatching { ArtSplitJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
-            ?.takeIf { it.userId == userId }
             ?: BandIndex(userId)
         _index.value = index
         adoptLegacyBand(userId)
+        // Every stored band, not only the open one: bands created offline must still be uploaded, and unsent changes
+        // in other bands pushed, even if the user never opens them.
+        for (summary in _index.value?.bands.orEmpty()) {
+            if (summary.id == _index.value?.currentBandId) continue
+            runCatching { readLocal(summary.id, reportUnreadable = false) }.getOrNull()?.let { locals[summary.id] = it }
+        }
         open(_index.value?.currentBandId)
     }
 
@@ -98,7 +111,7 @@ class BandRepository(
             return
         }
         val local = locals[bandId] ?: try {
-            readLocal(bandId)
+            readLocal(bandId, reportUnreadable = true)
         } catch (e: UnreadableBand) {
             return
         } ?: run {
@@ -111,7 +124,7 @@ class BandRepository(
     }
 
     /** Whether the band is on this device (in memory or saved), i.e. can be opened without downloading. */
-    suspend fun hasStored(bandId: Id): Boolean = bandId in locals || store.read(bandKey(bandId)) != null
+    suspend fun hasStored(bandId: Id): Boolean = bandId in locals || store.read(bandKey(requireUser(), bandId)) != null
 
     /** Creates a band on this device (the user is its owner); the next sync creates it on the server. */
     fun createBand(name: String, currency: String, yourName: String) {
@@ -184,9 +197,9 @@ class BandRepository(
         val local = locals.remove(bandId)
         val name = local?.let { replay(it).name } ?: _index.value?.bands?.firstOrNull { it.id == bandId }?.name ?: bandId
         if (local != null && local.pending.isNotEmpty()) {
-            store.write("${bandKey(bandId)}-unsent-${clock()}", ArtSplitJson.encodeToString(LocalBand.serializer(), local))
+            store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", ArtSplitJson.encodeToString(LocalBand.serializer(), local))
         }
-        store.remove(bandKey(bandId))
+        store.remove(bandKey(requireUser(), bandId))
         val wasCurrent = currentBandId == bandId
         updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
         if (wasCurrent) _state.value = BandState.NoBand
@@ -196,7 +209,7 @@ class BandRepository(
     /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
     suspend fun startOver() {
         val bandId = currentBandId
-        if (bandId != null) store.remove(bandKey(bandId))
+        if (bandId != null) store.remove(bandKey(requireUser(), bandId))
         bandId?.let { locals.remove(it) }
         updateIndex { index -> index.copy(currentBandId = null, bands = index.bands.filterNot { it.id == bandId }) }
         _state.value = BandState.NoBand
@@ -213,18 +226,38 @@ class BandRepository(
         updateIndex { index -> index.copy(bands = index.bands.map { if (it.id == bandId) it.copy(name = name) else it }) }
     }
 
-    private suspend fun readLocal(bandId: Id): LocalBand? {
-        val raw = store.read(bandKey(bandId)) ?: return null
+    private suspend fun readLocal(bandId: Id, reportUnreadable: Boolean): LocalBand? {
+        val key = bandKey(requireUser(), bandId)
+        val raw = store.read(key) ?: return null
         return try {
             ArtSplitJson.decodeFromString(LocalBand.serializer(), raw).also { replay(it) }
         } catch (e: Exception) {
             // Never lose the only copy: keep the unreadable data as a backup before offering to start over.
-            val backupKey = "${bandKey(bandId)}-backup-${clock()}"
+            val backupKey = "$key-backup-${clock()}"
             store.write(backupKey, raw)
-            updateIndex { it.copy(currentBandId = bandId) }
-            _state.value = BandState.Unreadable(backupKey)
+            if (reportUnreadable) {
+                updateIndex { it.copy(currentBandId = bandId) }
+                _state.value = BandState.Unreadable(backupKey)
+            }
             throw UnreadableBand()
         }
+    }
+
+    /** M3 builds stored `band-index` and `band-{id}` without the user id; move them if they belong to [userId]. */
+    private suspend fun migrateUnscopedKeys(userId: String) {
+        val raw = store.read(UNSCOPED_INDEX_KEY) ?: return
+        val index = runCatching { ArtSplitJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull()
+        if (index == null || index.userId != userId) return
+        for (summary in index.bands) {
+            val band = store.read("band-${summary.id}") ?: continue
+            val owner = runCatching { ArtSplitJson.decodeFromString(LocalBand.serializer(), band).userId }.getOrNull()
+            if (owner == userId) {
+                store.write(bandKey(userId, summary.id), band)
+                store.remove("band-${summary.id}")
+            }
+        }
+        if (store.read(indexKey(userId)) == null) store.write(indexKey(userId), raw)
+        store.remove(UNSCOPED_INDEX_KEY)
     }
 
     /** M2 kept one band under `band`, owned by a placeholder user; it now belongs to the signed-in user. */
@@ -239,7 +272,7 @@ class BandRepository(
         val reassign = { band: Band -> band.copy(members = band.members.map { if (it.userId == legacy.userId) it.copy(userId = userId) else it }) }
         val adopted = legacy.copy(base = reassign(legacy.base), userId = userId, needsCreate = legacy.version == null)
         locals[adopted.base.id] = adopted
-        store.write(bandKey(adopted.base.id), ArtSplitJson.encodeToString(LocalBand.serializer(), adopted))
+        store.write(bandKey(userId, adopted.base.id), ArtSplitJson.encodeToString(LocalBand.serializer(), adopted))
         store.remove(LEGACY_KEY)
         val shown = replay(adopted)
         val me = shown.memberOfUser(userId)
@@ -263,27 +296,46 @@ class BandRepository(
         val updated = change(current)
         if (updated == current) return
         _index.value = updated
-        scope.launch { writeLock.withLock { _index.value?.let { store.write(INDEX_KEY, ArtSplitJson.encodeToString(BandIndex.serializer(), it)) } } }
+        indexDirty = true
+        scope.launch { flush() }
     }
 
     private fun persist(bandId: Id) {
-        scope.launch {
-            writeLock.withLock {
-                locals[bandId]?.let { store.write(bandKey(bandId), ArtSplitJson.encodeToString(LocalBand.serializer(), it)) }
-            }
+        dirty += bandId
+        scope.launch { flush() }
+    }
+
+    /**
+     * Writes every changed band (and the index) now. Sync calls this before pushing, so a crash right after a push
+     * cannot leave an older `nextSeq` on disk and make the next operation reuse a sequence number.
+     */
+    suspend fun flush() = writeLock.withLock {
+        val user = userId ?: return@withLock
+        for (bandId in dirty.toList()) {
+            dirty -= bandId
+            locals[bandId]?.let { store.write(bandKey(user, bandId), ArtSplitJson.encodeToString(LocalBand.serializer(), it)) }
+        }
+        if (indexDirty) {
+            indexDirty = false
+            _index.value?.let { store.write(indexKey(user), ArtSplitJson.encodeToString(BandIndex.serializer(), it)) }
         }
     }
+
+    private fun requireUser(): String = requireNotNull(userId) { "Not signed in" }
 
     private class UnreadableBand : RuntimeException()
 
     companion object {
         /** Before multi-band support (M2) the only band lived under this key. */
         const val LEGACY_KEY = "band"
-        const val INDEX_KEY = "band-index"
+
+        /** M3 stored the index without the user id. */
+        const val UNSCOPED_INDEX_KEY = "band-index"
 
         /** Identity of the device user in M2, before Google sign-in. */
         const val LOCAL_USER_ID = "local-user"
 
-        fun bandKey(bandId: Id) = "band-$bandId"
+        fun indexKey(userId: String) = "band-index-$userId"
+        fun bandKey(userId: String, bandId: Id) = "band-$userId-$bandId"
     }
 }

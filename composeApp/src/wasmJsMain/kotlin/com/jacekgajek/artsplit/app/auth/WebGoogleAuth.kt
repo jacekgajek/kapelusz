@@ -32,7 +32,8 @@ private fun gisInit(clientId: String): Promise<JsAny?> = js(
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
-        script.onerror = () => reject(new Error('Could not load Google sign-in'));
+        // A failed load must not be remembered: forget the promise so the next attempt loads the script again.
+        script.onerror = () => { globalThis.artSplitGis = undefined; script.remove(); reject(new Error('Could not load Google sign-in')); };
         script.onload = () => {
             google.accounts.id.initialize({
                 client_id: clientId,
@@ -83,8 +84,11 @@ object WebGoogleAuth : GoogleAuth {
         // Also needed when the sign-in button was never shown in this page (the user was already signed in).
         init()
         suspendCancellableCoroutine { continuation ->
-            pending = { token -> pending = null; if (continuation.isActive) continuation.resumeWith(Result.success(token)) }
-            continuation.invokeOnCancellation { pending = null }
+            lateinit var handler: (String) -> Unit
+            handler = { token -> if (pending === handler) pending = null; if (continuation.isActive) continuation.resumeWith(Result.success(token)) }
+            pending = handler
+            // Only clear our own handler: a sign-in button may have registered its own meanwhile.
+            continuation.invokeOnCancellation { if (pending === handler) pending = null }
             promptSilently()
         }
     }

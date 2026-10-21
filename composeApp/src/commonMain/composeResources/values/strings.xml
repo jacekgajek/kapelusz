@@ -212,4 +212,8 @@
     <string name="sign_in_again_text">Your sign-in expired, so changes are only saved on this device for now. Sign in again as %1$s to sync them.</string>
     <string name="sign_in_again_wrong_account">That is a different account. Sign in as %1$s, or sign out in Settings to switch accounts.</string>
     <string name="lost_access">You no longer have access to %1$s. Changes not yet saved there were kept as a backup on this device.</string>
+    <string name="other_tab_title">Art Split is open in another tab</string>
+    <string name="other_tab_text">To keep your changes safe, only one tab can use Art Split at a time. You can continue here; the other tab will stop.</string>
+    <string name="use_here">Use here</string>
+    <string name="open_band_failed">Could not open the band. Check your connection and try again.</string>
 </resources>

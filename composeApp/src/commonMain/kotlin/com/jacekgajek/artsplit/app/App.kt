@@ -48,6 +48,7 @@ import com.jacekgajek.artsplit.app.generated.sync_refused
 import com.jacekgajek.artsplit.app.sync.SyncStatus
 import com.jacekgajek.artsplit.app.ui.NewBandRoute
 import com.jacekgajek.artsplit.app.ui.components.LocalTopBarState
+import com.jacekgajek.artsplit.app.ui.components.SignInAgainDialog
 import com.jacekgajek.artsplit.app.ui.components.TopBarState
 import com.jacekgajek.artsplit.app.ui.components.labelRes
 import com.jacekgajek.artsplit.app.ui.screens.NewBandScreen
@@ -119,13 +120,26 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     val defaultName = session?.name?.substringBefore(' ').orEmpty()
     // Opening a band from the first screen must not navigate: the navigation host only exists once a band is open,
     // and it starts on the event list anyway. Switching from inside a band resets the back stack to the event list.
+    var openError by remember { mutableStateOf(false) }
+    var signingInAgain by remember { mutableStateOf(false) }
     val openBand: (bandId: String, resetNavigation: Boolean) -> Unit = { bandId, resetNavigation ->
         scope.launch {
-            if (graph.bands.hasStored(bandId)) graph.bands.open(bandId) else runCatching { graph.sync.download(bandId) }
-            if (resetNavigation) navController.resetTo(EventsRoute)
+            openError = false
+            val opened = if (graph.bands.hasStored(bandId)) {
+                graph.bands.open(bandId)
+                true
+            } else {
+                runCatching { graph.sync.download(bandId) }.isSuccess
+            }
+            if (!opened) openError = true
+            if (opened && resetNavigation) navController.resetTo(EventsRoute)
             graph.sync.requestSync()
         }
     }
+    val reauthenticate: suspend (String) -> Boolean = { token ->
+        graph.sessions.reauthenticated(token).also { ok -> if (ok) graph.sync.resumeAfterSignIn() }
+    }
+    if (signingInAgain) SignInAgainDialog(session?.email, reauthenticate, onDismiss = { signingInAgain = false })
     // A dialog, not a snackbar: losing the open band leaves its screens, so they cannot show the message.
     var lostBand by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(graph) { graph.sync.lostAccess.collect { lostBand = it } }
@@ -140,7 +154,9 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         BandState.Loading -> {}
         BandState.NoBand -> ZeroScreen(
             bands = index?.bands.orEmpty(),
-            checking = syncStatus == SyncStatus.SYNCING || syncStatus == SyncStatus.IDLE,
+            syncStatus = syncStatus,
+            openError = openError,
+            onSignInAgain = { signingInAgain = true },
             defaultYourName = defaultName,
             onOpen = { openBand(it, false) },
             onCreate = { name, currency, yourName -> graph.bands.createBand(name, currency, yourName); graph.sync.requestSync() },
@@ -154,7 +170,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onSelectBand = { openBand(it, true) },
                 onNewBand = { navController.navigate(NewBandRoute) },
                 onSyncNow = { graph.sync.requestSync() },
-                onReauthenticate = { token -> graph.sessions.reauthenticated(token).also { ok -> if (ok) graph.sync.resumeAfterSignIn() } },
+                onReauthenticate = reauthenticate,
                 accountEmail = session?.email,
             ),
         ) { Navigation(graph, bandState, navController, defaultName) }
