@@ -48,6 +48,7 @@ import com.jacekgajek.artsplit.app.generated.event_date
 import com.jacekgajek.artsplit.app.generated.event_location
 import com.jacekgajek.artsplit.app.generated.event_name
 import com.jacekgajek.artsplit.app.generated.events_empty
+import com.jacekgajek.artsplit.app.generated.events_filtered_empty
 import com.jacekgajek.artsplit.app.generated.filter_only_mine
 import com.jacekgajek.artsplit.app.generated.filter_show_archived
 import com.jacekgajek.artsplit.app.generated.my_even
@@ -141,7 +142,9 @@ fun EventsScreen(
                 }
             }
             if (summaries.isEmpty()) {
-                item { Text(stringResource(Res.string.events_empty), Modifier.padding(vertical = 32.dp)) }
+                // Events hidden by the filters are not "no events": say which it is.
+                val text = if (band.events.isEmpty()) Res.string.events_empty else Res.string.events_filtered_empty
+                item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
             }
             items(summaries, key = { it.event.id }) { summary -> EventRow(band, summary) { onOpenEvent(summary.event.id) } }
         }

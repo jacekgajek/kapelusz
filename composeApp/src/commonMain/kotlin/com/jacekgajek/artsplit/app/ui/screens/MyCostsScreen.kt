@@ -42,6 +42,8 @@ import com.jacekgajek.artsplit.app.generated.cost_status_pending
 import com.jacekgajek.artsplit.app.generated.cost_status_planned
 import com.jacekgajek.artsplit.app.generated.cost_status_refunded
 import com.jacekgajek.artsplit.app.generated.costs_empty
+import com.jacekgajek.artsplit.app.generated.costs_none
+import com.jacekgajek.artsplit.app.generated.costs_none_everyone
 import com.jacekgajek.artsplit.app.generated.costs_outstanding_total
 import com.jacekgajek.artsplit.app.generated.costs_outstanding_total_everyone
 import com.jacekgajek.artsplit.app.generated.filter_all
@@ -153,7 +155,14 @@ fun MyCostsScreen(
                     }
                 }
             }
-            if (shown.isEmpty()) item { Text(stringResource(Res.string.costs_empty), Modifier.padding(vertical = 32.dp)) }
+            if (shown.isEmpty()) {
+                val text = when {
+                    mine.isNotEmpty() -> Res.string.costs_empty
+                    showAll -> Res.string.costs_none_everyone
+                    else -> Res.string.costs_none
+                }
+                item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
+            }
             items(shown, key = { it.id }) { cost ->
                 Card(onClick = { onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

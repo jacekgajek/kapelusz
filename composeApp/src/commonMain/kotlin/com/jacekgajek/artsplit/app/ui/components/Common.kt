@@ -15,8 +15,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +30,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.material3.Surface
+import com.jacekgajek.artsplit.app.generated.transfer_a11y
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -132,18 +136,17 @@ fun StatusChip(status: EventStatus, archived: Boolean = false) {
         status == EventStatus.SETTLED -> Res.string.status_settled to MaterialTheme.colorScheme.secondaryContainer
         else -> Res.string.status_loss to MaterialTheme.colorScheme.errorContainer
     }
-    AssistChip(
-        onClick = {},
-        label = { Text(stringResource(label)) },
-        colors = AssistChipDefaults.assistChipColors(containerColor = container),
-        border = null,
-    )
+    // A label, not a button: an AssistChip would be announced (and focusable) as something to tap.
+    Surface(color = container, shape = MaterialTheme.shapes.small) {
+        Text(stringResource(label), Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
+    }
 }
 
 @Composable
 fun Avatar(name: String, size: Dp = 28.dp) {
     Box(
-        Modifier.size(size).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+        Modifier.size(size).background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+            .clearAndSetSemantics { contentDescription = name },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -216,7 +219,8 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = MaterialTheme.typography.titleMedium,
-        modifier = modifier.padding(top = 16.dp, bottom = 8.dp),
+        // Lets screen reader users jump between the sections of long screens (the event screen).
+        modifier = modifier.padding(top = 16.dp, bottom = 8.dp).semantics { heading() },
     )
 }
 
@@ -225,7 +229,9 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
  */
 @Composable
 fun TransferParties(from: String, to: String, modifier: Modifier = Modifier) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+    // The arrow is an icon: read the pair as one phrase ("Alice to Bob") instead of two unrelated names.
+    val description = stringResource(Res.string.transfer_a11y, from, to)
+    Row(modifier.clearAndSetSemantics { contentDescription = description }, verticalAlignment = Alignment.CenterVertically) {
         Text(from)
         Icon(
             Icons.AutoMirrored.Filled.ArrowForward,

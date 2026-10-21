@@ -129,7 +129,7 @@
     <string name="cost_status_pending">Oczekuje</string>
     <string name="cost_status_partly">Częściowo zwrócony</string>
     <string name="cost_status_refunded">Zwrócony</string>
-    <string name="costs_empty">Brak kosztów.</string>
+    <string name="costs_empty">Żaden koszt nie pasuje do filtra.</string>
     <string name="costs_outstanding_total">Do zwrotu: %1$s</string>
     <string name="category">Kategoria (opcjonalnie)</string>
     <string name="cost_date">Data</string>
@@ -346,4 +346,8 @@
     <string name="attachment_failed">Nie udało się odczytać pliku.</string>
     <string name="attachment_remove_title">Usunąć załącznik?</string>
     <string name="attachment_remove_confirm">%1$s zostanie usunięty z tego kosztu.</string>
+    <string name="transfer_a11y">%1$s dla %2$s</string>
+    <string name="events_filtered_empty">Żadne wydarzenie nie pasuje do filtrów.</string>
+    <string name="costs_none">Nie ma jeszcze kosztów. Dodaj swoje wydatki na zespół, a zwrot dostaniesz z kolejnych wydarzeń.</string>
+    <string name="costs_none_everyone">Nikt jeszcze nie dodał kosztu.</string>
 </resources>

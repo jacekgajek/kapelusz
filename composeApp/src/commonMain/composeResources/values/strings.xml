@@ -129,7 +129,7 @@
     <string name="cost_status_pending">Pending</string>
     <string name="cost_status_partly">Partly refunded</string>
     <string name="cost_status_refunded">Refunded</string>
-    <string name="costs_empty">No costs here.</string>
+    <string name="costs_empty">No costs match this filter.</string>
     <string name="costs_outstanding_total">Still to be refunded: %1$s</string>
     <string name="category">Category (optional)</string>
     <string name="cost_date">Date</string>
@@ -346,4 +346,8 @@
     <string name="attachment_failed">Could not read the file.</string>
     <string name="attachment_remove_title">Remove attachment?</string>
     <string name="attachment_remove_confirm">%1$s will be removed from this cost.</string>
+    <string name="transfer_a11y">%1$s to %2$s</string>
+    <string name="events_filtered_empty">No events match the filters.</string>
+    <string name="costs_none">No costs yet. Add what you paid for the band and get it back from the next events.</string>
+    <string name="costs_none_everyone">Nobody has added a cost yet.</string>
 </resources>

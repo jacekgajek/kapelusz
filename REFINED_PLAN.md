@@ -415,7 +415,7 @@ Workflow:
 - [x] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
 - [x] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
 - [x] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
-- [ ] M5.4 Polish: empty states, error states, accessibility pass
+- [x] M5.4 Polish: empty states, error states, accessibility pass
 - [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 - [x] M5.6 "Copy link" button next to Share on an invite
 - [x] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
