@@ -64,6 +64,12 @@ class ApiClient(
     suspend fun push(bandId: Id, ops: List<OpEnvelope>): PushResponse =
         call(HttpMethod.Post, "/bands/$bandId/ops", PushResponse.serializer(), body = ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
 
+    /** Deletes the band for everyone (owner only). */
+    suspend fun deleteBand(bandId: Id) {
+        val response = send(HttpMethod.Delete, "/bands/$bandId") {}
+        if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
+    }
+
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
 
     suspend fun createInvite(bandId: Id, memberId: Id, role: Role): InviteInfo = call(

@@ -23,6 +23,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 
+/** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
+data class LostBand(val name: String, val deleted: Boolean)
+
 enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, ERROR }
 
 /** The server answered in a way the client cannot make progress with. */
@@ -49,10 +52,10 @@ class SyncEngine(
     /** Operations the server refused (e.g. permissions changed meanwhile); shown to the user. */
     val rejections: SharedFlow<Rejection> = _rejections.asSharedFlow()
 
-    private val _lostAccess = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    private val _lostAccess = MutableSharedFlow<LostBand>(extraBufferCapacity = 4)
 
-    /** Names of bands the user can no longer access (removed from the band, or the band is gone). */
-    val lostAccess: SharedFlow<String> = _lostAccess.asSharedFlow()
+    /** Bands the user can no longer access (removed from the band, or the band was deleted). */
+    val lostAccess: SharedFlow<LostBand> = _lostAccess.asSharedFlow()
 
     private val runLock = Mutex()
     private val wakeUp = Channel<Unit>(1, BufferOverflow.DROP_OLDEST)
@@ -133,10 +136,11 @@ class SyncEngine(
     } catch (e: ApiException) {
         // Only the server's explicit "band not found for you" means access is gone; any other 404 (a wrong URL, an
         // unknown route) must never make the app delete bands from the device.
-        if (e.code == ApiErrors.BAND_NOT_FOUND && bands.local(bandId)?.needsCreate == false) {
+        val gone = e.code == ApiErrors.BAND_NOT_FOUND || e.code == ApiErrors.BAND_DELETED
+        if (gone && bands.local(bandId)?.needsCreate == false) {
             // The band is gone or the user was removed from it: keep unsent changes as a backup and let go of it.
             val name = bands.loseAccess(bandId)
-            _lostAccess.tryEmit(name)
+            _lostAccess.tryEmit(LostBand(name, deleted = e.code == ApiErrors.BAND_DELETED))
             SyncStatus.SYNCED
         } else {
             SyncStatus.ERROR

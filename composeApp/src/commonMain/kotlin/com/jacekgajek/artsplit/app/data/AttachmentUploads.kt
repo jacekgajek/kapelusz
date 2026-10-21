@@ -59,7 +59,8 @@ class AttachmentUploads(
      */
     suspend fun uploadFor(bandId: Id) {
         for (upload in _pending.value.filter { it.bandId == bandId }) {
-            val local = bands.local(bandId) ?: continue
+            // The band is gone from this device (deleted, or access lost): its files have nowhere to go.
+            val local = bands.local(bandId) ?: run { drop(upload); null } ?: continue
             if (local.pending.any { (it.op as? AddAttachment)?.attachment?.id == upload.attachmentId }) continue // not pushed yet
             val onServer = local.base.cost(upload.costId)?.attachments?.any { it.id == upload.attachmentId } == true
             if (!onServer) {

@@ -86,6 +86,16 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /**
+     * Deletes the open band for everyone (owner only; needs the server, except for a band never uploaded). Network
+     * errors and refusals surface as exceptions; on success the band is gone from this device too.
+     */
+    suspend fun deleteBand() {
+        val bandId = bands.currentBandId ?: return
+        if (bands.local(bandId)?.needsCreate != true) api.deleteBand(bandId)
+        bands.forgetDeleted(bandId)
+    }
+
+    /**
      * Attaches a prepared file to a cost: the attachment is added like any change, and the file waits on the device
      * until the sync has uploaded it.
      */

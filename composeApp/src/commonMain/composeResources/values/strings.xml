@@ -359,4 +359,18 @@
     <string name="fund_disable_confirm">Turn off</string>
     <string name="h_disable_fund">Turned off the band fund</string>
     <string name="reject_fund_not_empty">The band fund can only be turned off when it is empty and nothing is still to be handed over.</string>
+    <string name="band_was_deleted">%1$s was deleted by its owner. It is no longer on this device.</string>
+    <string name="delete_band">Delete band</string>
+    <string name="delete_band_title">Delete %1$s?</string>
+    <string name="delete_band_everything">All its events, costs, refunds, transfers, the band fund, attachments and history are deleted for everyone.</string>
+    <plurals name="delete_band_members">
+        <item quantity="one">%1$d other member loses access right away.</item>
+        <item quantity="other">%1$d other members lose access right away.</item>
+    </plurals>
+    <string name="delete_band_no_members">Nobody else has joined the band.</string>
+    <string name="delete_band_unsynced">Changes not yet synced from anyone’s devices are lost too.</string>
+    <string name="delete_band_final">This cannot be undone.</string>
+    <string name="delete_band_type_name">Type %1$s to confirm</string>
+    <string name="delete_band_confirm">Delete forever</string>
+    <string name="delete_band_failed">The band was not deleted. Check your connection and try again.</string>
 </resources>

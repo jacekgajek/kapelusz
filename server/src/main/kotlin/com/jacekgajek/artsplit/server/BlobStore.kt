@@ -4,7 +4,10 @@ import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.Delete
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
@@ -37,6 +40,9 @@ interface BlobStore {
     fun put(key: String, content: String, ifMatch: String? = null, ifNoneMatch: Boolean = false): String
 
     fun delete(key: String)
+
+    /** Deletes [keys] in as few requests as possible (S3 takes up to 1000 per request). */
+    fun deleteAll(keys: List<String>) = keys.forEach(::delete)
 
     /** Keys under [prefix], in lexicographic order. */
     fun list(prefix: String): List<String>
@@ -82,6 +88,16 @@ class S3BlobStore(
 
     override fun delete(key: String) {
         s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build())
+    }
+
+    override fun deleteAll(keys: List<String>) {
+        keys.chunked(1000).forEach { chunk ->
+            s3.deleteObjects(
+                DeleteObjectsRequest.builder().bucket(bucket)
+                    .delete(Delete.builder().objects(chunk.map { ObjectIdentifier.builder().key(it).build() }).quiet(true).build())
+                    .build(),
+            )
+        }
     }
 
     override fun list(prefix: String): List<String> =
@@ -144,7 +160,8 @@ class InMemoryBlobStore : BlobStore {
         return etag
     }
 
-    override fun list(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }.sorted()
+    // Like S3, uploaded files are listed together with JSON objects.
+    override fun list(prefix: String): List<String> = (objects.keys + files).filter { it.startsWith(prefix) }.sorted()
 
     /** Keys of uploaded files; tests add to it to simulate a client's upload. */
     val files: MutableSet<String> = ConcurrentHashMap.newKeySet()

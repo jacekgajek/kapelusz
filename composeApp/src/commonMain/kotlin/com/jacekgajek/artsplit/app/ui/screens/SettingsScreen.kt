@@ -3,6 +3,7 @@ package com.jacekgajek.artsplit.app.ui.screens
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -49,7 +50,31 @@ import com.jacekgajek.artsplit.app.generated.settings
 import com.jacekgajek.artsplit.app.generated.sign_out
 import com.jacekgajek.artsplit.app.ui.components.BackTopBar
 import com.jacekgajek.artsplit.app.ui.components.Dropdown
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import com.jacekgajek.artsplit.app.generated.delete_band
+import com.jacekgajek.artsplit.app.generated.delete_band_title
+import com.jacekgajek.artsplit.app.generated.delete_band_everything
+import com.jacekgajek.artsplit.app.generated.delete_band_members
+import com.jacekgajek.artsplit.app.generated.delete_band_no_members
+import com.jacekgajek.artsplit.app.generated.delete_band_unsynced
+import com.jacekgajek.artsplit.app.generated.delete_band_final
+import com.jacekgajek.artsplit.app.generated.delete_band_type_name
+import com.jacekgajek.artsplit.app.generated.delete_band_confirm
+import com.jacekgajek.artsplit.app.generated.delete_band_failed
+import com.jacekgajek.artsplit.app.generated.cancel
 
 @Composable
 fun SettingsScreen(
@@ -65,6 +90,9 @@ fun SettingsScreen(
     /** Turns the band fund off; null while it holds or owes money ([fundBalance] says how much it holds). */
     onDisableFund: (() -> Unit)?,
     fundBalance: String,
+    /** Deletes the band for everyone; only for its owner. Throws when it did not work (e.g. offline). */
+    onDeleteBand: (suspend () -> Unit)?,
+    otherMembers: Int,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -150,9 +178,84 @@ fun SettingsScreen(
                     )
                 }
             }
+            if (onDeleteBand != null) {
+                var deleting by remember { mutableStateOf(false) }
+                OutlinedButton(
+                    onClick = { deleting = true },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    modifier = Modifier.padding(top = 16.dp),
+                ) {
+                    Icon(Icons.Default.DeleteForever, null)
+                    Text(stringResource(Res.string.delete_band), Modifier.padding(start = 8.dp))
+                }
+                if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
+            }
             Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
             account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
             OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
         }
     }
+}
+
+/**
+ * The last step before deleting a band for everyone: every consequence spelled out, and the band's name typed out to
+ * enable the (red) button, so it cannot happen by a stray tap.
+ */
+@Composable
+private fun DeleteBandDialog(bandName: String, otherMembers: Int, onDelete: suspend () -> Unit, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var typed by remember { mutableStateOf("") }
+    var working by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    val matches = typed.trim().equals(bandName.trim(), ignoreCase = true)
+    AlertDialog(
+        onDismissRequest = { if (!working) onDismiss() },
+        icon = { Icon(Icons.Default.DeleteForever, null, tint = MaterialTheme.colorScheme.error) },
+        title = { Text(stringResource(Res.string.delete_band_title, bandName)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(Res.string.delete_band_everything))
+                Text(
+                    if (otherMembers > 0) pluralStringResource(Res.plurals.delete_band_members, otherMembers, otherMembers)
+                    else stringResource(Res.string.delete_band_no_members),
+                )
+                Text(stringResource(Res.string.delete_band_unsynced))
+                Text(stringResource(Res.string.delete_band_final), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleSmall)
+                OutlinedTextField(
+                    typed,
+                    { typed = it; failed = false },
+                    label = { Text(stringResource(Res.string.delete_band_type_name, bandName)) },
+                    singleLine = true,
+                    enabled = !working,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (failed) Text(stringResource(Res.string.delete_band_failed), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = matches && !working,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
+                onClick = {
+                    working = true
+                    scope.launch {
+                        try {
+                            onDelete()
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Throwable) {
+                            // Throwable: on the web, network errors are JsException.
+                            failed = true
+                        }
+                        working = false
+                    }
+                },
+            ) {
+                if (working) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onError)
+                Text(stringResource(Res.string.delete_band_confirm))
+            }
+        },
+        dismissButton = { TextButton(enabled = !working, onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
 }

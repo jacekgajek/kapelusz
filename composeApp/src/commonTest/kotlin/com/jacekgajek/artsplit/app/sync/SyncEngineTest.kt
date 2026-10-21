@@ -53,6 +53,9 @@ private class FakeServer {
     var version = 0
     var unauthorizedOnce = false
 
+    /** Bands their owner deleted: former members get band_deleted. */
+    val deletedBands = mutableSetOf<String>()
+
     /** False simulates a server from before attachments: the route does not exist. */
     var attachmentsRoute = true
 
@@ -73,6 +76,9 @@ private class FakeServer {
         val path = request.url.encodedPath
         val json = headersOf(HttpHeaders.ContentType, "application/json")
         val bandInPath = path.split('/').getOrNull(2)
+        if (path.startsWith("/bands/") && bandInPath in deletedBands) {
+            return@MockEngine respond("""{"error":"band_deleted","message":"Deleted"}""", HttpStatusCode.NotFound, json)
+        }
         if (path.startsWith("/bands/") && bandInPath !in bands) {
             return@MockEngine respond("""{"error":"band_not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
         }
@@ -245,7 +251,7 @@ class SyncEngineTest {
 
         val message = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { sync.lostAccess.first() }
         assertTrue(sync.syncNow())
-        assertEquals("Lost Band", message.await())
+        assertEquals(LostBand("Lost Band", deleted = false), message.await())
         assertEquals("Kept and renamed", server.bands.getValue(kept).name)
         assertEquals(listOf("Kept and renamed"), repository.index.value!!.bands.map { it.name })
         assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
@@ -357,5 +363,22 @@ class SyncEngineTest {
         sync.syncNow()
         assertEquals(listOf("a1"), uploads.pending.value.map { it.attachmentId })
         assertEquals("AAAA", store.read(AttachmentUploads.fileKey("alice", "a1")))
+    }
+
+    @Test
+    fun aDeletedBandIsReportedAsDeleted() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val bandId = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+
+        server.bands.remove(bandId)
+        server.deletedBands += bandId
+        val message = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { sync.lostAccess.first() }
+        sync.syncNow()
+        assertEquals(LostBand("Night Owls", deleted = true), message.await())
+        assertEquals(null, repository.local(bandId))
     }
 }

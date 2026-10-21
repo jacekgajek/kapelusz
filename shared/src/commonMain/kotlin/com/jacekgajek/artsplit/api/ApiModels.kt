@@ -48,6 +48,9 @@ object ApiErrors {
     /** The band does not exist or the caller is not (or no longer) an active member. */
     const val BAND_NOT_FOUND = "band_not_found"
 
+    /** The band was deleted by its owner; only its former members get this (others get [BAND_NOT_FOUND]). */
+    const val BAND_DELETED = "band_deleted"
+
     /** No active invite with this code (wrong, used, revoked or expired). */
     const val INVITE_NOT_FOUND = "invite_not_found"
 
