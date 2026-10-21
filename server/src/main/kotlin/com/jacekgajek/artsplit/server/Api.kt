@@ -45,8 +45,6 @@ class Api(
         error(e.status, e.code, e.message.orEmpty())
     } catch (e: SerializationException) {
         error(400, "bad_request", e.message.orEmpty())
-    } catch (e: IllegalArgumentException) {
-        error(400, "bad_request", e.message.orEmpty())
     }
 
     private fun route(request: HttpRequest): HttpResponse {
@@ -82,8 +80,8 @@ class Api(
     }
 
     private fun createBand(user: VerifiedUser, request: CreateBandRequest): HttpResponse {
-        require(request.name.isNotBlank() && request.ownerName.isNotBlank()) { "Band and member names are required" }
-        require(request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
+        badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
+        badRequestIf(!request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
         val band = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
         val etag = try {
             store.put(bandKey(band.id), encode(Band.serializer(), band), ifNoneMatch = true)
@@ -105,7 +103,7 @@ class Api(
     }
 
     private fun push(user: VerifiedUser, bandId: String, request: PushRequest): HttpResponse {
-        require(request.ops.size <= MAX_OPS_PER_PUSH) { "At most $MAX_OPS_PER_PUSH operations per push" }
+        badRequestIf(request.ops.size > MAX_OPS_PER_PUSH) { "At most $MAX_OPS_PER_PUSH operations per push" }
         // Sequence numbers are tracked per user and device, so one user cannot block another user's device.
         val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}") }
         repeat(MAX_ATTEMPTS) {
@@ -189,8 +187,12 @@ class Api(
 
         /** Ids end up in storage keys: allow only id-like characters. */
         private fun safe(id: String): String {
-            require(id.matches(Regex("[A-Za-z0-9_-]{1,64}"))) { "Invalid id" }
+            badRequestIf(!id.matches(Regex("[A-Za-z0-9_-]{1,64}"))) { "Invalid id" }
             return id
+        }
+
+        private fun badRequestIf(condition: Boolean, message: () -> String) {
+            if (condition) throw ApiError(400, "bad_request", message())
         }
 
         private fun <T> encode(serializer: KSerializer<T>, value: T) = ArtSplitJson.encodeToString(serializer, value)
