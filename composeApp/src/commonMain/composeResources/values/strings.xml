@@ -297,4 +297,7 @@
     <string name="role_desc_lead">Everything a member can, plus: creates and edits events, participants, guests and shares, decides on cost refunds and the band fund, corrects anyone's costs and collected money, and settles whole events.</string>
     <string name="role_desc_admin">Everything a lead can, plus: manages band members, roles and invites, unlinks app accounts, and chooses who holds the band fund.</string>
     <string name="role_owner_note">The owner has all admin rights and is the only one who can hand ownership over to another admin.</string>
+    <string name="copy_link">Copy link</string>
+    <string name="link_copied">Link copied</string>
+    <string name="band">Band</string>
 </resources>

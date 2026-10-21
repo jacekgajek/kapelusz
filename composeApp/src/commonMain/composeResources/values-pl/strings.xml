@@ -297,4 +297,7 @@
     <string name="role_desc_lead">To samo co członek, a do tego: tworzy i edytuje wydarzenia, uczestników, gości i udziały, decyduje o zwrotach kosztów i kasie zespołowej, poprawia koszty i zebrane pieniądze innych oraz rozlicza całe wydarzenia.</string>
     <string name="role_desc_admin">To samo co lider, a do tego: zarządza składem zespołu, rolami i zaproszeniami, odłącza konta w aplikacji i wybiera, kto trzyma kasę zespołową.</string>
     <string name="role_owner_note">Właściciel ma wszystkie uprawnienia administratora i jako jedyny może przekazać własność innemu administratorowi.</string>
+    <string name="copy_link">Kopiuj link</string>
+    <string name="link_copied">Skopiowano link</string>
+    <string name="band">Zespół</string>
 </resources>

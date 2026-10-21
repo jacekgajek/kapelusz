@@ -55,6 +55,8 @@ import com.jacekgajek.artsplit.app.ui.components.labelRes
 import com.jacekgajek.artsplit.app.ui.screens.NewBandScreen
 import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
 import com.jacekgajek.artsplit.ops.RejectionReason
+import com.jacekgajek.artsplit.ops.RenameBand
+import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
 import com.jacekgajek.artsplit.app.generated.Res
@@ -228,6 +230,9 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
                     account = session?.let { it.email ?: it.name },
                     onSignOut = { scope.launch { graph.signOut() } },
+                    bandName = state.band.name,
+                    onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(RenameBand("probe")) },
                     onBack = back,
                 )
             }
