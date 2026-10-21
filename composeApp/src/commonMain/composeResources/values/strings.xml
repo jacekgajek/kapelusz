@@ -195,4 +195,17 @@
     <string name="sign_in_failed">Sign-in failed: %1$s</string>
     <string name="account">Account</string>
     <string name="sign_out">Sign out</string>
+    <string name="new_band">New band</string>
+    <string name="new_band_title">New band</string>
+    <string name="your_bands">Your bands</string>
+    <string name="open_band">Open</string>
+    <string name="or_create_band">Or create a new band</string>
+    <string name="join_band">Join a band</string>
+    <string name="join_band_soon">Joining with an invite code arrives in the next version.</string>
+    <string name="sync_syncing">Syncing</string>
+    <string name="sync_synced">Saved on the server</string>
+    <string name="sync_offline">Offline – changes are kept on this device</string>
+    <string name="sync_needs_sign_in">Sign in again to sync</string>
+    <string name="sync_error">Sync failed</string>
+    <string name="sync_refused">Not saved on the server:</string>
 </resources>

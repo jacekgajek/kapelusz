@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.app.auth.GoogleSignInButton
-import com.jacekgajek.artsplit.app.auth.SessionRepository
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.app_name
 import com.jacekgajek.artsplit.app.generated.sign_in_failed
@@ -27,7 +26,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun SignInScreen(sessions: SessionRepository) {
+fun SignInScreen(onIdToken: suspend (String) -> Unit) {
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -36,7 +35,7 @@ fun SignInScreen(sessions: SessionRepository) {
             Text(stringResource(Res.string.sign_in_intro), style = MaterialTheme.typography.bodyMedium)
             GoogleSignInButton(
                 onIdToken = { token ->
-                    scope.launch { runCatching { sessions.signedIn(token) }.onFailure { error = it.message } }
+                    scope.launch { runCatching { onIdToken(token) }.onFailure { error = it.message } }
                 },
                 onError = { error = it },
             )

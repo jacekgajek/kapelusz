@@ -11,3 +11,4 @@ import kotlinx.serialization.Serializable
 @Serializable data class CostRoute(val costId: String? = null)
 @Serializable data object SettingsRoute
 @Serializable data object RosterRoute
+@Serializable data object NewBandRoute

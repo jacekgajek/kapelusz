@@ -195,4 +195,17 @@
     <string name="sign_in_failed">Logowanie nie powiodło się: %1$s</string>
     <string name="account">Konto</string>
     <string name="sign_out">Wyloguj się</string>
+    <string name="new_band">Nowy zespół</string>
+    <string name="new_band_title">Nowy zespół</string>
+    <string name="your_bands">Twoje zespoły</string>
+    <string name="open_band">Otwórz</string>
+    <string name="or_create_band">Albo utwórz nowy zespół</string>
+    <string name="join_band">Dołącz do zespołu</string>
+    <string name="join_band_soon">Dołączanie kodem zaproszenia pojawi się w następnej wersji.</string>
+    <string name="sync_syncing">Synchronizacja</string>
+    <string name="sync_synced">Zapisano na serwerze</string>
+    <string name="sync_offline">Offline – zmiany są zachowane na tym urządzeniu</string>
+    <string name="sync_needs_sign_in">Zaloguj się ponownie, aby synchronizować</string>
+    <string name="sync_error">Synchronizacja nie powiodła się</string>
+    <string name="sync_refused">Nie zapisano na serwerze:</string>
 </resources>

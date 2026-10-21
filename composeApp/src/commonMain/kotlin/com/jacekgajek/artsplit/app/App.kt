@@ -35,6 +35,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.remember
+import com.jacekgajek.artsplit.app.generated.sync_refused
+import com.jacekgajek.artsplit.app.sync.SyncStatus
+import com.jacekgajek.artsplit.app.ui.NewBandRoute
+import com.jacekgajek.artsplit.app.ui.components.LocalTopBarState
+import com.jacekgajek.artsplit.app.ui.components.TopBarState
+import com.jacekgajek.artsplit.app.ui.components.labelRes
+import com.jacekgajek.artsplit.app.ui.screens.NewBandScreen
+import com.jacekgajek.artsplit.app.ui.screens.ZeroScreen
+import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
 import com.jacekgajek.artsplit.app.generated.Res
@@ -50,7 +62,6 @@ import com.jacekgajek.artsplit.app.ui.RosterRoute
 import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
 import com.jacekgajek.artsplit.app.ui.screens.CostScreen
-import com.jacekgajek.artsplit.app.ui.screens.CreateBandScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
@@ -60,7 +71,6 @@ import com.jacekgajek.artsplit.app.ui.screens.SignInScreen
 import com.jacekgajek.artsplit.app.ui.screens.UnreadableDataScreen
 import com.jacekgajek.artsplit.app.ui.screens.event.EventScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -79,16 +89,14 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     // Outside key(language), so changing the language keeps the back stack.
     val navController = rememberNavController()
     LaunchedEffect(navController) { onNavHostReady(navController) }
-    val scope = rememberCoroutineScope()
     CompositionLocalProvider(LocalAppLocale provides settings.language) {
         key(settings.language) {
             ArtSplitTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    val state = bandState
-                    when {
-                        state == BandState.Loading -> {}
-                        session == null -> SignInScreen(graph.sessions)
-                        else -> BandContent(graph, state, navController, scope)
+                    if (session == null) {
+                        SignInScreen(onIdToken = graph::onSignedIn)
+                    } else {
+                        BandContent(graph, bandState, navController)
                     }
                 }
             }
@@ -97,23 +105,50 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
 }
 
 @Composable
-private fun BandContent(graph: AppGraph, bandState: BandState, navController: NavHostController, scope: CoroutineScope) {
+private fun BandContent(graph: AppGraph, bandState: BandState, navController: NavHostController) {
+    val scope = rememberCoroutineScope()
+    val index by graph.bands.index.collectAsState()
+    val syncStatus by graph.sync.status.collectAsState()
+    val session by graph.sessions.session.collectAsState()
+    val defaultName = session?.name?.substringBefore(' ').orEmpty()
+    val openBand: (String) -> Unit = { bandId ->
+        scope.launch {
+            if (graph.bands.hasStored(bandId)) graph.bands.open(bandId) else runCatching { graph.sync.download(bandId) }
+            navController.navigate(EventsRoute) { popUpTo(0) }
+        }
+    }
     when (bandState) {
         BandState.Loading -> {}
-        BandState.NoBand -> CreateBandScreen { name, currency, yourName -> graph.bands.createBand(name, currency, yourName) }
-        is BandState.Ready -> Navigation(graph, bandState, navController)
+        BandState.NoBand -> ZeroScreen(
+            bands = index?.bands.orEmpty(),
+            checking = syncStatus == SyncStatus.SYNCING || syncStatus == SyncStatus.IDLE,
+            defaultYourName = defaultName,
+            onOpen = openBand,
+            onCreate = { name, currency, yourName -> graph.bands.createBand(name, currency, yourName); graph.sync.requestSync() },
+            onSignOut = { scope.launch { graph.signOut() } },
+        )
+        is BandState.Ready -> CompositionLocalProvider(
+            LocalTopBarState provides TopBarState(
+                syncStatus = syncStatus,
+                bands = index?.bands.orEmpty(),
+                currentBandId = index?.currentBandId,
+                onSelectBand = openBand,
+                onNewBand = { navController.navigate(NewBandRoute) },
+                onSyncNow = { graph.sync.requestSync() },
+            ),
+        ) { Navigation(graph, bandState, navController, defaultName) }
         is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
     }
 }
 
 @Composable
-private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: NavHostController) {
+private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: NavHostController, defaultName: String) {
     val settings by graph.settings.settings.collectAsState()
     val toSettings = { navController.navigate(SettingsRoute) }
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
 
-    MainScaffold(navController) {
+    MainScaffold(navController, graph) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
             composable<EventsRoute> {
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
@@ -129,19 +164,33 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     language = settings.language,
                     onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
                     account = session?.let { it.email ?: it.name },
-                    onSignOut = { scope.launch { graph.sessions.signOut() } },
+                    onSignOut = { scope.launch { graph.signOut() } },
                     onBack = back,
                 )
             }
             composable<RosterRoute> { RosterScreen(graph, state, back) }
+            composable<NewBandRoute> {
+                NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
+                    graph.bands.createBand(name, currency, yourName)
+                    graph.sync.requestSync()
+                    navController.navigate(EventsRoute) { popUpTo(0) }
+                }, onBack = back)
+            }
         }
     }
 }
 
 /** Bottom navigation on phones, a rail on wide screens; shown only on the tab screens. */
 @Composable
-private fun MainScaffold(navController: NavHostController, content: @Composable () -> Unit) {
+private fun MainScaffold(navController: NavHostController, graph: AppGraph, content: @Composable () -> Unit) {
     val entry by navController.currentBackStackEntryAsState()
+    // Changes the server refused during sync (e.g. a role changed meanwhile).
+    val snackbar = remember { SnackbarHostState() }
+    val reasonTexts = RejectionReason.entries.associateWith { stringResource(it.labelRes()) }
+    val refusedPrefix = stringResource(Res.string.sync_refused)
+    LaunchedEffect(graph) {
+        graph.sync.rejections.collect { snackbar.showSnackbar("$refusedPrefix ${reasonTexts.getValue(it.reason)}") }
+    }
     val current = Tab.entries.firstOrNull { tab -> entry?.destination?.hasRoute(tab.route::class) == true }
     fun select(tab: Tab) = navController.navigate(tab.route) {
         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -152,6 +201,7 @@ private fun MainScaffold(navController: NavHostController, content: @Composable 
     BoxWithConstraints {
         val wide = maxWidth >= 600.dp
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (!wide && current != null) {
                     NavigationBar {

@@ -14,9 +14,21 @@ import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
 import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
+    private val graph by lazy { AndroidAppGraph.get(this) }
+
+    // Sync only while the app is visible.
+    override fun onStart() {
+        super.onStart()
+        if (graph.sessions.session.value != null) graph.sync.start()
+    }
+
+    override fun onStop() {
+        graph.sync.stop()
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val graph = AndroidAppGraph.get(this)
         AndroidGoogleAuth.activity = WeakReference(this)
         setContent {
             var loaded by remember { mutableStateOf(false) }

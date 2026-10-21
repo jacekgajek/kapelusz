@@ -401,8 +401,8 @@ Workflow:
 - [x] M3.2 S3 storage with ETag conditional writes, `/state`, `/ops`, op log
 - [x] M3.3 SnapStart priming, shadow jar, `deploy.yml` (API + web), `scripts/deploy.sh`
 - [x] M3.4 Google sign-in on Android and Web
-- [ ] M3.5 Sync engine (push/pull/backoff/rejections UI)
-- [ ] M3.6 Zero screen: create band, `/me`, band switcher
+- [x] M3.5 Sync engine (push/pull/backoff/rejections UI)
+- [x] M3.6 Zero screen: create band, `/me`, band switcher
 
 ### M4 — Collaboration
 - [ ] M4.1 Role-aware UI (tab and action visibility), "Only my events" filter
@@ -439,6 +439,7 @@ Workflow:
 | 2026-10-21 | Every rejection carries a stable `RejectionReason`; apps show its translated text (PL/EN), the English `message` stays for logs and server responses. A test fails if a reason has no text in a UI language. |
 | 2026-10-21 | Unreadable saved band data never crashes the app or gets discarded silently: it is copied to `band-backup-<timestamp>` and the user can start over. No export UI; the backup is for manual recovery. Unreadable settings fall back to defaults. |
 | 2026-10-21 | M3: history is one S3 object per accepted push (`log/{yyyy-MM}/{millis}-{uuid}.json`) instead of a monthly `.jsonl`: S3 has no append, and separate objects need no read-modify-write. Sequence numbers are tracked per user and device (`{sub}/{clientId}`). Non-members get `404` for a band, the same as a missing band. Band ids come from the client so offline-created bands keep their ids. |
+| 2026-10-21 | M3 client: each band is stored as `band-{id}` with a `band-index` of the user's bands; the M2 band (placeholder user) is adopted by the first signed-in user and created on the server with its original ids by the first sync. Android uses Ktor's Android engine (OkHttp 5 needs compileSdk 37). Joining a band waits for invites (M4); the first screen shows it as coming soon. |
 
 ## 9. Out of scope (v1)
 Multi-currency, push notifications, real-time sync, undo, Play Store, iOS native app, spreadsheet import, refund percentages, PDF/CSV export.
