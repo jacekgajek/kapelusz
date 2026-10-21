@@ -85,7 +85,7 @@ import com.jacekgajek.artsplit.app.ui.components.Actions
 import com.jacekgajek.artsplit.app.ui.components.Avatar
 import com.jacekgajek.artsplit.app.ui.components.BackTopBar
 import com.jacekgajek.artsplit.app.ui.components.ConfirmDialog
-import com.jacekgajek.artsplit.app.ui.components.Dropdown
+import com.jacekgajek.artsplit.app.ui.components.RolePicker
 import com.jacekgajek.artsplit.app.ui.components.TextInputDialog
 import com.jacekgajek.artsplit.app.ui.components.label
 import com.jacekgajek.artsplit.app.ui.components.language
@@ -108,9 +108,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-
-/** Roles an admin can give; ownership only changes by transfer. */
-private val ASSIGNABLE_ROLES = listOf(Role.VIEWER, Role.MEMBER, Role.LEAD, Role.ADMIN)
 
 /** The band roster. Admins manage it here (roles, invites, links); others see it read-only. */
 @Composable
@@ -199,6 +196,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             member = member,
             myUserId = state.userId,
             invitesLoaded = invites != null,
+            invitesFailed = invitesFailed,
             invite = invites?.firstOrNull { it.memberId == member.id },
             can = can,
             actions = actions,
@@ -219,6 +217,7 @@ private fun MemberDialog(
     member: Member,
     myUserId: String,
     invitesLoaded: Boolean,
+    invitesFailed: Boolean,
     invite: InviteInfo?,
     can: Can,
     actions: Actions,
@@ -258,10 +257,10 @@ private fun MemberDialog(
                 }
                 // Without an account the role only takes effect when they join, which the invite's role decides.
                 if (!isOwner && member.userId != null) {
-                    Dropdown(member.role, ASSIGNABLE_ROLES, { role ->
+                    RolePicker(member.role, { role ->
                         // Changing your own role can take away the rights you are using right now: ask first.
-                        if (isMe && role != member.role) confirmOwnRole = role else actions.run(SetMemberRole(member.id, role))
-                    }, stringResource(Res.string.role)) { it.label() }
+                        if (isMe && role != member.role) confirmOwnRole = role else if (role != member.role) actions.run(SetMemberRole(member.id, role))
+                    }, stringResource(Res.string.role))
                 }
                 if (member.userId == null && !member.archived) {
                     HorizontalDivider()
@@ -287,11 +286,13 @@ private fun MemberDialog(
                                 }
                             }
                         }
+                    } else if (invitesFailed) {
+                        Text(stringResource(Res.string.invites_unavailable), color = MaterialTheme.colorScheme.error)
                     } else if (!shownInviteKnown) {
                         CircularProgressIndicator()
                     } else {
                         Text(stringResource(Res.string.invite_hint), style = MaterialTheme.typography.bodySmall)
-                        Dropdown(inviteRole, ASSIGNABLE_ROLES, { inviteRole = it }, stringResource(Res.string.invite_role)) { it.label() }
+                        RolePicker(inviteRole, { inviteRole = it }, stringResource(Res.string.invite_role))
                         FilledTonalButton(onClick = {
                             scope.launch {
                                 runCatching { graph.api.createInvite(band.id, member.id, inviteRole) }

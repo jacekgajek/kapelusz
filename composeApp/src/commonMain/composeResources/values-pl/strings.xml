@@ -292,4 +292,9 @@
     <string name="change_own_role_text">Twoja rola zmieni się na: %1$s i możesz stracić dostęp do tego ekranu. Przywrócić ją może tylko inny administrator lub właściciel.</string>
     <string name="change_own_role_confirm">Zmień moją rolę</string>
     <string name="load_more">Pokaż więcej</string>
+    <string name="role_desc_viewer">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Nie może niczego zmieniać.</string>
+    <string name="role_desc_member">To samo co obserwator, a do tego: dodaje i edytuje własne koszty, zapisuje pieniądze zebrane przez siebie na wydarzeniach, w których gra, i rozlicza przekazania, w których płaci lub otrzymuje pieniądze.</string>
+    <string name="role_desc_lead">To samo co członek, a do tego: tworzy i edytuje wydarzenia, uczestników, gości i udziały, decyduje o zwrotach kosztów i kasie zespołowej, poprawia koszty i zebrane pieniądze innych oraz rozlicza całe wydarzenia.</string>
+    <string name="role_desc_admin">To samo co lider, a do tego: zarządza składem zespołu, rolami i zaproszeniami, odłącza konta w aplikacji i wybiera, kto trzyma kasę zespołową.</string>
+    <string name="role_owner_note">Właściciel ma wszystkie uprawnienia administratora i jako jedyny może przekazać własność innemu administratorowi.</string>
 </resources>
