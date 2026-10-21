@@ -86,6 +86,7 @@ object CalendarFeed {
     /** The built-in times in English: the feed is the same for everyone. */
     private fun label(time: AgendaTime) = when (time.kind) {
         AgendaKind.ARRIVAL -> "Arrival"
+        AgendaKind.SOUND_CHECK -> "Sound check"
         AgendaKind.CONCERT_START -> "Concert start"
         null -> time.label.orEmpty()
     }

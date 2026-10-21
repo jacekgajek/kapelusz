@@ -468,4 +468,5 @@
     <string name="calendar_refresh_note">Kalendarz Google odświeża subskrybowane kalendarze według własnego harmonogramu, zwykle co kilka godzin, czasem raz na dobę.</string>
     <string name="calendar_failed">Nie udało się. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="calendar_add_on_computer">Aby zasubskrybować, otwórz calendar.google.com na komputerze, wybierz Inne kalendarze › Z adresu URL i wklej link.</string>
+    <string name="agenda_sound_check">Próba dźwięku</string>
 </resources>

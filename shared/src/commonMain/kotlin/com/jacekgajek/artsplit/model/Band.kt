@@ -42,7 +42,7 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
-    /** Agenda times new events get (VERSION_2 §4.1); null = the defaults, Arrival and Concert start. */
+    /** Agenda times new events get (VERSION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
     val agendaTemplate: List<AgendaTemplateItem>? = null,
     /** Highest applied operation sequence number per client install, for idempotent sync. */
     val lastSeq: Map<String, Long> = emptyMap(),
@@ -74,6 +74,6 @@ data class Band(
 @Serializable
 data class RecordedRejection(val opId: Id, val rejection: Rejection)
 
-/** The agenda times new events get: Arrival and Concert start unless the admins changed it. */
+/** The agenda times new events get: Arrival, Sound check and Concert start unless the admins changed it. */
 val Band.effectiveAgendaTemplate: List<AgendaTemplateItem>
-    get() = agendaTemplate ?: listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(AgendaKind.CONCERT_START))
+    get() = agendaTemplate ?: AgendaKind.entries.map { AgendaTemplateItem(it) }

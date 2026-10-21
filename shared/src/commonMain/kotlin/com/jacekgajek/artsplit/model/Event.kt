@@ -45,7 +45,7 @@ data class Participant(val partyId: Id, val weight: Int = DEFAULT_WEIGHT, val ad
 
 /** The built-in agenda times; shown in the user's language as long as nobody renamed them. */
 @Serializable
-enum class AgendaKind { ARRIVAL, CONCERT_START }
+enum class AgendaKind { ARRIVAL, SOUND_CHECK, CONCERT_START }
 
 /**
  * One agenda time of an event: a built-in [kind] or a custom [label], and the [time] once set. Times before
