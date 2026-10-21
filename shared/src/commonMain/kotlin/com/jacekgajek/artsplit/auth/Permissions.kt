@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.auth
 
 import com.jacekgajek.artsplit.domain.CostLedger
+import com.jacekgajek.artsplit.model.BAND_FUND
 import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Member
 import com.jacekgajek.artsplit.model.Role
@@ -89,8 +90,8 @@ object Permissions {
         is UpdateHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
         is RemoveHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
 
-        is RecordTransfer -> ownIf(op.from == me.id || op.to == me.id)
-        is SettleSuggestions -> ownIf(op.partyId == me.id)
+        is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to))
+        is SettleSuggestions -> ownIf(op.partyId != null && ownsParty(band, me, op.partyId))
 
         is AddCost -> ownIf(op.memberId == me.id)
         is UpdateCost -> ownCost(band, me, op.costId)
@@ -98,6 +99,10 @@ object Permissions {
         is AddAttachment -> ownCost(band, me, op.costId)
         is RemoveAttachment -> ownCost(band, me, op.costId)
     }
+
+    /** A member acts for themselves; the treasurer also acts for the band fund. */
+    private fun ownsParty(band: Band, me: Member, partyId: String) =
+        partyId == me.id || (partyId == BAND_FUND && band.treasurerMemberId == me.id)
 
     private fun ownIf(isOwn: Boolean) = if (isOwn) Role.MEMBER else Role.LEAD
 

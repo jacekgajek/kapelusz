@@ -2,6 +2,7 @@ package com.jacekgajek.artsplit
 
 import com.jacekgajek.artsplit.auth.Actor
 import com.jacekgajek.artsplit.auth.Permissions
+import com.jacekgajek.artsplit.model.BAND_FUND
 import com.jacekgajek.artsplit.model.IncomeSource.DOOR
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.AddCost
@@ -16,6 +17,7 @@ import com.jacekgajek.artsplit.ops.RejectionCode
 import com.jacekgajek.artsplit.ops.SetMemberArchived
 import com.jacekgajek.artsplit.ops.SetMemberRole
 import com.jacekgajek.artsplit.ops.SetRefund
+import com.jacekgajek.artsplit.ops.SetTreasurer
 import com.jacekgajek.artsplit.ops.SettleSuggestions
 import com.jacekgajek.artsplit.ops.TransferOwnership
 import com.jacekgajek.artsplit.ops.UpdateCost
@@ -101,5 +103,18 @@ class PermissionsTest {
 
         scenario.apply(SetMemberArchived("member", true))
         assertFalse(allowed(member, AddCost("c", "member", pln("1"), DATE)))
+    }
+
+    @Test
+    fun treasurerActsForBandFund() {
+        val toFund = RecordTransfer("gig", "t", "other", BAND_FUND, pln("1"))
+        assertFalse(allowed(member, toFund))
+        assertFalse(allowed(member, SettleSuggestions("gig", BAND_FUND)))
+
+        scenario.apply(SetTreasurer("member"))
+        assertTrue(allowed(member, toFund))
+        assertTrue(allowed(member, RecordTransfer("gig", "t", BAND_FUND, "other", pln("1"))))
+        assertTrue(allowed(member, SettleSuggestions("gig", BAND_FUND)))
+        assertFalse(allowed(member, SettleSuggestions("gig")))
     }
 }
