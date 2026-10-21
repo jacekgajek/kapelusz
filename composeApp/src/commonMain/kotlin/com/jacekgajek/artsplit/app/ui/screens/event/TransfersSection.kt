@@ -52,6 +52,7 @@ import com.jacekgajek.artsplit.app.ui.components.Dropdown
 import com.jacekgajek.artsplit.app.ui.components.MoneyField
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
 import com.jacekgajek.artsplit.app.ui.components.PartialSettleDialog
+import com.jacekgajek.artsplit.app.ui.components.RemoveButton
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
 import com.jacekgajek.artsplit.app.ui.components.TransferParties
 import com.jacekgajek.artsplit.app.ui.components.language
@@ -111,6 +112,7 @@ fun TransfersSection(context: EventContext) {
                     transfer.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
                 MoneyText(transfer.amount, context.currency)
+                RemoveButton { removing = transfer }
             }
         }
     }

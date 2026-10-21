@@ -12,10 +12,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
@@ -40,7 +43,9 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.amount
 import com.jacekgajek.artsplit.app.generated.amount_invalid
 import com.jacekgajek.artsplit.app.generated.cancel
+import com.jacekgajek.artsplit.app.generated.edit
 import com.jacekgajek.artsplit.app.generated.ok
+import com.jacekgajek.artsplit.app.generated.remove
 import com.jacekgajek.artsplit.app.generated.settle
 import com.jacekgajek.artsplit.app.generated.settle_part_hint
 import com.jacekgajek.artsplit.app.generated.settle_part_title
@@ -252,4 +257,16 @@ fun PartialSettleDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
+}
+
+/** Visible edit affordance at the end of a tappable row (touch screens show no hover highlight). */
+@Composable
+fun EditButton(onClick: () -> Unit) {
+    IconButton(onClick = onClick) { Icon(Icons.Default.Edit, stringResource(Res.string.edit)) }
+}
+
+/** Visible remove affordance at the end of a tappable row. */
+@Composable
+fun RemoveButton(onClick: () -> Unit) {
+    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, stringResource(Res.string.remove)) }
 }

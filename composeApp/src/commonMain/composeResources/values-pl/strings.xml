@@ -189,4 +189,5 @@
     <string name="unreadable_title">Nie udało się odczytać zapisanych danych</string>
     <string name="unreadable_text">Ich kopia została zachowana na tym urządzeniu, więc nic nie przepadło. Możesz zacząć od nowa; kopię da się później przywrócić, jeśli będzie potrzebna.</string>
     <string name="start_over">Zacznij od nowa</string>
+    <string name="edit">Edytuj</string>
 </resources>

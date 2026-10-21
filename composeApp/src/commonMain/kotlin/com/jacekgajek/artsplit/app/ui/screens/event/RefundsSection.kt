@@ -31,6 +31,7 @@ import com.jacekgajek.artsplit.app.generated.refunds
 import com.jacekgajek.artsplit.app.generated.refunds_empty
 import com.jacekgajek.artsplit.app.generated.save
 import com.jacekgajek.artsplit.app.generated.unnamed_cost
+import com.jacekgajek.artsplit.app.ui.components.EditButton
 import com.jacekgajek.artsplit.app.ui.components.MoneyField
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
@@ -74,6 +75,7 @@ fun RefundsSection(context: EventContext) {
                     )
                 }
             }
+            EditButton { editing = cost }
         }
     }
     if (pending.isNotEmpty()) {

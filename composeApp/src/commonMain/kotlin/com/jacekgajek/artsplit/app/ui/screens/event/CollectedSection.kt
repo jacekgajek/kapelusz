@@ -35,6 +35,7 @@ import com.jacekgajek.artsplit.app.generated.note_optional
 import com.jacekgajek.artsplit.app.generated.save
 import com.jacekgajek.artsplit.app.generated.source
 import com.jacekgajek.artsplit.app.ui.components.Dropdown
+import com.jacekgajek.artsplit.app.ui.components.EditButton
 import com.jacekgajek.artsplit.app.ui.components.MoneyField
 import com.jacekgajek.artsplit.app.ui.components.MoneyText
 import com.jacekgajek.artsplit.app.ui.components.SectionTitle
@@ -73,6 +74,7 @@ fun CollectedSection(context: EventContext) {
                 )
             }
             MoneyText(holding.amount, context.currency)
+            EditButton { editing = holding }
         }
     }
     TextButton(onClick = { adding = true }, enabled = event.participants.isNotEmpty()) {
