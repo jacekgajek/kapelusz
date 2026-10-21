@@ -1,0 +1,196 @@
+package com.jacekgajek.artsplit.app.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.jacekgajek.artsplit.app.data.AppGraph
+import com.jacekgajek.artsplit.app.generated.Res
+import com.jacekgajek.artsplit.app.generated.amount_invalid
+import com.jacekgajek.artsplit.app.generated.cancel
+import com.jacekgajek.artsplit.app.generated.ok
+import com.jacekgajek.artsplit.app.generated.rejected
+import com.jacekgajek.artsplit.app.generated.status_archived
+import com.jacekgajek.artsplit.app.generated.status_draft
+import com.jacekgajek.artsplit.app.generated.status_loss
+import com.jacekgajek.artsplit.app.generated.status_open
+import com.jacekgajek.artsplit.app.generated.status_settled
+import com.jacekgajek.artsplit.app.ui.model.formatMoney
+import com.jacekgajek.artsplit.app.ui.model.initials
+import com.jacekgajek.artsplit.app.ui.theme.MoneyColors
+import com.jacekgajek.artsplit.domain.EventStatus
+import com.jacekgajek.artsplit.model.Money
+import com.jacekgajek.artsplit.ops.Operation
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+
+/** Language code of the current UI locale (`en`, `pl`), for formatting. */
+val language: String @Composable get() = Locale.current.language
+
+/** Applies operations; a rejection is shown in the snackbar. */
+class Actions(
+    private val graph: AppGraph,
+    private val snackbar: SnackbarHostState,
+    private val scope: CoroutineScope,
+    private val rejectedLabel: String,
+) {
+    fun run(op: Operation): Boolean {
+        val rejection = graph.dispatch(op) ?: return true
+        scope.launch { snackbar.showSnackbar("$rejectedLabel: ${rejection.message}") }
+        return false
+    }
+}
+
+@Composable
+fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState): Actions {
+    val scope = rememberCoroutineScope()
+    val label = stringResource(Res.string.rejected)
+    return remember(graph, snackbar, label) { Actions(graph, snackbar, scope, label) }
+}
+
+@Composable
+fun MoneyText(
+    money: Money,
+    currency: String,
+    modifier: Modifier = Modifier,
+    colored: Boolean = false,
+    bold: Boolean = false,
+) {
+    val color = when {
+        !colored -> Color.Unspecified
+        money.isNegative -> MoneyColors.negative
+        money.isPositive -> MoneyColors.positive
+        else -> Color.Unspecified
+    }
+    Text(
+        formatMoney(money, currency, language),
+        modifier,
+        color = color,
+        fontWeight = if (bold) FontWeight.SemiBold else null,
+        maxLines = 1,
+    )
+}
+
+@Composable
+fun StatusChip(status: EventStatus, archived: Boolean = false) {
+    val (label, container) = when {
+        archived -> Res.string.status_archived to MaterialTheme.colorScheme.surfaceVariant
+        status == EventStatus.DRAFT -> Res.string.status_draft to MaterialTheme.colorScheme.surfaceVariant
+        status == EventStatus.OPEN -> Res.string.status_open to MaterialTheme.colorScheme.tertiaryContainer
+        status == EventStatus.SETTLED -> Res.string.status_settled to MaterialTheme.colorScheme.secondaryContainer
+        else -> Res.string.status_loss to MaterialTheme.colorScheme.errorContainer
+    }
+    AssistChip(
+        onClick = {},
+        label = { Text(stringResource(label)) },
+        colors = AssistChipDefaults.assistChipColors(containerColor = container),
+        border = null,
+    )
+}
+
+@Composable
+fun Avatar(name: String, size: Dp = 28.dp) {
+    Box(
+        Modifier.size(size).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            initials(name),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
+}
+
+/** Decimal input for amounts; [onValid] receives the parsed amount or null when the text is not a valid amount. */
+@Composable
+fun MoneyField(
+    text: String,
+    onText: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    allowNegative: Boolean = false,
+) {
+    val parsed = parseMoney(text)
+    val invalid = text.isNotBlank() && (parsed == null || (!allowNegative && parsed.isNegative))
+    OutlinedTextField(
+        value = text,
+        onValueChange = onText,
+        label = { Text(label) },
+        isError = invalid,
+        supportingText = if (invalid) ({ Text(stringResource(Res.string.amount_invalid)) }) else null,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true,
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
+fun parseMoney(text: String): Money? = runCatching { Money.parse(text.replace(" ", "").replace(" ", "")) }.getOrNull()
+
+@Composable
+fun ConfirmDialog(title: String, text: String?, confirmLabel: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = text?.let { { Text(it) } },
+        confirmButton = { TextButton(onClick = { onConfirm(); onDismiss() }) { Text(confirmLabel) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
+
+/** Dialog with a single text field, e.g. for names. */
+@Composable
+fun TextInputDialog(title: String, label: String, initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                OutlinedTextField(text, { text = it }, label = { Text(label) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = text.isNotBlank(), onClick = { onConfirm(text.trim()); onDismiss() }) {
+                Text(stringResource(Res.string.ok))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
+
+@Composable
+fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = modifier.padding(top = 16.dp, bottom = 8.dp),
+    )
+}

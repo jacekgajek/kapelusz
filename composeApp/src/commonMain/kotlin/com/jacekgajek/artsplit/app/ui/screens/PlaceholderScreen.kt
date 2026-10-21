@@ -8,15 +8,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
-import com.jacekgajek.artsplit.app.ui.RosterRoute
-import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.components.TabTopBar
 
-/** Temporary tab content until the real screen exists. */
+/** Temporary content until the real screen exists. */
 @Composable
-fun PlaceholderScreen(title: String, navController: NavController) {
-    Scaffold(topBar = { TabTopBar(title, { navController.navigate(SettingsRoute) }, { navController.navigate(RosterRoute) }) }) { padding ->
+fun PlaceholderScreen(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
+    Scaffold(topBar = { TabTopBar(title, onSettings, onRoster) }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(title) }
     }
 }

@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -23,7 +25,6 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -32,18 +33,25 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.jacekgajek.artsplit.app.data.AppGraph
+import com.jacekgajek.artsplit.app.data.BandState
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.tab_events
 import com.jacekgajek.artsplit.app.generated.tab_my_costs
 import com.jacekgajek.artsplit.app.generated.tab_settle
+import com.jacekgajek.artsplit.app.ui.CostRoute
+import com.jacekgajek.artsplit.app.ui.EventRoute
 import com.jacekgajek.artsplit.app.ui.EventsRoute
 import com.jacekgajek.artsplit.app.ui.LocalAppLocale
 import com.jacekgajek.artsplit.app.ui.MyCostsRoute
 import com.jacekgajek.artsplit.app.ui.RosterRoute
 import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
+import com.jacekgajek.artsplit.app.ui.screens.CreateBandScreen
+import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
 import com.jacekgajek.artsplit.app.ui.screens.PlaceholderScreen
+import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
 import com.jacekgajek.artsplit.app.ui.screens.SettingsScreen
 import com.jacekgajek.artsplit.app.ui.theme.ArtSplitTheme
 import org.jetbrains.compose.resources.StringResource
@@ -58,28 +66,53 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 @Composable
 fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     val settings by graph.settings.settings.collectAsState()
-    val language = settings.language
-    CompositionLocalProvider(LocalAppLocale provides language) {
-        key(language) {
+    val bandState by graph.bands.state.collectAsState()
+    CompositionLocalProvider(LocalAppLocale provides settings.language) {
+        key(settings.language) {
             ArtSplitTheme {
-                val navController = rememberNavController()
-                LaunchedEffect(navController) { onNavHostReady(navController) }
-                MainScaffold(navController) {
-                    NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
-                        composable<EventsRoute> { PlaceholderScreen(stringResource(Res.string.tab_events), navController) }
-                        composable<MyCostsRoute> { PlaceholderScreen(stringResource(Res.string.tab_my_costs), navController) }
-                        composable<SettleRoute> { PlaceholderScreen(stringResource(Res.string.tab_settle), navController) }
-                        composable<SettingsRoute> {
-                            SettingsScreen(
-                                language = language,
-                                onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
-                                onBack = navController::popBackStack,
-                            )
+                Surface(Modifier.fillMaxSize()) {
+                    when (val state = bandState) {
+                        BandState.Loading -> {}
+                        BandState.NoBand -> CreateBandScreen { name, currency, yourName ->
+                            graph.bands.createBand(name, currency, yourName)
                         }
-                        composable<RosterRoute> { PlaceholderScreen("Roster", navController) }
+                        is BandState.Ready -> Navigation(graph, state, onNavHostReady)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun Navigation(graph: AppGraph, state: BandState.Ready, onNavHostReady: suspend (NavController) -> Unit) {
+    val settings by graph.settings.settings.collectAsState()
+    val navController = rememberNavController()
+    LaunchedEffect(navController) { onNavHostReady(navController) }
+    val toSettings = { navController.navigate(SettingsRoute) }
+    val toRoster = { navController.navigate(RosterRoute) }
+    val back: () -> Unit = { navController.popBackStack() }
+
+    MainScaffold(navController) {
+        NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
+            composable<EventsRoute> {
+                EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
+            }
+            composable<MyCostsRoute> { PlaceholderScreen(stringResource(Res.string.tab_my_costs), toSettings, toRoster) }
+            composable<SettleRoute> { PlaceholderScreen(stringResource(Res.string.tab_settle), toSettings, toRoster) }
+            composable<EventRoute> { entry ->
+                val route = entry.toRoute<EventRoute>()
+                PlaceholderScreen(state.band.event(route.eventId)?.name ?: "", toSettings, toRoster)
+            }
+            composable<CostRoute> { PlaceholderScreen("", toSettings, toRoster) }
+            composable<SettingsRoute> {
+                SettingsScreen(
+                    language = settings.language,
+                    onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
+                    onBack = back,
+                )
+            }
+            composable<RosterRoute> { RosterScreen(graph, state, back) }
         }
     }
 }
