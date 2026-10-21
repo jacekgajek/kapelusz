@@ -46,6 +46,7 @@ import com.jacekgajek.artsplit.app.generated.lost_access
 import com.jacekgajek.artsplit.app.generated.ok
 import com.jacekgajek.artsplit.app.generated.sync_refused
 import com.jacekgajek.artsplit.app.sync.SyncStatus
+import com.jacekgajek.artsplit.app.ui.HistoryRoute
 import com.jacekgajek.artsplit.app.ui.NewBandRoute
 import com.jacekgajek.artsplit.app.ui.components.LocalTopBarState
 import com.jacekgajek.artsplit.app.ui.components.SignInAgainDialog
@@ -70,6 +71,7 @@ import com.jacekgajek.artsplit.app.ui.SettingsRoute
 import com.jacekgajek.artsplit.app.ui.SettleRoute
 import com.jacekgajek.artsplit.app.ui.screens.CostScreen
 import com.jacekgajek.artsplit.app.ui.screens.EventsScreen
+import com.jacekgajek.artsplit.app.ui.screens.HistoryScreen
 import com.jacekgajek.artsplit.app.ui.screens.JoinDialog
 import com.jacekgajek.artsplit.app.ui.screens.MyCostsScreen
 import com.jacekgajek.artsplit.app.ui.screens.RosterScreen
@@ -188,6 +190,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onSelectBand = { openBand(it, true) },
                 onNewBand = { navController.navigate(NewBandRoute) },
                 onJoinBand = { joining = true },
+                onHistory = { navController.navigate(HistoryRoute) },
                 onSyncNow = { graph.sync.requestSync() },
                 onReauthenticate = reauthenticate,
                 accountEmail = session?.email,
@@ -229,6 +232,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                 )
             }
             composable<RosterRoute> { RosterScreen(graph, state, back) }
+            composable<HistoryRoute> { HistoryScreen(graph, state, back) }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
                     graph.bands.createBand(name, currency, yourName)

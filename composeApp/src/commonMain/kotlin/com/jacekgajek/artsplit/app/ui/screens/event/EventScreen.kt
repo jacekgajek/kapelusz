@@ -108,6 +108,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
                 item { RefundsSection(context) }
                 item { SummarySection(context) }
                 item { TransfersSection(context) }
+                item { HistorySection(context, graph) }
             }
         }
         if (editing) EditDetailsDialog(event, actions, onDismiss = { editing = false })

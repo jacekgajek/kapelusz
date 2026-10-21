@@ -408,7 +408,7 @@ Workflow:
 - [x] M4.1 Role-aware UI (tab and action visibility), "Only my events" filter
 - [x] M4.2 Invites: create/revoke/accept, `/join/{code}` web route, Android App Links + assetlinks.json
 - [x] M4.3 Admin: roster, roles, unlink, ownership transfer
-- [ ] M4.4 History views (event + band)
+- [x] M4.4 History views (event + band)
 
 ### M5 — Extras
 - [ ] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
