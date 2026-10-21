@@ -322,4 +322,6 @@
     <string name="fund_treasurer_none">Jeszcze nikt</string>
     <string name="fund_treasurer_hint">Ta osoba przechowuje pieniądze z kasy zespołowej. Kwoty do kasy z wydarzeń są przekazywane właśnie jej.</string>
     <string name="fund_amount_hint">Zostaw puste, jeśli nic. Kwota ujemna wypłaca pieniądze z kasy i dodaje je do wypłat.</string>
+    <string name="filter_pending">Oczekujące</string>
+    <string name="filter_refunded">Zwrócone</string>
 </resources>

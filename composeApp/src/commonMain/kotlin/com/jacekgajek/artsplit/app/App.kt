@@ -224,11 +224,19 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
             composable<EventsRoute> {
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
             }
-            composable<MyCostsRoute> { MyCostsScreen(state, { navController.navigate(CostRoute(it)) }, toSettings, toRoster) }
+            composable<MyCostsRoute> { entry ->
+                val everyone by entry.savedStateHandle.getStateFlow(SHOW_EVERYONE, false).collectAsState()
+                MyCostsScreen(state, everyone, { entry.savedStateHandle[SHOW_EVERYONE] = it }, { navController.navigate(CostRoute(it)) }, toSettings, toRoster)
+            }
             composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
             composable<FundRoute> { BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) }) }
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
-            composable<CostRoute> { entry -> CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back) }
+            composable<CostRoute> { entry ->
+                CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back, onAddedForOther = {
+                    // Otherwise a lead adding a cost for someone else would not see it in "My costs".
+                    navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
+                })
+            }
             composable<SettingsRoute> {
                 val session by graph.sessions.session.collectAsState()
                 val scope = rememberCoroutineScope()
@@ -259,6 +267,9 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
         }
     }
 }
+
+/** Saved state key of the "everyone's costs" switch on the costs tab. */
+private const val SHOW_EVERYONE = "showEveryone"
 
 /** Navigates to [route] and drops everything else from the back stack. */
 private fun NavHostController.resetTo(route: Any) = navigate(route) {

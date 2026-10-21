@@ -322,4 +322,6 @@
     <string name="fund_treasurer_none">Nobody yet</string>
     <string name="fund_treasurer_hint">This person keeps the band fund's money. Money for the fund from events is handed over to them.</string>
     <string name="fund_amount_hint">Leave empty for nothing. A negative amount takes money out of the fund to add to the payouts.</string>
+    <string name="filter_pending">Pending</string>
+    <string name="filter_refunded">Refunded</string>
 </resources>

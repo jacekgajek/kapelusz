@@ -89,7 +89,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack: () -> Unit) {
+fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack: () -> Unit, onAddedForOther: () -> Unit = {}) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
@@ -115,6 +115,7 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
     fun save() {
         val ok = if (existing == null) {
             actions.run(AddCost(newId(), paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
+                .also { if (it && paidBy != state.me?.id) onAddedForOther() }
         } else {
             actions.run(
                 UpdateCost(
