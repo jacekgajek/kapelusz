@@ -53,6 +53,7 @@ import com.jacekgajek.artsplit.app.ui.components.MoneyText
 import com.jacekgajek.artsplit.app.ui.components.TabTopBar
 import com.jacekgajek.artsplit.app.ui.components.label
 import com.jacekgajek.artsplit.app.ui.components.language
+import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.model.formatMoney
 import com.jacekgajek.artsplit.domain.CostStatuses
@@ -86,7 +87,7 @@ fun MyCostsScreen(state: BandState.Ready, onOpenCost: (String?) -> Unit, onSetti
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs), onSettings, onRoster) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            if (Can(band, state.userId).addCost()) ExtendedFloatingActionButton(
                 onClick = { onOpenCost(null) },
                 icon = { Icon(Icons.Default.Add, null) },
                 text = { Text(stringResource(Res.string.add_cost)) },

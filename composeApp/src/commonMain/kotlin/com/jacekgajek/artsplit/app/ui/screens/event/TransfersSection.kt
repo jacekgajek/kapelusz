@@ -83,7 +83,7 @@ fun TransfersSection(context: EventContext) {
                 settlement.suggestions.forEach { suggestion -> SuggestionRow(context, suggestion) }
             }
         }
-        Button(
+        if (context.can.settleAll(event)) Button(
             onClick = { context.actions.run(SettleSuggestions(event.id)) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         ) {
@@ -91,7 +91,7 @@ fun TransfersSection(context: EventContext) {
             Text(stringResource(Res.string.settle_all), Modifier.padding(start = 8.dp))
         }
     }
-    val canHandOver = event.participants.size + (if (context.band.treasurerMemberId != null) 1 else 0) >= 2
+    val canHandOver = handOverSenders(context).isNotEmpty()
     if (canHandOver && event.holdings.isNotEmpty() && settlement.status != EventStatus.SETTLED) {
         OutlinedButton(onClick = { handingOver = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Icon(Icons.Default.SwapHoriz, null)
@@ -104,7 +104,7 @@ fun TransfersSection(context: EventContext) {
         val fundLabel = stringResource(Res.string.band_fund)
         event.transfers.forEach { transfer ->
             Row(
-                Modifier.fillMaxWidth().clickable { removing = transfer }.padding(vertical = 8.dp),
+                Modifier.fillMaxWidth().clickable(enabled = context.can.removeTransfer(event)) { removing = transfer }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -112,7 +112,7 @@ fun TransfersSection(context: EventContext) {
                     transfer.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
                 MoneyText(transfer.amount, context.currency)
-                RemoveButton { removing = transfer }
+                if (context.can.removeTransfer(event)) RemoveButton { removing = transfer }
             }
         }
     }
@@ -156,10 +156,12 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                 MoneyText(suggestion.amount, context.currency, bold = true)
             }
         }
-        if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
-        FilledTonalButton(onClick = {
-            context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
-        }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
+        if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
+            if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
+            FilledTonalButton(onClick = {
+                context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
+            }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
+        }
     }
     if (partial) {
         PartialSettleDialog(
@@ -173,18 +175,31 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     }
 }
 
+/** Everyone who can take part in a transfer of this event: participants, plus the band fund if it is set up. */
+private fun transferParties(context: EventContext): List<String> {
+    val lines = context.settlement.lines.map { it.partyId }.ifEmpty { context.event.participants.map { it.partyId } }
+    return lines + (if (context.band.treasurerMemberId != null && BAND_FUND !in lines) listOf(BAND_FUND) else emptyList())
+}
+
+/** Recipients the user may record a transfer to from [from]. */
+private fun handOverRecipients(context: EventContext, from: String): List<String> =
+    transferParties(context).filter { it != from && context.can.recordTransfer(context.event, from, it) }
+
+/** Parties the user may record a hand-over from (themselves for members, anyone for leads). */
+private fun handOverSenders(context: EventContext): List<String> =
+    transferParties(context).filter { handOverRecipients(context, it).isNotEmpty() }
+
 /** Manual transfer, e.g. one holder handing all collected money to another who then pays everyone. */
 @Composable
 private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     val event = context.event
     val settlement = context.settlement
     val fundLabel = stringResource(Res.string.band_fund)
-    val parties = settlement.lines.map { it.partyId }.ifEmpty { event.participants.map { it.partyId } } +
-        (if (context.band.treasurerMemberId != null && BAND_FUND !in settlement.lines.map { it.partyId }) listOf(BAND_FUND) else emptyList())
-    val holders = settlement.lines.filter { it.balance.isPositive }.map { it.partyId }
+    val senders = handOverSenders(context)
+    val holders = settlement.lines.filter { it.balance.isPositive && it.partyId in senders }.map { it.partyId }
     val lang = language
-    var from by remember { mutableStateOf(context.me?.id?.takeIf { it in holders } ?: holders.firstOrNull() ?: parties.first()) }
-    var to by remember { mutableStateOf(parties.first { it != from }) }
+    var from by remember { mutableStateOf(context.me?.id?.takeIf { it in holders } ?: holders.firstOrNull() ?: senders.first()) }
+    var to by remember { mutableStateOf(handOverRecipients(context, from).first()) }
     var amount by remember { mutableStateOf(settlement.line(from)?.balance?.takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }
     var note by remember { mutableStateOf("") }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
@@ -195,12 +210,12 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.hand_over_hint), style = MaterialTheme.typography.bodySmall)
-                Dropdown(from, parties, {
+                Dropdown(from, senders, {
                     from = it
-                    if (to == it) to = parties.first { party -> party != it }
+                    if (to !in handOverRecipients(context, it)) to = handOverRecipients(context, it).first()
                     settlement.line(it)?.balance?.takeIf { balance -> balance.isPositive }?.let { balance -> amount = formatMoneyInput(balance, lang) }
                 }, stringResource(Res.string.hand_over_from)) { partyName(context.band, event, it, fundLabel) }
-                Dropdown(to, parties.filter { it != from }, { to = it }, stringResource(Res.string.hand_over_to)) {
+                Dropdown(to, handOverRecipients(context, from), { to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)
                 }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))

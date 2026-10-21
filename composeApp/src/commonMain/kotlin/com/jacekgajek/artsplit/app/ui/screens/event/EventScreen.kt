@@ -56,6 +56,7 @@ import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Event
 import com.jacekgajek.artsplit.model.Member
 import com.jacekgajek.artsplit.model.Money
+import com.jacekgajek.artsplit.app.ui.model.Can
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
@@ -65,6 +66,7 @@ class EventContext(
     val settlement: Settlement,
     val me: Member?,
     val actions: Actions,
+    val can: Can,
 ) {
     val currency: String get() = band.currency
 }
@@ -79,7 +81,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
     Scaffold(
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
-                if (event != null) {
+                if (event != null && Can(state.band, state.userId).editEvent(event)) {
                     IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
                     EventMenu(state.band, event, actions, onDeleted = onBack)
                 }
@@ -93,7 +95,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
             }
             return@Scaffold
         }
-        val context = EventContext(state.band, event, SettlementCalculator.settle(state.band, event), state.me, actions)
+        val context = EventContext(state.band, event, SettlementCalculator.settle(state.band, event), state.me, actions, Can(state.band, state.userId))
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
                 Modifier.widthIn(max = 720.dp).fillMaxWidth(),

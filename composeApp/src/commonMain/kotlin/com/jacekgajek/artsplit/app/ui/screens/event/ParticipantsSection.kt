@@ -56,6 +56,7 @@ import org.jetbrains.compose.resources.stringResource
 fun ParticipantsSection(context: EventContext) {
     val band = context.band
     val event = context.event
+    val canManage = context.can.manageParticipants(event)
     var addingGuest by remember { mutableStateOf(false) }
     var showShares by remember { mutableStateOf(event.participants.any { it.weight != DEFAULT_WEIGHT }) }
     var editingWeight by remember { mutableStateOf<String?>(null) }
@@ -66,6 +67,7 @@ fun ParticipantsSection(context: EventContext) {
             val selected = event.participant(member.id) != null
             FilterChip(
                 selected = selected,
+                enabled = canManage,
                 onClick = {
                     context.actions.run(if (selected) RemoveParticipant(event.id, member.id) else AddParticipant(event.id, member.id))
                 },
@@ -77,16 +79,20 @@ fun ParticipantsSection(context: EventContext) {
                 selected = true,
                 onClick = {},
                 label = { Text(guest.name) },
-                trailingIcon = {
-                    Icon(
-                        Icons.Default.Close,
-                        stringResource(Res.string.remove),
-                        Modifier.clickable { context.actions.run(RemoveParticipant(event.id, guest.id)) },
-                    )
+                trailingIcon = if (canManage) {
+                    {
+                        Icon(
+                            Icons.Default.Close,
+                            stringResource(Res.string.remove),
+                            Modifier.clickable { context.actions.run(RemoveParticipant(event.id, guest.id)) },
+                        )
+                    }
+                } else {
+                    null
                 },
             )
         }
-        AssistChip(
+        if (canManage) AssistChip(
             onClick = { addingGuest = true },
             label = { Text(stringResource(Res.string.add_guest)) },
             leadingIcon = { Icon(Icons.Default.Add, null) },
@@ -99,7 +105,7 @@ fun ParticipantsSection(context: EventContext) {
         Column {
             event.participants.forEach { participant ->
                 Row(
-                    Modifier.fillMaxWidth().clickable { editingWeight = participant.partyId }.padding(vertical = 8.dp),
+                    Modifier.fillMaxWidth().clickable(enabled = canManage) { editingWeight = participant.partyId }.padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(partyName(band, event, participant.partyId, ""), Modifier.weight(1f))

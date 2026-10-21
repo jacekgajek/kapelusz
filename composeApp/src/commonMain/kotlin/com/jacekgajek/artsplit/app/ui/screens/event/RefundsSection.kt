@@ -53,7 +53,8 @@ fun RefundsSection(context: EventContext) {
     val band = context.band
     val event = context.event
     var editing by remember { mutableStateOf<Cost?>(null) }
-    val pending = CostLedger.pendingFromEarlier(band, event)
+    val canEdit = context.can.editRefunds(event)
+    val pending = if (canEdit) CostLedger.pendingFromEarlier(band, event) else emptyList()
 
     SectionTitle(stringResource(Res.string.refunds))
     if (event.refunds.isEmpty() && pending.isEmpty()) {
@@ -62,7 +63,7 @@ fun RefundsSection(context: EventContext) {
     event.refunds.forEach { refund ->
         val cost = band.cost(refund.costId) ?: return@forEach
         Row(
-            Modifier.fillMaxWidth().clickable { editing = cost }.padding(vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable(enabled = canEdit) { editing = cost }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CostDescription(context, cost, Modifier.weight(1f))
@@ -75,7 +76,7 @@ fun RefundsSection(context: EventContext) {
                     )
                 }
             }
-            EditButton { editing = cost }
+            if (canEdit) EditButton { editing = cost }
         }
     }
     if (pending.isNotEmpty()) {

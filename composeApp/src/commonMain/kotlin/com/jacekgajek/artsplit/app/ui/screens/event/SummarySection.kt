@@ -74,7 +74,9 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
         }
         Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {
             DeltaLabel(context, line)
-            if (context.settlement.canSettle && context.settlement.suggestionsFor(line.partyId).isNotEmpty()) {
+            if (context.settlement.canSettle && context.settlement.suggestionsFor(line.partyId).isNotEmpty() &&
+                context.can.settleFor(context.event, line.partyId)
+            ) {
                 TextButton(onClick = { context.actions.run(SettleSuggestions(context.event.id, line.partyId)) }) {
                     Text(stringResource(Res.string.settle))
                 }

@@ -58,12 +58,13 @@ fun CollectedSection(context: EventContext) {
     val event = context.event
     var editing by remember { mutableStateOf<Holding?>(null) }
     var adding by remember { mutableStateOf(false) }
+    val allowedParties = context.can.holdingParties(event)
 
     SectionTitle(stringResource(Res.string.collected_money))
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
     event.holdings.forEach { holding ->
         Row(
-            Modifier.fillMaxWidth().clickable { editing = holding }.padding(vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable(enabled = context.can.editHolding(event, holding)) { editing = holding }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
@@ -74,23 +75,23 @@ fun CollectedSection(context: EventContext) {
                 )
             }
             MoneyText(holding.amount, context.currency)
-            EditButton { editing = holding }
+            if (context.can.editHolding(event, holding)) EditButton { editing = holding }
         }
     }
-    TextButton(onClick = { adding = true }, enabled = event.participants.isNotEmpty()) {
+    if (allowedParties.isNotEmpty()) TextButton(onClick = { adding = true }) {
         Icon(Icons.Default.Add, null)
         Text(stringResource(Res.string.add_money), Modifier.padding(start = 8.dp))
     }
 
     if (adding) {
-        val defaultParty = context.me?.id?.takeIf { event.participant(it) != null } ?: event.participants.first().partyId
-        HoldingDialog(context, initial = null, defaultParty, onDismiss = { adding = false })
+        val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.first()
+        HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = { adding = false })
     }
-    editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, onDismiss = { editing = null }) }
+    editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, allowedParties, onDismiss = { editing = null }) }
 }
 
 @Composable
-private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty: String, onDismiss: () -> Unit) {
+private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty: String, parties: List<String>, onDismiss: () -> Unit) {
     val event = context.event
     val lang = language
     var partyId by remember { mutableStateOf(defaultParty) }
@@ -105,7 +106,7 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (initial == null) {
-                    Dropdown(partyId, event.participants.map { it.partyId }, { partyId = it }, stringResource(Res.string.collected_by)) {
+                    Dropdown(partyId, parties, { partyId = it }, stringResource(Res.string.collected_by)) {
                         partyName(context.band, event, it, "")
                     }
                 }

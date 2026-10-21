@@ -62,6 +62,7 @@ import com.jacekgajek.artsplit.app.ui.components.StatusChip
 import com.jacekgajek.artsplit.app.ui.components.TabTopBar
 import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.ui.components.rememberActions
+import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.ui.model.EventSummary
 import com.jacekgajek.artsplit.app.ui.model.MyNumber
 import com.jacekgajek.artsplit.app.ui.model.eventSummaries
@@ -95,7 +96,7 @@ fun EventsScreen(
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            if (Can(band, state.userId).createEvent()) ExtendedFloatingActionButton(
                 onClick = { creating = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(Res.string.new_event)) },

@@ -405,7 +405,7 @@ Workflow:
 - [x] M3.6 Zero screen: create band, `/me`, band switcher
 
 ### M4 — Collaboration
-- [ ] M4.1 Role-aware UI (tab and action visibility), "Only my events" filter
+- [x] M4.1 Role-aware UI (tab and action visibility), "Only my events" filter
 - [ ] M4.2 Invites: create/revoke/accept, `/join/{code}` web route, Android App Links + assetlinks.json
 - [ ] M4.3 Admin: roster, roles, unlink, ownership transfer
 - [ ] M4.4 History views (event + band)
