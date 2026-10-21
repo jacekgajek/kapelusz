@@ -32,7 +32,7 @@
     <string name="event_date">Date</string>
     <string name="event_location">Location (optional)</string>
     <string name="events_empty">No events yet. Create the first one!</string>
-    <string name="continue_event">Continue: %1$s, %2$s</string>
+    <string name="continue_event">Continue: %1$s · %2$s</string>
     <string name="filter_only_mine">Only my events</string>
     <string name="filter_show_archived">Show archived</string>
     <string name="my_get">you get %1$s</string>
@@ -390,4 +390,24 @@
     <string name="updates_installing">Installing %1$s… The app restarts when it is done.</string>
     <string name="updates_declined">You did not install %1$s. It is not offered again automatically.</string>
     <string name="updates_install_failed">Android could not install %1$s.</string>
+    <string name="update_required_title">Update Art Split</string>
+    <string name="update_required_text">This version of Art Split is too old for the server. Update to continue; your changes on this device are kept and sync after the update.</string>
+    <string name="update_required_button">Update</string>
+    <string name="history_newer_version">A change made with a newer version of Art Split</string>
+    <string name="upcoming_event">Upcoming: %1$s · %2$s</string>
+    <string name="select_events">Select events</string>
+    <string name="select_all">Select all</string>
+    <string name="undo">Undo</string>
+    <plurals name="selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="events_archived">
+        <item quantity="one">%1$d event archived</item>
+        <item quantity="other">%1$d events archived</item>
+    </plurals>
+    <plurals name="events_restored">
+        <item quantity="one">%1$d event restored</item>
+        <item quantity="other">%1$d events restored</item>
+    </plurals>
 </resources>

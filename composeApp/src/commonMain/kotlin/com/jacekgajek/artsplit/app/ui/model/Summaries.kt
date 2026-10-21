@@ -1,6 +1,7 @@
 package com.jacekgajek.artsplit.app.ui.model
 
 import com.jacekgajek.artsplit.app.data.AppSettings
+import com.jacekgajek.artsplit.domain.EventStatus
 import com.jacekgajek.artsplit.domain.Settlement
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.BAND_FUND
@@ -9,6 +10,7 @@ import com.jacekgajek.artsplit.model.Event
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Member
 import com.jacekgajek.artsplit.model.Money
+import kotlinx.datetime.LocalDate
 
 /** The current user's position in an event: what they still get or must hand over. */
 sealed interface MyNumber {
@@ -51,3 +53,29 @@ fun partyName(band: Band, event: Event?, partyId: Id, fundLabel: String): String
 
 fun initials(name: String): String =
     name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
+
+/**
+ * The "Continue" card (VERSION_2 §3.1): the most recent unsettled event, i.e. not archived and open, at a loss, or a
+ * draft whose date has passed (a gig with no money entered yet). Future events are not "unsettled business". Latest
+ * date first; on the same date, the one edited last.
+ */
+fun unsettledEvent(band: Band, today: LocalDate): Event? =
+    band.events
+        .filter { !it.archived && it.date <= today }
+        .filter { event ->
+            when (SettlementCalculator.settle(band, event).status) {
+                EventStatus.OPEN, EventStatus.LOSS -> true
+                EventStatus.DRAFT -> event.date < today
+                EventStatus.SETTLED -> false
+            }
+        }
+        .maxWithOrNull(compareBy<Event> { it.date }.thenBy { it.updatedAt })
+
+/**
+ * The "Upcoming" card (VERSION_2 §3.2): the nearest non-archived event from [today] on that [me] takes part in, or,
+ * if there is none, the nearest band event.
+ */
+fun upcomingEvent(band: Band, me: Member?, today: LocalDate, except: Id? = null): Event? {
+    val upcoming = band.events.filter { !it.archived && it.date >= today && it.id != except }.sortedWith(compareBy<Event> { it.date }.thenBy { it.name })
+    return upcoming.firstOrNull { event -> me != null && event.participant(me.id) != null } ?: upcoming.firstOrNull()
+}

@@ -29,9 +29,10 @@ The app keeps itself up to date without the Play Store.
 Version 1 apps fail to read new kinds of data (a new operation type in history, a new rejection reason). Version 2
 makes this explicit, so the data format can change later without silently broken apps.
 
-- Apps send their version code with every request: `X-Art-Split-Version: <versionCode>`.
-- The server has a **minimum supported version** in its code, raised whenever a change would break older apps. Below it, it answers `426` with `update_required`.
+- Apps send their version code with every request as the query parameter `appVersion=<versionCode>` (0 for local development builds, which are always allowed). A header would have needed the API's CORS allow-list changed.
+- The server has a **minimum supported version** in its code (`Api.MIN_APP_VERSION`, 0 = everyone), raised whenever a change would break older apps. Below it, or without a version (apps from before version 2), it answers `426` with `update_required`. Sync then stops retrying.
 - The app then shows a blocking screen: **"This version of Art Split is too old. Update to continue"** with **Update** (Android: download and install, §1; web: reload).
+- **Raising the minimum takes two deploys:** first deploy apps that handle the new data, then set the minimum to *that* deploy's run number. A number not yet deployed would refuse every app, and during a deploy the server switches before the new web app and APK are uploaded.
 - History entries an app cannot read are shown as **"A change from a newer version"** instead of failing the whole page.
 - Initial users are known personally, so the policy is pragmatic: raise the minimum when needed and tell people to update.
 
@@ -46,7 +47,7 @@ makes this explicit, so the data format can change later without silently broken
 ### 3.2 "Upcoming" card
 - **"Upcoming: Club gig · Sat 12 Sep · arrival 17:00"**: the nearest non-archived event dated **today or later**, with its first agenda time (§4) if set. Tapping opens the event.
 - The nearest event **you take part in**; if you take part in none, the nearest band event.
-- Shown below the Continue card. Both are compact one-line cards; each is hidden when nothing matches.
+- Shown below the Continue card. Both are compact one-line cards; each is hidden when nothing matches. An event is never on both: an open gig tonight shows as Continue only.
 
 ### 3.3 Bulk archive
 - **Leads and above** only (the same people who archive single events); for others long-press does nothing.
@@ -141,11 +142,11 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M1.5 Version label in a corner of the sign-in screen and Settings (and `artSplitVersion` on the web), to check what a deploy put live
 
 ### V2-M2 — Foundations and quick wins
-- [ ] V2-M2.1 Version header, server minimum version, `426 update_required` and the "too old" screen
-- [ ] V2-M2.2 Unreadable history entries shown as "a change from a newer version"
-- [ ] V2-M2.3 History spinners (§7)
-- [ ] V2-M2.4 Continue card rule (§3.1) and Upcoming card (§3.2)
-- [ ] V2-M2.5 Bulk archive with selection mode (§3.3)
+- [x] V2-M2.1 App version on every request, server minimum version, `426 update_required` and the "too old" screen
+- [x] V2-M2.2 Unreadable history entries shown as "a change from a newer version"
+- [x] V2-M2.3 History spinners (§7)
+- [x] V2-M2.4 Continue card rule (§3.1) and Upcoming card (§3.2)
+- [x] V2-M2.5 Bulk archive with selection mode (§3.3)
 
 ### V2-M3 — Event agenda and details
 - [ ] V2-M3.1 Model and operations: band agenda template, per-event times, who added each participant
@@ -192,4 +193,5 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | Agenda: a band template of times (default Arrival, Concert start), copied into each new event, plus one-off times per event. Calendar entries run from the earliest to the latest time (one hour for a single time, all-day without times); times before 05:00 are the next day. Free text goes into a Details section that replaces notes. |
 | 2026-10-21 | Google Calendar through a per-user subscription link rather than a one-off button or the Calendar API (which needs a sensitive scope and Google's app verification). Refresh timing is Google's. |
 | 2026-10-21 | V2-M1 review: a downloaded update installs **30 minutes** after the app left the screen (or with the daily check while it is hidden), so stepping out briefly, e.g. to take a photo for a cost, never restarts it. A declined or failed version, or one Android asked to confirm, is not tried again on its own; Settings offers "Install now", and the strip offers a pending confirmation. The "ready to install" notification needs the notification permission, which the app asks for with gig reminders (V2-M4); until then the strip in the app is the way. |
+| 2026-10-21 | V2-M2: the app version goes as the query parameter `appVersion`, because a new header would need the API's CORS allow-list (terraform) changed. On the web, the browser's Back button goes back a page rather than leaving selection mode (a page cannot intercept it); ✕ in the top bar leaves it. On Android, Back leaves selection mode. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |

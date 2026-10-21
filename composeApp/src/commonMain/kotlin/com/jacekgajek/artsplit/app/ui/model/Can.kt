@@ -17,6 +17,7 @@ import com.jacekgajek.artsplit.ops.CreateEvent
 import com.jacekgajek.artsplit.ops.Operation
 import com.jacekgajek.artsplit.ops.RecordTransfer
 import com.jacekgajek.artsplit.ops.RemoveTransfer
+import com.jacekgajek.artsplit.ops.SetEventArchived
 import com.jacekgajek.artsplit.ops.SetRefund
 import com.jacekgajek.artsplit.ops.SettleSuggestions
 import com.jacekgajek.artsplit.ops.TransferOwnership
@@ -35,6 +36,7 @@ class Can(private val band: Band, private val userId: String) {
     fun allowed(op: Operation): Boolean = Permissions.isAllowed(band, actor, op)
 
     fun createEvent() = allowed(CreateEvent(PROBE, PROBE, PROBE_DATE))
+    fun archiveEvents() = allowed(SetEventArchived(PROBE, true))
     fun editEvent(event: Event) = allowed(UpdateEvent(event.id))
     fun manageParticipants(event: Event) = allowed(AddGuest(event.id, PROBE, PROBE))
     fun editRefunds(event: Event) = allowed(SetRefund(event.id, PROBE, Money.ZERO))

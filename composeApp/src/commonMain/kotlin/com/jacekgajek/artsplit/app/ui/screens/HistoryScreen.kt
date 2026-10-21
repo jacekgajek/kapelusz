@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.artsplit.api.HistoryEntry
+import com.jacekgajek.artsplit.app.sync.HistoryItem
+import com.jacekgajek.artsplit.app.sync.ReadOp
+import com.jacekgajek.artsplit.app.generated.history_newer_version
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.BandState
 import com.jacekgajek.artsplit.app.data.nowMillis
@@ -61,10 +65,15 @@ fun historyMonth(offset: Int): String {
     return "${total / 12}-${(total % 12 + 1).toString().padStart(2, '0')}"
 }
 
-/** One history line: an operation with who made it and when. */
-data class HistoryLine(val entry: HistoryEntry, val envelope: OpEnvelope)
+/** One history line: an operation with who made it and when; [envelope] is null for one this app cannot read. */
+data class HistoryLine(val entry: HistoryEntry, val envelope: OpEnvelope?, val opId: String, val unreadableEventId: String? = null)
 
-fun HistoryEntry.toLines(): List<HistoryLine> = ops.map { HistoryLine(this, it) }
+fun HistoryItem.toLines(): List<HistoryLine> = ops.map { op ->
+    when (op) {
+        is ReadOp.Known -> HistoryLine(entry, op.envelope, op.envelope.opId)
+        is ReadOp.Unknown -> HistoryLine(entry, null, op.op.opId, op.op.eventId)
+    }
+}
 
 /** Band-wide history, one month at a time, newest first. */
 @Composable
@@ -109,13 +118,14 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(loaded, key = { it.envelope.opId }) { line ->
+                    items(loaded, key = { it.opId }) { line ->
                         HistoryRow(state.band, line)
                         HorizontalDivider()
                     }
                     if (next != null) {
                         item {
-                            TextButton(onClick = loadMore, enabled = !loadingMore) { Text(stringResource(Res.string.load_more)) }
+                            if (loadingMore) CircularProgressIndicator(Modifier.padding(8.dp).size(24.dp))
+                            else TextButton(onClick = loadMore) { Text(stringResource(Res.string.load_more)) }
                         }
                     }
                 }
@@ -129,7 +139,7 @@ fun HistoryRow(band: Band, line: HistoryLine) {
     val who = line.entry.memberId?.let { band.member(it)?.name } ?: "?"
     val time = Instant.fromEpochMilliseconds(line.entry.at).toLocalDateTime(TimeZone.currentSystemDefault())
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(describe(line.envelope.op, band), style = MaterialTheme.typography.bodyMedium)
+        Text(line.envelope?.let { describe(it.op, band) } ?: stringResource(Res.string.history_newer_version), style = MaterialTheme.typography.bodyMedium)
         Text(
             "$who · ${formatDate(time.date, language)} ${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}",
             style = MaterialTheme.typography.bodySmall,

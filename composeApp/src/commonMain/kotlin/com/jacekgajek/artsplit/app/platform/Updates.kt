@@ -55,3 +55,6 @@ interface UpdateControls {
 /** Null on platforms without automatic updates. */
 @Composable
 expect fun rememberUpdateControls(): UpdateControls?
+
+/** Reloads the app from the server (the web's way to update); null where updating works differently (Android). */
+expect fun appReloader(): (() -> Unit)?

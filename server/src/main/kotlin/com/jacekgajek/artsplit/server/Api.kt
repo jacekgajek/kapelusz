@@ -68,6 +68,7 @@ class Api(
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
     private val sessions: SessionTokens = SessionTokens(store, clock),
+    private val minAppVersion: Int = MIN_APP_VERSION,
 ) {
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -81,6 +82,9 @@ class Api(
         // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
         // need a 2xx answer; API Gateway adds the CORS headers.
         if (request.method == "OPTIONS") return HttpResponse(204)
+        if (!appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER])) {
+            throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of Art Split is too old; update it")
+        }
         val user = authenticate(request)
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
@@ -113,6 +117,16 @@ class Api(
                 acceptInvite(user, segments[1])
             else -> throw ApiError(404, "not_found", "No route for ${request.method} ${request.path}")
         }
+    }
+
+    /**
+     * Apps send their version code; a version below [minAppVersion] must update first. Apps from before version 2 send
+     * none, and local development builds send 0 (always allowed, so they can be tested against the live API).
+     */
+    private fun appSupported(version: String?): Boolean {
+        if (minAppVersion <= 0) return true
+        val code = version?.toIntOrNull() ?: return false
+        return code == 0 || code >= minAppVersion
     }
 
     private fun authenticate(request: HttpRequest): VerifiedUser {
@@ -507,6 +521,16 @@ class Api(
         HttpResponse(status, encode(ErrorResponse.serializer(), ErrorResponse(code, message)), JSON)
 
     companion object {
+        /**
+         * The oldest app version (deploy run number) the server still serves; older apps show "update required".
+         *
+         * Raise it in two steps, never in the change that needs it: first deploy apps that handle the new data, then
+         * set this to **that deploy's run number** (already live, so its web app and APK exist). Setting it to a
+         * number not yet deployed would refuse every app, and during a deploy the server switches before the new web
+         * app and APK are uploaded.
+         */
+        const val MIN_APP_VERSION = 0
+
         const val MAX_ATTEMPTS = 5
         const val MAX_OPS_PER_PUSH = 500
         const val MAX_DEVICES_PER_USER = 50

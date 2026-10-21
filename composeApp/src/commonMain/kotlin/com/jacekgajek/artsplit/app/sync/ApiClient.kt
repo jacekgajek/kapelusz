@@ -3,11 +3,12 @@ package com.jacekgajek.artsplit.app.sync
 import com.jacekgajek.artsplit.api.AttachmentUploadRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.AttachmentUrlResponse
+import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.CreateInviteRequest
 import com.jacekgajek.artsplit.api.ErrorResponse
-import com.jacekgajek.artsplit.api.HistoryResponse
+import com.jacekgajek.artsplit.api.HistoryEntry
 import com.jacekgajek.artsplit.api.InviteInfo
 import com.jacekgajek.artsplit.api.InvitePreview
 import com.jacekgajek.artsplit.api.InvitesResponse
@@ -22,6 +23,7 @@ import com.jacekgajek.artsplit.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -32,6 +34,27 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
+
+/** An operation in the history that this app version cannot read (made by a newer version). */
+data class UnreadableOp(val opId: String, val eventId: String?)
+
+/** One operation of a history entry, as far as this app version can read it. */
+sealed interface ReadOp {
+    data class Known(val envelope: OpEnvelope) : ReadOp
+    data class Unknown(val op: UnreadableOp) : ReadOp
+}
+
+/** A history entry as far as this app version can read it; [ops] keeps the original order. */
+data class HistoryItem(val entry: HistoryEntry, val ops: List<ReadOp>) {
+    val unreadable: List<UnreadableOp> get() = ops.filterIsInstance<ReadOp.Unknown>().map { it.op }
+}
+
+data class HistoryPage(val month: String, val entries: List<HistoryItem>, val next: String?)
 
 /** The server answered with an error. */
 class ApiException(val status: Int, val code: String, message: String) : RuntimeException(message)
@@ -43,6 +66,10 @@ class NeedsSignInException : RuntimeException("Sign in again")
 class ApiClient(
     private val http: HttpClient,
     private val baseUrl: String,
+    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (VERSION_2 §2). */
+    private val appVersion: Int = 0,
+    /** The server answered "update required". */
+    private val onUpdateRequired: () -> Unit = {},
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
@@ -86,9 +113,38 @@ class ApiClient(
 
     suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
 
-    /** One page of a month's history, newest first; [before] is the previous page's `next`. */
-    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryResponse =
-        call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), HistoryResponse.serializer())
+    /**
+     * One page of a month's history, newest first; [before] is the previous page's `next`. Read entry by entry and
+     * operation by operation, so a change made by a newer app version (an operation this one does not know) shows
+     * as such instead of failing the whole page.
+     */
+    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage {
+        val page = call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer())
+        val entries = page["entries"]?.jsonArray.orEmpty().mapNotNull { element ->
+            val entry = element as? JsonObject ?: return@mapNotNull null
+            val at = entry["at"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
+            // Each operation on its own, in order: one this version cannot read becomes a placeholder.
+            val ops = entry["ops"]?.jsonArray.orEmpty().mapIndexed { index, op ->
+                runCatching { ReadOp.Known(ArtSplitJson.decodeFromJsonElement(OpEnvelope.serializer(), op)) }.getOrElse {
+                    val raw = op as? JsonObject
+                    ReadOp.Unknown(
+                        UnreadableOp(
+                            opId = raw?.get("opId")?.jsonPrimitive?.contentOrNull ?: "$at-$index",
+                            eventId = (raw?.get("op") as? JsonObject)?.get("eventId")?.jsonPrimitive?.contentOrNull,
+                        ),
+                    )
+                }
+            }
+            val header = HistoryEntry(
+                userId = entry["userId"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null,
+                memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
+                at = at,
+                ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
+            )
+            HistoryItem(header, ops)
+        }
+        return HistoryPage(page["month"]?.jsonPrimitive?.contentOrNull ?: month, entries, page["next"]?.jsonPrimitive?.contentOrNull)
+    }
 
     /** A URL to upload the file of an attachment the server already has. */
     suspend fun requestUpload(bandId: Id, costId: Id, attachmentId: Id): AttachmentUploadResponse = call(
@@ -116,6 +172,8 @@ class ApiClient(
     private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) =
         http.request("$baseUrl$path") {
             this.method = method
+            // A query parameter, not a header: a new header would need the API's CORS allow-list changed.
+            parameter(ApiErrors.APP_VERSION_PARAMETER, appVersion)
             header(HttpHeaders.Authorization, "Bearer $bearer")
             configure()
         }
@@ -124,6 +182,7 @@ class ApiClient(
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
             val error = runCatching { ArtSplitJson.decodeFromString(ErrorResponse.serializer(), text) }.getOrNull()
+            if (error?.error == ApiErrors.UPDATE_REQUIRED) onUpdateRequired()
             throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
         }
         return ArtSplitJson.decodeFromString(serializer, text)

@@ -5,6 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,14 +49,16 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
             // Newest month first; each page is newest first. The first page of each month is enough for one event.
             (0 until MONTHS).flatMap { offset -> graph.api.history(context.band.id, historyMonth(offset)).entries }
         }.onSuccess { entries ->
-            lines = entries.flatMap { it.toLines() }.filter { concernsEvent(it.envelope.op, context.event.id) }
+            lines = entries.flatMap { it.toLines() }.filter { line ->
+                line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
+            }
         }.onFailure { failed = true }
     }
     val loaded = lines
     Column {
         when {
             failed -> Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error)
-            loaded == null -> Text("…")
+            loaded == null -> CircularProgressIndicator(Modifier.size(24.dp))
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
             else -> loaded.forEach { HistoryRow(context.band, it) }
         }

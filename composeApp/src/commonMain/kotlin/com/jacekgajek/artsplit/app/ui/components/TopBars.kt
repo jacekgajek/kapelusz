@@ -50,6 +50,7 @@ import com.jacekgajek.artsplit.app.generated.sign_in_again_wrong_account
 import com.jacekgajek.artsplit.app.generated.sign_in_failed
 import com.jacekgajek.artsplit.app.generated.settings
 import com.jacekgajek.artsplit.app.generated.sync_error
+import com.jacekgajek.artsplit.app.generated.update_required_title
 import com.jacekgajek.artsplit.app.generated.sync_needs_sign_in
 import com.jacekgajek.artsplit.app.generated.sync_offline
 import com.jacekgajek.artsplit.app.generated.sync_synced
@@ -78,13 +79,14 @@ val LocalTopBarState = staticCompositionLocalOf<TopBarState?> { null }
 /** Top bar of a tab screen: sync indicator and the cog menu (band switcher, band members, settings). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit) {
+fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extraActions: @Composable () -> Unit = {}) {
     val onHistory = LocalTopBarState.current?.onHistory
     var menuOpen by remember { mutableStateOf(false) }
     val bar = LocalTopBarState.current
     TopAppBar(
         title = { Text(title) },
         actions = {
+            extraActions()
             bar?.let { SyncIndicator(it) }
             IconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(Res.string.settings))
@@ -130,6 +132,7 @@ private fun SyncIndicator(bar: TopBarState) {
         SyncStatus.OFFLINE -> Icons.Default.CloudOff to Res.string.sync_offline
         SyncStatus.NEEDS_SIGN_IN -> Icons.Default.Warning to Res.string.sync_needs_sign_in
         SyncStatus.ERROR -> Icons.Default.Warning to Res.string.sync_error
+        SyncStatus.UPDATE_REQUIRED -> Icons.Default.Warning to Res.string.update_required_title
     }
     val tint = if (status == SyncStatus.NEEDS_SIGN_IN || status == SyncStatus.ERROR) MaterialTheme.colorScheme.error else LocalContentColor.current
     IconButton(onClick = { if (status == SyncStatus.NEEDS_SIGN_IN) signingIn = true else bar.onSyncNow() }) {

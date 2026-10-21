@@ -26,7 +26,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
 data class LostBand(val name: String, val deleted: Boolean)
 
-enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, ERROR }
+enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, UPDATE_REQUIRED, ERROR }
 
 /** The server answered in a way the client cannot make progress with. */
 class SyncProtocolException(message: String) : RuntimeException(message)
@@ -100,6 +100,8 @@ class SyncEngine(
         // Waiting for the user to sign in again: retrying would only repeat silent renewal attempts (and on the web
         // possibly Google prompts) while hiding the "sign in again" state.
         if (_status.value == SyncStatus.NEEDS_SIGN_IN) return false
+        // Retrying is pointless until the app is updated (which restarts it).
+        if (_status.value == SyncStatus.UPDATE_REQUIRED) return false
         _status.value = SyncStatus.SYNCING
         var result = SyncStatus.SYNCED
         try {
@@ -107,7 +109,7 @@ class SyncEngine(
             val toSync = (bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty() + listOfNotNull(current)).distinct()
             for (bandId in toSync) {
                 val bandResult = syncBand(bandId, pull = bandId == current)
-                if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE) {
+                if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE || bandResult == SyncStatus.UPDATE_REQUIRED) {
                     // Affects every band: stop this round.
                     result = bandResult
                     break
@@ -143,16 +145,19 @@ class SyncEngine(
             _lostAccess.tryEmit(LostBand(name, deleted = e.code == ApiErrors.BAND_DELETED))
             SyncStatus.SYNCED
         } else {
-            SyncStatus.ERROR
+            classify(e)
         }
     } catch (e: Throwable) {
         classify(e)
     }
 
-    private fun classify(e: Throwable): SyncStatus = when (e) {
-        is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
-        is ApiException, is SyncProtocolException -> SyncStatus.ERROR
-        else -> SyncStatus.OFFLINE
+    private fun classify(e: Throwable): SyncStatus = when {
+        e is ApiException && e.code == ApiErrors.UPDATE_REQUIRED -> SyncStatus.UPDATE_REQUIRED
+        else -> when (e) {
+            is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
+            is ApiException, is SyncProtocolException -> SyncStatus.ERROR
+            else -> SyncStatus.OFFLINE
+        }
     }
 
     /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */

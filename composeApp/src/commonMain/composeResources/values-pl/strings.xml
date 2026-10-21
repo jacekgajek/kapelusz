@@ -32,7 +32,7 @@
     <string name="event_date">Data</string>
     <string name="event_location">Miejsce (opcjonalnie)</string>
     <string name="events_empty">Nie ma jeszcze wydarzeń. Utwórz pierwsze!</string>
-    <string name="continue_event">Kontynuuj: %1$s, %2$s</string>
+    <string name="continue_event">Kontynuuj: %1$s · %2$s</string>
     <string name="filter_only_mine">Tylko moje</string>
     <string name="filter_show_archived">Pokaż archiwalne</string>
     <string name="my_get">dostajesz %1$s</string>
@@ -392,4 +392,30 @@
     <string name="updates_installing">Instalowanie %1$s… Po zakończeniu aplikacja uruchomi się ponownie.</string>
     <string name="updates_declined">Wersja %1$s nie została zainstalowana. Nie będzie proponowana automatycznie.</string>
     <string name="updates_install_failed">Android nie mógł zainstalować wersji %1$s.</string>
+    <string name="update_required_title">Zaktualizuj Art Split</string>
+    <string name="update_required_text">Ta wersja Art Split jest za stara dla serwera. Zaktualizuj aplikację, aby kontynuować; zmiany na tym urządzeniu zostaną zachowane i zsynchronizowane po aktualizacji.</string>
+    <string name="update_required_button">Aktualizuj</string>
+    <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Art Split</string>
+    <string name="upcoming_event">Najbliższe: %1$s · %2$s</string>
+    <string name="select_events">Zaznacz wydarzenia</string>
+    <string name="select_all">Zaznacz wszystkie</string>
+    <string name="undo">Cofnij</string>
+    <plurals name="selected_count">
+        <item quantity="one">Zaznaczono %1$d</item>
+        <item quantity="few">Zaznaczono %1$d</item>
+        <item quantity="many">Zaznaczono %1$d</item>
+        <item quantity="other">Zaznaczono %1$d</item>
+    </plurals>
+    <plurals name="events_archived">
+        <item quantity="one">Zarchiwizowano %1$d wydarzenie</item>
+        <item quantity="few">Zarchiwizowano %1$d wydarzenia</item>
+        <item quantity="many">Zarchiwizowano %1$d wydarzeń</item>
+        <item quantity="other">Zarchiwizowano %1$d wydarzenia</item>
+    </plurals>
+    <plurals name="events_restored">
+        <item quantity="one">Przywrócono %1$d wydarzenie</item>
+        <item quantity="few">Przywrócono %1$d wydarzenia</item>
+        <item quantity="many">Przywrócono %1$d wydarzeń</item>
+        <item quantity="other">Przywrócono %1$d wydarzenia</item>
+    </plurals>
 </resources>

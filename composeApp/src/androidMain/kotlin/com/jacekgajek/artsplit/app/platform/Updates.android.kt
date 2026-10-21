@@ -23,3 +23,5 @@ actual fun rememberUpdateControls(): UpdateControls? {
         }
     }
 }
+
+actual fun appReloader(): (() -> Unit)? = null

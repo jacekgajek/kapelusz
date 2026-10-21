@@ -31,7 +31,15 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     // The exchange runs only after construction, when api exists.
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
     val bands = BandRepository(store, scope)
-    val api: ApiClient = ApiClient(http, AppConfig.API_URL) { force -> sessions.validToken(force) }
+    /** The server no longer serves this app version (VERSION_2 §2): the app shows "update to continue". */
+    val updateRequired = MutableStateFlow(false)
+    val api: ApiClient = ApiClient(
+        http,
+        AppConfig.API_URL,
+        token = { force -> sessions.validToken(force) },
+        appVersion = AppConfig.VERSION_CODE,
+        onUpdateRequired = { updateRequired.value = true },
+    )
     val uploads = AttachmentUploads(store, api, bands)
     val sync = SyncEngine(api, bands, scope, uploads = uploads)
 
@@ -138,11 +146,10 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         }
     }
 
-    /** Applies an operation locally, remembers the touched event for the "Continue" card, and schedules a sync. */
+    /** Applies an operation locally and schedules a sync. */
     fun dispatch(op: Operation): Rejection? {
         val rejection = bands.dispatch(op)
         if (rejection == null) {
-            op.eventId?.let { eventId -> settings.update { it.copy(lastEditedEventId = eventId) } }
             sync.requestSync()
         }
         return rejection
