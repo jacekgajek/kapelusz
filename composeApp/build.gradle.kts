@@ -85,6 +85,9 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
+            // Google photos of members (ITERATION_2 §7.4).
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.android)

@@ -156,7 +156,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 val invite = invites?.firstOrNull { it.memberId == member.id }
                 ListItem(
                     modifier = Modifier.clickable(enabled = isAdmin) { selected = member.id },
-                    leadingContent = { Avatar(member.name, 40.dp) },
+                    leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp) },
                     headlineContent = {
                         Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
                     },

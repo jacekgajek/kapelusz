@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.ui.components
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -144,17 +147,19 @@ fun StatusChip(status: EventStatus, archived: Boolean = false) {
 }
 
 @Composable
-fun Avatar(name: String, size: Dp = 28.dp) {
+fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp) {
     Box(
-        Modifier.size(size).background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+        Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)
             .clearAndSetSemantics { contentDescription = name },
         contentAlignment = Alignment.Center,
     ) {
+        // Initials underneath: shown while the photo loads, and instead of it when there is none or it fails.
         Text(
             initials(name),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
+        if (pictureUrl != null) AsyncImage(pictureUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
     }
 }
 

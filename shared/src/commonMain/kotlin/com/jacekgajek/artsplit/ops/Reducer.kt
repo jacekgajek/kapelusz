@@ -215,7 +215,8 @@ object Reducer {
     private fun unlinkUser(band: Band, op: UnlinkUser): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Transfer ownership before unlinking the owner" }
-        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER) }
+        // The photo was the user's: it goes with the account.
+        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null) }
     }
 
     private fun setTreasurer(band: Band, op: SetTreasurer): Band {

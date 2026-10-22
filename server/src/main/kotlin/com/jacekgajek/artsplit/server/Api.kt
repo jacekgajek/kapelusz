@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.server
 
+import com.jacekgajek.artsplit.model.withPicture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import kotlinx.serialization.builtins.serializer
@@ -49,7 +50,12 @@ import java.util.UUID
 
 /** The user's band list, stored as `users/{googleSub}.json`. */
 @Serializable
-data class UserRecord(val userId: String, val bandIds: List<String> = emptyList())
+data class UserRecord(
+    val userId: String,
+    val bandIds: List<String> = emptyList(),
+    /** The Google photo from the last sign-in, for the user's member in bands they join or create. */
+    val pictureUrl: String? = null,
+)
 
 /** Invite code lookups in the current hour, stored as `users/{googleSub}-join-attempts.json`. */
 @Serializable
@@ -118,6 +124,8 @@ class Api(
                 calendarSubscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))
             // A new session for a Google ID token, or a renewed one for a current session (sliding expiry).
             request.method == "POST" && segments == listOf("session") -> {
+                // Signing in with Google brings the current photo (ITERATION_2 §7.4); a failure must not stop the sign-in.
+                user.picture?.let { picture -> runCatching { rememberPicture(user.userId, picture) }.onFailure { System.err.println("Could not update the photo: $it") } }
                 val (token, expiresAt) = sessions.issue(user)
                 ok(SessionResponse.serializer(), SessionResponse(token, expiresAt))
             }
@@ -181,6 +189,7 @@ class Api(
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
         badRequestIf(!request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
         val band = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
+            .withPicture(user.userId, pictureOf(user.userId))
         val etag = try {
             store.put(bandKey(band.id), encode(Band.serializer(), band), ifNoneMatch = true)
         } catch (e: PreconditionFailed) {
@@ -488,7 +497,7 @@ class Api(
                 throw inviteNotFound()
             }
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
-                is ApplyResult.Applied -> result.band
+                is ApplyResult.Applied -> result.band.withPicture(user.userId, pictureOf(user.userId))
                 // The member was linked meanwhile.
                 is ApplyResult.Rejected -> throw inviteNotFound()
             }
@@ -608,6 +617,42 @@ class Api(
     private fun loadUser(userId: String): UserRecord =
         store.get(userKey(userId))?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
 
+    private fun pictureOf(userId: String): String? =
+        runCatching { store.get(userKey(userId))?.let { decode(UserRecord.serializer(), it.content).pictureUrl } }.getOrNull()
+
+    /** Keeps [picture] with the user and puts it on their member in each of their bands (a Google photo only). */
+    private fun rememberPicture(userId: String, picture: String) {
+        val url = picture.takeIf { isGooglePhoto(it) } ?: return
+        repeat(MAX_ATTEMPTS) {
+            val blob = store.get(userKey(userId))
+            val record = blob?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
+            if (record.pictureUrl != url) {
+                try {
+                    store.put(userKey(userId), encode(UserRecord.serializer(), record.copy(pictureUrl = url)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+                } catch (e: PreconditionFailed) {
+                    return@repeat
+                }
+            }
+            record.bandIds.forEach { bandId -> runCatching { setMemberPicture(bandId, userId, url) } }
+            return
+        }
+    }
+
+    /** Not an operation: the photo is not a change of the band, so it is not in the history (clients get it with the state). */
+    private fun setMemberPicture(bandId: String, userId: String, url: String) {
+        repeat(MAX_ATTEMPTS) {
+            val (band, etag) = loadBand(bandId) ?: return
+            val member = band.memberOfUser(userId) ?: return
+            if (member.pictureUrl == url) return
+            try {
+                store.put(bandKey(bandId), encode(Band.serializer(), band.withPicture(userId, url)), ifMatch = etag)
+                return
+            } catch (e: PreconditionFailed) {
+                // changed meanwhile: try again on the new state
+            }
+        }
+    }
+
     private fun addBandToUser(userId: String, bandId: String) {
         repeat(MAX_ATTEMPTS) {
             val blob = store.get(userKey(userId))
@@ -669,6 +714,11 @@ class Api(
         const val MAX_OPS_PER_PUSH = 500
         const val MAX_DEVICES_PER_USER = 50
         const val HISTORY_PAGE = 100
+
+        /** Google profile photos only: an https address on Google's image servers, of sensible length. */
+        fun isGooglePhoto(url: String): Boolean =
+            url.length <= 500 && Regex("https://[a-z0-9-]+\\.googleusercontent\\.com/[^\\s\"<>]*").matches(url)
+
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
 

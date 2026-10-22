@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app
 
+import coil3.network.ktor3.KtorNetworkFetcherFactory
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.ImageLoader
 import androidx.lifecycle.Lifecycle
 import com.jacekgajek.artsplit.app.ui.screens.SettingsPage
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -137,6 +140,8 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 
 @Composable
 fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
+    // Members' Google photos load over Ktor on every platform, kept in memory and (Android) on disk.
+    setSingletonImageLoaderFactory { context -> ImageLoader.Builder(context).components { add(KtorNetworkFetcherFactory()) }.build() }
     val settings by graph.settings.settings.collectAsState()
     val bandState by graph.bands.state.collectAsState()
     val session by graph.sessions.session.collectAsState()
@@ -306,6 +311,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     language = settings.language,
                     onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
                     account = session?.let { it.email ?: it.name },
+                    accountPicture = state.me?.pictureUrl,
                     onSignOut = { scope.launch { graph.signOut() } },
                     bandName = state.band.name,
                     onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }

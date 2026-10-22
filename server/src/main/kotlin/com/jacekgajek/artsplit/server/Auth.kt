@@ -10,7 +10,8 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import com.nimbusds.jwt.proc.DefaultJWTProcessor
 import java.net.URI
 
-data class VerifiedUser(val userId: String, val email: String?, val name: String?)
+/** [picture]: the Google profile photo, only known when signing in with a Google token (not with a session). */
+data class VerifiedUser(val userId: String, val email: String?, val name: String?, val picture: String? = null)
 
 fun interface TokenVerifier {
     /** Returns the user for a valid token, or null for an invalid, expired or foreign one. */
@@ -35,7 +36,7 @@ class GoogleTokenVerifier(
         }
         if (claims.issuer !in ISSUERS) return null
         if (claims.getBooleanClaim("email_verified") == false) return null
-        return VerifiedUser(claims.subject, claims.getStringClaim("email"), claims.getStringClaim("name"))
+        return VerifiedUser(claims.subject, claims.getStringClaim("email"), claims.getStringClaim("name"), claims.getStringClaim("picture"))
     }
 
     /** Fetches Google's signing keys once, e.g. while priming a SnapStart snapshot. */

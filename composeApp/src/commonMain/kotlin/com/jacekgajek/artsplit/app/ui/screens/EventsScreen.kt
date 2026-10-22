@@ -217,7 +217,7 @@ private fun EventRow(band: Band, summary: EventSummary, onClick: () -> Unit) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
-                    event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, "")) }
+                    event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
                 }
                 MyNumberText(summary.myNumber, band.currency)
             }

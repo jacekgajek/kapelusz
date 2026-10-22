@@ -228,9 +228,14 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 
 ### V2-M9 — Event polish and Google photos
 - [x] V2-M9.1 Settlement panel without Settle buttons; smaller To settle lines (§7.4)
-- [ ] V2-M9.2 Google photos of members with an account (§7.4)
+- [x] V2-M9.2 Google photos of members with an account (§7.4)
 
 ### V2-M10 — Release 1.0
+- [ ] V2-M10.0 Rename to **Split Art** (reads more easily than Art Split): the app, the web address, texts in both languages, code and documentation. To decide before starting (grilling):
+  - Android app id `com.jacekgajek.artsplit`: changing it makes a different app for Android (no update from the old one, data not carried over, auto-update cannot cross); keeping it is invisible to users.
+  - Web address `splitart.jacekgajek.com`: DNS, certificate and CloudFront in the my-aws Terraform, the Google sign-in client's allowed origins, Android App Links; the old address keeps redirecting so shared invite links still work.
+  - Internal names users never see (Kotlin packages, AWS bucket and Lambda names, the web app's local database `art-split`, Android preferences): renaming buckets or local stores means migrating data.
+  - Calendar subscription links and the API address: whether they change (subscribed calendars would stop updating).
 - [ ] V2-M10.1 Release checklist (§10) passed on real phones
 - [ ] V2-M10.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 

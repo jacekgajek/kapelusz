@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import com.jacekgajek.artsplit.app.ui.components.Avatar
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.runtime.LaunchedEffect
@@ -213,6 +216,8 @@ fun SettingsScreen(
     language: String?,
     onLanguage: (String?) -> Unit,
     account: String?,
+    /** The user's Google photo (as their member in this band has it). */
+    accountPicture: String?,
     onSignOut: () -> Unit,
     bandName: String,
     onRenameBand: ((String) -> Unit)?,
@@ -299,6 +304,7 @@ fun SettingsScreen(
                 rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp); Spacer(Modifier.width(12.dp)) }
                     Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
                 }
