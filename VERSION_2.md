@@ -203,7 +203,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M7.2 Undo from history (§7.2)
 - [x] V2-M7.3 Remove bulk archive (§3.3)
 - [x] V2-M7.4 Clearer message when a participant with collected money or transfers cannot be removed (§7)
-- [ ] V2-M7.5 Delete band at the bottom of Settings; agenda template Reset to defaults and roomier fields; + Add cost in the event's Cost refunds (§7)
+- [x] V2-M7.5 Delete band at the bottom of Settings; agenda template Reset to defaults and roomier fields; + Add cost in the event's Cost refunds (§7)
 
 ### V2-M8 — Release 1.0
 - [ ] V2-M8.1 Release checklist (§10) passed on real phones

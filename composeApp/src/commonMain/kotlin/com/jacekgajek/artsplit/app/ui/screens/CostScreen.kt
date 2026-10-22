@@ -91,7 +91,15 @@ import org.jetbrains.compose.resources.stringResource
 /** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack: () -> Unit, onAddedForOther: () -> Unit = {}) {
+fun CostScreen(
+    graph: AppGraph,
+    state: BandState.Ready,
+    costId: String?,
+    onBack: () -> Unit,
+    onAddedForOther: () -> Unit = {},
+    /** A new cost "incurred for" this event, from the event's Cost refunds (VERSION_2 §7). */
+    forEventId: String? = null,
+) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
@@ -101,7 +109,7 @@ fun CostScreen(graph: AppGraph, state: BandState.Ready, costId: String?, onBack:
     var amount by remember { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
     var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id) }
     var date by remember { mutableStateOf(existing?.date ?: today()) }
-    var eventId by remember { mutableStateOf(existing?.eventId) }
+    var eventId by remember { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
     var category by remember { mutableStateOf(existing?.category) }
     var description by remember { mutableStateOf(existing?.description.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }

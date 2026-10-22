@@ -288,9 +288,10 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
             }
             composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
             composable<FundRoute> { BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) }) }
-            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
+            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }) }
             composable<CostRoute> { entry ->
-                CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back, onAddedForOther = {
+                val route = entry.toRoute<CostRoute>()
+                CostScreen(graph, state, route.costId, back, forEventId = route.forEventId, onAddedForOther = {
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
                 })

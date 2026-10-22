@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
 @Serializable @SerialName("event") data class EventRoute(val eventId: String)
 
 /** Add (`costId == null`) or edit a cost. */
-@Serializable @SerialName("cost") data class CostRoute(val costId: String? = null)
+@Serializable @SerialName("cost") data class CostRoute(val costId: String? = null, val forEventId: String? = null)
 @Serializable @SerialName("settings") data object SettingsRoute
 @Serializable @SerialName("members") data object RosterRoute
 @Serializable @SerialName("new-band") data object NewBandRoute

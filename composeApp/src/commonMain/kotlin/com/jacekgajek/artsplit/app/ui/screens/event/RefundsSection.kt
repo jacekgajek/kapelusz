@@ -1,5 +1,9 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
+import com.jacekgajek.artsplit.app.generated.add_cost
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,7 +53,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Costs repaid out of this event: included ones, and outstanding costs of participants that could be. */
 @Composable
-fun RefundsSection(context: EventContext) {
+fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
     val band = context.band
     val event = context.event
     var editing by remember { mutableStateOf<Cost?>(null) }
@@ -91,6 +95,12 @@ fun RefundsSection(context: EventContext) {
                 }
             }
         }
+    }
+
+    // A cost for this event, its refund included here (VERSION_2 §7).
+    if (context.can.addCost()) TextButton(onClick = onAddCost) {
+        Icon(Icons.Default.Add, null)
+        Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
     }
 
     editing?.let { cost -> RefundDialog(context, cost, onDismiss = { editing = null }) }
