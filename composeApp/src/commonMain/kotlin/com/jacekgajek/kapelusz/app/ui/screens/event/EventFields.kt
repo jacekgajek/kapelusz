@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
@@ -25,7 +24,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -39,7 +37,6 @@ import com.jacekgajek.kapelusz.app.generated.event_name
 import com.jacekgajek.kapelusz.app.generated.map_linked
 import com.jacekgajek.kapelusz.app.generated.map_no_link
 import com.jacekgajek.kapelusz.app.generated.map_paste
-import com.jacekgajek.kapelusz.app.generated.map_select
 import com.jacekgajek.kapelusz.app.platform.rememberPaste
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
@@ -63,13 +60,12 @@ data class EventFieldsState(
 )
 
 /**
- * The fields of the create and edit dialogs (ITERATION_2 §4.3, §4.4): name, date, location with Select on map and
- * Paste from Maps, and the agenda: set times as rows, the unset ones (and "+ Add time") as chips.
+ * The fields of the create and edit dialogs (ITERATION_2 §4.3, §4.4): name, date, location with Paste from Maps, and
+ * the agenda: set times as rows, the unset ones (and "+ Add time") as chips.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
-    val uriHandler = LocalUriHandler.current
     val paste = rememberPaste()
     val scope = rememberCoroutineScope()
     // The paste finishes later (the browser may ask for permission), so it must apply to the fields as they are then.
@@ -83,8 +79,8 @@ fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
         DateField(state.date, { onState(state.copy(date = it)) }, stringResource(Res.string.event_date))
         OutlinedTextField(state.location, { onState(state.copy(location = it)) }, label = { Text(stringResource(Res.string.event_location)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Google Maps does the picking: find the place or drop a pin there, Share > Copy link, then paste here.
-            AssistChip(onClick = { uriHandler.openUri(Places.searchUrl(state.location)) }, label = { Text(stringResource(Res.string.map_select)) }, leadingIcon = { Icon(Icons.Default.Map, null) })
+            // No "Select on map": coming back from Google Maps with Share › Kapelusz opens the event picker, where an event
+            // still being created is not. A link copied in Maps (Share › Copy link) is pasted here instead.
             AssistChip(onClick = {
                 scope.launch {
                     val place = paste()?.let(Places::parse)

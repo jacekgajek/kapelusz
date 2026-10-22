@@ -31,8 +31,6 @@ class PlacesTest {
 
     @Test
     fun linksToOpen() {
-        assertEquals("https://www.google.com/maps/search/?api=1&query=Klub%20Stodo%C5%82a", Places.searchUrl("Klub Stodoła"))
-        assertEquals("https://www.google.com/maps", Places.searchUrl(" "))
         val base = Event("e", "Gig", DATE, location = "Klub Stodoła, Warszawa")
         assertEquals("https://www.google.com/maps/dir/?api=1&destination=Klub%20Stodo%C5%82a%2C%20Warszawa", Places.navigateUrl(base))
         assertEquals("https://maps.app.goo.gl/x", Places.navigateUrl(base.copy(mapUrl = "https://maps.app.goo.gl/x")))
