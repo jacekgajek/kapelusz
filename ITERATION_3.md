@@ -140,8 +140,8 @@ enforce the same) validates every input.
   cannot be settled automatically; fund entries and fund transfers can still be changed after the fund is switched
   off; archived events accept every operation.
 - *Fix:* an event is a draft only when nothing at all is in it; fund changes need a treasurer (or must leave the fund
-  in a state it could be switched off in); decide whether archived events are read-only (proposed: yes, except
-  restoring).
+  in a state it could be switched off in); archived events are read-only, except restoring and deleting them (done so in
+  V3-M2).
 - *Test:* settlement and reducer tests.
 
 **R11. CI.**
@@ -257,6 +257,12 @@ Options, cheapest first:
 Not recommended: a relational database (e.g. Postgres on RDS): a fixed monthly cost even when idle, and connection
 handling from Lambda is awkward.
 
+### Availability
+
+Members still cannot add themselves to an event, but once a lead creates it they can answer "I can attend" or "I
+cannot attend". The lead sees the answers in the participants list and accepts (adds the member) or refuses them.
+Adding a member who answered "I cannot attend" asks the lead to confirm first.
+
 Other ideas: payment details (account number, BLIK phone) with copy buttons in To settle; a yearly summary per
 member with CSV/PDF export (for tax returns); duplicating an event; agreed fee and deposit tracking.
 
@@ -274,8 +280,8 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [x] V3-M2.2 Android: one instance, late reminders kept, update notification, threads, notification language, insets (R7)
 - [x] V3-M2.3 UI: edits send only changes, keyed rows, number parsing, busy flags, saved form state, Polish texts (R8)
 - [x] V3-M2.4 Sync: removed bands, token races, sequence numbers, error classes, web storage, stuck queues (R9)
-- [ ] V3-M2.5 Band fund rules and archived events (R10)
-- [ ] V3-M2.6 CI: production web build, pinned actions (R11)
+- [x] V3-M2.5 Band fund rules and archived events (R10)
+- [x] V3-M2.6 CI: production web build, pinned actions (R11)
 
 ### V3-M3 — Quality
 - [ ] V3-M3.1 Refactorings (R12)
