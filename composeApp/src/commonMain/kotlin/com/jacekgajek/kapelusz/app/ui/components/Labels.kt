@@ -9,7 +9,6 @@ import com.jacekgajek.kapelusz.app.generated.category_other
 import com.jacekgajek.kapelusz.app.generated.category_travel
 import com.jacekgajek.kapelusz.app.generated.reject_already_participant
 import com.jacekgajek.kapelusz.app.generated.reject_archived_event
-import com.jacekgajek.kapelusz.app.generated.reject_event_unsettled
 import com.jacekgajek.kapelusz.app.generated.reject_archived_member
 import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle
 import com.jacekgajek.kapelusz.app.generated.reject_cost_below_refunded
@@ -17,6 +16,7 @@ import com.jacekgajek.kapelusz.app.generated.reject_cost_refunded_from_fund
 import com.jacekgajek.kapelusz.app.generated.reject_duplicate_id
 import com.jacekgajek.kapelusz.app.generated.reject_empty_name
 import com.jacekgajek.kapelusz.app.generated.reject_event_has_transfers
+import com.jacekgajek.kapelusz.app.generated.reject_event_unsettled
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_amount
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_input
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_share

@@ -62,8 +62,12 @@ data class Settlement(
 ) {
     val canSettle: Boolean get() = status == EventStatus.OPEN && problems.isEmpty()
 
-    /** Only events with nothing left to settle can be archived: settled ones and drafts (no money in them). */
-    val canArchive: Boolean get() = status == EventStatus.SETTLED || status == EventStatus.DRAFT
+    /**
+     * Only events with nothing left to settle can be archived: settled ones, and drafts with no money in them at all. A
+     * refund in a draft would count its cost as covered while nobody pays it; a fund amount would be owed to the fund.
+     */
+    val canArchive: Boolean
+        get() = status == EventStatus.SETTLED || (status == EventStatus.DRAFT && refundsTotal.isZero && fundAmount.isZero)
 
     /** What is left to split by weight after the fixed shares; negative on a [SettlementProblem.LOSS]. */
     val rest: Money get() = net - fixedTotal

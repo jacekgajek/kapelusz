@@ -17,7 +17,7 @@
     <string name="create">Create</string>
     <string name="archive">Archive</string>
     <string name="unarchive">Restore</string>
-    <string name="archive_settle_first">Settle it first</string>
+    <string name="archive_not_settled">Not settled yet</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
     <string name="amount_invalid">Enter an amount like 129.60</string>
@@ -171,7 +171,7 @@
     <string name="reject_treasurer_must_stay">This member holds the band fund. Choose another treasurer first.</string>
     <string name="reject_archived_member">This member is archived.</string>
     <string name="reject_archived_event">This event is archived. Restore it to change it.</string>
-    <string name="reject_event_unsettled">Only settled events can be archived. Settle it first.</string>
+    <string name="reject_event_unsettled">Only settled events can be archived.</string>
     <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_ownership_needs_admin">Ownership can only go to an admin with an app account.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>

@@ -224,5 +224,10 @@ class FundAndEdgeCasesTest {
 
         scenario.event("draft", "Alice").apply(SetEventArchived("draft", true))
         assertEquals(true, scenario.band.event("draft")!!.archived, "a draft has no money in it")
+
+        // A draft with a refund in it would count the cost as covered while nobody pays it.
+        scenario.event("d2", "Bob").apply(AddCost("c2", "bob", pln("10"), DATE, incurredForEventId = "d2"))
+        assertEquals(EventStatus.DRAFT, scenario.settle("d2").status)
+        assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("d2", true)).reason)
     }
 }

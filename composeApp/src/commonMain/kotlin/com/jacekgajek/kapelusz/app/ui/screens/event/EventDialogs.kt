@@ -44,7 +44,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.archive
-import com.jacekgajek.kapelusz.app.generated.archive_settle_first
+import com.jacekgajek.kapelusz.app.generated.archive_not_settled
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_event_confirm
@@ -128,7 +128,7 @@ fun EventMenu(event: Event, settlement: Settlement, actions: Actions, onDeleted:
             text = {
                 Column {
                     Text(stringResource(if (event.archived) Res.string.unarchive else Res.string.archive))
-                    if (!canArchive) Text(stringResource(Res.string.archive_settle_first), style = MaterialTheme.typography.bodySmall)
+                    if (!canArchive) Text(stringResource(Res.string.archive_not_settled), style = MaterialTheme.typography.bodySmall)
                 }
             },
             enabled = canArchive,
