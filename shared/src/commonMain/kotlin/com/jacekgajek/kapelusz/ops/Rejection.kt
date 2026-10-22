@@ -23,6 +23,8 @@ enum class RejectionReason {
     NO_TREASURER,
     TREASURER_MUST_STAY,
     ARCHIVED_MEMBER,
+    /** Archived events are read-only: restore it first (ITERATION_3 R10). */
+    ARCHIVED_EVENT,
     OWNER_ROLE_FIXED,
     OWNERSHIP_NEEDS_ADMIN,
     MEMBER_LINKED,

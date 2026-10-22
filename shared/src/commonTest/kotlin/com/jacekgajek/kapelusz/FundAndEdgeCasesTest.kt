@@ -15,6 +15,10 @@ import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.DeleteEvent
+import com.jacekgajek.kapelusz.ops.SetEventArchived
+import com.jacekgajek.kapelusz.ops.RemoveTransfer
+import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.DisableBandFund
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
@@ -144,5 +148,55 @@ class FundAndEdgeCasesTest {
             .event("b", "Alice", "Bob").apply(AddHolding("b", "h2", "bob", pln("300"), DOOR)).apply(SetFundAmount("b", pln("-100")))
         assertEquals(pln("0"), BandFund.notHandedOver(scenario.band))
         assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(DisableBandFund).reason)
+    }
+
+    /** ITERATION_3 R10: with the fund off, nothing may leave it holding or owing money. */
+    @Test
+    fun aDisabledFundCannotBeChangedBackIntoUse() {
+        val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice")).event("e", "Alice", "Bob")
+            .apply(AddHolding("e", "h", "bob", pln("300"), DOOR))
+            .apply(SetFundAmount("e", pln("100")))
+            .apply(SettleSuggestions("e"))
+            .apply(AddFundEntry("f", DATE, "Van rental", pln("-100")))
+            .apply(DisableBandFund)
+        val toFund = scenario.band.event("e")!!.transfers.first { it.to == BAND_FUND }
+
+        assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(UpdateFundEntry("f", amount = Change(pln("-50")))).reason)
+        assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(RemoveFundEntry("f")).reason)
+        assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(RemoveTransfer("e", toFund.id)).reason)
+        assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(SetFundAmount("e", pln("50"))).reason)
+        scenario.apply(UpdateFundEntry("f", description = Change("Van")))
+        assertEquals("Van", scenario.band.fundEntries.single().description, "changes that keep it empty are fine")
+    }
+
+    /** ITERATION_3 R10: an event the fund pays for, with nothing collected, can be settled. */
+    @Test
+    fun anEventPaidOnlyByTheFundIsNotADraft() {
+        val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice")).event("e", "Alice", "Bob")
+            .apply(AddCost("c", "bob", pln("80"), DATE, incurredForEventId = "e"))
+        assertEquals(EventStatus.DRAFT, scenario.settle("e").status, "a member's cost alone does not open the event")
+
+        scenario.apply(SetFundAmount("e", pln("-80")))
+        val s = scenario.settle("e")
+        assertEquals(EventStatus.OPEN, s.status)
+        assertEquals(listOf(SuggestedTransfer(BAND_FUND, "bob", pln("80"))), s.suggestions)
+        scenario.apply(SettleSuggestions("e"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
+    }
+
+    /** ITERATION_3 R10: archived events are read-only, except restoring and deleting them. */
+    @Test
+    fun archivedEventsAreReadOnly() {
+        val scenario = Scenario("Alice", "Bob").event("e", "Alice", "Bob")
+            .apply(AddHolding("e", "h", "bob", pln("300"), DOOR))
+            .apply(SetEventArchived("e", true))
+        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddHolding("e", "h2", "bob", pln("1"), DOOR)).reason)
+        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(SettleSuggestions("e")).reason)
+        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e")).reason)
+
+        scenario.apply(SetEventArchived("e", false)).apply(SettleSuggestions("e"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
+        scenario.event("d", "Alice").apply(SetEventArchived("d", true)).apply(DeleteEvent("d"))
+        assertEquals(null, scenario.band.event("d"))
     }
 }

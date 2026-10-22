@@ -170,7 +170,7 @@ private fun Header(context: EventContext) {
         Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
-                val canSetFund = context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
+                val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
                 if (!s.fundAmount.isZero || canSetFund) {
                     // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
                     TotalRow(

@@ -171,6 +171,7 @@
     <string name="reject_no_treasurer">Najpierw wybierz, kto trzyma kasę zespołową.</string>
     <string name="reject_treasurer_must_stay">Ta osoba trzyma kasę zespołową. Najpierw wybierz innego skarbnika.</string>
     <string name="reject_archived_member">Ten członek jest zarchiwizowany.</string>
+    <string name="reject_archived_event">To wydarzenie jest zarchiwizowane. Przywróć je, aby je zmienić.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
     <string name="reject_ownership_needs_admin">Własność można przekazać tylko administratorowi z kontem w aplikacji.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>

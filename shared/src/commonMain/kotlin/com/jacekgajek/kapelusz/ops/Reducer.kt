@@ -33,6 +33,10 @@ data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?)
 object Reducer {
 
     fun apply(band: Band, op: Operation, ctx: OpContext): Band {
+        // Archived events are read-only (ITERATION_3 R10): restoring and deleting them are the only changes.
+        op.eventId?.let { band.event(it) }?.let { event ->
+            conflictIf(event.archived && op !is SetEventArchived && op !is DeleteEvent, RejectionReason.ARCHIVED_EVENT) { "Event ${event.id} is archived" }
+        }
         val result = when (op) {
             is RenameBand -> band.copy(name = op.name.validName("Band name"))
             is AddMember -> addMember(band, op)
@@ -162,6 +166,11 @@ object Reducer {
 
             is Undo -> Undoing.apply(band, op)
         }
+        // While the fund is off (ITERATION_3 R10), a change may not leave it holding or owing money: that needs a treasurer.
+        conflictIf(
+            result.treasurerMemberId == null && band.treasurerMemberId == null && BandFund.canDisable(band) && !BandFund.canDisable(result),
+            RejectionReason.NO_TREASURER,
+        ) { "Choose a treasurer before using the band fund" }
         return op.eventId
             ?.takeIf { op !is DeleteEvent }
             ?.let { eventId -> result.updateEvent(eventId) { it.copy(updatedAt = ctx.timestamp) } }
@@ -493,6 +502,7 @@ object Reducer {
     private fun validateCostEvent(band: Band, eventId: Id, memberId: Id) {
         val event = band.event(eventId).orNotFound { "Event $eventId" }
         invalidIf(event.participant(memberId) == null, RejectionReason.NOT_A_PARTICIPANT) { "The cost's owner does not take part in the event" }
+        conflictIf(event.archived, RejectionReason.ARCHIVED_EVENT) { "Event $eventId is archived" }
     }
 
     /**

@@ -210,8 +210,11 @@ class ReducerTest {
         assertEquals(null, scenario.band.event("gig")!!.refundOf("late"), "money moved: a lead decides")
         scenario.apply(com.jacekgajek.kapelusz.ops.SetEventArchived("gig", true))
         scenario.apply(AddCost("later", "bob", pln("20"), DATE))
-        scenario.apply(UpdateCost("later", incurredForEventId = Change("gig")))
-        assertEquals(null, scenario.band.event("gig")!!.refundOf("later"), "archived: a lead decides")
+        // Archived events are read-only (ITERATION_3 R10): not even a cost can be assigned to one.
+        assertEquals(
+            com.jacekgajek.kapelusz.ops.RejectionReason.ARCHIVED_EVENT,
+            scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason,
+        )
     }
 
     @Test
