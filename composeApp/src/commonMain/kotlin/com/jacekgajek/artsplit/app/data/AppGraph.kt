@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.data
 
+import com.jacekgajek.artsplit.model.Member
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.FlowPreview
@@ -205,6 +206,19 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /** Applies an operation locally and schedules a sync. */
+    private var pictureSent = false
+
+    /**
+     * Once per app run, while the user's member has no photo: the Google token kept from signing in carries it, so
+     * members signed in before photos existed get theirs without signing in again (ITERATION_2 §7.4).
+     */
+    fun sendPictureIfMissing(me: Member?) {
+        if (pictureSent || me == null || me.pictureUrl != null) return
+        val googleToken = sessions.session.value?.idToken ?: return
+        pictureSent = true
+        scope.launch { runCatching { api.sendPicture(googleToken) }.onSuccess { sync.requestSync() } }
+    }
+
     fun dispatch(op: Operation): Rejection? {
         val rejection = bands.dispatch(op)
         if (rejection == null) {

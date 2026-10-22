@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.server
 
+import com.jacekgajek.artsplit.api.PictureRequest
 import com.jacekgajek.artsplit.model.withPicture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -119,6 +120,13 @@ class Api(
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
             request.method == "GET" && segments == listOf("me") -> me(user)
+            request.method == "POST" && segments == listOf("me", "picture") -> {
+                // The Google token the app kept from signing in: the photo in it is the user's (ITERATION_2 §7.4).
+                val token = parse(request, PictureRequest.serializer()).googleToken
+                val picture = verifier.pictureOf(token, user.userId) ?: throw ApiError(400, "bad_request", "Not a Google sign-in token of this user")
+                rememberPicture(user.userId, picture)
+                HttpResponse(204)
+            }
             request.method == "GET" && segments == listOf("me", "calendar") -> calendarSubscription(user, request, CalendarSubscriptionChange())
             request.method == "POST" && segments == listOf("me", "calendar") ->
                 calendarSubscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))

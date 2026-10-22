@@ -272,6 +272,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
         navController.navigate(EventRoute(eventId))
     }
     ReminderPrompt(graph, settings)
+    LaunchedEffect(state.me?.pictureUrl) { graph.sendPictureIfMissing(state.me) }
     SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
     val toSettings = { navController.navigate(SettingsRoute()) }
     val toRoster = { navController.navigate(RosterRoute) }

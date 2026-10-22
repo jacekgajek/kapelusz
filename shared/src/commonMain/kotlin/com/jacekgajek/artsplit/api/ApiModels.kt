@@ -149,3 +149,7 @@ data class HistoryEntry(
 /** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
 @Serializable
 data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, val next: String? = null)
+
+/** POST /me/picture: a Google sign-in token of the user (may have expired); its photo becomes theirs in their bands. */
+@Serializable
+data class PictureRequest(val googleToken: String)

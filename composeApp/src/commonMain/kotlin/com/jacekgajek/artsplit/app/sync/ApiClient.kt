@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.sync
 
+import com.jacekgajek.artsplit.api.PictureRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.AttachmentUrlResponse
@@ -76,6 +77,11 @@ class ApiClient(
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
+
+    /** Hands the server the Google sign-in token this device kept, for the photo in it (ITERATION_2 §7.4). */
+    suspend fun sendPicture(googleToken: String) {
+        text(send(HttpMethod.Post, "/me/picture") { setBody(TextContent(ArtSplitJson.encodeToString(PictureRequest.serializer(), PictureRequest(googleToken)), ContentType.Application.Json)) })
+    }
 
     /** The user's private calendar feed link (created on first use). */
     suspend fun calendar(): CalendarSubscription = call(HttpMethod.Get, "/me/calendar", CalendarSubscription.serializer())
