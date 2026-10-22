@@ -60,7 +60,10 @@ echo "== Web: syncing $DIST to s3://$WEB_BUCKET"
 WASM_ARGS=(--exclude "*" --include "*.wasm" --content-type application/wasm --cache-control "public, max-age=31536000, immutable")
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" "${WASM_ARGS[@]}"
 # download/ is not part of the web build: it holds the published APK, which a deploy without a keystore keeps.
-aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*.wasm" --exclude "download/*" --cache-control "no-cache"
+# .well-known/ likewise, unless this deploy writes it: without it Android stops opening invite links in the app.
+KEEP_ARGS=(--exclude "download/*")
+[[ -n "${ANDROID_CERT_SHA256:-}" ]] || KEEP_ARGS+=(--exclude ".well-known/*")
+aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*.wasm" "${KEEP_ARGS[@]}" --cache-control "no-cache"
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete "${WASM_ARGS[@]}"
 
 if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
@@ -77,4 +80,21 @@ else
   echo "== APK: not published (set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, KAPELUSZ_VERSION_CODE)"
 fi
 aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" >/dev/null
+
+# Smoke check (ITERATION_3 R5): the API answers (401 without a sign-in) and the website serves the app. A few tries:
+# CloudFront takes a moment to drop the old files.
+API_URL="${KAPELUSZ_API_URL:-$(sed -n 's/^kapelusz.apiUrl=//p' gradle.properties)}"
+WEB_URL="${KAPELUSZ_WEB_URL:-$(sed -n 's/^kapelusz.webUrl=//p' gradle.properties)}"
+check() { # url expected-status
+  for _ in 1 2 3 4 5 6; do
+    [[ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1")" == "$2" ]] && return 0
+    sleep 10
+  done
+  echo "Smoke check failed: $1 did not answer $2" >&2
+  return 1
+}
+echo "== Smoke check: $API_URL, $WEB_URL"
+check "${API_URL%/}/me?appVersion=0" 401
+check "${WEB_URL%/}/" 200
+check "${WEB_URL%/}/composeApp.js" 200
 echo "== Done"

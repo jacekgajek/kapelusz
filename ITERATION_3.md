@@ -259,11 +259,11 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 ## 4. Milestones and task checklist
 
 ### V3-M1 — Hardening P1: crashes, data loss, wrong money
-- [ ] V3-M1.1 Input limits and validation (R1)
-- [ ] V3-M1.2 Refunds of members' costs only into open events; "Incurred for" limited to the owner's events (R2)
-- [ ] V3-M1.3 Navigation and submit guards, dialogs that cannot crash, back stack kept on rotation and language change (R3)
-- [ ] V3-M1.4 Sync never loses a change (R4)
-- [ ] V3-M1.5 Deploy safeguards and post-deploy smoke check (R5)
+- [x] V3-M1.1 Input limits and validation (R1)
+- [x] V3-M1.2 Refunds of members' costs only into open events; "Incurred for" limited to the owner's events (R2)
+- [x] V3-M1.3 Navigation and submit guards, dialogs that cannot crash, back stack kept on rotation and language change (R3)
+- [x] V3-M1.4 Sync never loses a change (R4)
+- [x] V3-M1.5 Deploy safeguards and post-deploy smoke check (R5)
 
 ### V3-M2 — Hardening P2
 - [ ] V3-M2.1 Server: membership first, quotas, sessions, logs, CORS, attachment keys (R6)
