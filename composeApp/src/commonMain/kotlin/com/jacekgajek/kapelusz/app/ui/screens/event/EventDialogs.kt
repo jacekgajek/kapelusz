@@ -36,6 +36,7 @@ import com.jacekgajek.kapelusz.app.data.newId
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.FlowRow
@@ -43,6 +44,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.archive
+import com.jacekgajek.kapelusz.app.generated.archive_settle_first
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_event_confirm
@@ -59,6 +61,7 @@ import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.SetEventArchived
@@ -110,15 +113,25 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
     )
 }
 
-/** Overflow menu: archive / restore, delete (only events without recorded transfers can be deleted). */
+/**
+ * Overflow menu: archive (only settled events and drafts) / restore, delete (only events without recorded transfers
+ * can be deleted).
+ */
 @Composable
-fun EventMenu(band: Band, event: Event, actions: Actions, onDeleted: () -> Unit) {
+fun EventMenu(event: Event, settlement: Settlement, actions: Actions, onDeleted: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more)) }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        val canArchive = event.archived || settlement.canArchive
         DropdownMenuItem(
-            text = { Text(stringResource(if (event.archived) Res.string.unarchive else Res.string.archive)) },
+            text = {
+                Column {
+                    Text(stringResource(if (event.archived) Res.string.unarchive else Res.string.archive))
+                    if (!canArchive) Text(stringResource(Res.string.archive_settle_first), style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            enabled = canArchive,
             onClick = { open = false; actions.run(SetEventArchived(event.id, !event.archived)) },
         )
         DropdownMenuItem(

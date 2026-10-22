@@ -70,7 +70,12 @@ object Reducer {
                     notes = if (op.notes != null) op.notes.value.blankToNull() else event.notes,
                 )
             }
-            is SetEventArchived -> band.updateEvent(op.eventId) { it.copy(archived = op.archived) }
+            is SetEventArchived -> band.updateEvent(op.eventId) { event ->
+                conflictIf(op.archived && !event.archived && !SettlementCalculator.settle(band, event).canArchive, RejectionReason.EVENT_UNSETTLED) {
+                    "Event ${event.id} is not settled"
+                }
+                event.copy(archived = op.archived)
+            }
             is SetEventAgenda -> band.updateEvent(op.eventId) { it.copy(agenda = validAgenda(op.agenda)) }
             is SetAgendaTemplate -> {
                 invalidIf(op.items.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }

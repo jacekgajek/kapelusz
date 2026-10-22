@@ -62,6 +62,9 @@ data class Settlement(
 ) {
     val canSettle: Boolean get() = status == EventStatus.OPEN && problems.isEmpty()
 
+    /** Only events with nothing left to settle can be archived: settled ones and drafts (no money in them). */
+    val canArchive: Boolean get() = status == EventStatus.SETTLED || status == EventStatus.DRAFT
+
     /** What is left to split by weight after the fixed shares; negative on a [SettlementProblem.LOSS]. */
     val rest: Money get() = net - fixedTotal
 

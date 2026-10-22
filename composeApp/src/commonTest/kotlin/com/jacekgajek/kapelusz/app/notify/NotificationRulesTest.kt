@@ -146,7 +146,6 @@ class NotificationRulesTest {
     fun onlyThePayerIsRemindedUntilSettled() {
         assertEquals(emptyList(), debtReminders(debt, "u-alice"), "the one owed money is not reminded")
         assertEquals(emptyList(), debtReminders(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000))), "u-bob"), "settled")
-        assertEquals(emptyList(), debtReminders(debt.apply("u-bob", SetEventArchived("gig", true)), "u-bob"), "archived")
         // Part paid: the rest is reminded of.
         assertEquals(listOf(Owed("Alice", Money(3000))), debtReminders(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))), "u-bob").first().owed)
     }
@@ -176,7 +175,6 @@ class NotificationRulesTest {
         fun due(band: Band) = NotificationRules.dueDebtReminder(listOf(band), "u-bob", "b/gig/debt1", LocalTime(18, 0), firing)
         assertEquals(listOf(Owed("Alice", Money(5000))), due(debt)?.owed)
         assertEquals(null, due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000)))), "paid since it was planned")
-        assertEquals(null, due(debt.apply("u-bob", SetEventArchived("gig", true))), "archived since")
         // Part paid since: the text is built from what is still owed.
         assertEquals(listOf(Owed("Alice", Money(3000))), due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))))?.owed)
         assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 22, 23, 0)), "hours late")

@@ -9,6 +9,7 @@ import com.jacekgajek.kapelusz.app.generated.category_other
 import com.jacekgajek.kapelusz.app.generated.category_travel
 import com.jacekgajek.kapelusz.app.generated.reject_already_participant
 import com.jacekgajek.kapelusz.app.generated.reject_archived_event
+import com.jacekgajek.kapelusz.app.generated.reject_event_unsettled
 import com.jacekgajek.kapelusz.app.generated.reject_archived_member
 import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle
 import com.jacekgajek.kapelusz.app.generated.reject_cost_below_refunded
@@ -118,6 +119,7 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.TREASURER_MUST_STAY -> Res.string.reject_treasurer_must_stay
     RejectionReason.ARCHIVED_MEMBER -> Res.string.reject_archived_member
     RejectionReason.ARCHIVED_EVENT -> Res.string.reject_archived_event
+    RejectionReason.EVENT_UNSETTLED -> Res.string.reject_event_unsettled
     RejectionReason.OWNER_ROLE_FIXED -> Res.string.reject_owner_role_fixed
     RejectionReason.OWNERSHIP_NEEDS_ADMIN -> Res.string.reject_ownership_needs_admin
     RejectionReason.MEMBER_LINKED -> Res.string.reject_member_linked

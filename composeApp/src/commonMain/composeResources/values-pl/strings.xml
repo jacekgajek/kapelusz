@@ -17,6 +17,7 @@
     <string name="create">Utwórz</string>
     <string name="archive">Archiwizuj</string>
     <string name="unarchive">Przywróć</string>
+    <string name="archive_settle_first">Najpierw rozlicz</string>
     <string name="move_up">Przesuń w górę</string>
     <string name="move_down">Przesuń w dół</string>
     <string name="amount_invalid">Wpisz kwotę, np. 129,60</string>
@@ -170,6 +171,7 @@
     <string name="reject_treasurer_must_stay">Ta osoba trzyma kasę zespołową. Najpierw wybierz innego skarbnika.</string>
     <string name="reject_archived_member">Ten członek jest zarchiwizowany.</string>
     <string name="reject_archived_event">To wydarzenie jest zarchiwizowane. Przywróć je, aby je zmienić.</string>
+    <string name="reject_event_unsettled">Archiwizować można tylko rozliczone wydarzenia. Najpierw je rozlicz.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
     <string name="reject_ownership_needs_admin">Własność można przekazać tylko administratorowi z kontem w aplikacji.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>
