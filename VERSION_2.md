@@ -151,6 +151,13 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 - Not undoable: joining through an invite, unlinking an account, transferring ownership, deleting the band.
 - Each change records what it touched, before and after (in the history log, by the server); an undo names the log entry and the server takes the change from there. Changes from before V2-M7, and very large offline batches, have no such record and no arrow.
 
+### 7.3 Settings layout
+- The main Settings page is a list: icon, name, current value; entries that open a page have a ›. Grouped by whom they affect:
+  - **Band** (for everyone): **Band name** (tap: rename dialog, admins), **Band fund** (page: what the fund is, on/off and who holds it; read-only for non-admins), **Event agenda** (page: the template, admins only).
+  - **Personal**: **Language** (tap: dialog with the choices), **Notifications and calendar** (page: gig reminders, transfer notifications and the calendar subscription; on the web only **Calendar subscription**).
+  - Then **App updates** (Android) and **Account** in place, and **Delete band** last after a divider; the version (secret menu) below.
+- Pages are their own navigation entries, so Back returns to the list; on wide screens the content stays at a readable width.
+
 ## 8. Later (not in 1.0)
 - **Calendar view** of the event list (a month grid).
 - **Facebook login**: needs a Facebook developer app in Live mode (privacy-policy and data-deletion pages), SDKs on both platforms and a server secret; logins would be separate users, not linked. **Sign-in by email link** (AWS SES) is the simpler alternative if people without Google accounts join; SES has no idle cost (about $0.10 per 1000 emails).
@@ -210,9 +217,12 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M7.5 Delete band at the bottom of Settings; agenda template Reset to defaults and roomier fields; + Add cost in the event's Cost refunds (§7)
 - [x] V2-M7.6 Reminders scheduled again right away when settings or gigs change (not only when the app leaves the screen); reminder checks in the secret menu
 
-### V2-M8 — Release 1.0
-- [ ] V2-M8.1 Release checklist (§10) passed on real phones
-- [ ] V2-M8.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
+### V2-M8 — Settings layout
+- [x] V2-M8.1 Settings as a grouped list with pages for the band fund, event agenda, and notifications and calendar (§7.3)
+
+### V2-M9 — Release 1.0
+- [ ] V2-M9.1 Release checklist (§10) passed on real phones
+- [ ] V2-M9.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
 1. CI deploy green, including the APK step (keystore secret set from the file).

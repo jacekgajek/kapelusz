@@ -479,4 +479,14 @@
     <string name="diag_test_set">Testowe przypomnienie o %1$s (Android może je dostarczyć do godziny później)</string>
     <string name="diag_test_title">Art Split</string>
     <string name="diag_test_text">Testowe przypomnienie: przypomnienia działają na tym telefonie.</string>
+    <string name="notifications_and_calendar">Powiadomienia i kalendarz</string>
+    <string name="calendar_summary">Twoje koncerty w Kalendarzu Google</string>
+    <string name="reminders_summary_on">Przypomnienia o koncertach włączone · subskrypcja kalendarza</string>
+    <string name="reminders_summary_off">Przypomnienia o koncertach wyłączone · subskrypcja kalendarza</string>
+    <string name="fund_summary_on">Włączona · trzyma: %1$s</string>
+    <string name="fund_summary_off">Wyłączona</string>
+    <string name="fund_status">Stan</string>
+    <string name="fund_explanation">Kasa zespołowa to pieniądze, które zespół trzyma razem, np. na sprzęt, nagrania czy dojazdy. Wydarzenie może odłożyć do niej część dochodu (albo z niej dopłacić), a koszty można z niej zwracać. Pieniądze trzyma jedna osoba, skarbnik; aplikacja pilnuje, ile jest w kasie.</string>
+    <string name="settings_band">Zespół</string>
+    <string name="settings_personal">Osobiste</string>
 </resources>

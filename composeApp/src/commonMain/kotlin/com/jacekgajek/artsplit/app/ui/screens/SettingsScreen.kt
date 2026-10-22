@@ -1,5 +1,32 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import com.jacekgajek.artsplit.app.generated.settings_personal
+import com.jacekgajek.artsplit.app.generated.settings_band
+import com.jacekgajek.artsplit.app.generated.band_fund
+import com.jacekgajek.artsplit.app.generated.fund_explanation
+import com.jacekgajek.artsplit.app.generated.fund_status
+import com.jacekgajek.artsplit.app.generated.fund_summary_off
+import com.jacekgajek.artsplit.app.generated.fund_summary_on
+import com.jacekgajek.artsplit.app.generated.reminders_summary_off
+import com.jacekgajek.artsplit.app.generated.reminders_summary_on
+import com.jacekgajek.artsplit.app.generated.calendar_summary
+import com.jacekgajek.artsplit.app.generated.notifications_and_calendar
+import com.jacekgajek.artsplit.app.ui.model.displayLabel
+import com.jacekgajek.artsplit.app.ui.components.TextInputDialog
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.ListItem
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Box
 import com.jacekgajek.artsplit.app.ui.model.formatDate
 import com.jacekgajek.artsplit.app.ui.components.language
 import com.jacekgajek.artsplit.app.data.nowMillis
@@ -174,6 +201,9 @@ import com.jacekgajek.artsplit.app.generated.delete_band_confirm
 import com.jacekgajek.artsplit.app.generated.delete_band_failed
 import com.jacekgajek.artsplit.app.generated.cancel
 
+/** The settings that open a page of their own (VERSION_2 §8). */
+enum class SettingsPage { FUND, AGENDA, NOTIFICATIONS }
+
 @Composable
 fun SettingsScreen(
     language: String?,
@@ -204,118 +234,205 @@ fun SettingsScreen(
     calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
     /** The band's raw file from the server, for the secret menu; null for non-admins. */
     rawData: (suspend () -> String)?,
+    /** The page shown: null for the main list. */
+    page: SettingsPage?,
+    onOpenPage: (SettingsPage) -> Unit,
     onBack: () -> Unit,
 ) {
-    Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
-        Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)) {
-            Text(stringResource(Res.string.language), style = MaterialTheme.typography.titleMedium)
-            Column(Modifier.selectableGroup()) {
-                listOf(
-                    null to Res.string.language_system,
-                    "en" to Res.string.language_en,
-                    "pl" to Res.string.language_pl,
-                ).forEach { (code, label) ->
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .selectable(selected = language == code, onClick = { onLanguage(code) }, role = Role.RadioButton)
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = language == code, onClick = null)
-                        Text(stringResource(label), Modifier.padding(start = 12.dp))
-                    }
-                }
-            }
-            if (onRenameBand != null || onTreasurer != null) {
-                Text(stringResource(Res.string.band), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
-            }
-            if (onRenameBand != null) {
-                var name by remember(bandName) { mutableStateOf(bandName) }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.band_name)) }, singleLine = true, modifier = Modifier.weight(1f))
-                    TextButton(enabled = name.isNotBlank() && name.trim() != bandName, onClick = { onRenameBand(name.trim()) }) {
-                        Text(stringResource(Res.string.save))
-                    }
-                }
-            }
-            if (onTreasurer != null) {
-                // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
-                var enabling by remember { mutableStateOf(false) }
-                var confirmDisable by remember { mutableStateOf(false) }
-                val enabled = treasurer != null
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 12.dp)
-                        .toggleable(
-                            value = enabled || enabling,
-                            enabled = !enabled || onDisableFund != null,
-                            role = Role.Switch,
-                            onValueChange = { on -> if (on) enabling = true else if (enabled) confirmDisable = true else enabling = false },
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(stringResource(Res.string.fund_enable), Modifier.weight(1f))
-                    Switch(checked = enabled || enabling, onCheckedChange = null, enabled = !enabled || onDisableFund != null)
-                }
-                if (enabled || enabling) {
-                    val names = treasurerOptions.toMap()
-                    Dropdown(
-                        treasurer,
-                        treasurerOptions.map { it.first },
-                        {
-                            it?.let(onTreasurer)
-                            enabling = false
-                        },
-                        stringResource(Res.string.fund_treasurer),
-                        Modifier.fillMaxWidth().padding(top = 8.dp),
-                    ) { id -> id?.let { names[it] } ?: stringResource(Res.string.fund_treasurer_choose) }
-                    Text(stringResource(Res.string.fund_treasurer_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-                    if (enabled && onDisableFund == null) {
-                        Text(
-                            stringResource(Res.string.fund_cannot_disable, fundBalance),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                } else {
-                    Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-                }
-                if (confirmDisable && onDisableFund != null) {
-                    ConfirmDialog(
-                        title = stringResource(Res.string.fund_disable_title),
-                        text = stringResource(Res.string.fund_disable_text),
-                        confirmLabel = stringResource(Res.string.fund_disable_confirm),
-                        onConfirm = onDisableFund,
-                        onDismiss = { confirmDisable = false },
-                    )
-                }
-            }
-            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
-            rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
-            CalendarSection(calendar)
-            rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
-            Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
-            account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
-            OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
-            // Last, set apart: it cannot be undone (VERSION_2 §7).
-            if (onDeleteBand != null) {
-                HorizontalDivider(Modifier.padding(top = 24.dp))
-                var deleting by remember { mutableStateOf(false) }
-                OutlinedButton(
-                    onClick = { deleting = true },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                    modifier = Modifier.padding(top = 16.dp),
-                ) {
-                    Icon(Icons.Default.DeleteForever, null)
-                    Text(stringResource(Res.string.delete_band), Modifier.padding(start = 8.dp))
-                }
-                if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
-            }
-            var secretMenu by remember { mutableStateOf(false) }
-            // A tap on the version opens the secret menu for admins (VERSION_2 §7.1); for others it is just text.
-            VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
-            if (secretMenu && rawData != null) SecretMenuDialog(rawData, onDismiss = { secretMenu = false })
+    val permission = rememberNotificationPermission()
+    when (page) {
+        SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
+            FundSettings(treasurer, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
         }
+        SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
+            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
+        }
+        SettingsPage.NOTIFICATIONS -> SettingsPageScaffold(stringResource(notificationsTitle(permission)), onBack) {
+            permission?.let { NotificationsSection(it, appSettings, onAppSettings) }
+            CalendarSection(calendar)
+        }
+        null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
+            var choosingLanguage by remember { mutableStateOf(false) }
+            var renaming by remember { mutableStateOf(false) }
+            val languages = listOf(null to Res.string.language_system, "en" to Res.string.language_en, "pl" to Res.string.language_pl)
+            // Grouped by whom they affect: the band's settings change things for everyone, the personal ones only for you.
+            SectionHeader(stringResource(Res.string.settings_band), Modifier.padding(horizontal = 16.dp))
+            SettingsItem(Icons.Default.Groups, stringResource(Res.string.band_name), bandName, onClick = onRenameBand?.let { { renaming = true } })
+            SettingsItem(
+                Icons.Default.Savings,
+                stringResource(Res.string.band_fund),
+                treasurer?.let { id -> stringResource(Res.string.fund_summary_on, treasurerOptions.toMap()[id].orEmpty()) } ?: stringResource(Res.string.fund_summary_off),
+                chevron = true,
+            ) { onOpenPage(SettingsPage.FUND) }
+            if (onAgendaTemplate != null) {
+                SettingsItem(Icons.Default.Schedule, stringResource(Res.string.agenda_template_title), agendaTemplate.map { it.displayLabel() }.joinToString(", "), chevron = true) {
+                    onOpenPage(SettingsPage.AGENDA)
+                }
+            }
+            SectionHeader(stringResource(Res.string.settings_personal), Modifier.padding(horizontal = 16.dp))
+            SettingsItem(Icons.Default.Language, stringResource(Res.string.language), stringResource(languages.first { it.first == language }.second)) {
+                choosingLanguage = true
+            }
+            SettingsItem(
+                if (permission != null) Icons.Default.Notifications else Icons.Default.Event,
+                stringResource(notificationsTitle(permission)),
+                stringResource(
+                    when {
+                        permission == null -> Res.string.calendar_summary
+                        appSettings.remindersEnabled -> Res.string.reminders_summary_on
+                        else -> Res.string.reminders_summary_off
+                    },
+                ),
+                chevron = true,
+            ) { onOpenPage(SettingsPage.NOTIFICATIONS) }
+
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
+                SectionHeader(stringResource(Res.string.account))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
+                }
+                // Last, set apart: it cannot be undone (VERSION_2 §7).
+                if (onDeleteBand != null) {
+                    HorizontalDivider(Modifier.padding(top = 24.dp))
+                    var deleting by remember { mutableStateOf(false) }
+                    OutlinedButton(
+                        onClick = { deleting = true },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        modifier = Modifier.padding(top = 16.dp),
+                    ) {
+                        Icon(Icons.Default.DeleteForever, null)
+                        Text(stringResource(Res.string.delete_band), Modifier.padding(start = 8.dp))
+                    }
+                    if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
+                }
+                var secretMenu by remember { mutableStateOf(false) }
+                // A tap on the version opens the secret menu for admins (VERSION_2 §7.1); for others it is just text.
+                VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
+                if (secretMenu && rawData != null) SecretMenuDialog(rawData, onDismiss = { secretMenu = false })
+            }
+
+            if (choosingLanguage) {
+                AlertDialog(
+                    onDismissRequest = { choosingLanguage = false },
+                    title = { Text(stringResource(Res.string.language)) },
+                    text = {
+                        Column(Modifier.selectableGroup()) {
+                            languages.forEach { (code, label) ->
+                                Row(
+                                    Modifier.fillMaxWidth()
+                                        .selectable(selected = language == code, onClick = { onLanguage(code); choosingLanguage = false }, role = Role.RadioButton)
+                                        .padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(selected = language == code, onClick = null)
+                                    Text(stringResource(label), Modifier.padding(start = 16.dp))
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = { TextButton(onClick = { choosingLanguage = false }) { Text(stringResource(Res.string.cancel)) } },
+                )
+            }
+            if (renaming && onRenameBand != null) {
+                TextInputDialog(stringResource(Res.string.band_name), stringResource(Res.string.band_name), bandName, onConfirm = { if (it != bandName) onRenameBand(it) }, onDismiss = { renaming = false })
+            }
+        }
+    }
+}
+
+private fun notificationsTitle(permission: NotificationPermission?): StringResource =
+    if (permission != null) Res.string.notifications_and_calendar else Res.string.calendar_title
+
+/** A settings page: the top bar and a centred column that does not stretch on wide screens. */
+@Composable
+private fun SettingsPageScaffold(title: String, onBack: () -> Unit, padded: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+    Scaffold(topBar = { BackTopBar(title, onBack) }) { padding ->
+        Box(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().then(if (padded) Modifier.padding(16.dp) else Modifier.padding(vertical = 8.dp)), content = content)
+        }
+    }
+}
+
+/** One entry of the settings list: icon, name, current value; tapping opens it (a page when [chevron]). */
+@Composable
+private fun SettingsItem(icon: ImageVector, title: String, summary: String?, chevron: Boolean = false, onClick: (() -> Unit)?) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = summary?.takeIf { it.isNotEmpty() }?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
+        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
+        trailingContent = if (chevron) ({ Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }) else null,
+        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+    )
+}
+
+/** A heading within a settings page. */
+@Composable
+private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = modifier.padding(top = 24.dp, bottom = 8.dp))
+}
+
+/** The band fund page: what it is, whether it is on and who holds it (admins change it). */
+@Composable
+private fun FundSettings(
+    treasurer: String?,
+    treasurerOptions: List<Pair<String, String>>,
+    onTreasurer: ((String) -> Unit)?,
+    onDisableFund: (() -> Unit)?,
+    fundBalance: String,
+) {
+    Text(stringResource(Res.string.fund_explanation), style = MaterialTheme.typography.bodyMedium)
+    val names = treasurerOptions.toMap()
+    if (onTreasurer == null) {
+        SectionHeader(stringResource(Res.string.fund_status))
+        Text(treasurer?.let { stringResource(Res.string.fund_summary_on, names[it].orEmpty()) } ?: stringResource(Res.string.fund_summary_off))
+        return
+    }
+    // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
+    var enabling by remember { mutableStateOf(false) }
+    var confirmDisable by remember { mutableStateOf(false) }
+    val enabled = treasurer != null
+    Row(
+        Modifier.fillMaxWidth().padding(top = 16.dp)
+            .toggleable(
+                value = enabled || enabling,
+                enabled = !enabled || onDisableFund != null,
+                role = Role.Switch,
+                onValueChange = { on -> if (on) enabling = true else if (enabled) confirmDisable = true else enabling = false },
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(Res.string.fund_enable), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Switch(checked = enabled || enabling, onCheckedChange = null, enabled = !enabled || onDisableFund != null)
+    }
+    if (enabled || enabling) {
+        Dropdown(
+            treasurer,
+            treasurerOptions.map { it.first },
+            {
+                it?.let(onTreasurer)
+                enabling = false
+            },
+            stringResource(Res.string.fund_treasurer),
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) { id -> id?.let { names[it] } ?: stringResource(Res.string.fund_treasurer_choose) }
+        Text(stringResource(Res.string.fund_treasurer_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        if (enabled && onDisableFund == null) {
+            Text(stringResource(Res.string.fund_cannot_disable, fundBalance), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        }
+    } else {
+        Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+    }
+    if (confirmDisable && onDisableFund != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.fund_disable_title),
+            text = stringResource(Res.string.fund_disable_text),
+            confirmLabel = stringResource(Res.string.fund_disable_confirm),
+            onConfirm = onDisableFund,
+            onDismiss = { confirmDisable = false },
+        )
     }
 }
 
@@ -448,7 +565,7 @@ private fun DeleteBandDialog(bandName: String, otherMembers: Int, onDelete: susp
 @Composable
 private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onAutoUpdate: (Boolean) -> Unit) {
     val status by controls.status.collectAsState()
-    Text(stringResource(Res.string.updates_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+    SectionHeader(stringResource(Res.string.updates_title))
     Row(
         Modifier.fillMaxWidth().padding(top = 8.dp).toggleable(value = autoUpdate, role = Role.Switch, onValueChange = onAutoUpdate),
         verticalAlignment = Alignment.CenterVertically,
@@ -492,7 +609,6 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, storedOwnLi
     var drafts by remember(template, builtInLabels) {
         mutableStateOf(template.map { TemplateDraft(it.kind, it.kind?.let { kind -> builtInLabels.getValue(kind) } ?: it.label.orEmpty()) })
     }
-    Text(stringResource(Res.string.agenda_template_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 16.dp))
     Text(stringResource(Res.string.agenda_template_hint), style = MaterialTheme.typography.bodySmall)
     drafts.forEachIndexed { index, draft ->
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -525,7 +641,7 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, storedOwnLi
 @Composable
 private fun NotificationsSection(permission: NotificationPermission, settings: AppSettings, update: ((AppSettings) -> AppSettings) -> Unit) {
     var pickingTime by remember { mutableStateOf(false) }
-    Text(stringResource(Res.string.notifications_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+    SectionHeader(stringResource(Res.string.notifications_title))
     if (permission.needsAsking && (settings.remindersEnabled || settings.transferNotifications)) {
         Text(stringResource(Res.string.notifications_blocked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         TextButton(onClick = { permission.request { granted -> if (!granted) permission.openSettings() } }) { Text(stringResource(Res.string.notifications_allow)) }
@@ -598,7 +714,7 @@ private fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> C
             working = false
         }
     }
-    Text(stringResource(Res.string.calendar_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+    SectionHeader(stringResource(Res.string.calendar_title))
     Text(stringResource(Res.string.calendar_hint), style = MaterialTheme.typography.bodySmall)
     val current = subscription
     if (current == null) {

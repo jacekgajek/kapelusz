@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app
 
+import com.jacekgajek.artsplit.app.ui.screens.SettingsPage
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -266,7 +267,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     }
     ReminderPrompt(graph, settings)
     SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
-    val toSettings = { navController.navigate(SettingsRoute) }
+    val toSettings = { navController.navigate(SettingsRoute()) }
     val toRoster = { navController.navigate(RosterRoute) }
     val back: () -> Unit = { navController.popBackStack() }
 
@@ -296,7 +297,8 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
                 })
             }
-            composable<SettingsRoute> {
+            composable<SettingsRoute> { entry ->
+                val page = entry.toRoute<SettingsRoute>().page?.let { name -> SettingsPage.entries.firstOrNull { it.name == name } }
                 val session by graph.sessions.session.collectAsState()
                 val scope = rememberCoroutineScope()
                 SettingsScreen(
@@ -328,6 +330,8 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
                     onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },
+                    page = page,
+                    onOpenPage = { navController.navigate(SettingsRoute(it.name)) },
                     onBack = back,
                 )
             }
