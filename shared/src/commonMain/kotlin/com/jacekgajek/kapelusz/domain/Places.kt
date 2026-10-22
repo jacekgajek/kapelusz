@@ -44,10 +44,6 @@ object Places {
         return SharedPlace(name, url)
     }
 
-    /** Google Maps searching for [query], to find the place and share it back (Select on map). */
-    fun searchUrl(query: String?): String =
-        query?.trim()?.takeIf { it.isNotEmpty() }?.let { "https://www.google.com/maps/search/?api=1&query=${encode(it)}" } ?: "https://www.google.com/maps"
-
     /** Where Navigate goes: the stored Maps link (the exact pin), otherwise directions to the location text. */
     fun navigateUrl(event: Event): String? =
         event.mapUrl ?: event.location?.takeIf { it.isNotBlank() }?.let { "https://www.google.com/maps/dir/?api=1&destination=${encode(it)}" }
