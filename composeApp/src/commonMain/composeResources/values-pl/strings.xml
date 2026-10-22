@@ -397,27 +397,7 @@
     <string name="update_required_button">Aktualizuj</string>
     <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Art Split</string>
     <string name="upcoming_event">Najbliższe: %1$s · %2$s</string>
-    <string name="select_events">Zaznacz wydarzenia</string>
-    <string name="select_all">Zaznacz wszystkie</string>
     <string name="undo">Cofnij</string>
-    <plurals name="selected_count">
-        <item quantity="one">Zaznaczono %1$d</item>
-        <item quantity="few">Zaznaczono %1$d</item>
-        <item quantity="many">Zaznaczono %1$d</item>
-        <item quantity="other">Zaznaczono %1$d</item>
-    </plurals>
-    <plurals name="events_archived">
-        <item quantity="one">Zarchiwizowano %1$d wydarzenie</item>
-        <item quantity="few">Zarchiwizowano %1$d wydarzenia</item>
-        <item quantity="many">Zarchiwizowano %1$d wydarzeń</item>
-        <item quantity="other">Zarchiwizowano %1$d wydarzenia</item>
-    </plurals>
-    <plurals name="events_restored">
-        <item quantity="one">Przywrócono %1$d wydarzenie</item>
-        <item quantity="few">Przywrócono %1$d wydarzenia</item>
-        <item quantity="many">Przywrócono %1$d wydarzeń</item>
-        <item quantity="other">Przywrócono %1$d wydarzenia</item>
-    </plurals>
     <string name="h_set_agenda">Zmieniono harmonogram: %1$s</string>
     <string name="h_set_agenda_template">Zmieniono godziny dla nowych wydarzeń</string>
     <string name="agenda_arrival">Przyjazd</string>

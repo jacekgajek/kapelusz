@@ -83,8 +83,6 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.navigation.compose)
-            // Back handling (e.g. leaving selection mode); already part of navigation-compose at runtime.
-            implementation(libs.navigationevent.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
         }
