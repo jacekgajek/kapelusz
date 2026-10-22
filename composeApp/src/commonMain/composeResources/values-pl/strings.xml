@@ -177,8 +177,8 @@
     <string name="reject_user_already_member">To konto już należy do zespołu.</string>
     <string name="reject_member_has_history">Ten członek ma koszty lub wydarzenia. Zamiast tego go zarchiwizuj.</string>
     <string name="reject_event_has_transfers">To wydarzenie ma zapisane przekazania. Zamiast tego je zarchiwizuj.</string>
-    <string name="reject_participant_has_money">Ta osoba ma pieniądze z tego wydarzenia. Najpierw je usuń lub przekaż.</string>
-    <string name="reject_participant_has_transfers">Ta osoba ma zapisane przekazania w tym wydarzeniu.</string>
+    <string name="reject_participant_has_money">Ta osoba ma zebrane pieniądze w tym wydarzeniu. Aby ją usunąć, najpierw usuń wszystkie jej zebrane pieniądze i przekazania.</string>
+    <string name="reject_participant_has_transfers">Ta osoba ma przekazania w tym wydarzeniu. Aby ją usunąć, najpierw usuń wszystkie jej przekazania i zebrane pieniądze.</string>
     <string name="reject_participant_has_refunds">Ta osoba ma tu zwroty kosztów. Najpierw je odłóż.</string>
     <string name="reject_not_refundable_here">Koszty można zwrócić tylko w wydarzeniach, w których uczestniczy ich właściciel.</string>
     <string name="reject_refund_too_large">Zwrot jest większy niż pozostała kwota.</string>

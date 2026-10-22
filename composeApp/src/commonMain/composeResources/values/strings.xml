@@ -177,8 +177,8 @@
     <string name="reject_user_already_member">This account is already in the band.</string>
     <string name="reject_member_has_history">This member has costs or events. Archive them instead.</string>
     <string name="reject_event_has_transfers">This event has recorded transfers. Archive it instead.</string>
-    <string name="reject_participant_has_money">This person holds money from this event. Remove or move it first.</string>
-    <string name="reject_participant_has_transfers">This person has recorded transfers in this event.</string>
+    <string name="reject_participant_has_money">This person has collected money in this event. To remove them, first remove all their collected money and transfers here.</string>
+    <string name="reject_participant_has_transfers">This person has transfers in this event. To remove them, first remove all their transfers and collected money here.</string>
     <string name="reject_participant_has_refunds">This person has cost refunds here. Defer them first.</string>
     <string name="reject_not_refundable_here">Costs can only be refunded at events their owner takes part in.</string>
     <string name="reject_refund_too_large">The refund is larger than what is still outstanding.</string>

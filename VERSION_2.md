@@ -49,12 +49,8 @@ makes this explicit, so the data format can change later without silently broken
 - The nearest event **you take part in**; if you take part in none, the nearest band event.
 - Shown below the Continue card. Both are compact one-line cards; each is hidden when nothing matches. An event is never on both: an open gig tonight shows as Continue only.
 
-### 3.3 Bulk archive
-- **Leads and above** only (the same people who archive single events); for others long-press does nothing.
-- **Phone:** long-press an event to enter selection mode. **Web:** press-and-hold too, plus a **Select** entry in the top bar.
-- In selection mode tapping toggles events. The top bar shows **"3 selected"**, **Select all** (the events currently shown) and **Archive**, or **Unarchive** when only archived events are selected. Back or ✕ leaves selection mode.
-- No confirmation (archiving is reversible); a snackbar says **"3 events archived · Undo"**.
-- No bulk delete: deleting has per-event rules and is about money records.
+### 3.3 Bulk archive (removed)
+Removed in V2-M7: events are archived one at a time from the event's menu, and history undo (§7.2) covers mistakes.
 
 ## 4. Event agenda and details
 
@@ -129,8 +125,21 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 - **Privacy:** the link carries a long random secret (calendars cannot sign in). **Reset link** makes a new one and kills the old. Entries carry no money.
 - **Server:** `GET /calendar/{secret}.ics`, without authentication (the secret is the authorization). Stored as `users/{sub}-calendar.json` (the secret and the switch) and `calendar/{secret}.json` → user. A one-off "Add to calendar" button per event is not needed.
 
-## 7. Small fixes
+## 7. Small fixes, secret menu and undo
+- Removing a participant who has collected money or transfers: the message says to remove all of their collected money and transfers first (moving the money records a transfer, which also blocks removal).
 - History: a spinner instead of "…" while the event screen's history loads, and while **Load more** loads in the band history.
+
+### 7.1 Secret menu (admins)
+- In Settings, a **tap on the version number** opens the secret menu for an **Admin or Owner** of the open band; for others it does nothing.
+- **Copy raw JSON data** copies the band's file exactly as stored in the bucket (`bands/<id>/state.json`, byte for byte), so putting the copy back changes nothing. A server endpoint for admins returns the stored file unchanged; offline it shows an error.
+
+### 7.2 Undo from history
+- In the **event's history** and the **band's history**, the **newest line** of the list has an **undo arrow** on the right: in an event's history the newest change of that event, in the band's history the newest change of the band.
+- Undo puts back exactly what that change touched. It is **refused** ("Changed since, can't undo") when any of those things changed afterwards.
+- Tapping the arrow asks first, naming the change ("Undo 'Bob added cost Fuel 50 PLN'?").
+- Undo is an ordinary change: the same permissions apply as for making the reverse change by hand, and the arrow is shown only to those who may. It appears in history as its own line ("Jacek undid: …"), which is then the newest line, so undoing it redoes the change.
+- Not undoable: joining through an invite, unlinking an account, transferring ownership, deleting the band.
+- Each change records what it touched as it was before (in the history log, by the server). Changes from before V2-M7 have no such record and no arrow.
 
 ## 8. Later (not in 1.0)
 - **Calendar view** of the event list (a month grid).
@@ -183,9 +192,15 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M6.3 Share from Google Maps to Art Split (Android) with the "Set the location of…" picker and "New event at this place"
 - [x] V2-M6.4 Navigate on the event, the Maps link in the calendar feed, Navigate on reminders
 
-### V2-M7 — Release 1.0
-- [ ] V2-M7.1 Release checklist (§10) passed on real phones
-- [ ] V2-M7.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
+### V2-M7 — Secret menu, undo, no bulk archive
+- [ ] V2-M7.1 Secret menu with "Copy raw JSON data" (§7.1)
+- [ ] V2-M7.2 Undo from history (§7.2)
+- [ ] V2-M7.3 Remove bulk archive (§3.3)
+- [ ] V2-M7.4 Clearer message when a participant with collected money or transfers cannot be removed (§7)
+
+### V2-M8 — Release 1.0
+- [ ] V2-M8.1 Release checklist (§10) passed on real phones
+- [ ] V2-M8.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
 1. CI deploy green, including the APK step (keystore secret set from the file).
@@ -196,6 +211,8 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 6. Reminders arrive N days before at the set time, also after a phone restart.
 7. The calendar subscription shows a gig in Google Calendar, including after a lead adds you to one.
 8. Delete band on a throwaway band: the other member's app says it was deleted.
+9. A place shared from Google Maps to Art Split; Navigate on the event and on its reminder.
+10. Undo from history on a real change, and its redo.
 
 Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting service.
 
@@ -218,3 +235,4 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | Sound check (Próba dźwięku) is a third built-in agenda time and part of the default template. Builds before 12 cannot read an unknown kind of time, so `MIN_APP_VERSION` is 12 (live since V2-M3). |
 | 2026-10-21 | Event locations without an API key or billing: Google Maps does the picking (Select on map, Paste from Maps, or share from Maps to Art Split on Android), the event stores the Maps link, and Navigate opens it. Times can be set when creating an event, and the unset ones are shown as chips directly. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |
+| 2026-10-22 | V2-M7: bulk archive removed. Undo from history: the newest line of the event or band history, refused when what it touched changed since; permissions as for the reverse change; confirmed in a dialog; undo of an undo redoes. Membership and ownership changes and band deletion are not undoable. The secret menu (one tap on the version, admins) copies the band file exactly as stored in the bucket. The Continue card rule stays: future events with money on them do not count. |
