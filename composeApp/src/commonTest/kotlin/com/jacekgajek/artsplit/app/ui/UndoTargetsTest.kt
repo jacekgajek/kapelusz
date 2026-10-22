@@ -3,6 +3,7 @@ package com.jacekgajek.artsplit.app.ui
 import com.jacekgajek.artsplit.api.HistoryEntry
 import com.jacekgajek.artsplit.app.ui.screens.HistoryLine
 import com.jacekgajek.artsplit.app.ui.screens.pendingUndoLine
+import com.jacekgajek.artsplit.app.ui.screens.stillPending
 import com.jacekgajek.artsplit.app.ui.screens.undoTargets
 import com.jacekgajek.artsplit.app.ui.screens.withPending
 import com.jacekgajek.artsplit.ops.BandChange
@@ -63,5 +64,13 @@ class UndoTargetsTest {
         assertEquals("A", undoTargets(shown).undo?.opId)
         // Once the server has an undo, its own line replaces the one shown at once.
         assertEquals(listOf("u2", "u1", "C", "B", "A"), withPending(listOf(undoC) + server, listOf(undoC, undoB)).map { it.opId })
+    }
+
+    @Test
+    fun aSentUndoNoLongerNeedsItsOwnLine() {
+        val undoC = pendingUndoLine(Undo("C", RenameBand("C"), none), "u1", "u", "m")
+        val undoB = pendingUndoLine(Undo("B", RenameBand("B"), none), "u2", "u", "m")
+        // u1 was sent (accepted, so in the server's history, or refused); u2 is still waiting to be sent.
+        assertEquals(listOf("u2"), stillPending(listOf(undoC, undoB), unsent = setOf("u2")).map { it.opId })
     }
 }

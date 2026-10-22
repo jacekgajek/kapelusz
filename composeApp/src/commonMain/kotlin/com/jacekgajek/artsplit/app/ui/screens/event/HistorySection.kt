@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
+import com.jacekgajek.artsplit.app.ui.screens.stillPending
+import kotlinx.coroutines.CancellationException
 import com.jacekgajek.artsplit.app.ui.screens.withPending
 import com.jacekgajek.artsplit.app.ui.screens.pendingUndoLine
 import kotlinx.coroutines.coroutineScope
@@ -68,7 +70,9 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
             lines = entries.flatMap { it.toLines() }.filter { line ->
                 line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
             }
-        }.onFailure { failed = true }
+            failed = false
+            pending = stillPending(pending, graph.bands.local(context.band.id)?.pending.orEmpty().map { it.opId }.toSet())
+        }.onFailure { if (it is CancellationException) throw it else failed = true }
     }
     val loaded = lines?.let { withPending(it, pending) }
     Column {

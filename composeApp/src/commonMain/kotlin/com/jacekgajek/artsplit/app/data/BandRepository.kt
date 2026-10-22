@@ -173,11 +173,11 @@ class BandRepository(
     /** Every band on this device as the user sees it (with unsent changes), e.g. for reminders. */
     fun allBands(): List<Band> = locals.values.map(::replay)
 
-    /** Applies [op] locally. Returns the rejection if the operation is not allowed or not valid. */
     /** The id of the operation [dispatch] applied last, e.g. to recognise it in the history later. */
     var lastOpId: Id? = null
         private set
 
+    /** Applies [op] locally. Returns the rejection if the operation is not allowed or not valid. */
     fun dispatch(op: Operation): Rejection? {
         val bandId = currentBandId ?: error("No band open")
         val current = locals.getValue(bandId)

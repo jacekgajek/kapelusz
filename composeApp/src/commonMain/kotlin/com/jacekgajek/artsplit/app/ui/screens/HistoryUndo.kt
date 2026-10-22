@@ -72,6 +72,12 @@ fun pendingUndoLine(undo: Undo, opId: String, userId: String, memberId: String?)
     return HistoryLine(HistoryEntry(userId, memberId, now, emptyList()), OpEnvelope(opId, "", 0, now, undo), opId)
 }
 
+/**
+ * Pending undo lines still worth showing: those not sent yet ([unsent] op ids). Once sent, an accepted one is in the
+ * server's history and a refused one is gone, so neither needs its own line any more.
+ */
+fun stillPending(pending: List<HistoryLine>, unsent: Set<String>): List<HistoryLine> = pending.filter { it.opId in unsent }
+
 /** The server's [lines] with this device's [pending] undos that it does not have yet on top; both newest first. */
 fun withPending(lines: List<HistoryLine>, pending: List<HistoryLine>): List<HistoryLine> {
     val known = lines.map { it.opId }.toSet()

@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.server
 
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -258,16 +259,21 @@ class Api(
         val page = mutableListOf<String>()
         val entries = mutableListOf<HistoryEntry>()
         var bytes = 0
-        // Read in parallel: one at a time, a page of a hundred small files took seconds.
-        val candidates = keys.take(HISTORY_PAGE)
-        val blobs = candidates.map { key -> logReader.submit<Blob?> { store.get(key) } }.map { it.get() }
-        for ((key, found) in candidates.zip(blobs)) {
-            val blob = found ?: continue
-            if (entries.isNotEmpty() && bytes + blob.content.length > HISTORY_PAGE_BYTES) break
-            bytes += blob.content.length
-            page += key
-            // Its name, so an undo can say which entry it means (VERSION_2 §7.2).
-            entries += decode(HistoryEntry.serializer(), blob.content).copy(id = key.removePrefix("bands/$bandId/log/"))
+        // Read in parallel batches (one at a time, a page of a hundred small files took seconds), stopping at the budget.
+        var full = false
+        for (batch in keys.take(HISTORY_PAGE).chunked(LOG_READ_BATCH)) {
+            for ((key, blob) in batch.zip(readAll(batch))) {
+                blob ?: continue
+                if (entries.isNotEmpty() && bytes + blob.content.length > HISTORY_PAGE_BYTES) {
+                    full = true
+                    break
+                }
+                bytes += blob.content.length
+                page += key
+                // Its name, so an undo can say which entry it means (VERSION_2 §7.2).
+                entries += decode(HistoryEntry.serializer(), blob.content).copy(id = key.removePrefix("bands/$bandId/log/"))
+            }
+            if (full) break
         }
         val next = if (keys.size > page.size && page.isNotEmpty()) page.last().removePrefix(prefix) else null
         return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
@@ -381,6 +387,17 @@ class Api(
     }
 
     // ---- invites ----
+
+    /** The files at [keys] (null: gone), read at the same time; if one fails, the others are not waited for. */
+    private fun readAll(keys: List<String>): List<Blob?> {
+        val reads = keys.map { key -> logReader.submit<Blob?> { store.get(key) } }
+        return try {
+            reads.map { it.get() }
+        } catch (e: ExecutionException) {
+            reads.forEach { it.cancel(true) }
+            throw e.cause ?: e
+        }
+    }
 
     /**
      * [op] with an undo's original operation and change replaced by the ones in the history entry it names; an undo of
@@ -654,6 +671,8 @@ class Api(
         const val HISTORY_PAGE = 100
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
+
+        private const val LOG_READ_BATCH = 16
 
         /** Reads history files in parallel (network-bound, so more threads than cores). */
         private val logReader by lazy { Executors.newFixedThreadPool(16) { task -> Thread(task, "log-reader").apply { isDaemon = true } } }

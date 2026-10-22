@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import kotlinx.coroutines.CancellationException
 import com.jacekgajek.artsplit.app.generated.history_undone
 import com.jacekgajek.artsplit.app.generated.redo
 import androidx.compose.ui.text.style.TextDecoration
@@ -116,14 +117,23 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
         }
         failed = false
         runCatching { graph.api.history(state.band.id, month) }
-            .onSuccess { response -> lines = response.entries.flatMap { it.toLines() }; next = response.next; linesMonth = month }
-            .onFailure { failed = true }
+            .onSuccess { response ->
+                lines = response.entries.flatMap { it.toLines() }
+                next = response.next
+                linesMonth = month
+                failed = false
+                pending = stillPending(pending, graph.bands.local(state.band.id)?.pending.orEmpty().map { it.opId }.toSet())
+            }
+            // A load replaced by a newer one (e.g. after the next undo) is not a failure.
+            .onFailure { if (it is CancellationException) throw it else failed = true }
     }
     val loadMore: () -> Unit = {
         scope.launch {
             loadingMore = true
+            val refresh = reload
             runCatching { graph.api.history(state.band.id, month, next) }
-                .onSuccess { response -> lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next }
+                // Not onto a list that was refreshed meanwhile (it starts from the first page again).
+                .onSuccess { response -> if (refresh == reload) { lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next } }
                 .onFailure { failed = true }
             loadingMore = false
         }
