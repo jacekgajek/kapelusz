@@ -104,6 +104,9 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     /** A gig to open, e.g. from a reminder notification: band id and event id. */
     val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
 
+    /** The event (id) of a tapped debt reminder, opened at its To settle section (ITERATION_3 §2.2). */
+    val pendingToSettle = MutableStateFlow<String?>(null)
+
     /**
      * Loads what a background job needs (settings, session, bands, waiting uploads) without starting the foreground
      * sync loop; the app's own [load] later keeps it. Returns the signed-in user, if any.
@@ -161,6 +164,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         sync.stop()
         sessions.signOut()
         pendingOpenEvent.value = null
+        pendingToSettle.value = null
         afterSignOut()
     }
 

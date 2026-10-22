@@ -30,6 +30,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
@@ -103,10 +107,21 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
     val actions = rememberActions(graph, snackbar)
     val event = state.band.event(eventId)
     var editing by remember { mutableStateOf(false) }
+    val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
+    val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
+    val listState = rememberLazyListState()
+    // Opened from a reminder about an open debt (ITERATION_3 §2.2): straight to To settle.
+    val toSettle by graph.pendingToSettle.collectAsState()
+    LaunchedEffect(toSettle, event != null) {
+        if (toSettle != eventId || event == null) return@LaunchedEffect
+        graph.pendingToSettle.value = null
+        listState.scrollToItem(EventSection.TO_SETTLE.ordinal)
+    }
 
     Scaffold(
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
+                shareSettlement?.let { ShareSettlementIcon(it) }
                 if (event != null && Can(state.band, state.userId).editEvent(event)) {
                     IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
                     EventMenu(state.band, event, actions, onDeleted = onBack)
@@ -121,26 +136,35 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
             }
             return@Scaffold
         }
-        val context = EventContext(state.band, event, SettlementCalculator.settle(state.band, event), state.me, actions, Can(state.band, state.userId))
+        val context = EventContext(state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
                 Modifier.widthIn(max = 720.dp).fillMaxWidth(),
+                state = listState,
                 contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
             ) {
-                item { Header(context) }
-                item { DetailsSection(context) }
-                item { Problems(context) }
-                item { ParticipantsSection(context) }
-                item { CollectedSection(context) }
-                item { RefundsSection(context, onAddCost = { onAddCost(eventId) }) }
-                item { SummarySection(context) }
-                item { TransfersSection(context) }
-                item { HistorySection(context, graph) }
+                // In the order of [EventSection]: its ordinal is the item's index, for scrolling to To settle.
+                item(EventSection.HEADER) { Header(context) }
+                item(EventSection.DETAILS) { DetailsSection(context) }
+                item(EventSection.PROBLEMS) { Problems(context) }
+                item(EventSection.PARTICIPANTS) { ParticipantsSection(context) }
+                item(EventSection.COLLECTED) { CollectedSection(context) }
+                item(EventSection.REFUNDS) { RefundsSection(context, onAddCost = { onAddCost(eventId) }) }
+                item(EventSection.SUMMARY) { SummarySection(context) }
+                item(EventSection.SHARE) { shareSettlement?.let { ShareSettlementButton(it) } }
+                item(EventSection.TO_SETTLE) { TransfersSection(context) }
+                item(EventSection.HISTORY) { HistorySection(context, graph) }
             }
         }
         if (editing) EditDetailsDialog(state.band, event, actions, onDismiss = { editing = false })
     }
 }
+
+/** The event screen's sections, in list order: a reminder about an open debt scrolls to [TO_SETTLE] by its ordinal. */
+private enum class EventSection { HEADER, DETAILS, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SUMMARY, SHARE, TO_SETTLE, HISTORY }
+
+/** One list item per section, keyed by it, so the item's index is always the section's ordinal. */
+private fun LazyListScope.item(section: EventSection, content: @Composable () -> Unit) = item(key = section.name) { content() }
 
 @Composable
 private fun Header(context: EventContext) {

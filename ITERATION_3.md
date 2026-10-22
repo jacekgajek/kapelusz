@@ -310,10 +310,10 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [x] V3-M3.4 "Signed out everywhere" (R6) and stuck pushes shown with export or discard (R9)
 
 ### V3-M4 — New features (one release)
-- [ ] V3-M4.1 Share a settlement as text (§2.1)
-- [ ] V3-M4.2 Reminder about open debts (§2.2)
-- [ ] V3-M4.3 Web app installable on iPhones, install hints on every visit (§2.3)
-- [ ] V3-M4.4 Shares as a percentage (slider, 25% steps) or a fixed amount (§2.4)
+- [x] V3-M4.1 Share a settlement as text (§2.1)
+- [x] V3-M4.2 Reminder about open debts (§2.2)
+- [x] V3-M4.3 Web app installable on iPhones, install hints on every visit (§2.3)
+- [x] V3-M4.4 Shares as a percentage (slider, 25% steps) or a fixed amount (§2.4)
 
 ## 5. Decision log
 | Date | Decision |

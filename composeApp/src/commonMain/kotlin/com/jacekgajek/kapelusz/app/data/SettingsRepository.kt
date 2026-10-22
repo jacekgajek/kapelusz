@@ -27,6 +27,8 @@ data class AppSettings(
     val reminderTime: LocalTime = LocalTime(18, 0),
     /** Android: notifications about transfers others recorded with you (ITERATION_2 §5.3). */
     val transferNotifications: Boolean = true,
+    /** Android: reminders to the payer about money still to send after a gig, at [reminderTime] (ITERATION_3 §2.2). */
+    val debtReminders: Boolean = true,
     /** The one-time "get a reminder before your gigs?" prompt was answered. */
     val notificationPromptDone: Boolean = false,
 )
