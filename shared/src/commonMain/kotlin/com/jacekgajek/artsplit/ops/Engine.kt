@@ -17,6 +17,8 @@ data class BatchResult(
     val rejected: Map<Id, Rejection>,
     /** Already applied earlier (seq ≤ last seen); neither accepted nor rejected again. */
     val duplicates: List<Id>,
+    /** What each accepted operation changed, for undo (VERSION_2 §7.2). */
+    val changes: Map<Id, BandChange> = emptyMap(),
 )
 
 /** Permission check + reducer: the single entry point used by both clients and the server. */
@@ -44,6 +46,7 @@ object Engine {
         val accepted = mutableListOf<Id>()
         val rejected = mutableMapOf<Id, Rejection>()
         val duplicates = mutableListOf<Id>()
+        val changes = mutableMapOf<Id, BandChange>()
         for (envelope in envelopes) {
             if (envelope.seq <= (state.lastSeq[envelope.clientId] ?: 0L)) {
                 // Already seen. If it was refused, say so again: the client may never have received the first answer.
@@ -53,6 +56,7 @@ object Engine {
             }
             when (val result = apply(state, actor, envelope.op, envelope.opId, envelope.timestamp)) {
                 is ApplyResult.Applied -> {
+                    changes[envelope.opId] = BandChange.between(state, result.band)
                     state = result.band
                     accepted += envelope.opId
                 }
@@ -65,6 +69,6 @@ object Engine {
             }
             state = state.copy(lastSeq = state.lastSeq + (envelope.clientId to envelope.seq))
         }
-        return BatchResult(state, accepted, rejected, duplicates)
+        return BatchResult(state, accepted, rejected, duplicates, changes)
     }
 }

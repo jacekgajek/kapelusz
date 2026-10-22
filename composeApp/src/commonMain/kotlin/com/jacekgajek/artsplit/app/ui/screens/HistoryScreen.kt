@@ -1,5 +1,14 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import kotlinx.datetime.LocalDateTime
+import com.jacekgajek.artsplit.app.generated.undo
+import com.jacekgajek.artsplit.app.ui.components.rememberActions
+import com.jacekgajek.artsplit.app.ui.model.Can
+import com.jacekgajek.artsplit.ops.BandChange
+import com.jacekgajek.artsplit.ops.Undo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -66,9 +75,13 @@ fun historyMonth(offset: Int): String {
 }
 
 /** One history line: an operation with who made it and when; [envelope] is null for one this app cannot read. */
-data class HistoryLine(val entry: HistoryEntry, val envelope: OpEnvelope?, val opId: String, val unreadableEventId: String? = null)
+data class HistoryLine(val entry: HistoryEntry, val envelope: OpEnvelope?, val opId: String, val unreadableEventId: String? = null) {
+    /** What the operation changed, for undo; null for changes from before V2-M7. */
+    val change: BandChange? get() = envelope?.let { entry.changes[it.opId] }
+}
 
-fun HistoryItem.toLines(): List<HistoryLine> = ops.map { op ->
+/** The entry's operations as lines, newest first like the entries themselves. */
+fun HistoryItem.toLines(): List<HistoryLine> = ops.asReversed().map { op ->
     when (op) {
         is ReadOp.Known -> HistoryLine(entry, op.envelope, op.envelope.opId)
         is ReadOp.Unknown -> HistoryLine(entry, null, op.op.opId, op.op.eventId)
@@ -84,8 +97,12 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     var failed by remember { mutableStateOf(false) }
     var loadingMore by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    val actions = rememberActions(graph, snackbar)
+    var reload by remember { mutableStateOf(0) }
+    var confirming by remember { mutableStateOf<Undo?>(null) }
     val month = historyMonth(offset)
-    LaunchedEffect(state.band.id, month) {
+    LaunchedEffect(state.band.id, month, reload) {
         lines = null
         next = null
         failed = false
@@ -102,7 +119,14 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             loadingMore = false
         }
     }
-    Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }) { padding ->
+    confirming?.let { undo ->
+        UndoDialog(state.band, undo, onDismiss = { confirming = null }, onConfirm = {
+            confirming = null
+            // Once the server has it, the undo is the newest line (and can itself be undone).
+            if (actions.run(undo)) scope.launch { graph.sync.syncNow(); reload++ }
+        })
+    }
+    Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { offset++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month)) }
@@ -118,8 +142,11 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Only the band's newest change can be undone here (VERSION_2 §7.2): the first line of this month.
+                    val newest = loaded.first().takeIf { offset == 0 }
+                    val undo = newest?.let { undoOf(it, Can(state.band, state.userId)) }
                     items(loaded, key = { it.opId }) { line ->
-                        HistoryRow(state.band, line)
+                        HistoryRow(state.band, line, onUndo = undo?.takeIf { line === newest }?.let { { confirming = it } })
                         HorizontalDivider()
                     }
                     if (next != null) {
@@ -135,10 +162,18 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
 }
 
 @Composable
-fun HistoryRow(band: Band, line: HistoryLine) {
+fun HistoryRow(band: Band, line: HistoryLine, onUndo: (() -> Unit)? = null) {
     val who = line.entry.memberId?.let { band.member(it)?.name } ?: "?"
     val time = Instant.fromEpochMilliseconds(line.entry.at).toLocalDateTime(TimeZone.currentSystemDefault())
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        HistoryText(band, line, who, time, Modifier.weight(1f))
+        onUndo?.let { IconButton(onClick = it) { Icon(Icons.AutoMirrored.Filled.Undo, stringResource(Res.string.undo)) } }
+    }
+}
+
+@Composable
+private fun HistoryText(band: Band, line: HistoryLine, who: String, time: LocalDateTime, modifier: Modifier) {
+    Column(modifier.padding(vertical = 6.dp)) {
         Text(line.envelope?.let { describe(it.op, band) } ?: stringResource(Res.string.history_newer_version), style = MaterialTheme.typography.bodyMedium)
         Text(
             "$who · ${formatDate(time.date, language)} ${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}",

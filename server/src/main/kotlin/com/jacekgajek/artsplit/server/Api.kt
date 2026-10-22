@@ -21,6 +21,10 @@ import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.ApplyResult
 import com.jacekgajek.artsplit.ops.LinkUser
 import com.jacekgajek.artsplit.ops.UnlinkUser
+import com.jacekgajek.artsplit.ops.Undo
+import com.jacekgajek.artsplit.ops.BandChange
+import com.jacekgajek.artsplit.ops.BandPart
+import com.jacekgajek.artsplit.ops.Operation
 import java.security.SecureRandom
 import com.jacekgajek.artsplit.api.MeResponse
 import com.jacekgajek.artsplit.api.PushRequest
@@ -200,7 +204,8 @@ class Api(
         badRequestIf(clientIds.size > 1) { "All operations of a push must come from one device" }
         clientIds.firstOrNull()?.let { badRequestIf(!it.matches(Regex("[A-Za-z0-9-]{1,64}"))) { "Invalid device id" } }
         // Sequence numbers are tracked per user and device, so one user cannot block another user's device.
-        val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}") }
+        // An undo restores what the server recorded, not what the client says was there (VERSION_2 §7.2).
+        val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}", op = recordedUndo(bandId, it.op)) }
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBandForMember(user, bandId)
             val device = envelopes.firstOrNull()?.clientId
@@ -223,7 +228,7 @@ class Api(
                 runCatching { deleteRemovedAttachments(bandId, band, result.band) }
                     .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
                 // The change is already saved; a failed log write must not make the client retry it.
-                runCatching { appendLog(user, band, bandId, envelopes.filter { it.opId in result.accepted }) }
+                runCatching { appendLog(user, band, bandId, envelopes.filter { it.opId in result.accepted }, result.changes) }
                     .onFailure { System.err.println("Could not append history for band $bandId: $it") }
             }
             return ok(
@@ -359,6 +364,22 @@ class Api(
 
     // ---- invites ----
 
+    /**
+     * [op] with an undo's original operation and change replaced by the ones in the log; an undo of something not in
+     * the log (or from before changes were recorded) gets an empty change, which the reducer refuses.
+     */
+    private fun recordedUndo(bandId: String, op: Operation): Operation {
+        if (op !is Undo) return op
+        val recorded = runCatching {
+            val logKey = store.get(undoKey(bandId, op.undoneOpId))?.content ?: return@runCatching null
+            val entry = store.get(logKey)?.let { decode(HistoryEntry.serializer(), it.content) } ?: return@runCatching null
+            val original = entry.ops.firstOrNull { it.opId == op.undoneOpId }?.op ?: return@runCatching null
+            val change = entry.changes[op.undoneOpId] ?: return@runCatching null
+            op.copy(original = original, change = change)
+        }.getOrNull()
+        return recorded ?: op.copy(change = BandChange(BandPart(), BandPart()))
+    }
+
     /** The band's file exactly as stored, for admins (VERSION_2 §7.1): putting it back changes nothing. */
     private fun rawState(user: VerifiedUser, bandId: String): HttpResponse {
         loadBandForAdmin(user, bandId, "Only band admins see the raw data")
@@ -442,7 +463,7 @@ class Api(
                 return@repeat
             }
             finishJoin(user, band.id, invite.memberId)
-            runCatching { appendLog(user, linked, band.id, listOf(OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role)))) }
+            runCatching { appendLog(user, linked, band.id, listOf(OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role))), emptyMap()) }
             return ok(BandStateResponse.serializer(), BandStateResponse(newEtag, linked))
         }
         throw ApiError(409, "busy", "Too many concurrent changes, try again")
@@ -568,11 +589,14 @@ class Api(
         throw ApiError(409, "busy", "Could not update the user record")
     }
 
-    private fun appendLog(user: VerifiedUser, band: Band, bandId: String, ops: List<OpEnvelope>) {
+    private fun appendLog(user: VerifiedUser, band: Band, bandId: String, ops: List<OpEnvelope>, changes: Map<String, BandChange>) {
         val now = clock()
         val month = monthOf(now)
-        val entry = HistoryEntry(user.userId, band.memberOfUser(user.userId)?.id, now, ops)
-        store.put("bands/$bandId/log/$month/$now-${UUID.randomUUID()}.json", encode(HistoryEntry.serializer(), entry), ifNoneMatch = true)
+        val entry = HistoryEntry(user.userId, band.memberOfUser(user.userId)?.id, now, ops, changes.filterKeys { id -> ops.any { it.opId == id } })
+        val key = "bands/$bandId/log/$month/$now-${UUID.randomUUID()}.json"
+        store.put(key, encode(HistoryEntry.serializer(), entry), ifNoneMatch = true)
+        // Where each operation's change is, so an undo can find it without reading the whole log.
+        ops.forEach { store.put(undoKey(bandId, it.opId), key) }
     }
 
     // ---- helpers ----
@@ -618,6 +642,7 @@ class Api(
         fun inviteKey(code: String) = "invites/$code.json"
         fun bandInvitesKey(bandId: String) = "bands/${safe(bandId)}/invites.json"
         fun deletedKey(bandId: String) = "bands/${safe(bandId)}/deleted.json"
+        fun undoKey(bandId: String, opId: String) = "bands/${safe(bandId)}/undo/${safe(opId)}"
         fun calendarKey(userId: String) = "users/${safe(userId)}-calendar.json"
         fun calendarSecretKey(secret: String) = "calendar/$secret.json"
 

@@ -6,6 +6,7 @@ import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Member
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.AddAttachment
+import com.jacekgajek.artsplit.ops.Undo
 import com.jacekgajek.artsplit.ops.AddCost
 import com.jacekgajek.artsplit.ops.AddFundEntry
 import com.jacekgajek.artsplit.ops.AddGuest
@@ -79,6 +80,8 @@ object Permissions {
 
     /** Lowest role allowed to perform [op] for this actor; "own" exceptions lower it to MEMBER. */
     private fun requiredRole(band: Band, me: Member, op: Operation): Role = when (op) {
+        // Undo is the reverse change, allowed to whoever may make the original one (VERSION_2 §7.2).
+        is Undo -> requiredRole(band, me, op.original)
         is TransferOwnership -> Role.OWNER
 
         is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,

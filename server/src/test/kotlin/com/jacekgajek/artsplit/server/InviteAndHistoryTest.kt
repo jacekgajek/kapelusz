@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.server
 
+import com.jacekgajek.artsplit.api.PushResponse
+import com.jacekgajek.artsplit.ops.RejectionReason
+import com.jacekgajek.artsplit.ops.Undo
 import com.jacekgajek.artsplit.api.BandStateResponse
 import com.jacekgajek.artsplit.api.CreateBandRequest
 import com.jacekgajek.artsplit.api.CreateInviteRequest
@@ -184,5 +187,29 @@ class InviteAndHistoryTest {
 
         assertEquals(404, call("GET", "/bands/band1/log", "mallory").status)
         assertEquals(400, call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "x")).status)
+    }
+
+    @Test
+    fun undoRestoresWhatTheLogRecordedNotWhatTheClientSays() {
+        setup()
+        fun push(vararg envelopes: OpEnvelope) = call("POST", "/bands/band1/ops", "alice", ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())))
+            .parse(PushResponse.serializer())
+        now += 1
+        push(OpEnvelope("rename", "phone", 10, 0, RenameBand("New name")))
+        val entry = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer()).entries.first()
+        val change = entry.changes.getValue("rename")
+        assertEquals("New name", change.after.settings?.name)
+
+        // A made-up change (a different band name to "restore") is replaced by the recorded one.
+        val forged = change.copy(before = change.before.copy(settings = change.before.settings!!.copy(name = "Hacked")))
+        now += 1
+        val undone = push(OpEnvelope("undo", "phone", 11, 0, Undo("rename", RenameBand("whatever"), forged)))
+        assertEquals(listOf("undo"), undone.accepted)
+        assertEquals("Night Owls", undone.band.name)
+
+        // An undo of something the log does not know is refused.
+        now += 1
+        val unknown = push(OpEnvelope("undo2", "phone", 12, 0, Undo("nope", RenameBand("x"), forged)))
+        assertEquals(RejectionReason.NOT_UNDOABLE, unknown.rejected.getValue("undo2").reason)
     }
 }

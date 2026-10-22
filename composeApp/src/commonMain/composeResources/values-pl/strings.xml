@@ -461,4 +461,8 @@
     <string name="copy_raw_data">Kopiuj surowe dane JSON</string>
     <string name="raw_data_copied">Skopiowano: dane zespołu dokładnie tak, jak są zapisane na serwerze.</string>
     <string name="raw_data_failed">Nie udało się pobrać danych. Czy masz internet?</string>
+    <string name="reject_not_undoable">Tej zmiany nie można cofnąć.</string>
+    <string name="reject_changed_since">Zmieniono to od tamtej pory, nie można cofnąć.</string>
+    <string name="undo_confirm">Cofnąć „%1$s”?</string>
+    <string name="h_undo">Cofnięto: %1$s</string>
 </resources>

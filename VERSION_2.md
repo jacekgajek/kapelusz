@@ -129,6 +129,10 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 - Removing a participant who has collected money or transfers: the message says to remove all of their collected money and transfers first (moving the money records a transfer, which also blocks removal).
 - History: a spinner instead of "…" while the event screen's history loads, and while **Load more** loads in the band history.
 
+- Settings: **Delete band** sits at the very bottom, below Sign out, after a divider (only the version number is below it).
+- Agenda template (Settings): a **Reset to defaults** link fills the editor with the built-in times (Arrival, Sound check, Concert start, in the app's language); nothing changes until **Save**, which then stores "the defaults", so built-in times added later apply too. The text fields get some space around them.
+- Event screen, **Cost refunds**: a **+ Add cost** button (like "Add collected money") opens Add cost with **Incurred for** set to the event and **Paid by** set to me; saving returns to the event. Shown to whoever may add costs.
+
 ### 7.1 Secret menu (admins)
 - In Settings, a **tap on the version number** opens the secret menu for an **Admin or Owner** of the open band; for others it does nothing.
 - **Copy raw JSON data** copies the band's file exactly as stored in the bucket (`bands/<id>/state.json`, byte for byte), so putting the copy back changes nothing. A server endpoint for admins returns the stored file unchanged; offline it shows an error.
@@ -193,10 +197,11 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M6.4 Navigate on the event, the Maps link in the calendar feed, Navigate on reminders
 
 ### V2-M7 — Secret menu, undo, no bulk archive
-- [ ] V2-M7.1 Secret menu with "Copy raw JSON data" (§7.1)
-- [ ] V2-M7.2 Undo from history (§7.2)
-- [ ] V2-M7.3 Remove bulk archive (§3.3)
-- [ ] V2-M7.4 Clearer message when a participant with collected money or transfers cannot be removed (§7)
+- [x] V2-M7.1 Secret menu with "Copy raw JSON data" (§7.1)
+- [x] V2-M7.2 Undo from history (§7.2)
+- [x] V2-M7.3 Remove bulk archive (§3.3)
+- [x] V2-M7.4 Clearer message when a participant with collected money or transfers cannot be removed (§7)
+- [ ] V2-M7.5 Delete band at the bottom of Settings; agenda template Reset to defaults and roomier fields; + Add cost in the event's Cost refunds (§7)
 
 ### V2-M8 — Release 1.0
 - [ ] V2-M8.1 Release checklist (§10) passed on real phones

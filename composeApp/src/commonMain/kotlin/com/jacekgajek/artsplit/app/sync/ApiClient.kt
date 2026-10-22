@@ -21,6 +21,7 @@ import com.jacekgajek.artsplit.api.SessionResponse
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Role
+import com.jacekgajek.artsplit.ops.BandChange
 import com.jacekgajek.artsplit.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -153,6 +154,10 @@ class ApiClient(
                 memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
                 at = at,
                 ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
+                // What each operation changed, for undo; one this version cannot read just cannot be undone here.
+                changes = (entry["changes"] as? JsonObject).orEmpty().mapNotNull { (opId, change) ->
+                    runCatching { opId to ArtSplitJson.decodeFromJsonElement(BandChange.serializer(), change) }.getOrNull()
+                }.toMap(),
             )
             HistoryItem(header, ops)
         }

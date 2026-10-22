@@ -3,6 +3,7 @@ package com.jacekgajek.artsplit.api
 import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Role
+import com.jacekgajek.artsplit.ops.BandChange
 import com.jacekgajek.artsplit.ops.OpEnvelope
 import com.jacekgajek.artsplit.ops.Rejection
 import kotlinx.serialization.Serializable
@@ -130,9 +131,12 @@ data class InvitePreview(val code: String, val bandId: Id, val bandName: String,
 
 // ---- history (M4) ----
 
-/** One accepted push: who made it and the operations it contained. */
+/**
+ * One accepted push: who made it and the operations it contained, with what each of them changed ([changes] by opId,
+ * for undo; missing in entries from before V2-M7).
+ */
 @Serializable
-data class HistoryEntry(val userId: String, val memberId: String?, val at: Long, val ops: List<OpEnvelope>)
+data class HistoryEntry(val userId: String, val memberId: String?, val at: Long, val ops: List<OpEnvelope>, val changes: Map<String, BandChange> = emptyMap())
 
 /** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
 @Serializable

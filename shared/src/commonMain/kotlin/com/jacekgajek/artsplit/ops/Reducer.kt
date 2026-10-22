@@ -155,6 +155,8 @@ object Reducer {
                 cost.attachments.firstOrNull { it.id == op.attachmentId }.orNotFound { "Attachment ${op.attachmentId}" }
                 cost.copy(attachments = cost.attachments.filterNot { it.id == op.attachmentId })
             }
+
+            is Undo -> Undoing.apply(band, op, ctx)
         }
         return op.eventId
             ?.takeIf { op !is DeleteEvent }
