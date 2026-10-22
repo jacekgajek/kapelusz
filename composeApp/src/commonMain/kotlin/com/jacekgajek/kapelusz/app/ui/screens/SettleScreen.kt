@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -112,7 +113,8 @@ fun SettleScreen(
                             )
                             TextButton(onClick = { onOpenEvent(event.id) }) { Text(stringResource(Res.string.open_event)) }
                         }
-                        suggestions.forEach { suggestion ->
+                        // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
+                        suggestions.forEach { suggestion -> key(suggestion.from, suggestion.to) {
                             val from = partyName(band, event, suggestion.from, fundLabel)
                             val to = partyName(band, event, suggestion.to, fundLabel)
                             var partial by remember { mutableStateOf(false) }
@@ -131,7 +133,7 @@ fun SettleScreen(
                                     actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it))
                                 }, onDismiss = { partial = false })
                             }
-                        }
+                        } }
                     }
                 }
             }

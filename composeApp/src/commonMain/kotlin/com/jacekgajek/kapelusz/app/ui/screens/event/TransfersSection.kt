@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
@@ -83,7 +84,8 @@ fun TransfersSection(context: EventContext) {
         SectionTitle(stringResource(Res.string.to_settle))
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                settlement.suggestions.forEach { suggestion -> SuggestionRow(context, suggestion) }
+                // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
+                settlement.suggestions.forEach { suggestion -> key(suggestion.from, suggestion.to) { SuggestionRow(context, suggestion) } }
             }
         }
         if (context.can.settleAll(event)) Button(

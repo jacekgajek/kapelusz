@@ -187,7 +187,24 @@ fun MoneyField(
     )
 }
 
-fun parseMoney(text: String): Money? = runCatching { Money.parse(text.replace(" ", "").replace(" ", "")) }.getOrNull()
+fun parseMoney(text: String): Money? = runCatching { Money.parse(withoutGrouping(text.filterNot { it.isWhitespace() || it == '\u00A0' || it == '\u202F' })) }.getOrNull()
+
+/**
+ * Drops thousands separators in either style (ITERATION_3 R8): "1,000", "1.000", "1,000.50", "1.000,50". Money has at
+ * most 2 decimals, so a separator followed by exactly 3 digits, or one that repeats, or the first of two different
+ * ones, groups thousands; what is left is the decimal separator.
+ */
+internal fun withoutGrouping(text: String): String {
+    val separators = text.filter { it == ',' || it == '.' }
+    if (separators.isEmpty()) return text
+    val decimal: Char? = when {
+        separators.toSet().size == 2 -> separators.last()
+        separators.length > 1 -> null
+        Regex("""[.,]\d{3}$""").containsMatchIn(text) -> null
+        else -> separators.single()
+    }
+    return text.filter { it != ',' && it != '.' || it == decimal }
+}
 
 @Composable
 fun ConfirmDialog(title: String, text: String?, confirmLabel: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
