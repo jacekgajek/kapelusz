@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Udostępnianie rozliczenia jako tekstu (ITERATION_3 §2.1) -->
+    <string name="share_settlement">Udostępnij rozliczenie</string>
+    <string name="share_settlement_copied">Skopiowano rozliczenie do schowka</string>
+    <string name="share_settlement_failed">Nie udało się udostępnić rozliczenia.</string>
+    <!-- Sam udostępniany tekst -->
+    <string name="share_text_income">Przychód %1$s</string>
+    <string name="share_text_refunds">zwroty kosztów %1$s</string>
+    <string name="share_text_to_fund">do kasy zespołowej %1$s</string>
+    <string name="share_text_from_fund">z kasy zespołowej %1$s</string>
+    <string name="share_text_shares">Udziały: %1$s</string>
+    <string name="share_text_share_with_refunds">%1$s %2$s (+ zwroty %3$s)</string>
+    <string name="share_text_fixed">%1$s (stała kwota)</string>
+    <string name="share_text_done">Przekazane:</string>
+    <string name="share_text_still_to_pay">Do przekazania:</string>
+    <string name="share_text_all_settled">Wszystko rozliczone</string>
+    <string name="share_text_incomplete">Jeszcze nierozliczone: najpierw trzeba coś poprawić w aplikacji</string>
+    <string name="share_text_footer">Kapelusz · kapelusz.jacekgajek.com</string>
+    <!-- Przypomnienie o nierozliczonych długach (ITERATION_3 §2.2) -->
+    <string name="notifications_debts">Przypomnienia o nierozliczonych długach</string>
+</resources>

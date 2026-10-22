@@ -22,6 +22,7 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.notifications_allow
 import com.jacekgajek.kapelusz.app.generated.notifications_blocked
 import com.jacekgajek.kapelusz.app.generated.notifications_days
+import com.jacekgajek.kapelusz.app.generated.notifications_debts
 import com.jacekgajek.kapelusz.app.generated.notifications_days_before
 import com.jacekgajek.kapelusz.app.generated.notifications_reminders
 import com.jacekgajek.kapelusz.app.generated.notifications_time
@@ -36,13 +37,13 @@ import com.jacekgajek.kapelusz.app.ui.model.label
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** Android: gig reminders and transfer notifications (ITERATION_2 §5.4); stored per device. */
+/** Android: gig reminders, debt reminders (ITERATION_3 §2.2) and transfer notifications (ITERATION_2 §5.4); stored per device. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun NotificationsSection(permission: NotificationPermission, settings: AppSettings, update: ((AppSettings) -> AppSettings) -> Unit) {
     var pickingTime by remember { mutableStateOf(false) }
     SectionHeader(stringResource(Res.string.notifications_title))
-    if (permission.needsAsking && (settings.remindersEnabled || settings.transferNotifications)) {
+    if (permission.needsAsking && (settings.remindersEnabled || settings.transferNotifications || settings.debtReminders)) {
         Text(stringResource(Res.string.notifications_blocked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         TextButton(onClick = { permission.request { granted -> if (!granted) permission.openSettings() } }) { Text(stringResource(Res.string.notifications_allow)) }
     }
@@ -63,6 +64,13 @@ internal fun NotificationsSection(permission: NotificationPermission, settings: 
                 )
             }
         }
+    }
+    SwitchRow(stringResource(Res.string.notifications_debts), settings.debtReminders) { on ->
+        update { it.copy(debtReminders = on) }
+        if (on && permission.needsAsking) permission.request {}
+    }
+    // Debt reminders come at the time of day of gig reminders too.
+    if (settings.remindersEnabled || settings.debtReminders) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(Res.string.notifications_time), Modifier.weight(1f))
             TextButton(onClick = { pickingTime = true }) { Text(formatTime(settings.reminderTime)) }

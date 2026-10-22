@@ -1,10 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil3.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -26,9 +23,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,19 +35,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.jacekgajek.kapelusz.app.AppConfig
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.material3.Surface
-import com.jacekgajek.kapelusz.app.generated.transfer_a11y
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
@@ -65,8 +67,8 @@ import com.jacekgajek.kapelusz.app.generated.status_draft
 import com.jacekgajek.kapelusz.app.generated.status_loss
 import com.jacekgajek.kapelusz.app.generated.status_open
 import com.jacekgajek.kapelusz.app.generated.status_settled
+import com.jacekgajek.kapelusz.app.generated.transfer_a11y
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.model.initials
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.domain.EventStatus
@@ -284,7 +286,10 @@ fun PartialSettleDialog(
     onDismiss: () -> Unit,
 ) {
     val lang = language
-    var amount by remember { mutableStateOf(formatMoneyInput(suggested, lang)) }
+    // Empty and focused: the amount handed over is usually known, the suggestion stays in the hint below.
+    var amount by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= suggested }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -292,7 +297,7 @@ fun PartialSettleDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TransferParties(from, to)
-                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
+                MoneyField(amount, { amount = it }, stringResource(Res.string.amount), Modifier.focusRequester(focus))
                 Text(
                     stringResource(Res.string.settle_part_hint, formatMoney(suggested, currency, lang)),
                     style = MaterialTheme.typography.bodySmall,

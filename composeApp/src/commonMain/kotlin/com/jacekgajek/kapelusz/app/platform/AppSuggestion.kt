@@ -10,8 +10,8 @@ data class PublishedVersion(val versionCode: Long, val versionName: String)
 data class AppDownload(val url: String, val isUpdate: Boolean, val versionCode: Long, val versionName: String)
 
 /**
- * What to suggest, or null when nothing should be: on iPhone/iPad, after the user dismissed it, when no APK is
- * published, or when the installed app is up to date.
+ * A newer version to suggest in the Android app, or null when nothing should be: after the user dismissed it, when no
+ * APK is published, or when the installed app is up to date. Always null on the web, which has [webInstallState].
  */
 expect suspend fun appDownload(): AppDownload?
 

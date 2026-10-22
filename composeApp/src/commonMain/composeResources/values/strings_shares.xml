@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shares as a percentage or a fixed amount (ITERATION_3 §2.4) -->
+    <string name="share_fixed">fixed</string>
+    <string name="share_fixed_amount">Fixed amount</string>
+    <string name="share_fixed_hint">Paid out before the rest is shared by percentage. Refunds of own costs come on top.</string>
+    <string name="share_by_percent">Percentage</string>
+    <string name="share_resulting">Share now: %1$s</string>
+    <string name="line_payout_fixed">payout %1$s = fixed %2$s + refunds %3$s</string>
+    <string name="line_payout_fixed_only">payout %1$s (fixed)</string>
+    <string name="h_set_fixed_share">Set a fixed share of %2$s for %1$s in %3$s</string>
+    <string name="h_clear_fixed_share">Set the share of %1$s back to a percentage in %2$s</string>
+    <string name="h_clear_fixed_share_weight">Set the share of %1$s back to a percentage, %2$s, in %3$s</string>
+    <string name="problem_loss_fixed">Loss of %1$s. Lower the fixed amounts, defer some refunds, add income or let the band fund cover it before settling.</string>
+</resources>

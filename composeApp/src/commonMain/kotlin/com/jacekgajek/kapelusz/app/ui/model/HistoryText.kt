@@ -45,6 +45,9 @@ import com.jacekgajek.kapelusz.app.generated.h_set_role
 import com.jacekgajek.kapelusz.app.generated.h_set_treasurer
 import com.jacekgajek.kapelusz.app.generated.h_disable_fund
 import com.jacekgajek.kapelusz.app.generated.h_set_weight
+import com.jacekgajek.kapelusz.app.generated.h_clear_fixed_share
+import com.jacekgajek.kapelusz.app.generated.h_clear_fixed_share_weight
+import com.jacekgajek.kapelusz.app.generated.h_set_fixed_share
 import com.jacekgajek.kapelusz.app.generated.h_settle_all
 import com.jacekgajek.kapelusz.app.generated.h_settle_party
 import com.jacekgajek.kapelusz.app.generated.h_transfer_ownership
@@ -91,6 +94,7 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.DisableBandFund
+import com.jacekgajek.kapelusz.ops.SetFixedShare
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
@@ -137,6 +141,11 @@ fun describe(op: Operation, band: Band): String {
         is RenameGuest -> stringResource(Res.string.h_rename_guest, op.name, event(op.eventId))
         is PromoteGuest -> stringResource(Res.string.h_promote_guest, member(op.memberId))
         is SetWeight -> stringResource(Res.string.h_set_weight, party(op.eventId, op.partyId), "${op.weight}%", event(op.eventId))
+        is SetFixedShare -> op.amount?.let { amount ->
+            stringResource(Res.string.h_set_fixed_share, party(op.eventId, op.partyId), money(amount), event(op.eventId))
+        } ?: op.weight?.let { weight ->
+            stringResource(Res.string.h_clear_fixed_share_weight, party(op.eventId, op.partyId), "$weight%", event(op.eventId))
+        } ?: stringResource(Res.string.h_clear_fixed_share, party(op.eventId, op.partyId), event(op.eventId))
         is RemoveParticipant -> stringResource(Res.string.h_remove_participant, party(op.eventId, op.partyId), event(op.eventId))
         is AddHolding -> stringResource(Res.string.h_add_holding, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))
         is UpdateHolding -> stringResource(Res.string.h_edit_holding, event(op.eventId))

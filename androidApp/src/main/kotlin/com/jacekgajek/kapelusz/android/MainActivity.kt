@@ -63,10 +63,11 @@ class MainActivity : ComponentActivity() {
         graph.pendingSharedPlace.value = if (place.name == null && subject != null) place.copy(name = subject) else place
     }
 
-    /** A tapped reminder or transfer notification: open its gig. */
+    /** A tapped reminder or transfer notification: open its gig (a debt reminder: at To settle, ITERATION_3 §2.2). */
     private fun takeEventToOpen(intent: Intent?) {
         val band = intent?.getStringExtra(Notifier.EXTRA_BAND) ?: return
         val event = intent.getStringExtra(Notifier.EXTRA_EVENT) ?: return
+        graph.pendingToSettle.value = event.takeIf { intent.getBooleanExtra(Notifier.EXTRA_TO_SETTLE, false) }
         graph.pendingOpenEvent.value = band to event
         intent.removeExtra(Notifier.EXTRA_BAND)
     }

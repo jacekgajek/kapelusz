@@ -18,6 +18,7 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
+import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -115,5 +116,70 @@ class NotificationRulesTest {
         assertEquals(emptyList(), NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), late, shown = setOf("band1/gig/1".let { key -> NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), late).single().key })))
         // Hours later it is no longer worth showing.
         assertEquals(emptyList(), NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), LocalDateTime(2026, 10, 21, 21, 0)))
+    }
+
+    // Bob collected 100 at a gig on 1 Oct shared with Alice: he still has to send her 50.
+    private val debt = base.apply(
+        "u-bob",
+        CreateEvent("gig", "Club gig", LocalDate(2026, 10, 1), participants = listOf(Participant("alice"), Participant("bob"))),
+        AddHolding("gig", "h", "bob", Money(10000), IncomeSource.DOOR),
+    )
+
+    private fun debtReminders(band: Band, user: String, now: LocalDateTime = LocalDateTime(2026, 10, 1, 12, 0)) =
+        NotificationRules.debtReminders(listOf(band), user, LocalTime(18, 0), now)
+
+    @Test
+    fun debtRemindersTwoWeeksAfterTheGigThenWeeklyAtMostFour() {
+        val reminders = debtReminders(debt, "u-bob")
+        assertEquals(
+            listOf(LocalDateTime(2026, 10, 15, 18, 0), LocalDateTime(2026, 10, 22, 18, 0), LocalDateTime(2026, 10, 29, 18, 0), LocalDateTime(2026, 11, 5, 18, 0)),
+            reminders.map { it.at },
+        )
+        assertEquals(listOf("b/gig/debt0", "b/gig/debt1", "b/gig/debt2", "b/gig/debt3"), reminders.map { it.key })
+        assertEquals(listOf(Owed("Alice", Money(5000))), reminders.first().owed)
+        // Two weeks in, after the second: the last two are left.
+        assertEquals(listOf(2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 23, 12, 0)).map { it.nth })
+        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 11, 6, 12, 0)), "never more than four")
+    }
+
+    @Test
+    fun onlyThePayerIsRemindedUntilSettled() {
+        assertEquals(emptyList(), debtReminders(debt, "u-alice"), "the one owed money is not reminded")
+        assertEquals(emptyList(), debtReminders(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000))), "u-bob"), "settled")
+        assertEquals(emptyList(), debtReminders(debt.apply("u-bob", SetEventArchived("gig", true)), "u-bob"), "archived")
+        // Part paid: the rest is reminded of.
+        assertEquals(listOf(Owed("Alice", Money(3000))), debtReminders(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))), "u-bob").first().owed)
+    }
+
+    @Test
+    fun debtsToAndFromTheBandFund() {
+        // To the fund: Bob, who collected, also owes the fund its 20.
+        val toFund = debt.apply("u-bob", SetTreasurer("alice"), SetFundAmount("gig", Money(2000)))
+        assertEquals(listOf(Owed("Alice", Money(4000)), Owed(null, Money(2000))), debtReminders(toFund, "u-bob").first().owed)
+        assertEquals(emptyList(), debtReminders(toFund, "u-alice"))
+        // From the fund: Alice holds it and collected; she owes Bob his share, part of it out of the fund.
+        val fromFund = base.apply(
+            "u-bob",
+            SetTreasurer("alice"),
+            CreateEvent("gig", "Club gig", LocalDate(2026, 10, 1), participants = listOf(Participant("alice"), Participant("bob"))),
+            AddHolding("gig", "h", "alice", Money(10000), IncomeSource.DOOR),
+            SetFundAmount("gig", Money(-2000)),
+        )
+        assertEquals(listOf(Owed("Bob", Money(4000)), Owed("Bob", Money(2000), fromFund = true)), debtReminders(fromFund, "u-alice").first().owed)
+        assertEquals(emptyList(), debtReminders(fromFund, "u-bob"))
+    }
+
+    @Test
+    fun aDebtReminderIsCheckedAgainWhenItsAlarmGoesOff() {
+        // The second reminder, due on 22 Oct at 18:00; Android delivers it a little late.
+        val firing = LocalDateTime(2026, 10, 22, 18, 30)
+        fun due(band: Band) = NotificationRules.dueDebtReminder(listOf(band), "u-bob", "b/gig/debt1", LocalTime(18, 0), firing)
+        assertEquals(listOf(Owed("Alice", Money(5000))), due(debt)?.owed)
+        assertEquals(null, due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000)))), "paid since it was planned")
+        assertEquals(null, due(debt.apply("u-bob", SetEventArchived("gig", true))), "archived since")
+        // Part paid since: the text is built from what is still owed.
+        assertEquals(listOf(Owed("Alice", Money(3000))), due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))))?.owed)
+        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 22, 23, 0)), "hours late")
+        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/other/debt1", LocalTime(18, 0), firing), "event gone")
     }
 }

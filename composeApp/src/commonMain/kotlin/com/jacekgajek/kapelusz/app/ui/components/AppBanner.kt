@@ -39,14 +39,19 @@ import com.jacekgajek.kapelusz.app.generated.updates_allow
 import androidx.compose.runtime.collectAsState
 import com.jacekgajek.kapelusz.app.platform.appDownload
 import com.jacekgajek.kapelusz.app.platform.dismissAppDownload
+import com.jacekgajek.kapelusz.app.platform.isAndroidApp
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * A quiet strip suggesting the Android app on the website, or a newer version in the app; nothing is shown where it
- * does not apply.
+ * A quiet strip suggesting a newer version in the app, or on the website the install hints ([WebInstallHint], shown
+ * again each time the [eventList] opens); nothing is shown where it does not apply.
  */
 @Composable
-fun AndroidAppBanner(autoUpdate: Boolean, modifier: Modifier = Modifier) {
+fun AndroidAppBanner(autoUpdate: Boolean, eventList: Boolean, modifier: Modifier = Modifier) {
+    if (!isAndroidApp()) {
+        WebInstallHint(eventList, modifier)
+        return
+    }
     // With automatic updates the app updates itself; the strip only asks for what Android needs from the user.
     val updates = rememberUpdateControls()
     if (updates != null && autoUpdate) {

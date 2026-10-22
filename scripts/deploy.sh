@@ -65,6 +65,9 @@ aws s3 sync "$DIST" "s3://$WEB_BUCKET" "${WASM_ARGS[@]}"
 # .well-known/ likewise, unless this deploy writes it: without it Android stops opening invite links in the app.
 KEEP_ARGS=(--exclude "download/*")
 [[ -n "${ANDROID_CERT_SHA256:-}" ]] || KEEP_ARGS+=(--exclude ".well-known/*")
+# no-cache (revalidated on every load) also keeps sw.js and the manifests fresh: the service worker caches the app for
+# offline starts itself (network first for these, cache first only for the hashed wasm files), so a new deploy is
+# picked up on the next start.
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*.wasm" "${KEEP_ARGS[@]}" --cache-control "no-cache"
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete "${WASM_ARGS[@]}"
 
@@ -87,16 +90,21 @@ aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_I
 # CloudFront takes a moment to drop the old files.
 API_URL="${KAPELUSZ_API_URL:-$(sed -n 's/^kapelusz.apiUrl=//p' gradle.properties)}"
 WEB_URL="${KAPELUSZ_WEB_URL:-$(sed -n 's/^kapelusz.webUrl=//p' gradle.properties)}"
-check() { # url expected-status
+# CloudFront answers a missing file with index.html (200, text/html), so files are also checked for their content type.
+check() { # url expected-status [content-type part]
+  local answer
   for _ in 1 2 3 4 5 6; do
-    [[ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1")" == "$2" ]] && return 0
+    answer="$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 15 "$1")"
+    [[ "${answer%% *}" == "$2" && "${answer#* }" == *"${3:-}"* ]] && return 0
     sleep 10
   done
-  echo "Smoke check failed: $1 did not answer $2" >&2
+  echo "Smoke check failed: $1 did not answer $2${3:+ with $3} (got: $answer)" >&2
   return 1
 }
 echo "== Smoke check: $API_URL, $WEB_URL"
 check "${API_URL%/}/me?appVersion=0" 401
-check "${WEB_URL%/}/" 200
-check "${WEB_URL%/}/composeApp.js" 200
+check "${WEB_URL%/}/" 200 html
+check "${WEB_URL%/}/composeApp.js" 200 javascript
+check "${WEB_URL%/}/sw.js" 200 javascript
+check "${WEB_URL%/}/manifest.json" 200 json
 echo "== Done"

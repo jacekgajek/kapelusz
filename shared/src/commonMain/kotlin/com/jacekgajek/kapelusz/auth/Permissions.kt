@@ -42,6 +42,7 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.DisableBandFund
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetEventAgenda
+import com.jacekgajek.kapelusz.ops.SetFixedShare
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
@@ -90,7 +91,7 @@ object Permissions {
         -> Role.ADMIN
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
-        is RenameGuest, is SetWeight, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,
+        is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,
         is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer,
         -> Role.LEAD
 

@@ -92,6 +92,16 @@ object Reducer {
                 validateWeight(op.weight)
                 event.copy(participants = event.participants.map { if (it.partyId == op.partyId) it.copy(weight = op.weight) else it })
             }
+            is SetFixedShare -> band.updateEvent(op.eventId) { event ->
+                event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
+                op.amount?.let { validatePositive(it, "Fixed share") }
+                op.weight?.let { validateWeight(it) }
+                event.copy(
+                    participants = event.participants.map {
+                        if (it.partyId == op.partyId) it.copy(fixedShare = op.amount, weight = op.weight ?: it.weight) else it
+                    },
+                )
+            }
             is RemoveParticipant -> removeParticipant(band, op)
 
             is AddHolding -> band.updateEvent(op.eventId) { event ->
@@ -261,6 +271,7 @@ object Reducer {
         invalidIf(op.participants.map { it.partyId }.toSet().size != op.participants.size, RejectionReason.INVALID_INPUT) { "Duplicate participants" }
         op.participants.forEach { participant ->
             validateWeight(participant.weight)
+            participant.fixedShare?.let { validatePositive(it, "Fixed share") }
             if (participant.partyId !in guestIds) validateActiveMember(band, participant.partyId)
         }
         val event = Event(

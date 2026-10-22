@@ -2,7 +2,9 @@ package com.jacekgajek.kapelusz.app.notify
 
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
+import com.jacekgajek.kapelusz.model.Money
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,4 +44,18 @@ class ReminderSchedulerTest {
         assertEquals("In 3 days: Club gig" to "Sat 12 Sep", Notifier.reminderTexts("Club gig", 3, date, null, "en"))
         assertEquals("Za 3 dni: Club gig" to "sob. 12.09", Notifier.reminderTexts("Club gig", 3, date, null, "pl"))
     }
+
+    @Test
+    fun debtReminderTextsInBothLanguages() {
+        fun texts(owed: List<Owed>, language: String) =
+            Notifier.debtTexts(DebtReminder("b", "gig", "Club gig", LocalDate(2026, 9, 12), 0, LocalDateTime(2026, 9, 26, 18, 0), "PLN", owed), language)
+                .let { (title, text) -> title.replace('\u00A0', ' ') to text.replace('\u00A0', ' ') }
+        val one = listOf(Owed("Jacek", Money(10000)))
+        assertEquals("You still owe Jacek 100.00 PLN" to "from Club gig (Sat 12 Sep)", texts(one, "en"))
+        assertEquals("Do oddania: 100,00 zł dla: Jacek" to "Club gig (sob. 12.09)", texts(one, "pl"))
+        val two = listOf(Owed("Jacek", Money(10000)), Owed(null, Money(2000)))
+        assertEquals("You still owe money from Club gig (Sat 12 Sep)" to "Jacek 100.00 PLN\nthe band fund 20.00 PLN", texts(two, "en"))
+        assertEquals("Nierozliczone: Club gig (sob. 12.09)" to "100,00 zł dla: Jacek\n20,00 zł do kasy zespołowej", texts(two, "pl"))
+    }
 }
+

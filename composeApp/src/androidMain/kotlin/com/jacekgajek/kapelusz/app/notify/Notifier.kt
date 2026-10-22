@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.jacekgajek.kapelusz.app.R
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
+import com.jacekgajek.kapelusz.app.ui.model.formatShortDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -28,8 +29,11 @@ import java.util.Locale
 object Notifier {
     private const val REMINDERS = "reminders"
     private const val TRANSFERS = "transfers"
+    private const val DEBTS = "debts"
     const val EXTRA_BAND = "openBand"
     const val EXTRA_EVENT = "openEvent"
+    /** Opens the event at its To settle section (a debt reminder, ITERATION_3 §2.2). */
+    const val EXTRA_TO_SETTLE = "openToSettle"
 
     /** The app's language when set, otherwise the device's (the default locale). */
     private fun polish(language: String?) = (language ?: Locale.getDefault().language) == "pl"
@@ -40,18 +44,11 @@ object Notifier {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel(REMINDERS, if (pl) "Przypomnienia o koncertach" else "Gig reminders", NotificationManager.IMPORTANCE_DEFAULT))
         manager.createNotificationChannel(NotificationChannel(TRANSFERS, if (pl) "Przelewy" else "Transfers", NotificationManager.IMPORTANCE_LOW))
+        manager.createNotificationChannel(NotificationChannel(DEBTS, if (pl) "Przypomnienia o nierozliczonych długach" else "Reminders about open debts", NotificationManager.IMPORTANCE_DEFAULT))
     }
-
-    private val EN_DAYS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    private val PL_DAYS = listOf("pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz.")
-    private val EN_MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
     /** "Sat 12 Sep" / "sob. 12.09" */
-    private fun dayText(date: LocalDate, pl: Boolean): String {
-        val day = date.dayOfWeek.ordinal
-        return if (pl) "${PL_DAYS[day]} ${date.day.toString().padStart(2, '0')}.${(date.month.ordinal + 1).toString().padStart(2, '0')}"
-        else "${EN_DAYS[day]} ${date.day} ${EN_MONTHS[date.month.ordinal]}"
-    }
+    private fun dayText(date: LocalDate, pl: Boolean): String = formatShortDate(date, if (pl) "pl" else "en")
 
     /** "Tomorrow: Club gig" / "Za 3 dni: Club gig", and "Sat 12 Sep · Arrival 17:00". */
     fun reminderTexts(eventName: String, daysBefore: Int, date: LocalDate, firstTime: AgendaTime?, language: String? = null): Pair<String, String> {
@@ -66,6 +63,32 @@ object Notifier {
         return "$whenText: $eventName" to listOfNotNull(dayText(date, pl), time).joinToString(" · ")
     }
 
+    /**
+     * "You still owe Jacek 100.00 PLN" and "from Club gig (Sat 12 Sep)"; with more people owed, one line each
+     * (ITERATION_3 §2.2). Polish avoids gendered verb forms.
+     */
+    fun debtTexts(reminder: DebtReminder, language: String? = null): Pair<String, String> {
+        val pl = polish(language)
+        val lang = if (pl) "pl" else "en"
+        val gig = "${reminder.eventName} (${dayText(reminder.date, pl)})"
+        fun line(owed: Owed): String {
+            val amount = formatMoney(owed.amount, reminder.currency, lang)
+            val to = when {
+                owed.toName != null -> if (pl) "dla: ${owed.toName}" else owed.toName
+                else -> if (pl) "do kasy zespołowej" else "the band fund"
+            }
+            val fromFund = if (!owed.fromFund) "" else if (pl) " (z kasy zespołowej)" else " (from the band fund)"
+            return if (pl) "$amount $to$fromFund" else "$to $amount$fromFund"
+        }
+        val single = reminder.owed.singleOrNull()
+        return when {
+            single != null && pl -> "Do oddania: ${line(single)}" to gig
+            single != null -> "You still owe ${line(single)}" to "from $gig"
+            pl -> "Nierozliczone: $gig" to reminder.owed.joinToString("\n", transform = ::line)
+            else -> "You still owe money from $gig" to reminder.owed.joinToString("\n", transform = ::line)
+        }
+    }
+
     private fun label(time: AgendaTime, pl: Boolean) = when (time.kind) {
         AgendaKind.ARRIVAL -> if (pl) "Przyjazd" else "Arrival"
         AgendaKind.SOUND_CHECK -> if (pl) "Próba dźwięku" else "Sound check"
@@ -73,17 +96,22 @@ object Notifier {
         null -> time.label.orEmpty()
     }
 
-    /** [language]: the app's (as the texts were made), so the action and the channel match them (ITERATION_3 R7). */
-    fun showReminder(context: Context, id: Int, bandId: String?, eventId: String?, title: String, text: String, navigateUrl: String?, language: String? = null) {
+    /**
+     * [language]: the app's (as the texts were made), so the action and the channel match them (ITERATION_3 R7).
+     * [toSettle]: a debt reminder, opening the event at To settle (ITERATION_3 §2.2).
+     */
+    fun showReminder(context: Context, id: Int, bandId: String?, eventId: String?, title: String, text: String, navigateUrl: String?, language: String? = null, toSettle: Boolean = false) {
         if (!canNotify(context)) return
         val pl = polish(language)
         channels(context, pl)
-        val builder = NotificationCompat.Builder(context, REMINDERS)
+        val builder = NotificationCompat.Builder(context, if (toSettle) DEBTS else REMINDERS)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
-            .setContentIntent(openEvent(context, id, bandId, eventId))
+            .setContentIntent(openEvent(context, id, bandId, eventId, toSettle))
             .setAutoCancel(true)
+        // One line per person owed in a debt reminder.
+        if ('\n' in text) builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))
         // Straight to Google Maps for the gig's place.
         navigateUrl?.let { url ->
             val maps = PendingIntent.getActivity(
@@ -132,11 +160,11 @@ object Notifier {
             .build())
     }
 
-    /** Opens the app at the event; without one (a test reminder), just the app. */
-    private fun openEvent(context: Context, requestCode: Int, bandId: String?, eventId: String?): PendingIntent {
+    /** Opens the app at the event (at its To settle section with [toSettle]); without one (a test reminder), just the app. */
+    private fun openEvent(context: Context, requestCode: Int, bandId: String?, eventId: String?, toSettle: Boolean = false): PendingIntent {
         val intent = (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent())
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        if (bandId != null && eventId != null) intent.putExtra(EXTRA_BAND, bandId).putExtra(EXTRA_EVENT, eventId)
+        if (bandId != null && eventId != null) intent.putExtra(EXTRA_BAND, bandId).putExtra(EXTRA_EVENT, eventId).putExtra(EXTRA_TO_SETTLE, toSettle)
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 

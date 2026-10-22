@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The app vouches for the website, so Chrome on Android can tell the website it is installed
+         (navigator.getInstalledRelatedApps, ITERATION_3 §2.3) and stop suggesting it. -->
+    <string name="asset_statements" translatable="false">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://kapelusz.jacekgajek.com\"}}]</string>
+</resources>

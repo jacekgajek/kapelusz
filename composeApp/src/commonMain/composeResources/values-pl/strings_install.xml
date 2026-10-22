@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Web install hints (ITERATION_3 §2.3). -->
+    <string name="install_home_screen_text">Dodaj Kapelusz do ekranu początkowego: stuknij Udostępnij, a potem Do ekranu początkowego.</string>
+    <string name="install_not_now">Nie teraz</string>
+</resources>

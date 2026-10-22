@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Share a settlement as text (ITERATION_3 §2.1) -->
+    <string name="share_settlement">Share settlement</string>
+    <string name="share_settlement_copied">Settlement copied to the clipboard</string>
+    <string name="share_settlement_failed">Could not share the settlement.</string>
+    <!-- The shared text itself -->
+    <string name="share_text_income">Income %1$s</string>
+    <string name="share_text_refunds">costs refunded %1$s</string>
+    <string name="share_text_to_fund">band fund %1$s</string>
+    <string name="share_text_from_fund">from the band fund %1$s</string>
+    <string name="share_text_shares">Shares: %1$s</string>
+    <string name="share_text_share_with_refunds">%1$s %2$s (+ %3$s refunds)</string>
+    <string name="share_text_fixed">%1$s (fixed)</string>
+    <string name="share_text_done">Done:</string>
+    <string name="share_text_still_to_pay">Still to pay:</string>
+    <string name="share_text_all_settled">All settled</string>
+    <string name="share_text_incomplete">Not settled yet: there is something to sort out in the app first</string>
+    <string name="share_text_footer">Pass the Hat · kapelusz.jacekgajek.com</string>
+    <!-- Reminder about open debts (ITERATION_3 §2.2) -->
+    <string name="notifications_debts">Reminders about open debts</string>
+</resources>

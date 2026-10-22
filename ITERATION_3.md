@@ -227,6 +227,26 @@ Chosen on 2026-10-22; details to be settled (grilling) before building.
   out and in). Each disappears for good once installed: the web app opened from the home screen, or the Android app
   installed where the browser can tell (installed related apps).
 
+### 2.4 Shares as a percentage or a fixed amount
+In "Adjust shares", each participant (member or guest) takes either a percentage, as today, or a fixed amount, e.g. a
+contractor who takes exactly 100 zł whatever the gig made.
+- **Switch per row:** each row has a "% | zł" switch. In % a discrete slider from 0 to 200% in 25% steps (a value
+  off the steps from before, e.g. 110%, is shown as is and snaps only when moved), with the resulting amount below.
+  In zł a money field.
+- **Off the top:** fixed amounts are paid out of the amount to share (income minus the band fund amount and
+  refunds); the rest is split by percentage among the others.
+- **Not enough:** when the amount to share does not cover the fixed amounts, the event is at a loss, as today when
+  income does not cover the fund and refunds; the lead adds money from the fund or lowers the amounts.
+- **Nobody left:** when money is left after the fixed amounts but nobody has a percentage above 0, the event shows
+  "no shares", as today; the lead gives someone a percentage or moves the rest to the band fund.
+- **Refunds on top:** a fixed participant's own refunded costs are paid on top of the fixed amount, as for everyone.
+- **Per event:** set on each event, not remembered per member.
+- *Model:* the participant gets an optional fixed amount (weight kept for switching back); a new operation sets it
+  (lead), with limits and undo like the weight; the calculator, the shared text (§2.1) and the overview show
+  "fixed".
+- *Tests:* settlement with fixed amounts (off the top, loss, no shares, refunds on top, rounding of the rest);
+  reducer and permissions for the new operation; undo.
+
 ## 3. Later
 
 ### History performance
@@ -290,9 +310,10 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [x] V3-M3.4 "Signed out everywhere" (R6) and stuck pushes shown with export or discard (R9)
 
 ### V3-M4 — New features (one release)
-- [ ] V3-M4.1 Share a settlement as text (§2.1)
-- [ ] V3-M4.2 Reminder about open debts (§2.2)
-- [ ] V3-M4.3 Web app installable on iPhones, install hints on every visit (§2.3)
+- [x] V3-M4.1 Share a settlement as text (§2.1)
+- [x] V3-M4.2 Reminder about open debts (§2.2)
+- [x] V3-M4.3 Web app installable on iPhones, install hints on every visit (§2.3)
+- [x] V3-M4.4 Shares as a percentage (slider, 25% steps) or a fixed amount (§2.4)
 
 ## 5. Decision log
 | Date | Decision |
@@ -300,3 +321,4 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 | 2026-10-22 | Iteration 3 starts with hardening: the full review's P1 and P2 findings become V3-M1 and V3-M2, quality work V3-M3, before the new features (share settlement as text, open-debt reminders, installable web app on iPhones). |
 | 2026-10-22 | Features settled (grilling): the shared settlement is the full overview with Done / Still to pay, for everyone, with a footer; open-debt reminders only to the payer, two weeks after the gig then weekly, at most 4, on by default, tap opens To settle; the web app installs and starts offline, with an iPhone hint, and both install hints come back on every visit to the event list until installed. |
 | 2026-10-22 | The three features form one milestone, V3-M4, so they ship together. |
+| 2026-10-22 | Added to V3-M4 (grilling): shares as a percentage (slider 0–200%, 25% steps) or a fixed amount per participant, paid off the top of the amount to share; a shortfall is a loss and an unclaimed rest is "no shares", as today; refunds on top; per event only. |
