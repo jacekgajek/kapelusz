@@ -237,6 +237,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
   - Web address `splitart.jacekgajek.com`: DNS, certificate and CloudFront in the my-aws Terraform, the Google sign-in client's allowed origins, Android App Links; the old address keeps redirecting so shared invite links still work.
   - Internal names users never see (Kotlin packages, AWS bucket and Lambda names, the web app's local database `art-split`, Android preferences): renaming buckets or local stores means migrating data.
   - Calendar subscription links and the API address: whether they change (subscribed calendars would stop updating).
+- [x] V2-M10.0a App icon: a top hat with a banknote on honey gold (#F5CB5C), as an Android adaptive icon (with a one-colour layer for themed icons), the notification icon, and the web icons; made from the user's mockup, sources in `design/icon/`
 - [ ] V2-M10.1 Release checklist (§10) passed on real phones
 - [ ] V2-M10.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
