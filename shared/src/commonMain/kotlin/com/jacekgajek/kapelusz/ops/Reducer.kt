@@ -452,7 +452,8 @@ object Reducer {
         val moves = op.incurredForEventId != null && op.incurredForEventId.value != cost.eventId
         val ownEvent = cost.eventId?.takeUnless { moves }?.let { band.event(it) }
         val ownRefund = ownEvent?.refundOf(cost.id)
-        if (ownEvent != null && ownRefund != null && newAmount != cost.amount) {
+        // Only while the event is open (ITERATION_3 R2): once money moved or it is archived, refunds are a lead's decision.
+        if (ownEvent != null && ownRefund != null && newAmount != cost.amount && !ownEvent.archived && ownEvent.transfers.isEmpty()) {
             val refundedElsewhere = CostLedger.refunded(band, cost.id) - ownRefund.amount
             if (ownRefund.amount == cost.amount - refundedElsewhere) {
                 val adjusted = newAmount - refundedElsewhere

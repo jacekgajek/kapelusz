@@ -184,21 +184,25 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         val attachment = Attachment(newId(), file.kind, file.fileName, file.sizeBytes)
         // The file first, then the attachment (ITERATION_3 R4).
         try {
-            uploads.enqueue(PendingUpload(bandId, costId, attachment.id), file.base64)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
+            try {
+                uploads.enqueue(PendingUpload(bandId, costId, attachment.id), file.base64)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
+            }
+            // Another band opened meanwhile (the file was being stored): this attachment belongs to the first one.
+            val rejection = if (bands.currentBandId == bandId) dispatch(AddAttachment(costId, attachment))
+            else Rejection(RejectionCode.CONFLICT, "Another band was opened", RejectionReason.NOT_FOUND)
+            if (rejection != null) {
+                uploads.cancel(attachment.id)
+                return rejection
+            }
+            sync.requestSync()
+            return null
+        } finally {
             uploads.published(attachment.id)
-            return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
         }
-        val rejection = dispatch(AddAttachment(costId, attachment))
-        uploads.published(attachment.id)
-        if (rejection != null) {
-            uploads.cancel(attachment.id)
-            return rejection
-        }
-        sync.requestSync()
-        return null
     }
 
     /** Attaches the files picked while adding [costId]; runs in the app scope because the form closes on save. */

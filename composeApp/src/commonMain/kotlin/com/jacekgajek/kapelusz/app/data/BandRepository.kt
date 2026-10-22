@@ -101,10 +101,13 @@ class BandRepository(
         val rawIndex = store.read(indexKey(userId))
         val index = rawIndex?.let { raw -> runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
             ?: BandIndex(userId).also {
-                // Never lose the only copy (ITERATION_3 R4): bands it listed are found again through the server's list.
+                // Never lose the only copy (ITERATION_3 R4).
                 if (rawIndex != null) store.write("${indexKey(userId)}-backup-${clock()}", rawIndex)
             }
         _index.value = index
+        // Unreadable: the bands it listed are found again from their own files, also those created offline that the
+        // server does not know yet. The ids are picked out of the broken text.
+        if (rawIndex != null && index.bands.isEmpty()) recoverBands(userId, rawIndex)
         adoptLegacyBand(userId)
         // Every stored band, not only the open one: bands created offline must still be uploaded, and unsent changes
         // in other bands pushed, even if the user never opens them.
@@ -293,6 +296,17 @@ class BandRepository(
         }
     }
 
+    private suspend fun recoverBands(userId: String, rawIndex: String) {
+        val ids = Regex(""""id"\s*:\s*"([A-Za-z0-9_-]{1,64})"""").findAll(rawIndex).map { it.groupValues[1] }.distinct().toList()
+        val summaries = ids.mapNotNull { id ->
+            val local = runCatching { readLocal(id, reportUnreadable = false) }.getOrNull() ?: return@mapNotNull null
+            locals[id] = local
+            val me = local.base.memberOfUser(userId)
+            BandSummary(id, local.base.name, me?.name.orEmpty(), me?.role ?: Role.MEMBER)
+        }
+        if (summaries.isNotEmpty()) updateIndex { it.copy(bands = summaries, currentBandId = summaries.first().id) }
+    }
+
     /** M3 builds stored `band-index` and `band-{id}` without the user id; move them if they belong to [userId]. */
     private suspend fun migrateUnscopedKeys(userId: String) {
         val raw = store.read(UNSCOPED_INDEX_KEY) ?: return
@@ -359,22 +373,21 @@ class BandRepository(
      * Writes every changed band (and the index) now. Sync calls this before pushing, so a crash right after a push
      * cannot leave an older `nextSeq` on disk and make the next operation reuse a sequence number.
      */
-    suspend fun flush() = writeLock.withLock {
-        val user = userId ?: return@withLock
+    suspend fun flush(): Boolean = writeLock.withLock {
+        val user = userId ?: return@withLock true
         // The index first: it then lists every band that has a file, also after a crash between the writes.
         if (indexDirty) {
-            indexDirty = false
-            _index.value?.let { index ->
-                if (!write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), index))) indexDirty = true
-            }
+            val index = _index.value
+            if (index == null || write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), index))) indexDirty = false
         }
         for (bandId in dirty.toList()) {
-            dirty -= bandId
-            locals[bandId]?.let { local ->
-                if (!write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), local))) dirty += bandId
-            }
+            // Unmarked only once written: a failure or a cancellation leaves it marked as unsaved.
+            val local = locals[bandId]
+            if (local == null || write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), local))) dirty -= bandId
         }
-        if (dirty.isNotEmpty() || indexDirty) retryFlush()
+        val saved = dirty.isEmpty() && !indexDirty
+        if (!saved) retryFlush()
+        saved
     }
 
     /** False when the device could not store it (e.g. full): it stays marked as unsaved instead of being forgotten. */

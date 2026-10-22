@@ -210,8 +210,9 @@ class SyncEngine(
     }
 
     private suspend fun pushBand(bandId: Id) {
-        // What is pushed must already be on disk, or a crash after the push could make later ops reuse sequence numbers.
-        bands.flush()
+        // What is pushed must already be on disk, or a crash after the push could make later ops reuse sequence numbers:
+        // if the device cannot store it now, nothing is pushed (ITERATION_3 R4).
+        if (!bands.flush()) throw SyncProtocolException("This device could not store the band; not pushing until it can")
         val local = bands.local(bandId) ?: return
         if (local.needsCreate) {
             val owner = local.base.owner ?: return

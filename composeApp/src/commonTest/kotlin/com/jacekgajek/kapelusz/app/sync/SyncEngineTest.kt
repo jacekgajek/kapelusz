@@ -318,8 +318,10 @@ class SyncEngineTest {
         assertEquals(null, repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1))))
         assertEquals(null, repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4))))
         uploads.enqueue(PendingUpload(bandId, "c1", "a1"), "AAAA")
+        uploads.published("a1")
         // Also queued: a file whose attachment is not on the cost (refused or removed meanwhile): dropped, not uploaded.
         uploads.enqueue(PendingUpload(bandId, "c1", "gone"), "BBBB")
+        uploads.published("gone")
 
         assertTrue(sync.syncNow())
         assertEquals(listOf("https://s3.test/a1" to "AAAA"), puts)
@@ -344,6 +346,7 @@ class SyncEngineTest {
         repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
         repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.PDF, "invoice.pdf", 4)))
         uploads.enqueue(PendingUpload(repository.currentBandId!!, "c1", "a1"), "AAAA")
+        uploads.published("a1")
 
         sync.syncNow()
         assertEquals(listOf("a1"), uploads.pending.value.map { it.attachmentId })
@@ -370,6 +373,7 @@ class SyncEngineTest {
         repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
         repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4)))
         uploads.enqueue(PendingUpload(repository.currentBandId!!, "c1", "a1"), "AAAA")
+        uploads.published("a1")
 
         sync.syncNow()
         assertEquals(listOf("a1"), uploads.pending.value.map { it.attachmentId })

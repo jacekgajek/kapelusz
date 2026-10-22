@@ -53,4 +53,20 @@ class LimitsTest {
         assertEquals(Money(999_999_999_999_900), Money.parse("9999999999999"))
         assertFailsWith<IllegalArgumentException> { Money.parse("99999999999999999") }
     }
+
+    @Test
+    fun aGuestCannotTakeAMembersIdAndOldLongTextsDoNotBlockOtherChanges() {
+        val scenario = Scenario("Alice", "Bob").event("gig", "Alice")
+        assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(AddGuest("gig", "bob", "Bob?")).reason)
+        // Notes longer than today's limit (from before it): other changes to the event still work.
+        val long = scenario.band.copy(events = scenario.band.events.map { it.copy(notes = "n".repeat(Limits.MAX_NOTES + 10)) })
+        val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.auth.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)
+        kotlin.test.assertIs<com.jacekgajek.kapelusz.ops.ApplyResult.Applied>(applied)
+    }
+
+    @Test
+    fun negativeAmountsAreBoundedToo() {
+        val scenario = Scenario("Alice").event("gig", "Alice").apply(com.jacekgajek.kapelusz.ops.SetTreasurer("alice"))
+        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(com.jacekgajek.kapelusz.ops.SetFundAmount("gig", Money(Long.MIN_VALUE))).reason)
+    }
 }

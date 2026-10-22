@@ -213,4 +213,13 @@ class ReducerTest {
         scenario.apply(UpdateCost("later", incurredForEventId = Change("gig")))
         assertEquals(null, scenario.band.event("gig")!!.refundOf("later"), "archived: a lead decides")
     }
+
+    @Test
+    fun aMembersAmountChangeDoesNotRaiseTheRefundOfASettledEvent() {
+        val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
+            .apply(com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "alice", pln("100"), com.jacekgajek.kapelusz.model.IncomeSource.HAT, null))
+            .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
+        scenario.apply(UpdateCost("c", amount = Change(pln("60"))))
+        assertEquals(pln("40"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "settled: the refund stays; a lead decides")
+    }
 }

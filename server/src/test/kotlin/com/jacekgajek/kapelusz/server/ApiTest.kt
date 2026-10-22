@@ -147,15 +147,29 @@ class ApiTest {
     }
 
     @Test
+    fun bandCreationKeepsToTheLimits() {
+        fun create(bandId: String, ownerMemberId: String, name: String = "Night Owls") = call("POST", "/bands", "alice",
+            KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, name, "PLN", ownerMemberId, "Alice")))
+        assertEquals(400, create("../evil", "m-alice").status)
+        assertEquals(400, create("band2", "band-fund").status)
+        assertEquals(400, create("band3", "m-alice", name = "x".repeat(200)).status)
+        assertEquals(200, create("band4", "m-alice").status)
+    }
+
+    @Test
     fun aPushThatWouldMakeTheBandTooLargeToLoadIsRefused() {
         val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandChars = 3_000)
         createBand()
         fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
             KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400))))))))
-        val statuses = (1..10).map { add(it).status }
-        assertEquals(200, statuses.first())
-        assertEquals(413, statuses.last(), statuses.toString())
-        assertTrue(store.objects.getValue(Api.bandKey("band1")).content.length <= 3_000, "nothing above the cap was written")
+        val responses = (1..10).map { add(it) }
+        assertTrue(responses.all { it.status == 200 }, "the push goes through; only the operation is refused")
+        val last = KapeluszJson.decodeFromString(PushResponse.serializer(), responses.last().body!!)
+        assertEquals(RejectionReason.LIMIT_REACHED, last.rejected.values.single().reason)
+        // Refused operations are remembered (for retried pushes, at most 20), so the file may pass the cap by that.
+        val stored = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        assertTrue(stored.cost("c10") == null, "the operation that would pass the cap was not applied")
+        assertTrue(store.objects.getValue(Api.bandKey("band1")).content.length < 4_000)
     }
 
     @Test
