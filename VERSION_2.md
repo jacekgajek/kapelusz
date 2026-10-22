@@ -158,6 +158,12 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
   - Then **App updates** (Android) and **Account** in place, and **Delete band** last after a divider; the version (secret menu) below.
 - Pages are their own navigation entries, so Back returns to the list; on wide screens the content stays at a readable width.
 
+### 7.4 Event polish and Google photos
+- Event screen, **Settlement**: an information panel only (who gets or hands over how much); the per-person **Settle** button is gone, because it recorded several transfers at once. Transfers are recorded in **To settle** (each "X → Y" line, or Settle all).
+- **To settle**: the "X → Y amount" lines in a smaller font, so longer names do not wrap.
+- **Google photos** instead of initials for members with an account: in the event list, Band members, the participant chips on the event screen, and next to the account in Settings. Shown to bandmates automatically (no switch). Guests, members without an account, and photos that cannot be loaded show initials.
+- The photo comes with the Google sign-in: the server keeps it with the user and puts it on their member in each band at sign-in and session renewal (about every 30 days) and when they join a band. Unlinking an account removes it. It is not a change in the history, and undo ignores it.
+
 ## 8. Later (not in 1.0)
 - **Calendar view** of the event list (a month grid).
 - **Facebook login**: needs a Facebook developer app in Live mode (privacy-policy and data-deletion pages), SDKs on both platforms and a server secret; logins would be separate users, not linked. **Sign-in by email link** (AWS SES) is the simpler alternative if people without Google accounts join; SES has no idle cost (about $0.10 per 1000 emails).
@@ -220,9 +226,13 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 ### V2-M8 — Settings layout
 - [x] V2-M8.1 Settings as a grouped list with pages for the band fund, event agenda, and notifications and calendar (§7.3)
 
-### V2-M9 — Release 1.0
-- [ ] V2-M9.1 Release checklist (§10) passed on real phones
-- [ ] V2-M9.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
+### V2-M9 — Event polish and Google photos
+- [ ] V2-M9.1 Settlement panel without Settle buttons; smaller To settle lines (§7.4)
+- [ ] V2-M9.2 Google photos of members with an account (§7.4)
+
+### V2-M10 — Release 1.0
+- [ ] V2-M10.1 Release checklist (§10) passed on real phones
+- [ ] V2-M10.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
 1. CI deploy green, including the APK step (keystore secret set from the file).
@@ -260,3 +270,4 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-22 | V2-M7: bulk archive removed. Undo from history: the newest line of the event or band history, refused when what it touched changed since; permissions as for the reverse change; confirmed in a dialog; undo of an undo redoes. Membership and ownership changes and band deletion are not undoable. The secret menu (one tap on the version, admins) copies the band file exactly as stored in the bucket. The Continue card rule stays: future events with money on them do not count. Undo steps back through changes (the arrow skips undone changes and undo lines) with redo for the newest undo until a new change is made; the first idea (only the newest line, undoing an undo redoes) could never go back more than one step. |
 | 2026-10-22 | Reminders: a changed reminder time or gig was only scheduled when the app left the screen (through a deferrable background job); now it is scheduled at once. Alarms stay inexact (no exact-alarm permission), so from Android 12 a reminder may come up to an hour late. The secret menu shows reminder checks and sends a test reminder. |
 | 2026-10-22 | No battery-optimisation warning or "run in the background" prompt for users: reminders arrived on a realme GT 7 (Android 16) with the default "intelligent" battery mode. |
+| 2026-10-22 | History performance options (pooled S3 client, DynamoDB for the log, more Lambda memory) moved to VERSION_3.md; history stays as it is for 1.0. Google photos for members with an account, shown automatically, refreshed at sign-in and session renewal. The per-person Settle button in the event's Settlement panel is removed. |
