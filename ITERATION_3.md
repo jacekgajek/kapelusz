@@ -179,23 +179,49 @@ updater, and the web storage (wasm tests are switched off today).
 Chosen on 2026-10-22; details to be settled (grilling) before building.
 
 ### 2.1 Share a settlement as text (V3-M4)
-- On the event: **Share settlement**, a plain-text summary that goes to WhatsApp, Messenger or wherever the band
-  talks about money, e.g. "Club gig, 12 Sep: Jacek gets 250 zł; Bob pays Jacek 100 zł; Carol pays the band fund 50 zł".
-- The system share sheet (Android) or Web Share / the clipboard (web), in the app's language.
-- To decide: which lines (only who pays whom, or also income, costs and the fund), and whether recorded transfers are
-  marked as done.
+- **Content: the full overview.** A header (event name and date), then income, refunded costs and the band fund, each
+  person's share and payout, then the transfers in two blocks: **Done** (recorded transfers) and **Still to pay** (the
+  open suggestions). A fully settled event says "All settled". Example:
+  ```
+  Club gig · Sat 12 Sep
+  Income 1 200 zł · costs refunded 150 zł · band fund 100 zł
+  Shares: Jacek 475 zł (+ 150 zł refunds), Bob 475 zł
+  Done:
+  Carol → band fund: 50 zł
+  Still to pay:
+  Bob → Jacek: 100 zł
+  Kapelusz · kapelusz.jacekgajek.com
+  ```
+- **Language:** the sender's app language, with money and dates formatted in it. The footer names the app in that
+  language (Kapelusz / Pass the Hat) with the address.
+- **Where and who:** a **Share** icon in the event's top bar and a **Share settlement** button under the Settlement
+  panel; for everyone in the band (viewers too); hidden while the event is a draft.
+- **How:** the system share sheet on Android; Web Share where the browser has it, otherwise copied to the clipboard.
 
 ### 2.2 Reminder about open debts (V3-M5)
-- A gentle notification on the phone: "You owe Bob 120 zł from Club gig (2 weeks ago)", built on the existing reminder
-  scheduling (local, no push service).
-- To decide: when it fires (days after the gig, repeats), whether the one who is owed is reminded too, the switch in
-  Settings → Notifications and calendar, and the band fund's holder.
+- **Who:** only the one who still has to pay ("Still to pay" lines): "You still owe Jacek 100 zł from Club gig
+  (Sat 12 Sep)". Money owed to the band fund reminds the payer; money the fund owes reminds its holder (treasurer).
+- **When:** first **two weeks after the gig**, then **once a week**, **at most 4 times**; at the time of day set for
+  gig reminders; one notification per event (one line per person owed). It stops as soon as the transfer is
+  recorded (or the event changes so nothing is owed).
+- **Setting:** "Reminders about open debts" in Settings → Notifications and calendar, **on by default**; it uses the
+  notification permission of gig reminders.
+- **Action:** tapping opens the event at To settle, where the transfer is recorded as usual; no "I've paid" button on
+  the notification (no accidental records, partial payments possible).
+- Android only, scheduled on the phone like gig reminders (no push service); late delivery up to an hour is fine.
 
 ### 2.3 Web app installable on iPhones (V3-M6)
-- A web app manifest (name per language, the hat icon, theme colour) and the iOS home-screen tags, so "Add to Home
-  Screen" gives an app icon that opens in its own window, for bandmates with iPhones (there is no iOS app).
-- To decide: offline start (a service worker caching the app) or online only, and whether the website suggests
-  installing it on iPhones like it suggests the APK on Android.
+- **Installable:** a web app manifest (name per language, the hat icon, honey-gold theme colour) and the iOS
+  home-screen tags, so "Add to Home Screen" gives an app icon that opens in its own window.
+- **Starts offline:** a service worker keeps the app's files on the device; changes sync once online, like on
+  Android. A new deploy is picked up on the next start, and the existing "new version available" notice offers a
+  reload.
+- **Hint on iPhones:** in Safari on iPhone and iPad only (not when already opened from the home screen): "Add
+  Kapelusz to your Home Screen: tap Share, then Add to Home Screen."
+- **Both install hints (iPhone and the existing Android app hint) show every time the event list opens;** "Not now"
+  hides them only until the next visit (today the Android hint stays hidden after the first dismissal until signing
+  out and in). Each disappears for good once installed: the web app opened from the home screen, or the Android app
+  installed where the browser can tell (installed related apps).
 
 ## 3. Later
 
@@ -259,4 +285,5 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 ## 5. Decision log
 | Date | Decision |
 |---|---|
+| 2026-10-22 | Features settled (grilling): the shared settlement is the full overview with Done / Still to pay, for everyone, with a footer; open-debt reminders only to the payer, two weeks after the gig then weekly, at most 4, on by default, tap opens To settle; the web app installs and starts offline, with an iPhone hint, and both install hints come back on every visit to the event list until installed. |
 | 2026-10-22 | Iteration 3 starts with hardening: the full review's P1 and P2 findings become V3-M1 and V3-M2, quality work V3-M3, before the new features (share settlement as text, open-debt reminders, installable web app on iPhones). |
