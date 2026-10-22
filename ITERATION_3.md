@@ -285,5 +285,5 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 ## 5. Decision log
 | Date | Decision |
 |---|---|
-| 2026-10-22 | Features settled (grilling): the shared settlement is the full overview with Done / Still to pay, for everyone, with a footer; open-debt reminders only to the payer, two weeks after the gig then weekly, at most 4, on by default, tap opens To settle; the web app installs and starts offline, with an iPhone hint, and both install hints come back on every visit to the event list until installed. |
 | 2026-10-22 | Iteration 3 starts with hardening: the full review's P1 and P2 findings become V3-M1 and V3-M2, quality work V3-M3, before the new features (share settlement as text, open-debt reminders, installable web app on iPhones). |
+| 2026-10-22 | Features settled (grilling): the shared settlement is the full overview with Done / Still to pay, for everyone, with a footer; open-debt reminders only to the payer, two weeks after the gig then weekly, at most 4, on by default, tap opens To settle; the web app installs and starts offline, with an iPhone hint, and both install hints come back on every visit to the event list until installed. |
