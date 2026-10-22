@@ -146,7 +146,8 @@ object Reducer {
             is DeleteCost -> deleteCost(band, op, ctx)
             is AddAttachment -> band.updateCost(op.costId) { cost ->
                 invalidIf(cost.attachments.size >= MAX_ATTACHMENTS, RejectionReason.TOO_MANY_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
-                invalidIf(cost.attachments.any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
+                // Unique in the whole band: the id names its file in storage (ITERATION_3 R6).
+                invalidIf(band.costs.any { c -> c.attachments.any { it.id == op.attachment.id } }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
                 // The size is signed into the upload URL, so the stored file cannot be larger than declared here.
                 val size = op.attachment.sizeBytes
                 invalidIf(size == null || size <= 0, RejectionReason.INVALID_INPUT) { "Attachment size is required" }

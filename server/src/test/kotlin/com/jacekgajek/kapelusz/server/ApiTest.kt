@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.ops.BandPart
+import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
@@ -144,6 +147,22 @@ class ApiTest {
         assertEquals(400, send("alice", "old-google-token-of-bob").status, "someone else's token")
         assertEquals(204, send("alice", "old-google-token-of-alice").status)
         assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+    }
+
+    @Test
+    fun outsidersCannotMakeTheServerReadTheLogAndUndosAreBounded() {
+        createBand()
+        fun undos(user: String, n: Int) = call("POST", "/bands/band1/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(
+            (1..n).map { OpEnvelope("u$it", "phone", 900L + it, 0, Undo("x$it", RenameBand("x"), BandChange(BandPart(), BandPart()), "2026-01/1-00000000-0000-0000-0000-000000000000.json")) },
+        )))
+        assertEquals(404, undos("mallory", 5).status, "not a member: refused before any undo lookup")
+        assertEquals(400, undos("alice", Api.MAX_UNDOS_PER_PUSH + 1).status)
+    }
+
+    @Test
+    fun oneAccountMayBeInAtMost20Bands() {
+        repeat(Api.MAX_BANDS_PER_USER) { assertEquals(200, createBand(bandId = "b$it").status) }
+        assertEquals(409, createBand(bandId = "one-more").status)
     }
 
     @Test

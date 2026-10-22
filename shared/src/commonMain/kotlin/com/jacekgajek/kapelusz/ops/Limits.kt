@@ -20,6 +20,9 @@ object Limits {
     const val MAX_EVENTS = 2000
     const val MAX_COSTS = 5000
     const val MAX_FUND_ENTRIES = 5000
+
+    /** Attachments in a band: with images of up to 3 MB and PDFs of up to 10 MB, a bounded amount of storage. */
+    const val MAX_BAND_ATTACHMENTS = 1000
     const val MAX_PARTIES_PER_EVENT = 200
     const val MAX_ITEMS_PER_EVENT = 500
 
@@ -35,6 +38,8 @@ object Limits {
         count(before.events.size, after.events.size, MAX_EVENTS, "events")?.let { return it }
         count(before.costs.size, after.costs.size, MAX_COSTS, "costs")?.let { return it }
         count(before.fundEntries.size, after.fundEntries.size, MAX_FUND_ENTRIES, "band fund entries")?.let { return it }
+        // Files cost storage: a budget per band (ITERATION_3 R6), checked only when attachments change.
+        if (after.costs !== before.costs) count(before.costs.sumOf { it.attachments.size }, after.costs.sumOf { it.attachments.size }, MAX_BAND_ATTACHMENTS, "attachments")?.let { return it }
         // Untouched lists are the same object (the reducer copies only what changes): nothing to look at.
         if (after.members !== before.members) members(before, after)?.let { return it }
         if (after.events !== before.events) events(before, after)?.let { return it }

@@ -69,4 +69,12 @@ class LimitsTest {
         val scenario = Scenario("Alice").event("gig", "Alice").apply(com.jacekgajek.kapelusz.ops.SetTreasurer("alice"))
         assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(com.jacekgajek.kapelusz.ops.SetFundAmount("gig", Money(Long.MIN_VALUE))).reason)
     }
+
+    @Test
+    fun attachmentIdsAreUniqueInTheWholeBand() {
+        val scenario = Scenario("Alice").apply(AddCost("c1", "alice", Money(100), DATE)).apply(AddCost("c2", "alice", Money(100), DATE))
+        val file = com.jacekgajek.kapelusz.model.Attachment("a1", com.jacekgajek.kapelusz.model.AttachmentKind.IMAGE, "r.jpg", 10)
+        scenario.apply(com.jacekgajek.kapelusz.ops.AddAttachment("c1", file))
+        assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(com.jacekgajek.kapelusz.ops.AddAttachment("c2", file)).reason)
+    }
 }

@@ -137,6 +137,8 @@ class Api(
                 calendarSubscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))
             // A new session for a Google ID token, or a renewed one for a current session (sliding expiry).
             request.method == "POST" && segments == listOf("session") -> {
+                // A renewal that would keep a session alive too long: the app signs in with Google again.
+                user.sessionSince?.let { since -> if (clock() - since > SessionTokens.MAX_AGE_MS) throw ApiError(401, "unauthorized", "Sign in again") }
                 // Signing in with Google brings the current photo (ITERATION_2 §7.4); a failure must not stop the sign-in.
                 user.picture?.let { picture -> runCatching { rememberPicture(user.userId, picture) }.onFailure { System.err.println("Could not update the photo: $it") } }
                 val (token, expiresAt) = sessions.issue(user)
@@ -202,6 +204,7 @@ class Api(
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
         // The same limits as every change (ITERATION_3 R1): ids that become storage keys, names of sensible length.
         safe(request.bandId)
+        requireRoomForBand(user.userId, request.bandId)
         val draft = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
         Limits.violation(draft.copy(name = "", members = emptyList()), draft)?.let { throw ApiError(400, "bad_request", it.message) }
         badRequestIf(!request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
@@ -236,6 +239,9 @@ class Api(
         badRequestIf(clientIds.size > 1) { "All operations of a push must come from one device" }
         clientIds.firstOrNull()?.let { badRequestIf(!it.matches(Regex("[A-Za-z0-9-]{1,64}"))) { "Invalid device id" } }
         // Sequence numbers are tracked per user and device, so one user cannot block another user's device.
+        // Members only, before any work on their behalf (undo lookups read the log), and a bounded number of undos.
+        loadBandForMember(user, bandId)
+        badRequestIf(request.ops.count { it.op is Undo } > MAX_UNDOS_PER_PUSH) { "At most $MAX_UNDOS_PER_PUSH undos per push" }
         // An undo restores what the server recorded, not what the client says was there (ITERATION_2 §7.2).
         val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}", op = recordedUndo(bandId, it.op)) }
         repeat(MAX_ATTEMPTS) {
@@ -511,6 +517,7 @@ class Api(
     private fun acceptInvite(user: VerifiedUser, code: String): HttpResponse {
         val stored = findInvite(user, code)
         val invite = stored.info
+        requireRoomForBand(user.userId, invite.bandId)
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBand(invite.bandId) ?: throw inviteNotFound()
             band.memberOfUser(user.userId)?.let { existing ->
@@ -686,6 +693,12 @@ class Api(
         }
     }
 
+    /** At most [MAX_BANDS_PER_USER] bands (ITERATION_3 R6); joining or creating one more is refused. */
+    private fun requireRoomForBand(userId: String, bandId: String) {
+        val bands = store.get(userKey(userId))?.let { decode(UserRecord.serializer(), it.content).bandIds }.orEmpty()
+        if (bandId !in bands && bands.size >= MAX_BANDS_PER_USER) throw ApiError(409, ApiErrors.TOO_MANY_BANDS, "At most $MAX_BANDS_PER_USER bands")
+    }
+
     private fun addBandToUser(userId: String, bandId: String) {
         repeat(MAX_ATTEMPTS) {
             val blob = store.get(userKey(userId))
@@ -754,6 +767,10 @@ class Api(
 
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
+        const val MAX_UNDOS_PER_PUSH = 20
+
+        /** Bands one user may belong to (ITERATION_3 R6): far above any musician's, and a bound on storage per account. */
+        const val MAX_BANDS_PER_USER = 20
 
         /** The largest band file a push may produce (ITERATION_3 R1), well below the 6 MB of a Lambda response. */
         const val MAX_BAND_CHARS = 3_000_000

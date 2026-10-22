@@ -49,6 +49,9 @@ object ApiErrors {
     /** The push would make the band's file too large to load (`413`); nothing was written. */
     const val BAND_TOO_LARGE = "band_too_large"
 
+    /** The user is in as many bands as one account may be (`409`). */
+    const val TOO_MANY_BANDS = "too_many_bands"
+
     /** The band does not exist or the caller is not (or no longer) an active member. */
     const val BAND_NOT_FOUND = "band_not_found"
 
