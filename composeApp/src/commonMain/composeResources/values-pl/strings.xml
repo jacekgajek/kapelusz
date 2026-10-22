@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Art Split</string>
+    <string name="app_name">Split Art</string>
     <string name="back">Wstecz</string>
     <string name="settings">Ustawienia</string>
     <string name="menu_settings">Ustawienia</string>
@@ -211,8 +211,8 @@
     <string name="sign_in_again_text">Twoje logowanie wygasło, więc zmiany są na razie zapisywane tylko na tym urządzeniu. Zaloguj się ponownie jako %1$s, aby je zsynchronizować.</string>
     <string name="sign_in_again_wrong_account">To inne konto. Zaloguj się jako %1$s albo wyloguj się w Ustawieniach, aby zmienić konto.</string>
     <string name="lost_access">Nie masz już dostępu do zespołu %1$s. Niezapisane tam zmiany zachowano jako kopię na tym urządzeniu.</string>
-    <string name="other_tab_title">Art Split jest otwarty w innej karcie</string>
-    <string name="other_tab_text">Aby Twoje zmiany były bezpieczne, Art Split może działać tylko w jednej karcie naraz. Możesz kontynuować tutaj; druga karta przestanie działać.</string>
+    <string name="other_tab_title">Split Art jest otwarty w innej karcie</string>
+    <string name="other_tab_text">Aby Twoje zmiany były bezpieczne, Split Art może działać tylko w jednej karcie naraz. Możesz kontynuować tutaj; druga karta przestanie działać.</string>
     <string name="use_here">Użyj tutaj</string>
     <string name="open_band_failed">Nie udało się otworzyć zespołu. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="close">Zamknij</string>
@@ -222,7 +222,7 @@
     <string name="create_invite">Utwórz kod zaproszenia</string>
     <string name="invite_active_until">Zaproszenie %1$s, ważne do %2$s</string>
     <string name="share_invite">Udostępnij</string>
-    <string name="share_invite_text">Dołącz do zespołu %1$s w Art Split kodem %2$s: %3$s</string>
+    <string name="share_invite_text">Dołącz do zespołu %1$s w Split Art kodem %2$s: %3$s</string>
     <string name="invite_copied">Skopiowano zaproszenie do schowka</string>
     <string name="revoke_invite">Unieważnij</string>
     <string name="invite_failed">Nie udało się. Sprawdź połączenie i spróbuj ponownie.</string>
@@ -322,10 +322,10 @@
     <string name="fund_treasurer_hint">Ta osoba przechowuje pieniądze z kasy zespołowej. Kwoty do kasy z wydarzeń są przekazywane właśnie jej.</string>
     <string name="filter_pending">Oczekujące</string>
     <string name="filter_refunded">Zwrócone</string>
-    <string name="app_banner_text">Art Split jest też aplikacją na Androida: działa szybciej i bez internetu.</string>
+    <string name="app_banner_text">Split Art jest też aplikacją na Androida: działa szybciej i bez internetu.</string>
     <string name="app_banner_download">Pobierz</string>
     <string name="app_banner_dismiss">Nie pokazuj więcej</string>
-    <string name="app_update_text">Dostępna jest nowa wersja Art Split (%1$s).</string>
+    <string name="app_update_text">Dostępna jest nowa wersja Split Art (%1$s).</string>
     <string name="app_update_download">Aktualizuj</string>
     <string name="total_from_fund">Z kasy zespołowej</string>
     <string name="fund_direction_to">Do kasy</string>
@@ -379,23 +379,23 @@
     <string name="updates_auto">Instaluj aktualizacje automatycznie</string>
     <string name="updates_check_now">Sprawdź teraz</string>
     <string name="updates_checking">Sprawdzanie aktualizacji…</string>
-    <string name="updates_up_to_date">Art Split jest aktualny.</string>
+    <string name="updates_up_to_date">Split Art jest aktualny.</string>
     <string name="updates_downloading">Pobieranie %1$s…</string>
     <string name="updates_ready">Wersja %1$s jest pobrana. Zainstaluje się, gdy opuścisz aplikację.</string>
     <string name="updates_install_now">Zainstaluj teraz</string>
-    <string name="updates_needs_permission">Aby zaktualizować się do wersji %1$s, Art Split potrzebuje zgody na instalowanie aplikacji.</string>
+    <string name="updates_needs_permission">Aby zaktualizować się do wersji %1$s, Split Art potrzebuje zgody na instalowanie aplikacji.</string>
     <string name="updates_allow">Zezwól</string>
-    <string name="updates_needs_confirmation">Art Split %1$s jest gotowy do instalacji.</string>
+    <string name="updates_needs_confirmation">Split Art %1$s jest gotowy do instalacji.</string>
     <string name="updates_install">Zainstaluj</string>
-    <string name="updates_failed">Nie udało się sprawdzić aktualizacji. Art Split spróbuje ponownie później.</string>
+    <string name="updates_failed">Nie udało się sprawdzić aktualizacji. Split Art spróbuje ponownie później.</string>
     <string name="updates_unavailable">Wersje debug nie aktualizują się same.</string>
     <string name="updates_installing">Instalowanie %1$s… Po zakończeniu aplikacja uruchomi się ponownie.</string>
     <string name="updates_declined">Wersja %1$s nie została zainstalowana. Nie będzie proponowana automatycznie.</string>
     <string name="updates_install_failed">Android nie mógł zainstalować wersji %1$s.</string>
-    <string name="update_required_title">Zaktualizuj Art Split</string>
-    <string name="update_required_text">Ta wersja Art Split jest za stara dla serwera. Zaktualizuj aplikację, aby kontynuować; zmiany na tym urządzeniu zostaną zachowane i zsynchronizowane po aktualizacji.</string>
+    <string name="update_required_title">Zaktualizuj Split Art</string>
+    <string name="update_required_text">Ta wersja Split Art jest za stara dla serwera. Zaktualizuj aplikację, aby kontynuować; zmiany na tym urządzeniu zostaną zachowane i zsynchronizowane po aktualizacji.</string>
     <string name="update_required_button">Aktualizuj</string>
-    <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Art Split</string>
+    <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Split Art</string>
     <string name="upcoming_event">Najbliższe: %1$s · %2$s</string>
     <string name="undo">Cofnij</string>
     <string name="h_set_agenda">Zmieniono harmonogram: %1$s</string>
@@ -425,7 +425,7 @@
     <string name="reminder_prompt_yes">Tak</string>
     <string name="reminder_prompt_not_now">Nie teraz</string>
     <string name="notifications_title">Powiadomienia</string>
-    <string name="notifications_blocked">Android nie pokazuje jeszcze powiadomień z Art Split.</string>
+    <string name="notifications_blocked">Android nie pokazuje jeszcze powiadomień z Split Art.</string>
     <string name="notifications_allow">Zezwól na powiadomienia</string>
     <string name="notifications_reminders">Przypomnienia o koncertach</string>
     <string name="notifications_days_before">Przypominaj przed koncertem, w którym gram:</string>
@@ -476,7 +476,7 @@
     <string name="diag_none_scheduled">Brak zaplanowanych przypomnień.</string>
     <string name="diag_test">Testowe przypomnienie za minutę</string>
     <string name="diag_test_set">Testowe przypomnienie o %1$s (Android może je dostarczyć do godziny później)</string>
-    <string name="diag_test_title">Art Split</string>
+    <string name="diag_test_title">Split Art</string>
     <string name="diag_test_text">Testowe przypomnienie: przypomnienia działają na tym telefonie.</string>
     <string name="notifications_and_calendar">Powiadomienia i kalendarz</string>
     <string name="calendar_summary">Twoje koncerty w Kalendarzu Google</string>

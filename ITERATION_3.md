@@ -1,4 +1,4 @@
-# Art Split — Iteration 3 (ideas)
+# Split Art — Iteration 3 (ideas)
 
 Possible improvements after 1.0. Nothing here is planned yet.
 

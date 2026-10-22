@@ -1,4 +1,4 @@
-rootProject.name = "art-split"
+rootProject.name = "split-art"
 
 pluginManagement {
     repositories {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Art Split</string>
+    <string name="app_name">Split Art</string>
     <string name="back">Back</string>
     <string name="settings">Settings</string>
     <string name="menu_settings">Settings</string>
@@ -211,8 +211,8 @@
     <string name="sign_in_again_text">Your sign-in expired, so changes are only saved on this device for now. Sign in again as %1$s to sync them.</string>
     <string name="sign_in_again_wrong_account">That is a different account. Sign in as %1$s, or sign out in Settings to switch accounts.</string>
     <string name="lost_access">You no longer have access to %1$s. Changes not yet saved there were kept as a backup on this device.</string>
-    <string name="other_tab_title">Art Split is open in another tab</string>
-    <string name="other_tab_text">To keep your changes safe, only one tab can use Art Split at a time. You can continue here; the other tab will stop.</string>
+    <string name="other_tab_title">Split Art is open in another tab</string>
+    <string name="other_tab_text">To keep your changes safe, only one tab can use Split Art at a time. You can continue here; the other tab will stop.</string>
     <string name="use_here">Use here</string>
     <string name="open_band_failed">Could not open the band. Check your connection and try again.</string>
     <string name="close">Close</string>
@@ -222,7 +222,7 @@
     <string name="create_invite">Create invite code</string>
     <string name="invite_active_until">Invite %1$s, valid until %2$s</string>
     <string name="share_invite">Share</string>
-    <string name="share_invite_text">Join %1$s in Art Split with code %2$s: %3$s</string>
+    <string name="share_invite_text">Join %1$s in Split Art with code %2$s: %3$s</string>
     <string name="invite_copied">Invite copied to the clipboard</string>
     <string name="revoke_invite">Revoke</string>
     <string name="invite_failed">That did not work. Check your connection and try again.</string>
@@ -322,10 +322,10 @@
     <string name="fund_treasurer_hint">This person keeps the band fund's money. Money for the fund from events is handed over to them.</string>
     <string name="filter_pending">Pending</string>
     <string name="filter_refunded">Refunded</string>
-    <string name="app_banner_text">Art Split is also an Android app: faster, and it works offline.</string>
+    <string name="app_banner_text">Split Art is also an Android app: faster, and it works offline.</string>
     <string name="app_banner_download">Get the app</string>
     <string name="app_banner_dismiss">Don’t show again</string>
-    <string name="app_update_text">A new version of Art Split is available (%1$s).</string>
+    <string name="app_update_text">A new version of Split Art is available (%1$s).</string>
     <string name="app_update_download">Update</string>
     <string name="total_from_fund">From band fund</string>
     <string name="fund_direction_to">To the fund</string>
@@ -377,23 +377,23 @@
     <string name="updates_auto">Install updates automatically</string>
     <string name="updates_check_now">Check now</string>
     <string name="updates_checking">Checking for updates…</string>
-    <string name="updates_up_to_date">Art Split is up to date.</string>
+    <string name="updates_up_to_date">Split Art is up to date.</string>
     <string name="updates_downloading">Downloading %1$s…</string>
     <string name="updates_ready">%1$s is downloaded. It installs when you leave the app.</string>
     <string name="updates_install_now">Install now</string>
-    <string name="updates_needs_permission">To update itself to %1$s, Art Split needs your permission to install apps.</string>
+    <string name="updates_needs_permission">To update itself to %1$s, Split Art needs your permission to install apps.</string>
     <string name="updates_allow">Allow</string>
-    <string name="updates_needs_confirmation">Art Split %1$s is ready to install.</string>
+    <string name="updates_needs_confirmation">Split Art %1$s is ready to install.</string>
     <string name="updates_install">Install</string>
-    <string name="updates_failed">Could not check for updates. Art Split will try again later.</string>
+    <string name="updates_failed">Could not check for updates. Split Art will try again later.</string>
     <string name="updates_unavailable">Debug builds do not update themselves.</string>
     <string name="updates_installing">Installing %1$s… The app restarts when it is done.</string>
     <string name="updates_declined">You did not install %1$s. It is not offered again automatically.</string>
     <string name="updates_install_failed">Android could not install %1$s.</string>
-    <string name="update_required_title">Update Art Split</string>
-    <string name="update_required_text">This version of Art Split is too old for the server. Update to continue; your changes on this device are kept and sync after the update.</string>
+    <string name="update_required_title">Update Split Art</string>
+    <string name="update_required_text">This version of Split Art is too old for the server. Update to continue; your changes on this device are kept and sync after the update.</string>
     <string name="update_required_button">Update</string>
-    <string name="history_newer_version">A change made with a newer version of Art Split</string>
+    <string name="history_newer_version">A change made with a newer version of Split Art</string>
     <string name="upcoming_event">Upcoming: %1$s · %2$s</string>
     <string name="undo">Undo</string>
     <string name="h_set_agenda">Changed the agenda of %1$s</string>
@@ -421,7 +421,7 @@
     <string name="reminder_prompt_yes">Yes</string>
     <string name="reminder_prompt_not_now">Not now</string>
     <string name="notifications_title">Notifications</string>
-    <string name="notifications_blocked">Android does not show notifications from Art Split yet.</string>
+    <string name="notifications_blocked">Android does not show notifications from Split Art yet.</string>
     <string name="notifications_allow">Allow notifications</string>
     <string name="notifications_reminders">Gig reminders</string>
     <string name="notifications_days_before">Remind me before a gig I play:</string>
@@ -470,7 +470,7 @@
     <string name="diag_none_scheduled">No reminders scheduled.</string>
     <string name="diag_test">Test reminder in 1 minute</string>
     <string name="diag_test_set">Test reminder at %1$s (Android may deliver it up to an hour later)</string>
-    <string name="diag_test_title">Art Split</string>
+    <string name="diag_test_title">Split Art</string>
     <string name="diag_test_text">Test reminder: reminders work on this phone.</string>
     <string name="notifications_and_calendar">Notifications and calendar</string>
     <string name="calendar_summary">Your gigs in Google Calendar</string>
