@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +62,7 @@ import com.jacekgajek.kapelusz.app.generated.event_not_found
 import com.jacekgajek.kapelusz.app.generated.paid_by
 import com.jacekgajek.kapelusz.app.generated.paid_by_name
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
@@ -87,7 +88,6 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.UpdateCost
-import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import org.jetbrains.compose.resources.stringResource
 
 /** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
@@ -115,7 +115,8 @@ fun CostScreen(
     val opened = remember(openedJson) { openedJson.takeIf { it.isNotEmpty() }?.let { KapeluszJson.decodeFromString(Cost.serializer(), it) } }
     // Typed text survives rotation and the camera app's round trip (ITERATION_3 R8).
     var amount by rememberSaveable { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
-    // Opened from an event: the cost is for it, so only its participants can have paid it.
+    // Opened from an event: the new cost is for that event (fixed; My costs books it elsewhere), so only its
+    // participants can have paid it.
     val forEvent = forEventId?.takeIf { existing == null }?.let { band.event(it) }
     var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
     var date by remember { mutableStateOf(existing?.date ?: today()) }
@@ -169,7 +170,7 @@ fun CostScreen(
         .filter { event -> event.id == keptEventId || (paidBy != null && event.participant(paidBy!!) != null && (!event.archived || event.id == eventId)) }
         .sortedByDescending { it.date }.map { it.id }
     // Another payer: an event they are not in is no longer a choice.
-    LaunchedEffect(events) { if (eventId !in events) eventId = null }
+    LaunchedEffect(events) { if (forEvent == null && eventId !in events) eventId = null }
 
     Scaffold(
         topBar = {
@@ -204,8 +205,15 @@ fun CostScreen(
                 if (!editable) Text(stringResource(Res.string.cost_locked), color = MaterialTheme.colorScheme.error)
                 MoneyField(amount, { if (editable) amount = it }, stringResource(Res.string.amount), Modifier.focusRequester(focus))
                 DateField(date, { if (editable) date = it }, stringResource(Res.string.cost_date))
-                Dropdown(eventId, events, { if (editable) eventId = it }, stringResource(Res.string.cost_event)) { id ->
-                    id?.let { band.event(it) }?.let { "${it.name} · ${formatDate(it.date, lang)}" } ?: stringResource(Res.string.cost_no_event)
+                if (forEvent != null) {
+                    OutlinedTextField(
+                        "${forEvent.name} · ${formatDate(forEvent.date, lang)}", {}, readOnly = true,
+                        label = { Text(stringResource(Res.string.cost_event)) }, modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    Dropdown(eventId, events, { if (editable) eventId = it }, stringResource(Res.string.cost_event)) { id ->
+                        id?.let { band.event(it) }?.let { "${it.name} · ${formatDate(it.date, lang)}" } ?: stringResource(Res.string.cost_no_event)
+                    }
                 }
                 Text(stringResource(Res.string.category), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
