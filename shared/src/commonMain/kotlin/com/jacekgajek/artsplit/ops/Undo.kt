@@ -33,7 +33,7 @@ data class BandPart(
     val fundEntryOrder: List<Id>? = null,
 )
 
-/** What one operation changed (VERSION_2 §7.2): the touched parts of the band before and after it. */
+/** What one operation changed (ITERATION_2 §7.2): the touched parts of the band before and after it. */
 @Serializable
 data class BandChange(val before: BandPart, val after: BandPart) {
     val isEmpty: Boolean get() = before == BandPart() && after == BandPart()
@@ -86,7 +86,8 @@ internal object Undoing {
         invalidIf(!isUndoable(op.original) || op.change.isEmpty || op.change.restoresAttachments, RejectionReason.NOT_UNDOABLE) { "This change cannot be undone" }
         val after = op.change.after
         val unchanged = (after.settings == null || after.settings == band.settings) &&
-            after.members.all { (id, value) -> band.member(id) == value } &&
+            // A photo is not a change of the band (the server updates it at sign-in): undo ignores it.
+            after.members.all { (id, value) -> band.member(id)?.copy(pictureUrl = null) == value?.copy(pictureUrl = null) } &&
             after.events.all { (id, value) -> band.event(id) == value } &&
             after.costs.all { (id, value) -> band.cost(id) == value } &&
             after.fundEntries.all { (id, value) -> band.fundEntries.firstOrNull { it.id == id } == value }
@@ -105,7 +106,7 @@ internal object Undoing {
             name = settings.name,
             treasurerMemberId = settings.treasurerMemberId,
             agendaTemplate = settings.agendaTemplate,
-            members = restore(band.members, before.members, before.memberOrder) { it.id },
+            members = restore(band.members, before.members.mapValues { (id, member) -> member?.copy(pictureUrl = band.member(id)?.pictureUrl ?: member.pictureUrl) }, before.memberOrder) { it.id },
             // Exactly as before (also Event.updatedAt), so after a redo the original change can be undone again.
             events = restore(band.events, before.events, before.eventOrder) { it.id },
             costs = restore(band.costs, before.costs, before.costOrder) { it.id },

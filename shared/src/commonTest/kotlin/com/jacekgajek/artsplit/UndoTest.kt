@@ -157,4 +157,18 @@ class UndoTest {
         scenario.apply(MoveMember("carol", 1))
         assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoMove).reason)
     }
+
+    @Test
+    fun photosAreNotChangesForUndo() {
+        val scenario = Scenario("Alice", "Bob")
+        scenario.apply(LinkUser("bob", "user-bob", Role.MEMBER))
+        val undoRename = scenario.recorded(com.jacekgajek.artsplit.ops.RenameMember("bob", "Robert"))
+        // The server sets Bob's photo at his next sign-in (not an operation).
+        val withPhoto = scenario.band.copy(members = scenario.band.members.map { if (it.id == "bob") it.copy(pictureUrl = "https://lh3.googleusercontent.com/b") else it })
+        val undone = (Engine.apply(withPhoto, Actor.System, undoRename, "u", 9) as com.jacekgajek.artsplit.ops.ApplyResult.Applied).band
+        assertEquals("Bob", undone.member("bob")!!.name)
+        assertEquals("https://lh3.googleusercontent.com/b", undone.member("bob")!!.pictureUrl, "the photo stays")
+        val unlinked = (Engine.apply(undone, Actor.System, com.jacekgajek.artsplit.ops.UnlinkUser("bob"), "x", 10) as com.jacekgajek.artsplit.ops.ApplyResult.Applied).band
+        assertNull(unlinked.member("bob")!!.pictureUrl, "the photo goes with the account")
+    }
 }

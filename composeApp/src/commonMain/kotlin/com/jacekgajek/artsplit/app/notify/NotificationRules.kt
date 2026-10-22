@@ -24,7 +24,7 @@ data class Reminder(
     val at: LocalDateTime,
     /** The first agenda time set, mentioned in the text ("arrival 17:00"). */
     val firstTime: AgendaTime?,
-    /** Google Maps for the gig's place, for a Navigate action (VERSION_2 §4.4). */
+    /** Google Maps for the gig's place, for a Navigate action (ITERATION_2 §4.4). */
     val navigateUrl: String? = null,
 ) {
     /** Stable per event and lead time, so rescheduling replaces rather than duplicates. */
@@ -37,7 +37,7 @@ data class TransferNotice(val bandId: Id, val event: Event, val transfers: List<
 /** The result of [NotificationRules.checkTransfers]. */
 data class TransferCheck(val notices: List<TransferNotice>, val seen: Set<String>, val baselined: Set<Id>)
 
-/** Which notifications exist, from the bands on this device (VERSION_2 §5); free of Android, so it can be tested. */
+/** Which notifications exist, from the bands on this device (ITERATION_2 §5); free of Android, so it can be tested. */
 object NotificationRules {
     val LEAD_DAYS = listOf(1, 2, 3, 7)
 

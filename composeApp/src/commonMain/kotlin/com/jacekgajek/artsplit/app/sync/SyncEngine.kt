@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 /** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
 data class LostBand(val name: String, val deleted: Boolean)
@@ -32,7 +33,7 @@ enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, UPDATE_RE
 class SyncProtocolException(message: String) : RuntimeException(message)
 
 /**
- * Keeps the device and the server in step (VERSION_1 §5.2): creates bands made offline, pushes queued operations,
+ * Keeps the device and the server in step (ITERATION_1 §5.2): creates bands made offline, pushes queued operations,
  * pulls the current band, and refreshes the band list. Runs on demand (after a change), every [interval] while the
  * app is in the foreground, and retries with backoff while offline.
  */
@@ -69,8 +70,8 @@ class SyncEngine(
             while (true) {
                 val ok = syncNow()
                 backoff = if (ok) 0 else (if (backoff == 0L) 5_000 else backoff * 2).coerceAtMost(5 * 60_000)
-                withTimeoutOrNull(if (ok) interval else backoff) { wakeUp.receive() }
-                delay(DEBOUNCE)
+                withTimeoutOrNull((if (ok) interval else backoff).milliseconds) { wakeUp.receive() }
+                delay(DEBOUNCE.milliseconds)
             }
         }
     }
@@ -128,7 +129,7 @@ class SyncEngine(
     }
 
     /**
-     * The background sync (Android, VERSION_2 §5.1): every band the user belongs to, not only the open one, so
+     * The background sync (Android, ITERATION_2 §5.1): every band the user belongs to, not only the open one, so
      * reminders and transfer notifications see current data. Bands not on this device yet are downloaded without
      * opening them. Returns false when it should be retried.
      */

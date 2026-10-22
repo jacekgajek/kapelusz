@@ -112,6 +112,40 @@ class ApiTest {
     }
 
     @Test
+    fun theGooglePhotoReachesTheUsersMembersAtSignIn() {
+        val photo = "https://lh3.googleusercontent.com/a/alice-photo=s96-c"
+        // Signing in with Google brings the photo; the test verifier stands in for Google.
+        val google = Api(store, { token -> VerifiedUser(token.removeSuffix("-google"), null, null, picture = photo.takeIf { token.endsWith("-google") }) }, clock = { 1_790_000_000_000 })
+        createBand()
+        assertEquals(200, google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer alice-google"))).status)
+        val band = ArtSplitJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        assertEquals(photo, band.memberOfUser("alice")?.pictureUrl)
+
+        // A band created afterwards gets it too.
+        createBand(bandId = "band2")
+        assertEquals(photo, ArtSplitJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band2")).content).memberOfUser("alice")?.pictureUrl)
+
+        // Anything but a Google photo address is ignored.
+        val other = Api(store, { token -> VerifiedUser(token, null, null, picture = "https://evil.example/x.png") }, clock = { 1_790_000_000_000 })
+        other.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer alice")))
+        assertEquals(photo, ArtSplitJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+    }
+
+    @Test
+    fun anAlreadySignedInUserSendsTheirKeptGoogleTokenForThePhoto() {
+        val photo = "https://lh3.googleusercontent.com/a/alice-photo=s96-c"
+        val google = Api(store, object : TokenVerifier {
+            override fun verify(token: String) = VerifiedUser(token, null, null)
+            override fun pictureOf(token: String, userId: String) = photo.takeIf { token == "old-google-token-of-$userId" }
+        }, clock = { 1_790_000_000_000 })
+        createBand()
+        fun send(user: String, token: String) = google.handle(HttpRequest("POST", "/me/picture", mapOf("authorization" to "Bearer $user"), """{"googleToken":"$token"}"""))
+        assertEquals(400, send("alice", "old-google-token-of-bob").status, "someone else's token")
+        assertEquals(204, send("alice", "old-google-token-of-alice").status)
+        assertEquals(photo, ArtSplitJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+    }
+
+    @Test
     fun adminsGetTheBandFileExactlyAsStored() {
         createBand()
         push("band1", "alice", AddMember("m-bob", "Bob"), CreateEvent("e", "Gig, \"Łódź\"", LocalDate(2026, 9, 13)))

@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
 }
 
-// API URL and Google client id compiled into the app (VERSION_1 §6.3); environment variables win over gradle.properties.
+// API URL and Google client id compiled into the app (ITERATION_1 §6.3); environment variables win over gradle.properties.
 val generateAppConfig = tasks.register("generateAppConfig") {
     val apiUrl = providers.environmentVariable("ARTSPLIT_API_URL").orElse(providers.gradleProperty("artsplit.apiUrl"))
     val webClientId = providers.environmentVariable("ARTSPLIT_GOOGLE_WEB_CLIENT_ID")
@@ -85,6 +85,9 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
+            // Google photos of members (ITERATION_2 §7.4).
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.android)

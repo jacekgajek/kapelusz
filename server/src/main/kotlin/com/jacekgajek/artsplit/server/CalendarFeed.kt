@@ -13,7 +13,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
 /**
- * A user's gigs as an iCalendar feed (VERSION_2 §6), built from the current band data on every fetch so calendar apps
+ * A user's gigs as an iCalendar feed (ITERATION_2 §6), built from the current band data on every fetch so calendar apps
  * follow changes on their next refresh. Times are "floating" (no time zone): a gig at 20:00 shows at 20:00 in the
  * calendar's own zone, which is right for local gigs. Entries carry no money.
  */
@@ -80,7 +80,7 @@ object CalendarFeed {
             "SUMMARY:${text(event.name)}",
             event.location?.let { "LOCATION:${text(it)}" },
             "DESCRIPTION:${text(description)}",
-            // Calendar apps open the place from here (VERSION_2 §4.4).
+            // Calendar apps open the place from here (ITERATION_2 §4.4).
             event.mapUrl?.let { "URL:$it" },
         )
     }

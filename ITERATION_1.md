@@ -1,11 +1,11 @@
-# Art Split — Version 1
+# Art Split — Iteration 1
 
 A simple, CRM-style app for settling money between band members after concerts.
 It replaces the band's settlement spreadsheet; the cases from it live on as golden tests (§2.6).
 
-This document describes version 1 **as built** (milestones M0–M5 and the follow-ups in §7). It started as the refined
-plan; the decision log (§8) records where and why the result differs from the plan. Work beyond version 1 is planned
-in `VERSION_2.md`.
+This document describes iteration 1 **as built** (milestones M0–M5 and the follow-ups in §7). It started as the refined
+plan; the decision log (§8) records where and why the result differs from the plan. Work beyond iteration 1 is planned
+in `ITERATION_2.md`.
 
 Targets: **Android** and **Web (Compose/Wasm)**. The web app is fully featured and doubles as the iPhone/desktop client.
 UI languages: **Polish and English**, following the device language with a manual override in Settings. Code, identifiers and docs are in English.
@@ -449,7 +449,7 @@ Workflow:
 - [x] M5.6 "Copy link" button next to Share on an invite
 - [x] M5.7 Subtle banner on the website suggesting the Android app (not shown on iPhone/iPad)
 
-### After M5 (still version 1)
+### After M5 (still iteration 1)
 - [x] Coarser cost filter (Pending / Refunded / All, default Pending); switch to All members after adding a cost for someone else
 - [x] Fix: event fund amount edited with a direction toggle instead of a minus sign
 - [x] Fix: Google account picker popping up during syncs on Android; then Art Split server sessions (§5.5)

@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import com.jacekgajek.artsplit.app.ui.components.Avatar
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.runtime.LaunchedEffect
@@ -205,7 +208,7 @@ import com.jacekgajek.artsplit.app.generated.delete_band_confirm
 import com.jacekgajek.artsplit.app.generated.delete_band_failed
 import com.jacekgajek.artsplit.app.generated.cancel
 
-/** The settings that open a page of their own (VERSION_2 §8). */
+/** The settings that open a page of their own (ITERATION_2 §8). */
 enum class SettingsPage { FUND, AGENDA, NOTIFICATIONS }
 
 @Composable
@@ -213,6 +216,8 @@ fun SettingsScreen(
     language: String?,
     onLanguage: (String?) -> Unit,
     account: String?,
+    /** The user's Google photo (as their member in this band has it). */
+    accountPicture: String?,
     onSignOut: () -> Unit,
     bandName: String,
     onRenameBand: ((String) -> Unit)?,
@@ -299,10 +304,11 @@ fun SettingsScreen(
                 rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
                     Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
                 }
-                // Last, set apart: it cannot be undone (VERSION_2 §7).
+                // Last, set apart: it cannot be undone (ITERATION_2 §7).
                 if (onDeleteBand != null) {
                     HorizontalDivider(Modifier.padding(top = 24.dp))
                     var deleting by remember { mutableStateOf(false) }
@@ -318,7 +324,7 @@ fun SettingsScreen(
                     if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
                 }
                 var secretMenu by remember { mutableStateOf(false) }
-                // A tap on the version opens the secret menu for admins (VERSION_2 §7.1); for others it is just text.
+                // A tap on the version opens the secret menu for admins (ITERATION_2 §7.1); for others it is just text.
                 VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
                 if (secretMenu && rawData != null) SecretMenuDialog(rawData, onDismiss = { secretMenu = false })
             }
@@ -580,7 +586,7 @@ private fun DeleteBandDialog(bandName: String, otherMembers: Int, onDelete: susp
     )
 }
 
-/** Android: automatic updates (VERSION_2 §1): the switch, where the update stands, and what can be done about it. */
+/** Android: automatic updates (ITERATION_2 §1): the switch, where the update stands, and what can be done about it. */
 @Composable
 private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onAutoUpdate: (Boolean) -> Unit) {
     val status by controls.status.collectAsState()
@@ -618,7 +624,7 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
 }
 
 /**
- * The agenda times new events get (admins, VERSION_2 §4.1): rename, reorder, add, remove. Built-in entries keep
+ * The agenda times new events get (admins, ITERATION_2 §4.1): rename, reorder, add, remove. Built-in entries keep
  * following the user's language until renamed. Changes apply to events created from now on.
  */
 @Composable
@@ -655,7 +661,7 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, storedOwnLi
     }
 }
 
-/** Android: gig reminders and transfer notifications (VERSION_2 §5.4); stored per device. */
+/** Android: gig reminders and transfer notifications (ITERATION_2 §5.4); stored per device. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun NotificationsSection(permission: NotificationPermission, settings: AppSettings, update: ((AppSettings) -> AppSettings) -> Unit) {
@@ -705,7 +711,7 @@ private fun SwitchRow(label: String, checked: Boolean, enabled: Boolean = true, 
 }
 
 /**
- * The private calendar feed (VERSION_2 §6): fetched on request (it needs the server), then copy, add to Google
+ * The private calendar feed (ITERATION_2 §6): fetched on request (it needs the server), then copy, add to Google
  * Calendar, include the whole band, or make a new link.
  */
 @Composable

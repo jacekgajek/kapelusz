@@ -30,6 +30,7 @@ class GoogleTokenVerifierTest {
             .subject("google-sub-1").issuer(issuer).audience(audience)
             .expirationTime(Date(System.currentTimeMillis() + expiresInSeconds * 1000))
             .claim("email", "alice@example.com").claim("email_verified", emailVerified).claim("name", "Alice")
+            .claim("picture", "https://lh3.googleusercontent.com/a/alice=s96-c")
             .build()
         return SignedJWT(JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signingKey.keyID).build(), claims)
             .apply { sign(RSASSASigner(signingKey)) }
@@ -38,7 +39,7 @@ class GoogleTokenVerifierTest {
 
     @Test
     fun acceptsValidToken() {
-        assertEquals(VerifiedUser("google-sub-1", "alice@example.com", "Alice"), verifier.verify(token()))
+        assertEquals(VerifiedUser("google-sub-1", "alice@example.com", "Alice", "https://lh3.googleusercontent.com/a/alice=s96-c"), verifier.verify(token()))
         assertEquals("google-sub-1", verifier.verify(token(issuer = "accounts.google.com"))?.userId)
     }
 
@@ -50,5 +51,15 @@ class GoogleTokenVerifierTest {
         assertNull(verifier.verify(token(emailVerified = false)))
         assertNull(verifier.verify(token(signingKey = RSAKeyGenerator(2048).keyID("k1").generate())))
         assertNull(verifier.verify("garbage"))
+    }
+
+    @Test
+    fun thePhotoComesFromAnOldTokenOfTheSameUserOnly() {
+        val old = token(expiresInSeconds = -30L * 24 * 3600)
+        assertNull(verifier.verify(old), "an expired token does not sign in")
+        assertEquals("https://lh3.googleusercontent.com/a/alice=s96-c", verifier.pictureOf(old, "google-sub-1"), "but its photo is still Alice's")
+        assertNull(verifier.pictureOf(old, "someone-else"))
+        assertNull(verifier.pictureOf(token(audience = "other-app"), "google-sub-1"), "another app's token")
+        assertNull(verifier.pictureOf(token(signingKey = RSAKeyGenerator(2048).keyID("k1").generate()), "google-sub-1"), "not signed by Google")
     }
 }

@@ -55,7 +55,7 @@ fun initials(name: String): String =
     name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
 
 /**
- * The "Continue" card (VERSION_2 §3.1): the most recent unsettled event, i.e. not archived and open, at a loss, or a
+ * The "Continue" card (ITERATION_2 §3.1): the most recent unsettled event, i.e. not archived and open, at a loss, or a
  * draft whose date has passed (a gig with no money entered yet). Future events are not "unsettled business". Latest
  * date first; on the same date, the one edited last.
  */
@@ -72,7 +72,7 @@ fun unsettledEvent(band: Band, today: LocalDate): Event? =
         .maxWithOrNull(compareBy<Event> { it.date }.thenBy { it.updatedAt })
 
 /**
- * The "Upcoming" card (VERSION_2 §3.2): the nearest non-archived event from [today] on that [me] takes part in, or,
+ * The "Upcoming" card (ITERATION_2 §3.2): the nearest non-archived event from [today] on that [me] takes part in, or,
  * if there is none, the nearest band event.
  */
 fun upcomingEvent(band: Band, me: Member?, today: LocalDate, except: Id? = null): Event? {

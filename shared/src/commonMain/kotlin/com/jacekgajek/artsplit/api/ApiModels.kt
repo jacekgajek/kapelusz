@@ -8,7 +8,7 @@ import com.jacekgajek.artsplit.ops.OpEnvelope
 import com.jacekgajek.artsplit.ops.Rejection
 import kotlinx.serialization.Serializable
 
-/** Request and response bodies of the HTTP API (VERSION_1 §5.3), shared by the server and the apps. */
+/** Request and response bodies of the HTTP API (ITERATION_1 §5.3), shared by the server and the apps. */
 
 @Serializable
 data class BandSummary(val id: Id, val name: String, val memberName: String, val role: Role)
@@ -149,3 +149,7 @@ data class HistoryEntry(
 /** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
 @Serializable
 data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, val next: String? = null)
+
+/** POST /me/picture: a Google sign-in token of the user (may have expired); its photo becomes theirs in their bands. */
+@Serializable
+data class PictureRequest(val googleToken: String)

@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -142,19 +144,9 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val keepsForFund = suggestion.to == BAND_FUND && suggestion.from == band.treasurerMemberId
     var partial by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        // A size smaller than body text, so "Name → Name" fits beside the buttons on a phone (ITERATION_2 §7.4).
         Column(Modifier.weight(1f)) {
-            if (keepsForFund) {
-                Text(
-                    stringResource(
-                        Res.string.keep_for_fund,
-                        partyName(band, context.event, suggestion.from, fundLabel),
-                        formatMoney(suggestion.amount, context.currency, language),
-                    ),
-                )
-            } else {
-                TransferParties(partyName(band, context.event, suggestion.from, fundLabel), partyName(band, context.event, suggestion.to, fundLabel))
-                MoneyText(suggestion.amount, context.currency, bold = true)
-            }
+            CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, fundLabel) }
         }
         if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
             if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
@@ -229,4 +221,21 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
+}
+
+@Composable
+private fun SuggestionText(context: EventContext, suggestion: SuggestedTransfer, keepsForFund: Boolean, fundLabel: String) {
+    val band = context.band
+    if (keepsForFund) {
+        Text(
+            stringResource(
+                Res.string.keep_for_fund,
+                partyName(band, context.event, suggestion.from, fundLabel),
+                formatMoney(suggestion.amount, context.currency, language),
+            ),
+        )
+    } else {
+        TransferParties(partyName(band, context.event, suggestion.from, fundLabel), partyName(band, context.event, suggestion.to, fundLabel))
+        MoneyText(suggestion.amount, context.currency, bold = true)
+    }
 }

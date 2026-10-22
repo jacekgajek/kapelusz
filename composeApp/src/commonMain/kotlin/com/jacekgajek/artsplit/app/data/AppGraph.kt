@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.data
 
+import com.jacekgajek.artsplit.model.Member
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.FlowPreview
@@ -29,6 +30,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Process-wide objects, created once per app start (no DI framework). */
 class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
@@ -37,7 +39,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     // The exchange runs only after construction, when api exists.
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
     val bands = BandRepository(store, scope)
-    /** The server no longer serves this app version (VERSION_2 §2): the app shows "update to continue". */
+    /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
     val updateRequired = MutableStateFlow(false)
     val api: ApiClient = ApiClient(
         http,
@@ -88,7 +90,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     /** Called after signing out, e.g. to cancel this user's reminders (Android). */
     var afterSignOut: () -> Unit = {}
 
-    /** A place shared from Google Maps, waiting for "Set the location of…" (Android, VERSION_2 §4.4). */
+    /** A place shared from Google Maps, waiting for "Set the location of…" (Android, ITERATION_2 §4.4). */
     val pendingSharedPlace = MutableStateFlow<SharedPlace?>(null)
 
     /** The user chose "New event at this place": the create dialog opens with it. */
@@ -116,14 +118,14 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
     /**
      * Calls [onChange] (debounced) whenever the settings, the bands or the signed-in user change, e.g. to schedule gig
-     * reminders again right away (VERSION_2 §5.2) instead of only when the app leaves the screen.
+     * reminders again right away (ITERATION_2 §5.2) instead of only when the app leaves the screen.
      */
     @OptIn(FlowPreview::class)
     fun watchReminderInputs(onChange: suspend (userId: String) -> Unit) {
         scope.launch {
             // Only with the bands loaded: before that there is nothing to remind of, and every alarm would be dropped.
             combine(settings.settings, bands.state, sessions.session) { _, state, session -> session?.userId?.takeIf { state is BandState.Ready } }
-                .debounce(500)
+                .debounce(500.milliseconds)
                 .collect { userId -> if (userId != null) onChange(userId) }
         }
     }
@@ -204,6 +206,19 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /** Applies an operation locally and schedules a sync. */
+    private var pictureSent = false
+
+    /**
+     * Once per app run, while the user's member has no photo: the Google token kept from signing in carries it, so
+     * members signed in before photos existed get theirs without signing in again (ITERATION_2 §7.4).
+     */
+    fun sendPictureIfMissing(me: Member?) {
+        if (pictureSent || me == null || me.pictureUrl != null) return
+        val googleToken = sessions.session.value?.idToken ?: return
+        pictureSent = true
+        scope.launch { runCatching { api.sendPicture(googleToken) }.onSuccess { sync.requestSync() } }
+    }
+
     fun dispatch(op: Operation): Rejection? {
         val rejection = bands.dispatch(op)
         if (rejection == null) {

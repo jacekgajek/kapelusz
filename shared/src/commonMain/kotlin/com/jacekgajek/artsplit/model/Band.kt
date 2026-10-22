@@ -28,6 +28,11 @@ data class Member(
     val userId: String? = null,
     val role: Role = Role.MEMBER,
     val archived: Boolean = false,
+    /**
+     * The linked user's Google photo (ITERATION_2 §7.4), set by the server at sign-in and when joining; not an
+     * operation, not in the history, and ignored by undo.
+     */
+    val pictureUrl: String? = null,
 )
 
 /** Full state of one band; stored as `bands/{id}/state.json`. */
@@ -42,7 +47,7 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
-    /** Agenda times new events get (VERSION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
+    /** Agenda times new events get (ITERATION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
     val agendaTemplate: List<AgendaTemplateItem>? = null,
     /** Highest applied operation sequence number per client install, for idempotent sync. */
     val lastSeq: Map<String, Long> = emptyMap(),
@@ -77,3 +82,7 @@ data class RecordedRejection(val opId: Id, val rejection: Rejection)
 /** The agenda times new events get: Arrival, Sound check and Concert start unless the admins changed it. */
 val Band.effectiveAgendaTemplate: List<AgendaTemplateItem>
     get() = agendaTemplate ?: AgendaKind.entries.map { AgendaTemplateItem(it) }
+
+/** [band] with the photo of [userId]'s member set to [url] (unchanged if they are not a member). */
+fun Band.withPicture(userId: String, url: String?): Band =
+    copy(members = members.map { if (it.userId == userId && it.userId != null) it.copy(pictureUrl = url) else it })

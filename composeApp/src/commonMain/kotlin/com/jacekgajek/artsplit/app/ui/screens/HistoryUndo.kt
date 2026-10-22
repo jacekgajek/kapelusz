@@ -22,7 +22,7 @@ import com.jacekgajek.artsplit.ops.isUndoable
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The undo of [line] (VERSION_2 §7.2), or null when it cannot be undone: a kind of change that never can, one from
+ * The undo of [line] (ITERATION_2 §7.2), or null when it cannot be undone: a kind of change that never can, one from
  * before changes were recorded, one that would bring back deleted files, or one [can] does not allow.
  */
 fun undoOf(line: HistoryLine, can: Can): Undo? {
@@ -34,7 +34,7 @@ fun undoOf(line: HistoryLine, can: Can): Undo? {
 }
 
 /**
- * Where the arrows go in a history list (VERSION_2 §7.2), [lines] newest first: undo on the newest change that is
+ * Where the arrows go in a history list (ITERATION_2 §7.2), [lines] newest first: undo on the newest change that is
  * not undone, so tapping again steps further back; redo on the newest undo still in effect, unless a change was made
  * after it. [undone] are the lines whose change is currently undone.
  */

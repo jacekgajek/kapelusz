@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.server
 
+import com.jacekgajek.artsplit.api.PictureRequest
+import com.jacekgajek.artsplit.model.withPicture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import kotlinx.serialization.builtins.serializer
@@ -49,7 +51,12 @@ import java.util.UUID
 
 /** The user's band list, stored as `users/{googleSub}.json`. */
 @Serializable
-data class UserRecord(val userId: String, val bandIds: List<String> = emptyList())
+data class UserRecord(
+    val userId: String,
+    val bandIds: List<String> = emptyList(),
+    /** The Google photo from the last sign-in, for the user's member in bands they join or create. */
+    val pictureUrl: String? = null,
+)
 
 /** Invite code lookups in the current hour, stored as `users/{googleSub}-join-attempts.json`. */
 @Serializable
@@ -78,7 +85,7 @@ data class StoredInvite(val info: InviteInfo, val createdBy: String)
 private class ApiError(val status: Int, val code: String, message: String) : RuntimeException(message)
 
 /**
- * The HTTP API (VERSION_1 §5.3). Every operation goes through the shared [Engine], i.e. the same permission
+ * The HTTP API (ITERATION_1 §5.3). Every operation goes through the shared [Engine], i.e. the same permission
  * checks and reducer the apps run, so clients cannot bypass the role rules.
  */
 class Api(
@@ -113,11 +120,20 @@ class Api(
         val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
         return when {
             request.method == "GET" && segments == listOf("me") -> me(user)
+            request.method == "POST" && segments == listOf("me", "picture") -> {
+                // The Google token the app kept from signing in: the photo in it is the user's (ITERATION_2 §7.4).
+                val token = parse(request, PictureRequest.serializer()).googleToken
+                val picture = verifier.pictureOf(token, user.userId) ?: throw ApiError(400, "bad_request", "Not a Google sign-in token of this user")
+                rememberPicture(user.userId, picture)
+                HttpResponse(204)
+            }
             request.method == "GET" && segments == listOf("me", "calendar") -> calendarSubscription(user, request, CalendarSubscriptionChange())
             request.method == "POST" && segments == listOf("me", "calendar") ->
                 calendarSubscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))
             // A new session for a Google ID token, or a renewed one for a current session (sliding expiry).
             request.method == "POST" && segments == listOf("session") -> {
+                // Signing in with Google brings the current photo (ITERATION_2 §7.4); a failure must not stop the sign-in.
+                user.picture?.let { picture -> runCatching { rememberPicture(user.userId, picture) }.onFailure { System.err.println("Could not update the photo: $it") } }
                 val (token, expiresAt) = sessions.issue(user)
                 ok(SessionResponse.serializer(), SessionResponse(token, expiresAt))
             }
@@ -181,6 +197,7 @@ class Api(
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
         badRequestIf(!request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
         val band = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
+            .withPicture(user.userId, pictureOf(user.userId))
         val etag = try {
             store.put(bandKey(band.id), encode(Band.serializer(), band), ifNoneMatch = true)
         } catch (e: PreconditionFailed) {
@@ -210,7 +227,7 @@ class Api(
         badRequestIf(clientIds.size > 1) { "All operations of a push must come from one device" }
         clientIds.firstOrNull()?.let { badRequestIf(!it.matches(Regex("[A-Za-z0-9-]{1,64}"))) { "Invalid device id" } }
         // Sequence numbers are tracked per user and device, so one user cannot block another user's device.
-        // An undo restores what the server recorded, not what the client says was there (VERSION_2 §7.2).
+        // An undo restores what the server recorded, not what the client says was there (ITERATION_2 §7.2).
         val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}", op = recordedUndo(bandId, it.op)) }
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBandForMember(user, bandId)
@@ -270,7 +287,7 @@ class Api(
                 }
                 bytes += blob.content.length
                 page += key
-                // Its name, so an undo can say which entry it means (VERSION_2 §7.2).
+                // Its name, so an undo can say which entry it means (ITERATION_2 §7.2).
                 entries += decode(HistoryEntry.serializer(), blob.content).copy(id = key.removePrefix("bands/$bandId/log/"))
             }
             if (full) break
@@ -415,7 +432,7 @@ class Api(
         return op.copy(original = original, change = change)
     }
 
-    /** The band's file exactly as stored, for admins (VERSION_2 §7.1): putting it back changes nothing. */
+    /** The band's file exactly as stored, for admins (ITERATION_2 §7.1): putting it back changes nothing. */
     private fun rawState(user: VerifiedUser, bandId: String): HttpResponse {
         loadBandForAdmin(user, bandId, "Only band admins see the raw data")
         val blob = store.get(bandKey(bandId)) ?: throw bandGone(user, bandId)
@@ -488,7 +505,7 @@ class Api(
                 throw inviteNotFound()
             }
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
-                is ApplyResult.Applied -> result.band
+                is ApplyResult.Applied -> result.band.withPicture(user.userId, pictureOf(user.userId))
                 // The member was linked meanwhile.
                 is ApplyResult.Rejected -> throw inviteNotFound()
             }
@@ -507,6 +524,8 @@ class Api(
     /** After a join: list the band for the user and cancel every invite for the member (both idempotent). */
     private fun finishJoin(user: VerifiedUser, bandId: String, memberId: String) {
         addBandToUser(user.userId, bandId)
+        // Again now that the band is listed: a sign-in at the same moment may have missed it.
+        pictureOf(user.userId)?.let { url -> runCatching { setMemberPicture(bandId, user.userId, url) } }
         revokeInvitesFor(bandId, memberId)
     }
 
@@ -608,6 +627,43 @@ class Api(
     private fun loadUser(userId: String): UserRecord =
         store.get(userKey(userId))?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
 
+    private fun pictureOf(userId: String): String? =
+        runCatching { store.get(userKey(userId))?.let { decode(UserRecord.serializer(), it.content).pictureUrl } }.getOrNull()
+
+    /** Keeps [picture] with the user and puts it on their member in each of their bands (a Google photo only). */
+    private fun rememberPicture(userId: String, picture: String) {
+        val url = picture.takeIf { isGooglePhoto(it) } ?: return
+        repeat(MAX_ATTEMPTS) {
+            val blob = store.get(userKey(userId))
+            val record = blob?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
+            if (record.pictureUrl != url) {
+                try {
+                    store.put(userKey(userId), encode(UserRecord.serializer(), record.copy(pictureUrl = url)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+                } catch (e: PreconditionFailed) {
+                    return@repeat
+                }
+            }
+            record.bandIds.forEach { bandId -> runCatching { setMemberPicture(bandId, userId, url) } }
+            return
+        }
+    }
+
+    /** Not an operation: the photo is not a change of the band, so it is not in the history (clients get it with the state). */
+    private fun setMemberPicture(bandId: String, userId: String, url: String) {
+        repeat(MAX_ATTEMPTS) {
+            val (band, etag) = loadBand(bandId) ?: return
+            // Not in a band they were removed from: their photo stays out of it.
+            val member = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return
+            if (member.pictureUrl == url) return
+            try {
+                store.put(bandKey(bandId), encode(Band.serializer(), band.withPicture(userId, url)), ifMatch = etag)
+                return
+            } catch (e: PreconditionFailed) {
+                // changed meanwhile: try again on the new state
+            }
+        }
+    }
+
     private fun addBandToUser(userId: String, bandId: String) {
         repeat(MAX_ATTEMPTS) {
             val blob = store.get(userKey(userId))
@@ -669,6 +725,11 @@ class Api(
         const val MAX_OPS_PER_PUSH = 500
         const val MAX_DEVICES_PER_USER = 50
         const val HISTORY_PAGE = 100
+
+        /** Google profile photos only: an https address on Google's image servers, of sensible length. */
+        fun isGooglePhoto(url: String): Boolean =
+            url.length <= 500 && Regex("https://[a-z0-9-]+\\.googleusercontent\\.com/[^\\s\"<>]*").matches(url)
+
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
 

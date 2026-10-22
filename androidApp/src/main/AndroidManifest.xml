@@ -3,11 +3,11 @@
 
     <!-- Sync with the Art Split API. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Automatic updates without the Play Store (VERSION_2 §1). -->
+    <!-- Automatic updates without the Play Store (ITERATION_2 §1). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Gig reminders are alarms, which a restart clears (VERSION_2 §5.2). -->
+    <!-- Gig reminders are alarms, which a restart clears (ITERATION_2 §5.2). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
@@ -23,7 +23,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- A place shared from Google Maps: set it as an event's location (VERSION_2 §4.4). -->
+            <!-- A place shared from Google Maps: set it as an event's location (ITERATION_2 §4.4). -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

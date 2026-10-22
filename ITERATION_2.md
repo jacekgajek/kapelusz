@@ -1,7 +1,7 @@
-# Art Split — Version 2 (app 1.0)
+# Art Split — Iteration 2 (app 1.0)
 
 The second planning iteration. It ships as **app version 1.0.0** (`artsplit.versionName`), the first release called
-stable. It builds on version 1 as described in `VERSION_1.md`; section references like "V1 §4.5" point there.
+stable. It builds on iteration 1 as described in `ITERATION_1.md`; section references like "V1 §4.5" point there.
 
 Constraints for this version:
 - **Notifications are Android only** and come from the phone itself: no Firebase / FCM, no web push, no server push.
@@ -26,11 +26,11 @@ The app keeps itself up to date without the Play Store.
 
 ## 2. Outdated apps
 
-Version 1 apps fail to read new kinds of data (a new operation type in history, a new rejection reason). Version 2
+Iteration 1 apps fail to read new kinds of data (a new operation type in history, a new rejection reason). Iteration 2
 makes this explicit, so the data format can change later without silently broken apps.
 
 - Apps send their version code with every request as the query parameter `appVersion=<versionCode>` (0 for local development builds, which are always allowed). A header would have needed the API's CORS allow-list changed.
-- The server has a **minimum supported version** in its code (`Api.MIN_APP_VERSION`, 0 = everyone), raised whenever a change would break older apps. Below it, or without a version (apps from before version 2), it answers `426` with `update_required`. Sync then stops retrying.
+- The server has a **minimum supported version** in its code (`Api.MIN_APP_VERSION`, 0 = everyone), raised whenever a change would break older apps. Below it, or without a version (apps from before iteration 2), it answers `426` with `update_required`. Sync then stops retrying.
 - The app then shows a blocking screen: **"This version of Art Split is too old. Update to continue"** with **Update** (Android: download and install, §1; web: reload).
 - **Raising the minimum takes two deploys:** first deploy apps that handle the new data, then set the minimum to *that* deploy's run number. A number not yet deployed would refuse every app, and during a deploy the server switches before the new web app and APK are uploaded.
 - History entries an app cannot read are shown as **"A change from a newer version"** instead of failing the whole page.
@@ -158,6 +158,13 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
   - Then **App updates** (Android) and **Account** in place, and **Delete band** last after a divider; the version (secret menu) below.
 - Pages are their own navigation entries, so Back returns to the list; on wide screens the content stays at a readable width.
 
+### 7.4 Event polish and Google photos
+- Event screen, **Settlement**: an information panel only (who gets or hands over how much); the per-person **Settle** button is gone, because it recorded several transfers at once. Transfers are recorded in **To settle** (each "X → Y" line, or Settle all).
+- **To settle**: the "X → Y amount" lines in a smaller font, so longer names do not wrap.
+- **Google photos** instead of initials for members with an account: in the event list, Band members, the participant chips on the event screen, and next to the account in Settings. Shown to bandmates automatically (no switch). Guests, members without an account, and photos that cannot be loaded show initials.
+- The photo comes from Google's sign-in token: the server keeps it with the user and puts it on their member in each of their bands, at an interactive Google sign-in and when they create or join a band. Users already signed in get it without signing in again: while their member has no photo, the app sends the Google token it kept from signing in (expired, but signed by Google), and the server takes the photo from it after checking Google's signature, this app, and that it is the same user. A later change of the Google photo arrives with the next interactive sign-in. Session renewals use the app's own session, not Google, so they bring no photo.
+- Unlinking an account or removing (archiving) the member removes the photo from that band. It is not a change in the history, and undo ignores it.
+
 ## 8. Later (not in 1.0)
 - **Calendar view** of the event list (a month grid).
 - **Facebook login**: needs a Facebook developer app in Live mode (privacy-policy and data-deletion pages), SDKs on both platforms and a server secret; logins would be separate users, not linked. **Sign-in by email link** (AWS SES) is the simpler alternative if people without Google accounts join; SES has no idle cost (about $0.10 per 1000 emails).
@@ -169,7 +176,7 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 
 ## 9. Milestones and task checklist
 
-Workflow as in version 1: one branch + PR per milestone (the user creates the branches), checkboxes ticked in the
+Workflow as in iteration 1: one branch + PR per milestone (the user creates the branches), checkboxes ticked in the
 commit that completes them, task IDs in commit messages, plan changes in the decision log.
 
 ### V2-M1 — Auto-update
@@ -220,9 +227,18 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 ### V2-M8 — Settings layout
 - [x] V2-M8.1 Settings as a grouped list with pages for the band fund, event agenda, and notifications and calendar (§7.3)
 
-### V2-M9 — Release 1.0
-- [ ] V2-M9.1 Release checklist (§10) passed on real phones
-- [ ] V2-M9.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
+### V2-M9 — Event polish and Google photos
+- [x] V2-M9.1 Settlement panel without Settle buttons; smaller To settle lines (§7.4)
+- [x] V2-M9.2 Google photos of members with an account (§7.4)
+
+### V2-M10 — Release 1.0
+- [ ] V2-M10.0 Rename to **Split Art** (reads more easily than Art Split): the app, the web address, texts in both languages, code and documentation. To decide before starting (grilling):
+  - Android app id `com.jacekgajek.artsplit`: changing it makes a different app for Android (no update from the old one, data not carried over, auto-update cannot cross); keeping it is invisible to users.
+  - Web address `splitart.jacekgajek.com`: DNS, certificate and CloudFront in the my-aws Terraform, the Google sign-in client's allowed origins, Android App Links; the old address keeps redirecting so shared invite links still work.
+  - Internal names users never see (Kotlin packages, AWS bucket and Lambda names, the web app's local database `art-split`, Android preferences): renaming buckets or local stores means migrating data.
+  - Calendar subscription links and the API address: whether they change (subscribed calendars would stop updating).
+- [ ] V2-M10.1 Release checklist (§10) passed on real phones
+- [ ] V2-M10.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
 1. CI deploy green, including the APK step (keystore secret set from the file).
@@ -236,7 +252,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 9. A place shared from Google Maps to Art Split; Navigate on the event and on its reminder.
 10. Undo from history on a real change, and its redo.
 
-Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting service.
+Monitoring stays as in iteration 1: server logs in CloudWatch, no crash-reporting service.
 
 ## 11. Decision log
 | Date | Decision |
@@ -260,3 +276,6 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-22 | V2-M7: bulk archive removed. Undo from history: the newest line of the event or band history, refused when what it touched changed since; permissions as for the reverse change; confirmed in a dialog; undo of an undo redoes. Membership and ownership changes and band deletion are not undoable. The secret menu (one tap on the version, admins) copies the band file exactly as stored in the bucket. The Continue card rule stays: future events with money on them do not count. Undo steps back through changes (the arrow skips undone changes and undo lines) with redo for the newest undo until a new change is made; the first idea (only the newest line, undoing an undo redoes) could never go back more than one step. |
 | 2026-10-22 | Reminders: a changed reminder time or gig was only scheduled when the app left the screen (through a deferrable background job); now it is scheduled at once. Alarms stay inexact (no exact-alarm permission), so from Android 12 a reminder may come up to an hour late. The secret menu shows reminder checks and sends a test reminder. |
 | 2026-10-22 | No battery-optimisation warning or "run in the background" prompt for users: reminders arrived on a realme GT 7 (Android 16) with the default "intelligent" battery mode. |
+| 2026-10-22 | History performance options (pooled S3 client, DynamoDB for the log, more Lambda memory) moved to ITERATION_3.md (then VERSION_3.md); history stays as it is for 1.0. Google photos for members with an account, shown automatically, refreshed at sign-in and session renewal. The per-person Settle button in the event's Settlement panel is removed. |
+| 2026-10-22 | `VERSION_n.md` renamed to `ITERATION_n.md`: they are planning iterations, not app versions (iteration 2 ships as app 1.0.0). Older rows keep the names they were written with; milestone ids (V1-…, V2-M…) stay. |
+| 2026-10-22 | Correction to the photo plan: sessions renew with the app's own token, not with Google, so they cannot refresh photos. Photos come from interactive sign-ins and, for users already signed in, from the Google token the app kept (signature checked, expiry ignored, same user only). No Google prompts are added. |

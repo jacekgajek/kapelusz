@@ -11,7 +11,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 
 /**
- * Gig reminders as inexact alarms, so no exact-alarm permission is needed (VERSION_2 §5.2): from Android 12 on they
+ * Gig reminders as inexact alarms, so no exact-alarm permission is needed (ITERATION_2 §5.2): from Android 12 on they
  * arrive within about an hour of the set time. Rescheduling replaces
  * everything scheduled before, so removed gigs or changed settings never leave stale reminders.
  */

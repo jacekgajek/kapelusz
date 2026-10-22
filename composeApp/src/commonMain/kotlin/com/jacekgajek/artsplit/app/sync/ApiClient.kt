@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.sync
 
+import com.jacekgajek.artsplit.api.PictureRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadResponse
 import com.jacekgajek.artsplit.api.AttachmentUrlResponse
@@ -69,13 +70,18 @@ class NeedsSignInException : RuntimeException("Sign in again")
 class ApiClient(
     private val http: HttpClient,
     private val baseUrl: String,
-    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (VERSION_2 §2). */
+    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (ITERATION_2 §2). */
     private val appVersion: Int = 0,
     /** The server answered "update required". */
     private val onUpdateRequired: () -> Unit = {},
     private val token: suspend (forceRefresh: Boolean) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
+
+    /** Hands the server the Google sign-in token this device kept, for the photo in it (ITERATION_2 §7.4). */
+    suspend fun sendPicture(googleToken: String) {
+        text(send(HttpMethod.Post, "/me/picture") { setBody(TextContent(ArtSplitJson.encodeToString(PictureRequest.serializer(), PictureRequest(googleToken)), ContentType.Application.Json)) })
+    }
 
     /** The user's private calendar feed link (created on first use). */
     suspend fun calendar(): CalendarSubscription = call(HttpMethod.Get, "/me/calendar", CalendarSubscription.serializer())
@@ -108,7 +114,7 @@ class ApiClient(
         if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
     }
 
-    /** The band's file exactly as stored on the server, for admins (VERSION_2 §7.1). */
+    /** The band's file exactly as stored on the server, for admins (ITERATION_2 §7.1). */
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())

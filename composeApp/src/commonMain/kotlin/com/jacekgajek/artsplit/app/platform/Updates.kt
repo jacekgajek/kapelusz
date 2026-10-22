@@ -3,7 +3,7 @@ package com.jacekgajek.artsplit.app.platform
 import androidx.compose.runtime.Composable
 import kotlinx.coroutines.flow.StateFlow
 
-/** Where the automatic update (Android, VERSION_2 §1) stands. */
+/** Where the automatic update (Android, ITERATION_2 §1) stands. */
 sealed interface UpdateStatus {
     data object Idle : UpdateStatus
     data object Checking : UpdateStatus

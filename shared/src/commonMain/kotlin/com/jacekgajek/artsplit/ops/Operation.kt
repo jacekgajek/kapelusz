@@ -89,7 +89,7 @@ data class CreateEvent(
     /** A Google Maps link to the place. */
     val mapUrl: String? = null,
     val participants: List<Participant> = emptyList(),
-    /** The band's agenda template at creation time, times not set yet (VERSION_2 §4.1). */
+    /** The band's agenda template at creation time, times not set yet (ITERATION_2 §4.1). */
     val agenda: List<AgendaTime> = emptyList(),
 ) : Operation
 
@@ -245,7 +245,7 @@ data class AddAttachment(val costId: Id, val attachment: Attachment) : Operation
 @Serializable @SerialName("RemoveAttachment")
 data class RemoveAttachment(val costId: Id, val attachmentId: Id) : Operation
 
-// ---- undo (VERSION_2 §7.2) ----
+// ---- undo (ITERATION_2 §7.2) ----
 
 /**
  * Undoes the operation [undoneOpId] ([original]) by putting back what it touched ([change]). [entry] names the

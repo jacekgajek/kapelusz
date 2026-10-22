@@ -160,7 +160,7 @@ class BandRepository(
     }
 
     /**
-     * Keeps a band the user belongs to on this device without opening it (background sync, VERSION_2 §5.1); an open
+     * Keeps a band the user belongs to on this device without opening it (background sync, ITERATION_2 §5.1); an open
      * band is left to the regular sync.
      */
     fun storeFromServer(band: Band, version: String) {

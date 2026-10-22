@@ -20,7 +20,7 @@ interface NotificationPermission {
 @Composable
 expect fun rememberNotificationPermission(): NotificationPermission?
 
-/** What the secret menu shows about gig reminders (VERSION_2 §7.1); Android only. */
+/** What the secret menu shows about gig reminders (ITERATION_2 §7.1); Android only. */
 class ReminderDiagnostics(
     val notificationsAllowed: Boolean,
     /** Not restricted by battery optimisation, which on some phones drops alarms of apps in the background. */

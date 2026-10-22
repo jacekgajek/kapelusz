@@ -97,7 +97,7 @@ fun CostScreen(
     costId: String?,
     onBack: () -> Unit,
     onAddedForOther: () -> Unit = {},
-    /** A new cost "incurred for" this event, from the event's Cost refunds (VERSION_2 §7). */
+    /** A new cost "incurred for" this event, from the event's Cost refunds (ITERATION_2 §7). */
     forEventId: String? = null,
 ) {
     val band = state.band

@@ -185,7 +185,8 @@ object Reducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(op.archived && member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner cannot be archived" }
         invalidIf(op.archived && band.treasurerMemberId == op.memberId, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
-        return band.updateMember(op.memberId) { it.copy(archived = op.archived) }
+        // A removed member's photo leaves the band with them (the next sign-in brings it back if they return).
+        return band.updateMember(op.memberId) { it.copy(archived = op.archived, pictureUrl = it.pictureUrl.takeUnless { op.archived }) }
     }
 
     private fun deleteMember(band: Band, op: DeleteMember): Band {
@@ -215,7 +216,8 @@ object Reducer {
     private fun unlinkUser(band: Band, op: UnlinkUser): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Transfer ownership before unlinking the owner" }
-        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER) }
+        // The photo was the user's: it goes with the account.
+        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null) }
     }
 
     private fun setTreasurer(band: Band, op: SetTreasurer): Band {
@@ -259,7 +261,7 @@ object Reducer {
             mapUrl = validMapUrl(op.mapUrl),
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
-            // Who added each participant (the creator), for a personal reminder prompt (VERSION_2 §5.2).
+            // Who added each participant (the creator), for a personal reminder prompt (ITERATION_2 §5.2).
             participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )

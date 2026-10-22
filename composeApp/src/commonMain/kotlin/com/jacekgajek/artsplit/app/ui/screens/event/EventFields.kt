@@ -63,7 +63,7 @@ data class EventFieldsState(
 )
 
 /**
- * The fields of the create and edit dialogs (VERSION_2 §4.3, §4.4): name, date, location with Select on map and
+ * The fields of the create and edit dialogs (ITERATION_2 §4.3, §4.4): name, date, location with Select on map and
  * Paste from Maps, and the agenda: set times as rows, the unset ones (and "+ Add time") as chips.
  */
 @OptIn(ExperimentalLayoutApi::class)

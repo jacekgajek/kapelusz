@@ -44,7 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 private const val COLLAPSED_LINES = 6
 
 /**
- * Free-text details of an event (VERSION_2 §4.2), e.g. a pasted setlist: line breaks kept, long text collapsed,
+ * Free-text details of an event (ITERATION_2 §4.2), e.g. a pasted setlist: line breaks kept, long text collapsed,
  * selectable for copying. Stored as the event's notes. Leads and above edit it in a full-screen editor.
  */
 @Composable

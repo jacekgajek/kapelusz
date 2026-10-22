@@ -5,7 +5,7 @@ import com.jacekgajek.artsplit.model.Event
 /** A place as shared from Google Maps: its name (if given) and its link. */
 data class SharedPlace(val name: String?, val url: String)
 
-/** Google Maps links (VERSION_2 §4.4): reading what Maps shares, and the links Art Split opens. */
+/** Google Maps links (ITERATION_2 §4.4): reading what Maps shares, and the links Art Split opens. */
 object Places {
     /** The longest link an event stores; longer full place links are rejected rather than cut. */
     const val MAX_URL = 1000

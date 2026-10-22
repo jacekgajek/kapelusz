@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
+import com.jacekgajek.artsplit.app.ui.components.Avatar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,6 +73,8 @@ fun ParticipantsSection(context: EventContext) {
                     context.actions.run(if (selected) RemoveParticipant(event.id, member.id) else AddParticipant(event.id, member.id))
                 },
                 label = { Text(member.name) },
+                // The member's Google photo, or their initials (ITERATION_2 §7.4).
+                leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
             )
         }
         event.guests.forEach { guest ->

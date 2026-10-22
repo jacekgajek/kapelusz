@@ -97,7 +97,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
         }
     }
 
-    // A cost for this event, its refund included here (VERSION_2 §7).
+    // A cost for this event, its refund included here (ITERATION_2 §7).
     if (context.can.addCost()) TextButton(onClick = onAddCost) {
         Icon(Icons.Default.Add, null)
         Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
