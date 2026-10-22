@@ -118,15 +118,16 @@ fun SettleScreen(
                             val from = partyName(band, event, suggestion.from, fundLabel)
                             val to = partyName(band, event, suggestion.to, fundLabel)
                             var partial by remember { mutableStateOf(false) }
-                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    TransferParties(from, to)
-                                    MoneyText(suggestion.amount, band.currency, bold = true)
+                            // Names over the full width; the amount and the buttons below, so long names never squeeze them.
+                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                TransferParties(from, to)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
+                                    TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
+                                    FilledTonalButton(onClick = {
+                                        actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
+                                    }) { Text(stringResource(Res.string.settle)) }
                                 }
-                                TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
-                                FilledTonalButton(onClick = {
-                                    actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
-                                }) { Text(stringResource(Res.string.settle)) }
                             }
                             if (partial) {
                                 PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {

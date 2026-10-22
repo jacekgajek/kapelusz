@@ -6,6 +6,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -146,16 +147,18 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val fundLabel = stringResource(Res.string.band_fund)
     val keepsForFund = suggestion.to == BAND_FUND && suggestion.from == band.treasurerMemberId
     var partial by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        // A size smaller than body text, so "Name → Name" fits beside the buttons on a phone (ITERATION_2 §7.4).
-        Column(Modifier.weight(1f)) {
-            CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, fundLabel) }
-        }
-        if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
-            if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
-            FilledTonalButton(onClick = {
-                context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
-            }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
+    // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
+    // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, fundLabel) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { if (!keepsForFund) MoneyText(suggestion.amount, context.currency, bold = true) }
+            if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
+                if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
+                FilledTonalButton(onClick = {
+                    context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
+                }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
+            }
         }
     }
     if (partial) {
@@ -246,6 +249,5 @@ private fun SuggestionText(context: EventContext, suggestion: SuggestedTransfer,
         )
     } else {
         TransferParties(partyName(band, context.event, suggestion.from, fundLabel), partyName(band, context.event, suggestion.to, fundLabel))
-        MoneyText(suggestion.amount, context.currency, bold = true)
     }
 }

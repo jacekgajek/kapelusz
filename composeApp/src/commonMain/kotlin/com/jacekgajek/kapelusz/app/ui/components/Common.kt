@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -255,14 +256,18 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 fun TransferParties(from: String, to: String, modifier: Modifier = Modifier) {
     // The arrow is an icon: read the pair as one phrase ("Alice to Bob") instead of two unrelated names.
     val description = stringResource(Res.string.transfer_a11y, from, to)
-    Row(modifier.clearAndSetSemantics { contentDescription = description }, verticalAlignment = Alignment.CenterVertically) {
-        Text(from)
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            modifier = Modifier.padding(horizontal = 6.dp).size(16.dp),
-        )
-        Text(to)
+    // Long names (or "Band fund (treasurer)") wrap onto the next line whole, after the arrow, instead of squeezing the
+    // other name into a column of letters.
+    FlowRow(modifier.clearAndSetSemantics { contentDescription = description }) {
+        Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+            Text(from, Modifier.weight(1f, fill = false))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.padding(horizontal = 6.dp).size(16.dp),
+            )
+        }
+        Text(to, Modifier.align(Alignment.CenterVertically))
     }
 }
 
