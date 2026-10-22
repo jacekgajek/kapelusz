@@ -3,6 +3,7 @@
 #   AWS_PROFILE=... WEB_BUCKET=jacekgajek-art-split-web CLOUDFRONT_DISTRIBUTION_ID=... scripts/deploy.sh
 # Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_KEYSTORE_PATH (and ANDROID_KEYSTORE_PASSWORD,
 # ANDROID_KEY_ALIAS, ARTSPLIT_VERSION_CODE) it also publishes the signed APK at /download/art-split.apk.
+# ARTSPLIT_VERSION_CODE must not be lower than the live one (see below); without it the web app is a "dev" build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,6 +13,17 @@ FUNCTION_NAME="${FUNCTION_NAME:-art-split-api}"
 JAR=server/build/libs/server-all.jar
 DIST=composeApp/build/dist/wasmJs/productionExecutable
 APK=androidApp/build/outputs/apk/release/androidApp-release.apk
+
+# The version code becomes the app's version (web and Android): the server refuses apps below its minimum, and phones
+# only update to a higher one. So never publish a lower one than what is live, e.g. a local deploy with an old number.
+# Equal is fine (a re-run of the same CI deploy). FORCE_VERSION_CODE=1 skips the check, e.g. for a deliberate rollback.
+if [[ -n "${ARTSPLIT_VERSION_CODE:-}" && "${FORCE_VERSION_CODE:-0}" != 1 ]]; then
+  LIVE_CODE=$(aws s3 cp "s3://$WEB_BUCKET/download/version.json" - 2>/dev/null | sed -n 's/.*"versionCode": *\([0-9]*\).*/\1/p' || true)
+  if [[ -n "$LIVE_CODE" && "$ARTSPLIT_VERSION_CODE" -lt "$LIVE_CODE" ]]; then
+    echo "ARTSPLIT_VERSION_CODE=$ARTSPLIT_VERSION_CODE is lower than the live version $LIVE_CODE; use a higher one (or FORCE_VERSION_CODE=1)." >&2
+    exit 1
+  fi
+fi
 
 TASKS=(:server:shadowJar :composeApp:wasmJsBrowserDistribution)
 if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
