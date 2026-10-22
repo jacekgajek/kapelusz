@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jacekgajek.kapelusz.app.AndroidAppGraph
 import com.jacekgajek.kapelusz.app.App
+import com.jacekgajek.kapelusz.app.AppLoading
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.updates.UpdateWorker
 import com.jacekgajek.kapelusz.app.notify.BackgroundSyncWorker
@@ -90,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 graph.load()
                 loaded = true
             }
-            if (loaded) App(graph)
+            if (loaded) App(graph) else AppLoading()
         }
     }
 }

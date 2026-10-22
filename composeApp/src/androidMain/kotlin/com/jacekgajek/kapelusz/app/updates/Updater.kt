@@ -21,6 +21,7 @@ import com.jacekgajek.kapelusz.app.platform.PublishedVersion
 import com.jacekgajek.kapelusz.app.platform.UpdateMemory
 import com.jacekgajek.kapelusz.app.platform.UpdatePolicy
 import com.jacekgajek.kapelusz.app.platform.UpdateStatus
+import com.jacekgajek.kapelusz.app.platform.UpdateStep
 import com.jacekgajek.kapelusz.app.platform.fetchPublished
 import com.jacekgajek.kapelusz.app.platform.installedVersionCode
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -106,13 +107,12 @@ object Updater {
         val (published, apk) = pendingApk(context) ?: return true
         val memory = memory(context)
         val autoUpdate = withContext(Dispatchers.Main) { AndroidAppGraph.get(context).settingsForBackground().autoUpdate }
-        val now = System.currentTimeMillis()
-        when {
-            installNow || UpdatePolicy.mayInstallAutomatically(published.versionCode, autoUpdate, appVisible, memory, now) ->
-                install(context, published, apk)
-            // An install in flight is not interrupted by a new check.
-            UpdatePolicy.isInstalling(published.versionCode, memory, now) -> _status.value = UpdateStatus.Installing(published.versionName)
-            else -> _status.value = UpdatePolicy.waitingStatus(published.versionCode, published.versionName, canInstallApps(context), memory)
+        val step = UpdatePolicy.afterCheck(
+            published.versionCode, published.versionName, installNow, autoUpdate, appVisible, canInstallApps(context), memory, System.currentTimeMillis(),
+        )
+        when (step) {
+            UpdateStep.Install -> install(context, published, apk)
+            is UpdateStep.Show -> _status.value = step.status
         }
         true
     }
@@ -160,14 +160,14 @@ object Updater {
                     .putExtra(EXTRA_VERSION_CODE, published.versionCode)
                 // Mutable: the installer adds the status and, if needed, its confirmation intent.
                 val pending = PendingIntent.getBroadcast(context, id, result, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
-                remember(context) { it.copy(installingVersion = published.versionCode, installingSince = System.currentTimeMillis()) }
+                remember(context) { it.installing(published.versionCode, System.currentTimeMillis()) }
                 _status.value = UpdateStatus.Installing(published.versionName)
                 session.commit(pending.intentSender)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Install session failed", e)
             sessionId?.let { runCatching { installer.abandonSession(it) } }
-            remember(context) { it.copy(installingVersion = null, failedVersion = published.versionCode) }
+            remember(context) { it.finishedWithoutInstall(published.versionCode, declined = false) }
             _status.value = UpdateStatus.InstallFailed(published.versionName)
         }
     }
@@ -175,7 +175,7 @@ object Updater {
     /** From [InstallResultReceiver]: Android wants the user to confirm. */
     internal fun onNeedsConfirmation(context: Context, intent: Intent, versionCode: Long, versionName: String) {
         confirmation = intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        remember(context) { it.copy(installingVersion = null, confirmVersion = versionCode) }
+        remember(context) { it.confirming(versionCode) }
         _status.value = UpdateStatus.NeedsConfirmation(versionName)
         if (appVisible) confirm(context) else notifyReady(context, versionName, intent)
     }
@@ -184,10 +184,7 @@ object Updater {
     internal fun onFinishedWithoutInstall(context: Context, versionCode: Long, versionName: String, declined: Boolean) {
         confirmation = null
         cancelReady(context)
-        remember(context) {
-            if (declined) it.copy(installingVersion = null, declinedVersion = versionCode)
-            else it.copy(installingVersion = null, failedVersion = versionCode)
-        }
+        remember(context) { it.finishedWithoutInstall(versionCode, declined) }
         _status.value = if (declined) UpdateStatus.Declined(versionName) else UpdateStatus.InstallFailed(versionName)
     }
 
@@ -207,7 +204,7 @@ object Updater {
 
     /** The user asked for it (Settings): forget earlier declines and failures of this version and install now. */
     fun installNow(context: Context) {
-        remember(context) { it.copy(declinedVersion = null, failedVersion = null, installingVersion = null) }
+        remember(context) { it.askedByUser() }
         launch { checkAndDownload(context, installNow = true) }
     }
 
@@ -268,8 +265,7 @@ object Updater {
 
     /** The downloaded, verified build waiting to be installed, if it is still newer than the installed one. */
     private fun pendingApk(context: Context): Pair<PublishedVersion, File>? {
-        val apk = updatesDir(context).listFiles { f -> f.extension == "apk" }?.firstOrNull() ?: return null
-        val code = apk.nameWithoutExtension.substringAfterLast('-').toLongOrNull() ?: return null
+        val (apk, code) = updatesDir(context).listFiles().orEmpty().firstNotNullOfOrNull { f -> UpdatePolicy.apkVersion(f.name)?.let { f to it } } ?: return null
         if (code <= installedVersionCode(context)) return null
         val name = prefs(context).getString(KEY_NAME, null) ?: ""
         return PublishedVersion(code, name) to apk
@@ -302,7 +298,7 @@ object Updater {
 
     private fun updatesDir(context: Context) = File(context.cacheDir, "updates").apply { mkdirs() }
 
-    private fun apkFile(context: Context, versionCode: Long) = File(updatesDir(context), "kapelusz-$versionCode.apk")
+    private fun apkFile(context: Context, versionCode: Long) = File(updatesDir(context), UpdatePolicy.apkName(versionCode))
 
     private fun clearDownloads(context: Context) {
         updatesDir(context).listFiles()?.forEach { it.delete() }

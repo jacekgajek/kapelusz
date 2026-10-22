@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.platform
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.Json
 import kotlin.js.Promise
@@ -27,7 +28,7 @@ private var published: Result<PublishedVersion?>? = null
 
 actual suspend fun appDownload(): AppDownload? {
     if (isAppleMobile() || isDismissed()) return null
-    val version = (published ?: runCatching {
+    val version = (published ?: runSuspendCatching {
         fetchVersion().await<JsString?>()?.toString()?.let { json.decodeFromString<PublishedVersion>(it) }
     }.also { published = it }).getOrNull() ?: return null
     return AppDownload(APK_URL, isUpdate = false, version.versionCode, version.versionName)

@@ -45,7 +45,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Shown when no band is open: bands the user already belongs to (e.g. on a new device), creating a band, and joining
- * one (invites arrive in M4).
+ * one with an invite code.
  */
 @Composable
 fun ZeroScreen(

@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,7 +39,7 @@ fun SignInScreen(onIdToken: suspend (String) -> Unit) {
             Text(stringResource(Res.string.sign_in_intro), style = MaterialTheme.typography.bodyMedium)
             GoogleSignInButton(
                 onIdToken = { token ->
-                    scope.launch { runCatching { onIdToken(token) }.onFailure { error = it.message } }
+                    scope.launch { runSuspendCatching { onIdToken(token) }.onFailure { error = it.message } }
                 },
                 onError = { error = it },
             )

@@ -48,7 +48,7 @@ object ReminderScheduler {
         }
         prefs.edit {
             putStringSet(KEY_SCHEDULED, reminders.map { it.key }.toSet())
-            putStringSet(KEY_TIMES, reminders.map { "${it.at.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()}|${it.eventName}" }.toSet())
+            putStringSet(KEY_TIMES, reminders.map { ReminderLog.scheduledEntry(it.at.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds(), it.eventName) }.toSet())
         }
     }
 
@@ -63,9 +63,7 @@ object ReminderScheduler {
 
     /** The scheduled reminders, soonest first: when (epoch millis) and for which gig. */
     fun scheduled(context: Context): List<Pair<Long, String>> =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_TIMES, emptySet()).orEmpty()
-            .mapNotNull { entry -> entry.substringBefore('|').toLongOrNull()?.let { it to entry.substringAfter('|') } }
-            .sortedBy { it.first }
+        ReminderLog.scheduled(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_TIMES, emptySet()).orEmpty())
 
     /** A test reminder in a minute, through the same alarm path as gig reminders (secret menu). */
     fun test(context: Context, title: String, text: String) {
@@ -81,21 +79,16 @@ object ReminderScheduler {
     )
 
     /** The keys of reminders shown already. */
-    fun shown(context: Context): Set<String> = shownAt(context).keys
+    fun shown(context: Context): Set<String> = ReminderLog.shownAt(shownEntries(context)).keys
 
     /** Stored as "<shown at, epoch ms>|<key>", so the oldest can be dropped. */
-    private fun shownAt(context: Context): Map<String, Long> =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty().mapNotNull { entry ->
-            val at = entry.substringBefore('|').toLongOrNull() ?: return@mapNotNull null
-            entry.substringAfter('|') to at
-        }.toMap()
+    private fun shownEntries(context: Context): Set<String> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty()
 
     internal fun show(context: Context, intent: Intent) {
         intent.getStringExtra(EXTRA_KEY)?.let { key ->
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            // Only the newest matter: a reminder is never due again more than a few hours after its time.
-            val shown = (shownAt(context) + (key to System.currentTimeMillis())).entries.sortedByDescending { it.value }.take(200)
-            prefs.edit { putStringSet(KEY_SHOWN, shown.map { "${it.value}|${it.key}" }.toSet()) }
+            prefs.edit { putStringSet(KEY_SHOWN, ReminderLog.withShown(shownEntries(context), key, System.currentTimeMillis())) }
         }
         // Both are missing for the test reminder, which just opens the app.
         val band = intent.getStringExtra(Notifier.EXTRA_BAND)

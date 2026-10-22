@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.data
 
+import com.jacekgajek.kapelusz.app.ui.SUPPORTED_LANGUAGES
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +39,10 @@ class SettingsRepository(private val store: KeyValueStore, private val scope: Co
     suspend fun load() {
         // Unreadable settings are not worth keeping: fall back to the defaults.
         store.read(KEY)?.let { raw ->
-            runCatching { KapeluszJson.decodeFromString(AppSettings.serializer(), raw) }.onSuccess { _settings.value = it }
+            runCatching { KapeluszJson.decodeFromString(AppSettings.serializer(), raw) }.onSuccess { stored ->
+                // A language this version does not offer (e.g. stored by a newer one) follows the device (ITERATION_3 R13).
+                _settings.value = stored.copy(language = stored.language?.takeIf { it in SUPPORTED_LANGUAGES })
+            }
         }
     }
 

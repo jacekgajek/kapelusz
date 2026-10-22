@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.app.data
 
-import com.jacekgajek.kapelusz.ops.RejectionReason
-import com.jacekgajek.kapelusz.ops.RejectionCode
 import kotlinx.coroutines.CoroutineExceptionHandler
 import com.jacekgajek.kapelusz.model.Member
 import kotlinx.coroutines.flow.debounce
@@ -13,16 +11,10 @@ import com.jacekgajek.kapelusz.app.auth.Session
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.platform.PreparedFile
-import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.domain.SharedPlace
-import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.Rejection
 import io.ktor.client.HttpClient
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,6 +46,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     )
     val uploads = AttachmentUploads(store, api, bands)
     val sync = SyncEngine(api, bands, scope, uploads = uploads)
+    val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch)
 
     private var loaded = false
 
@@ -175,61 +168,6 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         bands.forgetDeleted(bandId)
     }
 
-    /**
-     * Attaches a prepared file to a cost: the attachment is added like any change, and the file waits on the device
-     * until the sync has uploaded it.
-     */
-    suspend fun attach(costId: Id, file: PreparedFile): Rejection? {
-        val bandId = bands.currentBandId ?: return null
-        val attachment = Attachment(newId(), file.kind, file.fileName, file.sizeBytes)
-        // The file first, then the attachment (ITERATION_3 R4).
-        try {
-            try {
-                uploads.enqueue(PendingUpload(bandId, costId, attachment.id), file.base64)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
-            }
-            // Another band opened meanwhile (the file was being stored): this attachment belongs to the first one.
-            val rejection = if (bands.currentBandId == bandId) dispatch(AddAttachment(costId, attachment))
-            else Rejection(RejectionCode.CONFLICT, "Another band was opened", RejectionReason.NOT_FOUND)
-            if (rejection != null) {
-                uploads.cancel(attachment.id)
-                return rejection
-            }
-            sync.requestSync()
-            return null
-        } finally {
-            uploads.published(attachment.id)
-        }
-    }
-
-    /** Attaches the files picked while adding [costId]; runs in the app scope because the form closes on save. */
-    fun attachAfterSave(costId: Id, files: List<PreparedFile>) {
-        if (files.isNotEmpty()) scope.launch { files.forEach { attach(costId, it) } }
-    }
-
-    fun removeAttachment(costId: Id, attachmentId: Id): Rejection? {
-        val rejection = dispatch(RemoveAttachment(costId, attachmentId))
-        if (rejection == null) scope.launch { uploads.cancel(attachmentId) }
-        return rejection
-    }
-
-    /** A URL to open an attachment; fails with [ApiException] `attachment_not_uploaded` while its file is not on the server. */
-    suspend fun attachmentUrl(attachmentId: Id): Result<String> {
-        val bandId = bands.currentBandId ?: return Result.failure(IllegalStateException("No band open"))
-        // Throwable, not only Exception: browser network errors are JsException.
-        return try {
-            Result.success(api.attachmentUrl(bandId, attachmentId))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            Result.failure(e)
-        }
-    }
-
-    /** Applies an operation locally and schedules a sync. */
     /** Changes or attachment files still waiting to be sent to the server. */
     fun hasUnsentWork(): Boolean = bands.bandsToPush().isNotEmpty() || uploads.pending.value.isNotEmpty()
 
@@ -243,9 +181,10 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         if (pictureSent || me == null || me.pictureUrl != null) return
         val googleToken = sessions.session.value?.idToken ?: return
         pictureSent = true
-        scope.launch { runCatching { api.sendPicture(googleToken) }.onSuccess { sync.requestSync() } }
+        scope.launch { runSuspendCatching { api.sendPicture(googleToken) }.onSuccess { sync.requestSync() } }
     }
 
+    /** Applies an operation locally and schedules a sync. */
     fun dispatch(op: Operation): Rejection? {
         val rejection = bands.dispatch(op)
         if (rejection == null) {

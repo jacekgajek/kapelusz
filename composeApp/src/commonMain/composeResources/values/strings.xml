@@ -15,7 +15,6 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="create">Create</string>
-    <string name="rename">Rename</string>
     <string name="archive">Archive</string>
     <string name="unarchive">Restore</string>
     <string name="move_up">Move up</string>
@@ -72,7 +71,6 @@
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>
     <string name="edit_details">Edit details</string>
-    <string name="event_notes">Notes (optional)</string>
     <string name="event_not_found">This event no longer exists.</string>
     <string name="delete_event_title">Delete event?</string>
     <string name="delete_event_confirm">"%1$s" will be deleted. Its refunds become pending again.</string>
@@ -300,7 +298,6 @@
     <string name="role_owner_note">The owner has all admin rights and is the only one who can hand ownership over to another admin.</string>
     <string name="copy_link">Copy link</string>
     <string name="link_copied">Link copied</string>
-    <string name="band">Band</string>
     <string name="tab_fund">Band fund</string>
     <string name="fund_balance">Balance</string>
     <string name="fund_not_handed_over">Not handed over yet</string>
@@ -401,7 +398,6 @@
     <string name="h_set_agenda_template">Changed the agenda times of new events</string>
     <string name="agenda_arrival">Arrival</string>
     <string name="agenda_concert_start">Concert start</string>
-    <string name="more_details">More details</string>
     <string name="agenda_add_time">+ Add time</string>
     <string name="agenda_label">What (e.g. Sound check)</string>
     <string name="details">Details</string>
@@ -487,4 +483,5 @@
     <string name="diag_battery_unrestricted">Battery: unrestricted</string>
     <string name="reject_limit_reached">The band has reached a limit for this (e.g. too many entries).</string>
     <string name="reject_storage_failed">Could not save it on this device (is the storage full?).</string>
+    <string name="loading">Loading…</string>
 </resources>

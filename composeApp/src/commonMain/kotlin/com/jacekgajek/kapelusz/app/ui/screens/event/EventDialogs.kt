@@ -32,7 +32,6 @@ import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
 import com.jacekgajek.kapelusz.app.generated.agenda_label
 import com.jacekgajek.kapelusz.app.generated.agenda_add_time
-import com.jacekgajek.kapelusz.app.generated.more_details
 import com.jacekgajek.kapelusz.app.data.newId
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Row

@@ -15,7 +15,6 @@
     <string name="ok">OK</string>
     <string name="cancel">Anuluj</string>
     <string name="create">Utwórz</string>
-    <string name="rename">Zmień nazwę</string>
     <string name="archive">Archiwizuj</string>
     <string name="unarchive">Przywróć</string>
     <string name="move_up">Przesuń w górę</string>
@@ -72,7 +71,6 @@
     <string name="amount">Kwota</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>
     <string name="edit_details">Edytuj szczegóły</string>
-    <string name="event_notes">Notatki (opcjonalnie)</string>
     <string name="event_not_found">To wydarzenie już nie istnieje.</string>
     <string name="delete_event_title">Usunąć wydarzenie?</string>
     <string name="delete_event_confirm">„%1$s” zostanie usunięte. Jego zwroty kosztów znów będą oczekujące.</string>
@@ -300,7 +298,6 @@
     <string name="role_owner_note">Właściciel ma wszystkie uprawnienia administratora i jako jedyny może przekazać własność innemu administratorowi.</string>
     <string name="copy_link">Kopiuj link</string>
     <string name="link_copied">Skopiowano link</string>
-    <string name="band">Zespół</string>
     <string name="tab_fund">Kasa</string>
     <string name="fund_balance">Stan kasy</string>
     <string name="fund_not_handed_over">Jeszcze nieprzekazane</string>
@@ -403,7 +400,6 @@
     <string name="h_set_agenda_template">Zmieniono godziny dla nowych wydarzeń</string>
     <string name="agenda_arrival">Przyjazd</string>
     <string name="agenda_concert_start">Początek koncertu</string>
-    <string name="more_details">Więcej szczegółów</string>
     <string name="agenda_add_time">+ Dodaj godzinę</string>
     <string name="agenda_label">Co (np. Próba dźwięku)</string>
     <string name="details">Szczegóły</string>
@@ -493,4 +489,5 @@
     <string name="diag_battery_unrestricted">Bateria: bez ograniczeń</string>
     <string name="reject_limit_reached">Zespół osiągnął limit (np. zbyt wiele wpisów).</string>
     <string name="reject_storage_failed">Nie udało się zapisać na tym urządzeniu (czy pamięć jest pełna?).</string>
+    <string name="loading">Wczytywanie…</string>
 </resources>

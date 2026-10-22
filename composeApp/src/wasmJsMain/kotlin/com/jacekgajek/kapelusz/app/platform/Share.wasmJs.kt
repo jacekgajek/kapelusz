@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.platform
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.await
@@ -15,7 +16,7 @@ private fun shareOrCopy(text: String): Promise<JsString> = js(
 @Composable
 actual fun rememberShare(): suspend (text: String) -> ShareResult = remember {
     { text ->
-        when (runCatching { shareOrCopy(text).await<JsString>().toString() }.getOrNull()) {
+        when (runSuspendCatching { shareOrCopy(text).await<JsString>().toString() }.getOrNull()) {
             "shared" -> ShareResult.SHARED
             "copied" -> ShareResult.COPIED
             else -> ShareResult.FAILED
@@ -27,7 +28,7 @@ private fun copyToClipboard(text: String): Promise<JsBoolean> = js("navigator.cl
 
 @Composable
 actual fun rememberCopy(): suspend (text: String) -> Boolean = remember {
-    { text -> runCatching { copyToClipboard(text).await<JsBoolean>().toBoolean() }.getOrDefault(false) }
+    { text -> runSuspendCatching { copyToClipboard(text).await<JsBoolean>().toBoolean() }.getOrDefault(false) }
 }
 
 // The browser asks the user once whether the site may read the clipboard.
@@ -35,5 +36,5 @@ private fun readClipboard(): Promise<JsString?> = js("navigator.clipboard.readTe
 
 @Composable
 actual fun rememberPaste(): suspend () -> String? = remember {
-    { runCatching { readClipboard().await<JsString?>()?.toString() }.getOrNull() }
+    { runSuspendCatching { readClipboard().await<JsString?>()?.toString() }.getOrNull() }
 }

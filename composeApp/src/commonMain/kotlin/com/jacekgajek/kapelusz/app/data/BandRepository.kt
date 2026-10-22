@@ -113,7 +113,7 @@ class BandRepository(
         // in other bands pushed, even if the user never opens them.
         for (summary in _index.value?.bands.orEmpty()) {
             if (summary.id == _index.value?.currentBandId) continue
-            runCatching { readLocal(summary.id, reportUnreadable = false) }.getOrNull()?.let { locals[summary.id] = it }
+            runSuspendCatching { readLocal(summary.id, reportUnreadable = false) }.getOrNull()?.let { locals[summary.id] = it }
         }
         open(_index.value?.currentBandId)
     }
@@ -176,7 +176,7 @@ class BandRepository(
         if (band.id in locals) return
         // Already on the device (e.g. missing from an unreadable index): its unsent changes must not be overwritten
         // (ITERATION_3 R4); the regular sync rebases them on the server's state.
-        val stored = runCatching { readLocal(band.id, reportUnreadable = false) }.getOrNull()
+        val stored = runSuspendCatching { readLocal(band.id, reportUnreadable = false) }.getOrNull()
         locals[band.id] = stored ?: LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
         if (stored == null) persist(band.id)
     }
@@ -305,7 +305,7 @@ class BandRepository(
     private suspend fun recoverBands(userId: String, rawIndex: String) {
         val ids = Regex(""""id"\s*:\s*"([A-Za-z0-9_-]{1,64})"""").findAll(rawIndex).map { it.groupValues[1] }.distinct().toList()
         val summaries = ids.mapNotNull { id ->
-            val local = runCatching { readLocal(id, reportUnreadable = false) }.getOrNull() ?: return@mapNotNull null
+            val local = runSuspendCatching { readLocal(id, reportUnreadable = false) }.getOrNull() ?: return@mapNotNull null
             locals[id] = local
             val me = local.base.memberOfUser(userId)
             BandSummary(id, local.base.name, me?.name.orEmpty(), me?.role ?: Role.MEMBER)

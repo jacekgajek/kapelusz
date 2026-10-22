@@ -113,12 +113,14 @@ fun TransfersSection(context: EventContext) {
                 Modifier.fillMaxWidth().clickable(enabled = context.can.removeTransfer(event)) { removing = transfer }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val from = partyName(context.band, event, transfer.from, fundLabel)
+                val to = partyName(context.band, event, transfer.to, fundLabel)
                 Column(Modifier.weight(1f)) {
-                    TransferParties(partyName(context.band, event, transfer.from, fundLabel), partyName(context.band, event, transfer.to, fundLabel))
+                    TransferParties(from, to)
                     transfer.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
                 MoneyText(transfer.amount, context.currency)
-                if (context.can.removeTransfer(event)) RemoveButton { removing = transfer }
+                if (context.can.removeTransfer(event)) RemoveButton("$from → $to, ${formatMoney(transfer.amount, context.currency, language)}") { removing = transfer }
             }
         }
     }

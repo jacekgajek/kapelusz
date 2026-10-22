@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.auth
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
 import kotlinx.coroutines.CancellationException
@@ -141,7 +142,7 @@ class SessionRepository(
         val now = clock()
         if (!refused && lastBackgroundRefresh?.let { now - it < REFRESH_RETRY_MS } == true) return stillValid
         if (!refused) lastBackgroundRefresh = now
-        val fresh = runCatching { google.refresh() }.getOrNull() ?: return stillValid
+        val fresh = runSuspendCatching { google.refresh() }.getOrNull() ?: return stillValid
         val refreshed = runCatching { Session.fromIdToken(fresh) }.getOrNull() ?: return stillValid
         if (refreshed.userId != current.userId) return stillValid
         // Google may hand back its cached token: that is no renewal (and saving it would ask again right away).
@@ -164,7 +165,7 @@ class SessionRepository(
     }
 
     suspend fun signOut() {
-        runCatching { google.signOut() }
+        runSuspendCatching { google.signOut() }
         store.remove(KEY)
         _session.value = null
     }

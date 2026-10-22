@@ -11,6 +11,16 @@ plugins {
 fun setting(env: String, property: String) =
     providers.environmentVariable(env).filter { it.isNotBlank() }.orElse(providers.gradleProperty(property))
 
+/** A Chrome or Chromium for the wasm browser tests, or null if this machine has none. */
+fun headlessChrome(): String? {
+    providers.environmentVariable("CHROME_BIN").orNull?.takeIf { it.isNotBlank() }?.let { return it }
+    val onPath = providers.environmentVariable("PATH").orNull.orEmpty().split(File.pathSeparator)
+        .flatMap { dir -> listOf("google-chrome", "google-chrome-stable", "chromium", "chromium-browser").map { File(dir, it) } }
+    val playwright = File(System.getProperty("user.home"), ".cache/ms-playwright").listFiles().orEmpty()
+        .filter { it.name.startsWith("chromium-") }.sortedDescending().map { File(it, "chrome-linux64/chrome") }
+    return (onPath + playwright).firstOrNull { it.canExecute() }?.path
+}
+
 val generateAppConfig = tasks.register("generateAppConfig") {
     val apiUrl = setting("KAPELUSZ_API_URL", "kapelusz.apiUrl")
     val webClientId = setting("KAPELUSZ_GOOGLE_WEB_CLIENT_ID", "kapelusz.googleWebClientId")
@@ -51,6 +61,11 @@ val generateAppConfig = tasks.register("generateAppConfig") {
 kotlin {
     jvmToolchain(libs.versions.jvm.target.get().toInt())
 
+    compilerOptions {
+        // LocalAppLocale is an expect object; expect/actual classes are Beta and warn without this flag (ITERATION_3 R13).
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     android {
         namespace = "com.jacekgajek.kapelusz.app"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -67,8 +82,14 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
             }
-            // Needs a headless browser; commonTest already runs as Android host (JVM) tests.
-            testTask { enabled = false }
+            // In headless Chrome (ITERATION_3 R14), e.g. for the IndexedDB storage: CHROME_BIN, else a Chrome on the PATH
+            // (CI) or one installed by Playwright. Skipped where there is none; commonTest also runs as Android host tests.
+            testTask {
+                val chrome = headlessChrome()
+                enabled = chrome != null
+                useKarma { useChromeHeadlessNoSandbox() }
+                if (chrome != null) environment("CHROME_BIN", chrome)
+            }
         }
         binaries.executable()
     }

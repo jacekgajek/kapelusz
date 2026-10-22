@@ -22,7 +22,6 @@ import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -39,10 +38,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
 
 /** An operation in the history that this app version cannot read (made by a newer version). */
 data class UnreadableOp(val opId: String, val eventId: String?)
@@ -135,42 +130,11 @@ class ApiClient(
     suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
 
     /**
-     * One page of a month's history, newest first; [before] is the previous page's `next`. Read entry by entry and
-     * operation by operation, so a change made by a newer app version (an operation this one does not know) shows
-     * as such instead of failing the whole page.
+     * One page of a month's history, newest first; [before] is the previous page's `next`. Read leniently by
+     * [HistoryDecoder], so a change made by a newer app version does not fail the whole page.
      */
-    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage {
-        val page = call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer())
-        val entries = page["entries"]?.jsonArray.orEmpty().mapNotNull { element ->
-            val entry = element as? JsonObject ?: return@mapNotNull null
-            val at = entry["at"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
-            // Each operation on its own, in order: one this version cannot read becomes a placeholder.
-            val ops = entry["ops"]?.jsonArray.orEmpty().mapIndexed { index, op ->
-                runCatching { ReadOp.Known(KapeluszJson.decodeFromJsonElement(OpEnvelope.serializer(), op)) }.getOrElse {
-                    val raw = op as? JsonObject
-                    ReadOp.Unknown(
-                        UnreadableOp(
-                            opId = raw?.get("opId")?.jsonPrimitive?.contentOrNull ?: "$at-$index",
-                            eventId = (raw?.get("op") as? JsonObject)?.get("eventId")?.jsonPrimitive?.contentOrNull,
-                        ),
-                    )
-                }
-            }
-            val header = HistoryEntry(
-                userId = entry["userId"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null,
-                memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
-                at = at,
-                ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
-                // What each operation changed, for undo; one this version cannot read just cannot be undone here.
-                id = entry["id"]?.jsonPrimitive?.contentOrNull,
-                changes = (entry["changes"] as? JsonObject).orEmpty().mapNotNull { (opId, change) ->
-                    runCatching { opId to KapeluszJson.decodeFromJsonElement(BandChange.serializer(), change) }.getOrNull()
-                }.toMap(),
-            )
-            HistoryItem(header, ops)
-        }
-        return HistoryPage(page["month"]?.jsonPrimitive?.contentOrNull ?: month, entries, page["next"]?.jsonPrimitive?.contentOrNull)
-    }
+    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage =
+        HistoryDecoder.page(call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer()), month)
 
     /** A URL to upload the file of an attachment the server already has. */
     suspend fun requestUpload(bandId: Id, costId: Id, attachmentId: Id): AttachmentUploadResponse = call(

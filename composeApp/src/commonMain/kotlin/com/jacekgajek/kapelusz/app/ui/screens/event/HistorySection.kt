@@ -1,18 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.ui.screens.stillPending
-import kotlinx.coroutines.CancellationException
-import com.jacekgajek.kapelusz.app.ui.screens.withPending
-import com.jacekgajek.kapelusz.app.ui.screens.pendingUndoLine
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.async
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.app.ui.screens.UndoDialog
-import com.jacekgajek.kapelusz.app.ui.screens.undoOf
-import com.jacekgajek.kapelusz.app.ui.screens.undoTargets
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
@@ -34,8 +27,6 @@ import com.jacekgajek.kapelusz.app.generated.history_empty
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
 import com.jacekgajek.kapelusz.app.generated.show_history
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
-import com.jacekgajek.kapelusz.app.ui.screens.HistoryLine
-import com.jacekgajek.kapelusz.app.ui.screens.HistoryRow
 import com.jacekgajek.kapelusz.app.ui.screens.historyMonth
 import com.jacekgajek.kapelusz.app.ui.screens.toLines
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -50,62 +41,39 @@ private const val MONTHS = 3
 @Composable
 fun HistorySection(context: EventContext, graph: AppGraph) {
     var shown by remember(context.event.id) { mutableStateOf(false) }
-    var lines by remember(context.event.id) { mutableStateOf<List<HistoryLine>?>(null) }
-    var failed by remember(context.event.id) { mutableStateOf(false) }
-    var reload by remember(context.event.id) { mutableStateOf(0) }
-    var pending by remember(context.event.id) { mutableStateOf(listOf<HistoryLine>()) }
-    var confirming by remember { mutableStateOf<Undo?>(null) }
     val scope = rememberCoroutineScope()
+    val history = remember(context.event.id) { HistoryController(graph, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
     SectionTitle(stringResource(Res.string.history))
     if (!shown) {
         TextButton(onClick = { shown = true }) { Text(stringResource(Res.string.show_history)) }
         return
     }
-    LaunchedEffect(context.event.id, reload) {
-        runCatching {
+    LaunchedEffect(context.event.id, history.reload) {
+        history.load {
             // Newest month first; each page is newest first. The first page of each month is enough for one event.
             // The months load at the same time.
-            coroutineScope { (0 until MONTHS).map { offset -> async { graph.api.history(context.band.id, historyMonth(offset)).entries } }.awaitAll().flatten() }
-        }.onSuccess { entries ->
-            lines = entries.flatMap { it.toLines() }.filter { line ->
+            val entries = coroutineScope {
+                (0 until MONTHS).map { offset -> async { graph.api.history(context.band.id, historyMonth(offset)).entries } }.awaitAll().flatten()
+            }
+            entries.flatMap { it.toLines() }.filter { line ->
                 line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
             }
-            failed = false
-            pending = stillPending(pending, graph.bands.local(context.band.id)?.pending.orEmpty().map { it.opId }.toSet())
-        }.onFailure { if (it is CancellationException) throw it else failed = true }
+        }
     }
-    val loaded = lines?.let { withPending(it, pending) }
+    val loaded = history.shown()
     Column {
         when {
-            failed -> Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error)
+            history.failed -> Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error)
             loaded == null -> CircularProgressIndicator(Modifier.size(24.dp))
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
             else -> {
                 // Undo steps back through this event's changes, redo forward (ITERATION_2 §7.2).
-                val targets = undoTargets(loaded) { undoOf(it, context.can) != null }
-                val undo = targets.undo?.let { line -> undoOf(line, context.can)?.let { line to it } }
-                val redo = targets.redo?.let { line -> undoOf(line, context.can)?.let { line to it } }
-                loaded.forEach { line ->
-                    HistoryRow(
-                        context.band, line,
-                        undone = line.opId in targets.undone,
-                        onUndo = undo?.takeIf { it.first === line }?.let { { confirming = it.second } },
-                        onRedo = redo?.takeIf { it.first === line }?.let { { confirming = it.second } },
-                    )
-                }
+                val arrows = history.arrows(loaded, context.can)
+                loaded.forEach { line -> history.LineRow(context.band, line, arrows) }
             }
         }
     }
-    confirming?.let { undo ->
-        UndoDialog(context.band, undo, onDismiss = { confirming = null }, onConfirm = {
-            confirming = null
-            // Shown at once, so undoing several changes is tap after tap; the history refreshes quietly behind.
-            if (context.actions.run(undo)) {
-                graph.bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, context.me?.userId.orEmpty(), context.me?.id) }
-                scope.launch { graph.sync.syncNow(); reload++ }
-            }
-        })
-    }
+    history.UndoConfirmation(context.band, context.actions)
 }
 
 /** Operations on the event itself, plus costs added or moved to it. */

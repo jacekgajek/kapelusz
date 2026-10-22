@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
@@ -306,17 +308,29 @@ fun PartialSettleDialog(
     )
 }
 
+/** The widest a list grows: on tablets it stays readable, centred (ITERATION_3 R13). */
+val MAX_LIST_WIDTH = 600.dp
+
+/** Caps a list (after its size modifiers) at [MAX_LIST_WIDTH], centred in the space it was given. */
+fun Modifier.listWidth(): Modifier = wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = MAX_LIST_WIDTH).fillMaxWidth()
+
 /** Visible edit affordance at the end of a tappable row (touch screens show no hover highlight). */
 @Composable
 fun EditButton(onClick: () -> Unit) {
     IconButton(onClick = onClick) { Icon(Icons.Default.Edit, stringResource(Res.string.edit)) }
 }
 
-/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers. */
+/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers (ITERATION_3 R13). */
 @Composable
-fun RemoveButton(what: String? = null, onClick: () -> Unit) {
+fun RemoveButton(what: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, removeLabel(what)) }
+}
+
+/** "Remove: Anna", or just "Remove" for an item without a name yet (e.g. an empty field). */
+@Composable
+fun removeLabel(what: String): String {
     val remove = stringResource(Res.string.remove)
-    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, what?.let { "$remove: $it" } ?: remove) }
+    return if (what.isBlank()) remove else "$remove: $what"
 }
 
 /** The app version in a corner (sign-in screen, Settings), so it is easy to tell which build is running. */

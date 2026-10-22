@@ -84,7 +84,7 @@ fun AttachmentsSection(
     val openFailed = stringResource(Res.string.attachment_open_failed)
     val picker = rememberAttachmentPicker { result ->
         when (result) {
-            is PickResult.Picked -> if (costId == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attach(costId, result.file)) }
+            is PickResult.Picked -> if (costId == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attachments.attach(costId, result.file)) }
             PickResult.TooLarge -> actions.say(tooLarge)
             PickResult.Unsupported -> actions.say(unsupported)
             PickResult.Failed -> actions.say(failed)
@@ -104,7 +104,7 @@ fun AttachmentsSection(
                 onOpen = {
                     if (uploading) actions.say(notAvailable)
                     else open {
-                        graph.attachmentUrl(attachment.id).getOrElse { error ->
+                        graph.attachments.url(attachment.id).getOrElse { error ->
                             val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
                             actions.say(if (notUploaded) notAvailable else openFailed)
                             null
@@ -144,7 +144,7 @@ fun AttachmentsSection(
             title = stringResource(Res.string.attachment_remove_title),
             text = stringResource(Res.string.attachment_remove_confirm, attachment.fileName ?: attachment.id),
             confirmLabel = stringResource(Res.string.remove),
-            onConfirm = { costId?.let { actions.show(graph.removeAttachment(it, attachment.id)) } },
+            onConfirm = { costId?.let { actions.show(graph.attachments.remove(it, attachment.id)) } },
             onDismiss = { removing = null },
         )
     }

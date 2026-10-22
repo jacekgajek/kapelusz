@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -128,7 +130,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val reloadInvites: () -> Unit = {
         scope.launch {
-            runCatching { graph.api.invites(band.id).invites }
+            runSuspendCatching { graph.api.invites(band.id).invites }
                 .onSuccess { invites = it; invitesFailed = false }
                 .onFailure { invitesFailed = true }
         }
@@ -147,7 +149,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth()) {
             if (isAdmin && invitesFailed) {
                 item { Text(stringResource(Res.string.invites_unavailable), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
             }
@@ -155,7 +157,8 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 val invite = invites?.firstOrNull { it.memberId == member.id }
                 ListItem(
                     modifier = Modifier.clickable(enabled = isAdmin) { selected = member.id },
-                    leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp) },
+                    // Decorative: the name follows right after it (ITERATION_3 R13).
+                    leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
                     headlineContent = {
                         Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
                     },
@@ -170,10 +173,10 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                         if (isAdmin) {
                             Row {
                                 IconButton(onClick = { actions.run(MoveMember(member.id, index - 1)) }, enabled = index > 0) {
-                                    Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up))
+                                    Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + member.name)
                                 }
                                 IconButton(onClick = { actions.run(MoveMember(member.id, index + 1)) }, enabled = index < members.lastIndex) {
-                                    Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down))
+                                    Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down) + ": " + member.name)
                                 }
                             }
                         }
@@ -294,7 +297,7 @@ private fun MemberDialog(
                                     OutlinedButton(enabled = !inviteBusy, onClick = {
                                         inviteBusy = true
                                         scope.launch {
-                                            runCatching { graph.api.revokeInvite(band.id, current.code) }
+                                            runSuspendCatching { graph.api.revokeInvite(band.id, current.code) }
                                                 .onSuccess { shownInvite = null; onInvitesChanged() }
                                                 .onFailure { message = failedText }
                                             inviteBusy = false
@@ -314,7 +317,7 @@ private fun MemberDialog(
                         FilledTonalButton(enabled = !inviteBusy, onClick = {
                             inviteBusy = true
                             scope.launch {
-                                runCatching { graph.api.createInvite(band.id, member.id, inviteRole) }
+                                runSuspendCatching { graph.api.createInvite(band.id, member.id, inviteRole) }
                                     .onSuccess { shownInvite = it; onInvitesChanged() }
                                     .onFailure { message = failedText }
                                 inviteBusy = false
