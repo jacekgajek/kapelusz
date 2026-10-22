@@ -43,10 +43,12 @@ class ReducerTest {
     fun costIncurredForEventIsPreIncludedOnlyForParticipants() {
         val scenario = gig()
             .apply(AddCost("bob-cost", "bob", pln("40"), DATE, incurredForEventId = "gig"))
-            .apply(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig"))
         assertEquals(listOf(Refund("bob-cost", pln("40"))), scenario.band.event("gig")!!.refunds)
+        // Only for an event its owner takes part in (ITERATION_3 R2).
+        assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig")).reason)
 
         scenario.apply(AddParticipant("gig", "carol"))
+        scenario.apply(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig"))
         assertEquals(pln("25"), scenario.band.event("gig")!!.refundOf("carol-cost")!!.amount)
     }
 
@@ -198,5 +200,17 @@ class ReducerTest {
         assertTrue(afterAdd > created)
         scenario.apply(DeleteCost("c"))
         assertTrue(scenario.band.event("gig")!!.updatedAt > afterAdd)
+    }
+
+    @Test
+    fun aMembersCostDoesNotReopenASettledOrArchivedEvent() {
+        val scenario = gig().apply(com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "alice", pln("100"), com.jacekgajek.kapelusz.model.IncomeSource.HAT, null))
+            .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
+        scenario.apply(AddCost("late", "bob", pln("30"), DATE, incurredForEventId = "gig"))
+        assertEquals(null, scenario.band.event("gig")!!.refundOf("late"), "money moved: a lead decides")
+        scenario.apply(com.jacekgajek.kapelusz.ops.SetEventArchived("gig", true))
+        scenario.apply(AddCost("later", "bob", pln("20"), DATE))
+        scenario.apply(UpdateCost("later", incurredForEventId = Change("gig")))
+        assertEquals(null, scenario.band.event("gig")!!.refundOf("later"), "archived: a lead decides")
     }
 }

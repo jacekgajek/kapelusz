@@ -143,7 +143,13 @@ fun CostScreen(
         }
         if (ok) onBack()
     }
-    val events = listOf<String?>(null) + band.events.filter { !it.archived || it.id == eventId }.sortedByDescending { it.date }.map { it.id }
+    // Only events the payer takes part in (ITERATION_3 R2); the cost's own event stays listed while it is still its owner's.
+    val keptEventId = existing?.eventId?.takeIf { paidBy == existing.memberId }
+    val events = listOf<String?>(null) + band.events
+        .filter { event -> event.id == keptEventId || (!event.archived && paidBy != null && event.participant(paidBy!!) != null) }
+        .sortedByDescending { it.date }.map { it.id }
+    // Another payer: an event they are not in is no longer a choice.
+    LaunchedEffect(events) { if (eventId !in events) eventId = null }
 
     Scaffold(
         topBar = {

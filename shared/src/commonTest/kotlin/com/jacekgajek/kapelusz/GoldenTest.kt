@@ -231,7 +231,11 @@ class GoldenTest {
         val scenario = g1().apply(SettleSuggestions("oakfield"))
         val recorded = scenario.band.event("oakfield")!!.transfers
 
+        // Money has moved: the cost only remembers the gig (ITERATION_3 R2) and the gig stays settled ...
         scenario.apply(AddCost("c-bob", "bob", pln("50"), DATE, incurredForEventId = "oakfield"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("oakfield").status)
+        // ... until a lead includes the refund, which reopens it.
+        scenario.apply(SetRefund("oakfield", "c-bob", pln("50")))
         val s = scenario.settle("oakfield")
         assertEquals(EventStatus.OPEN, s.status)
         assertEquals(recorded, scenario.band.event("oakfield")!!.transfers)
