@@ -22,6 +22,7 @@ import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import kotlinx.datetime.LocalDate
 import java.io.File
@@ -58,6 +59,7 @@ class SettlementTextTest {
             done = strings.getValue("share_text_done"),
             stillToPay = strings.getValue("share_text_still_to_pay"),
             allSettled = strings.getValue("share_text_all_settled"),
+            incomplete = strings.getValue("share_text_incomplete"),
             footer = strings.getValue("share_text_footer"),
         )
     }
@@ -167,5 +169,22 @@ class SettlementTextTest {
         val band = gig.apply(com.jacekgajek.kapelusz.ops.SetFixedShare("gig", "bob", Money(20000)))
         assertTrue("Bob 200.00 PLN (fixed)" in text(band, "en"), text(band, "en"))
         assertTrue("Alice 750,00 zł (stała kwota)" !in text(band, "pl") && "Bob 200,00 zł (stała kwota)" in text(band, "pl"), text(band, "pl"))
+    }
+
+    /** With a problem to sort out there is nothing to pay yet: the text says the settlement is not complete. */
+    @Test
+    fun anEventWithAProblemIsNotSettledYet() {
+        // A loss: more for the band fund than the income.
+        val loss = gig.apply(SetFundAmount("gig", Money(200000)))
+        assertEquals(
+            listOf("Bob → Band fund (Alice): 50.00 PLN", "Not settled yet: there is something to sort out in the app first", "Pass the Hat · kapelusz.jacekgajek.com"),
+            text(loss, "en").lines().takeLast(3),
+        )
+        assertEquals("Jeszcze nierozliczone: najpierw trzeba coś poprawić w aplikacji", text(loss, "pl").lines().dropLast(1).last())
+        // Nobody has a share.
+        val noShares = gig.apply(SetWeight("gig", "alice", 0), SetWeight("gig", "bob", 0))
+        assertTrue("Not settled yet: there is something to sort out in the app first" in text(noShares, "en"), text(noShares, "en"))
+        assertTrue("Still to pay:" !in text(noShares, "en"))
+        assertTrue("Not settled yet" !in text(gig, "en"), "an open event without problems lists what is still to pay")
     }
 }

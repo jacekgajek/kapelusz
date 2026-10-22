@@ -27,12 +27,14 @@ data class SettlementWords(
     val done: String,
     val stillToPay: String,
     val allSettled: String,
+    /** Instead of "Still to pay" while the event has a problem to sort out first (a loss, no shares, no treasurer). */
+    val incomplete: String,
     val footer: String,
 )
 
 /**
  * A settlement as plain text to send to the band (ITERATION_3 §2.1): the event, the totals, everyone's share, then the
- * recorded transfers ("Done") and the open suggestions ("Still to pay"), or "All settled"; a footer names the app.
+ * recorded transfers ("Done") and the open suggestions ("Still to pay"), or "All settled", or that it is incomplete; a footer names the app.
  */
 fun settlementText(band: Band, event: Event, settlement: Settlement, language: String, words: SettlementWords): String {
     fun money(amount: Money) = formatMoney(amount, band.currency, language)
@@ -59,6 +61,8 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
         }
         if (settlement.status == EventStatus.SETTLED) {
             add(words.allSettled)
+        } else if (settlement.problems.isNotEmpty()) {
+            add(words.incomplete)
         } else if (settlement.suggestions.isNotEmpty()) {
             add(words.stillToPay)
             settlement.suggestions.forEach { add(transfer(it.from, it.to, it.amount)) }

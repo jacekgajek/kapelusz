@@ -43,6 +43,9 @@ class FixedShareTest {
             .apply(SetFixedShare("gig", "carol", pln("100")))
         val s = scenario.settle("gig")
         assertEquals(pln("1000"), s.net)
+        assertEquals(pln("100"), s.fixedTotal)
+        assertEquals(pln("900"), s.rest)
+        assertEquals(Money.ZERO, s.shortfall)
         assertEquals(mapOf("alice" to pln("450"), "bob" to pln("450"), "carol" to pln("100")), s.targets)
         assertTrue(s.line("carol")!!.isFixed)
         assertFalse(s.line("alice")!!.isFixed)
@@ -74,6 +77,11 @@ class FixedShareTest {
         val s = scenario.settle("gig")
         assertEquals(EventStatus.LOSS, s.status)
         assertEquals(setOf(SettlementProblem.LOSS), s.problems)
+        // Income covers the net, but not the fixed amounts: the shortfall is what the fixed amounts exceed it by.
+        assertEquals(pln("150"), s.net)
+        assertEquals(pln("200"), s.fixedTotal)
+        assertEquals(pln("-50"), s.rest)
+        assertEquals(pln("50"), s.shortfall)
         assertTrue(s.suggestions.isEmpty())
         // The fixed amounts stay owed: the targets show what the income would have to cover.
         assertEquals(pln("100"), s.line("carol")!!.target)
@@ -121,11 +129,28 @@ class FixedShareTest {
     }
 
     @Test
+    fun switchingBackWithANewWeightIsOneOperationAndOneUndo() {
+        val scenario = gig().apply(SetFixedShare("gig", "bob", pln("80")))
+        val before = scenario.band
+        val op = SetFixedShare("gig", "bob", null, weight = 50)
+        scenario.apply(op)
+        assertEquals(Participant("bob", 50, addedBy = null), scenario.band.event("gig")!!.participant("bob"))
+        // Without a weight the old one stays.
+        assertEquals(100, gig().apply(SetFixedShare("gig", "bob", pln("80"))).apply(SetFixedShare("gig", "bob", null)).band.event("gig")!!.participant("bob")!!.weight)
+
+        scenario.apply(Undo("undone", op, BandChange.between(before, scenario.band)))
+        assertEquals(Participant("bob", 100, addedBy = null, fixedShare = pln("80")), scenario.band.event("gig")!!.participant("bob"))
+    }
+
+    @Test
     fun reducerValidatesTheParticipantAndTheAmount() {
         val scenario = gig()
         assertEquals(RejectionReason.NOT_FOUND, scenario.rejected(SetFixedShare("gig", "nobody", pln("10"))).reason)
         assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(SetFixedShare("gig", "bob", pln("0"))).reason)
         assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(SetFixedShare("gig", "bob", pln("-5"))).reason)
+        // The weight that comes with switching back is checked as by SetWeight.
+        assertEquals(RejectionReason.INVALID_SHARE, scenario.rejected(SetFixedShare("gig", "bob", null, weight = -1)).reason)
+        assertEquals(RejectionReason.INVALID_SHARE, scenario.rejected(SetFixedShare("gig", "bob", null, weight = 10_001)).reason)
         assertEquals(
             RejectionReason.INVALID_AMOUNT,
             scenario.rejected(CreateEvent("e2", "e2", DATE, participants = listOf(Participant("alice", fixedShare = pln("0"))))).reason,
@@ -177,7 +202,7 @@ class FixedShareTest {
 
     @Test
     fun serializesAndOldDataReadsAsPercentages() {
-        listOf(SetFixedShare("gig", "carol", pln("100")), SetFixedShare("gig", "carol", null)).forEach { op ->
+        listOf(SetFixedShare("gig", "carol", pln("100")), SetFixedShare("gig", "carol", null), SetFixedShare("gig", "carol", null, 50)).forEach { op ->
             val envelope = OpEnvelope("op1", "client", 1, 42, op)
             val json = KapeluszJson.encodeToString(OpEnvelope.serializer(), envelope)
             assertTrue("\"type\":\"SetFixedShare\"" in json, json)
@@ -188,5 +213,10 @@ class FixedShareTest {
         assertTrue("\"fixedShare\":10000" in json, json)
         assertEquals(band, KapeluszJson.decodeFromString(Band.serializer(), json))
         assertEquals(Participant("bob"), KapeluszJson.decodeFromString(Participant.serializer(), """{"partyId":"bob"}"""))
+        // Operations from before the weight read without it.
+        assertEquals(
+            SetFixedShare("gig", "carol", null),
+            KapeluszJson.decodeFromString(Operation.serializer(), """{"type":"SetFixedShare","eventId":"gig","partyId":"carol","amount":null}"""),
+        )
     }
 }

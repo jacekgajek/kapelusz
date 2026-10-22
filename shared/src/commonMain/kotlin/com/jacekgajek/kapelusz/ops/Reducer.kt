@@ -95,7 +95,12 @@ object Reducer {
             is SetFixedShare -> band.updateEvent(op.eventId) { event ->
                 event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
                 op.amount?.let { validatePositive(it, "Fixed share") }
-                event.copy(participants = event.participants.map { if (it.partyId == op.partyId) it.copy(fixedShare = op.amount) else it })
+                op.weight?.let { validateWeight(it) }
+                event.copy(
+                    participants = event.participants.map {
+                        if (it.partyId == op.partyId) it.copy(fixedShare = op.amount, weight = op.weight ?: it.weight) else it
+                    },
+                )
             }
             is RemoveParticipant -> removeParticipant(band, op)
 

@@ -168,4 +168,18 @@ class NotificationRulesTest {
         assertEquals(listOf(Owed("Bob", Money(4000)), Owed("Bob", Money(2000), fromFund = true)), debtReminders(fromFund, "u-alice").first().owed)
         assertEquals(emptyList(), debtReminders(fromFund, "u-bob"))
     }
+
+    @Test
+    fun aDebtReminderIsCheckedAgainWhenItsAlarmGoesOff() {
+        // The second reminder, due on 22 Oct at 18:00; Android delivers it a little late.
+        val firing = LocalDateTime(2026, 10, 22, 18, 30)
+        fun due(band: Band) = NotificationRules.dueDebtReminder(listOf(band), "u-bob", "b/gig/debt1", LocalTime(18, 0), firing)
+        assertEquals(listOf(Owed("Alice", Money(5000))), due(debt)?.owed)
+        assertEquals(null, due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000)))), "paid since it was planned")
+        assertEquals(null, due(debt.apply("u-bob", SetEventArchived("gig", true))), "archived since")
+        // Part paid since: the text is built from what is still owed.
+        assertEquals(listOf(Owed("Alice", Money(3000))), due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))))?.owed)
+        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 22, 23, 0)), "hours late")
+        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/other/debt1", LocalTime(18, 0), firing), "event gone")
+    }
 }

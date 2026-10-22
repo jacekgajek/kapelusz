@@ -59,6 +59,7 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.edit_details
 import com.jacekgajek.kapelusz.app.generated.event_not_found
 import com.jacekgajek.kapelusz.app.generated.problem_loss
+import com.jacekgajek.kapelusz.app.generated.problem_loss_fixed
 import com.jacekgajek.kapelusz.app.generated.problem_no_shares
 import com.jacekgajek.kapelusz.app.generated.problem_no_treasurer
 import com.jacekgajek.kapelusz.app.generated.total_fund
@@ -269,9 +270,10 @@ private fun Problems(context: EventContext) {
             problems.forEach { problem ->
                 Text(
                     when (problem) {
+                        // Fixed shares count towards the loss too (ITERATION_3 §2.4), so lowering them is a way out.
                         SettlementProblem.LOSS -> stringResource(
-                            Res.string.problem_loss,
-                            formatMoney(-context.settlement.net, context.currency, language),
+                            if (context.settlement.fixedTotal.isZero) Res.string.problem_loss else Res.string.problem_loss_fixed,
+                            formatMoney(context.settlement.shortfall, context.currency, language),
                         )
                         SettlementProblem.NO_SHARES -> stringResource(Res.string.problem_no_shares)
                         SettlementProblem.NO_TREASURER -> stringResource(Res.string.problem_no_treasurer)

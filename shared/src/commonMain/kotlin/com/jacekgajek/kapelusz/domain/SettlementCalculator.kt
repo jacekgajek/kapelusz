@@ -52,6 +52,8 @@ data class Settlement(
     val refundsTotal: Money,
     /** Income left to share after the fund amount and refunds; fixed shares come out of it first. */
     val net: Money,
+    /** Sum of the participants' fixed shares, paid out of [net] before the rest is split by weight. */
+    val fixedTotal: Money,
     /** Participants in party order, followed by [BAND_FUND] when the event involves the fund. */
     val lines: List<PartyLine>,
     val suggestions: List<SuggestedTransfer>,
@@ -59,6 +61,12 @@ data class Settlement(
     val problems: Set<SettlementProblem>,
 ) {
     val canSettle: Boolean get() = status == EventStatus.OPEN && problems.isEmpty()
+
+    /** What is left to split by weight after the fixed shares; negative on a [SettlementProblem.LOSS]. */
+    val rest: Money get() = net - fixedTotal
+
+    /** How much income is missing on a [SettlementProblem.LOSS], or zero. */
+    val shortfall: Money get() = if (rest.isNegative) -rest else Money.ZERO
     fun line(partyId: Id): PartyLine? = lines.firstOrNull { it.partyId == partyId }
     fun suggestionsFor(partyId: Id) = suggestions.filter { it.from == partyId || it.to == partyId }
 }
@@ -121,7 +129,7 @@ object SettlementCalculator {
         } else {
             emptyList()
         }
-        return Settlement(income, event.fundAmount, refundsTotal, net, lines, suggestions, status, problems)
+        return Settlement(income, event.fundAmount, refundsTotal, net, fixedTotal, lines, suggestions, status, problems)
     }
 
     /** Roster members in roster order, then guests in the order they were added. */

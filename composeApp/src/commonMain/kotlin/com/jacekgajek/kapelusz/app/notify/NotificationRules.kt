@@ -127,6 +127,14 @@ object NotificationRules {
             }
         }.sortedBy { it.at }
 
+    /**
+     * The debt reminder [key] as it stands when its alarm goes off, or null when it is no longer due: the alarm holds
+     * the texts from when it was planned, and the debt may have been paid or changed since. Null too when it is more
+     * than [LATE_HOURS] late, as for planning.
+     */
+    fun dueDebtReminder(bands: List<Band>, userId: String, key: String, time: LocalTime, now: LocalDateTime): DebtReminder? =
+        debtReminders(bands, userId, time, now).firstOrNull { it.key == key }
+
     /** Every transfer on this device, as `band/transfer` keys: what has been seen so far. */
     fun transferKeys(bands: List<Band>): Set<String> =
         bands.flatMapTo(mutableSetOf()) { band -> band.events.flatMap { event -> event.transfers.map { "${band.id}/${it.id}" } } }

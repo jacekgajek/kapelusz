@@ -7,7 +7,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.edit
+import com.jacekgajek.kapelusz.app.AndroidAppGraph
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 
@@ -94,7 +103,7 @@ object ReminderScheduler {
     private fun shownEntries(context: Context): Set<String> =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty()
 
-    internal fun show(context: Context, intent: Intent) {
+    internal suspend fun show(context: Context, intent: Intent) {
         intent.getStringExtra(EXTRA_KEY)?.let { key ->
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             prefs.edit { putStringSet(KEY_SHOWN, ReminderLog.withShown(shownEntries(context), key, System.currentTimeMillis())) }
@@ -104,17 +113,75 @@ object ReminderScheduler {
         val event = intent.getStringExtra(Notifier.EXTRA_EVENT)
         // A debt reminder has its own notification, so it never replaces the event's gig reminder.
         val toSettle = intent.getBooleanExtra(Notifier.EXTRA_TO_SETTLE, false)
+        var title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
+        var text = intent.getStringExtra(EXTRA_TEXT).orEmpty()
+        if (toSettle) {
+            when (val check = checkDebt(context, intent.getStringExtra(EXTRA_KEY))) {
+                DebtCheck.Gone -> return
+                is DebtCheck.Due -> Notifier.debtTexts(check.reminder, check.language).let { (t, x) -> title = t; text = x }
+                // Kept as planned: better a reminder from the alarm than none.
+                DebtCheck.Unknown -> Unit
+            }
+            // The debt may have been paid on another device: fetch it, so the next reminders are planned from that.
+            BackgroundSyncWorker.syncSoon(context)
+        }
         Notifier.showReminder(
             context, ((if (toSettle) "d" else "r") + band + event).hashCode(), band, event,
-            intent.getStringExtra(EXTRA_TITLE).orEmpty(), intent.getStringExtra(EXTRA_TEXT).orEmpty(), intent.getStringExtra(EXTRA_NAVIGATE),
-            intent.getStringExtra(EXTRA_LANGUAGE), toSettle,
+            title, text, intent.getStringExtra(EXTRA_NAVIGATE), intent.getStringExtra(EXTRA_LANGUAGE), toSettle,
         )
     }
+
+    private sealed interface DebtCheck {
+        data object Gone : DebtCheck
+        data class Due(val reminder: DebtReminder, val language: String?) : DebtCheck
+        data object Unknown : DebtCheck
+    }
+
+    /**
+     * Whether the debt reminder [key] is still due, from the bands on this device (ITERATION_3 §2.2): the alarm holds
+     * the texts from when it was planned, and the debt may have been paid since. [DebtCheck.Unknown] when the bands
+     * cannot be loaded.
+     */
+    private suspend fun checkDebt(context: Context, key: String?): DebtCheck {
+        if (key == null) return DebtCheck.Unknown
+        return try {
+            // On the main thread like the background sync: band data is only ever touched there.
+            withTimeoutOrNull(LOAD_TIMEOUT_MS) {
+                withContext(Dispatchers.Main) {
+                    val graph = AndroidAppGraph.get(context)
+                    // Signed out: nothing of the previous user may remind anyone.
+                    val userId = graph.loadForBackground() ?: return@withContext DebtCheck.Gone
+                    val settings = graph.settingsForBackground()
+                    if (!settings.debtReminders) return@withContext DebtCheck.Gone
+                    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    NotificationRules.dueDebtReminder(graph.bands.allBands(), userId, key, settings.reminderTime, now)
+                        ?.let { DebtCheck.Due(it, settings.language) } ?: DebtCheck.Gone
+                }
+            } ?: DebtCheck.Unknown
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            DebtCheck.Unknown
+        }
+    }
+
+    /** A broadcast receiver has about ten seconds; loading the bands must leave time for the notification. */
+    private const val LOAD_TIMEOUT_MS = 5_000L
 }
 
 /** A gig reminder is due. */
 class ReminderReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) = ReminderScheduler.show(context.applicationContext, intent)
+    override fun onReceive(context: Context, intent: Intent) {
+        // A debt reminder loads the bands first, so the receiver is kept alive until it is shown.
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                ReminderScheduler.show(context.applicationContext, intent)
+            } finally {
+                pending.finish()
+            }
+        }
+    }
 }
 
 /** Alarms do not survive a restart or an app update, and a new time zone moves them: schedule the reminders again. */

@@ -134,9 +134,12 @@ data class PromoteGuest(override val eventId: Id, val guestId: Id, val memberId:
 @Serializable @SerialName("SetWeight")
 data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int) : Operation
 
-/** A fixed amount the participant takes off the top instead of a share by weight; null goes back to the weight (ITERATION_3 §2.4). */
+/**
+ * A fixed amount the participant takes off the top instead of a share by weight; null goes back to the weight (ITERATION_3 §2.4).
+ * [weight], when set, is applied in the same step, so going back to a different percentage is one change to undo.
+ */
 @Serializable @SerialName("SetFixedShare")
-data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: Money?) : Operation
+data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: Money?, val weight: Int? = null) : Operation
 
 @Serializable @SerialName("RemoveParticipant")
 data class RemoveParticipant(override val eventId: Id, val partyId: Id) : Operation

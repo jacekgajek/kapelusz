@@ -207,8 +207,10 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
         if (fixed) {
             if (parsedAmount != null && parsedAmount != participant.fixedShare) add(SetFixedShare(event.id, participant.partyId, parsedAmount))
         } else {
-            if (participant.fixedShare != null) add(SetFixedShare(event.id, participant.partyId, null))
-            if (weight != participant.weight) add(SetWeight(event.id, participant.partyId, weight))
+            val newWeight = weight.takeIf { it != participant.weight }
+            // Back to a percentage with a new weight in one operation, so one undo reverts the whole dialog.
+            if (participant.fixedShare != null) add(SetFixedShare(event.id, participant.partyId, null, newWeight))
+            else if (newWeight != null) add(SetWeight(event.id, participant.partyId, newWeight))
         }
     }
     AlertDialog(
