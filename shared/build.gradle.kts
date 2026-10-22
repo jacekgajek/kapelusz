@@ -10,7 +10,7 @@ kotlin {
     jvm()
 
     android {
-        namespace = "com.jacekgajek.splitart.shared"
+        namespace = "com.jacekgajek.kapelusz.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
     }

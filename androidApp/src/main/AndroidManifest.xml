@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Sync with the Split Art API. -->
+    <!-- Sync with the Kapelusz API. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Automatic updates without the Play Store (ITERATION_2 §1). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -14,7 +14,7 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="Split Art"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
@@ -31,22 +31,22 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-            <!-- Join links (https://splitart.jacekgajek.com/join/CODE) open the app; verified via assetlinks.json. -->
+            <!-- Join links (https://kapelusz.jacekgajek.com/join/CODE) open the app; verified via assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="splitart.jacekgajek.com" android:pathPrefix="/join/" />
+                <data android:scheme="https" android:host="kapelusz.jacekgajek.com" android:pathPrefix="/join/" />
             </intent-filter>
         </activity>
         <receiver
-            android:name="com.jacekgajek.splitart.app.updates.InstallResultReceiver"
+            android:name="com.jacekgajek.kapelusz.app.updates.InstallResultReceiver"
             android:exported="false" />
         <receiver
-            android:name="com.jacekgajek.splitart.app.notify.ReminderReceiver"
+            android:name="com.jacekgajek.kapelusz.app.notify.ReminderReceiver"
             android:exported="false" />
         <receiver
-            android:name="com.jacekgajek.splitart.app.notify.RescheduleReceiver"
+            android:name="com.jacekgajek.kapelusz.app.notify.RescheduleReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

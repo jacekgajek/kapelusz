@@ -192,7 +192,7 @@ A sync indicator next to the cog shows offline / syncing / errors; when the serv
   - Created on an *unlinked* member, with a chosen role (default Member).
   - Produces a **6-character code** from the alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`. It is valid for **72 h** and single use.
   - A new code for the same member revokes the old one. Admins see active codes and can revoke them.
-  - The share sheet sends: "Join <Band> in Split Art: code ABC123 — https://splitart.jacekgajek.com/join/ABC123". **Copy link** next to Share copies just the link.
+  - The share sheet sends: "Join <Band> in Split Art: code ABC123 — https://kapelusz.jacekgajek.com/join/ABC123". **Copy link** next to Share copies just the link.
 - **Join link** behaviour:
   - Android with the app installed: an App Link opens the app.
   - Otherwise: the web app opens, signs in with Google, and joins in the browser. Its banner suggests the Android app (§4.1).
@@ -239,7 +239,7 @@ A sync indicator next to the cog shows offline / syncing / errors; when the serv
        └─────────────────────────────► S3 jacekgajek-art-split-data ◄─────────────────┘
 ```
 
-### 5.1 Gradle modules (`com.jacekgajek.splitart`)
+### 5.1 Gradle modules (`com.jacekgajek.kapelusz`)
 ```
 shared/      KMP (android, wasmJs, jvm). commonMain:
                model/   Band, Member, Guest, Event, Participant, Holding, Cost, Attachment,
@@ -328,7 +328,7 @@ server/session-key.json                   signing key of session tokens, created
 
 ### 6.1 Terraform (`my-aws/terraform/art_split.tf`, already written, **applied manually by Jacek**)
 - `jacekgajek-art-split-data`: private, versioned (noncurrent versions expire after 30 d), CORS for presigned GET/PUT from the web origin and `http://localhost:8080`.
-- `jacekgajek-art-split-web` + CloudFront (OAC, SPA fallback to `index.html`) + ACM (us-east-1) + Route53 A/AAAA for `splitart.jacekgajek.com`.
+- `jacekgajek-art-split-web` + CloudFront (OAC, SPA fallback to `index.html`) + ACM (us-east-1) + Route53 A/AAAA for `kapelusz.jacekgajek.com`.
 - Lambda `art-split-api`:
   - Created with a placeholder package. `ignore_changes` covers the code, so CI owns the code.
   - Alias `live`, also ignored, so CI moves it.
@@ -343,15 +343,15 @@ server/session-key.json                   signing key of session tokens, created
 - **`deploy.yml`** (runs after CI succeeds on a push to `main`, and deploys exactly the commit CI tested):
   1. AWS credentials through OIDC (`role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}`).
   2. **Fingerprints** of the release signing certificate (from the keystore secret) plus the optional debug one, for Android App Links. On failure it prints keytool's error, the keystore's aliases and the decoded keystore size.
-  3. `scripts/deploy.sh`, with the keystore and `SPLITART_VERSION_CODE` = the Deploy run number:
+  3. `scripts/deploy.sh`, with the keystore and `KAPELUSZ_VERSION_CODE` = the Deploy run number:
      - builds `:server:shadowJar`, `:composeApp:wasmJsBrowserDistribution` (single `wasm-opt -O2` pass) and `:androidApp:assembleRelease` (R8, signed);
      - **API:** `update-function-code` → `wait function-updated` → `publish-version` (SnapStart snapshot) → `update-alias live`. Rollback = move the alias back;
      - **Web:** generates `/.well-known/assetlinks.json`, uploads new `*.wasm` (content-hashed names, immutable one-year cache) first, then everything else with `Cache-Control: no-cache`, then deletes old wasm files, so a page loaded mid-deploy never points at a missing file. `download/` is never deleted by the sync;
-     - **APK:** uploads `/download/split-art.apk`, then `/download/version.json` (`versionCode`, `versionName`);
+     - **APK:** uploads `/download/kapelusz.apk`, then `/download/version.json` (`versionCode`, `versionName`);
      - invalidates CloudFront `/*`.
   4. **GitHub Release** `build-N` with the APK attached, as a record (the repository is private, so bandmates download from the website).
-- **`scripts/deploy.sh`** runs the same steps locally with an AWS profile. Without `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `SPLITART_VERSION_CODE` it skips the APK and says so. A local version code must not exceed CI's next run number, or phones would not accept CI's later builds as updates.
-- **Versions:** the version code is the deploy run number; the version name is `splitart.versionName` in `gradle.properties`, bumped by hand.
+- **`scripts/deploy.sh`** runs the same steps locally with an AWS profile. Without `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `KAPELUSZ_VERSION_CODE` it skips the APK and says so. A local version code must not exceed CI's next run number, or phones would not accept CI's later builds as updates.
+- **Versions:** the version code is the deploy run number; the version name is `kapelusz.versionName` in `gradle.properties`, bumped by hand.
 - **Android updates:** on each fresh start, release builds read `/download/version.json`. If the published build is newer, the app shows "A new version of Split Art is available · Update", which downloads the APK in the browser; the user installs it. Dismissing hides that version only. It is not silent: that would need the Play Store.
 
 ### 6.3 Secrets and variables to configure (Jacek)
@@ -364,8 +364,8 @@ Set them in Repo → Settings → Secrets and variables → Actions, or with `gh
 | `API_URL` | Variable | `terraform output art_split_api_url` |
 | `WEB_BUCKET` | Variable | `terraform output art_split_web_bucket` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Variable | `terraform output art_split_cloudfront_distribution_id` |
-| `GOOGLE_WEB_CLIENT_ID` | Variable | Google Cloud Console → APIs & Services → Credentials → OAuth client "Web application". JS origins: `https://splitart.jacekgajek.com`, `http://localhost:8080` |
-| `ANDROID_KEYSTORE_BASE64` | Secret | `keytool -genkeypair -v -keystore splitart.jks -alias artsplit -keyalg RSA -keysize 4096 -validity 10000`, then set it straight from the file: `gh secret set ANDROID_KEYSTORE_BASE64 < <(base64 -w0 splitart.jks)` (a pasted value can get truncated; keytool then reports `EOFException`). **Back up the .jks** (it is git-ignored in the repo folder). |
+| `GOOGLE_WEB_CLIENT_ID` | Variable | Google Cloud Console → APIs & Services → Credentials → OAuth client "Web application". JS origins: `https://kapelusz.jacekgajek.com`, `http://localhost:8080` |
+| `ANDROID_KEYSTORE_BASE64` | Secret | `keytool -genkeypair -v -keystore kapelusz.jks -alias artsplit -keyalg RSA -keysize 4096 -validity 10000`, then set it straight from the file: `gh secret set ANDROID_KEYSTORE_BASE64 < <(base64 -w0 kapelusz.jks)` (a pasted value can get truncated; keytool then reports `EOFException`). **Back up the .jks** (it is git-ignored in the repo folder). |
 | `ANDROID_KEYSTORE_PASSWORD` | Secret | from keytool |
 | `ANDROID_KEY_ALIAS` | Variable | `artsplit` |
 | `ANDROID_KEY_PASSWORD` | Secret | from keytool; optional when it equals the keystore password |
@@ -379,12 +379,12 @@ Set them in Repo → Settings → Secrets and variables → Actions, or with `gh
    - Request only the default scopes (`openid`, `email`, `profile`). These are non-sensitive, so no Google verification is needed.
    - **Audience → Publish app**, so any Google account can sign in. Otherwise every bandmate must be added as a test user.
 4. **Clients → Create client → Web application:**
-   - Authorized JavaScript origins: `https://splitart.jacekgajek.com` and `http://localhost:8080`.
+   - Authorized JavaScript origins: `https://kapelusz.jacekgajek.com` and `http://localhost:8080`.
    - No redirect URIs.
    - Copy the client ID: it goes into the `GOOGLE_WEB_CLIENT_ID` variable and into `art_split_google_client_ids`.
 5. **Clients → Create client → Android** (do this twice):
-   - Package `com.jacekgajek.splitart`.
-   - First client: the SHA-1 from `keytool -list -v -keystore splitart.jks` (release builds).
+   - Package `com.jacekgajek.kapelusz`.
+   - First client: the SHA-1 from `keytool -list -v -keystore kapelusz.jks` (release builds).
    - Second client: the SHA-1 from `keytool -list -v -keystore ~/.android/debug.keystore -storepass android` (local debug builds).
    - These clients only register the app's identity. Their IDs are not used in code.
 6. In `my-aws/terraform/art_split.tf`, set `art_split_google_client_ids = ["<web client id>"]` and re-apply.
@@ -443,7 +443,7 @@ Workflow:
 ### M5 — Extras
 - [x] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
 - [x] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
-- [x] M5.3 Signed release APK published on the website (`/download/split-art.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
+- [x] M5.3 Signed release APK published on the website (`/download/kapelusz.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
 - [x] M5.4 Polish: empty states, error states, accessibility pass
 - [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 - [x] M5.6 "Copy link" button next to Share on an invite

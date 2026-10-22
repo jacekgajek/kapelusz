@@ -1,6 +1,6 @@
 # Split Art — Iteration 2 (app 1.0)
 
-The second planning iteration. It ships as **app version 1.0.0** (`splitart.versionName`), the first release called
+The second planning iteration. It ships as **app version 1.0.0** (`kapelusz.versionName`), the first release called
 stable. It builds on iteration 1 as described in `ITERATION_1.md`; section references like "V1 §4.5" point there.
 
 Constraints for this version:
@@ -184,7 +184,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M1.2 Install through `PackageInstaller`: silent where allowed, otherwise an "Install" notification; never while the app is in the foreground
 - [x] V2-M1.3 "Install unknown apps" explanation and permission flow
 - [x] V2-M1.4 Settings: Automatic updates switch, current version, Check now
-- [x] V2-M1.5 Version label in a corner of the sign-in screen and Settings (and `splitArtVersion` on the web), to check what a deploy put live
+- [x] V2-M1.5 Version label in a corner of the sign-in screen and Settings (and `kapeluszVersion` on the web), to check what a deploy put live
 
 ### V2-M2 — Foundations and quick wins
 - [x] V2-M2.1 App version on every request, server minimum version, `426 update_required` and the "too old" screen
@@ -232,18 +232,16 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M9.2 Google photos of members with an account (§7.4)
 
 ### V2-M10 — Release 1.0
-- [x] V2-M10.0 Rename to **Split Art** (reads more easily than Art Split), decided 2026-10-22. No backward compatibility: nobody has the app installed yet.
-  - **Everything visible and in code:** the app's name, texts in both languages, notifications, the website title, the calendar's name and its event ids, the downloaded file (`split-art.apk`), the Kotlin packages and identifiers (`com.jacekgajek.splitart`, `SplitArt…`), the Gradle project, README and documentation.
-  - **Android app id `com.jacekgajek.splitart`** (was `com.jacekgajek.artsplit`): free now, impossible later. Google sign-in on Android needs a new Android OAuth client for it (package + signing key SHA-1).
-  - **Device storage** (the web app's IndexedDB, local storage keys, the Android app's files and settings) is named `split-art`; nothing to migrate.
-  - **New web address `https://splitart.jacekgajek.com`; the old one is switched off** (no redirect).
+- [x] V2-M10.0 Renamed to **Kapelusz** (Polish: "hat", and it starts like *kapela*, "band") / **Pass the Hat** in English, decided 2026-10-22 (after a short-lived "Split Art"). No backward compatibility: nobody has the app installed yet.
+  - **The name in each language:** the name under the icon follows the phone's language (Kapelusz in Polish, Pass the Hat otherwise), like Calendar / Kalendarz; the web page's title follows the browser's language the same way; the app's texts use the name of the app's language. The calendar feed (one for everyone) is called Kapelusz.
+  - **One name where only one is possible:** the web address `https://kapelusz.jacekgajek.com` (the old one is switched off, no redirect), the Android app id `com.jacekgajek.kapelusz`, the downloaded file `kapelusz.apk`, the Kotlin packages and identifiers (`com.jacekgajek.kapelusz`, `Kapelusz…`), device storage (`kapelusz`), the Gradle project, the GitHub repository `kapelusz`.
+  - Google sign-in on Android needs a new Android OAuth client (package `com.jacekgajek.kapelusz` + signing key SHA-1), and the web client the new address among its allowed origins.
   - **Kept, because they hold the bands' data or are the infrastructure:** the S3 buckets `jacekgajek-art-split-data` and `-web`, and the Lambda `art-split-api`. Calendar subscription links are on the API's own AWS address, so they do not change.
-  - **Infrastructure:** my-aws `terraform/art_split.tf` (the domain and the Lambda handler class) prepared with a read-only plan; the user applies it, adds the new address to the Google web client's allowed origins, and creates the Android OAuth client.
-  - **GitHub repository** renamed to `split-art`.
+  - **Infrastructure:** my-aws `terraform/art_split.tf` (the domain and the Lambda handler class) prepared with a read-only plan; the user applies it and updates Google.
   - Order: merge and deploy 1.0.0 → the user applies Terraform and updates Google → smoke test at the new address → repository rename → GitHub Release.
 - [x] V2-M10.0a App icon: a top hat with a banknote on honey gold (#F5CB5C), as an Android adaptive icon (with a one-colour layer for themed icons), the notification icon, and the web icons; made from the user's mockup, sources in `design/icon/`
 - [x] V2-M10.1 Release checklist (§10) passed on real phones (2026-10-22, by the user)
-- [ ] V2-M10.2 `splitart.versionName=1.0.0`, deploy, GitHub Release
+- [ ] V2-M10.2 `kapelusz.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
 1. CI deploy green, including the APK step (keystore secret set from the file).
@@ -285,3 +283,4 @@ Monitoring stays as in iteration 1: server logs in CloudWatch, no crash-reportin
 | 2026-10-22 | `VERSION_n.md` renamed to `ITERATION_n.md`: they are planning iterations, not app versions (iteration 2 ships as app 1.0.0). Older rows keep the names they were written with; milestone ids (V1-…, V2-M…) stay. |
 | 2026-10-22 | Correction to the photo plan: sessions renew with the app's own token, not with Google, so they cannot refresh photos. Photos come from interactive sign-ins and, for users already signed in, from the Google token the app kept (signature checked, expiry ignored, same user only). No Google prompts are added. |
 | 2026-10-22 | Renamed to Split Art for 1.0, without backward compatibility (no installs yet): new Android app id `com.jacekgajek.splitart`, new address `splitart.jacekgajek.com` (old one off), packages and device storage renamed; S3 buckets and the Lambda keep their names (they hold the data). App icon: a top hat with a banknote on honey gold. |
+| 2026-10-22 | Name changed again before release: Kapelusz (Polish) / Pass the Hat (English) instead of Split Art. Android shows the name in the phone's language; one code name, `kapelusz`, for the address, app id, packages and file names. |

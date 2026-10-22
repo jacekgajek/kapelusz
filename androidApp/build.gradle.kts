@@ -8,16 +8,16 @@ kotlin {
 }
 
 android {
-    namespace = "com.jacekgajek.splitart"
+    namespace = "com.jacekgajek.kapelusz"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.jacekgajek.splitart"
+        applicationId = "com.jacekgajek.kapelusz"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         // CI passes an increasing number (the deploy run number); Android only installs updates with a higher one.
-        versionCode = providers.environmentVariable("SPLITART_VERSION_CODE").orNull?.toInt() ?: 1
-        versionName = providers.gradleProperty("splitart.versionName").get()
+        versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("kapelusz.versionName").get()
     }
 
     // Release signing comes from the environment (CI secrets); without it the release build is unsigned.
