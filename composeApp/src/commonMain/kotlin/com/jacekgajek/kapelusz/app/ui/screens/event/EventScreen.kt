@@ -123,9 +123,11 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
                 shareSettlement?.let { ShareSettlementIcon(it) }
-                if (event != null && Can(state.band, state.userId).editEvent(event)) {
-                    IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
-                    EventMenu(state.band, event, actions, onDeleted = onBack)
+                if (event != null && settlement != null) {
+                    val can = Can(state.band, state.userId)
+                    if (can.editEvent(event)) IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
+                    // Also on archived events, which are otherwise read-only: restoring them is in it.
+                    if (can.archiveEvents()) EventMenu(event, settlement, actions, onDeleted = onBack)
                 }
             }
         },

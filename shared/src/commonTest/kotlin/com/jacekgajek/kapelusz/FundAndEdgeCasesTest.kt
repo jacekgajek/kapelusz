@@ -23,7 +23,9 @@ import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.DisableBandFund
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.SetFixedShare
 import com.jacekgajek.kapelusz.ops.SetFundAmount
+import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
@@ -190,18 +192,42 @@ class FundAndEdgeCasesTest {
     fun archivedEventsAreReadOnly() {
         val scenario = Scenario("Alice", "Bob").event("e", "Alice", "Bob")
             .apply(AddHolding("e", "h", "bob", pln("300"), DOOR))
+            .apply(SettleSuggestions("e"))
             .apply(SetEventArchived("e", true))
         assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddHolding("e", "h2", "bob", pln("1"), DOOR)).reason)
         assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(SettleSuggestions("e")).reason)
         assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e")).reason)
 
-        scenario.apply(SetEventArchived("e", false)).apply(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e"))
-        assertEquals(pln("10"), scenario.band.event("e")!!.refundOf("c")!!.amount)
-        scenario.apply(SetEventArchived("e", true))
+        // Money has moved in it, so the cost's refund is set by hand.
+        scenario.apply(SetEventArchived("e", false)).apply(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e")).apply(SetRefund("e", "c", pln("10")))
+        assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("e", true)).reason, "the refund reopened it")
+        scenario.apply(SettleSuggestions("e")).apply(SetEventArchived("e", true))
         assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(DeleteCost("c")).reason, "its refund is part of the archived event")
-        scenario.apply(SetEventArchived("e", false)).apply(SettleSuggestions("e"))
-        assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
         scenario.event("d", "Alice").apply(SetEventArchived("d", true)).apply(DeleteEvent("d"))
         assertEquals(null, scenario.band.event("d"))
+    }
+
+    /** Only events with nothing left to settle can be archived: settled ones and drafts. */
+    @Test
+    fun unsettledEventsCannotBeArchived() {
+        val scenario = Scenario("Alice", "Bob").event("e", "Alice", "Bob")
+            .apply(AddHolding("e", "h", "bob", pln("300"), DOOR))
+        assertEquals(EventStatus.OPEN, scenario.settle("e").status)
+        assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("e", true)).reason)
+
+        scenario.apply(SetFixedShare("e", "alice", pln("400")))
+        assertEquals(EventStatus.LOSS, scenario.settle("e").status)
+        assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("e", true)).reason)
+
+        scenario.apply(SetFixedShare("e", "alice", null, weight = 1)).apply(SettleSuggestions("e")).apply(SetEventArchived("e", true))
+        assertEquals(true, scenario.band.event("e")!!.archived)
+
+        scenario.event("draft", "Alice").apply(SetEventArchived("draft", true))
+        assertEquals(true, scenario.band.event("draft")!!.archived, "a draft has no money in it")
+
+        // A draft with a refund in it would count the cost as covered while nobody pays it.
+        scenario.event("d2", "Bob").apply(AddCost("c2", "bob", pln("10"), DATE, incurredForEventId = "d2"))
+        assertEquals(EventStatus.DRAFT, scenario.settle("d2").status)
+        assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("d2", true)).reason)
     }
 }

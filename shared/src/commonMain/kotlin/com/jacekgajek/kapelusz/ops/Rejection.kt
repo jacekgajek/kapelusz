@@ -25,6 +25,8 @@ enum class RejectionReason {
     ARCHIVED_MEMBER,
     /** Archived events are read-only: restore it first (ITERATION_3 R10). */
     ARCHIVED_EVENT,
+    /** Only settled events and drafts can be archived. */
+    EVENT_UNSETTLED,
     OWNER_ROLE_FIXED,
     OWNERSHIP_NEEDS_ADMIN,
     MEMBER_LINKED,
