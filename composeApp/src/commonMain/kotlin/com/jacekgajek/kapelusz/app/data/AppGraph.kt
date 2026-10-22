@@ -68,6 +68,9 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
     val signIns: StateFlow<Int> = _signIns.asStateFlow()
 
+    /** The sign-ins the UI has reacted to already (it is composed again on rotation and language changes). */
+    var handledSignIns = 0
+
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
     suspend fun load() = loadLock.withLock {
         if (loaded) return@withLock

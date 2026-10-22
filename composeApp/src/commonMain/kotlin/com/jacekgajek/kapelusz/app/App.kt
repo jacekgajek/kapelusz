@@ -258,7 +258,14 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     // After signing in, start from the event list: on the web the URL would otherwise restore the last screen
     // (e.g. Settings, where the user signed out).
     val signIns by graph.signIns.collectAsState()
-    LaunchedEffect(signIns) { if (signIns > 0) navController.resetTo(EventsRoute) }
+    // Each sign-in once: this screen is composed again on a language change or (Android) rotation, which must keep
+    // where the user is.
+    LaunchedEffect(signIns) {
+        if (signIns > graph.handledSignIns) {
+            graph.handledSignIns = signIns
+            navController.resetTo(EventsRoute)
+        }
+    }
     // A tapped reminder or transfer notification (Android): open its gig, switching band if needed.
     val openEvent by graph.pendingOpenEvent.collectAsState()
     LaunchedEffect(openEvent) {
@@ -276,7 +283,13 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
     SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
     val toSettings = { navController.navigate(SettingsRoute()) }
     val toRoster = { navController.navigate(RosterRoute) }
-    val back: () -> Unit = { navController.popBackStack() }
+    // Only from a screen that is fully shown, and never past the first one: a second quick tap during the fade-out
+    // would pop the list too and leave a blank screen.
+    val back: () -> Unit = {
+        if (navController.previousBackStackEntry != null && navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == true) {
+            navController.popBackStack()
+        }
+    }
 
     // The band fund tab appears once someone holds the fund (admins choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null

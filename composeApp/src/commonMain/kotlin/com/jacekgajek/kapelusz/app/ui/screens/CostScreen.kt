@@ -113,6 +113,7 @@ fun CostScreen(
     var category by remember { mutableStateOf(existing?.category) }
     var description by remember { mutableStateOf(existing?.description.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var saved by remember { mutableStateOf(false) }
     var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (existing == null) focus.requestFocus() }
@@ -122,8 +123,10 @@ fun CostScreen(
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // Leads may add costs for anyone; others only for themselves (the permission check decides).
     val payers = band.members.filter { !it.archived && Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date)) }
-    val canSave = editable && parsed != null && paidBy != null
+    val canSave = editable && parsed != null && paidBy != null && !saved
     fun save() {
+        // Once only: the screen stays tappable while it fades out, and a second tap would add the cost again.
+        if (saved) return
         val ok = if (existing == null) {
             val id = newId()
             actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
@@ -141,7 +144,10 @@ fun CostScreen(
                 ),
             )
         }
-        if (ok) onBack()
+        if (ok) {
+            saved = true
+            onBack()
+        }
     }
     // Only events the payer takes part in (ITERATION_3 R2); the cost's own event stays listed while it is still its owner's.
     val keptEventId = existing?.eventId?.takeIf { paidBy == existing.memberId }
