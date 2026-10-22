@@ -2,6 +2,37 @@
 
 Possible improvements after 1.0. Nothing here is planned yet.
 
+## Planned features
+
+Chosen on 2026-10-22 for the next iteration; details to be settled (grilling) before building.
+
+### Share a settlement as text
+- On the event: **Share settlement**, a plain-text summary that goes to WhatsApp, Messenger or wherever the band
+  talks about money, e.g. "Club gig, 12 Sep: Jacek gets 250 zł; Bob pays Jacek 100 zł; Carol pays the band fund 50 zł".
+- Uses the system share sheet (Android) or the clipboard / Web Share (web), in the app's language.
+- To decide: which lines (only who pays whom, or also income, costs and the fund), and whether settled transfers are
+  marked as done.
+
+### Reminder about open debts
+- A gentle notification on the phone: "You owe Bob 120 zł from Club gig (2 weeks ago)", built on the existing reminder
+  scheduling (local, no push service).
+- To decide: when it fires (days after the gig, repeats), whether it also reminds the one who is owed, a switch in
+  Settings → Notifications, and the band fund's holder.
+
+### Web app installable on iPhones (PWA)
+- A web app manifest (name per language, the hat icon, theme colour) and the iOS home-screen tags, so "Add to Home
+  Screen" gives an app icon that opens in its own window, for bandmates with iPhones (there is no iOS app).
+- To decide: offline start (a service worker caching the app) or online only, and whether the website suggests
+  installing it on iPhones like it suggests the APK on Android.
+
+## Hardening and code quality (from the full review of 2026-10-22)
+
+The full review (six parallel reviews: domain logic, server and security, Android, UI, sync, code quality) is
+summarised with priorities in the session; P1 and P2 are proposed as a hardening milestone. Larger refactorings for
+later: split the server's `Api.kt` into handlers with one ETag-retry helper; one error and cancellation helper on the
+client; split `SettingsScreen.kt` and `App.kt`; a shared lenient `HistoryEntry` decoder; CI building the production
+web app, pinned actions and a post-deploy smoke test.
+
 ## History performance
 
 Measured in CloudWatch on 2026-10-22 (Lambda: 1024 MB, arm64, Java 21, SnapStart):
