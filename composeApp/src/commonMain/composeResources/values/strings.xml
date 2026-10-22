@@ -464,4 +464,13 @@
     <string name="redo_confirm">Redo “%1$s”?</string>
     <string name="h_redo">Redid: %1$s</string>
     <string name="history_undone">undone</string>
+    <string name="diag_reminders">Gig reminders on this phone</string>
+    <string name="diag_notifications">Notifications allowed</string>
+    <string name="diag_battery">Not restricted by battery optimisation</string>
+    <string name="diag_open_settings">Open app settings</string>
+    <string name="diag_none_scheduled">No reminders scheduled.</string>
+    <string name="diag_test">Test reminder in 1 minute</string>
+    <string name="diag_test_set">Test reminder at %1$s (Android may deliver it up to an hour later)</string>
+    <string name="diag_test_title">Art Split</string>
+    <string name="diag_test_text">Test reminder: reminders work on this phone.</string>
 </resources>

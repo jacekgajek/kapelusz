@@ -1,5 +1,22 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import com.jacekgajek.artsplit.app.ui.model.formatDate
+import com.jacekgajek.artsplit.app.ui.components.language
+import com.jacekgajek.artsplit.app.data.nowMillis
+import com.jacekgajek.artsplit.app.generated.diag_test_text
+import com.jacekgajek.artsplit.app.generated.diag_test_title
+import com.jacekgajek.artsplit.app.generated.diag_test_set
+import com.jacekgajek.artsplit.app.generated.diag_test
+import com.jacekgajek.artsplit.app.generated.diag_none_scheduled
+import com.jacekgajek.artsplit.app.generated.diag_open_settings
+import com.jacekgajek.artsplit.app.generated.diag_battery
+import com.jacekgajek.artsplit.app.generated.diag_notifications
+import com.jacekgajek.artsplit.app.generated.diag_reminders
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
+import com.jacekgajek.artsplit.app.platform.ReminderDiagnostics
+import com.jacekgajek.artsplit.app.platform.rememberReminderDiagnostics
 import androidx.compose.material3.HorizontalDivider
 import com.jacekgajek.artsplit.app.generated.agenda_template_reset
 import androidx.compose.foundation.clickable
@@ -300,6 +317,36 @@ fun SettingsScreen(
     }
 }
 
+/** Why gig reminders might not arrive on this phone, and a test reminder (Android). */
+@Composable
+private fun ReminderChecks(checks: ReminderDiagnostics) {
+    var testAt by remember { mutableStateOf<String?>(null) }
+    val testTitle = stringResource(Res.string.diag_test_title)
+    val testText = stringResource(Res.string.diag_test_text)
+    val lang = language
+    fun at(millis: Long): String {
+        val time = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+        return "${formatDate(time.date, lang)} ${formatTime(time.time)}"
+    }
+    Text(stringResource(Res.string.diag_reminders), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+    @Composable
+    fun check(ok: Boolean, label: StringResource) = Text(
+        (if (ok) "✓ " else "✗ ") + stringResource(label),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (ok) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+    )
+    check(checks.notificationsAllowed, Res.string.diag_notifications)
+    check(checks.batteryUnrestricted, Res.string.diag_battery)
+    if (!checks.batteryUnrestricted) TextButton(onClick = checks.openAppSettings) { Text(stringResource(Res.string.diag_open_settings)) }
+    if (checks.scheduled.isEmpty()) Text(stringResource(Res.string.diag_none_scheduled), style = MaterialTheme.typography.bodySmall)
+    checks.scheduled.take(5).forEach { (millis, name) -> Text("${at(millis)} · $name", style = MaterialTheme.typography.bodySmall) }
+    OutlinedButton(onClick = {
+        checks.test(testTitle, testText)
+        testAt = at(nowMillis() + 60_000)
+    }) { Text(stringResource(Res.string.diag_test)) }
+    testAt?.let { Text(stringResource(Res.string.diag_test_set, it), style = MaterialTheme.typography.bodySmall) }
+}
+
 /** Tools for admins: copy the band's raw data, e.g. to look into a problem. */
 @Composable
 private fun SecretMenuDialog(rawData: suspend () -> String, onDismiss: () -> Unit) {
@@ -326,6 +373,7 @@ private fun SecretMenuDialog(rawData: suspend () -> String, onDismiss: () -> Uni
                     Text(stringResource(Res.string.copy_raw_data), Modifier.padding(start = 8.dp))
                 }
                 result?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+                rememberReminderDiagnostics()?.let { ReminderChecks(it) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },

@@ -135,6 +135,7 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 
 ### 7.1 Secret menu (admins)
 - In Settings, a **tap on the version number** opens the secret menu for an **Admin or Owner** of the open band; for others it does nothing.
+- **Gig reminders on this phone** (Android): whether notifications are allowed and the app is not restricted by battery optimisation (with a button to the app's Android settings), the next scheduled reminders, and **Test reminder in 1 minute** through the same alarm path (Android may deliver it up to an hour later).
 - **Copy raw JSON data** copies the band's file exactly as stored in the bucket (`bands/<id>/state.json`, byte for byte), so putting the copy back changes nothing. A server endpoint for admins returns the stored file unchanged; offline it shows an error.
 
 ### 7.2 Undo from history
@@ -204,6 +205,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M7.3 Remove bulk archive (§3.3)
 - [x] V2-M7.4 Clearer message when a participant with collected money or transfers cannot be removed (§7)
 - [x] V2-M7.5 Delete band at the bottom of Settings; agenda template Reset to defaults and roomier fields; + Add cost in the event's Cost refunds (§7)
+- [x] V2-M7.6 Reminders scheduled again right away when settings or gigs change (not only when the app leaves the screen); reminder checks in the secret menu
 
 ### V2-M8 — Release 1.0
 - [ ] V2-M8.1 Release checklist (§10) passed on real phones
@@ -243,3 +245,4 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | Event locations without an API key or billing: Google Maps does the picking (Select on map, Paste from Maps, or share from Maps to Art Split on Android), the event stores the Maps link, and Navigate opens it. Times can be set when creating an event, and the unset ones are shown as chips directly. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |
 | 2026-10-22 | V2-M7: bulk archive removed. Undo from history: the newest line of the event or band history, refused when what it touched changed since; permissions as for the reverse change; confirmed in a dialog; undo of an undo redoes. Membership and ownership changes and band deletion are not undoable. The secret menu (one tap on the version, admins) copies the band file exactly as stored in the bucket. The Continue card rule stays: future events with money on them do not count. Undo steps back through changes (the arrow skips undone changes and undo lines) with redo for the newest undo until a new change is made; the first idea (only the newest line, undoing an undo redoes) could never go back more than one step. |
+| 2026-10-22 | Reminders: a changed reminder time or gig was only scheduled when the app left the screen (through a deferrable background job); now it is scheduled at once. Alarms stay inexact (no exact-alarm permission), so from Android 12 a reminder may come up to an hour late. The secret menu shows reminder checks and sends a test reminder. |

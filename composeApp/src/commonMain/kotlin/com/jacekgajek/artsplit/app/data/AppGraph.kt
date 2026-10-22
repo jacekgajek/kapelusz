@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.data
 
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.FlowPreview
 import com.jacekgajek.artsplit.app.AppConfig
 import com.jacekgajek.artsplit.app.auth.GoogleAuth
 import com.jacekgajek.artsplit.app.auth.Session
@@ -109,6 +112,20 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
             }
         }
         sessions.session.value?.userId
+    }
+
+    /**
+     * Calls [onChange] (debounced) whenever the settings, the bands or the signed-in user change, e.g. to schedule gig
+     * reminders again right away (VERSION_2 §5.2) instead of only when the app leaves the screen.
+     */
+    @OptIn(FlowPreview::class)
+    fun watchReminderInputs(onChange: suspend (userId: String) -> Unit) {
+        scope.launch {
+            // Only with the bands loaded: before that there is nothing to remind of, and every alarm would be dropped.
+            combine(settings.settings, bands.state, sessions.session) { _, state, session -> session?.userId?.takeIf { state is BandState.Ready } }
+                .debounce(500)
+                .collect { userId -> if (userId != null) onChange(userId) }
+        }
     }
 
     /** Settings for a background job, which may run without the app having started (loads them if needed). */

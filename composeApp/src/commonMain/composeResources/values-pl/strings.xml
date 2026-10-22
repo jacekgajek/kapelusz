@@ -470,4 +470,13 @@
     <string name="redo_confirm">Ponowić „%1$s”?</string>
     <string name="h_redo">Ponowiono: %1$s</string>
     <string name="history_undone">cofnięte</string>
+    <string name="diag_reminders">Przypomnienia o koncertach na tym telefonie</string>
+    <string name="diag_notifications">Powiadomienia dozwolone</string>
+    <string name="diag_battery">Bez ograniczeń optymalizacji baterii</string>
+    <string name="diag_open_settings">Otwórz ustawienia aplikacji</string>
+    <string name="diag_none_scheduled">Brak zaplanowanych przypomnień.</string>
+    <string name="diag_test">Testowe przypomnienie za minutę</string>
+    <string name="diag_test_set">Testowe przypomnienie o %1$s (Android może je dostarczyć do godziny później)</string>
+    <string name="diag_test_title">Art Split</string>
+    <string name="diag_test_text">Testowe przypomnienie: przypomnienia działają na tym telefonie.</string>
 </resources>

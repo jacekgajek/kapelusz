@@ -72,7 +72,7 @@ object Notifier {
         null -> time.label.orEmpty()
     }
 
-    fun showReminder(context: Context, id: Int, bandId: String, eventId: String, title: String, text: String, navigateUrl: String?) {
+    fun showReminder(context: Context, id: Int, bandId: String?, eventId: String?, title: String, text: String, navigateUrl: String?) {
         if (!canNotify(context)) return
         val pl = polish(null)
         channels(context, pl)
@@ -130,11 +130,11 @@ object Notifier {
             .build())
     }
 
-    private fun openEvent(context: Context, requestCode: Int, bandId: String, eventId: String): PendingIntent {
+    /** Opens the app at the event; without one (a test reminder), just the app. */
+    private fun openEvent(context: Context, requestCode: Int, bandId: String?, eventId: String?): PendingIntent {
         val intent = (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent())
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            .putExtra(EXTRA_BAND, bandId)
-            .putExtra(EXTRA_EVENT, eventId)
+        if (bandId != null && eventId != null) intent.putExtra(EXTRA_BAND, bandId).putExtra(EXTRA_EVENT, eventId)
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 

@@ -70,15 +70,23 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
         /** One at a time: the periodic and the local runs both reschedule alarms and update what was seen. */
         private val afterSyncLock = Mutex()
 
-        internal suspend fun afterSync(context: Context, graph: AppGraph, userId: String, notifyTransfers: Boolean) = afterSyncLock.withLock {
+        /** Gig reminders from the data on the device; also right away when settings or bands change in the app. */
+        internal suspend fun rescheduleReminders(context: Context, graph: AppGraph, userId: String) = afterSyncLock.withLock { reminders(context, graph, userId) }
+
+        private suspend fun reminders(context: Context, graph: AppGraph, userId: String) {
             val settings = graph.settingsForBackground()
-            val bands = graph.bands.allBands()
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             ReminderScheduler.reschedule(
                 context,
-                if (settings.remindersEnabled) NotificationRules.reminders(bands, userId, settings.reminderDays, settings.reminderTime, now) else emptyList(),
+                if (settings.remindersEnabled) NotificationRules.reminders(graph.bands.allBands(), userId, settings.reminderDays, settings.reminderTime, now) else emptyList(),
                 settings.language,
             )
+        }
+
+        internal suspend fun afterSync(context: Context, graph: AppGraph, userId: String, notifyTransfers: Boolean) = afterSyncLock.withLock {
+            reminders(context, graph, userId)
+            val settings = graph.settingsForBackground()
+            val bands = graph.bands.allBands()
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val check = NotificationRules.checkTransfers(
                 bands,
