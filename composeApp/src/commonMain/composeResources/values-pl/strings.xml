@@ -177,8 +177,8 @@
     <string name="reject_user_already_member">To konto już należy do zespołu.</string>
     <string name="reject_member_has_history">Ten członek ma koszty lub wydarzenia. Zamiast tego go zarchiwizuj.</string>
     <string name="reject_event_has_transfers">To wydarzenie ma zapisane przekazania. Zamiast tego je zarchiwizuj.</string>
-    <string name="reject_participant_has_money">Ta osoba ma pieniądze z tego wydarzenia. Najpierw je usuń lub przekaż.</string>
-    <string name="reject_participant_has_transfers">Ta osoba ma zapisane przekazania w tym wydarzeniu.</string>
+    <string name="reject_participant_has_money">Ta osoba ma zebrane pieniądze w tym wydarzeniu. Aby ją usunąć, najpierw usuń wszystkie jej zebrane pieniądze i przekazania.</string>
+    <string name="reject_participant_has_transfers">Ta osoba ma przekazania w tym wydarzeniu. Aby ją usunąć, najpierw usuń wszystkie jej przekazania i zebrane pieniądze.</string>
     <string name="reject_participant_has_refunds">Ta osoba ma tu zwroty kosztów. Najpierw je odłóż.</string>
     <string name="reject_not_refundable_here">Koszty można zwrócić tylko w wydarzeniach, w których uczestniczy ich właściciel.</string>
     <string name="reject_refund_too_large">Zwrot jest większy niż pozostała kwota.</string>
@@ -397,27 +397,7 @@
     <string name="update_required_button">Aktualizuj</string>
     <string name="history_newer_version">Zmiana wprowadzona w nowszej wersji Art Split</string>
     <string name="upcoming_event">Najbliższe: %1$s · %2$s</string>
-    <string name="select_events">Zaznacz wydarzenia</string>
-    <string name="select_all">Zaznacz wszystkie</string>
     <string name="undo">Cofnij</string>
-    <plurals name="selected_count">
-        <item quantity="one">Zaznaczono %1$d</item>
-        <item quantity="few">Zaznaczono %1$d</item>
-        <item quantity="many">Zaznaczono %1$d</item>
-        <item quantity="other">Zaznaczono %1$d</item>
-    </plurals>
-    <plurals name="events_archived">
-        <item quantity="one">Zarchiwizowano %1$d wydarzenie</item>
-        <item quantity="few">Zarchiwizowano %1$d wydarzenia</item>
-        <item quantity="many">Zarchiwizowano %1$d wydarzeń</item>
-        <item quantity="other">Zarchiwizowano %1$d wydarzenia</item>
-    </plurals>
-    <plurals name="events_restored">
-        <item quantity="one">Przywrócono %1$d wydarzenie</item>
-        <item quantity="few">Przywrócono %1$d wydarzenia</item>
-        <item quantity="many">Przywrócono %1$d wydarzeń</item>
-        <item quantity="other">Przywrócono %1$d wydarzenia</item>
-    </plurals>
     <string name="h_set_agenda">Zmieniono harmonogram: %1$s</string>
     <string name="h_set_agenda_template">Zmieniono godziny dla nowych wydarzeń</string>
     <string name="agenda_arrival">Przyjazd</string>
@@ -477,4 +457,26 @@
     <string name="place_title">Ustaw miejsce wydarzenia…</string>
     <string name="place_nothing">Nie ma nadchodzącego wydarzenia, które możesz zmienić, a w tym zespole nie możesz tworzyć wydarzeń.</string>
     <string name="place_new_event">+ Nowe wydarzenie w tym miejscu</string>
+    <string name="secret_menu">Tajne menu</string>
+    <string name="copy_raw_data">Kopiuj surowe dane JSON</string>
+    <string name="raw_data_copied">Skopiowano: dane zespołu dokładnie tak, jak są zapisane na serwerze.</string>
+    <string name="raw_data_failed">Nie udało się pobrać danych. Czy masz internet?</string>
+    <string name="reject_not_undoable">Tej zmiany nie można cofnąć.</string>
+    <string name="reject_changed_since">Zmieniono to od tamtej pory, nie można cofnąć.</string>
+    <string name="undo_confirm">Cofnąć „%1$s”?</string>
+    <string name="h_undo">Cofnięto: %1$s</string>
+    <string name="agenda_template_reset">Przywróć domyślne</string>
+    <string name="redo">Ponów</string>
+    <string name="redo_confirm">Ponowić „%1$s”?</string>
+    <string name="h_redo">Ponowiono: %1$s</string>
+    <string name="history_undone">cofnięte</string>
+    <string name="diag_reminders">Przypomnienia o koncertach na tym telefonie</string>
+    <string name="diag_notifications">Powiadomienia dozwolone</string>
+    <string name="diag_battery">Bez ograniczeń optymalizacji baterii</string>
+    <string name="diag_open_settings">Otwórz ustawienia aplikacji</string>
+    <string name="diag_none_scheduled">Brak zaplanowanych przypomnień.</string>
+    <string name="diag_test">Testowe przypomnienie za minutę</string>
+    <string name="diag_test_set">Testowe przypomnienie o %1$s (Android może je dostarczyć do godziny później)</string>
+    <string name="diag_test_title">Art Split</string>
+    <string name="diag_test_text">Testowe przypomnienie: przypomnienia działają na tym telefonie.</string>
 </resources>

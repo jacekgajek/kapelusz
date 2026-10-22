@@ -112,6 +112,21 @@ class ApiTest {
     }
 
     @Test
+    fun adminsGetTheBandFileExactlyAsStored() {
+        createBand()
+        push("band1", "alice", AddMember("m-bob", "Bob"), CreateEvent("e", "Gig, \"Łódź\"", LocalDate(2026, 9, 13)))
+        val band = ArtSplitJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        val linked = (Engine.apply(band, Actor.System, LinkUser("m-bob", "bob", Role.MEMBER), "x", 0) as ApplyResult.Applied).band
+        store.put(Api.bandKey("band1"), ArtSplitJson.encodeToString(Band.serializer(), linked))
+
+        val raw = call("GET", "/bands/band1/raw", "alice")
+        assertEquals(200, raw.status)
+        assertEquals(store.objects.getValue(Api.bandKey("band1")).content, raw.body, "byte for byte, so it can be put back")
+        assertEquals(403, call("GET", "/bands/band1/raw", "bob").status, "members do not")
+        assertEquals(404, call("GET", "/bands/band1/raw", "eve").status, "outsiders cannot tell the band exists")
+    }
+
+    @Test
     fun outsidersCannotSeeOrChangeTheBand() {
         createBand()
         assertEquals(404, call("GET", "/bands/band1/state", user = "mallory").status)

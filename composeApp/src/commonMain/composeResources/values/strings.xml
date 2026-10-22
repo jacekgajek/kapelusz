@@ -177,8 +177,8 @@
     <string name="reject_user_already_member">This account is already in the band.</string>
     <string name="reject_member_has_history">This member has costs or events. Archive them instead.</string>
     <string name="reject_event_has_transfers">This event has recorded transfers. Archive it instead.</string>
-    <string name="reject_participant_has_money">This person holds money from this event. Remove or move it first.</string>
-    <string name="reject_participant_has_transfers">This person has recorded transfers in this event.</string>
+    <string name="reject_participant_has_money">This person has collected money in this event. To remove them, first remove all their collected money and transfers here.</string>
+    <string name="reject_participant_has_transfers">This person has transfers in this event. To remove them, first remove all their transfers and collected money here.</string>
     <string name="reject_participant_has_refunds">This person has cost refunds here. Defer them first.</string>
     <string name="reject_not_refundable_here">Costs can only be refunded at events their owner takes part in.</string>
     <string name="reject_refund_too_large">The refund is larger than what is still outstanding.</string>
@@ -395,21 +395,7 @@
     <string name="update_required_button">Update</string>
     <string name="history_newer_version">A change made with a newer version of Art Split</string>
     <string name="upcoming_event">Upcoming: %1$s · %2$s</string>
-    <string name="select_events">Select events</string>
-    <string name="select_all">Select all</string>
     <string name="undo">Undo</string>
-    <plurals name="selected_count">
-        <item quantity="one">%1$d selected</item>
-        <item quantity="other">%1$d selected</item>
-    </plurals>
-    <plurals name="events_archived">
-        <item quantity="one">%1$d event archived</item>
-        <item quantity="other">%1$d events archived</item>
-    </plurals>
-    <plurals name="events_restored">
-        <item quantity="one">%1$d event restored</item>
-        <item quantity="other">%1$d events restored</item>
-    </plurals>
     <string name="h_set_agenda">Changed the agenda of %1$s</string>
     <string name="h_set_agenda_template">Changed the agenda times of new events</string>
     <string name="agenda_arrival">Arrival</string>
@@ -465,4 +451,26 @@
     <string name="place_title">Set the location of…</string>
     <string name="place_nothing">There is no upcoming event you can change, and you cannot create events in this band.</string>
     <string name="place_new_event">+ New event at this place</string>
+    <string name="secret_menu">Secret menu</string>
+    <string name="copy_raw_data">Copy raw JSON data</string>
+    <string name="raw_data_copied">Copied: the band data exactly as stored on the server.</string>
+    <string name="raw_data_failed">Could not get the data. Are you online?</string>
+    <string name="reject_not_undoable">This change cannot be undone.</string>
+    <string name="reject_changed_since">Changed since, can\'t undo.</string>
+    <string name="undo_confirm">Undo “%1$s”?</string>
+    <string name="h_undo">Undid: %1$s</string>
+    <string name="agenda_template_reset">Reset to defaults</string>
+    <string name="redo">Redo</string>
+    <string name="redo_confirm">Redo “%1$s”?</string>
+    <string name="h_redo">Redid: %1$s</string>
+    <string name="history_undone">undone</string>
+    <string name="diag_reminders">Gig reminders on this phone</string>
+    <string name="diag_notifications">Notifications allowed</string>
+    <string name="diag_battery">Not restricted by battery optimisation</string>
+    <string name="diag_open_settings">Open app settings</string>
+    <string name="diag_none_scheduled">No reminders scheduled.</string>
+    <string name="diag_test">Test reminder in 1 minute</string>
+    <string name="diag_test_set">Test reminder at %1$s (Android may deliver it up to an hour later)</string>
+    <string name="diag_test_title">Art Split</string>
+    <string name="diag_test_text">Test reminder: reminders work on this phone.</string>
 </resources>

@@ -21,6 +21,7 @@ import com.jacekgajek.artsplit.api.SessionResponse
 import com.jacekgajek.artsplit.model.ArtSplitJson
 import com.jacekgajek.artsplit.model.Id
 import com.jacekgajek.artsplit.model.Role
+import com.jacekgajek.artsplit.ops.BandChange
 import com.jacekgajek.artsplit.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -107,6 +108,9 @@ class ApiClient(
         if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
     }
 
+    /** The band's file exactly as stored on the server, for admins (VERSION_2 §7.1). */
+    suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
+
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
 
     suspend fun createInvite(bandId: Id, memberId: Id, role: Role): InviteInfo = call(
@@ -150,6 +154,11 @@ class ApiClient(
                 memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
                 at = at,
                 ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
+                // What each operation changed, for undo; one this version cannot read just cannot be undone here.
+                id = entry["id"]?.jsonPrimitive?.contentOrNull,
+                changes = (entry["changes"] as? JsonObject).orEmpty().mapNotNull { (opId, change) ->
+                    runCatching { opId to ArtSplitJson.decodeFromJsonElement(BandChange.serializer(), change) }.getOrNull()
+                }.toMap(),
             )
             HistoryItem(header, ops)
         }
@@ -188,13 +197,16 @@ class ApiClient(
             configure()
         }
 
-    private suspend fun <T> parse(response: HttpResponse, serializer: KSerializer<T>): T {
+    private suspend fun <T> parse(response: HttpResponse, serializer: KSerializer<T>): T = ArtSplitJson.decodeFromString(serializer, text(response))
+
+    /** The body of a successful response; otherwise the server's error as an [ApiException]. */
+    private suspend fun text(response: HttpResponse): String {
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
             val error = runCatching { ArtSplitJson.decodeFromString(ErrorResponse.serializer(), text) }.getOrNull()
             if (error?.error == ApiErrors.UPDATE_REQUIRED) onUpdateRequired()
             throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
         }
-        return ArtSplitJson.decodeFromString(serializer, text)
+        return text
     }
 }

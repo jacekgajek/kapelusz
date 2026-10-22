@@ -288,9 +288,10 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
             }
             composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
             composable<FundRoute> { BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) }) }
-            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back) }
+            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }) }
             composable<CostRoute> { entry ->
-                CostScreen(graph, state, entry.toRoute<CostRoute>().costId, back, onAddedForOther = {
+                val route = entry.toRoute<CostRoute>()
+                CostScreen(graph, state, route.costId, back, forEventId = route.forEventId, onAddedForOther = {
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
                 })
@@ -319,8 +320,11 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     autoUpdate = settings.autoUpdate,
                     appSettings = settings,
                     onAppSettings = { change -> graph.settings.update(change) },
+                    // The secret menu (VERSION_2 §7.1), for admins of the band.
+                    rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.ADMIN) == true },
                     calendar = { change -> if (change == null) graph.api.calendar() else graph.api.changeCalendar(change) },
                     agendaTemplate = state.band.effectiveAgendaTemplate,
+                    agendaTemplateStored = state.band.agendaTemplate != null,
                     onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
                     onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },

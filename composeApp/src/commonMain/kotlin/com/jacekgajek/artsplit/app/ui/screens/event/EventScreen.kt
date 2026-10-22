@@ -98,7 +98,7 @@ class EventContext(
 }
 
 @Composable
-fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack: () -> Unit) {
+fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack: () -> Unit, onAddCost: (eventId: String) -> Unit = {}) {
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
     val event = state.band.event(eventId)
@@ -132,7 +132,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
                 item { Problems(context) }
                 item { ParticipantsSection(context) }
                 item { CollectedSection(context) }
-                item { RefundsSection(context) }
+                item { RefundsSection(context, onAddCost = { onAddCost(eventId) }) }
                 item { SummarySection(context) }
                 item { TransfersSection(context) }
                 item { HistorySection(context, graph) }

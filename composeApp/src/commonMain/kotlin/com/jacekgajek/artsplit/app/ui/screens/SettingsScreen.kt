@@ -1,5 +1,32 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import com.jacekgajek.artsplit.app.ui.model.formatDate
+import com.jacekgajek.artsplit.app.ui.components.language
+import com.jacekgajek.artsplit.app.data.nowMillis
+import com.jacekgajek.artsplit.app.generated.diag_test_text
+import com.jacekgajek.artsplit.app.generated.diag_test_title
+import com.jacekgajek.artsplit.app.generated.diag_test_set
+import com.jacekgajek.artsplit.app.generated.diag_test
+import com.jacekgajek.artsplit.app.generated.diag_none_scheduled
+import com.jacekgajek.artsplit.app.generated.diag_open_settings
+import com.jacekgajek.artsplit.app.generated.diag_battery
+import com.jacekgajek.artsplit.app.generated.diag_notifications
+import com.jacekgajek.artsplit.app.generated.diag_reminders
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
+import com.jacekgajek.artsplit.app.platform.ReminderDiagnostics
+import com.jacekgajek.artsplit.app.platform.rememberReminderDiagnostics
+import androidx.compose.material3.HorizontalDivider
+import com.jacekgajek.artsplit.app.generated.agenda_template_reset
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.ContentCopy
+import org.jetbrains.compose.resources.StringResource
+import com.jacekgajek.artsplit.app.generated.secret_menu
+import com.jacekgajek.artsplit.app.generated.copy_raw_data
+import com.jacekgajek.artsplit.app.generated.raw_data_copied
+import com.jacekgajek.artsplit.app.generated.raw_data_failed
+import com.jacekgajek.artsplit.app.generated.close
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -168,11 +195,15 @@ fun SettingsScreen(
     onAutoUpdate: (Boolean) -> Unit,
     /** The band's agenda template; [onAgendaTemplate] is null for non-admins. */
     agendaTemplate: List<AgendaTemplateItem>,
+    /** The band stored its own template (even if it equals the defaults). */
+    agendaTemplateStored: Boolean,
     onAgendaTemplate: ((List<AgendaTemplateItem>) -> Unit)?,
     appSettings: AppSettings,
     onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
     /** The calendar subscription (needs the server): get it, or change it. */
     calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
+    /** The band's raw file from the server, for the secret menu; null for non-admins. */
+    rawData: (suspend () -> String)?,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -258,8 +289,16 @@ fun SettingsScreen(
                     )
                 }
             }
-            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, onAgendaTemplate)
+            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
+            rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
+            CalendarSection(calendar)
+            rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
+            Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+            account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
+            OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
+            // Last, set apart: it cannot be undone (VERSION_2 §7).
             if (onDeleteBand != null) {
+                HorizontalDivider(Modifier.padding(top = 24.dp))
                 var deleting by remember { mutableStateOf(false) }
                 OutlinedButton(
                     onClick = { deleting = true },
@@ -272,15 +311,75 @@ fun SettingsScreen(
                 }
                 if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
             }
-            rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
-            CalendarSection(calendar)
-            rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
-            Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
-            account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
-            OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
-            VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp))
+            var secretMenu by remember { mutableStateOf(false) }
+            // A tap on the version opens the secret menu for admins (VERSION_2 §7.1); for others it is just text.
+            VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
+            if (secretMenu && rawData != null) SecretMenuDialog(rawData, onDismiss = { secretMenu = false })
         }
     }
+}
+
+/** Why gig reminders might not arrive on this phone, and a test reminder (Android). */
+@Composable
+private fun ReminderChecks(checks: ReminderDiagnostics) {
+    var testAt by remember { mutableStateOf<String?>(null) }
+    val testTitle = stringResource(Res.string.diag_test_title)
+    val testText = stringResource(Res.string.diag_test_text)
+    val lang = language
+    fun at(millis: Long): String {
+        val time = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+        return "${formatDate(time.date, lang)} ${formatTime(time.time)}"
+    }
+    Text(stringResource(Res.string.diag_reminders), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+    @Composable
+    fun check(ok: Boolean, label: StringResource) = Text(
+        (if (ok) "✓ " else "✗ ") + stringResource(label),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (ok) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+    )
+    check(checks.notificationsAllowed, Res.string.diag_notifications)
+    check(checks.batteryUnrestricted, Res.string.diag_battery)
+    if (!checks.batteryUnrestricted) TextButton(onClick = checks.openAppSettings) { Text(stringResource(Res.string.diag_open_settings)) }
+    if (checks.scheduled.isEmpty()) Text(stringResource(Res.string.diag_none_scheduled), style = MaterialTheme.typography.bodySmall)
+    checks.scheduled.take(5).forEach { (millis, name) -> Text("${at(millis)} · $name", style = MaterialTheme.typography.bodySmall) }
+    OutlinedButton(onClick = {
+        checks.test(testTitle, testText)
+        testAt = at(nowMillis() + 60_000)
+    }) { Text(stringResource(Res.string.diag_test)) }
+    testAt?.let { Text(stringResource(Res.string.diag_test_set, it), style = MaterialTheme.typography.bodySmall) }
+}
+
+/** Tools for admins: copy the band's raw data, e.g. to look into a problem. */
+@Composable
+private fun SecretMenuDialog(rawData: suspend () -> String, onDismiss: () -> Unit) {
+    val copy = rememberCopy()
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<StringResource?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.secret_menu)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(enabled = !busy, onClick = {
+                    busy = true
+                    scope.launch {
+                        result = runCatching { rawData() }.fold(
+                            onSuccess = { if (copy(it)) Res.string.raw_data_copied else Res.string.raw_data_failed },
+                            onFailure = { Res.string.raw_data_failed },
+                        )
+                        busy = false
+                    }
+                }) {
+                    if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else Icon(Icons.Default.ContentCopy, null)
+                    Text(stringResource(Res.string.copy_raw_data), Modifier.padding(start = 8.dp))
+                }
+                result?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+                rememberReminderDiagnostics()?.let { ReminderChecks(it) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
+    )
 }
 
 /**
@@ -387,7 +486,7 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
  * following the user's language until renamed. Changes apply to events created from now on.
  */
 @Composable
-private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (List<AgendaTemplateItem>) -> Unit) {
+private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, storedOwnList: Boolean, onSave: (List<AgendaTemplateItem>) -> Unit) {
     val builtInLabels = AgendaKind.entries.associateWith { it.label() }
     // Keyed on the built-in labels too: on the web the texts load asynchronously and are empty at first.
     var drafts by remember(template, builtInLabels) {
@@ -396,12 +495,12 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (Li
     Text(stringResource(Res.string.agenda_template_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 16.dp))
     Text(stringResource(Res.string.agenda_template_hint), style = MaterialTheme.typography.bodySmall)
     drafts.forEachIndexed { index, draft ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 draft.text,
                 { value -> drafts = drafts.toMutableList().also { it[index] = draft.copy(text = value.take(AgendaTime.MAX_LABEL)) } },
                 singleLine = true,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
             )
             IconButton(onClick = { drafts = drafts.toMutableList().also { it.add(index - 1, it.removeAt(index)) } }, enabled = index > 0) {
                 Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + draft.text)
@@ -412,7 +511,12 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (Li
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (drafts.size < AgendaTime.MAX_TIMES) TextButton(onClick = { drafts = drafts + TemplateDraft(null, "") }) { Text(stringResource(Res.string.agenda_add_time)) }
         val items = drafts.map { it.toItem(builtInLabels::getValue) }
-        TextButton(enabled = drafts.all { it.text.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
+        // Back to the built-in times; saved only with Save, as "the defaults" (null), so later built-in times apply.
+        val defaults = AgendaKind.entries.map { TemplateDraft(it, builtInLabels.getValue(it)) }
+        TextButton(enabled = drafts != defaults, onClick = { drafts = defaults }) { Text(stringResource(Res.string.agenda_template_reset)) }
+        // A band that stored the defaults as its own list can still switch to "the defaults" (built-in times added later).
+        val toDefaults = storedOwnList && drafts == defaults
+        TextButton(enabled = drafts.all { it.text.isNotBlank() } && (items != template || toDefaults), onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
     }
 }
 

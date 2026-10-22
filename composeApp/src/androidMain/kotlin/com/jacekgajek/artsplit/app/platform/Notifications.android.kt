@@ -1,5 +1,9 @@
 package com.jacekgajek.artsplit.app.platform
 
+import com.jacekgajek.artsplit.app.notify.ReminderScheduler
+import com.jacekgajek.artsplit.app.notify.Notifier
+import android.net.Uri
+import android.os.PowerManager
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -57,5 +61,31 @@ actual fun rememberNotificationPermission(): NotificationPermission? {
                 runCatching { context.startActivity(intent) }
             }
         }
+    }
+}
+
+@Composable
+actual fun rememberReminderDiagnostics(): ReminderDiagnostics? {
+    val context = LocalContext.current
+    // Read again on every return, e.g. after changing something in Android's settings.
+    var refresh by remember { mutableStateOf(0) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) refresh++ }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    return remember(refresh) {
+        ReminderDiagnostics(
+            notificationsAllowed = Notifier.canNotify(context),
+            batteryUnrestricted = context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName),
+            scheduled = ReminderScheduler.scheduled(context),
+            test = { title, text -> ReminderScheduler.test(context.applicationContext, title, text) },
+            openAppSettings = {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { context.startActivity(intent) }
+            },
+        )
     }
 }

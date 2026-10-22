@@ -5,6 +5,7 @@ import com.jacekgajek.artsplit.app.auth.AndroidGoogleAuth
 import com.jacekgajek.artsplit.app.data.AppGraph
 import com.jacekgajek.artsplit.app.data.FileStore
 import com.jacekgajek.artsplit.app.platform.AndroidPlatform
+import com.jacekgajek.artsplit.app.notify.BackgroundSyncWorker
 import com.jacekgajek.artsplit.app.notify.ReminderScheduler
 import java.io.File
 
@@ -19,6 +20,8 @@ object AndroidAppGraph {
         AndroidPlatform.context = app
         return instance ?: AppGraph(FileStore(File(app.filesDir, "art-split")), AndroidGoogleAuth).also { graph ->
             graph.afterSignOut = { ReminderScheduler.reschedule(app, emptyList()) }
+            // A changed reminder time or gig applies at once, not only when the app leaves the screen.
+            graph.watchReminderInputs { userId -> BackgroundSyncWorker.rescheduleReminders(app, graph, userId) }
             instance = graph
         }
     }

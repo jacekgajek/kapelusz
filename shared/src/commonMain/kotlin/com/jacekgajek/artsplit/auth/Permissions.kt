@@ -6,6 +6,7 @@ import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.model.Member
 import com.jacekgajek.artsplit.model.Role
 import com.jacekgajek.artsplit.ops.AddAttachment
+import com.jacekgajek.artsplit.ops.Undo
 import com.jacekgajek.artsplit.ops.AddCost
 import com.jacekgajek.artsplit.ops.AddFundEntry
 import com.jacekgajek.artsplit.ops.AddGuest
@@ -79,6 +80,9 @@ object Permissions {
 
     /** Lowest role allowed to perform [op] for this actor; "own" exceptions lower it to MEMBER. */
     private fun requiredRole(band: Band, me: Member, op: Operation): Role = when (op) {
+        // Undo is allowed to whoever may make the original change (VERSION_2 §7.2), and the reverse one where that
+        // needs more: a member may record their own transfer, but only leads remove transfers.
+        is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(op.original))
         is TransferOwnership -> Role.OWNER
 
         is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,
@@ -102,6 +106,12 @@ object Permissions {
         is DeleteCost -> ownCost(band, me, op.costId)
         is AddAttachment -> ownCost(band, me, op.costId)
         is RemoveAttachment -> ownCost(band, me, op.costId)
+    }
+
+    private fun reverseRole(op: Operation): Role = when (op) {
+        is RecordTransfer, is SettleSuggestions -> Role.LEAD
+        is Undo -> reverseRole(op.original)
+        else -> Role.VIEWER
     }
 
     /** A member acts for themselves; the treasurer also acts for the band fund. */
