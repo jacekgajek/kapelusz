@@ -174,11 +174,11 @@ enforce the same) validates every input.
 resolution with malformed or missing entries, permissions of `Undo` and attachments, the reminder scheduler and the
 updater, and the web storage (wasm tests are switched off today).
 
-## 2. Features (V3-M4 to V3-M6)
+## 2. Features (V3-M4, landing together)
 
 Chosen on 2026-10-22; details to be settled (grilling) before building.
 
-### 2.1 Share a settlement as text (V3-M4)
+### 2.1 Share a settlement as text
 - **Content: the full overview.** A header (event name and date), then income, refunded costs and the band fund, each
   person's share and payout, then the transfers in two blocks: **Done** (recorded transfers) and **Still to pay** (the
   open suggestions). A fully settled event says "All settled". Example:
@@ -198,7 +198,7 @@ Chosen on 2026-10-22; details to be settled (grilling) before building.
   panel; for everyone in the band (viewers too); hidden while the event is a draft.
 - **How:** the system share sheet on Android; Web Share where the browser has it, otherwise copied to the clipboard.
 
-### 2.2 Reminder about open debts (V3-M5)
+### 2.2 Reminder about open debts
 - **Who:** only the one who still has to pay ("Still to pay" lines): "You still owe Jacek 100 zł from Club gig
   (Sat 12 Sep)". Money owed to the band fund reminds the payer; money the fund owes reminds its holder (treasurer).
 - **When:** first **two weeks after the gig**, then **once a week**, **at most 4 times**; at the time of day set for
@@ -210,7 +210,7 @@ Chosen on 2026-10-22; details to be settled (grilling) before building.
   the notification (no accidental records, partial payments possible).
 - Android only, scheduled on the phone like gig reminders (no push service); late delivery up to an hour is fine.
 
-### 2.3 Web app installable on iPhones (V3-M6)
+### 2.3 Web app installable on iPhones
 - **Installable:** a web app manifest (name per language, the hat icon, honey-gold theme colour) and the iOS
   home-screen tags, so "Add to Home Screen" gives an app icon that opens in its own window.
 - **Starts offline:** a service worker keeps the app's files on the device; changes sync once online, like on
@@ -278,12 +278,14 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [ ] V3-M3.2 Accessibility, unused resources, docs, build hygiene (R13)
 - [ ] V3-M3.3 Tests for iteration-2 paths (R14)
 
-### V3-M4 — Share a settlement as text (§2.1)
-### V3-M5 — Reminder about open debts (§2.2)
-### V3-M6 — Web app installable on iPhones (§2.3)
+### V3-M4 — New features (one release)
+- [ ] V3-M4.1 Share a settlement as text (§2.1)
+- [ ] V3-M4.2 Reminder about open debts (§2.2)
+- [ ] V3-M4.3 Web app installable on iPhones, install hints on every visit (§2.3)
 
 ## 5. Decision log
 | Date | Decision |
 |---|---|
 | 2026-10-22 | Iteration 3 starts with hardening: the full review's P1 and P2 findings become V3-M1 and V3-M2, quality work V3-M3, before the new features (share settlement as text, open-debt reminders, installable web app on iPhones). |
 | 2026-10-22 | Features settled (grilling): the shared settlement is the full overview with Done / Still to pay, for everyone, with a footer; open-debt reminders only to the payer, two weeks after the gig then weekly, at most 4, on by default, tap opens To settle; the web app installs and starts offline, with an iPhone hint, and both install hints come back on every visit to the event list until installed. |
+| 2026-10-22 | The three features form one milestone, V3-M4, so they ship together. |
