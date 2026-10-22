@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.runtime.LaunchedEffect
 import com.jacekgajek.artsplit.app.generated.settings_personal
 import com.jacekgajek.artsplit.app.generated.settings_band
 import com.jacekgajek.artsplit.app.generated.band_fund
@@ -213,6 +216,8 @@ fun SettingsScreen(
     bandName: String,
     onRenameBand: ((String) -> Unit)?,
     treasurer: String?,
+    /** Who holds the band fund (also if they are no longer among [treasurerOptions]); null when it is off. */
+    treasurerName: String?,
     treasurerOptions: List<Pair<String, String>>,
     onTreasurer: ((String) -> Unit)?,
     /** Turns the band fund off; null while it holds or owes money ([fundBalance] says how much it holds). */
@@ -242,14 +247,17 @@ fun SettingsScreen(
     val permission = rememberNotificationPermission()
     when (page) {
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
-            FundSettings(treasurer, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
+            FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
         }
         SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
             if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
+            // No longer an admin (e.g. demoted meanwhile): nothing to edit here.
+            else LaunchedEffect(Unit) { onBack() }
         }
         SettingsPage.NOTIFICATIONS -> SettingsPageScaffold(stringResource(notificationsTitle(permission)), onBack) {
             permission?.let { NotificationsSection(it, appSettings, onAppSettings) }
-            CalendarSection(calendar)
+            // Without notifications (web) the page is the calendar, already named in the top bar.
+            CalendarSection(calendar, showTitle = permission != null)
         }
         null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
             var choosingLanguage by remember { mutableStateOf(false) }
@@ -261,7 +269,7 @@ fun SettingsScreen(
             SettingsItem(
                 Icons.Default.Savings,
                 stringResource(Res.string.band_fund),
-                treasurer?.let { id -> stringResource(Res.string.fund_summary_on, treasurerOptions.toMap()[id].orEmpty()) } ?: stringResource(Res.string.fund_summary_off),
+                treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off),
                 chevron = true,
             ) { onOpenPage(SettingsPage.FUND) }
             if (onAgendaTemplate != null) {
@@ -364,20 +372,26 @@ private fun SettingsItem(icon: ImageVector, title: String, summary: String?, che
         supportingContent = summary?.takeIf { it.isNotEmpty() }?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
         leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
         trailingContent = if (chevron) ({ Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }) else null,
-        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+        modifier = if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier,
     )
 }
 
 /** A heading within a settings page. */
 @Composable
 private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = modifier.padding(top = 24.dp, bottom = 8.dp))
+    Text(
+        text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(top = 24.dp, bottom = 8.dp).semantics { heading() },
+    )
 }
 
 /** The band fund page: what it is, whether it is on and who holds it (admins change it). */
 @Composable
 private fun FundSettings(
     treasurer: String?,
+    treasurerName: String?,
     treasurerOptions: List<Pair<String, String>>,
     onTreasurer: ((String) -> Unit)?,
     onDisableFund: (() -> Unit)?,
@@ -387,7 +401,7 @@ private fun FundSettings(
     val names = treasurerOptions.toMap()
     if (onTreasurer == null) {
         SectionHeader(stringResource(Res.string.fund_status))
-        Text(treasurer?.let { stringResource(Res.string.fund_summary_on, names[it].orEmpty()) } ?: stringResource(Res.string.fund_summary_off))
+        Text(treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off))
         return
     }
     // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
@@ -690,7 +704,7 @@ private fun SwitchRow(label: String, checked: Boolean, enabled: Boolean = true, 
  * Calendar, include the whole band, or make a new link.
  */
 @Composable
-private fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription) {
+private fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription, showTitle: Boolean = true) {
     val scope = rememberCoroutineScope()
     val copy = rememberCopy()
     val uriHandler = LocalUriHandler.current
@@ -714,7 +728,7 @@ private fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> C
             working = false
         }
     }
-    SectionHeader(stringResource(Res.string.calendar_title))
+    if (showTitle) SectionHeader(stringResource(Res.string.calendar_title))
     Text(stringResource(Res.string.calendar_hint), style = MaterialTheme.typography.bodySmall)
     val current = subscription
     if (current == null) {

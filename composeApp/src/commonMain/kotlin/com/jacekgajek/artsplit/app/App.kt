@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.app
 
+import androidx.lifecycle.Lifecycle
 import com.jacekgajek.artsplit.app.ui.screens.SettingsPage
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -310,6 +311,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(RenameBand("probe")) },
                     treasurer = state.band.treasurerMemberId,
+                    treasurerName = state.band.treasurerMemberId?.let { state.band.member(it)?.name },
                     treasurerOptions = state.band.members.filter { !it.archived }.map { it.id to it.name },
                     onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
@@ -331,7 +333,8 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                         .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
                     onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },
                     page = page,
-                    onOpenPage = { navController.navigate(SettingsRoute(it.name)) },
+                    // Only from the list while it is on screen, so a double tap does not open the page twice.
+                    onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) },
                     onBack = back,
                 )
             }
