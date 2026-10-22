@@ -58,7 +58,7 @@ object NotificationRules {
      */
     fun reminders(bands: List<Band>, userId: String, days: Set<Int>, time: LocalTime, now: LocalDateTime, shown: Set<String> = emptySet()): List<Reminder> =
         bands.flatMap { band ->
-            val me = band.memberOfUser(userId) ?: return@flatMap emptyList()
+            val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
             band.events.filter { !it.archived && it.participant(me.id) != null }.flatMap { event ->
                 days.mapNotNull { daysBefore ->
                     val at = event.date.minus(DatePeriod(days = daysBefore)).atTime(time)
@@ -81,7 +81,7 @@ object NotificationRules {
      * else recorded; grouped per event.
      */
     fun newTransfers(bands: List<Band>, userId: String, seen: Set<String>): List<TransferNotice> = bands.flatMap { band ->
-        val me = band.memberOfUser(userId) ?: return@flatMap emptyList()
+        val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
         val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
         band.events.mapNotNull { event ->
             val fresh = event.transfers.filter { "${band.id}/${it.id}" !in seen && (it.from in mine || it.to in mine) && it.recordedBy != me.id }
@@ -104,7 +104,7 @@ object NotificationRules {
     /** For the permission prompt: the nearest upcoming event the user takes part in, with who added them. */
     fun firstUpcomingGig(bands: List<Band>, userId: String, today: LocalDate): Pair<Band, Event>? =
         bands.flatMap { band ->
-            val me = band.memberOfUser(userId) ?: return@flatMap emptyList()
+            val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
             band.events.filter { !it.archived && it.date >= today && it.participant(me.id) != null }.map { band to it }
         }.minByOrNull { it.second.date }
 }

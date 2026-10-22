@@ -81,13 +81,21 @@ object ReminderScheduler {
     )
 
     /** The keys of reminders shown already. */
-    fun shown(context: Context): Set<String> = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty()
+    fun shown(context: Context): Set<String> = shownAt(context).keys
+
+    /** Stored as "<shown at, epoch ms>|<key>", so the oldest can be dropped. */
+    private fun shownAt(context: Context): Map<String, Long> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty().mapNotNull { entry ->
+            val at = entry.substringBefore('|').toLongOrNull() ?: return@mapNotNull null
+            entry.substringAfter('|') to at
+        }.toMap()
 
     internal fun show(context: Context, intent: Intent) {
         intent.getStringExtra(EXTRA_KEY)?.let { key ->
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val shown = (prefs.getStringSet(KEY_SHOWN, emptySet()).orEmpty() + key).toList().takeLast(200).toSet()
-            prefs.edit { putStringSet(KEY_SHOWN, shown) }
+            // Only the newest matter: a reminder is never due again more than a few hours after its time.
+            val shown = (shownAt(context) + (key to System.currentTimeMillis())).entries.sortedByDescending { it.value }.take(200)
+            prefs.edit { putStringSet(KEY_SHOWN, shown.map { "${it.value}|${it.key}" }.toSet()) }
         }
         // Both are missing for the test reminder, which just opens the app.
         val band = intent.getStringExtra(Notifier.EXTRA_BAND)

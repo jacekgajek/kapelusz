@@ -36,8 +36,10 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
     /** A new token for [user] and when it expires. */
     fun issue(user: VerifiedUser): Pair<String, Long> {
         val now = clock()
-        val expiresAt = now + LIFETIME_MS
-        val claims = Claims(user.userId, user.email, user.name, expiresAt, since = user.sessionSince ?: now)
+        val since = user.sessionSince ?: now
+        // A renewed token ends with the session too: at most [MAX_AGE_MS] after the Google sign-in (ITERATION_3 R6).
+        val expiresAt = minOf(now + LIFETIME_MS, since + MAX_AGE_MS)
+        val claims = Claims(user.userId, user.email, user.name, expiresAt, since = since)
         val payload = encoder.encodeToString(KapeluszJson.encodeToString(Claims.serializer(), claims).toByteArray())
         return "$PREFIX$payload.${encoder.encodeToString(mac(payload))}" to expiresAt
     }

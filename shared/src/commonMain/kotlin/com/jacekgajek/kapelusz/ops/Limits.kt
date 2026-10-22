@@ -26,6 +26,9 @@ object Limits {
     const val MAX_PARTIES_PER_EVENT = 200
     const val MAX_ITEMS_PER_EVENT = 500
 
+    /** Undos in one push: each one reads history from storage (ITERATION_3 R6). Clients split their pushes to keep to it. */
+    const val MAX_UNDOS_PER_PUSH = 20
+
     private val ID = Regex("[A-Za-z0-9_-]{1,64}")
 
     /**

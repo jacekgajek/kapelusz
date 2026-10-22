@@ -69,7 +69,7 @@ class Handler : RequestStreamHandler {
             api.handle(request)
         } catch (e: Exception) {
             // Calendar feed paths and invite codes are secrets: never log them.
-            val path = request.path.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("^/invites/[^/]+"), "/invites/…")
+            val path = request.path.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
             System.err.println("Unhandled error for ${request.method} $path: ${e.stackTraceToString()}")
             HttpResponse(500, """{"error":"internal","message":"Internal error"}""", mapOf("content-type" to "application/json"))
         }

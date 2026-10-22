@@ -134,8 +134,8 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             val refresh = reload
             val forMonth = month
             runCatching { graph.api.history(state.band.id, forMonth, next) }
-                // Not onto a list that was refreshed or that shows another month meanwhile.
-                .onSuccess { response -> if (refresh == reload && forMonth == month) { lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next } }
+                // Not onto a list that was refreshed or that shows another month meanwhile (read now: [offset] is state).
+                .onSuccess { response -> if (refresh == reload && forMonth == historyMonth(offset)) { lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next } }
                 // What is shown stays; only "Load more" did not work (ITERATION_3 R8).
                 .onFailure { if (it is CancellationException) throw it else loadMoreFailed = true }
             loadingMore = false

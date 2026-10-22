@@ -80,6 +80,7 @@ import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Change
@@ -108,8 +109,10 @@ fun CostScreen(
     val lang = language
 
     // The cost as it was when the form opened: Save sends only what the user changed since, so a change someone else
-    // made meanwhile is not overwritten (ITERATION_3 R8).
-    val opened = remember { existing }
+    // made meanwhile is not overwritten (ITERATION_3 R8). Saved with the typed text, or after a rotation an untouched
+    // old amount would count as changed against a newer snapshot.
+    val openedJson = rememberSaveable { existing?.let { KapeluszJson.encodeToString(Cost.serializer(), it) }.orEmpty() }
+    val opened = remember(openedJson) { openedJson.takeIf { it.isNotEmpty() }?.let { KapeluszJson.decodeFromString(Cost.serializer(), it) } }
     // Typed text survives rotation and the camera app's round trip (ITERATION_3 R8).
     var amount by rememberSaveable { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
     var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id) }

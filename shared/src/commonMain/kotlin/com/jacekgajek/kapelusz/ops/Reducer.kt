@@ -486,6 +486,8 @@ object Reducer {
     private fun deleteCost(band: Band, op: DeleteCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
         conflictIf(band.fundEntries.any { it.costId == cost.id }, RejectionReason.COST_REFUNDED_FROM_FUND) { "Cost was refunded from the band fund" }
+        // Its refund in an archived event would change that event (ITERATION_3 R10).
+        conflictIf(band.events.any { it.archived && it.refundOf(cost.id) != null }, RejectionReason.ARCHIVED_EVENT) { "Cost is refunded by an archived event" }
         return band.copy(
             costs = band.costs.filterNot { it.id == cost.id },
             events = band.events.map { event ->

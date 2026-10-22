@@ -194,7 +194,8 @@ class Api(
         val record = loadUser(user.userId)
         val bands = record.bandIds.mapNotNull { id ->
             val band = loadBand(id)?.first ?: return@mapNotNull null
-            val member = band.memberOfUser(user.userId) ?: return@mapNotNull null
+            // Archived members are not shown the band (the app then finds it gone, ITERATION_3 R9); restoring them shows it again.
+            val member = band.memberOfUser(user.userId)?.takeIf { !it.archived } ?: return@mapNotNull null
             BandSummary(band.id, band.name, member.name, member.role)
         }
         return ok(MeResponse.serializer(), MeResponse(user.userId, user.email, user.name, bands))
@@ -696,7 +697,12 @@ class Api(
     /** At most [MAX_BANDS_PER_USER] bands (ITERATION_3 R6); joining or creating one more is refused. */
     private fun requireRoomForBand(userId: String, bandId: String) {
         val bands = store.get(userKey(userId))?.let { decode(UserRecord.serializer(), it.content).bandIds }.orEmpty()
-        if (bandId !in bands && bands.size >= MAX_BANDS_PER_USER) throw ApiError(409, ApiErrors.TOO_MANY_BANDS, "At most $MAX_BANDS_PER_USER bands")
+        if (bandId in bands || bands.size < MAX_BANDS_PER_USER) return
+        // Only bands the user is still linked in count (archived too: they can be restored); the others are dropped
+        // from their list here.
+        val members = bands.associateWith { id -> loadBand(id)?.first?.memberOfUser(userId) }
+        members.filterValues { it == null }.keys.forEach { removeBandFromUser(userId, it) }
+        if (members.values.count { it != null } >= MAX_BANDS_PER_USER) throw ApiError(409, ApiErrors.TOO_MANY_BANDS, "At most $MAX_BANDS_PER_USER bands")
     }
 
     private fun addBandToUser(userId: String, bandId: String) {
@@ -767,7 +773,7 @@ class Api(
 
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
-        const val MAX_UNDOS_PER_PUSH = 20
+        const val MAX_UNDOS_PER_PUSH = Limits.MAX_UNDOS_PER_PUSH
 
         /** Bands one user may belong to (ITERATION_3 R6): far above any musician's, and a bound on storage per account. */
         const val MAX_BANDS_PER_USER = 20

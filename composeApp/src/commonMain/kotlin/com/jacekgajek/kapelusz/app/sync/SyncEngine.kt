@@ -1,13 +1,16 @@
 package com.jacekgajek.kapelusz.app.sync
 
-import kotlinx.serialization.SerializationException
-import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.ApiErrors
+import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Rejection
+import com.jacekgajek.kapelusz.ops.Undo
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -24,7 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.serialization.SerializationException
 
 /** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
 data class LostBand(val name: String, val deleted: Boolean)
@@ -233,7 +236,7 @@ class SyncEngine(
             bands.onCreated(bandId, created.band, created.version)
         }
         while (true) {
-            val batch = bands.local(bandId)?.pending?.take(BATCH_SIZE).orEmpty()
+            val batch = batchOf(bands.local(bandId)?.pending.orEmpty())
             if (batch.isEmpty()) return
             val response = api.push(bandId, batch)
             bands.onPushed(bandId, response)
@@ -253,5 +256,11 @@ class SyncEngine(
     companion object {
         const val BATCH_SIZE = 200
         const val DEBOUNCE = 1_000L
+
+        /** The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once (ITERATION_3 R6). */
+        internal fun batchOf(pending: List<OpEnvelope>): List<OpEnvelope> {
+            var undos = 0
+            return pending.take(BATCH_SIZE).takeWhile { envelope -> envelope.op !is Undo || ++undos <= Limits.MAX_UNDOS_PER_PUSH }
+        }
     }
 }

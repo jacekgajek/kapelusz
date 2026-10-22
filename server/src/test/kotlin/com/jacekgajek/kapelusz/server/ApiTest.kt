@@ -165,6 +165,25 @@ class ApiTest {
         assertEquals(409, createBand(bandId = "one-more").status)
     }
 
+    /** Only bands the account is still in count; an archived member is not shown the band (ITERATION_3 R6, R9). */
+    @Test
+    fun bandsTheAccountLeftDoNotCountTowardsTheLimit() {
+        createBand("alice", "shared")
+        push("shared", "alice", com.jacekgajek.kapelusz.ops.AddMember("m-bob", "Bob"))
+        val invite = call("POST", "/bands/shared/invites", "alice", KapeluszJson.encodeToString(com.jacekgajek.kapelusz.api.CreateInviteRequest.serializer(),
+            com.jacekgajek.kapelusz.api.CreateInviteRequest("m-bob", com.jacekgajek.kapelusz.model.Role.MEMBER))).parse(com.jacekgajek.kapelusz.api.InviteInfo.serializer())
+        assertEquals(200, call("POST", "/invites/${invite.code}/accept", "bob").status)
+        repeat(Api.MAX_BANDS_PER_USER - 1) { assertEquals(200, createBand("bob", "bob$it").status) }
+        assertEquals(409, createBand("bob", "one-more").status)
+
+        push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", true))
+        assertTrue(call("GET", "/me", "bob").parse(com.jacekgajek.kapelusz.api.MeResponse.serializer()).bands.none { it.id == "shared" }, "archived: not listed")
+        assertEquals(409, createBand("bob", "one-more").status, "archived members can be restored: the band still counts")
+
+        push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", false), com.jacekgajek.kapelusz.ops.UnlinkUser("m-bob"))
+        assertEquals(200, createBand("bob", "one-more").status, "unlinked: the band no longer counts")
+    }
+
     @Test
     fun bandCreationKeepsToTheLimits() {
         fun create(bandId: String, ownerMemberId: String, name: String = "Night Owls") = call("POST", "/bands", "alice",

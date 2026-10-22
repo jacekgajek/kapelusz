@@ -15,6 +15,7 @@ import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
@@ -194,6 +195,10 @@ class FundAndEdgeCasesTest {
         assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(SettleSuggestions("e")).reason)
         assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e")).reason)
 
+        scenario.apply(SetEventArchived("e", false)).apply(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e"))
+        assertEquals(pln("10"), scenario.band.event("e")!!.refundOf("c")!!.amount)
+        scenario.apply(SetEventArchived("e", true))
+        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(DeleteCost("c")).reason, "its refund is part of the archived event")
         scenario.apply(SetEventArchived("e", false)).apply(SettleSuggestions("e"))
         assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
         scenario.event("d", "Alice").apply(SetEventArchived("d", true)).apply(DeleteEvent("d"))

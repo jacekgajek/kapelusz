@@ -167,4 +167,16 @@ class SessionRepositoryTest {
         assertEquals("as1.session-2", sessions.validToken(forceRefresh = true))
         assertEquals(0, refreshCalls)
     }
+
+    /** ITERATION_3 R9: a 401 for a token another request already replaced keeps the new session. */
+    @Test
+    fun aRefusalOfAnOldTokenKeepsTheRenewedSession() = runTest {
+        val sessions = withSessions()
+        sessions.signedIn(fakeIdToken("sub-1", now / 1000 + 3600))
+        assertEquals("as1.session-1", sessions.validToken())
+        assertEquals("as1.session-2", sessions.validToken(forceRefresh = true, refused = "as1.session-1"))
+        // A request still in flight with session-1 is refused now: session-2 stays.
+        assertEquals("as1.session-2", sessions.validToken(forceRefresh = true, refused = "as1.session-1"))
+        assertEquals(2, exchanges.size)
+    }
 }
