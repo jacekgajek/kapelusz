@@ -31,7 +31,9 @@ object Engine {
         Permissions.check(band, actor, op)?.let { return ApplyResult.Rejected(it) }
         val memberId = (actor as? Actor.User)?.let { band.memberOfUser(it.userId)?.id }
         return try {
-            ApplyResult.Applied(Reducer.apply(band, op, OpContext(opId, timestamp, memberId)))
+            val result = Reducer.apply(band, op, OpContext(opId, timestamp, memberId))
+            Limits.violation(band, result)?.let { return ApplyResult.Rejected(it) }
+            ApplyResult.Applied(result)
         } catch (e: RejectedException) {
             ApplyResult.Rejected(e.rejection)
         }
@@ -41,7 +43,7 @@ object Engine {
      * Applies a client's queued operations in order. Operations with a sequence number not above the client's last
      * applied one are skipped, which makes retried pushes idempotent. Rejected ops still advance the sequence.
      */
-    fun applyBatch(band: Band, actor: Actor, envelopes: List<OpEnvelope>): BatchResult {
+    fun applyBatch(band: Band, actor: Actor, envelopes: List<OpEnvelope>, check: ((before: Band, after: Band) -> Rejection?)? = null): BatchResult {
         var state = band
         val accepted = mutableListOf<Id>()
         val rejected = mutableMapOf<Id, Rejection>()
@@ -54,7 +56,10 @@ object Engine {
                 if (earlier != null) rejected[envelope.opId] = earlier.rejection else duplicates += envelope.opId
                 continue
             }
-            when (val result = apply(state, actor, envelope.op, envelope.opId, envelope.timestamp)) {
+            // An extra check of the caller (the server: the band's size) refuses an operation like the reducer would.
+            val applied = apply(state, actor, envelope.op, envelope.opId, envelope.timestamp)
+            val result = if (applied is ApplyResult.Applied && check != null) check(state, applied.band)?.let { ApplyResult.Rejected(it) } ?: applied else applied
+            when (result) {
                 is ApplyResult.Applied -> {
                     changes[envelope.opId] = BandChange.between(state, result.band)
                     state = result.band

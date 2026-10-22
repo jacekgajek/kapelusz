@@ -490,4 +490,6 @@
     <string name="settings_personal">Osobiste</string>
     <string name="diag_battery_optimised">Bateria: optymalizowana (domyślne w Androidzie)</string>
     <string name="diag_battery_unrestricted">Bateria: bez ograniczeń</string>
+    <string name="reject_limit_reached">Zespół osiągnął limit (np. zbyt wiele wpisów).</string>
+    <string name="reject_storage_failed">Nie udało się zapisać na tym urządzeniu (czy pamięć jest pełna?).</string>
 </resources>

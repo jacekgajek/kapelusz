@@ -60,9 +60,9 @@ class Scenario(vararg memberNames: String) {
             eventId = id,
             name = id,
             date = DATE,
-            guests = guests.map { Guest(it.first.lowercase(), it.first) },
+            guests = guests.map { Guest(it.first.lowercase().replace(" ", "-"), it.first) },
             participants = participants.map { Participant(it.lowercase()) } +
-                guests.map { Participant(it.first.lowercase(), it.second) },
+                guests.map { Participant(it.first.lowercase().replace(" ", "-"), it.second) },
         ),
     )
 

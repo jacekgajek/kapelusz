@@ -39,6 +39,8 @@ class MainActivity : ComponentActivity() {
         UpdateWorker.installWhenIdle(this)
         // Reminders follow what was just changed; transfers seen in the app are not notified later.
         BackgroundSyncWorker.refreshLocal(this)
+        // Changes not sent yet go out as soon as there is a network, not hours later with the periodic sync.
+        if (graph.hasUnsentWork()) BackgroundSyncWorker.syncSoon(this)
         super.onStop()
     }
 

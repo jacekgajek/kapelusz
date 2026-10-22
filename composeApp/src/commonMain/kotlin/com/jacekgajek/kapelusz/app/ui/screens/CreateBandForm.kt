@@ -34,9 +34,11 @@ fun CreateBandForm(onCreate: (name: String, currency: String, yourName: String) 
         OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.band_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(yourName, { yourName = it }, label = { Text(stringResource(Res.string.your_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Dropdown(currency, CURRENCIES, { currency = it }, stringResource(Res.string.currency)) { it }
+        // Once only: the screen stays tappable while it fades out, and a second tap would create a second band.
+        var created by remember { mutableStateOf(false) }
         Button(
-            onClick = { onCreate(name, currency, yourName) },
-            enabled = name.isNotBlank() && yourName.isNotBlank(),
+            onClick = { if (!created) { created = true; onCreate(name, currency, yourName) } },
+            enabled = name.isNotBlank() && yourName.isNotBlank() && !created,
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(Res.string.create_band)) }
     }

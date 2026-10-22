@@ -171,4 +171,11 @@ class UndoTest {
         val unlinked = (Engine.apply(undone, Actor.System, com.jacekgajek.kapelusz.ops.UnlinkUser("bob"), "x", 10) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band
         assertNull(unlinked.member("bob")!!.pictureUrl, "the photo goes with the account")
     }
+
+    @Test
+    fun undosNestOnlyAFewLevels() {
+        var nested: com.jacekgajek.kapelusz.ops.Operation = RenameBand("x")
+        repeat(5) { nested = Undo("u$it", nested, BandChange(BandPart(), BandPart())) }
+        assertEquals(RejectionReason.NOT_UNDOABLE, Scenario("Alice").rejected(nested as Undo).reason)
+    }
 }

@@ -1,5 +1,9 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.RejectionCode
+import com.jacekgajek.kapelusz.ops.Rejection
+import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.api.PictureRequest
 import com.jacekgajek.kapelusz.model.withPicture
 import java.util.concurrent.ExecutionException
@@ -95,6 +99,7 @@ class Api(
     private val sessions: SessionTokens = SessionTokens(store, clock),
     /** No minimum by default (tests); the Lambda handler passes [MIN_APP_VERSION]. */
     private val minAppVersion: Int = 0,
+    private val maxBandChars: Int = MAX_BAND_CHARS,
 ) {
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -195,6 +200,10 @@ class Api(
 
     private fun createBand(user: VerifiedUser, request: CreateBandRequest): HttpResponse {
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
+        // The same limits as every change (ITERATION_3 R1): ids that become storage keys, names of sensible length.
+        safe(request.bandId)
+        val draft = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
+        Limits.violation(draft.copy(name = "", members = emptyList()), draft)?.let { throw ApiError(400, "bad_request", it.message) }
         badRequestIf(!request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
         val band = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
             .withPicture(user.userId, pictureOf(user.userId))
@@ -236,9 +245,22 @@ class Api(
             if (device != null && device !in band.lastSeq && userDevices >= MAX_DEVICES_PER_USER) {
                 throw ApiError(400, "too_many_devices", "Too many devices for this user in this band")
             }
-            val result = Engine.applyBatch(band, Actor.User(user.userId), envelopes)
+            var result = Engine.applyBatch(band, Actor.User(user.userId), envelopes)
+            var encoded = if (result.band == band) null else encode(Band.serializer(), result.band)
+            // A band must stay loadable: its state goes back in every response, and a Lambda response has 6 MB at most.
+            // Too large: the batch again, refusing just the operations that would grow it past the cap (ITERATION_3 R1),
+            // so the rest goes through and the device's queue does not get stuck.
+            if (encoded != null && encoded.length > maxBandChars) {
+                result = Engine.applyBatch(band, Actor.User(user.userId), envelopes) { before, after ->
+                    val size = encode(Band.serializer(), after).length
+                    if (size > maxBandChars && size > encode(Band.serializer(), before).length) {
+                        Rejection(RejectionCode.CONFLICT, "The band would be too large; remove old entries or attachments", RejectionReason.LIMIT_REACHED)
+                    } else null
+                }
+                encoded = if (result.band == band) null else encode(Band.serializer(), result.band)
+            }
             val newEtag = try {
-                if (result.band == band) etag else store.put(bandKey(bandId), encode(Band.serializer(), result.band), ifMatch = etag)
+                if (encoded == null) etag else store.put(bandKey(bandId), encoded, ifMatch = etag)
             } catch (e: PreconditionFailed) {
                 return@repeat
             }
@@ -732,6 +754,9 @@ class Api(
 
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
+
+        /** The largest band file a push may produce (ITERATION_3 R1), well below the 6 MB of a Lambda response. */
+        const val MAX_BAND_CHARS = 3_000_000
 
         private const val LOG_READ_BATCH = 16
 

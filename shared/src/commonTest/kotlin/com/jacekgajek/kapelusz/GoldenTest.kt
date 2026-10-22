@@ -68,16 +68,16 @@ class GoldenTest {
         .apply(AddHolding("millbrook", "h1", "alice", pln("500"), DOOR))
         .apply(AddHolding("millbrook", "h2", "bob", pln("500"), DOOR))
         .apply(AddHolding("millbrook", "h3", "carol", pln("500"), DOOR))
-        .apply(AddHolding("millbrook", "h4", "helper 2", pln("500"), DOOR))
+        .apply(AddHolding("millbrook", "h4", "helper-2", pln("500"), DOOR))
 
     @Test
     fun g2GuestHolderWithZeroShare() {
         val s = g2().settle("millbrook")
         assertEquals(
-            mapOf("alice" to pln("500"), "bob" to pln("500"), "carol" to pln("500"), "eve" to pln("500"), "helper 2" to pln("0")),
+            mapOf("alice" to pln("500"), "bob" to pln("500"), "carol" to pln("500"), "eve" to pln("500"), "helper-2" to pln("0")),
             s.targets,
         )
-        assertEquals(listOf(SuggestedTransfer("helper 2", "eve", pln("500"))), s.suggestions)
+        assertEquals(listOf(SuggestedTransfer("helper-2", "eve", pln("500"))), s.suggestions)
     }
 
     /** G3: several income sources with notes, all consumed by one refund: settled without any transfer. */
@@ -231,7 +231,11 @@ class GoldenTest {
         val scenario = g1().apply(SettleSuggestions("oakfield"))
         val recorded = scenario.band.event("oakfield")!!.transfers
 
+        // Money has moved: the cost only remembers the gig (ITERATION_3 R2) and the gig stays settled ...
         scenario.apply(AddCost("c-bob", "bob", pln("50"), DATE, incurredForEventId = "oakfield"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("oakfield").status)
+        // ... until a lead includes the refund, which reopens it.
+        scenario.apply(SetRefund("oakfield", "c-bob", pln("50")))
         val s = scenario.settle("oakfield")
         assertEquals(EventStatus.OPEN, s.status)
         assertEquals(recorded, scenario.band.event("oakfield")!!.transfers)

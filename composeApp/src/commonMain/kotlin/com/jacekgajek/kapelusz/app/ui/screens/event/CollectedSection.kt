@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -84,8 +85,10 @@ fun CollectedSection(context: EventContext) {
     }
 
     if (adding) {
-        val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.first()
-        HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = { adding = false })
+        // A sync may have taken away whom the user can record for (removed from the event, a role changed): close.
+        val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull()
+        if (defaultParty == null) LaunchedEffect(Unit) { adding = false }
+        else HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = { adding = false })
     }
     editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, allowedParties, onDismiss = { editing = null }) }
 }

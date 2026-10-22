@@ -241,4 +241,46 @@ class BandRepositoryTest {
         val saved = KapeluszJson.decodeFromString(LocalBand.serializer(), store.read(BandRepository.bandKey("alice", "b1"))!!)
         assertEquals(BandRepository.CURRENT_SCHEMA, saved.schema)
     }
+
+    @Test
+    fun aBandAlreadyOnTheDeviceIsNotOverwrittenByABackgroundDownload() = runTest {
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        repository.createBand("The Band", "PLN", "Alice")
+        assertNull(repository.dispatch(AddMember("bob", "Bob")))
+        testScheduler.advanceUntilIdle()
+        val bandId = ready(repository).band.id
+        // The index is lost (unreadable): the band's file is still there, with its unsent change.
+        store.values["band-index-alice"] = "{ not json"
+        val reloaded = BandRepository(store, TestScope(testScheduler), ids())
+        reloaded.load("alice")
+        assertTrue(store.values.keys.any { it.startsWith("band-index-alice-backup-") }, "the unreadable index is kept")
+        reloaded.storeFromServer(com.jacekgajek.kapelusz.model.Band.create(bandId, "The Band", "PLN", "alice", "Alice", "alice"), "v1")
+        assertEquals(1, reloaded.local(bandId)!!.pending.size, "the unsent change survives the background download")
+    }
+
+    @Test
+    fun aFailedWriteIsKeptAndTriedAgain() = runTest {
+        val failing = object : KeyValueStore {
+            val values = mutableMapOf<String, String>()
+            var full = false
+            override suspend fun read(key: String) = values[key]
+            override suspend fun write(key: String, value: String) { if (full) error("No space left on device"); values[key] = value }
+            override suspend fun remove(key: String) { values.remove(key) }
+        }
+        val repository = BandRepository(failing, this, ids())
+        repository.load("alice")
+        repository.createBand("The Band", "PLN", "Alice")
+        testScheduler.advanceUntilIdle()
+        val bandId = ready(repository).band.id
+        failing.full = true
+        assertNull(repository.dispatch(AddMember("bob", "Bob")))
+        testScheduler.runCurrent() // the write fails, without crashing
+        failing.full = false
+        testScheduler.advanceTimeBy(BandRepository.FLUSH_RETRY_MS + 1)
+        testScheduler.runCurrent()
+        val stored = failing.values.getValue("band-alice-$bandId")
+        assertTrue("Bob" in stored, "written once the device has space again")
+    }
 }

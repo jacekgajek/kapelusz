@@ -484,4 +484,6 @@
     <string name="settings_personal">Personal</string>
     <string name="diag_battery_optimised">Battery: optimised (Android default)</string>
     <string name="diag_battery_unrestricted">Battery: unrestricted</string>
+    <string name="reject_limit_reached">The band has reached a limit for this (e.g. too many entries).</string>
+    <string name="reject_storage_failed">Could not save it on this device (is the storage full?).</string>
 </resources>

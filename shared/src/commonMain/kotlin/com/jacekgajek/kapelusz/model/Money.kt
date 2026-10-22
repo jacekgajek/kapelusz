@@ -30,7 +30,7 @@ value class Money(val minor: Long) : Comparable<Money> {
         /** Parses `123`, `123.4`, `123.45`, `-5.00` (dot or comma as decimal separator). */
         fun parse(text: String): Money {
             val normalized = text.trim().replace(',', '.')
-            val match = requireNotNull(Regex("""(-?)(\d+)(?:\.(\d{1,2}))?""").matchEntire(normalized)) {
+            val match = requireNotNull(Regex("""(-?)(\d{1,13})(?:\.(\d{1,2}))?""").matchEntire(normalized)) {
                 "Not a money amount: '$text'"
             }
             val (sign, whole, fraction) = match.destructured

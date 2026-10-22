@@ -7,11 +7,14 @@ plugins {
 }
 
 // API URL and Google client id compiled into the app (ITERATION_1 §6.3); environment variables win over gradle.properties.
+// A blank variable counts as missing: CI sets an empty one for an unset repository variable (ITERATION_3 R5).
+fun setting(env: String, property: String) =
+    providers.environmentVariable(env).filter { it.isNotBlank() }.orElse(providers.gradleProperty(property))
+
 val generateAppConfig = tasks.register("generateAppConfig") {
-    val apiUrl = providers.environmentVariable("KAPELUSZ_API_URL").orElse(providers.gradleProperty("kapelusz.apiUrl"))
-    val webClientId = providers.environmentVariable("KAPELUSZ_GOOGLE_WEB_CLIENT_ID")
-        .orElse(providers.gradleProperty("kapelusz.googleWebClientId"))
-    val webUrl = providers.environmentVariable("KAPELUSZ_WEB_URL").orElse(providers.gradleProperty("kapelusz.webUrl"))
+    val apiUrl = setting("KAPELUSZ_API_URL", "kapelusz.apiUrl")
+    val webClientId = setting("KAPELUSZ_GOOGLE_WEB_CLIENT_ID", "kapelusz.googleWebClientId")
+    val webUrl = setting("KAPELUSZ_WEB_URL", "kapelusz.webUrl")
     val versionName = providers.gradleProperty("kapelusz.versionName")
     // CI passes the deploy run number; local builds are "dev".
     val versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orElse("0")

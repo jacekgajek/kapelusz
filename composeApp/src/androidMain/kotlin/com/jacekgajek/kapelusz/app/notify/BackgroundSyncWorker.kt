@@ -40,13 +40,14 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
         }
         val local = inputData.getBoolean(LOCAL, false)
         val synced = local || graph.sync.syncAll()
-        afterSync(applicationContext, graph, userId, notifyTransfers = !local)
+        afterSync(applicationContext, graph, userId, notifyTransfers = !local && !inputData.getBoolean(SOON, false))
         if (synced) Result.success() else Result.retry()
     }
 
     companion object {
         private const val PERIODIC = "background-sync"
         private const val LOCAL = "local"
+        private const val SOON = "soon"
         private const val PREFS = "kapelusz-transfers"
 
         fun schedule(context: Context) {
@@ -55,6 +56,21 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
                 PERIODIC,
                 ExistingPeriodicWorkPolicy.KEEP,
                 PeriodicWorkRequestBuilder<BackgroundSyncWorker>(4, TimeUnit.HOURS).setConstraints(network).build(),
+            )
+        }
+
+        /**
+         * A sync as soon as there is a network, for changes still on this device when the app leaves the screen
+         * (ITERATION_3 R4): the foreground sync stops there, and the periodic one may be hours away.
+         */
+        fun syncSoon(context: Context) {
+            val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "sync-soon",
+                ExistingWorkPolicy.REPLACE,
+                // Not expedited: before Android 12 that needs a foreground notification. Transfers are not notified: the
+                // user has just seen them in the app.
+                OneTimeWorkRequestBuilder<BackgroundSyncWorker>().setConstraints(network).setInputData(workDataOf(SOON to true)).build(),
             )
         }
 

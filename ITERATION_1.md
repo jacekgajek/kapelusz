@@ -335,7 +335,7 @@ server/session-key.json                   signing key of session tokens, created
   - IAM role scoped to the data bucket; log group with 14 d retention.
   - Env: `DATA_BUCKET`, `GOOGLE_CLIENT_IDS`, `JAVA_TOOL_OPTIONS`.
 - API Gateway **HTTP API** → alias `live`. It has CORS for the web origin and dev origin, and throttling (burst 50, rate 20/s).
-- GitHub **OIDC provider** + role `art-split-github-deploy`. It trusts only the repository's `main` branch (both the name-based subject `repo:jacekgajek/band_settlement:ref:refs/heads/main` and the id-based one GitHub may send) and may only update/publish the Lambda, move the alias, write the web bucket, and invalidate CloudFront.
+- GitHub **OIDC provider** + role `art-split-github-deploy`. It trusts only the repository's `main` branch (both the name-based subject `repo:jacekgajek/kapelusz:ref:refs/heads/main`, and the old `band_settlement` name until it is removed, and the id-based one GitHub may send) and may only update/publish the Lambda, move the alias, write the web bucket, and invalidate CloudFront.
 - **Outputs:** `art_split_deploy_role_arn`, `art_split_api_url`, `art_split_web_bucket`, `art_split_cloudfront_distribution_id`, `art_split_web_url`.
 
 ### 6.2 GitHub Actions

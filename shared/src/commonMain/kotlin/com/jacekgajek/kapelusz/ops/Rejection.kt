@@ -42,6 +42,9 @@ enum class RejectionReason {
     FUND_NOT_EMPTY,
     NOT_UNDOABLE,
     CHANGED_SINCE,
+    LIMIT_REACHED,
+    /** The device could not store it (full, or its storage failed); only ever reported locally. */
+    STORAGE_FAILED,
 }
 
 /** Why an operation was not applied: [reason] for users, [message] as a developer-facing English description. */

@@ -131,9 +131,13 @@ object SettlementCalculator {
     private fun splitByWeight(net: Money, order: List<Id>, event: Event, totalWeight: Long): Map<Id, Money> {
         class Part(val partyId: Id, val index: Int, val base: Long, val remainder: Long)
 
+        // net × weight ÷ total, computed without forming net × weight (ITERATION_3 R1): exact, and no overflow even for
+        // amounts stored before the limits. With net = q·total + r: net·w / total = q·w + r·w / total.
+        val q = net.minor / totalWeight
+        val r = net.minor % totalWeight
         val parts = order.mapIndexed { index, partyId ->
-            val scaled = net.minor * event.participant(partyId)!!.weight
-            Part(partyId, index, scaled / totalWeight, scaled % totalWeight)
+            val weight = event.participant(partyId)!!.weight.toLong()
+            Part(partyId, index, q * weight + r * weight / totalWeight, r * weight % totalWeight)
         }
         val leftover = net.minor - parts.sumOf { it.base }
         val bonus = parts

@@ -82,7 +82,13 @@ fun isUndoable(op: Operation): Boolean = when (op) {
 }
 
 internal object Undoing {
+    /** Undo, redo, undo, redo: enough for any real use, and bounded so a history entry stays small to decode. */
+    private const val MAX_DEPTH = 4
+
+    private fun depth(op: Operation): Int = if (op is Undo) 1 + depth(op.original) else 0
+
     fun apply(band: Band, op: Undo): Band {
+        invalidIf(depth(op) > MAX_DEPTH, RejectionReason.NOT_UNDOABLE) { "Too many undos of undos" }
         invalidIf(!isUndoable(op.original) || op.change.isEmpty || op.change.restoresAttachments, RejectionReason.NOT_UNDOABLE) { "This change cannot be undone" }
         val after = op.change.after
         val unchanged = (after.settings == null || after.settings == band.settings) &&

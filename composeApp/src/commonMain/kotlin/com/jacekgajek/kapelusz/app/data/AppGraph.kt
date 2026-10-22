@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.data
 
+import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.RejectionCode
+import kotlinx.coroutines.CoroutineExceptionHandler
 import com.jacekgajek.kapelusz.model.Member
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.combine
@@ -34,7 +37,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /** Process-wide objects, created once per app start (no DI framework). */
 class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") })
     val settings = SettingsRepository(store, scope)
     // The exchange runs only after construction, when api exists.
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
@@ -67,6 +71,9 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
     /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
     val signIns: StateFlow<Int> = _signIns.asStateFlow()
+
+    /** The sign-ins the UI has reacted to already (it is composed again on rotation and language changes). */
+    var handledSignIns = 0
 
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
     suspend fun load() = loadLock.withLock {
@@ -175,10 +182,27 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     suspend fun attach(costId: Id, file: PreparedFile): Rejection? {
         val bandId = bands.currentBandId ?: return null
         val attachment = Attachment(newId(), file.kind, file.fileName, file.sizeBytes)
-        dispatch(AddAttachment(costId, attachment))?.let { return it }
-        uploads.enqueue(PendingUpload(bandId, costId, attachment.id), file.base64)
-        sync.requestSync()
-        return null
+        // The file first, then the attachment (ITERATION_3 R4).
+        try {
+            try {
+                uploads.enqueue(PendingUpload(bandId, costId, attachment.id), file.base64)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
+            }
+            // Another band opened meanwhile (the file was being stored): this attachment belongs to the first one.
+            val rejection = if (bands.currentBandId == bandId) dispatch(AddAttachment(costId, attachment))
+            else Rejection(RejectionCode.CONFLICT, "Another band was opened", RejectionReason.NOT_FOUND)
+            if (rejection != null) {
+                uploads.cancel(attachment.id)
+                return rejection
+            }
+            sync.requestSync()
+            return null
+        } finally {
+            uploads.published(attachment.id)
+        }
     }
 
     /** Attaches the files picked while adding [costId]; runs in the app scope because the form closes on save. */
@@ -206,6 +230,9 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /** Applies an operation locally and schedules a sync. */
+    /** Changes or attachment files still waiting to be sent to the server. */
+    fun hasUnsentWork(): Boolean = bands.bandsToPush().isNotEmpty() || uploads.pending.value.isNotEmpty()
+
     private var pictureSent = false
 
     /**

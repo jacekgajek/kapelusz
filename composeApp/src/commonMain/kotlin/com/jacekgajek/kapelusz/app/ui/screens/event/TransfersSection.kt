@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.clickable
@@ -190,8 +191,15 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     val senders = handOverSenders(context)
     val holders = settlement.lines.filter { it.balance.isPositive && it.partyId in senders }.map { it.partyId }
     val lang = language
-    var from by remember { mutableStateOf(context.me?.id?.takeIf { it in holders } ?: holders.firstOrNull() ?: senders.first()) }
-    var to by remember { mutableStateOf(handOverRecipients(context, from).first()) }
+    val firstFrom = context.me?.id?.takeIf { it in holders } ?: holders.firstOrNull() ?: senders.firstOrNull()
+    val firstTo = firstFrom?.let { handOverRecipients(context, it).firstOrNull() }
+    // A sync may have left nobody to hand over from or to (e.g. the user was removed from the event).
+    if (firstFrom == null || firstTo == null) {
+        LaunchedEffect(Unit) { onDismiss() }
+        return
+    }
+    var from by remember { mutableStateOf(firstFrom) }
+    var to by remember { mutableStateOf(firstTo) }
     var amount by remember { mutableStateOf(settlement.line(from)?.balance?.takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }
     var note by remember { mutableStateOf("") }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
@@ -204,7 +212,7 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 Text(stringResource(Res.string.hand_over_hint), style = MaterialTheme.typography.bodySmall)
                 Dropdown(from, senders, {
                     from = it
-                    if (to !in handOverRecipients(context, it)) to = handOverRecipients(context, it).first()
+                    if (to !in handOverRecipients(context, it)) to = handOverRecipients(context, it).firstOrNull() ?: to
                     settlement.line(it)?.balance?.takeIf { balance -> balance.isPositive }?.let { balance -> amount = formatMoneyInput(balance, lang) }
                 }, stringResource(Res.string.hand_over_from)) { partyName(context.band, event, it, fundLabel) }
                 Dropdown(to, handOverRecipients(context, from), { to = it }, stringResource(Res.string.hand_over_to)) {

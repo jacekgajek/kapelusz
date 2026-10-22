@@ -46,6 +46,9 @@ data class PushResponse(
 data class ErrorResponse(val error: String, val message: String)
 
 object ApiErrors {
+    /** The push would make the band's file too large to load (`413`); nothing was written. */
+    const val BAND_TOO_LARGE = "band_too_large"
+
     /** The band does not exist or the caller is not (or no longer) an active member. */
     const val BAND_NOT_FOUND = "band_not_found"
 

@@ -418,7 +418,7 @@ object Reducer {
         invalidIf(band.cost(op.costId) != null, RejectionReason.DUPLICATE_ID) { "Cost ${op.costId} already exists" }
         validateActiveMember(band, op.memberId)
         validatePositive(op.amount, "Cost amount")
-        op.incurredForEventId?.let { band.event(it).orNotFound { "Event $it" } }
+        op.incurredForEventId?.let { validateCostEvent(band, it, op.memberId) }
         val cost = Cost(
             id = op.costId,
             memberId = op.memberId,
@@ -435,7 +435,7 @@ object Reducer {
 
     private fun updateCost(band: Band, op: UpdateCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
-        op.incurredForEventId?.value?.let { band.event(it).orNotFound { "Event $it" } }
+        op.incurredForEventId?.value?.takeIf { it != cost.eventId }?.let { validateCostEvent(band, it, cost.memberId) }
         val newAmount = op.amount?.value ?: cost.amount
         validatePositive(newAmount, "Cost amount")
         var result = band.updateCost(cost.id) {
@@ -447,10 +447,13 @@ object Reducer {
                 description = if (op.description != null) op.description.value.blankToNull() else it.description,
             )
         }
-        // A refund that covered the whole remainder at the cost's own event keeps covering it.
-        val ownEvent = cost.eventId?.let { band.event(it) }
+        // A refund that covered the whole remainder at the cost's own event keeps covering it (not when the cost moves
+        // to another event in the same change: its refund there is what counts then).
+        val moves = op.incurredForEventId != null && op.incurredForEventId.value != cost.eventId
+        val ownEvent = cost.eventId?.takeUnless { moves }?.let { band.event(it) }
         val ownRefund = ownEvent?.refundOf(cost.id)
-        if (ownEvent != null && ownRefund != null && newAmount != cost.amount) {
+        // Only while the event is open (ITERATION_3 R2): once money moved or it is archived, refunds are a lead's decision.
+        if (ownEvent != null && ownRefund != null && newAmount != cost.amount && !ownEvent.archived && ownEvent.transfers.isEmpty()) {
             val refundedElsewhere = CostLedger.refunded(band, cost.id) - ownRefund.amount
             if (ownRefund.amount == cost.amount - refundedElsewhere) {
                 val adjusted = newAmount - refundedElsewhere
@@ -485,10 +488,19 @@ object Reducer {
         )
     }
 
-    /** Pre-includes, in full, the member's outstanding costs incurred for this event. */
+    /** A cost can be incurred only for an event its owner takes part in (ITERATION_3 R2): only there it is refunded. */
+    private fun validateCostEvent(band: Band, eventId: Id, memberId: Id) {
+        val event = band.event(eventId).orNotFound { "Event $eventId" }
+        invalidIf(event.participant(memberId) == null, RejectionReason.NOT_A_PARTICIPANT) { "The cost's owner does not take part in the event" }
+    }
+
+    /**
+     * Pre-includes, in full, the member's outstanding costs incurred for this event, while the event is still open
+     * (ITERATION_3 R2): once money moved (transfers recorded) or it is archived, refunds are a lead's decision.
+     */
     private fun includeOwnCosts(band: Band, eventId: Id, memberId: Id, ctx: OpContext): Band {
         val event = band.event(eventId) ?: return band
-        if (event.participant(memberId) == null) return band
+        if (event.participant(memberId) == null || event.archived || event.transfers.isNotEmpty()) return band
         val newRefunds = band.costs
             .filter { it.memberId == memberId && it.eventId == eventId && event.refundOf(it.id) == null }
             .mapNotNull { cost -> CostLedger.outstanding(band, cost).takeIf { it.isPositive }?.let { Refund(cost.id, it) } }
