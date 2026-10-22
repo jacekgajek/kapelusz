@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      ARTSPLIT_API_URL: ${{ vars.API_URL }}
-      ARTSPLIT_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+      KAPELUSZ_API_URL: ${{ vars.API_URL }}
+      KAPELUSZ_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
       WEB_BUCKET: ${{ vars.WEB_BUCKET }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
     steps:
@@ -84,7 +84,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
           # Android installs an update only with a higher version code; every deploy run has a higher number.
-          ARTSPLIT_VERSION_CODE: ${{ github.run_number }}
+          KAPELUSZ_VERSION_CODE: ${{ github.run_number }}
         run: scripts/deploy.sh
 
       - name: GitHub Release
@@ -95,10 +95,10 @@ jobs:
         run: |
           # A re-run of the same deploy keeps its run number, and with it the release.
           if gh release view "build-$CODE" >/dev/null 2>&1; then exit 0; fi
-          FILE="$RUNNER_TEMP/art-split-$APK_VERSION_NAME-$CODE.apk"
+          FILE="$RUNNER_TEMP/kapelusz-$APK_VERSION_NAME-$CODE.apk"
           cp androidApp/build/outputs/apk/release/androidApp-release.apk "$FILE"
-          gh release create "build-$CODE" "$FILE" --target "$SHA" --title "Art Split $APK_VERSION_NAME (build $CODE)" \
-            --notes "Bandmates download it from https://artsplit.jacekgajek.com/download/art-split.apk"
+          gh release create "build-$CODE" "$FILE" --target "$SHA" --title "Kapelusz (Pass the Hat) $APK_VERSION_NAME (build $CODE)" \
+            --notes "Bandmates download it from https://kapelusz.jacekgajek.com/download/kapelusz.apk"
 
       - name: Remove keystore
         if: always()

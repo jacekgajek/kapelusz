@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The notification icon is looked up by name (from composeApp, which has no R class for it): resource shrinking
+     cannot see that use, so it is kept explicitly. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ic_notification" />

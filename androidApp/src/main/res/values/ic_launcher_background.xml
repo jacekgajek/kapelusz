@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Honey gold: the black hat and the green banknote both stand out on it, on light and dark home screens. -->
+    <color name="ic_launcher_background">#F5CB5C</color>
+</resources>

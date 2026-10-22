@@ -1,4 +1,4 @@
-rootProject.name = "art-split"
+rootProject.name = "kapelusz"
 
 pluginManagement {
     repositories {

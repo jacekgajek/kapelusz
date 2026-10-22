@@ -1,4 +1,4 @@
-# Art Split — Iteration 1
+# Kapelusz — Iteration 1
 
 A simple, CRM-style app for settling money between band members after concerts.
 It replaces the band's settlement spreadsheet; the cases from it live on as golden tests (§2.6).
@@ -192,7 +192,7 @@ A sync indicator next to the cog shows offline / syncing / errors; when the serv
   - Created on an *unlinked* member, with a chosen role (default Member).
   - Produces a **6-character code** from the alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ`. It is valid for **72 h** and single use.
   - A new code for the same member revokes the old one. Admins see active codes and can revoke them.
-  - The share sheet sends: "Join <Band> in Art Split: code ABC123 — https://artsplit.jacekgajek.com/join/ABC123". **Copy link** next to Share copies just the link.
+  - The share sheet sends: "Join <Band> in Kapelusz: code ABC123 — https://kapelusz.jacekgajek.com/join/ABC123". **Copy link** next to Share copies just the link.
 - **Join link** behaviour:
   - Android with the app installed: an App Link opens the app.
   - Otherwise: the web app opens, signs in with Google, and joins in the browser. Its banner suggests the Android app (§4.1).
@@ -239,7 +239,7 @@ A sync indicator next to the cog shows offline / syncing / errors; when the serv
        └─────────────────────────────► S3 jacekgajek-art-split-data ◄─────────────────┘
 ```
 
-### 5.1 Gradle modules (`com.jacekgajek.artsplit`)
+### 5.1 Gradle modules (`com.jacekgajek.kapelusz`)
 ```
 shared/      KMP (android, wasmJs, jvm). commonMain:
                model/   Band, Member, Guest, Event, Participant, Holding, Cost, Attachment,
@@ -252,7 +252,7 @@ composeApp/  KMP Compose Multiplatform library (android, wasmJs executable), com
              PL/EN string resources, navigation, view models, sync engine, local store
 androidApp/  Android application shell (MainActivity, manifest, signing) depending on composeApp
 server/      JVM Lambda (no web framework): Handler (API Gateway + SnapStart priming), Api (routes), Auth
-             (Google tokens), Sessions (Art Split session tokens), BlobStore (S3 with conditional writes, presigning)
+             (Google tokens), Sessions (Kapelusz session tokens), BlobStore (S3 with conditional writes, presigning)
 ```
 
 **Libraries:** Compose Multiplatform (Material 3, extended icons, resources), Navigation Compose, kotlinx.serialization, kotlinx.datetime, kotlinx.coroutines, and Ktor client (Android and JS engines). Android also uses Credential Manager + Google ID, activity-compose and ExifInterface. Server: AWS SDK for Java v2 (`s3` only, `UrlConnectionHttpClient`), nimbus-jose-jwt, CRaC. There is no DI framework and no view models: wiring is done by hand (`AppGraph`). Versions are pinned in `gradle/libs.versions.toml` (see §8 for the IDE constraints).
@@ -277,11 +277,11 @@ server/      JVM Lambda (no web framework): Handler (API Gateway + SnapStart pri
 - **Conflicts:** last write wins per field/entity, in server-received order. There is no other conflict resolution.
 
 ### 5.3 API
-All endpoints require `Authorization: Bearer <token>`: an **Art Split session token** (`as1.…`, from `POST /session`) or a **Google ID token**. For Google tokens the server verifies the signature (Google JWKS, cached), `iss`, `exp`, `email_verified`, and that `aud ∈ GOOGLE_CLIENT_IDS`; session tokens are HMAC-signed by the server and expire after 30 days. The user key is Google's `sub` either way. CORS preflights are answered without authentication.
+All endpoints require `Authorization: Bearer <token>`: a **Kapelusz session token** (`as1.…`, from `POST /session`) or a **Google ID token**. For Google tokens the server verifies the signature (Google JWKS, cached), `iss`, `exp`, `email_verified`, and that `aud ∈ GOOGLE_CLIENT_IDS`; session tokens are HMAC-signed by the server and expire after 30 days. The user key is Google's `sub` either way. CORS preflights are answered without authentication.
 
 | Method & path | Purpose |
 |---|---|
-| `POST /session` | with a Google ID token or a current session → `{token, expiresAt}` (Art Split session, 30 days) |
+| `POST /session` | with a Google ID token or a current session → `{token, expiresAt}` (Kapelusz session, 30 days) |
 | `GET /me` | profile + band list |
 | `POST /bands` | create band (caller = owner) |
 | `GET /bands/{id}/state` | state + version (ETag) |
@@ -310,7 +310,7 @@ server/session-key.json                   signing key of session tokens, created
 
 ### 5.5 Auth on clients
 - **Sign-in** gives a Google ID token: on **Android** via Credential Manager + Google ID (`serverClientId` = web client ID), on the **web** via Google Identity Services (the official button).
-- The app trades it for an **Art Split session** (`POST /session`, 30 days) and sends that with every request. Once a session is 10 days old, the app renews it with the session itself, so Google is asked only at sign-in or after a month unused. Renewing Google's one-hour token on Android can show the account picker, which is why the app does not rely on it.
+- The app trades it for a **Kapelusz session** (`POST /session`, 30 days) and sends that with every request. Once a session is 10 days old, the app renews it with the session itself, so Google is asked only at sign-in or after a month unused. Renewing Google's one-hour token on Android can show the account picker, which is why the app does not rely on it.
 - When there is no usable session (an older server, offline), the app falls back to the Google token. A silent Google renewal is tried at most once every 15 minutes, and a cached token handed back by Google does not count as renewed.
 - On a `401` the client refreshes once and retries; if that fails too, sync waits in "Sign in again" (same account only) instead of retrying.
 - Each device's data is stored per user, so another account signed in on the same device never sees it.
@@ -328,7 +328,7 @@ server/session-key.json                   signing key of session tokens, created
 
 ### 6.1 Terraform (`my-aws/terraform/art_split.tf`, already written, **applied manually by Jacek**)
 - `jacekgajek-art-split-data`: private, versioned (noncurrent versions expire after 30 d), CORS for presigned GET/PUT from the web origin and `http://localhost:8080`.
-- `jacekgajek-art-split-web` + CloudFront (OAC, SPA fallback to `index.html`) + ACM (us-east-1) + Route53 A/AAAA for `artsplit.jacekgajek.com`.
+- `jacekgajek-art-split-web` + CloudFront (OAC, SPA fallback to `index.html`) + ACM (us-east-1) + Route53 A/AAAA for `kapelusz.jacekgajek.com`.
 - Lambda `art-split-api`:
   - Created with a placeholder package. `ignore_changes` covers the code, so CI owns the code.
   - Alias `live`, also ignored, so CI moves it.
@@ -343,16 +343,16 @@ server/session-key.json                   signing key of session tokens, created
 - **`deploy.yml`** (runs after CI succeeds on a push to `main`, and deploys exactly the commit CI tested):
   1. AWS credentials through OIDC (`role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}`).
   2. **Fingerprints** of the release signing certificate (from the keystore secret) plus the optional debug one, for Android App Links. On failure it prints keytool's error, the keystore's aliases and the decoded keystore size.
-  3. `scripts/deploy.sh`, with the keystore and `ARTSPLIT_VERSION_CODE` = the Deploy run number:
+  3. `scripts/deploy.sh`, with the keystore and `KAPELUSZ_VERSION_CODE` = the Deploy run number:
      - builds `:server:shadowJar`, `:composeApp:wasmJsBrowserDistribution` (single `wasm-opt -O2` pass) and `:androidApp:assembleRelease` (R8, signed);
      - **API:** `update-function-code` → `wait function-updated` → `publish-version` (SnapStart snapshot) → `update-alias live`. Rollback = move the alias back;
      - **Web:** generates `/.well-known/assetlinks.json`, uploads new `*.wasm` (content-hashed names, immutable one-year cache) first, then everything else with `Cache-Control: no-cache`, then deletes old wasm files, so a page loaded mid-deploy never points at a missing file. `download/` is never deleted by the sync;
-     - **APK:** uploads `/download/art-split.apk`, then `/download/version.json` (`versionCode`, `versionName`);
+     - **APK:** uploads `/download/kapelusz.apk`, then `/download/version.json` (`versionCode`, `versionName`);
      - invalidates CloudFront `/*`.
   4. **GitHub Release** `build-N` with the APK attached, as a record (the repository is private, so bandmates download from the website).
-- **`scripts/deploy.sh`** runs the same steps locally with an AWS profile. Without `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ARTSPLIT_VERSION_CODE` it skips the APK and says so. A local version code must not exceed CI's next run number, or phones would not accept CI's later builds as updates.
-- **Versions:** the version code is the deploy run number; the version name is `artsplit.versionName` in `gradle.properties`, bumped by hand.
-- **Android updates:** on each fresh start, release builds read `/download/version.json`. If the published build is newer, the app shows "A new version of Art Split is available · Update", which downloads the APK in the browser; the user installs it. Dismissing hides that version only. It is not silent: that would need the Play Store.
+- **`scripts/deploy.sh`** runs the same steps locally with an AWS profile. Without `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `KAPELUSZ_VERSION_CODE` it skips the APK and says so. A local version code must not exceed CI's next run number, or phones would not accept CI's later builds as updates.
+- **Versions:** the version code is the deploy run number; the version name is `kapelusz.versionName` in `gradle.properties`, bumped by hand.
+- **Android updates:** on each fresh start, release builds read `/download/version.json`. If the published build is newer, the app shows "A new version of Kapelusz is available · Update", which downloads the APK in the browser; the user installs it. Dismissing hides that version only. It is not silent: that would need the Play Store.
 
 ### 6.3 Secrets and variables to configure (Jacek)
 Set them in Repo → Settings → Secrets and variables → Actions, or with `gh secret set` / `gh variable set`.
@@ -364,7 +364,7 @@ Set them in Repo → Settings → Secrets and variables → Actions, or with `gh
 | `API_URL` | Variable | `terraform output art_split_api_url` |
 | `WEB_BUCKET` | Variable | `terraform output art_split_web_bucket` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Variable | `terraform output art_split_cloudfront_distribution_id` |
-| `GOOGLE_WEB_CLIENT_ID` | Variable | Google Cloud Console → APIs & Services → Credentials → OAuth client "Web application". JS origins: `https://artsplit.jacekgajek.com`, `http://localhost:8080` |
+| `GOOGLE_WEB_CLIENT_ID` | Variable | Google Cloud Console → APIs & Services → Credentials → OAuth client "Web application". JS origins: `https://kapelusz.jacekgajek.com`, `http://localhost:8080` |
 | `ANDROID_KEYSTORE_BASE64` | Secret | `keytool -genkeypair -v -keystore artsplit.jks -alias artsplit -keyalg RSA -keysize 4096 -validity 10000`, then set it straight from the file: `gh secret set ANDROID_KEYSTORE_BASE64 < <(base64 -w0 artsplit.jks)` (a pasted value can get truncated; keytool then reports `EOFException`). **Back up the .jks** (it is git-ignored in the repo folder). |
 | `ANDROID_KEYSTORE_PASSWORD` | Secret | from keytool |
 | `ANDROID_KEY_ALIAS` | Variable | `artsplit` |
@@ -373,17 +373,17 @@ Set them in Repo → Settings → Secrets and variables → Actions, or with `gh
 
 **Google sign-in setup (one-time, free, ~15 min, no billing account needed):**
 1. Open https://console.cloud.google.com, sign in with your normal Google account, and accept the terms.
-2. Project picker → **New project** → name it `Art Split`.
+2. Project picker → **New project** → name it `Kapelusz`.
 3. **Google Auth Platform → Get started** (older UI: "OAuth consent screen"):
-   - App name `Art Split`, support email = yours, Audience **External**, contact email = yours.
+   - App name `Kapelusz`, support email = yours, Audience **External**, contact email = yours.
    - Request only the default scopes (`openid`, `email`, `profile`). These are non-sensitive, so no Google verification is needed.
    - **Audience → Publish app**, so any Google account can sign in. Otherwise every bandmate must be added as a test user.
 4. **Clients → Create client → Web application:**
-   - Authorized JavaScript origins: `https://artsplit.jacekgajek.com` and `http://localhost:8080`.
+   - Authorized JavaScript origins: `https://kapelusz.jacekgajek.com` and `http://localhost:8080`.
    - No redirect URIs.
    - Copy the client ID: it goes into the `GOOGLE_WEB_CLIENT_ID` variable and into `art_split_google_client_ids`.
 5. **Clients → Create client → Android** (do this twice):
-   - Package `com.jacekgajek.artsplit`.
+   - Package `com.jacekgajek.kapelusz`.
    - First client: the SHA-1 from `keytool -list -v -keystore artsplit.jks` (release builds).
    - Second client: the SHA-1 from `keytool -list -v -keystore ~/.android/debug.keystore -storepass android` (local debug builds).
    - These clients only register the app's identity. Their IDs are not used in code.
@@ -443,7 +443,7 @@ Workflow:
 ### M5 — Extras
 - [x] M5.1 Band fund: treasurer setting, fund amount, fund transfers, manual entries, cost refunds from fund
 - [x] M5.2 Attachments: image compression, PDFs, presigned upload/download, offline queue
-- [x] M5.3 Signed release APK published on the website (`/download/art-split.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
+- [x] M5.3 Signed release APK published on the website (`/download/kapelusz.apk` + `version.json`) and attached to a GitHub Release, plus in-app update check
 - [x] M5.4 Polish: empty states, error states, accessibility pass
 - [x] M5.5 Rename the band in Settings (admin+; `RenameBand` operation already exists)
 - [x] M5.6 "Copy link" button next to Share on an invite
@@ -452,7 +452,7 @@ Workflow:
 ### After M5 (still iteration 1)
 - [x] Coarser cost filter (Pending / Refunded / All, default Pending); switch to All members after adding a cost for someone else
 - [x] Fix: event fund amount edited with a direction toggle instead of a minus sign
-- [x] Fix: Google account picker popping up during syncs on Android; then Art Split server sessions (§5.5)
+- [x] Fix: Google account picker popping up during syncs on Android; then Kapelusz server sessions (§5.5)
 - [x] Fix: a waiting attachment file was discarded on a generic 404 (older server)
 - [x] Short, readable web addresses (§4.7)
 - [x] Explicit band fund on/off switch (§2.5)
