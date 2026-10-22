@@ -40,6 +40,7 @@ import com.jacekgajek.kapelusz.app.generated.reject_fund_not_empty
 import com.jacekgajek.kapelusz.app.generated.reject_not_undoable
 import com.jacekgajek.kapelusz.app.generated.reject_changed_since
 import com.jacekgajek.kapelusz.app.generated.reject_limit_reached
+import com.jacekgajek.kapelusz.app.generated.reject_storage_failed
 import com.jacekgajek.kapelusz.app.generated.reject_treasurer_must_stay
 import com.jacekgajek.kapelusz.app.generated.reject_user_already_member
 import com.jacekgajek.kapelusz.app.generated.role_admin
@@ -135,4 +136,5 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.NOT_UNDOABLE -> Res.string.reject_not_undoable
     RejectionReason.CHANGED_SINCE -> Res.string.reject_changed_since
     RejectionReason.LIMIT_REACHED -> Res.string.reject_limit_reached
+    RejectionReason.STORAGE_FAILED -> Res.string.reject_storage_failed
 }

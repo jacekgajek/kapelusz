@@ -45,10 +45,23 @@ class AttachmentUploads(
     }
 
     /** Keeps [base64] on the device until [upload] reaches the server. Call after its `AddAttachment` was applied. */
+    /** Attachments whose file is queued but whose operation is not dispatched yet: not "removed", just not there yet. */
+    private val attaching = mutableSetOf<Id>()
+
+    /**
+     * Stores the file and queues it, before the attachment is published (ITERATION_3 R4): published first, a crash
+     * or a full device would leave everyone an attachment without a file. Throws when it cannot be stored; call
+     * [published] once the operation is dispatched (or refused).
+     */
     suspend fun enqueue(upload: PendingUpload, base64: String) = lock.withLock {
-        val user = userId ?: return@withLock
+        val user = checkNotNull(userId) { "Not signed in" }
+        attaching += upload.attachmentId
         store.write(fileKey(user, upload.attachmentId), base64)
         save(user, _pending.value + upload)
+    }
+
+    fun published(attachmentId: Id) {
+        attaching -= attachmentId
     }
 
     fun bandsWithUploads(): List<Id> = _pending.value.map { it.bandId }.distinct()
@@ -62,6 +75,7 @@ class AttachmentUploads(
             // The band is gone from this device (deleted, or access lost): its files have nowhere to go.
             val local = bands.local(bandId) ?: run { drop(upload); null } ?: continue
             if (local.pending.any { (it.op as? AddAttachment)?.attachment?.id == upload.attachmentId }) continue // not pushed yet
+            if (upload.attachmentId in attaching) continue // its operation is being dispatched right now
             val onServer = local.base.cost(upload.costId)?.attachments?.any { it.id == upload.attachmentId } == true
             if (!onServer) {
                 drop(upload)

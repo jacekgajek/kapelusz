@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.data
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.auth.Actor
@@ -96,9 +98,12 @@ class BandRepository(
         locals.clear()
         dirty.clear()
         migrateUnscopedKeys(userId)
-        val index = store.read(indexKey(userId))
-            ?.let { raw -> runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
-            ?: BandIndex(userId)
+        val rawIndex = store.read(indexKey(userId))
+        val index = rawIndex?.let { raw -> runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
+            ?: BandIndex(userId).also {
+                // Never lose the only copy (ITERATION_3 R4): bands it listed are found again through the server's list.
+                if (rawIndex != null) store.write("${indexKey(userId)}-backup-${clock()}", rawIndex)
+            }
         _index.value = index
         adoptLegacyBand(userId)
         // Every stored band, not only the open one: bands created offline must still be uploaded, and unsent changes
@@ -163,11 +168,14 @@ class BandRepository(
      * Keeps a band the user belongs to on this device without opening it (background sync, ITERATION_2 §5.1); an open
      * band is left to the regular sync.
      */
-    fun storeFromServer(band: Band, version: String) {
+    suspend fun storeFromServer(band: Band, version: String) {
         val owner = userId ?: return
         if (band.id in locals) return
-        locals[band.id] = LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
-        persist(band.id)
+        // Already on the device (e.g. missing from an unreadable index): its unsent changes must not be overwritten
+        // (ITERATION_3 R4); the regular sync rebases them on the server's state.
+        val stored = runCatching { readLocal(band.id, reportUnreadable = false) }.getOrNull()
+        locals[band.id] = stored ?: LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
+        if (stored == null) persist(band.id)
     }
 
     /** Every band on this device as the user sees it (with unsent changes), e.g. for reminders. */
@@ -353,13 +361,42 @@ class BandRepository(
      */
     suspend fun flush() = writeLock.withLock {
         val user = userId ?: return@withLock
-        for (bandId in dirty.toList()) {
-            dirty -= bandId
-            locals[bandId]?.let { store.write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), it)) }
-        }
+        // The index first: it then lists every band that has a file, also after a crash between the writes.
         if (indexDirty) {
             indexDirty = false
-            _index.value?.let { store.write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), it)) }
+            _index.value?.let { index ->
+                if (!write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), index))) indexDirty = true
+            }
+        }
+        for (bandId in dirty.toList()) {
+            dirty -= bandId
+            locals[bandId]?.let { local ->
+                if (!write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), local))) dirty += bandId
+            }
+        }
+        if (dirty.isNotEmpty() || indexDirty) retryFlush()
+    }
+
+    /** False when the device could not store it (e.g. full): it stays marked as unsaved instead of being forgotten. */
+    private suspend fun write(key: String, value: String): Boolean = try {
+        store.write(key, value)
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        println("Could not store $key: $e")
+        false
+    }
+
+    private var retrying = false
+
+    private fun retryFlush() {
+        if (retrying) return
+        retrying = true
+        scope.launch {
+            delay(FLUSH_RETRY_MS)
+            retrying = false
+            flush()
         }
     }
 
@@ -370,6 +407,9 @@ class BandRepository(
     companion object {
         /** Before multi-band support (M2) the only band lived under this key. */
         const val LEGACY_KEY = "band"
+
+        /** How soon a write that failed (e.g. a full device) is tried again. */
+        const val FLUSH_RETRY_MS = 30_000L
 
         /** M3 stored the index without the user id. */
         const val UNSCOPED_INDEX_KEY = "band-index"

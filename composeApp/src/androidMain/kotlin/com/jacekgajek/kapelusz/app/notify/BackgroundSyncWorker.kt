@@ -8,6 +8,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -55,6 +56,22 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
                 PERIODIC,
                 ExistingPeriodicWorkPolicy.KEEP,
                 PeriodicWorkRequestBuilder<BackgroundSyncWorker>(4, TimeUnit.HOURS).setConstraints(network).build(),
+            )
+        }
+
+        /**
+         * A sync as soon as there is a network, for changes still on this device when the app leaves the screen
+         * (ITERATION_3 R4): the foreground sync stops there, and the periodic one may be hours away.
+         */
+        fun syncSoon(context: Context) {
+            val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "sync-soon",
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<BackgroundSyncWorker>()
+                    .setConstraints(network)
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .build(),
             )
         }
 
