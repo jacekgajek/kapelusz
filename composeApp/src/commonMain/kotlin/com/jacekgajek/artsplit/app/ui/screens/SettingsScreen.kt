@@ -39,7 +39,8 @@ import com.jacekgajek.artsplit.app.generated.diag_test_set
 import com.jacekgajek.artsplit.app.generated.diag_test
 import com.jacekgajek.artsplit.app.generated.diag_none_scheduled
 import com.jacekgajek.artsplit.app.generated.diag_open_settings
-import com.jacekgajek.artsplit.app.generated.diag_battery
+import com.jacekgajek.artsplit.app.generated.diag_battery_optimised
+import com.jacekgajek.artsplit.app.generated.diag_battery_unrestricted
 import com.jacekgajek.artsplit.app.generated.diag_notifications
 import com.jacekgajek.artsplit.app.generated.diag_reminders
 import kotlinx.datetime.toLocalDateTime
@@ -469,8 +470,12 @@ private fun ReminderChecks(checks: ReminderDiagnostics) {
         color = if (ok) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
     )
     check(checks.notificationsAllowed, Res.string.diag_notifications)
-    check(checks.batteryUnrestricted, Res.string.diag_battery)
-    if (!checks.batteryUnrestricted) TextButton(onClick = checks.openAppSettings) { Text(stringResource(Res.string.diag_open_settings)) }
+    // Information, not a fault: optimised is Android's default, and reminders arrive with it (tested on realme).
+    Text(
+        stringResource(if (checks.batteryUnrestricted) Res.string.diag_battery_unrestricted else Res.string.diag_battery_optimised),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    TextButton(onClick = checks.openAppSettings) { Text(stringResource(Res.string.diag_open_settings)) }
     if (checks.scheduled.isEmpty()) Text(stringResource(Res.string.diag_none_scheduled), style = MaterialTheme.typography.bodySmall)
     checks.scheduled.take(5).forEach { (millis, name) -> Text("${at(millis)} · $name", style = MaterialTheme.typography.bodySmall) }
     OutlinedButton(onClick = {

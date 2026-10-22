@@ -472,7 +472,6 @@
     <string name="history_undone">cofnięte</string>
     <string name="diag_reminders">Przypomnienia o koncertach na tym telefonie</string>
     <string name="diag_notifications">Powiadomienia dozwolone</string>
-    <string name="diag_battery">Bez ograniczeń optymalizacji baterii</string>
     <string name="diag_open_settings">Otwórz ustawienia aplikacji</string>
     <string name="diag_none_scheduled">Brak zaplanowanych przypomnień.</string>
     <string name="diag_test">Testowe przypomnienie za minutę</string>
@@ -489,4 +488,6 @@
     <string name="fund_explanation">Kasa zespołowa to pieniądze, które zespół trzyma razem, np. na sprzęt, nagrania czy dojazdy. Wydarzenie może odłożyć do niej część dochodu (albo z niej dopłacić), a koszty można z niej zwracać. Pieniądze trzyma jedna osoba, skarbnik; aplikacja pilnuje, ile jest w kasie.</string>
     <string name="settings_band">Zespół</string>
     <string name="settings_personal">Osobiste</string>
+    <string name="diag_battery_optimised">Bateria: optymalizowana (domyślne w Androidzie)</string>
+    <string name="diag_battery_unrestricted">Bateria: bez ograniczeń</string>
 </resources>
