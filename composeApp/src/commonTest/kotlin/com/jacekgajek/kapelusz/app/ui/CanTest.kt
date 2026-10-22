@@ -51,4 +51,15 @@ class CanTest {
         assertTrue(Can(band, "u-owner").manageRoster())
         assertTrue(Can(band, "u-owner").transferOwnership())
     }
+
+    /** "Add cost" in an event: a lead adds for any participant, a member only when taking part themselves. */
+    @Test
+    fun addingACostInAnEventNeedsSomeoneInIt() {
+        val other = band.apply(CreateEvent("o", "Other gig", LocalDate(2026, 9, 14), participants = listOf(Participant("owner"))))
+        assertTrue(Can(other, "u-lead").addCostIn(other.event("e")!!))
+        assertTrue(Can(other, "u-member").addCostIn(other.event("e")!!))
+        assertTrue(Can(other, "u-lead").addCostIn(other.event("o")!!), "a lead adds it for the owner")
+        assertFalse(Can(other, "u-member").addCostIn(other.event("o")!!), "not in it")
+        assertFalse(Can(other, "u-viewer").addCostIn(other.event("e")!!))
+    }
 }
