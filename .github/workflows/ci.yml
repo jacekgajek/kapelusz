@@ -23,12 +23,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
-      # Two steps, not one: tests (with headless Chrome for the web ones) and the optimised builds at the same time
-      # ran the runner out of memory (killed with exit code 143).
+      # Tests (with headless Chrome for the web ones) and the optimised builds in separate steps: all at once ran the
+      # runner out of memory.
       - name: Test
         run: ./gradlew check
 
       - name: Build
         # The same optimised builds deploy ships (ITERATION_3 R11): the production web bundle (with wasm-opt) and the
         # (unsigned) release APK with R8, so their failures show before a merge.
-        run: ./gradlew --max-workers=2 :androidApp:assembleDebug :androidApp:assembleRelease :composeApp:wasmJsBrowserDistribution :server:shadowJar
+        # R8 and the production wasm compile each need several GB: one after the other, with memory logged meanwhile.
+        run: |
+          (while sleep 15; do echo "memory: $(free -m | awk '/Mem:/ {print $3 " MB used, " $7 " MB available"}')"; done) &
+          ./gradlew :androidApp:assembleDebug :androidApp:assembleRelease :server:shadowJar
+          ./gradlew :composeApp:wasmJsBrowserDistribution
