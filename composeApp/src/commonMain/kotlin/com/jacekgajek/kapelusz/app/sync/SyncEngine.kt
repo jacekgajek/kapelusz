@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.BandRepository
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.OpEnvelope
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -31,6 +33,12 @@ import kotlinx.serialization.SerializationException
 
 /** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
 data class LostBand(val name: String, val deleted: Boolean)
+
+/**
+ * A band whose push the server refuses as a whole (ITERATION_3 R9), e.g. too many devices or a band grown too large:
+ * sending it again cannot help. [message] is the server's.
+ */
+data class StuckPush(val status: Int, val code: String, val message: String)
 
 enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, UPDATE_REQUIRED, ERROR }
 
@@ -62,6 +70,14 @@ class SyncEngine(
 
     /** Bands the user can no longer access (removed from the band, or the band was deleted). */
     val lostAccess: SharedFlow<LostBand> = _lostAccess.asSharedFlow()
+
+    private val _stuck = MutableStateFlow<Map<Id, StuckPush>>(emptyMap())
+
+    /**
+     * Bands whose unsent changes the server refuses as a whole (ITERATION_3 R9): their push is not retried until the
+     * user discards them or the app starts again; pulls go on. Shown with an export or discard choice.
+     */
+    val stuck: StateFlow<Map<Id, StuckPush>> = _stuck.asStateFlow()
 
     private val runLock = Mutex()
     private val wakeUp = Channel<Unit>(1, BufferOverflow.DROP_OLDEST)
@@ -219,6 +235,20 @@ class SyncEngine(
         for (bandId in unlisted) syncBand(bandId, pull = true)
     }
 
+    /**
+     * Drops the unsent changes of a [stuck] band (a backup stays on the device, ITERATION_3 R9) and shows the band as
+     * the server has it; new changes are pushed again.
+     */
+    suspend fun discardStuck(bandId: Id) {
+        runLock.withLock {
+            bands.discardPending(bandId)
+            _stuck.update { it - bandId }
+            // Offline: the next sync pulls it.
+            runSuspendCatching { pullBand(bandId) }
+        }
+        requestSync()
+    }
+
     /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */
     suspend fun download(bandId: Id) {
         val response = api.state(bandId, null) ?: return
@@ -235,10 +265,20 @@ class SyncEngine(
             val created = api.createBand(CreateBandRequest(local.base.id, local.base.name, local.base.currency, owner.id, owner.name))
             bands.onCreated(bandId, created.band, created.version)
         }
+        // Refused as a whole before: not again until the user decides (ITERATION_3 R9).
+        if (bandId in _stuck.value) return
         while (true) {
             val batch = batchOf(bands.local(bandId)?.pending.orEmpty())
             if (batch.isEmpty()) return
-            val response = api.push(bandId, batch)
+            val response = try {
+                api.push(bandId, batch)
+            } catch (e: ApiException) {
+                // The request itself refused (not single operations): the same push would be refused again.
+                if (e.status != 400 && e.status != 413) throw e
+                _stuck.update { it + (bandId to StuckPush(e.status, e.code, e.message.orEmpty())) }
+                return
+            }
+            _stuck.update { it - bandId }
             bands.onPushed(bandId, response)
             response.rejected.values.forEach { _rejections.tryEmit(it) }
             val handled = (response.accepted + response.rejected.keys + response.duplicates).toSet()

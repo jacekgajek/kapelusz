@@ -91,6 +91,11 @@ class ApiClient(
     suspend fun createSession(bearer: String): SessionResponse =
         parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
 
+    /** "Sign out on all devices" (ITERATION_3 R6): the server refuses every session of the user begun before now. */
+    suspend fun revokeSessions() {
+        text(send(HttpMethod.Post, "/sessions/revoke") {})
+    }
+
     suspend fun createBand(request: CreateBandRequest): BandStateResponse =
         call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = KapeluszJson.encodeToString(CreateBandRequest.serializer(), request))
 

@@ -6,11 +6,12 @@ import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PictureRequest
 import com.jacekgajek.kapelusz.api.SessionResponse
 
-/** `/me` and `/session`, and the user records (band lists, photos) the other handlers keep up to date. */
+/** `/me`, `/session` and `/sessions/revoke`, and the user records (band lists, photos) the other handlers keep up to date. */
 internal class UserHandlers(
     private val store: BlobStore,
     private val verifier: TokenVerifier,
     private val sessions: SessionTokens,
+    private val revocations: SessionRevocations,
     private val clock: () -> Long,
     private val bands: BandAccess,
 ) {
@@ -41,6 +42,12 @@ internal class UserHandlers(
         user.picture?.let { picture -> runCatching { rememberPicture(user.userId, picture) }.onFailure { System.err.println("Could not update the photo: $it") } }
         val (token, expiresAt) = sessions.issue(user)
         return ok(SessionResponse.serializer(), SessionResponse(token, expiresAt))
+    }
+
+    /** "Sign out on all devices" (ITERATION_3 R6): every session of the user so far, this one included, stops working. */
+    fun revokeSessions(user: VerifiedUser): HttpResponse {
+        revocations.revoke(user.userId)
+        return HttpResponse(204)
     }
 
     fun loadUser(userId: String): UserRecord =

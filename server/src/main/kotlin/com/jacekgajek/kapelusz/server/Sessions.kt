@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -83,5 +84,52 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
         private val random = SecureRandom()
         private val encoder = Base64.getUrlEncoder().withoutPadding()
         private val decoder = Base64.getUrlDecoder()
+    }
+}
+
+/**
+ * "Signed out everywhere" (ITERATION_3 R6): session tokens whose chain began ([VerifiedUser.sessionSince]) before the
+ * user's [UserRecord.sessionsValidFrom] are refused, on every request and on renewal. A Google sign-in afterwards
+ * starts a new chain (its `since` is the time of that sign-in), so it works again.
+ *
+ * Google ID tokens are not affected: the app uses one only briefly, to get a session, and it expires within the hour.
+ *
+ * The time is kept in memory for at most [CACHE_MS] per user, so a request needs no extra read: other Lambda instances
+ * may accept an old token for up to that long after a revoke; the instance that made it refuses it at once.
+ */
+class SessionRevocations(private val store: BlobStore, private val clock: () -> Long) {
+    private class Cached(val validFrom: Long, val readAt: Long)
+
+    private val cache = ConcurrentHashMap<String, Cached>()
+
+    /** Whether a session of [userId] begun at [since] is still valid. */
+    fun isValid(userId: String, since: Long): Boolean = since >= validFrom(userId)
+
+    /** Every session of [userId] begun before now stops working. */
+    fun revoke(userId: String) {
+        val key = StorageKeys.user(userId)
+        val now = clock()
+        val validFrom = retryOnConflict(exhausted = { throw busy("Could not update the user record") }) {
+            val blob = store.get(key)
+            val record = blob?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
+            // Never earlier than a revoke already stored (e.g. another device's, a moment later by its clock).
+            if (record.sessionsValidFrom >= now) return@retryOnConflict record.sessionsValidFrom
+            store.put(key, encode(UserRecord.serializer(), record.copy(sessionsValidFrom = now)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+            now
+        }
+        cache[userId] = Cached(validFrom, now)
+    }
+
+    private fun validFrom(userId: String): Long {
+        val now = clock()
+        cache[userId]?.takeIf { now - it.readAt < CACHE_MS }?.let { return it.validFrom }
+        val validFrom = store.get(StorageKeys.user(userId))?.let { decode(UserRecord.serializer(), it.content).sessionsValidFrom } ?: 0
+        cache[userId] = Cached(validFrom, now)
+        return validFrom
+    }
+
+    companion object {
+        /** How long a Lambda instance trusts what it read; a revoke reaches the others at most this late. */
+        const val CACHE_MS = 60_000L
     }
 }

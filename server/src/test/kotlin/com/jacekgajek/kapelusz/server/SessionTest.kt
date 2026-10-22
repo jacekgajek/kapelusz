@@ -78,4 +78,42 @@ class SessionTest {
         assertEquals(401, call("POST", "/session", token).status)
         assertEquals(200, call("POST", "/session", "google-alice").status, "a fresh Google sign-in starts a new chain")
     }
+
+    /** ITERATION_3 R6: "sign out on all devices" ends every session begun before it, for this user only. */
+    @Test
+    fun revokingEndsEverySessionOfTheUserButNotNewSignIns() {
+        val phone = session("google-alice").token
+        now += 1000
+        val laptop = session("google-alice").token
+        val bob = session("google-bob").token
+        now += 1000
+
+        assertEquals(204, call("POST", "/sessions/revoke", phone).status)
+        assertEquals(401, call("GET", "/me", phone).status)
+        assertEquals(401, call("GET", "/me", laptop).status)
+        assertEquals(401, call("POST", "/session", laptop).status, "nor can it be renewed")
+        assertEquals(200, call("GET", "/me", bob).status, "another user is not affected")
+
+        // A Google sign-in in the same millisecond as the revoke starts a valid session.
+        val fresh = session("google-alice").token
+        assertEquals(200, call("GET", "/me", fresh).status)
+        now += 1000
+        assertEquals(200, call("GET", "/me", session(fresh).token).status, "and it renews")
+    }
+
+    @Test
+    fun anotherInstanceLearnsOfTheRevokeWithinAMinute() {
+        val token = session("google-alice").token
+        val other = Api(store, { null }, clock = { now })
+        assertEquals(200, other.handle(HttpRequest("GET", "/me", mapOf("authorization" to "Bearer $token"))).status)
+        now += 1000
+        assertEquals(204, call("POST", "/sessions/revoke", token).status)
+        assertEquals(now, KapeluszJson.decodeFromString(UserRecord.serializer(), store.get(StorageKeys.user("alice"))!!.content).sessionsValidFrom)
+        // The other instance read the time before the revoke and trusts it for up to a minute ...
+        now += SessionRevocations.CACHE_MS - 1001
+        assertEquals(200, other.handle(HttpRequest("GET", "/me", mapOf("authorization" to "Bearer $token"))).status)
+        // ... then reads it again.
+        now += 1
+        assertEquals(401, other.handle(HttpRequest("GET", "/me", mapOf("authorization" to "Bearer $token"))).status)
+    }
 }

@@ -90,7 +90,7 @@ object ApiErrors {
     /** The request is malformed or breaks a limit (`400`). */
     const val BAD_REQUEST = "bad_request"
 
-    /** No token, or an invalid or expired one (`401`); also a session too old to renew. */
+    /** No token, or an invalid or expired one (`401`); also a session too old to renew, or ended by "sign out on all devices". */
     const val UNAUTHORIZED = "unauthorized"
 
     /** The caller's role does not allow this (`403`). */

@@ -23,8 +23,9 @@ class Api(
     private val minAppVersion: Int = 0,
     maxBandChars: Int = MAX_BAND_CHARS,
 ) {
+    private val revocations = SessionRevocations(store, clock)
     private val bands = BandAccess(store)
-    private val users = UserHandlers(store, verifier, sessions, clock, bands)
+    private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands)
     private val history = HistoryHandlers(store, clock, bands)
     private val attachments = AttachmentHandlers(store, bands)
     private val invites = InviteHandlers(store, clock, bands, users, history)
@@ -63,6 +64,7 @@ class Api(
             method == "POST" && segments == listOf("me", "calendar") ->
                 calendar.subscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))
             method == "POST" && segments == listOf("session") -> users.session(user)
+            method == "POST" && segments == listOf("sessions", "revoke") -> users.revokeSessions(user)
             method == "POST" && segments == listOf("bands") -> bandHandlers.create(user, parse(request, CreateBandRequest.serializer()))
             method == "GET" && bandPath && segments[2] == "state" -> bandHandlers.state(user, segments[1], request.header("if-none-match"))
             method == "POST" && bandPath && segments[2] == "ops" -> bandHandlers.push(user, segments[1], parse(request, PushRequest.serializer()))
@@ -99,7 +101,12 @@ class Api(
             ?: throw ApiError(401, ApiErrors.UNAUTHORIZED, "Missing bearer token")
         // Kapelusz sessions are recognised by their prefix; anything else must be a Google ID token.
         val user = if (token.startsWith(SessionTokens.PREFIX)) sessions.verify(token) else verifier.verify(token)
-        return user ?: throw ApiError(401, ApiErrors.UNAUTHORIZED, "Invalid or expired token")
+        user ?: throw ApiError(401, ApiErrors.UNAUTHORIZED, "Invalid or expired token")
+        // A session from before "sign out on all devices" (ITERATION_3 R6); also refuses renewing it.
+        user.sessionSince?.let { since ->
+            if (!revocations.isValid(user.userId, since)) throw ApiError(401, ApiErrors.UNAUTHORIZED, "Signed out on all devices; sign in again")
+        }
+        return user
     }
 
     companion object {

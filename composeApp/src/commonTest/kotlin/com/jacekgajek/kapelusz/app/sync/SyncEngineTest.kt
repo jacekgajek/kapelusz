@@ -74,6 +74,10 @@ private class FakeServer {
     var offline = false
     val tokensSeen = mutableListOf<String>()
 
+    /** Bands whose pushes are refused as a whole (`400`), e.g. too many devices. */
+    val refusePushes = mutableSetOf<String>()
+    val pushedBands = mutableListOf<String>()
+
     /** Answers /me with something that is not its JSON (a proxy's page, a broken deploy). */
     var unreadableMe = false
 
@@ -118,8 +122,13 @@ private class FakeServer {
                 if (request.headers[HttpHeaders.IfNoneMatch] == "v$version") respond("", HttpStatusCode.NotModified)
                 else ok(BandStateResponse.serializer(), BandStateResponse("v$version", band))
             }
+            path.endsWith("/ops") && bandInPath in refusePushes -> {
+                pushedBands += bandInPath!!
+                respond("""{"error":"too_many_devices","message":"Too many devices"}""", HttpStatusCode.BadRequest, json)
+            }
             path.endsWith("/ops") -> {
                 val bandId = path.split('/')[2]
+                pushedBands += bandId
                 val push = KapeluszJson.decodeFromString(PushRequest.serializer(), body!!)
                 val result = Engine.applyBatch(bands.getValue(bandId), Actor.User(user), push.ops)
                 bands[bandId] = result.band
@@ -504,5 +513,52 @@ class SyncEngineTest {
         assertEquals("Joined elsewhere", repository.local("elsewhere")?.base?.name, "downloaded")
         assertEquals(open, repository.currentBandId, "the open band stays open")
         assertEquals(setOf("Open band", "Joined elsewhere"), repository.allBands().map { it.name }.toSet())
+    }
+
+    /** ITERATION_3 R9: a push the server always refuses is reported, not retried, and can be discarded. */
+    @Test
+    fun aPushRefusedAsAWholeIsStuckUntilDiscarded() = runTest {
+        val server = FakeServer()
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, { "id${nextId++}" }, clock = { 7 })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { "alice:0" }, repository, this)
+        repository.load("alice")
+        repository.createBand("Stuck Band", "PLN", "Alice")
+        val stuck = repository.currentBandId!!
+        repository.createBand("Other Band", "PLN", "Alice")
+        val other = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+
+        server.refusePushes += stuck
+        repository.open(stuck)
+        repository.dispatch(RenameBand("Never sent"))
+        repository.open(other)
+        repository.dispatch(RenameBand("Other renamed"))
+        assertTrue(sync.syncNow())
+        assertEquals(StuckPush(400, "too_many_devices", "Too many devices"), sync.stuck.value[stuck])
+        assertEquals("Other renamed", server.bands.getValue(other).name, "other bands still sync")
+        assertEquals(setOf(stuck), sync.stuck.value.keys)
+
+        // Not sent again in later rounds, while the band is still pulled.
+        repository.open(stuck)
+        server.serverSide(stuck, AddMember("bob", "Bob"))
+        server.pushedBands.clear()
+        assertTrue(sync.syncNow())
+        assertEquals(emptyList(), server.pushedBands)
+        assertTrue(assertIs<BandState.Ready>(repository.state.value).band.members.any { it.name == "Bob" })
+        val exported = repository.pendingAsJson(stuck)
+        assertTrue(repository.local(stuck)!!.pending.single().opId in exported && "Never sent" in exported)
+
+        sync.discardStuck(stuck)
+        assertEquals(emptyMap(), sync.stuck.value)
+        assertEquals(emptyList(), repository.local(stuck)!!.pending)
+        assertEquals("Stuck Band", assertIs<BandState.Ready>(repository.state.value).band.name)
+        assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", stuck) + "-unsent-") }, "a backup is kept")
+
+        server.refusePushes.clear()
+        repository.dispatch(RenameBand("Sent at last"))
+        assertTrue(sync.syncNow())
+        assertEquals("Sent at last", server.bands.getValue(stuck).name)
+        assertEquals(emptyList(), repository.local(stuck)!!.pending)
     }
 }

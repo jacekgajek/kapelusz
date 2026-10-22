@@ -159,6 +159,15 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /**
+     * "Sign out on all devices" (ITERATION_3 R6): the server ends every session of the user, this device's included,
+     * then this device signs out as [signOut] does. Throws (and stays signed in) when the server could not be told.
+     */
+    suspend fun signOutEverywhere() {
+        api.revokeSessions()
+        signOut()
+    }
+
+    /**
      * Deletes the open band for everyone (owner only; needs the server, except for a band never uploaded). Network
      * errors and refusals surface as exceptions; on success the band is gone from this device too.
      */
@@ -166,6 +175,14 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         val bandId = bands.currentBandId ?: return
         if (bands.local(bandId)?.needsCreate != true) api.deleteBand(bandId)
         bands.forgetDeleted(bandId)
+    }
+
+    /**
+     * Discards the unsent changes of a band the server refuses them for (ITERATION_3 R9); in the app scope, since the
+     * banner asking for it leaves as soon as the band is no longer stuck.
+     */
+    fun discardStuck(bandId: String) {
+        scope.launch { sync.discardStuck(bandId) }
     }
 
     /** Changes or attachment files still waiting to be sent to the server. */

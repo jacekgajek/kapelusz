@@ -56,6 +56,7 @@ import com.jacekgajek.kapelusz.app.ui.RosterRoute
 import com.jacekgajek.kapelusz.app.ui.SettingsRoute
 import com.jacekgajek.kapelusz.app.ui.SettleRoute
 import com.jacekgajek.kapelusz.app.ui.components.AndroidAppBanner
+import com.jacekgajek.kapelusz.app.ui.components.StuckPushBanner
 import com.jacekgajek.kapelusz.app.ui.components.labelRes
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.Can
@@ -137,7 +138,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     LaunchedEffect(fundEnabled) {
         if (!fundEnabled && navController.currentDestination?.hasRoute(FundRoute::class) == true) navController.resetTo(EventsRoute)
     }
-    MainScaffold(navController, graph, tabs) {
+    MainScaffold(navController, graph, state.band.id, tabs) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
             composable<EventsRoute> {
                 EventsScreen(graph, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
@@ -166,6 +167,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     account = session?.let { it.email ?: it.name },
                     accountPicture = state.me?.pictureUrl,
                     onSignOut = { scope.launch { graph.signOut() } },
+                    onSignOutEverywhere = { graph.signOutEverywhere() },
                     bandName = state.band.name,
                     onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(RenameBand("probe")) },
@@ -220,7 +222,7 @@ internal fun NavHostController.resetTo(route: Any) = navigate(route) {
 
 /** Bottom navigation on phones, a rail on wide screens; shown only on the tab screens. */
 @Composable
-private fun MainScaffold(navController: NavHostController, graph: AppGraph, tabs: List<Tab>, content: @Composable () -> Unit) {
+private fun MainScaffold(navController: NavHostController, graph: AppGraph, bandId: String, tabs: List<Tab>, content: @Composable () -> Unit) {
     val entry by navController.currentBackStackEntryAsState()
     // Changes the server refused during sync (e.g. a role changed meanwhile).
     val snackbar = remember { SnackbarHostState() }
@@ -230,6 +232,8 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, tabs
         graph.sync.rejections.collect { snackbar.showSnackbar("$refusedPrefix ${reasonTexts.getValue(it.reason)}") }
     }
     val current = Tab.entries.firstOrNull { tab -> entry?.destination?.hasRoute(tab.route::class) == true }
+    // Changes the server refuses as a whole (ITERATION_3 R9).
+    val stuck = graph.sync.stuck.collectAsState().value[bandId]
     fun select(tab: Tab) = navController.navigate(tab.route) {
         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
@@ -242,6 +246,9 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, tabs
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 Column {
+                    if (current != null && stuck != null) {
+                        StuckPushBanner(stuck, { graph.bands.pendingAsJson(bandId) }, { graph.discardStuck(bandId) }, { snackbar.showSnackbar(it) })
+                    }
                     if (current != null) AndroidAppBanner(autoUpdate = graph.settings.settings.collectAsState().value.autoUpdate)
                     if (!wide && current != null) NavigationBar {
                         tabs.forEach { tab ->

@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 /**
  * What a device keeps for one band: the last state known from the server ([base], [version]) and the operations
@@ -242,14 +244,30 @@ class BandRepository(
     suspend fun loseAccess(bandId: Id): String {
         val local = locals.remove(bandId)
         val name = local?.let { replay(it).name } ?: _index.value?.bands?.firstOrNull { it.id == bandId }?.name ?: bandId
-        if (local != null && local.pending.isNotEmpty()) {
-            store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", KapeluszJson.encodeToString(LocalBand.serializer(), local))
-        }
+        if (local != null) keepUnsent(bandId, local)
         store.remove(bandKey(requireUser(), bandId))
         val wasCurrent = currentBandId == bandId
         updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
         if (wasCurrent) _state.value = BandState.NoBand
         return name
+    }
+
+    /**
+     * Drops the band's unsent changes, e.g. ones the server always refuses (ITERATION_3 R9); they are kept under a
+     * backup key first, as when access is lost. Sequence numbers go on from where they were.
+     */
+    suspend fun discardPending(bandId: Id) {
+        val local = locals[bandId] ?: return
+        keepUnsent(bandId, local)
+        rebase(bandId) { it.copy(pending = emptyList()) }
+    }
+
+    /** The band's unsent changes as readable JSON, for the user to keep (ITERATION_3 R9). */
+    fun pendingAsJson(bandId: Id): String = PrettyJson.encodeToString(ListSerializer(OpEnvelope.serializer()), locals[bandId]?.pending.orEmpty())
+
+    private suspend fun keepUnsent(bandId: Id, local: LocalBand) {
+        if (local.pending.isEmpty()) return
+        store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", KapeluszJson.encodeToString(LocalBand.serializer(), local))
     }
 
     /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
@@ -438,6 +456,8 @@ class BandRepository(
 
         /** Identity of the device user in M2, before Google sign-in. */
         const val LOCAL_USER_ID = "local-user"
+
+        private val PrettyJson = Json(from = KapeluszJson) { prettyPrint = true }
 
         fun indexKey(userId: String) = "band-index-$userId"
         fun bandKey(userId: String, bandId: Id) = "band-$userId-$bandId"

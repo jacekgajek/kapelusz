@@ -62,6 +62,7 @@ import com.jacekgajek.kapelusz.app.generated.settings
 import com.jacekgajek.kapelusz.app.generated.settings_band
 import com.jacekgajek.kapelusz.app.generated.settings_personal
 import com.jacekgajek.kapelusz.app.generated.sign_out
+import com.jacekgajek.kapelusz.app.generated.sign_out_everywhere
 import com.jacekgajek.kapelusz.app.platform.NotificationPermission
 import com.jacekgajek.kapelusz.app.platform.rememberNotificationPermission
 import com.jacekgajek.kapelusz.app.platform.rememberUpdateControls
@@ -86,6 +87,8 @@ fun SettingsScreen(
     /** The user's Google photo (as their member in this band has it). */
     accountPicture: String?,
     onSignOut: () -> Unit,
+    /** Signs out every device of the user, this one too (ITERATION_3 R6). Throws when it did not work (e.g. offline). */
+    onSignOutEverywhere: suspend () -> Unit,
     bandName: String,
     onRenameBand: ((String) -> Unit)?,
     treasurer: String?,
@@ -175,6 +178,11 @@ fun SettingsScreen(
                     Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
                 }
+                var signingOutEverywhere by remember { mutableStateOf(false) }
+                TextButton(onClick = { signingOutEverywhere = true }, modifier = Modifier.align(Alignment.End)) {
+                    Text(stringResource(Res.string.sign_out_everywhere))
+                }
+                if (signingOutEverywhere) SignOutEverywhereDialog(onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })
                 // Last, set apart: it cannot be undone (ITERATION_2 §7).
                 if (onDeleteBand != null) {
                     HorizontalDivider(Modifier.padding(top = 24.dp))

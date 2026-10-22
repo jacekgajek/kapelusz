@@ -194,6 +194,9 @@
     <string name="sign_in_failed">Sign-in failed: %1$s</string>
     <string name="account">Account</string>
     <string name="sign_out">Sign out</string>
+    <string name="sign_out_everywhere">Sign out on all devices</string>
+    <string name="sign_out_everywhere_text">Pass the Hat is signed out on every device where you use it, including this one. Each of them has to sign in with Google again. Useful after losing a phone or signing in on someone else’s computer.</string>
+    <string name="sign_out_everywhere_failed">Could not sign out on all devices. Check your connection and try again.</string>
     <string name="new_band">New band</string>
     <string name="new_band_title">New band</string>
     <string name="your_bands">Your bands</string>
@@ -210,6 +213,13 @@
     <string name="sign_in_again_text">Your sign-in expired, so changes are only saved on this device for now. Sign in again as %1$s to sync them.</string>
     <string name="sign_in_again_wrong_account">That is a different account. Sign in as %1$s, or sign out in Settings to switch accounts.</string>
     <string name="lost_access">You no longer have access to %1$s. Changes not yet saved there were kept as a backup on this device.</string>
+    <string name="stuck_push_title">Changes on this device can’t be sent to the server</string>
+    <string name="stuck_push_export">Export</string>
+    <string name="stuck_push_discard">Discard</string>
+    <string name="stuck_push_exported">Unsent changes copied to the clipboard</string>
+    <string name="stuck_push_export_failed">Could not copy to the clipboard.</string>
+    <string name="stuck_discard_title">Discard unsent changes?</string>
+    <string name="stuck_discard_text">The changes on this device that the server refuses are removed, and the band is shown as it is on the server. A copy of them is kept on this device.</string>
     <string name="other_tab_title">Pass the Hat is open in another tab</string>
     <string name="other_tab_text">To keep your changes safe, only one tab can use Pass the Hat at a time. You can continue here; the other tab will stop.</string>
     <string name="use_here">Use here</string>
