@@ -50,6 +50,11 @@ class Can(private val band: Band, private val userId: String) {
 
     fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))
     fun addCost() = meId != null && allowed(AddCost(PROBE, meId, Money(1), PROBE_DATE))
+
+    /** A cost for this event: some active participant the user may add a cost for (leads: anyone in it; members: themselves). */
+    fun addCostIn(event: Event) = open(event) && event.participants.any { participant ->
+        band.member(participant.partyId)?.archived == false && allowed(AddCost(PROBE, participant.partyId, Money(1), PROBE_DATE))
+    }
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
 

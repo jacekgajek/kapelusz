@@ -115,7 +115,9 @@ fun CostScreen(
     val opened = remember(openedJson) { openedJson.takeIf { it.isNotEmpty() }?.let { KapeluszJson.decodeFromString(Cost.serializer(), it) } }
     // Typed text survives rotation and the camera app's round trip (ITERATION_3 R8).
     var amount by rememberSaveable { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
-    var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id) }
+    // Opened from an event: the cost is for it, so only its participants can have paid it.
+    val forEvent = forEventId?.takeIf { existing == null }?.let { band.event(it) }
+    var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
     var date by remember { mutableStateOf(existing?.date ?: today()) }
     var eventId by remember { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
     var category by remember { mutableStateOf(existing?.category) }
@@ -130,7 +132,11 @@ fun CostScreen(
     val editable = existing == null || Permissions.isAllowed(band, actor, UpdateCost(existing.id))
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // Leads may add costs for anyone; others only for themselves (the permission check decides).
-    val payers = band.members.filter { !it.archived && Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date)) }
+    val payers = band.members.filter {
+        !it.archived && (forEvent == null || forEvent.participant(it.id) != null) && Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date))
+    }
+    // A single choice is made already (the picker is shown only for several).
+    LaunchedEffect(payers.size) { if (existing == null && paidBy == null) payers.singleOrNull()?.let { paidBy = it.id } }
     val canSave = editable && parsed != null && paidBy != null && !saved
     fun save() {
         // Once only: the screen stays tappable while it fades out, and a second tap would add the cost again.
