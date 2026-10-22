@@ -5,6 +5,7 @@ import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.band_fund
 import com.jacekgajek.artsplit.app.generated.h_add_attachment
 import com.jacekgajek.artsplit.app.generated.h_add_cost
+import com.jacekgajek.artsplit.app.generated.h_redo
 import com.jacekgajek.artsplit.app.generated.h_undo
 import com.jacekgajek.artsplit.app.generated.h_add_fund_entry
 import com.jacekgajek.artsplit.app.generated.h_add_guest
@@ -151,7 +152,9 @@ fun describe(op: Operation, band: Band): String {
         is SettleSuggestions -> op.partyId?.let { stringResource(Res.string.h_settle_party, party(op.eventId, it), event(op.eventId)) }
             ?: stringResource(Res.string.h_settle_all, event(op.eventId))
         is RemoveTransfer -> stringResource(Res.string.h_remove_transfer, event(op.eventId))
-        is Undo -> stringResource(Res.string.h_undo, describe(op.original, band))
+        is Undo -> op.original.let { original ->
+            if (original is Undo) stringResource(Res.string.h_redo, describe(original.original, band)) else stringResource(Res.string.h_undo, describe(original, band))
+        }
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
         is UpdateCost -> stringResource(Res.string.h_edit_cost)
         is DeleteCost -> stringResource(Res.string.h_delete_cost)

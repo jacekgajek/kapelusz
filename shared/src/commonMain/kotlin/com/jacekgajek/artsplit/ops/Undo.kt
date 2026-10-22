@@ -81,7 +81,7 @@ fun isUndoable(op: Operation): Boolean = when (op) {
 }
 
 internal object Undoing {
-    fun apply(band: Band, op: Undo, ctx: OpContext): Band {
+    fun apply(band: Band, op: Undo): Band {
         invalidIf(!isUndoable(op.original) || op.change.isEmpty || op.change.restoresAttachments, RejectionReason.NOT_UNDOABLE) { "This change cannot be undone" }
         val after = op.change.after
         val unchanged = (after.settings == null || after.settings == band.settings) &&
@@ -98,8 +98,8 @@ internal object Undoing {
             treasurerMemberId = settings.treasurerMemberId,
             agendaTemplate = settings.agendaTemplate,
             members = restore(band.members, before.members, before.memberOrder) { it.id },
-            // Restored events count as touched now (Event.updatedAt).
-            events = restore(band.events, before.events.mapValues { (_, event) -> event?.copy(updatedAt = ctx.timestamp) }, before.eventOrder) { it.id },
+            // Exactly as before (also Event.updatedAt), so after a redo the original change can be undone again.
+            events = restore(band.events, before.events, before.eventOrder) { it.id },
             costs = restore(band.costs, before.costs, before.costOrder) { it.id },
             fundEntries = restore(band.fundEntries, before.fundEntries, before.fundEntryOrder) { it.id },
         )

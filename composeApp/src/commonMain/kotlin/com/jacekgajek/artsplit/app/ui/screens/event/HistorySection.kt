@@ -4,6 +4,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.jacekgajek.artsplit.app.ui.screens.UndoDialog
 import com.jacekgajek.artsplit.app.ui.screens.undoOf
+import com.jacekgajek.artsplit.app.ui.screens.undoTargets
 import com.jacekgajek.artsplit.ops.Undo
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -69,9 +70,18 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
             loaded == null -> CircularProgressIndicator(Modifier.size(24.dp))
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
             else -> {
-                // The newest change of this event can be undone (VERSION_2 §7.2).
-                val undo = undoOf(loaded.first(), context.can)
-                loaded.forEachIndexed { index, line -> HistoryRow(context.band, line, onUndo = undo?.takeIf { index == 0 }?.let { { confirming = it } }) }
+                // Undo steps back through this event's changes, redo forward (VERSION_2 §7.2).
+                val targets = undoTargets(loaded)
+                val undo = targets.undo?.let { line -> undoOf(line, context.can)?.let { line to it } }
+                val redo = targets.redo?.let { line -> undoOf(line, context.can)?.let { line to it } }
+                loaded.forEach { line ->
+                    HistoryRow(
+                        context.band, line,
+                        undone = line.opId in targets.undone,
+                        onUndo = undo?.takeIf { it.first === line }?.let { { confirming = it.second } },
+                        onRedo = redo?.takeIf { it.first === line }?.let { { confirming = it.second } },
+                    )
+                }
             }
         }
     }

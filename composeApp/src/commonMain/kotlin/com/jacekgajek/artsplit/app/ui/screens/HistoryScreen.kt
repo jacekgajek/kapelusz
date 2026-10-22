@@ -1,5 +1,9 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import com.jacekgajek.artsplit.app.generated.history_undone
+import com.jacekgajek.artsplit.app.generated.redo
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -142,11 +146,18 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Only the band's newest change can be undone here (VERSION_2 §7.2): the first line of this month.
-                    val newest = loaded.first().takeIf { offset == 0 }
-                    val undo = newest?.let { undoOf(it, Can(state.band, state.userId)) }
+                    // Undo steps back from the newest change, redo forward (VERSION_2 §7.2); both only from this month.
+                    val targets = undoTargets(loaded)
+                    val can = Can(state.band, state.userId)
+                    val undo = targets.undo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
+                    val redo = targets.redo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
                     items(loaded, key = { it.opId }) { line ->
-                        HistoryRow(state.band, line, onUndo = undo?.takeIf { line === newest }?.let { { confirming = it } })
+                        HistoryRow(
+                            state.band, line,
+                            undone = line.opId in targets.undone,
+                            onUndo = undo?.takeIf { it.first === line }?.let { { confirming = it.second } },
+                            onRedo = redo?.takeIf { it.first === line }?.let { { confirming = it.second } },
+                        )
                         HorizontalDivider()
                     }
                     if (next != null) {
@@ -162,21 +173,28 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
 }
 
 @Composable
-fun HistoryRow(band: Band, line: HistoryLine, onUndo: (() -> Unit)? = null) {
+fun HistoryRow(band: Band, line: HistoryLine, undone: Boolean = false, onUndo: (() -> Unit)? = null, onRedo: (() -> Unit)? = null) {
     val who = line.entry.memberId?.let { band.member(it)?.name } ?: "?"
     val time = Instant.fromEpochMilliseconds(line.entry.at).toLocalDateTime(TimeZone.currentSystemDefault())
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        HistoryText(band, line, who, time, Modifier.weight(1f))
+        HistoryText(band, line, who, time, undone, Modifier.weight(1f))
         onUndo?.let { IconButton(onClick = it) { Icon(Icons.AutoMirrored.Filled.Undo, stringResource(Res.string.undo)) } }
+        onRedo?.let { IconButton(onClick = it) { Icon(Icons.AutoMirrored.Filled.Redo, stringResource(Res.string.redo)) } }
     }
 }
 
 @Composable
-private fun HistoryText(band: Band, line: HistoryLine, who: String, time: LocalDateTime, modifier: Modifier) {
+private fun HistoryText(band: Band, line: HistoryLine, who: String, time: LocalDateTime, undone: Boolean, modifier: Modifier) {
     Column(modifier.padding(vertical = 6.dp)) {
-        Text(line.envelope?.let { describe(it.op, band) } ?: stringResource(Res.string.history_newer_version), style = MaterialTheme.typography.bodyMedium)
         Text(
-            "$who · ${formatDate(time.date, language)} ${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}",
+            line.envelope?.let { describe(it.op, band) } ?: stringResource(Res.string.history_newer_version),
+            style = MaterialTheme.typography.bodyMedium,
+            // A change that is currently undone (VERSION_2 §7.2).
+            textDecoration = if (undone) TextDecoration.LineThrough else null,
+        )
+        Text(
+            "$who · ${formatDate(time.date, language)} ${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}" +
+                if (undone) " · " + stringResource(Res.string.history_undone) else "",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -459,4 +459,9 @@
     <string name="reject_changed_since">Changed since, can\'t undo.</string>
     <string name="undo_confirm">Undo “%1$s”?</string>
     <string name="h_undo">Undid: %1$s</string>
+    <string name="agenda_template_reset">Reset to defaults</string>
+    <string name="redo">Redo</string>
+    <string name="redo_confirm">Redo “%1$s”?</string>
+    <string name="h_redo">Redid: %1$s</string>
+    <string name="history_undone">undone</string>
 </resources>

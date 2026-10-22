@@ -5,6 +5,7 @@ import com.jacekgajek.artsplit.domain.CostLedger
 import com.jacekgajek.artsplit.domain.Places
 import com.jacekgajek.artsplit.domain.SettlementCalculator
 import com.jacekgajek.artsplit.model.BAND_FUND
+import com.jacekgajek.artsplit.model.AgendaTemplateItem
 import com.jacekgajek.artsplit.model.AgendaTime
 import com.jacekgajek.artsplit.model.AgendaKind
 import com.jacekgajek.artsplit.model.Band
@@ -70,7 +71,9 @@ object Reducer {
             is SetAgendaTemplate -> {
                 invalidIf(op.items.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }
                 op.items.forEach { validAgendaLabel(it.kind, it.label) }
-                band.copy(agendaTemplate = op.items.map { it.copy(label = it.label?.trim()) })
+                val items = op.items.map { it.copy(label = it.label?.trim()) }
+                // Exactly the built-in times is stored as "the defaults", so built-in times added later apply too.
+                band.copy(agendaTemplate = items.takeUnless { it == AgendaKind.entries.map { kind -> AgendaTemplateItem(kind) } })
             }
             is DeleteEvent -> deleteEvent(band, op)
             is AddParticipant -> addParticipant(band, op, ctx)
@@ -156,7 +159,7 @@ object Reducer {
                 cost.copy(attachments = cost.attachments.filterNot { it.id == op.attachmentId })
             }
 
-            is Undo -> Undoing.apply(band, op, ctx)
+            is Undo -> Undoing.apply(band, op)
         }
         return op.eventId
             ?.takeIf { op !is DeleteEvent }

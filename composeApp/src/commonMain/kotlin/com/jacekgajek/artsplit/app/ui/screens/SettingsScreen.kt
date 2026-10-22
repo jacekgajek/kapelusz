@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import androidx.compose.material3.HorizontalDivider
+import com.jacekgajek.artsplit.app.generated.agenda_template_reset
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.ContentCopy
 import org.jetbrains.compose.resources.StringResource
@@ -269,7 +271,15 @@ fun SettingsScreen(
                 }
             }
             if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, onAgendaTemplate)
+            rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
+            CalendarSection(calendar)
+            rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
+            Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+            account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
+            OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
+            // Last, set apart: it cannot be undone (VERSION_2 §7).
             if (onDeleteBand != null) {
+                HorizontalDivider(Modifier.padding(top = 24.dp))
                 var deleting by remember { mutableStateOf(false) }
                 OutlinedButton(
                     onClick = { deleting = true },
@@ -282,12 +292,6 @@ fun SettingsScreen(
                 }
                 if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
             }
-            rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
-            CalendarSection(calendar)
-            rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
-            Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
-            account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
-            OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
             var secretMenu by remember { mutableStateOf(false) }
             // A tap on the version opens the secret menu for admins (VERSION_2 §7.1); for others it is just text.
             VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
@@ -441,12 +445,12 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (Li
     Text(stringResource(Res.string.agenda_template_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 16.dp))
     Text(stringResource(Res.string.agenda_template_hint), style = MaterialTheme.typography.bodySmall)
     drafts.forEachIndexed { index, draft ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 draft.text,
                 { value -> drafts = drafts.toMutableList().also { it[index] = draft.copy(text = value.take(AgendaTime.MAX_LABEL)) } },
                 singleLine = true,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
             )
             IconButton(onClick = { drafts = drafts.toMutableList().also { it.add(index - 1, it.removeAt(index)) } }, enabled = index > 0) {
                 Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + draft.text)
@@ -457,6 +461,9 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (Li
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (drafts.size < AgendaTime.MAX_TIMES) TextButton(onClick = { drafts = drafts + TemplateDraft(null, "") }) { Text(stringResource(Res.string.agenda_add_time)) }
         val items = drafts.map { it.toItem(builtInLabels::getValue) }
+        // Back to the built-in times; saved only with Save, as "the defaults" (null), so later built-in times apply.
+        val defaults = AgendaKind.entries.map { TemplateDraft(it, builtInLabels.getValue(it)) }
+        TextButton(enabled = drafts != defaults, onClick = { drafts = defaults }) { Text(stringResource(Res.string.agenda_template_reset)) }
         TextButton(enabled = drafts.all { it.text.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
     }
 }

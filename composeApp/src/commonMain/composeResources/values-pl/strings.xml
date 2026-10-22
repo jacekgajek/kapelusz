@@ -465,4 +465,9 @@
     <string name="reject_changed_since">Zmieniono to od tamtej pory, nie można cofnąć.</string>
     <string name="undo_confirm">Cofnąć „%1$s”?</string>
     <string name="h_undo">Cofnięto: %1$s</string>
+    <string name="agenda_template_reset">Przywróć domyślne</string>
+    <string name="redo">Ponów</string>
+    <string name="redo_confirm">Ponowić „%1$s”?</string>
+    <string name="h_redo">Ponowiono: %1$s</string>
+    <string name="history_undone">cofnięte</string>
 </resources>

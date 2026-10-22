@@ -138,10 +138,12 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 - **Copy raw JSON data** copies the band's file exactly as stored in the bucket (`bands/<id>/state.json`, byte for byte), so putting the copy back changes nothing. A server endpoint for admins returns the stored file unchanged; offline it shows an error.
 
 ### 7.2 Undo from history
-- In the **event's history** and the **band's history**, the **newest line** of the list has an **undo arrow** on the right: in an event's history the newest change of that event, in the band's history the newest change of the band.
-- Undo puts back exactly what that change touched. It is **refused** ("Changed since, can't undo") when any of those things changed afterwards.
+- In the **event's history** and the **band's history**, the **undo arrow (↶)** is on the **newest change that is not undone**: undo lines ("Undid: …") and the changes they undid (struck through, "undone") are skipped, so tapping again steps further back.
+- The **redo arrow (↷)** is on the newest undo still in effect, unless a change was made after it (a new change ends redo, as in editors). Redoing shows as "Redid: …".
+- Example, newest first: "C ↶ · Undid: B · ~~B~~ · A" (no redo: C came after the undo). Undoing C gives "Undid: C ↷ · ~~C~~ · Undid: B · ~~B~~ · A ↶".
+- Undo puts back exactly what that change touched (as it was, including when an event was last changed). It is **refused** ("Changed since, can't undo") when any of those things changed afterwards.
 - Tapping the arrow asks first, naming the change ("Undo 'Bob added cost Fuel 50 PLN'?").
-- Undo is an ordinary change: the same permissions apply as for making the reverse change by hand, and the arrow is shown only to those who may. It appears in history as its own line ("Jacek undid: …"), which is then the newest line, so undoing it redoes the change.
+- Undo is an ordinary change: the same permissions apply as for making the reverse change by hand, and the arrow is shown only to those who may. It appears in history as its own line ("Undid: …").
 - Not undoable: joining through an invite, unlinking an account, transferring ownership, deleting the band.
 - Each change records what it touched as it was before (in the history log, by the server). Changes from before V2-M7 have no such record and no arrow.
 
@@ -240,4 +242,4 @@ Monitoring stays as in version 1: server logs in CloudWatch, no crash-reporting 
 | 2026-10-21 | Sound check (Próba dźwięku) is a third built-in agenda time and part of the default template. Builds before 12 cannot read an unknown kind of time, so `MIN_APP_VERSION` is 12 (live since V2-M3). |
 | 2026-10-21 | Event locations without an API key or billing: Google Maps does the picking (Select on map, Paste from Maps, or share from Maps to Art Split on Android), the event stores the Maps link, and Navigate opens it. Times can be set when creating an event, and the unset ones are shown as chips directly. |
 | 2026-10-21 | Facebook login deferred; email-link sign-in (SES) noted as the cheaper alternative if needed. |
-| 2026-10-22 | V2-M7: bulk archive removed. Undo from history: the newest line of the event or band history, refused when what it touched changed since; permissions as for the reverse change; confirmed in a dialog; undo of an undo redoes. Membership and ownership changes and band deletion are not undoable. The secret menu (one tap on the version, admins) copies the band file exactly as stored in the bucket. The Continue card rule stays: future events with money on them do not count. |
+| 2026-10-22 | V2-M7: bulk archive removed. Undo from history: the newest line of the event or band history, refused when what it touched changed since; permissions as for the reverse change; confirmed in a dialog; undo of an undo redoes. Membership and ownership changes and band deletion are not undoable. The secret menu (one tap on the version, admins) copies the band file exactly as stored in the bucket. The Continue card rule stays: future events with money on them do not count. Undo steps back through changes (the arrow skips undone changes and undo lines) with redo for the newest undo until a new change is made; the first idea (only the newest line, undoing an undo redoes) could never go back more than one step. |
