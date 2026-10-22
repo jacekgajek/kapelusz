@@ -29,6 +29,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Process-wide objects, created once per app start (no DI framework). */
 class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
@@ -123,7 +124,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         scope.launch {
             // Only with the bands loaded: before that there is nothing to remind of, and every alarm would be dropped.
             combine(settings.settings, bands.state, sessions.session) { _, state, session -> session?.userId?.takeIf { state is BandState.Ready } }
-                .debounce(500)
+                .debounce(500.milliseconds)
                 .collect { userId -> if (userId != null) onChange(userId) }
         }
     }

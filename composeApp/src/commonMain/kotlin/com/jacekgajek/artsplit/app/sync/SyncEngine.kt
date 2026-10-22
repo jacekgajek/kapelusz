@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 /** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
 data class LostBand(val name: String, val deleted: Boolean)
@@ -69,8 +70,8 @@ class SyncEngine(
             while (true) {
                 val ok = syncNow()
                 backoff = if (ok) 0 else (if (backoff == 0L) 5_000 else backoff * 2).coerceAtMost(5 * 60_000)
-                withTimeoutOrNull(if (ok) interval else backoff) { wakeUp.receive() }
-                delay(DEBOUNCE)
+                withTimeoutOrNull((if (ok) interval else backoff).milliseconds) { wakeUp.receive() }
+                delay(DEBOUNCE.milliseconds)
             }
         }
     }
