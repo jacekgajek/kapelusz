@@ -119,7 +119,7 @@ class InviteAndHistoryTest {
         val threads = (1..40).map { Thread { call("GET", "/invites/ZZZZZZ", "mallory") } }
         threads.forEach { it.start() }
         threads.forEach { it.join() }
-        val attempts = KapeluszJson.decodeFromString(JoinAttempts.serializer(), store.objects.getValue(Api.attemptsKey("mallory")).content)
+        val attempts = KapeluszJson.decodeFromString(JoinAttempts.serializer(), store.objects.getValue(StorageKeys.joinAttempts("mallory")).content)
         assertTrue(attempts.failures <= Api.MAX_JOIN_ATTEMPTS, "counted ${attempts.failures}")
     }
 
@@ -130,7 +130,7 @@ class InviteAndHistoryTest {
         // Simulate a crash after the band write: link Bob directly, as the first half of the accept would.
         val failing = object : BlobStore by store {
             override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String {
-                if (key == Api.userKey("bob")) throw IllegalStateException("crash")
+                if (key == StorageKeys.user("bob")) throw IllegalStateException("crash")
                 return store.put(key, content, ifMatch, ifNoneMatch)
             }
         }
@@ -149,8 +149,8 @@ class InviteAndHistoryTest {
         call("POST", "/invites/$first/accept", "bob")
         // A leftover code for Bob's member (e.g. from a race) ...
         val leftover = InviteInfo("QQQQQQ", "band1", "m-bob", Role.ADMIN, now + 1000)
-        store.put(Api.inviteKey(leftover.code), KapeluszJson.encodeToString(StoredInvite.serializer(), StoredInvite(leftover, "alice")))
-        store.put(Api.bandInvitesKey("band1"), KapeluszJson.encodeToString(InviteCodes.serializer(), InviteCodes(listOf(leftover.code))))
+        store.put(StorageKeys.invite(leftover.code), KapeluszJson.encodeToString(StoredInvite.serializer(), StoredInvite(leftover, "alice")))
+        store.put(StorageKeys.bandInvites("band1"), KapeluszJson.encodeToString(InviteCodes.serializer(), InviteCodes(listOf(leftover.code))))
         // ... is cancelled when the admin unlinks Bob, so nobody can use it to get back in.
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op9", "phone", 9, 9, UnlinkUser("m-bob"))))))
         assertEquals(404, call("POST", "/invites/QQQQQQ/accept", "mallory").status)
@@ -235,7 +235,7 @@ class InviteAndHistoryTest {
         // Removed from the band: the photo goes, and a later sign-in does not bring it back.
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op9", "phone", 9, 9, SetMemberArchived("m-bob", true))))))
         google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer bob")))
-        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         assertNull(band.member("m-bob")?.pictureUrl)
     }
 

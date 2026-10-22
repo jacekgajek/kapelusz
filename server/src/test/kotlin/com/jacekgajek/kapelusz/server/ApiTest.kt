@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.ops.BandPart
 import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.Undo
@@ -106,9 +107,9 @@ class ApiTest {
         createBand()
         // Bob joins as a plain member, as if he accepted an invite (a server-internal operation).
         push("band1", "alice", AddMember("m-bob", "Bob"))
-        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         val linked = (Engine.apply(band, Actor.System, LinkUser("m-bob", "bob", Role.MEMBER), "x", 0) as ApplyResult.Applied).band
-        store.put(Api.bandKey("band1"), KapeluszJson.encodeToString(Band.serializer(), linked))
+        store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(Band.serializer(), linked))
 
         val response = push("band1", "bob", CreateEvent("e", "Gig", LocalDate(2026, 9, 13))).parse(PushResponse.serializer())
         assertEquals(RejectionReason.ROLE_REQUIRED, response.rejected.values.single().reason)
@@ -122,17 +123,17 @@ class ApiTest {
         val google = Api(store, { token -> VerifiedUser(token.removeSuffix("-google"), null, null, picture = photo.takeIf { token.endsWith("-google") }) }, clock = { 1_790_000_000_000 })
         createBand()
         assertEquals(200, google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer alice-google"))).status)
-        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         assertEquals(photo, band.memberOfUser("alice")?.pictureUrl)
 
         // A band created afterwards gets it too.
         createBand(bandId = "band2")
-        assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band2")).content).memberOfUser("alice")?.pictureUrl)
+        assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band2")).content).memberOfUser("alice")?.pictureUrl)
 
         // Anything but a Google photo address is ignored.
         val other = Api(store, { token -> VerifiedUser(token, null, null, picture = "https://evil.example/x.png") }, clock = { 1_790_000_000_000 })
         other.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer alice")))
-        assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+        assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content).memberOfUser("alice")?.pictureUrl)
     }
 
     @Test
@@ -146,7 +147,7 @@ class ApiTest {
         fun send(user: String, token: String) = google.handle(HttpRequest("POST", "/me/picture", mapOf("authorization" to "Bearer $user"), """{"googleToken":"$token"}"""))
         assertEquals(400, send("alice", "old-google-token-of-bob").status, "someone else's token")
         assertEquals(204, send("alice", "old-google-token-of-alice").status)
-        assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+        assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content).memberOfUser("alice")?.pictureUrl)
     }
 
     @Test
@@ -205,22 +206,22 @@ class ApiTest {
         val last = KapeluszJson.decodeFromString(PushResponse.serializer(), responses.last().body!!)
         assertEquals(RejectionReason.LIMIT_REACHED, last.rejected.values.single().reason)
         // Refused operations are remembered (for retried pushes, at most 20), so the file may pass the cap by that.
-        val stored = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        val stored = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         assertTrue(stored.cost("c10") == null, "the operation that would pass the cap was not applied")
-        assertTrue(store.objects.getValue(Api.bandKey("band1")).content.length < 4_000)
+        assertTrue(store.objects.getValue(StorageKeys.band("band1")).content.length < 4_000)
     }
 
     @Test
     fun adminsGetTheBandFileExactlyAsStored() {
         createBand()
         push("band1", "alice", AddMember("m-bob", "Bob"), CreateEvent("e", "Gig, \"Łódź\"", LocalDate(2026, 9, 13)))
-        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         val linked = (Engine.apply(band, Actor.System, LinkUser("m-bob", "bob", Role.MEMBER), "x", 0) as ApplyResult.Applied).band
-        store.put(Api.bandKey("band1"), KapeluszJson.encodeToString(Band.serializer(), linked))
+        store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(Band.serializer(), linked))
 
         val raw = call("GET", "/bands/band1/raw", "alice")
         assertEquals(200, raw.status)
-        assertEquals(store.objects.getValue(Api.bandKey("band1")).content, raw.body, "byte for byte, so it can be put back")
+        assertEquals(store.objects.getValue(StorageKeys.band("band1")).content, raw.body, "byte for byte, so it can be put back")
         assertEquals(403, call("GET", "/bands/band1/raw", "bob").status, "members do not")
         assertEquals(404, call("GET", "/bands/band1/raw", "eve").status, "outsiders cannot tell the band exists")
     }
@@ -239,7 +240,7 @@ class ApiTest {
         var failOnce = true
         val flaky = object : BlobStore by store {
             override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String {
-                if (failOnce && key == Api.bandKey("band1")) {
+                if (failOnce && key == StorageKeys.band("band1")) {
                     failOnce = false
                     throw PreconditionFailed()
                 }
@@ -273,7 +274,7 @@ class ApiTest {
         repeat(Api.MAX_DEVICES_PER_USER) { i -> assertEquals(200, pushAs("alice", OpEnvelope("op$i", "device-$i", 1, 1, RenameBand("N$i"))).status) }
         val tooMany = pushAs("alice", OpEnvelope("over", "device-new", 1, 1, RenameBand("Z")))
         assertEquals(400, tooMany.status)
-        assertTrue("too_many_devices" in tooMany.body!!)
+        assertTrue(ApiErrors.TOO_MANY_DEVICES in tooMany.body!!)
         assertEquals(200, pushAs("alice", OpEnvelope("again", "device-3", 2, 2, RenameBand("Known device"))).status)
     }
 
@@ -281,8 +282,8 @@ class ApiTest {
     fun missingBandHasItsOwnErrorCode() {
         val response = call("GET", "/bands/nope/state")
         assertEquals(404, response.status)
-        assertTrue(Api.BAND_NOT_FOUND in response.body!!)
-        assertTrue(Api.BAND_NOT_FOUND !in call("GET", "/no/such/route").body!!)
+        assertTrue(ApiErrors.BAND_NOT_FOUND in response.body!!)
+        assertTrue(ApiErrors.BAND_NOT_FOUND !in call("GET", "/no/such/route").body!!)
     }
 
     @Test

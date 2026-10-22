@@ -13,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec
  * and renewing it on Android can show Google's account picker. A token is `as1.<payload>.<mac>` (base64url JSON
  * claims, HMAC-SHA256), valid for [LIFETIME_MS] and renewed by the app while it is used.
  *
- * The signing key lives in the data bucket (created on first use), so it needs no infrastructure: whoever can read
+ * The signing key lives in the data bucket ([StorageKeys.SESSION_KEY], created on first use), so it needs no infrastructure: whoever can read
  * the bucket can read every band anyway.
  */
 class SessionTokens(private val store: BlobStore, private val clock: () -> Long) {
@@ -62,18 +62,12 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
 
     private fun key(): ByteArray = key ?: loadOrCreateKey().also { key = it }
 
-    private fun loadOrCreateKey(): ByteArray {
-        repeat(Api.MAX_ATTEMPTS) {
-            store.get(KEY_PATH)?.let { return Base64.getDecoder().decode(KapeluszJson.decodeFromString(StoredKey.serializer(), it.content).key) }
-            val fresh = ByteArray(32).also { random.nextBytes(it) }
-            try {
-                store.put(KEY_PATH, KapeluszJson.encodeToString(StoredKey.serializer(), StoredKey(Base64.getEncoder().encodeToString(fresh))), ifNoneMatch = true)
-                return fresh
-            } catch (e: PreconditionFailed) {
-                // Another instance created it first: use theirs.
-            }
-        }
-        error("Could not load the session key")
+    // A precondition failure: another instance created it first, so the next attempt uses theirs.
+    private fun loadOrCreateKey(): ByteArray = retryOnConflict(exhausted = { error("Could not load the session key") }) {
+        store.get(StorageKeys.SESSION_KEY)?.let { return@retryOnConflict Base64.getDecoder().decode(KapeluszJson.decodeFromString(StoredKey.serializer(), it.content).key) }
+        val fresh = ByteArray(32).also { random.nextBytes(it) }
+        store.put(StorageKeys.SESSION_KEY, KapeluszJson.encodeToString(StoredKey.serializer(), StoredKey(Base64.getEncoder().encodeToString(fresh))), ifNoneMatch = true)
+        fresh
     }
 
     companion object {
@@ -85,7 +79,6 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
          * token cannot be kept alive for ever; then the app asks Google again.
          */
         const val MAX_AGE_MS = 90L * 24 * 3600 * 1000
-        const val KEY_PATH = "server/session-key.json"
         private const val ALGORITHM = "HmacSHA256"
         private val random = SecureRandom()
         private val encoder = Base64.getUrlEncoder().withoutPadding()

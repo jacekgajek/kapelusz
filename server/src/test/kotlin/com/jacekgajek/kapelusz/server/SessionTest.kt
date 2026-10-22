@@ -55,7 +55,7 @@ class SessionTest {
     @Test
     fun theKeyIsCreatedOnceAndShared() {
         val token = session("google-alice").token
-        assertNotNull(store.get(SessionTokens.KEY_PATH))
+        assertNotNull(store.get(StorageKeys.SESSION_KEY))
         // Another Lambda instance (a fresh SessionTokens) reads the same key and accepts the token.
         assertEquals("alice", SessionTokens(store) { now }.verify(token)?.userId)
         assertNull(SessionTokens(InMemoryBlobStore()) { now }.verify(token), "a different key does not")
