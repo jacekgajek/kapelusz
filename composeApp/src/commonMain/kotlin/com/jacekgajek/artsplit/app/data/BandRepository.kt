@@ -174,6 +174,10 @@ class BandRepository(
     fun allBands(): List<Band> = locals.values.map(::replay)
 
     /** Applies [op] locally. Returns the rejection if the operation is not allowed or not valid. */
+    /** The id of the operation [dispatch] applied last, e.g. to recognise it in the history later. */
+    var lastOpId: Id? = null
+        private set
+
     fun dispatch(op: Operation): Rejection? {
         val bandId = currentBandId ?: error("No band open")
         val current = locals.getValue(bandId)
@@ -183,6 +187,7 @@ class BandRepository(
             is ApplyResult.Rejected -> result.rejection
             is ApplyResult.Applied -> {
                 locals[bandId] = current.copy(pending = current.pending + envelope, nextSeq = current.nextSeq + 1)
+                lastOpId = envelope.opId
                 _state.value = BandState.Ready(result.band, current.userId)
                 persist(bandId)
                 null

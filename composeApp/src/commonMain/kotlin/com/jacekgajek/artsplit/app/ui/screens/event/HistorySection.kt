@@ -1,5 +1,10 @@
 package com.jacekgajek.artsplit.app.ui.screens.event
 
+import com.jacekgajek.artsplit.app.ui.screens.withPending
+import com.jacekgajek.artsplit.app.ui.screens.pendingUndoLine
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.async
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.jacekgajek.artsplit.app.ui.screens.UndoDialog
@@ -46,6 +51,7 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     var lines by remember(context.event.id) { mutableStateOf<List<HistoryLine>?>(null) }
     var failed by remember(context.event.id) { mutableStateOf(false) }
     var reload by remember(context.event.id) { mutableStateOf(0) }
+    var pending by remember(context.event.id) { mutableStateOf(listOf<HistoryLine>()) }
     var confirming by remember { mutableStateOf<Undo?>(null) }
     val scope = rememberCoroutineScope()
     SectionTitle(stringResource(Res.string.history))
@@ -56,14 +62,15 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     LaunchedEffect(context.event.id, reload) {
         runCatching {
             // Newest month first; each page is newest first. The first page of each month is enough for one event.
-            (0 until MONTHS).flatMap { offset -> graph.api.history(context.band.id, historyMonth(offset)).entries }
+            // The months load at the same time.
+            coroutineScope { (0 until MONTHS).map { offset -> async { graph.api.history(context.band.id, historyMonth(offset)).entries } }.awaitAll().flatten() }
         }.onSuccess { entries ->
             lines = entries.flatMap { it.toLines() }.filter { line ->
                 line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
             }
         }.onFailure { failed = true }
     }
-    val loaded = lines
+    val loaded = lines?.let { withPending(it, pending) }
     Column {
         when {
             failed -> Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error)
@@ -88,8 +95,9 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     confirming?.let { undo ->
         UndoDialog(context.band, undo, onDismiss = { confirming = null }, onConfirm = {
             confirming = null
+            // Shown at once, so undoing several changes is tap after tap; the history refreshes quietly behind.
             if (context.actions.run(undo)) {
-                lines = null
+                graph.bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, context.me?.userId.orEmpty(), context.me?.id) }
                 scope.launch { graph.sync.syncNow(); reload++ }
             }
         })

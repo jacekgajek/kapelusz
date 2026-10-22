@@ -106,12 +106,17 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     var reload by remember { mutableStateOf(0) }
     var confirming by remember { mutableStateOf<Undo?>(null) }
     val month = historyMonth(offset)
+    var pending by remember { mutableStateOf(listOf<HistoryLine>()) }
+    var linesMonth by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(state.band.id, month, reload) {
-        lines = null
-        next = null
+        // Another month starts from a spinner; the same one refreshes in place (e.g. after an undo).
+        if (linesMonth != month) {
+            lines = null
+            next = null
+        }
         failed = false
         runCatching { graph.api.history(state.band.id, month) }
-            .onSuccess { response -> lines = response.entries.flatMap { it.toLines() }; next = response.next }
+            .onSuccess { response -> lines = response.entries.flatMap { it.toLines() }; next = response.next; linesMonth = month }
             .onFailure { failed = true }
     }
     val loadMore: () -> Unit = {
@@ -126,10 +131,9 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     confirming?.let { undo ->
         UndoDialog(state.band, undo, onDismiss = { confirming = null }, onConfirm = {
             confirming = null
-            // Once the server has it, the undo is the newest line (and can itself be undone).
-            // Loading again until the undo is in the history, so its arrow cannot be tapped twice.
+            // Shown at once, so undoing several changes is tap after tap; the history refreshes quietly behind.
             if (actions.run(undo)) {
-                lines = null
+                graph.bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, state.userId, state.me?.id) }
                 scope.launch { graph.sync.syncNow(); reload++ }
             }
         })
@@ -144,7 +148,7 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 }
             }
             val padding16 = PaddingValues(16.dp)
-            val loaded = lines
+            val loaded = lines?.let { withPending(it, pending.takeIf { offset == 0 }.orEmpty()) }
             when {
                 failed -> Text(stringResource(Res.string.history_unavailable), Modifier.padding(padding16), color = MaterialTheme.colorScheme.error)
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))

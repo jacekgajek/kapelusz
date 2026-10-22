@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.server
 
+import java.util.concurrent.Executors
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.builtins.MapSerializer
 import com.jacekgajek.artsplit.api.ApiErrors
@@ -257,8 +258,11 @@ class Api(
         val page = mutableListOf<String>()
         val entries = mutableListOf<HistoryEntry>()
         var bytes = 0
-        for (key in keys.take(HISTORY_PAGE)) {
-            val blob = store.get(key) ?: continue
+        // Read in parallel: one at a time, a page of a hundred small files took seconds.
+        val candidates = keys.take(HISTORY_PAGE)
+        val blobs = candidates.map { key -> logReader.submit<Blob?> { store.get(key) } }.map { it.get() }
+        for ((key, found) in candidates.zip(blobs)) {
+            val blob = found ?: continue
             if (entries.isNotEmpty() && bytes + blob.content.length > HISTORY_PAGE_BYTES) break
             bytes += blob.content.length
             page += key
@@ -650,6 +654,9 @@ class Api(
         const val HISTORY_PAGE = 100
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
+
+        /** Reads history files in parallel (network-bound, so more threads than cores). */
+        private val logReader by lazy { Executors.newFixedThreadPool(16) { task -> Thread(task, "log-reader").apply { isDaemon = true } } }
         private const val MAX_LOGGED_CHANGES = 1_000_000
         const val INVITE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
         const val INVITE_LENGTH = 6
