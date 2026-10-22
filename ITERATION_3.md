@@ -42,7 +42,11 @@ enforce the same) validates every input.
 - *Fix:* the refund is pre-included only when the event has no recorded transfers and is not archived; otherwise the
   cost just remembers the event, and a lead includes it. The same rule for changing a cost's event or amount (and the
   automatic adjustment goes to the cost's new event, not the old one).
-- *Test:* a member's cost for a settled event stays pending there; a lead's still works as before.
+- *Also:* "Incurred for" offers only events the cost's owner ("Paid by") takes part in, and the reducer refuses
+  any other event for a cost (a cost can only be refunded at an event its owner plays anyway). Changing "Paid by"
+  narrows the list again; a cost already linked to an event its owner left keeps showing that event until changed.
+- *Test:* a member's cost for a settled event stays pending there; a lead's still works as before; a cost for an
+  event its owner is not in is refused, and the picker lists only the owner's events.
 
 **R3. Double taps and crashes in the UI.**
 - *Problems:*
@@ -230,7 +234,7 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 
 ### V3-M1 — Hardening P1: crashes, data loss, wrong money
 - [ ] V3-M1.1 Input limits and validation (R1)
-- [ ] V3-M1.2 Refunds of members' costs only into open events (R2)
+- [ ] V3-M1.2 Refunds of members' costs only into open events; "Incurred for" limited to the owner's events (R2)
 - [ ] V3-M1.3 Navigation and submit guards, dialogs that cannot crash, back stack kept on rotation and language change (R3)
 - [ ] V3-M1.4 Sync never loses a change (R4)
 - [ ] V3-M1.5 Deploy safeguards and post-deploy smoke check (R5)
