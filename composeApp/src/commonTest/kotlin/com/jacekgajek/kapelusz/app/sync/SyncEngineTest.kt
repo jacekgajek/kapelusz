@@ -140,7 +140,7 @@ class SyncEngineTest {
 
     private fun setup(server: FakeServer, scope: CoroutineScope): Pair<BandRepository, SyncEngine> {
         val repository = BandRepository(InMemoryStore(), scope, { "id${nextId++}" })
-        val api = ApiClient(server.client, "https://api.test") { force -> if (force) "alice:${++tokenCount}" else "alice:$tokenCount" }
+        val api = ApiClient(server.client, "https://api.test") { refused -> if (refused != null) "alice:${++tokenCount}" else "alice:$tokenCount" }
         return repository to SyncEngine(api, repository, scope)
     }
 

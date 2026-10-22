@@ -74,7 +74,8 @@ class ApiClient(
     private val appVersion: Int = 0,
     /** The server answered "update required". */
     private val onUpdateRequired: () -> Unit = {},
-    private val token: suspend (forceRefresh: Boolean) -> String?,
+    /** The token to send; [refused] is the one the server just refused (null: the current one is wanted). */
+    private val token: suspend (refused: String?) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
 
@@ -186,9 +187,10 @@ class ApiClient(
 
     /** Sends with the current token; on 401 refreshes the token once and retries. */
     private suspend fun send(method: HttpMethod, path: String, configure: HttpRequestBuilder.() -> Unit): HttpResponse {
-        var response = attempt(method, path, token(false) ?: throw NeedsSignInException(), configure)
+        val bearer = token(null) ?: throw NeedsSignInException()
+        var response = attempt(method, path, bearer, configure)
         if (response.status == HttpStatusCode.Unauthorized) {
-            response = attempt(method, path, token(true) ?: throw NeedsSignInException(), configure)
+            response = attempt(method, path, token(bearer) ?: throw NeedsSignInException(), configure)
             if (response.status == HttpStatusCode.Unauthorized) throw NeedsSignInException()
         }
         return response

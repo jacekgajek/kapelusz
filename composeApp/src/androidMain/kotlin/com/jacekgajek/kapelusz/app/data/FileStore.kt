@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.data
 
+import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -14,7 +15,12 @@ class FileStore(private val directory: File) : KeyValueStore {
     override suspend fun write(key: String, value: String) = withContext(Dispatchers.IO) {
         directory.mkdirs()
         val temp = File.createTempFile(key, ".tmp", directory)
-        temp.writeText(value)
+        // On the disk before it replaces the old file (ITERATION_3 R9): after a power loss, an older file coming back
+        // would reuse sequence numbers the server has seen, and the next changes would be dropped as duplicates.
+        FileOutputStream(temp).use { out ->
+            out.write(value.toByteArray())
+            out.fd.sync()
+        }
         check(temp.renameTo(file(key))) { "Could not save $key" }
     }
 

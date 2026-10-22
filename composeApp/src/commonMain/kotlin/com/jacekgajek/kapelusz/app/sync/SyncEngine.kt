@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.sync
 
+import kotlinx.serialization.SerializationException
+import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.app.data.AttachmentUploads
@@ -117,7 +119,7 @@ class SyncEngine(
                 }
                 if (bandResult == SyncStatus.ERROR) result = SyncStatus.ERROR
             }
-            if (result == SyncStatus.SYNCED || result == SyncStatus.ERROR) bands.onBandList(api.me().bands)
+            if (result == SyncStatus.SYNCED || result == SyncStatus.ERROR) checkBandList(api.me().bands)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -136,7 +138,7 @@ class SyncEngine(
     suspend fun syncAll(): Boolean = runLock.withLock {
         if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return false
         try {
-            bands.onBandList(api.me().bands)
+            checkBandList(api.me().bands)
             val ids = (bands.index.value?.bands.orEmpty().map { it.id } + bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
             var allOk = true
             for (bandId in ids) {
@@ -198,9 +200,20 @@ class SyncEngine(
         e is ApiException && e.code == ApiErrors.UPDATE_REQUIRED -> SyncStatus.UPDATE_REQUIRED
         else -> when (e) {
             is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
-            is ApiException, is SyncProtocolException -> SyncStatus.ERROR
+            // An answer this app cannot read is not a network problem (ITERATION_3 R9).
+            is ApiException, is SyncProtocolException, is SerializationException -> SyncStatus.ERROR
             else -> SyncStatus.OFFLINE
         }
+    }
+
+    /**
+     * Updates the band list, and checks every band still on this device that it no longer has (ITERATION_3 R9): the
+     * check finds it deleted or access lost, says so, and removes it, so it stops feeding reminders.
+     */
+    private suspend fun checkBandList(listed: List<BandSummary>) {
+        val unlisted = bands.unlisted(listed)
+        bands.onBandList(listed)
+        for (bandId in unlisted) syncBand(bandId, pull = true)
     }
 
     /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */

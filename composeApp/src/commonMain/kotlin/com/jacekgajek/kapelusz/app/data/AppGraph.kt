@@ -48,7 +48,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     val api: ApiClient = ApiClient(
         http,
         AppConfig.API_URL,
-        token = { force -> sessions.validToken(force) },
+        token = { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) },
         appVersion = AppConfig.VERSION_CODE,
         onUpdateRequired = { updateRequired.value = true },
     )

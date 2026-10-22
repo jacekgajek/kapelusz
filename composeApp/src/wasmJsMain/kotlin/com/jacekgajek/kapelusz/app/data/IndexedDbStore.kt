@@ -10,7 +10,7 @@ private fun idbGet(key: String): Promise<JsString?> = js(
         open.onupgradeneeded = () => open.result.createObjectStore('kv');
         open.onsuccess = () => resolve(open.result);
         open.onerror = () => reject(open.error);
-    })).then(db => new Promise((resolve, reject) => {
+    }).catch((e) => { globalThis.kapeluszDb = undefined; throw e; })).then(db => new Promise((resolve, reject) => {
         const request = db.transaction('kv', 'readonly').objectStore('kv').get(key);
         request.onsuccess = () => resolve(request.result ?? null);
         request.onerror = () => reject(request.error);
@@ -23,7 +23,7 @@ private fun idbPut(key: String, value: String): Promise<JsAny?> = js(
         open.onupgradeneeded = () => open.result.createObjectStore('kv');
         open.onsuccess = () => resolve(open.result);
         open.onerror = () => reject(open.error);
-    })).then(db => new Promise((resolve, reject) => {
+    }).catch((e) => { globalThis.kapeluszDb = undefined; throw e; })).then(db => new Promise((resolve, reject) => {
         const transaction = db.transaction('kv', 'readwrite');
         transaction.objectStore('kv').put(value, key);
         transaction.oncomplete = () => resolve(null);
@@ -37,7 +37,7 @@ private fun idbDelete(key: String): Promise<JsAny?> = js(
         open.onupgradeneeded = () => open.result.createObjectStore('kv');
         open.onsuccess = () => resolve(open.result);
         open.onerror = () => reject(open.error);
-    })).then(db => new Promise((resolve, reject) => {
+    }).catch((e) => { globalThis.kapeluszDb = undefined; throw e; })).then(db => new Promise((resolve, reject) => {
         const transaction = db.transaction('kv', 'readwrite');
         transaction.objectStore('kv').delete(key);
         transaction.oncomplete = () => resolve(null);
