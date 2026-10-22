@@ -171,6 +171,7 @@
     <string name="reject_no_treasurer">Najpierw wybierz, kto trzyma kasę zespołową.</string>
     <string name="reject_treasurer_must_stay">Ta osoba trzyma kasę zespołową. Najpierw wybierz innego skarbnika.</string>
     <string name="reject_archived_member">Ten członek jest zarchiwizowany.</string>
+    <string name="reject_archived_event">To wydarzenie jest zarchiwizowane. Przywróć je, aby je zmienić.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
     <string name="reject_ownership_needs_admin">Własność można przekazać tylko administratorowi z kontem w aplikacji.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>
@@ -228,9 +229,9 @@
     <string name="invite_failed">Nie udało się. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="invites_unavailable">Zaproszenia wymagają połączenia z serwerem.</string>
     <string name="unlink">Odłącz konto</string>
-    <string name="unlink_confirm">%1$s straci dostęp do zespołu, dopóki nie zostanie zaproszony ponownie. Koszty i historia zostają.</string>
+    <string name="unlink_confirm">%1$s straci dostęp do zespołu do czasu ponownego zaproszenia. Koszty i historia zostają.</string>
     <string name="make_owner">Przekaż własność</string>
-    <string name="make_owner_confirm">%1$s zostanie właścicielem; Ty pozostaniesz administratorem.</string>
+    <string name="make_owner_confirm">%1$s przejmie rolę właściciela; Ty pozostaniesz administratorem.</string>
     <string name="invite_code">Kod zaproszenia</string>
     <string name="check_code">Sprawdź</string>
     <string name="join">Dołącz</string>
@@ -247,7 +248,7 @@
     <string name="h_archive_member">Zarchiwizowano: %1$s</string>
     <string name="h_restore_member">Przywrócono: %1$s</string>
     <string name="h_delete_member">Usunięto członka</string>
-    <string name="h_set_role">Nadano %1$s rolę: %2$s</string>
+    <string name="h_set_role">Zmiana roli: %1$s → %2$s</string>
     <string name="h_link_user">%1$s dołącza do zespołu z rolą: %2$s</string>
     <string name="h_unlink_user">Odłączono konto: %1$s</string>
     <string name="h_set_treasurer">Kasę zespołową trzyma teraz: %1$s</string>
@@ -365,7 +366,7 @@
     <string name="delete_band_everything">Wszystkie wydarzenia, koszty, zwroty, przelewy, kasa zespołowa, załączniki i historia zostaną usunięte dla wszystkich.</string>
     <plurals name="delete_band_members">
         <item quantity="one">%1$d inny członek od razu straci dostęp.</item>
-        <item quantity="few">%1$d innych członków od razu straci dostęp.</item>
+        <item quantity="few">%1$d inni członkowie od razu stracą dostęp.</item>
         <item quantity="many">%1$d innych członków od razu straci dostęp.</item>
         <item quantity="other">%1$d innych członków od razu straci dostęp.</item>
     </plurals>

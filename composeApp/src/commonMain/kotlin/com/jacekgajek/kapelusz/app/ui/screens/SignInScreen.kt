@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +31,8 @@ import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 fun SignInScreen(onIdToken: suspend (String) -> Unit) {
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+    // Clear of the system bars (edge to edge on Android 15+).
+    Box(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineLarge)
             Text(stringResource(Res.string.sign_in_intro), style = MaterialTheme.typography.bodyMedium)

@@ -60,4 +60,22 @@ class SessionTest {
         assertEquals("alice", SessionTokens(store) { now }.verify(token)?.userId)
         assertNull(SessionTokens(InMemoryBlobStore()) { now }.verify(token), "a different key does not")
     }
+
+    @Test
+    fun renewalsKeepASessionAliveAtMost90DaysAfterTheGoogleSignIn() {
+        var token = session("google-alice").token
+        // Renewed every 25 days, it lives on until 90 days after the sign-in ...
+        repeat(3) {
+            now += 25L * 24 * 3600 * 1000
+            token = session(token).token
+        }
+        // ... the last token ends with the session, not 30 days after its renewal ...
+        now += 14L * 24 * 3600 * 1000
+        assertEquals(200, call("GET", "/me", token).status, "day 89")
+        // ... then the token and its renewal are refused (the app asks Google again).
+        now += 2L * 24 * 3600 * 1000
+        assertEquals(401, call("GET", "/me", token).status, "day 91")
+        assertEquals(401, call("POST", "/session", token).status)
+        assertEquals(200, call("POST", "/session", "google-alice").status, "a fresh Google sign-in starts a new chain")
+    }
 }

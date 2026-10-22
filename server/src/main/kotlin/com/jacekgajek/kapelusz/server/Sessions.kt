@@ -18,7 +18,14 @@ import javax.crypto.spec.SecretKeySpec
  */
 class SessionTokens(private val store: BlobStore, private val clock: () -> Long) {
     @Serializable
-    private data class Claims(val sub: String, val email: String? = null, val name: String? = null, val exp: Long)
+    private data class Claims(
+        val sub: String,
+        val email: String? = null,
+        val name: String? = null,
+        val exp: Long,
+        /** When the chain of renewals began (the Google sign-in); tokens from before this claim count from issue. */
+        val since: Long? = null,
+    )
 
     @Serializable
     private data class StoredKey(val key: String)
@@ -28,8 +35,12 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
 
     /** A new token for [user] and when it expires. */
     fun issue(user: VerifiedUser): Pair<String, Long> {
-        val expiresAt = clock() + LIFETIME_MS
-        val payload = encoder.encodeToString(KapeluszJson.encodeToString(Claims.serializer(), Claims(user.userId, user.email, user.name, expiresAt)).toByteArray())
+        val now = clock()
+        val since = user.sessionSince ?: now
+        // A renewed token ends with the session too: at most [MAX_AGE_MS] after the Google sign-in (ITERATION_3 R6).
+        val expiresAt = minOf(now + LIFETIME_MS, since + MAX_AGE_MS)
+        val claims = Claims(user.userId, user.email, user.name, expiresAt, since = since)
+        val payload = encoder.encodeToString(KapeluszJson.encodeToString(Claims.serializer(), claims).toByteArray())
         return "$PREFIX$payload.${encoder.encodeToString(mac(payload))}" to expiresAt
     }
 
@@ -43,7 +54,7 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
         val claims = runCatching { KapeluszJson.decodeFromString(Claims.serializer(), decoder.decode(parts[0]).decodeToString()) }.getOrNull()
             ?: return null
         if (claims.exp <= clock()) return null
-        return VerifiedUser(claims.sub, claims.email, claims.name)
+        return VerifiedUser(claims.sub, claims.email, claims.name, sessionSince = claims.since ?: (claims.exp - LIFETIME_MS))
     }
 
     private fun mac(payload: String): ByteArray =
@@ -68,6 +79,12 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
     companion object {
         const val PREFIX = "as1."
         const val LIFETIME_MS = 30L * 24 * 3600 * 1000
+
+        /**
+         * Renewing a session keeps it alive at most this long after the Google sign-in (ITERATION_3 R6): a stolen
+         * token cannot be kept alive for ever; then the app asks Google again.
+         */
+        const val MAX_AGE_MS = 90L * 24 * 3600 * 1000
         const val KEY_PATH = "server/session-key.json"
         private const val ALGORITHM = "HmacSHA256"
         private val random = SecureRandom()

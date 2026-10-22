@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.auth
 
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Lifecycle
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -36,7 +38,8 @@ object AndroidGoogleAuth : GoogleAuth {
     var activity: WeakReference<Activity> = WeakReference(null)
 
     override suspend fun refresh(): String? {
-        val activity = activity.get() ?: return null
+        // Only on a screen the user sees (ITERATION_3 R7): Google's UI must not appear over a stopped or closing one.
+        val activity = activity.get()?.takeIf { (it as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != false } ?: return null
         val option = GetGoogleIdOption.Builder()
             .setServerClientId(AppConfig.GOOGLE_WEB_CLIENT_ID)
             .setFilterByAuthorizedAccounts(true)

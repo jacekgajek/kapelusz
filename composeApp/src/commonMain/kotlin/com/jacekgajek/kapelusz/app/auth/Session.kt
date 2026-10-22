@@ -91,8 +91,10 @@ class SessionRepository(
      * The bearer token for the next request. [forceRefresh]: the server refused the last one. Null when the user has
      * to sign in again (the session itself is kept, so the app keeps working offline).
      */
-    suspend fun validToken(forceRefresh: Boolean = false): String? = refreshLock.withLock {
+    suspend fun validToken(forceRefresh: Boolean = false, refused: String? = null): String? = refreshLock.withLock {
         var current = _session.value ?: return null
+        // Another request renewed the session meanwhile (ITERATION_3 R9): the refused token was the old one, keep the new.
+        if (forceRefresh && refused != null && current.apiToken != null && current.apiToken != refused) return@withLock current.apiToken
         val now = clock()
         val session = current.apiToken?.takeIf { current.apiExpiresAt - now > EXPIRY_SKEW_MS }
         if (session != null && !forceRefresh) {

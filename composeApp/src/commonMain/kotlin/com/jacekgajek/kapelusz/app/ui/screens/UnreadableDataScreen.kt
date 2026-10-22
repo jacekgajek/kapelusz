@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,8 @@ import org.jetbrains.compose.resources.stringResource
 /** Shown when saved data cannot be read. The data was already backed up, so starting over loses nothing. */
 @Composable
 fun UnreadableDataScreen(onStartOver: () -> Unit) {
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+    // Clear of the system bars (edge to edge on Android 15+).
+    Box(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(Res.string.unreadable_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(Res.string.unreadable_text), style = MaterialTheme.typography.bodyMedium)

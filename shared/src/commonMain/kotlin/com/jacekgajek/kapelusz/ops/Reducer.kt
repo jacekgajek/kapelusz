@@ -33,6 +33,10 @@ data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?)
 object Reducer {
 
     fun apply(band: Band, op: Operation, ctx: OpContext): Band {
+        // Archived events are read-only (ITERATION_3 R10): restoring and deleting them are the only changes.
+        op.eventId?.let { band.event(it) }?.let { event ->
+            conflictIf(event.archived && op !is SetEventArchived && op !is DeleteEvent, RejectionReason.ARCHIVED_EVENT) { "Event ${event.id} is archived" }
+        }
         val result = when (op) {
             is RenameBand -> band.copy(name = op.name.validName("Band name"))
             is AddMember -> addMember(band, op)
@@ -146,7 +150,8 @@ object Reducer {
             is DeleteCost -> deleteCost(band, op, ctx)
             is AddAttachment -> band.updateCost(op.costId) { cost ->
                 invalidIf(cost.attachments.size >= MAX_ATTACHMENTS, RejectionReason.TOO_MANY_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
-                invalidIf(cost.attachments.any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
+                // Unique in the whole band: the id names its file in storage (ITERATION_3 R6).
+                invalidIf(band.costs.any { c -> c.attachments.any { it.id == op.attachment.id } }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
                 // The size is signed into the upload URL, so the stored file cannot be larger than declared here.
                 val size = op.attachment.sizeBytes
                 invalidIf(size == null || size <= 0, RejectionReason.INVALID_INPUT) { "Attachment size is required" }
@@ -161,6 +166,11 @@ object Reducer {
 
             is Undo -> Undoing.apply(band, op)
         }
+        // While the fund is off (ITERATION_3 R10), a change may not leave it holding or owing money: that needs a treasurer.
+        conflictIf(
+            result.treasurerMemberId == null && band.treasurerMemberId == null && BandFund.canDisable(band) && !BandFund.canDisable(result),
+            RejectionReason.NO_TREASURER,
+        ) { "Choose a treasurer before using the band fund" }
         return op.eventId
             ?.takeIf { op !is DeleteEvent }
             ?.let { eventId -> result.updateEvent(eventId) { it.copy(updatedAt = ctx.timestamp) } }
@@ -476,6 +486,8 @@ object Reducer {
     private fun deleteCost(band: Band, op: DeleteCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
         conflictIf(band.fundEntries.any { it.costId == cost.id }, RejectionReason.COST_REFUNDED_FROM_FUND) { "Cost was refunded from the band fund" }
+        // Its refund in an archived event would change that event (ITERATION_3 R10).
+        conflictIf(band.events.any { it.archived && it.refundOf(cost.id) != null }, RejectionReason.ARCHIVED_EVENT) { "Cost is refunded by an archived event" }
         return band.copy(
             costs = band.costs.filterNot { it.id == cost.id },
             events = band.events.map { event ->
@@ -492,6 +504,7 @@ object Reducer {
     private fun validateCostEvent(band: Band, eventId: Id, memberId: Id) {
         val event = band.event(eventId).orNotFound { "Event $eventId" }
         invalidIf(event.participant(memberId) == null, RejectionReason.NOT_A_PARTICIPANT) { "The cost's owner does not take part in the event" }
+        conflictIf(event.archived, RejectionReason.ARCHIVED_EVENT) { "Event $eventId is archived" }
     }
 
     /**

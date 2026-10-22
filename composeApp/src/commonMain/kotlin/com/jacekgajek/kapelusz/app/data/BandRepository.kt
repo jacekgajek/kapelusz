@@ -224,6 +224,12 @@ class BandRepository(
     fun onPulled(bandId: Id, band: Band, version: String) = rebase(bandId) { it.copy(base = band, version = version) }
 
     /** Updates the band list from the server's `/me`, keeping bands created offline that the server does not know yet. */
+    /** Bands on this device that the server no longer lists (not ones created offline): access lost, or deleted. */
+    fun unlisted(bands: List<BandSummary>): List<Id> {
+        val listed = bands.map { it.id }.toSet()
+        return locals.filter { (id, local) -> id !in listed && !local.needsCreate }.keys.toList()
+    }
+
     fun onBandList(bands: List<BandSummary>) = updateIndex { index ->
         val offline = index.bands.filter { summary -> summary.id !in bands.map { it.id } && locals[summary.id]?.needsCreate == true }
         index.copy(bands = bands + offline)

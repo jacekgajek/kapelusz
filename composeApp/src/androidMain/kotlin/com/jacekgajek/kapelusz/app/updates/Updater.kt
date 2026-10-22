@@ -87,6 +87,7 @@ object Updater {
             if (published.versionCode <= installedVersionCode(context)) {
                 clearDownloads(context)
                 confirmation = null
+                cancelReady(context)
                 _status.value = UpdateStatus.UpToDate
                 return true
             }
@@ -104,7 +105,7 @@ object Updater {
         }
         val (published, apk) = pendingApk(context) ?: return true
         val memory = memory(context)
-        val autoUpdate = AndroidAppGraph.get(context).settingsForBackground().autoUpdate
+        val autoUpdate = withContext(Dispatchers.Main) { AndroidAppGraph.get(context).settingsForBackground().autoUpdate }
         val now = System.currentTimeMillis()
         when {
             installNow || UpdatePolicy.mayInstallAutomatically(published.versionCode, autoUpdate, appVisible, memory, now) ->
@@ -119,7 +120,7 @@ object Updater {
     /** The app is out of sight: install a downloaded update if [UpdatePolicy] allows. */
     suspend fun installIfReady(context: Context) = lock.withLock {
         val (published, apk) = pendingApk(context) ?: return@withLock
-        val autoUpdate = AndroidAppGraph.get(context).settingsForBackground().autoUpdate
+        val autoUpdate = withContext(Dispatchers.Main) { AndroidAppGraph.get(context).settingsForBackground().autoUpdate }
         if (UpdatePolicy.mayInstallAutomatically(published.versionCode, autoUpdate, appVisible, memory(context), System.currentTimeMillis())) {
             install(context, published, apk)
         }
@@ -130,7 +131,7 @@ object Updater {
         scope.launch { block() }
     }
 
-    private fun install(context: Context, published: PublishedVersion, apk: File) {
+    private suspend fun install(context: Context, published: PublishedVersion, apk: File) {
         Log.i(TAG, "Installing ${published.versionCode}")
         if (!canInstallApps(context)) {
             Log.i(TAG, "Not allowed to install apps yet")
@@ -147,9 +148,12 @@ object Updater {
             }
             val id = installer.createSession(params).also { sessionId = it }
             installer.openSession(id).use { session ->
-                session.openWrite("kapelusz.apk", 0, apk.length()).use { out ->
-                    apk.inputStream().use { it.copyTo(out) }
-                    session.fsync(out)
+                // File work on the I/O threads, not the shared CPU ones.
+                withContext(Dispatchers.IO) {
+                    session.openWrite("kapelusz.apk", 0, apk.length()).use { out ->
+                        apk.inputStream().use { it.copyTo(out) }
+                        session.fsync(out)
+                    }
                 }
                 val result = Intent(context, InstallResultReceiver::class.java)
                     .putExtra(EXTRA_VERSION_NAME, published.versionName)
@@ -179,6 +183,7 @@ object Updater {
     /** From [InstallResultReceiver]: the user declined, or Android could not install it. */
     internal fun onFinishedWithoutInstall(context: Context, versionCode: Long, versionName: String, declined: Boolean) {
         confirmation = null
+        cancelReady(context)
         remember(context) {
             if (declined) it.copy(installingVersion = null, declinedVersion = versionCode)
             else it.copy(installingVersion = null, failedVersion = versionCode)
@@ -191,6 +196,7 @@ object Updater {
      * up, since the app is on screen.
      */
     fun confirm(context: Context) {
+        cancelReady(context)
         val intent = confirmation
         if (intent != null) {
             runCatching { context.startActivity(intent) }
@@ -213,17 +219,21 @@ object Updater {
 
     private fun canInstallApps(context: Context) = context.packageManager.canRequestPackageInstalls()
 
+    /** The "ready to install" notification, once it no longer applies: confirmed in the app, declined, or installed. */
+    private fun cancelReady(context: Context) = NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+
     private fun notifyReady(context: Context, versionName: String, confirmIntent: Intent) {
         val notifications = NotificationManagerCompat.from(context)
+        val strings = Strings(AndroidAppGraph.get(context).settings.settings.value.language)
         // Without the notification permission (asked for with gig reminders) the in-app strip offers the install.
         if (!notifications.areNotificationsEnabled()) return
         context.getSystemService(NotificationManager::class.java)
-            .createNotificationChannel(NotificationChannel(CHANNEL, Strings.channelName(), NotificationManager.IMPORTANCE_DEFAULT))
+            .createNotificationChannel(NotificationChannel(CHANNEL, strings.channelName(), NotificationManager.IMPORTANCE_DEFAULT))
         val tap = PendingIntent.getActivity(context, 0, confirmIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle(Strings.readyTitle(versionName))
-            .setContentText(Strings.readyText())
+            .setContentTitle(strings.readyTitle(versionName))
+            .setContentText(strings.readyText())
             .setContentIntent(tap)
             .setAutoCancel(true)
             .build()

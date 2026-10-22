@@ -37,21 +37,24 @@ class Can(private val band: Band, private val userId: String) {
 
     fun createEvent() = allowed(CreateEvent(PROBE, PROBE, PROBE_DATE))
     fun archiveEvents() = allowed(SetEventArchived(PROBE, true))
-    fun editEvent(event: Event) = allowed(UpdateEvent(event.id))
-    fun manageParticipants(event: Event) = allowed(AddGuest(event.id, PROBE, PROBE))
-    fun editRefunds(event: Event) = allowed(SetRefund(event.id, PROBE, Money.ZERO))
-    fun settleAll(event: Event) = allowed(SettleSuggestions(event.id))
-    fun recordTransfer(event: Event, from: Id, to: Id) = allowed(RecordTransfer(event.id, PROBE, from, to, Money(1)))
-    fun removeTransfer(event: Event) = allowed(RemoveTransfer(event.id, PROBE))
+    fun editEvent(event: Event) = open(event) && allowed(UpdateEvent(event.id))
+    fun manageParticipants(event: Event) = open(event) && allowed(AddGuest(event.id, PROBE, PROBE))
+    fun editRefunds(event: Event) = open(event) && allowed(SetRefund(event.id, PROBE, Money.ZERO))
+    fun settleAll(event: Event) = open(event) && allowed(SettleSuggestions(event.id))
+    fun recordTransfer(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1)))
+    fun removeTransfer(event: Event) = open(event) && allowed(RemoveTransfer(event.id, PROBE))
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */
     fun holdingParties(event: Event): List<Id> =
-        event.participants.map { it.partyId }.filter { allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
+        if (!open(event)) emptyList() else event.participants.map { it.partyId }.filter { allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
 
-    fun editHolding(event: Event, holding: Holding) = allowed(UpdateHolding(event.id, holding.id))
+    fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))
     fun addCost() = meId != null && allowed(AddCost(PROBE, meId, Money(1), PROBE_DATE))
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
+
+    /** Archived events are read-only until restored (ITERATION_3 R10). */
+    private fun open(event: Event) = !event.archived
 
     private companion object {
         const val PROBE = "probe"

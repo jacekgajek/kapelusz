@@ -21,6 +21,10 @@ object ReminderScheduler {
     /** "epochMillis|title" of each scheduled reminder, for the secret menu. */
     private const val KEY_TIMES = "times"
     private const val TEST_KEY = "test"
+    private const val EXTRA_KEY = "key"
+    private const val EXTRA_LANGUAGE = "language"
+    /** Reminders shown already, so planning again does not bring them back (the latest few are enough). */
+    private const val KEY_SHOWN = "shown"
     private const val EXTRA_TITLE = "title"
     private const val EXTRA_TEXT = "text"
     private const val EXTRA_NAVIGATE = "navigate"
@@ -38,6 +42,8 @@ object ReminderScheduler {
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_TEXT, text)
                 .putExtra(EXTRA_NAVIGATE, reminder.navigateUrl)
+                .putExtra(EXTRA_KEY, reminder.key)
+                .putExtra(EXTRA_LANGUAGE, language)
             schedule(alarms, at, pending(context, reminder.key, intent))
         }
         prefs.edit {
@@ -74,13 +80,30 @@ object ReminderScheduler {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
+    /** The keys of reminders shown already. */
+    fun shown(context: Context): Set<String> = shownAt(context).keys
+
+    /** Stored as "<shown at, epoch ms>|<key>", so the oldest can be dropped. */
+    private fun shownAt(context: Context): Map<String, Long> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty().mapNotNull { entry ->
+            val at = entry.substringBefore('|').toLongOrNull() ?: return@mapNotNull null
+            entry.substringAfter('|') to at
+        }.toMap()
+
     internal fun show(context: Context, intent: Intent) {
+        intent.getStringExtra(EXTRA_KEY)?.let { key ->
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            // Only the newest matter: a reminder is never due again more than a few hours after its time.
+            val shown = (shownAt(context) + (key to System.currentTimeMillis())).entries.sortedByDescending { it.value }.take(200)
+            prefs.edit { putStringSet(KEY_SHOWN, shown.map { "${it.value}|${it.key}" }.toSet()) }
+        }
         // Both are missing for the test reminder, which just opens the app.
         val band = intent.getStringExtra(Notifier.EXTRA_BAND)
         val event = intent.getStringExtra(Notifier.EXTRA_EVENT)
         Notifier.showReminder(
             context, ("r$band$event").hashCode(), band, event,
             intent.getStringExtra(EXTRA_TITLE).orEmpty(), intent.getStringExtra(EXTRA_TEXT).orEmpty(), intent.getStringExtra(EXTRA_NAVIGATE),
+            intent.getStringExtra(EXTRA_LANGUAGE),
         )
     }
 }

@@ -111,7 +111,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Admins manage it here (roles, invites, links); others see it read-only. */
@@ -272,6 +271,9 @@ private fun MemberDialog(
                 if (member.userId == null && !member.archived) {
                     HorizontalDivider()
                     val current = shownInvite
+                    // In the app's language (a non-composable getString would use the browser's on the web).
+                    val failedText = stringResource(Res.string.invite_failed)
+                    var inviteBusy by remember { mutableStateOf(false) }
                     if (current != null) {
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -287,13 +289,15 @@ private fun MemberDialog(
                                         scope.launch { if (share(text) == ShareResult.COPIED) message = copied }
                                     }) { Text(stringResource(Res.string.share_invite)) }
                                     OutlinedButton(onClick = {
-                                        scope.launch { message = if (copy(link)) linkCopied else getString(Res.string.invite_failed) }
+                                        scope.launch { message = if (copy(link)) linkCopied else failedText }
                                     }) { Text(stringResource(Res.string.copy_link)) }
-                                    OutlinedButton(onClick = {
+                                    OutlinedButton(enabled = !inviteBusy, onClick = {
+                                        inviteBusy = true
                                         scope.launch {
                                             runCatching { graph.api.revokeInvite(band.id, current.code) }
                                                 .onSuccess { shownInvite = null; onInvitesChanged() }
-                                                .onFailure { message = getString(Res.string.invite_failed) }
+                                                .onFailure { message = failedText }
+                                            inviteBusy = false
                                         }
                                     }) { Text(stringResource(Res.string.revoke_invite)) }
                                 }
@@ -306,11 +310,14 @@ private fun MemberDialog(
                     } else {
                         Text(stringResource(Res.string.invite_hint), style = MaterialTheme.typography.bodySmall)
                         RolePicker(inviteRole, { inviteRole = it }, stringResource(Res.string.invite_role))
-                        FilledTonalButton(onClick = {
+                        // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
+                        FilledTonalButton(enabled = !inviteBusy, onClick = {
+                            inviteBusy = true
                             scope.launch {
                                 runCatching { graph.api.createInvite(band.id, member.id, inviteRole) }
                                     .onSuccess { shownInvite = it; onInvitesChanged() }
-                                    .onFailure { message = getString(Res.string.invite_failed) }
+                                    .onFailure { message = failedText }
+                                inviteBusy = false
                             }
                         }) { Text(stringResource(Res.string.create_invite)) }
                     }

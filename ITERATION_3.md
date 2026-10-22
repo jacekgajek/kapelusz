@@ -140,14 +140,18 @@ enforce the same) validates every input.
   cannot be settled automatically; fund entries and fund transfers can still be changed after the fund is switched
   off; archived events accept every operation.
 - *Fix:* an event is a draft only when nothing at all is in it; fund changes need a treasurer (or must leave the fund
-  in a state it could be switched off in); decide whether archived events are read-only (proposed: yes, except
-  restoring).
+  in a state it could be switched off in); archived events are read-only, except restoring and deleting them (done so in
+  V3-M2).
 - *Test:* settlement and reducer tests.
 
 **R11. CI.**
 - *Problems:* CI builds the development web app, while deploy ships the optimised production build (its failures only
   show after a merge); actions with deploy rights are pinned to movable tags; the keystore is decoded twice.
 - *Fix:* the production web build in CI; actions pinned to commit hashes; one keystore step.
+
+*Moved to V3-M3 while doing V3-M2 (they need screens of their own):* a per-user "signed out everywhere" (R6; the
+90-day limit on sessions is done), and showing a push the server always refuses, with export or discard of the stuck
+changes (R9).
 
 ### 1.3 P3 — quality (V3-M3)
 
@@ -253,6 +257,12 @@ Options, cheapest first:
 Not recommended: a relational database (e.g. Postgres on RDS): a fixed monthly cost even when idle, and connection
 handling from Lambda is awkward.
 
+### Availability
+
+Members still cannot add themselves to an event, but once a lead creates it they can answer "I can attend" or "I
+cannot attend". The lead sees the answers in the participants list and accepts (adds the member) or refuses them.
+Adding a member who answered "I cannot attend" asks the lead to confirm first.
+
 Other ideas: payment details (account number, BLIK phone) with copy buttons in To settle; a yearly summary per
 member with CSV/PDF export (for tax returns); duplicating an event; agreed fee and deposit tracking.
 
@@ -266,17 +276,18 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [x] V3-M1.5 Deploy safeguards and post-deploy smoke check (R5)
 
 ### V3-M2 — Hardening P2
-- [ ] V3-M2.1 Server: membership first, quotas, sessions, logs, CORS, attachment keys (R6)
-- [ ] V3-M2.2 Android: one instance, late reminders kept, update notification, threads, notification language, insets (R7)
-- [ ] V3-M2.3 UI: edits send only changes, keyed rows, number parsing, busy flags, saved form state, Polish texts (R8)
-- [ ] V3-M2.4 Sync: removed bands, token races, sequence numbers, error classes, web storage, stuck queues (R9)
-- [ ] V3-M2.5 Band fund rules and archived events (R10)
-- [ ] V3-M2.6 CI: production web build, pinned actions (R11)
+- [x] V3-M2.1 Server: membership first, quotas, sessions, logs, CORS, attachment keys (R6)
+- [x] V3-M2.2 Android: one instance, late reminders kept, update notification, threads, notification language, insets (R7)
+- [x] V3-M2.3 UI: edits send only changes, keyed rows, number parsing, busy flags, saved form state, Polish texts (R8)
+- [x] V3-M2.4 Sync: removed bands, token races, sequence numbers, error classes, web storage, stuck queues (R9)
+- [x] V3-M2.5 Band fund rules and archived events (R10)
+- [x] V3-M2.6 CI: production web build, pinned actions (R11)
 
 ### V3-M3 — Quality
 - [ ] V3-M3.1 Refactorings (R12)
 - [ ] V3-M3.2 Accessibility, unused resources, docs, build hygiene (R13)
 - [ ] V3-M3.3 Tests for iteration-2 paths (R14)
+- [ ] V3-M3.4 "Signed out everywhere" (R6) and stuck pushes shown with export or discard (R9)
 
 ### V3-M4 — New features (one release)
 - [ ] V3-M4.1 Share a settlement as text (§2.1)

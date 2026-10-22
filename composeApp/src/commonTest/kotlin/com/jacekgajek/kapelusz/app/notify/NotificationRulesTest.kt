@@ -105,4 +105,15 @@ class NotificationRulesTest {
         val later = NotificationRules.checkTransfers(listOf(back), "u-alice", missing.seen, missing.baselined)
         assertEquals(listOf("new"), later.notices.flatMap { notice -> notice.transfers.map { it.id } })
     }
+
+    @Test
+    fun aReminderAndroidDeliversLateIsNotDroppedByPlanningAgain() {
+        val band = base.apply("u-bob", CreateEvent("gig", "Club gig", LocalDate(2026, 10, 22), participants = listOf(Participant("alice"))))
+        // Due at 18:00 the day before; it is 19:00 and Android has not shown it yet.
+        val late = LocalDateTime(2026, 10, 21, 19, 0)
+        assertEquals(listOf("gig/1"), NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), late).map { "${it.eventId}/${it.daysBefore}" })
+        assertEquals(emptyList(), NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), late, shown = setOf("band1/gig/1".let { key -> NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), late).single().key })))
+        // Hours later it is no longer worth showing.
+        assertEquals(emptyList(), NotificationRules.reminders(listOf(band), "u-alice", setOf(1), LocalTime(18, 0), LocalDateTime(2026, 10, 21, 21, 0)))
+    }
 }

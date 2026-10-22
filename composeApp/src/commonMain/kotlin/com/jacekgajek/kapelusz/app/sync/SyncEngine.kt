@@ -1,11 +1,16 @@
 package com.jacekgajek.kapelusz.app.sync
 
 import com.jacekgajek.kapelusz.api.ApiErrors
+import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Rejection
+import com.jacekgajek.kapelusz.ops.Undo
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,7 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.serialization.SerializationException
 
 /** A band that is gone for this user: [deleted] by its owner, or the user was removed from it. */
 data class LostBand(val name: String, val deleted: Boolean)
@@ -117,7 +122,7 @@ class SyncEngine(
                 }
                 if (bandResult == SyncStatus.ERROR) result = SyncStatus.ERROR
             }
-            if (result == SyncStatus.SYNCED || result == SyncStatus.ERROR) bands.onBandList(api.me().bands)
+            if (result == SyncStatus.SYNCED || result == SyncStatus.ERROR) checkBandList(api.me().bands)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -136,7 +141,7 @@ class SyncEngine(
     suspend fun syncAll(): Boolean = runLock.withLock {
         if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return false
         try {
-            bands.onBandList(api.me().bands)
+            checkBandList(api.me().bands)
             val ids = (bands.index.value?.bands.orEmpty().map { it.id } + bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
             var allOk = true
             for (bandId in ids) {
@@ -198,9 +203,20 @@ class SyncEngine(
         e is ApiException && e.code == ApiErrors.UPDATE_REQUIRED -> SyncStatus.UPDATE_REQUIRED
         else -> when (e) {
             is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
-            is ApiException, is SyncProtocolException -> SyncStatus.ERROR
+            // An answer this app cannot read is not a network problem (ITERATION_3 R9).
+            is ApiException, is SyncProtocolException, is SerializationException -> SyncStatus.ERROR
             else -> SyncStatus.OFFLINE
         }
+    }
+
+    /**
+     * Updates the band list, and checks every band still on this device that it no longer has (ITERATION_3 R9): the
+     * check finds it deleted or access lost, says so, and removes it, so it stops feeding reminders.
+     */
+    private suspend fun checkBandList(listed: List<BandSummary>) {
+        val unlisted = bands.unlisted(listed)
+        bands.onBandList(listed)
+        for (bandId in unlisted) syncBand(bandId, pull = true)
     }
 
     /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */
@@ -220,7 +236,7 @@ class SyncEngine(
             bands.onCreated(bandId, created.band, created.version)
         }
         while (true) {
-            val batch = bands.local(bandId)?.pending?.take(BATCH_SIZE).orEmpty()
+            val batch = batchOf(bands.local(bandId)?.pending.orEmpty())
             if (batch.isEmpty()) return
             val response = api.push(bandId, batch)
             bands.onPushed(bandId, response)
@@ -240,5 +256,11 @@ class SyncEngine(
     companion object {
         const val BATCH_SIZE = 200
         const val DEBOUNCE = 1_000L
+
+        /** The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once (ITERATION_3 R6). */
+        internal fun batchOf(pending: List<OpEnvelope>): List<OpEnvelope> {
+            var undos = 0
+            return pending.take(BATCH_SIZE).takeWhile { envelope -> envelope.op !is Undo || ++undos <= Limits.MAX_UNDOS_PER_PUSH }
+        }
     }
 }

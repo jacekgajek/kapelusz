@@ -80,8 +80,9 @@ class S3BlobStore(
         return try {
             s3.putObject(request, RequestBody.fromString(content)).eTag()
         } catch (e: S3Exception) {
-            // 412: condition not met; 409: a concurrent conditional write to the same key is in progress.
-            if (e.statusCode() == 412 || e.statusCode() == 409) throw PreconditionFailed()
+            // 412: condition not met; 409: a concurrent conditional write to the same key is in progress; 404 on a
+            // conditional write: the object is gone (e.g. the band deleted meanwhile): the caller reloads and sees that.
+            if (e.statusCode() == 412 || e.statusCode() == 409 || (e.statusCode() == 404 && ifMatch != null)) throw PreconditionFailed()
             throw e
         }
     }

@@ -80,9 +80,10 @@ object Notifier {
         null -> time.label.orEmpty()
     }
 
-    fun showReminder(context: Context, id: Int, bandId: String?, eventId: String?, title: String, text: String, navigateUrl: String?) {
+    /** [language]: the app's (as the texts were made), so the action and the channel match them (ITERATION_3 R7). */
+    fun showReminder(context: Context, id: Int, bandId: String?, eventId: String?, title: String, text: String, navigateUrl: String?, language: String? = null) {
         if (!canNotify(context)) return
-        val pl = polish(null)
+        val pl = polish(language)
         channels(context, pl)
         val builder = NotificationCompat.Builder(context, REMINDERS)
             .setSmallIcon(smallIcon(context, android.R.drawable.ic_menu_today))

@@ -101,6 +101,7 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     var next by remember { mutableStateOf<String?>(null) }
     var failed by remember { mutableStateOf(false) }
     var loadingMore by remember { mutableStateOf(false) }
+    var loadMoreFailed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
@@ -131,10 +132,12 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
         scope.launch {
             loadingMore = true
             val refresh = reload
-            runCatching { graph.api.history(state.band.id, month, next) }
-                // Not onto a list that was refreshed meanwhile (it starts from the first page again).
-                .onSuccess { response -> if (refresh == reload) { lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next } }
-                .onFailure { failed = true }
+            val forMonth = month
+            runCatching { graph.api.history(state.band.id, forMonth, next) }
+                // Not onto a list that was refreshed or that shows another month meanwhile (read now: [offset] is state).
+                .onSuccess { response -> if (refresh == reload && forMonth == historyMonth(offset)) { lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next } }
+                // What is shown stays; only "Load more" did not work (ITERATION_3 R8).
+                .onFailure { if (it is CancellationException) throw it else loadMoreFailed = true }
             loadingMore = false
         }
     }
@@ -181,7 +184,10 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                     if (next != null) {
                         item {
                             if (loadingMore) CircularProgressIndicator(Modifier.padding(8.dp).size(24.dp))
-                            else TextButton(onClick = loadMore) { Text(stringResource(Res.string.load_more)) }
+                            else Column {
+                                if (loadMoreFailed) Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                                TextButton(onClick = { loadMoreFailed = false; loadMore() }) { Text(stringResource(Res.string.load_more)) }
+                            }
                         }
                     }
                 }

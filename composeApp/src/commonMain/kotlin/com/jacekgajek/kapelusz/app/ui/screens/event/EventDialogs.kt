@@ -68,6 +68,8 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () -> Unit) {
+    // Compared with the event as it was when the dialog opened: only what the user changed is sent (ITERATION_3 R8).
+    val opened = remember { event }
     var fields by remember {
         mutableStateOf(
             EventFieldsState(
@@ -92,15 +94,17 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
             TextButton(enabled = fields.name.isNotBlank(), onClick = {
                 val update = UpdateEvent(
                     event.id,
-                    name = Change(fields.name).takeIf { fields.name.trim() != event.name },
-                    date = Change(fields.date).takeIf { fields.date != event.date },
-                    location = Change(fields.location.ifBlank { null }).takeIf { fields.location.trim() != event.location.orEmpty() },
-                    mapUrl = Change(fields.mapUrl).takeIf { fields.mapUrl != event.mapUrl },
+                    name = Change(fields.name).takeIf { fields.name.trim() != opened.name },
+                    date = Change(fields.date).takeIf { fields.date != opened.date },
+                    location = Change(fields.location.ifBlank { null }).takeIf { fields.location.trim() != opened.location.orEmpty() },
+                    mapUrl = Change(fields.mapUrl).takeIf { fields.mapUrl != opened.mapUrl },
                 )
-                if (listOf(update.name, update.date, update.location, update.mapUrl).any { it != null }) actions.run(update)
+                var saved = true
+                if (listOf(update.name, update.date, update.location, update.mapUrl).any { it != null }) saved = actions.run(update)
                 val agenda = fields.agenda
-                if (agenda != event.agenda && !(event.agenda.isEmpty() && agenda.all { it.time == null })) actions.run(SetEventAgenda(event.id, agenda))
-                onDismiss()
+                if (agenda != opened.agenda && !(opened.agenda.isEmpty() && agenda.all { it.time == null })) saved = actions.run(SetEventAgenda(event.id, agenda)) && saved
+                // Refused (the snackbar says why): the dialog stays, with what the user typed.
+                if (saved) onDismiss()
             }) { Text(stringResource(Res.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

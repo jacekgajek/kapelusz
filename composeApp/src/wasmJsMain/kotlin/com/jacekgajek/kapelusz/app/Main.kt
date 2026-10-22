@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app
 
+import kotlinx.coroutines.delay
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +60,8 @@ fun main() {
                     OtherTabScreen(onUseHere = {
                         scope.launch {
                             TabLock.acquire(steal = true)
+                            // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
+                            delay(1500)
                             graph.load()
                             phase = Phase.READY
                         }

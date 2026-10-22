@@ -94,7 +94,7 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             ReminderScheduler.reschedule(
                 context,
-                if (settings.remindersEnabled) NotificationRules.reminders(graph.bands.allBands(), userId, settings.reminderDays, settings.reminderTime, now) else emptyList(),
+                if (settings.remindersEnabled) NotificationRules.reminders(graph.bands.allBands(), userId, settings.reminderDays, settings.reminderTime, now, ReminderScheduler.shown(context)) else emptyList(),
                 settings.language,
             )
         }

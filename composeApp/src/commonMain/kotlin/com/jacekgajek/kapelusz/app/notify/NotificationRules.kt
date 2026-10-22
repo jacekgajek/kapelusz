@@ -1,5 +1,9 @@
 package com.jacekgajek.kapelusz.app.notify
 
+import kotlin.time.Duration.Companion.hours
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.TimeZone
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -41,19 +45,29 @@ data class TransferCheck(val notices: List<TransferNotice>, val seen: Set<String
 object NotificationRules {
     val LEAD_DAYS = listOf(1, 2, 3, 7)
 
-    /** Reminders still to come for upcoming, non-archived events the user takes part in, in all bands. */
-    fun reminders(bands: List<Band>, userId: String, days: Set<Int>, time: LocalTime, now: LocalDateTime): List<Reminder> =
+    /** How late a reminder may still be shown (Android may deliver inexact alarms up to about an hour late). */
+    const val LATE_HOURS = 2
+
+    private fun lateSince(now: LocalDateTime): LocalDateTime =
+        now.toInstant(TimeZone.UTC).minus(LATE_HOURS.hours).toLocalDateTime(TimeZone.UTC)
+
+    /**
+     * Reminders still to come for upcoming, non-archived events the user takes part in, in all bands. Also those due in
+     * the last [LATE_HOURS] hours that were not [shown] yet (ITERATION_3 R7): Android may deliver an alarm late, and
+     * planning again in between must not drop it.
+     */
+    fun reminders(bands: List<Band>, userId: String, days: Set<Int>, time: LocalTime, now: LocalDateTime, shown: Set<String> = emptySet()): List<Reminder> =
         bands.flatMap { band ->
-            val me = band.memberOfUser(userId) ?: return@flatMap emptyList()
+            val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
             band.events.filter { !it.archived && it.participant(me.id) != null }.flatMap { event ->
                 days.mapNotNull { daysBefore ->
                     val at = event.date.minus(DatePeriod(days = daysBefore)).atTime(time)
-                    if (at <= now) return@mapNotNull null
+                    if (at < lateSince(now)) return@mapNotNull null
                     Reminder(
                         band.id, event.id, event.name, event.date, daysBefore, at,
                         event.agenda.filter { it.time != null }.minByOrNull { it.minutesOfEventDay ?: 0 },
                         Places.navigateUrl(event),
-                    )
+                    ).takeUnless { it.at <= now && it.key in shown }
                 }
             }
         }.sortedBy { it.at }
@@ -67,7 +81,7 @@ object NotificationRules {
      * else recorded; grouped per event.
      */
     fun newTransfers(bands: List<Band>, userId: String, seen: Set<String>): List<TransferNotice> = bands.flatMap { band ->
-        val me = band.memberOfUser(userId) ?: return@flatMap emptyList()
+        val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
         val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
         band.events.mapNotNull { event ->
             val fresh = event.transfers.filter { "${band.id}/${it.id}" !in seen && (it.from in mine || it.to in mine) && it.recordedBy != me.id }
@@ -90,7 +104,7 @@ object NotificationRules {
     /** For the permission prompt: the nearest upcoming event the user takes part in, with who added them. */
     fun firstUpcomingGig(bands: List<Band>, userId: String, today: LocalDate): Pair<Band, Event>? =
         bands.flatMap { band ->
-            val me = band.memberOfUser(userId) ?: return@flatMap emptyList()
+            val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
             band.events.filter { !it.archived && it.date >= today && it.participant(me.id) != null }.map { band to it }
         }.minByOrNull { it.second.date }
 }

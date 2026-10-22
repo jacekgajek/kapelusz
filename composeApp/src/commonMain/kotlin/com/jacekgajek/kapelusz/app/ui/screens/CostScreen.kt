@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,6 +80,7 @@ import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Change
@@ -106,12 +108,18 @@ fun CostScreen(
     val existing = costId?.let { band.cost(it) }
     val lang = language
 
-    var amount by remember { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
+    // The cost as it was when the form opened: Save sends only what the user changed since, so a change someone else
+    // made meanwhile is not overwritten (ITERATION_3 R8). Saved with the typed text, or after a rotation an untouched
+    // old amount would count as changed against a newer snapshot.
+    val openedJson = rememberSaveable { existing?.let { KapeluszJson.encodeToString(Cost.serializer(), it) }.orEmpty() }
+    val opened = remember(openedJson) { openedJson.takeIf { it.isNotEmpty() }?.let { KapeluszJson.decodeFromString(Cost.serializer(), it) } }
+    // Typed text survives rotation and the camera app's round trip (ITERATION_3 R8).
+    var amount by rememberSaveable { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
     var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id) }
     var date by remember { mutableStateOf(existing?.date ?: today()) }
     var eventId by remember { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
     var category by remember { mutableStateOf(existing?.category) }
-    var description by remember { mutableStateOf(existing?.description.orEmpty()) }
+    var description by rememberSaveable { mutableStateOf(existing?.description.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
     var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
@@ -136,11 +144,11 @@ fun CostScreen(
             actions.run(
                 UpdateCost(
                     existing.id,
-                    amount = Change(parsed!!).takeIf { parsed != existing.amount },
-                    date = Change(date).takeIf { date != existing.date },
-                    incurredForEventId = Change(eventId).takeIf { eventId != existing.eventId },
-                    category = Change(category).takeIf { category != existing.category },
-                    description = Change(description.ifBlank { null }).takeIf { description.trim() != existing.description.orEmpty() },
+                    amount = Change(parsed!!).takeIf { parsed != (opened ?: existing).amount },
+                    date = Change(date).takeIf { date != (opened ?: existing).date },
+                    incurredForEventId = Change(eventId).takeIf { eventId != (opened ?: existing).eventId },
+                    category = Change(category).takeIf { category != (opened ?: existing).category },
+                    description = Change(description.ifBlank { null }).takeIf { description.trim() != (opened ?: existing).description.orEmpty() },
                 ),
             )
         }

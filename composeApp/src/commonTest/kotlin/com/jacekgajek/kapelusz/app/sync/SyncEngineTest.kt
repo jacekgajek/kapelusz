@@ -14,7 +14,12 @@ import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.BandPart
 import com.jacekgajek.kapelusz.ops.Engine
+import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.ops.OpEnvelope
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameBand
@@ -69,6 +74,9 @@ private class FakeServer {
     var offline = false
     val tokensSeen = mutableListOf<String>()
 
+    /** Answers /me with something that is not its JSON (a proxy's page, a broken deploy). */
+    var unreadableMe = false
+
     val client = HttpClient(MockEngine { request ->
         if (offline) throw object : Throwable("Failed to fetch") {}
         requests++
@@ -95,6 +103,7 @@ private class FakeServer {
         }
         fun <T> ok(serializer: KSerializer<T>, value: T) = respond(KapeluszJson.encodeToString(serializer, value), HttpStatusCode.OK, json)
         when {
+            path == "/me" && unreadableMe -> respond("""{"userId":""", HttpStatusCode.OK, json)
             path == "/me" -> ok(MeResponse.serializer(), MeResponse(user, bands = bands.values.mapNotNull { band ->
                 band.memberOfUser(user)?.let { BandSummary(band.id, band.name, it.name, it.role) }
             }))
@@ -140,7 +149,7 @@ class SyncEngineTest {
 
     private fun setup(server: FakeServer, scope: CoroutineScope): Pair<BandRepository, SyncEngine> {
         val repository = BandRepository(InMemoryStore(), scope, { "id${nextId++}" })
-        val api = ApiClient(server.client, "https://api.test") { force -> if (force) "alice:${++tokenCount}" else "alice:$tokenCount" }
+        val api = ApiClient(server.client, "https://api.test") { refused -> if (refused != null) "alice:${++tokenCount}" else "alice:$tokenCount" }
         return repository to SyncEngine(api, repository, scope)
     }
 
@@ -266,6 +275,68 @@ class SyncEngineTest {
         assertEquals("Kept and renamed", server.bands.getValue(kept).name)
         assertEquals(listOf("Kept and renamed"), repository.index.value!!.bands.map { it.name })
         assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
+    }
+
+    /** ITERATION_3 R9: a band the list no longer shows is asked for, and dropped when it is gone, though it is not open. */
+    @Test
+    fun aBandRemovedWhileAnotherIsOpenIsFoundFromTheList() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        repository.load("alice")
+        repository.createBand("Lost Band", "PLN", "Alice")
+        val lost = repository.currentBandId!!
+        repository.createBand("Kept Band", "PLN", "Alice")
+        assertTrue(sync.syncNow())
+
+        server.bands.remove(lost)
+        server.deletedBands += lost
+        val message = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { sync.lostAccess.first() }
+        sync.syncNow()
+        assertEquals(LostBand("Lost Band", deleted = true), message.await())
+        assertEquals(null, repository.local(lost))
+        assertEquals(listOf("Kept Band"), repository.index.value!!.bands.map { it.name })
+    }
+
+    /** ITERATION_3 R9: an answer the app cannot read is an error, not "offline". */
+    @Test
+    fun anUnreadableAnswerIsAnError() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        repository.load("alice")
+        server.unreadableMe = true
+        assertFalse(sync.syncNow())
+        assertEquals(SyncStatus.ERROR, sync.status.value)
+    }
+
+    /** ITERATION_3 R9: a token renewed by a parallel request is used, not renewed once more. */
+    @Test
+    fun aTokenRenewedMeanwhileIsReused() = runTest {
+        val server = FakeServer()
+        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
+        var current = "alice:1"
+        val refusals = mutableListOf<String?>()
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { refused ->
+            refusals += refused
+            current.also { if (refused == null) current = "alice:2" } // renewed by a parallel request after this one sent alice:1
+        }, repository, this)
+        repository.load("alice")
+        server.unauthorizedOnce = true
+        assertTrue(sync.syncNow())
+        assertEquals(listOf("alice:1", "alice:2"), server.tokensSeen.take(2))
+        assertEquals(listOf(null, "alice:1"), refusals.take(2), "the refused token is named, so the session can tell it was renewed")
+    }
+
+    /** ITERATION_3 R6: the server takes at most 20 undos per push; more go in the next one. */
+    @Test
+    fun pushesSplitBeforeTooManyUndos() {
+        fun envelope(n: Int, op: Operation) = OpEnvelope("op$n", "c", n.toLong(), 0, op)
+        val undo = Undo("x", RenameBand("x"), BandChange(BandPart(), BandPart()))
+        val pending = (0 until 30).map { envelope(it, if (it % 10 == 0) RenameBand("b$it") else undo) }
+        val batch = SyncEngine.batchOf(pending)
+        assertEquals(Limits.MAX_UNDOS_PER_PUSH, batch.count { it.op is Undo })
+        assertEquals(pending.take(batch.size), batch)
+        val plain = (0 until 250).map { envelope(it, RenameBand("b$it")) }
+        assertEquals(plain.take(SyncEngine.BATCH_SIZE), SyncEngine.batchOf(plain))
     }
 
     @Test

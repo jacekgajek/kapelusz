@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.ops.BandPart
+import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
@@ -144,6 +147,41 @@ class ApiTest {
         assertEquals(400, send("alice", "old-google-token-of-bob").status, "someone else's token")
         assertEquals(204, send("alice", "old-google-token-of-alice").status)
         assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+    }
+
+    @Test
+    fun outsidersCannotMakeTheServerReadTheLogAndUndosAreBounded() {
+        createBand()
+        fun undos(user: String, n: Int) = call("POST", "/bands/band1/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(
+            (1..n).map { OpEnvelope("u$it", "phone", 900L + it, 0, Undo("x$it", RenameBand("x"), BandChange(BandPart(), BandPart()), "2026-01/1-00000000-0000-0000-0000-000000000000.json")) },
+        )))
+        assertEquals(404, undos("mallory", 5).status, "not a member: refused before any undo lookup")
+        assertEquals(400, undos("alice", Api.MAX_UNDOS_PER_PUSH + 1).status)
+    }
+
+    @Test
+    fun oneAccountMayBeInAtMost20Bands() {
+        repeat(Api.MAX_BANDS_PER_USER) { assertEquals(200, createBand(bandId = "b$it").status) }
+        assertEquals(409, createBand(bandId = "one-more").status)
+    }
+
+    /** Only bands the account is still in count; an archived member is not shown the band (ITERATION_3 R6, R9). */
+    @Test
+    fun bandsTheAccountLeftDoNotCountTowardsTheLimit() {
+        createBand("alice", "shared")
+        push("shared", "alice", com.jacekgajek.kapelusz.ops.AddMember("m-bob", "Bob"))
+        val invite = call("POST", "/bands/shared/invites", "alice", KapeluszJson.encodeToString(com.jacekgajek.kapelusz.api.CreateInviteRequest.serializer(),
+            com.jacekgajek.kapelusz.api.CreateInviteRequest("m-bob", com.jacekgajek.kapelusz.model.Role.MEMBER))).parse(com.jacekgajek.kapelusz.api.InviteInfo.serializer())
+        assertEquals(200, call("POST", "/invites/${invite.code}/accept", "bob").status)
+        repeat(Api.MAX_BANDS_PER_USER - 1) { assertEquals(200, createBand("bob", "bob$it").status) }
+        assertEquals(409, createBand("bob", "one-more").status)
+
+        push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", true))
+        assertTrue(call("GET", "/me", "bob").parse(com.jacekgajek.kapelusz.api.MeResponse.serializer()).bands.none { it.id == "shared" }, "archived: not listed")
+        assertEquals(409, createBand("bob", "one-more").status, "archived members can be restored: the band still counts")
+
+        push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", false), com.jacekgajek.kapelusz.ops.UnlinkUser("m-bob"))
+        assertEquals(200, createBand("bob", "one-more").status, "unlinked: the band no longer counts")
     }
 
     @Test

@@ -171,6 +171,7 @@
     <string name="reject_no_treasurer">Choose who holds the band fund first.</string>
     <string name="reject_treasurer_must_stay">This member holds the band fund. Choose another treasurer first.</string>
     <string name="reject_archived_member">This member is archived.</string>
+    <string name="reject_archived_event">This event is archived. Restore it to change it.</string>
     <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_ownership_needs_admin">Ownership can only go to an admin with an app account.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
