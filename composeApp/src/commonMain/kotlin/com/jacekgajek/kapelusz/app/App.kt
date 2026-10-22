@@ -57,7 +57,8 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
                     if (updateRequired) {
                         UpdateRequiredScreen()
                     } else if (session == null) {
-                        SignInScreen(onIdToken = graph::onSignedIn)
+                        val signedOutEverywhere by graph.signedOutEverywhere.collectAsState()
+                        SignInScreen(onIdToken = graph::onSignedIn, signedOutEverywhere = signedOutEverywhere)
                     } else {
                         BandContent(graph, bandState, navController)
                     }
@@ -78,6 +79,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     val scope = rememberCoroutineScope()
     val index by graph.bands.index.collectAsState()
     val syncStatus by graph.sync.status.collectAsState()
+    val stuck by graph.sync.stuck.collectAsState()
     val session by graph.sessions.session.collectAsState()
     val defaultName = session?.name?.substringBefore(' ').orEmpty()
     // Opening a band from the first screen must not navigate: the navigation host only exists once a band is open,
@@ -136,6 +138,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 syncStatus = syncStatus,
                 bands = index?.bands.orEmpty(),
                 currentBandId = index?.currentBandId,
+                stuckBandIds = stuck.keys,
                 onSelectBand = { openBand(it, true) },
                 onNewBand = { navController.navigate(NewBandRoute) },
                 onJoinBand = { joining = true },

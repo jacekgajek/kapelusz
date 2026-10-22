@@ -197,6 +197,7 @@
     <string name="sign_out_everywhere">Wyloguj na wszystkich urządzeniach</string>
     <string name="sign_out_everywhere_text">Kapelusz zostanie wylogowany na każdym urządzeniu, na którym go używasz, także na tym. Na każdym z nich trzeba będzie ponownie zalogować się przez Google. Przydaje się po zgubieniu telefonu albo zalogowaniu na cudzym komputerze.</string>
     <string name="sign_out_everywhere_failed">Nie udało się wylogować na wszystkich urządzeniach. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="signed_out_everywhere">Wylogowano na wszystkich urządzeniach. Zaloguj się ponownie, aby kontynuować.</string>
     <string name="new_band">Nowy zespół</string>
     <string name="new_band_title">Nowy zespół</string>
     <string name="your_bands">Twoje zespoły</string>

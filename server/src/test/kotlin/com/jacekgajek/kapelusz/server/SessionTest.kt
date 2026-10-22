@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.api.ApiErrors
+import com.jacekgajek.kapelusz.api.ErrorResponse
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.model.KapeluszJson
@@ -14,8 +16,12 @@ class SessionTest {
     private val store = InMemoryBlobStore()
     private var now = 1_790_000_000_000
 
-    // "Google" accepts any token that looks like a Google one: "google-<sub>".
-    private val api = Api(store, { token -> token.removePrefix("google-").takeIf { token.startsWith("google-") }?.let { VerifiedUser(it, "$it@example.com", it) } }, clock = { now })
+    // "Google" accepts any token that looks like a Google one: "google-<sub>", or "google-<sub>@<issued at>".
+    private val api = Api(store, { token ->
+        token.removePrefix("google-").takeIf { token.startsWith("google-") }?.split('@')?.let { parts ->
+            VerifiedUser(parts[0], "${parts[0]}@example.com", parts[0], issuedAt = parts.getOrNull(1)?.toLong())
+        }
+    }, clock = { now })
 
     private fun call(method: String, path: String, bearer: String) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $bearer")))
 
@@ -99,6 +105,37 @@ class SessionTest {
         assertEquals(200, call("GET", "/me", fresh).status)
         now += 1000
         assertEquals(200, call("GET", "/me", session(fresh).token).status, "and it renews")
+    }
+
+    /** A Google token issued before the revoke would let the other devices back in silently: refused, distinctly. */
+    @Test
+    fun aGoogleTokenIssuedBeforeTheRevokeIsRefused() {
+        val issuedBefore = "google-alice@${now - 1000}"
+        val phone = session(issuedBefore).token
+        now += 1000
+        assertEquals(204, call("POST", "/sessions/revoke", phone).status)
+
+        for (refused in listOf(call("POST", "/session", issuedBefore), call("GET", "/me", issuedBefore), call("GET", "/me", phone))) {
+            assertEquals(401, refused.status)
+            assertEquals(ApiErrors.SESSIONS_REVOKED, KapeluszJson.decodeFromString(ErrorResponse.serializer(), refused.body!!).error)
+        }
+        // Anything else that is refused stays a plain "unauthorized".
+        assertEquals(ApiErrors.UNAUTHORIZED, KapeluszJson.decodeFromString(ErrorResponse.serializer(), call("GET", "/me", "nonsense").body!!).error)
+
+        now += 1000
+        val issuedAfter = "google-alice@$now"
+        assertEquals(200, call("GET", "/me", issuedAfter).status)
+        assertEquals(200, call("GET", "/me", session(issuedAfter).token).status)
+    }
+
+    /** An unreadable user record must not lock its user out: it counts as never revoked. */
+    @Test
+    fun anUnreadableUserRecordDoesNotRefuseTheUser() {
+        val token = session("google-alice").token
+        store.put(StorageKeys.user("alice"), "{not json")
+        // A fresh instance, which has not read the record yet. (A band of someone else: the check reads no user record.)
+        val other = Api(store, { null }, clock = { now })
+        assertEquals(404, other.handle(HttpRequest("GET", "/bands/nope/state", mapOf("authorization" to "Bearer $token"))).status)
     }
 
     @Test

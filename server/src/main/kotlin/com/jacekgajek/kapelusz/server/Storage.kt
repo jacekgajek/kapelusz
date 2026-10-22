@@ -49,7 +49,7 @@ data class UserRecord(
     val bandIds: List<String> = emptyList(),
     /** The Google photo from the last sign-in, for the user's member in bands they join or create. */
     val pictureUrl: String? = null,
-    /** "Signed out everywhere" (ITERATION_3 R6): session tokens begun before this time (epoch millis) are refused. */
+    /** "Signed out everywhere" (ITERATION_3 R6): session tokens begun, and Google tokens issued, before this time (epoch millis) are refused. */
     val sessionsValidFrom: Long = 0,
 )
 

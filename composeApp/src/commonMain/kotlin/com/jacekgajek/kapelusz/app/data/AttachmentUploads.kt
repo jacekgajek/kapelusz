@@ -102,6 +102,16 @@ class AttachmentUploads(
         }
     }
 
+    /**
+     * The attachments' operations were discarded unsent (ITERATION_3 R9): their files are no longer queued, but stay on
+     * the device with the backup of those operations (found by attachment id), as the user was promised. Otherwise
+     * [uploadFor] would delete them as removed.
+     */
+    suspend fun keepUnsent(attachmentIds: Set<Id>) = lock.withLock {
+        val user = userId ?: return@withLock
+        save(user, _pending.value.filterNot { it.attachmentId in attachmentIds })
+    }
+
     /** The user removed the attachment before its file was uploaded. */
     suspend fun cancel(attachmentId: Id) {
         _pending.value.firstOrNull { it.attachmentId == attachmentId }?.let { drop(it) }

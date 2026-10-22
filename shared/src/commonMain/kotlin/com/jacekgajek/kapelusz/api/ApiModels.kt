@@ -85,12 +85,18 @@ object ApiErrors {
     /** The attachment's file is already uploaded (files are never replaced). */
     const val ATTACHMENT_EXISTS = "attachment_exists"
 
+    /**
+     * The token (a session or a Google ID token) was issued before the user's "sign out on all devices" (`401`). The
+     * app must not renew it silently: it signs out, and the user signs in with Google again.
+     */
+    const val SESSIONS_REVOKED = "sessions_revoked"
+
     // The generic codes (ITERATION_3 R12: every code the server sends is listed here).
 
     /** The request is malformed or breaks a limit (`400`). */
     const val BAD_REQUEST = "bad_request"
 
-    /** No token, or an invalid or expired one (`401`); also a session too old to renew, or ended by "sign out on all devices". */
+    /** No token, or an invalid or expired one (`401`); also a session too old to renew. */
     const val UNAUTHORIZED = "unauthorized"
 
     /** The caller's role does not allow this (`403`). */

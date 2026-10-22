@@ -92,7 +92,8 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
  * user's [UserRecord.sessionsValidFrom] are refused, on every request and on renewal. A Google sign-in afterwards
  * starts a new chain (its `since` is the time of that sign-in), so it works again.
  *
- * Google ID tokens are not affected: the app uses one only briefly, to get a session, and it expires within the hour.
+ * Google ID tokens issued before it ([VerifiedUser.issuedAt]) are refused too: the other devices keep theirs for up to
+ * an hour and would otherwise exchange it for a new session.
  *
  * The time is kept in memory for at most [CACHE_MS] per user, so a request needs no extra read: other Lambda instances
  * may accept an old token for up to that long after a revoke; the instance that made it refuses it at once.
@@ -123,7 +124,10 @@ class SessionRevocations(private val store: BlobStore, private val clock: () -> 
     private fun validFrom(userId: String): Long {
         val now = clock()
         cache[userId]?.takeIf { now - it.readAt < CACHE_MS }?.let { return it.validFrom }
-        val validFrom = store.get(StorageKeys.user(userId))?.let { decode(UserRecord.serializer(), it.content).sessionsValidFrom } ?: 0
+        // An unreadable record must not refuse every request of the user: it counts as never revoked. A storage
+        // failure is still an error.
+        val validFrom = store.get(StorageKeys.user(userId))
+            ?.let { blob -> runCatching { decode(UserRecord.serializer(), blob.content).sessionsValidFrom }.getOrDefault(0) } ?: 0
         cache[userId] = Cached(validFrom, now)
         return validFrom
     }

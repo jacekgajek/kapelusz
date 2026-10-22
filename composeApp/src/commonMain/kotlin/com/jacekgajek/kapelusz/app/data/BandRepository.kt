@@ -254,12 +254,15 @@ class BandRepository(
 
     /**
      * Drops the band's unsent changes, e.g. ones the server always refuses (ITERATION_3 R9); they are kept under a
-     * backup key first, as when access is lost. Sequence numbers go on from where they were.
+     * backup key first, as when access is lost. Sequence numbers go on from where they were. Returns the dropped
+     * operations: only those in the backup, not ones made while it was being written.
      */
-    suspend fun discardPending(bandId: Id) {
-        val local = locals[bandId] ?: return
+    suspend fun discardPending(bandId: Id): List<OpEnvelope> {
+        val local = locals[bandId] ?: return emptyList()
         keepUnsent(bandId, local)
-        rebase(bandId) { it.copy(pending = emptyList()) }
+        val backedUp = local.pending.map { it.opId }.toSet()
+        rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }) }
+        return local.pending
     }
 
     /** The band's unsent changes as readable JSON, for the user to keep (ITERATION_3 R9). */

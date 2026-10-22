@@ -59,7 +59,13 @@ data class HistoryPage(val month: String, val entries: List<HistoryItem>, val ne
 class ApiException(val status: Int, val code: String, message: String) : RuntimeException(message)
 
 /** The user must sign in again: there is no token, or the server still refuses a refreshed one. */
-class NeedsSignInException : RuntimeException("Sign in again")
+open class NeedsSignInException(message: String = "Sign in again") : RuntimeException(message)
+
+/**
+ * The user chose "sign out on all devices" (on this or another device): the server refuses every token from before,
+ * Google's included. Nothing is renewed silently; the app signs out (ITERATION_3 R6).
+ */
+class SessionsRevokedException : NeedsSignInException("Signed out on all devices")
 
 /** Typed client for the Kapelusz API. [token] returns an ID token; `true` forces a refresh. */
 class ApiClient(
@@ -69,6 +75,8 @@ class ApiClient(
     private val appVersion: Int = 0,
     /** The server answered "update required". */
     private val onUpdateRequired: () -> Unit = {},
+    /** The server answered "signed out on all devices"; then a [SessionsRevokedException] is thrown. */
+    private val onSessionsRevoked: suspend () -> Unit = {},
     /** The token to send; [refused] is the one the server just refused (null: the current one is wanted). */
     private val token: suspend (refused: String?) -> String?,
 ) {
@@ -154,15 +162,29 @@ class ApiClient(
     private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T =
         parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)
 
-    /** Sends with the current token; on 401 refreshes the token once and retries. */
+    /**
+     * Sends with the current token; on 401 refreshes the token once and retries. Not after "signed out on all
+     * devices": a refresh would sign this device in again behind the user's back.
+     */
     private suspend fun send(method: HttpMethod, path: String, configure: HttpRequestBuilder.() -> Unit): HttpResponse {
         val bearer = token(null) ?: throw NeedsSignInException()
         var response = attempt(method, path, bearer, configure)
         if (response.status == HttpStatusCode.Unauthorized) {
+            checkRevoked(errorOf(response.bodyAsText())?.error)
             response = attempt(method, path, token(bearer) ?: throw NeedsSignInException(), configure)
-            if (response.status == HttpStatusCode.Unauthorized) throw NeedsSignInException()
+            if (response.status == HttpStatusCode.Unauthorized) {
+                checkRevoked(errorOf(response.bodyAsText())?.error)
+                throw NeedsSignInException()
+            }
         }
         return response
+    }
+
+    private suspend fun checkRevoked(code: String?) {
+        if (code == ApiErrors.SESSIONS_REVOKED) {
+            onSessionsRevoked()
+            throw SessionsRevokedException()
+        }
     }
 
     private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) =
@@ -176,12 +198,16 @@ class ApiClient(
 
     private suspend fun <T> parse(response: HttpResponse, serializer: KSerializer<T>): T = KapeluszJson.decodeFromString(serializer, text(response))
 
+    private fun errorOf(body: String) = runCatching { KapeluszJson.decodeFromString(ErrorResponse.serializer(), body) }.getOrNull()
+
     /** The body of a successful response; otherwise the server's error as an [ApiException]. */
     private suspend fun text(response: HttpResponse): String {
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
-            val error = runCatching { KapeluszJson.decodeFromString(ErrorResponse.serializer(), text) }.getOrNull()
+            val error = errorOf(text)
             if (error?.error == ApiErrors.UPDATE_REQUIRED) onUpdateRequired()
+            // E.g. exchanging a token for a session (which bypasses [send]).
+            checkRevoked(error?.error)
             throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
         }
         return text

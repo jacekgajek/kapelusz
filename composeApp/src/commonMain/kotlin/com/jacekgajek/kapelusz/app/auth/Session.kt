@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.app.auth
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
 import kotlinx.coroutines.CancellationException
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,6 +126,9 @@ class SessionRepository(
         save(current.copy(apiToken = response.token, apiExpiresAt = response.expiresAt))
         response.token
     } catch (e: CancellationException) {
+        throw e
+    } catch (e: SessionsRevokedException) {
+        // Signed out on all devices: no falling back to the Google token, which the server refuses too.
         throw e
     } catch (e: Throwable) {
         // Throwable: on the web, network errors are JsException.

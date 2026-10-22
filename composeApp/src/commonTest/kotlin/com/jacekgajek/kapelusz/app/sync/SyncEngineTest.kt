@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
+import com.jacekgajek.kapelusz.app.data.KeyValueStore
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
@@ -538,6 +539,7 @@ class SyncEngineTest {
         assertEquals(StuckPush(400, "too_many_devices", "Too many devices"), sync.stuck.value[stuck])
         assertEquals("Other renamed", server.bands.getValue(other).name, "other bands still sync")
         assertEquals(setOf(stuck), sync.stuck.value.keys)
+        assertEquals(SyncStatus.ERROR, sync.status.value, "not in sync, though the stuck band is not the open one")
 
         // Not sent again in later rounds, while the band is still pulled.
         repository.open(stuck)
@@ -560,5 +562,70 @@ class SyncEngineTest {
         assertTrue(sync.syncNow())
         assertEquals("Sent at last", server.bands.getValue(stuck).name)
         assertEquals(emptyList(), repository.local(stuck)!!.pending)
+        assertEquals(SyncStatus.SYNCED, sync.status.value)
+    }
+
+    /** The discard dialog promises a copy: the files of discarded attachments stay on the device, unqueued. */
+    @Test
+    fun discardingKeepsTheFilesOfUnsentAttachments() = runTest {
+        val server = FakeServer()
+        val store = InMemoryStore()
+        val repository = BandRepository(store, this, { "id${nextId++}" })
+        val api = ApiClient(server.client, "https://api.test") { "alice:0" }
+        val puts = mutableListOf<String>()
+        val uploads = AttachmentUploads(store, api, repository) { url, _, _ -> puts += url; 200 }
+        val sync = SyncEngine(api, repository, this, uploads = uploads)
+        repository.load("alice")
+        uploads.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val bandId = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+
+        server.refusePushes += bandId
+        val me = (repository.state.value as BandState.Ready).me!!.id
+        assertEquals(null, repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1))))
+        assertEquals(null, repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4))))
+        uploads.enqueue(PendingUpload(bandId, "c1", "a1"), "AAAA")
+        uploads.published("a1")
+        assertTrue(sync.syncNow())
+        assertEquals(setOf(bandId), sync.stuck.value.keys)
+
+        sync.discardStuck(bandId)
+        server.refusePushes.clear()
+        assertTrue(sync.syncNow())
+        assertEquals("AAAA", store.read(AttachmentUploads.fileKey("alice", "a1")), "the file is kept")
+        assertEquals(emptyList(), uploads.pending.value, "but no longer waits for an upload")
+        assertEquals(emptyList(), puts)
+    }
+
+    /** A change made while the backup of the discarded ones is written is not discarded with them. */
+    @Test
+    fun discardingKeepsAChangeMadeDuringTheBackup() = runTest {
+        lateinit var repository: BandRepository
+        val store = object : KeyValueStore {
+            val values = mutableMapOf<String, String>()
+            override suspend fun read(key: String) = values[key]
+            override suspend fun write(key: String, value: String) {
+                if ("-unsent-" in key) assertEquals(null, repository.dispatch(RenameBand("Made meanwhile")))
+                values[key] = value
+            }
+            override suspend fun remove(key: String) { values.remove(key) }
+        }
+        val server = FakeServer()
+        repository = BandRepository(store, this, { "id${nextId++}" })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { "alice:0" }, repository, this)
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val bandId = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+        server.refusePushes += bandId
+        repository.dispatch(RenameBand("Refused"))
+        assertTrue(sync.syncNow())
+
+        sync.discardStuck(bandId)
+        assertEquals(listOf(RenameBand("Made meanwhile")), repository.local(bandId)!!.pending.map { it.op })
+        server.refusePushes.clear()
+        assertTrue(sync.syncNow())
+        assertEquals("Made meanwhile", server.bands.getValue(bandId).name)
     }
 }

@@ -37,12 +37,17 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     val bands = BandRepository(store, scope)
     /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
     val updateRequired = MutableStateFlow(false)
+
+    /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
+    val signedOutEverywhere = MutableStateFlow(false)
     val api: ApiClient = ApiClient(
         http,
         AppConfig.API_URL,
         token = { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) },
         appVersion = AppConfig.VERSION_CODE,
         onUpdateRequired = { updateRequired.value = true },
+        // In the app scope: signing out stops the sync loop, which may be the very caller.
+        onSessionsRevoked = { scope.launch { signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
     val sync = SyncEngine(api, bands, scope, uploads = uploads)
@@ -146,6 +151,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         bands.load(userId)
         uploads.load(userId)
         sessions.signedIn(idToken)
+        signedOutEverywhere.value = false
         _signIns.value++
         sync.start()
         sync.resumeAfterSignIn()
@@ -164,6 +170,16 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
      */
     suspend fun signOutEverywhere() {
         api.revokeSessions()
+        signOut()
+    }
+
+    /**
+     * The server refuses this device's tokens after "sign out on all devices" (here or elsewhere): signs out as
+     * [signOut] does, which also keeps Google from signing in again silently. Several requests may be refused at once.
+     */
+    private suspend fun signOutRevoked() {
+        if (sessions.session.value == null) return
+        signedOutEverywhere.value = true
         signOut()
     }
 

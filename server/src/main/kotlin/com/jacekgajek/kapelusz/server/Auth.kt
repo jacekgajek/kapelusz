@@ -20,6 +20,8 @@ data class VerifiedUser(
     val picture: String? = null,
     /** For a session token: when its chain of renewals began; null for a Google token. */
     val sessionSince: Long? = null,
+    /** For a Google ID token: when Google issued it (`iat`, in epoch millis); null for a session token. */
+    val issuedAt: Long? = null,
 )
 
 fun interface TokenVerifier {
@@ -51,7 +53,11 @@ class GoogleTokenVerifier(
         }
         if (claims.issuer !in ISSUERS) return null
         if (claims.getBooleanClaim("email_verified") == false) return null
-        return VerifiedUser(claims.subject, claims.getStringClaim("email"), claims.getStringClaim("name"), claims.getStringClaim("picture"))
+        // A token without `iat` counts as issued at 0, i.e. before any "sign out on all devices".
+        return VerifiedUser(
+            claims.subject, claims.getStringClaim("email"), claims.getStringClaim("name"), claims.getStringClaim("picture"),
+            issuedAt = claims.issueTime?.time ?: 0,
+        )
     }
 
     // As above, but an expired token still counts (only for reading the photo, see pictureOf).

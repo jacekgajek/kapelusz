@@ -102,9 +102,10 @@ class Api(
         // Kapelusz sessions are recognised by their prefix; anything else must be a Google ID token.
         val user = if (token.startsWith(SessionTokens.PREFIX)) sessions.verify(token) else verifier.verify(token)
         user ?: throw ApiError(401, ApiErrors.UNAUTHORIZED, "Invalid or expired token")
-        // A session from before "sign out on all devices" (ITERATION_3 R6); also refuses renewing it.
-        user.sessionSince?.let { since ->
-            if (!revocations.isValid(user.userId, since)) throw ApiError(401, ApiErrors.UNAUTHORIZED, "Signed out on all devices; sign in again")
+        // A session, or a Google token, from before "sign out on all devices" (ITERATION_3 R6); also refuses renewing
+        // the session or exchanging the Google token, which the other devices would otherwise do silently.
+        (user.sessionSince ?: user.issuedAt)?.let { since ->
+            if (!revocations.isValid(user.userId, since)) throw ApiError(401, ApiErrors.SESSIONS_REVOKED, "Signed out on all devices; sign in again")
         }
         return user
     }

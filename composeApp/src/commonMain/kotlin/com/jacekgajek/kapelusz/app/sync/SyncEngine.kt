@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Rejection
@@ -145,9 +146,16 @@ class SyncEngine(
             // Not only Exception: on the web, browser errors (e.g. "Failed to fetch") are JsException, a Throwable.
             result = classify(e)
         }
-        _status.value = result
+        _status.value = shown(result)
         result == SyncStatus.SYNCED
     }
+
+    /**
+     * A band whose push is stuck is not in sync, even when it is not the open one (whose banner says why): the status
+     * shows an error. The round still counts as done, since retrying sooner cannot help.
+     */
+    private fun shown(result: SyncStatus): SyncStatus =
+        if (result == SyncStatus.SYNCED && _stuck.value.keys.any { bands.local(it) != null }) SyncStatus.ERROR else result
 
     /**
      * The background sync (Android, ITERATION_2 §5.1): every band the user belongs to, not only the open one, so
@@ -181,7 +189,7 @@ class SyncEngine(
                 if (result != SyncStatus.SYNCED) allOk = false
             }
             bands.flush()
-            if (allOk) _status.value = SyncStatus.SYNCED
+            if (allOk) _status.value = shown(SyncStatus.SYNCED)
             allOk
         } catch (e: CancellationException) {
             throw e
@@ -241,7 +249,8 @@ class SyncEngine(
      */
     suspend fun discardStuck(bandId: Id) {
         runLock.withLock {
-            bands.discardPending(bandId)
+            val discarded = bands.discardPending(bandId)
+            uploads?.keepUnsent(discarded.mapNotNull { (it.op as? AddAttachment)?.attachment?.id }.toSet())
             _stuck.update { it - bandId }
             // Offline: the next sync pulls it.
             runSuspendCatching { pullBand(bandId) }
