@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +30,6 @@ import com.jacekgajek.artsplit.app.ui.theme.MoneyColors
 import com.jacekgajek.artsplit.domain.EventStatus
 import com.jacekgajek.artsplit.domain.PartyLine
 import com.jacekgajek.artsplit.model.BAND_FUND
-import com.jacekgajek.artsplit.ops.SettleSuggestions
 import org.jetbrains.compose.resources.stringResource
 
 /** Per party: what they should end up with (share + refunds), what they hold now, and the difference. */
@@ -72,15 +70,9 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
             }
             Text(stringResource(Res.string.line_holds, formatMoney(line.balance, currency, lang)), style = MaterialTheme.typography.bodySmall)
         }
+        // Information only (ITERATION_2 §7.4): transfers are recorded in To settle, one "X → Y" at a time or all at once.
         Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {
             DeltaLabel(context, line)
-            if (context.settlement.canSettle && context.settlement.suggestionsFor(line.partyId).isNotEmpty() &&
-                context.can.settleFor(context.event, line.partyId)
-            ) {
-                TextButton(onClick = { context.actions.run(SettleSuggestions(context.event.id, line.partyId)) }) {
-                    Text(stringResource(Res.string.settle))
-                }
-            }
         }
     }
 }

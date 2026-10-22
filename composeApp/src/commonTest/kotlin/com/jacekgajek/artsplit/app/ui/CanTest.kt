@@ -40,8 +40,6 @@ class CanTest {
         assertFalse(member.createEvent())
         assertTrue(lead.settleAll(event))
         assertFalse(member.settleAll(event))
-        assertTrue(member.settleFor(event, "member"))
-        assertFalse(member.settleFor(event, "lead"))
 
         assertEquals(listOf("lead", "member"), lead.holdingParties(event))
         assertEquals(listOf("member"), member.holdingParties(event))

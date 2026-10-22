@@ -41,7 +41,6 @@ class Can(private val band: Band, private val userId: String) {
     fun manageParticipants(event: Event) = allowed(AddGuest(event.id, PROBE, PROBE))
     fun editRefunds(event: Event) = allowed(SetRefund(event.id, PROBE, Money.ZERO))
     fun settleAll(event: Event) = allowed(SettleSuggestions(event.id))
-    fun settleFor(event: Event, partyId: Id) = allowed(SettleSuggestions(event.id, partyId))
     fun recordTransfer(event: Event, from: Id, to: Id) = allowed(RecordTransfer(event.id, PROBE, from, to, Money(1)))
     fun removeTransfer(event: Event) = allowed(RemoveTransfer(event.id, PROBE))
 
