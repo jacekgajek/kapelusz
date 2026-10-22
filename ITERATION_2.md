@@ -232,13 +232,17 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M9.2 Google photos of members with an account (§7.4)
 
 ### V2-M10 — Release 1.0
-- [ ] V2-M10.0 Rename to **Split Art** (reads more easily than Art Split): the app, the web address, texts in both languages, code and documentation. To decide before starting (grilling):
-  - Android app id `com.jacekgajek.artsplit`: changing it makes a different app for Android (no update from the old one, data not carried over, auto-update cannot cross); keeping it is invisible to users.
-  - Web address `splitart.jacekgajek.com`: DNS, certificate and CloudFront in the my-aws Terraform, the Google sign-in client's allowed origins, Android App Links; the old address keeps redirecting so shared invite links still work.
-  - Internal names users never see (Kotlin packages, AWS bucket and Lambda names, the web app's local database `art-split`, Android preferences): renaming buckets or local stores means migrating data.
-  - Calendar subscription links and the API address: whether they change (subscribed calendars would stop updating).
+- [ ] V2-M10.0 Rename to **Split Art** (reads more easily than Art Split), decided 2026-10-22:
+  - **Visible:** the app's name, texts in both languages, notifications, the website title, the calendar's name, the downloaded file (`split-art.apk`), README and documentation.
+  - **Android app id stays `com.jacekgajek.artsplit`:** installed apps update as usual and keep their data. Installing 1.0.0 by hand from the new address is an update too, not a new app.
+  - **New web address `https://splitart.jacekgajek.com`; the old one is switched off at once** (no redirect, no transition): old invite links and bookmarks stop working, and installed apps (which look for updates at the old address) are updated by hand once, from the new address.
+  - **Code names are renamed** (Kotlin packages `com.jacekgajek.splitart…`, internal web names). Kept, because they hold data or would need migrations, and documented as historical names: the S3 buckets (`jacekgajek-art-split-data`, `-web`), the Lambda `art-split-api`, the web app's local database `art-split`, and the Android app's stored files and settings. The server keeps a forwarding entry class under the old package for the Lambda's handler setting, and the Android app keeps its old start-screen name as an alias (home-screen shortcuts); background jobs are re-registered under new names.
+  - **Calendar subscriptions are unaffected** (the API's address has no app name in it).
+  - **Infrastructure:** prepared in my-aws (`terraform/art_split.tf`: the domain, the Lambda handler) with a read-only plan; the user applies it and adds the new address to the Google sign-in client's allowed origins.
+  - **GitHub repository** renamed to `split-art`.
+  - Order: merge and deploy 1.0.0 (the old address serves it until the switch) → the user applies Terraform and updates Google → smoke test at the new address → repository rename → GitHub Release.
 - [x] V2-M10.0a App icon: a top hat with a banknote on honey gold (#F5CB5C), as an Android adaptive icon (with a one-colour layer for themed icons), the notification icon, and the web icons; made from the user's mockup, sources in `design/icon/`
-- [ ] V2-M10.1 Release checklist (§10) passed on real phones
+- [x] V2-M10.1 Release checklist (§10) passed on real phones (2026-10-22, by the user)
 - [ ] V2-M10.2 `artsplit.versionName=1.0.0`, deploy, GitHub Release
 
 ## 10. Release checklist (by hand, on real phones)
