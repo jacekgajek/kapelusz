@@ -197,6 +197,11 @@ fun CostScreen(
                     existing == null && payers.size > 1 -> Dropdown(paidBy, payers.map { it.id }, { paidBy = it }, stringResource(Res.string.paid_by)) { id ->
                         id?.let { band.member(it)?.name }.orEmpty()
                     }
+                    // A single possible payer (always the case for members) is shown, not chosen, like a fixed event.
+                    existing == null -> OutlinedTextField(
+                        paidBy?.let { band.member(it)?.name }.orEmpty(), {}, readOnly = true,
+                        label = { Text(stringResource(Res.string.paid_by)) }, modifier = Modifier.fillMaxWidth(),
+                    )
                     existing != null && existing.memberId != state.me?.id -> Text(
                         stringResource(Res.string.paid_by_name, band.member(existing.memberId)?.name.orEmpty()),
                         style = MaterialTheme.typography.titleSmall,
