@@ -1,5 +1,13 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.ContentCopy
+import org.jetbrains.compose.resources.StringResource
+import com.jacekgajek.artsplit.app.generated.secret_menu
+import com.jacekgajek.artsplit.app.generated.copy_raw_data
+import com.jacekgajek.artsplit.app.generated.raw_data_copied
+import com.jacekgajek.artsplit.app.generated.raw_data_failed
+import com.jacekgajek.artsplit.app.generated.close
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -173,6 +181,8 @@ fun SettingsScreen(
     onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
     /** The calendar subscription (needs the server): get it, or change it. */
     calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
+    /** The band's raw file from the server, for the secret menu; null for non-admins. */
+    rawData: (suspend () -> String)?,
     onBack: () -> Unit,
 ) {
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.settings), onBack) }) { padding ->
@@ -278,9 +288,44 @@ fun SettingsScreen(
             Text(stringResource(Res.string.account), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
             account?.let { Text(it, Modifier.padding(vertical = 8.dp)) }
             OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
-            VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp))
+            var secretMenu by remember { mutableStateOf(false) }
+            // A tap on the version opens the secret menu for admins (VERSION_2 §7.1); for others it is just text.
+            VersionLabel(Modifier.align(Alignment.End).padding(top = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
+            if (secretMenu && rawData != null) SecretMenuDialog(rawData, onDismiss = { secretMenu = false })
         }
     }
+}
+
+/** Tools for admins: copy the band's raw data, e.g. to look into a problem. */
+@Composable
+private fun SecretMenuDialog(rawData: suspend () -> String, onDismiss: () -> Unit) {
+    val copy = rememberCopy()
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<StringResource?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.secret_menu)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(enabled = !busy, onClick = {
+                    busy = true
+                    scope.launch {
+                        result = runCatching { rawData() }.fold(
+                            onSuccess = { if (copy(it)) Res.string.raw_data_copied else Res.string.raw_data_failed },
+                            onFailure = { Res.string.raw_data_failed },
+                        )
+                        busy = false
+                    }
+                }) {
+                    if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else Icon(Icons.Default.ContentCopy, null)
+                    Text(stringResource(Res.string.copy_raw_data), Modifier.padding(start = 8.dp))
+                }
+                result?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
+    )
 }
 
 /**

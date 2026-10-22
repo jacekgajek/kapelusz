@@ -451,4 +451,8 @@
     <string name="place_title">Set the location of…</string>
     <string name="place_nothing">There is no upcoming event you can change, and you cannot create events in this band.</string>
     <string name="place_new_event">+ New event at this place</string>
+    <string name="secret_menu">Secret menu</string>
+    <string name="copy_raw_data">Copy raw JSON data</string>
+    <string name="raw_data_copied">Copied: the band data exactly as stored on the server.</string>
+    <string name="raw_data_failed">Could not get the data. Are you online?</string>
 </resources>

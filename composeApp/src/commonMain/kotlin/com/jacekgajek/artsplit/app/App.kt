@@ -319,6 +319,8 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     autoUpdate = settings.autoUpdate,
                     appSettings = settings,
                     onAppSettings = { change -> graph.settings.update(change) },
+                    // The secret menu (VERSION_2 §7.1), for admins of the band.
+                    rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.ADMIN) == true },
                     calendar = { change -> if (change == null) graph.api.calendar() else graph.api.changeCalendar(change) },
                     agendaTemplate = state.band.effectiveAgendaTemplate,
                     onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }

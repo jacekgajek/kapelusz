@@ -457,4 +457,8 @@
     <string name="place_title">Ustaw miejsce wydarzenia…</string>
     <string name="place_nothing">Nie ma nadchodzącego wydarzenia, które możesz zmienić, a w tym zespole nie możesz tworzyć wydarzeń.</string>
     <string name="place_new_event">+ Nowe wydarzenie w tym miejscu</string>
+    <string name="secret_menu">Tajne menu</string>
+    <string name="copy_raw_data">Kopiuj surowe dane JSON</string>
+    <string name="raw_data_copied">Skopiowano: dane zespołu dokładnie tak, jak są zapisane na serwerze.</string>
+    <string name="raw_data_failed">Nie udało się pobrać danych. Czy masz internet?</string>
 </resources>

@@ -119,6 +119,7 @@ class Api(
             request.method == "POST" && segments.size == 3 && segments[0] == "bands" && segments[2] == "ops" ->
                 push(user, segments[1], parse(request, PushRequest.serializer()))
             request.method == "DELETE" && segments.size == 2 && segments[0] == "bands" -> deleteBand(user, segments[1])
+            request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "raw" -> rawState(user, segments[1])
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "log" ->
                 history(user, segments[1], request.query["month"], request.query["before"])
             request.method == "GET" && segments.size == 3 && segments[0] == "bands" && segments[2] == "invites" ->
@@ -358,10 +359,17 @@ class Api(
 
     // ---- invites ----
 
-    private fun loadBandForAdmin(user: VerifiedUser, bandId: String): Pair<Band, String> {
+    /** The band's file exactly as stored, for admins (VERSION_2 §7.1): putting it back changes nothing. */
+    private fun rawState(user: VerifiedUser, bandId: String): HttpResponse {
+        loadBandForAdmin(user, bandId, "Only band admins see the raw data")
+        val blob = store.get(bandKey(bandId)) ?: throw bandGone(user, bandId)
+        return HttpResponse(200, blob.content, mapOf("content-type" to "application/json; charset=utf-8"))
+    }
+
+    private fun loadBandForAdmin(user: VerifiedUser, bandId: String, forbidden: String = "Only band admins manage invites"): Pair<Band, String> {
         val loaded = loadBandForMember(user, bandId)
         val me = loaded.first.memberOfUser(user.userId)!!
-        if (!me.role.atLeast(Role.ADMIN)) throw ApiError(403, "forbidden", "Only band admins manage invites")
+        if (!me.role.atLeast(Role.ADMIN)) throw ApiError(403, "forbidden", forbidden)
         return loaded
     }
 
