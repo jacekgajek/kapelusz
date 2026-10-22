@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -120,7 +121,7 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
     ) { padding ->
         val treasurer = band.treasurerMemberId?.let { band.member(it) }
         if (treasurer == null) {
-            Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxSize().padding(padding).listWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(Res.string.fund_no_treasurer))
                 if (can.manageRoster()) {
                     Text(stringResource(Res.string.fund_no_treasurer_admin), style = MaterialTheme.typography.bodySmall)
@@ -131,7 +132,7 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
         }
         val contributions = band.events.filter { !it.fundAmount.isZero }.sortedByDescending { it.date }
         LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
+            Modifier.fillMaxSize().padding(padding).listWidth(),
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {

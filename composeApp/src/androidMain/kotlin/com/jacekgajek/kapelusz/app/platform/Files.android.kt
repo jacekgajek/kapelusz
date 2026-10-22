@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.platform
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.graphics.Bitmap
@@ -164,7 +165,7 @@ actual fun rememberUrlOpener(): (resolve: suspend () -> String?) -> Unit {
     return remember(uriHandler) {
         { resolve ->
             scope.launch {
-                runCatching { resolve()?.let(uriHandler::openUri) }
+                runSuspendCatching { resolve()?.let(uriHandler::openUri) }
             }
         }
     }

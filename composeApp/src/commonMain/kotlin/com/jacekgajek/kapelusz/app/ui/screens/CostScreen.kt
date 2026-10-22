@@ -138,7 +138,7 @@ fun CostScreen(
         val ok = if (existing == null) {
             val id = newId()
             actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
-                .also { if (it) graph.attachAfterSave(id, drafts) }
+                .also { if (it) graph.attachments.attachAfterSave(id, drafts) }
                 .also { if (it && paidBy != state.me?.id) onAddedForOther() }
         } else {
             actions.run(

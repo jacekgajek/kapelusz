@@ -1,7 +1,9 @@
 package com.jacekgajek.kapelusz.app.auth
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
 import kotlinx.coroutines.CancellationException
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,6 +127,9 @@ class SessionRepository(
         response.token
     } catch (e: CancellationException) {
         throw e
+    } catch (e: SessionsRevokedException) {
+        // Signed out on all devices: no falling back to the Google token, which the server refuses too.
+        throw e
     } catch (e: Throwable) {
         // Throwable: on the web, network errors are JsException.
         lastExchangeFailure = clock()
@@ -141,7 +146,7 @@ class SessionRepository(
         val now = clock()
         if (!refused && lastBackgroundRefresh?.let { now - it < REFRESH_RETRY_MS } == true) return stillValid
         if (!refused) lastBackgroundRefresh = now
-        val fresh = runCatching { google.refresh() }.getOrNull() ?: return stillValid
+        val fresh = runSuspendCatching { google.refresh() }.getOrNull() ?: return stillValid
         val refreshed = runCatching { Session.fromIdToken(fresh) }.getOrNull() ?: return stillValid
         if (refreshed.userId != current.userId) return stillValid
         // Google may hand back its cached token: that is no renewal (and saving it would ask again right away).
@@ -164,7 +169,7 @@ class SessionRepository(
     }
 
     suspend fun signOut() {
-        runCatching { google.signOut() }
+        runSuspendCatching { google.signOut() }
         store.remove(KEY)
         _session.value = null
     }

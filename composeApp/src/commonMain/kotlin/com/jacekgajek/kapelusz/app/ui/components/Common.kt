@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
@@ -7,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -255,14 +258,18 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 fun TransferParties(from: String, to: String, modifier: Modifier = Modifier) {
     // The arrow is an icon: read the pair as one phrase ("Alice to Bob") instead of two unrelated names.
     val description = stringResource(Res.string.transfer_a11y, from, to)
-    Row(modifier.clearAndSetSemantics { contentDescription = description }, verticalAlignment = Alignment.CenterVertically) {
-        Text(from)
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            modifier = Modifier.padding(horizontal = 6.dp).size(16.dp),
-        )
-        Text(to)
+    // Long names (or "Band fund (treasurer)") wrap onto the next line whole, after the arrow, instead of squeezing the
+    // other name into a column of letters.
+    FlowRow(modifier.clearAndSetSemantics { contentDescription = description }) {
+        Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+            Text(from, Modifier.weight(1f, fill = false))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.padding(horizontal = 6.dp).size(16.dp),
+            )
+        }
+        Text(to, Modifier.align(Alignment.CenterVertically))
     }
 }
 
@@ -301,17 +308,29 @@ fun PartialSettleDialog(
     )
 }
 
+/** The widest a list grows: on tablets it stays readable, centred (ITERATION_3 R13). */
+val MAX_LIST_WIDTH = 600.dp
+
+/** Caps a list (after its size modifiers) at [MAX_LIST_WIDTH], centred in the space it was given. */
+fun Modifier.listWidth(): Modifier = wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = MAX_LIST_WIDTH).fillMaxWidth()
+
 /** Visible edit affordance at the end of a tappable row (touch screens show no hover highlight). */
 @Composable
 fun EditButton(onClick: () -> Unit) {
     IconButton(onClick = onClick) { Icon(Icons.Default.Edit, stringResource(Res.string.edit)) }
 }
 
-/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers. */
+/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers (ITERATION_3 R13). */
 @Composable
-fun RemoveButton(what: String? = null, onClick: () -> Unit) {
+fun RemoveButton(what: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, removeLabel(what)) }
+}
+
+/** "Remove: Anna", or just "Remove" for an item without a name yet (e.g. an empty field). */
+@Composable
+fun removeLabel(what: String): String {
     val remove = stringResource(Res.string.remove)
-    IconButton(onClick = onClick) { Icon(Icons.Default.Delete, what?.let { "$remove: $it" } ?: remove) }
+    return if (what.isBlank()) remove else "$remove: $what"
 }
 
 /** The app version in a corner (sign-in screen, Settings), so it is easy to tell which build is running. */

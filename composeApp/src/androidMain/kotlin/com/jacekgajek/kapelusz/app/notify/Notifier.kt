@@ -9,6 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.jacekgajek.kapelusz.app.R
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.partyName
@@ -32,14 +33,6 @@ object Notifier {
 
     /** The app's language when set, otherwise the device's (the default locale). */
     private fun polish(language: String?) = (language ?: Locale.getDefault().language) == "pl"
-
-    /**
-     * The app's own status-bar icon (the hat), which lives in the app module's resources, so it is found by name;
-     * [fallback] if it is missing (e.g. tests).
-     */
-    @SuppressLint("DiscouragedApi")
-    private fun smallIcon(context: Context, fallback: Int): Int =
-        context.resources.getIdentifier("ic_notification", "drawable", context.packageName).takeIf { it != 0 } ?: fallback
 
     fun canNotify(context: Context) = NotificationManagerCompat.from(context).areNotificationsEnabled()
 
@@ -86,7 +79,7 @@ object Notifier {
         val pl = polish(language)
         channels(context, pl)
         val builder = NotificationCompat.Builder(context, REMINDERS)
-            .setSmallIcon(smallIcon(context, android.R.drawable.ic_menu_today))
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(openEvent(context, id, bandId, eventId))
@@ -131,7 +124,7 @@ object Notifier {
         val text = listOfNotNull(event.name, by.takeIf { it.isNotEmpty() }?.let { if (pl) "zapisane przez: $it" else "recorded by $it" }).joinToString(" · ")
         val id = ("t" + band.id + event.id + notice.transfers.first().id).hashCode()
         notify(context, id, NotificationCompat.Builder(context, TRANSFERS)
-            .setSmallIcon(smallIcon(context, android.R.drawable.ic_menu_send))
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(openEvent(context, id, band.id, event.id))

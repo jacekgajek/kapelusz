@@ -58,9 +58,9 @@ class AttachmentTest {
         call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
         push("alice", AddMember("m-bob", "Bob"), AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 9, 1)), AddAttachment("c1", photo))
         // A viewer, linked the way an accepted invite would do it.
-        val (band, etag) = store.get(Api.bandKey("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }
+        val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }
         val linked = (com.jacekgajek.kapelusz.ops.Engine.apply(band, com.jacekgajek.kapelusz.auth.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band
-        store.put(Api.bandKey("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), linked), ifMatch = etag)
+        store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), linked), ifMatch = etag)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import kotlinx.coroutines.CancellationException
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.history_undone
 import com.jacekgajek.kapelusz.app.generated.redo
 import androidx.compose.ui.text.style.TextDecoration
@@ -13,7 +14,6 @@ import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.Undo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -97,62 +97,50 @@ fun HistoryItem.toLines(): List<HistoryLine> = ops.asReversed().map { op ->
 @Composable
 fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     var offset by remember { mutableStateOf(0) }
-    var lines by remember { mutableStateOf<List<HistoryLine>?>(null) }
     var next by remember { mutableStateOf<String?>(null) }
-    var failed by remember { mutableStateOf(false) }
     var loadingMore by remember { mutableStateOf(false) }
     var loadMoreFailed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
-    var reload by remember { mutableStateOf(0) }
-    var confirming by remember { mutableStateOf<Undo?>(null) }
+    val history = remember(state.band.id) { HistoryController(graph, state.band.id, state.userId, state.me?.id, scope) }
     val month = historyMonth(offset)
-    var pending by remember { mutableStateOf(listOf<HistoryLine>()) }
     var linesMonth by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(state.band.id, month, reload) {
+    LaunchedEffect(state.band.id, month, history.reload) {
         // Another month starts from a spinner; the same one refreshes in place (e.g. after an undo).
         if (linesMonth != month) {
-            lines = null
+            history.lines = null
             next = null
         }
-        failed = false
-        runCatching { graph.api.history(state.band.id, month) }
-            .onSuccess { response ->
-                lines = response.entries.flatMap { it.toLines() }
-                next = response.next
-                linesMonth = month
-                failed = false
-                pending = stillPending(pending, graph.bands.local(state.band.id)?.pending.orEmpty().map { it.opId }.toSet())
-            }
-            // A load replaced by a newer one (e.g. after the next undo) is not a failure.
-            .onFailure { if (it is CancellationException) throw it else failed = true }
+        history.failed = false
+        history.load {
+            val response = graph.api.history(state.band.id, month)
+            next = response.next
+            linesMonth = month
+            response.entries.flatMap { it.toLines() }
+        }
     }
     val loadMore: () -> Unit = {
         scope.launch {
             loadingMore = true
-            val refresh = reload
+            val refresh = history.reload
             val forMonth = month
-            runCatching { graph.api.history(state.band.id, forMonth, next) }
+            runSuspendCatching { graph.api.history(state.band.id, forMonth, next) }
                 // Not onto a list that was refreshed or that shows another month meanwhile (read now: [offset] is state).
-                .onSuccess { response -> if (refresh == reload && forMonth == historyMonth(offset)) { lines = lines.orEmpty() + response.entries.flatMap { it.toLines() }; next = response.next } }
+                .onSuccess { response ->
+                    if (refresh == history.reload && forMonth == historyMonth(offset)) {
+                        history.lines = history.lines.orEmpty() + response.entries.flatMap { it.toLines() }
+                        next = response.next
+                    }
+                }
                 // What is shown stays; only "Load more" did not work (ITERATION_3 R8).
-                .onFailure { if (it is CancellationException) throw it else loadMoreFailed = true }
+                .onFailure { loadMoreFailed = true }
             loadingMore = false
         }
     }
-    confirming?.let { undo ->
-        UndoDialog(state.band, undo, onDismiss = { confirming = null }, onConfirm = {
-            confirming = null
-            // Shown at once, so undoing several changes is tap after tap; the history refreshes quietly behind.
-            if (actions.run(undo)) {
-                graph.bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, state.userId, state.me?.id) }
-                scope.launch { graph.sync.syncNow(); reload++ }
-            }
-        })
-    }
+    history.UndoConfirmation(state.band, actions)
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).listWidth()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { offset++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month)) }
                 Text(formatMonth(month, language), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
@@ -161,24 +149,16 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 }
             }
             val padding16 = PaddingValues(16.dp)
-            val loaded = lines?.let { withPending(it, pending.takeIf { offset == 0 }.orEmpty()) }
+            val loaded = history.shown(withPending = offset == 0)
             when {
-                failed -> Text(stringResource(Res.string.history_unavailable), Modifier.padding(padding16), color = MaterialTheme.colorScheme.error)
+                history.failed -> Text(stringResource(Res.string.history_unavailable), Modifier.padding(padding16), color = MaterialTheme.colorScheme.error)
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Undo steps back from the newest change, redo forward (ITERATION_2 §7.2); both only from this month.
-                    val can = Can(state.band, state.userId)
-                    val targets = undoTargets(loaded) { undoOf(it, can) != null }
-                    val undo = targets.undo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
-                    val redo = targets.redo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
+                    val arrows = history.arrows(loaded, Can(state.band, state.userId), enabled = offset == 0)
                     items(loaded, key = { it.opId }) { line ->
-                        HistoryRow(
-                            state.band, line,
-                            undone = line.opId in targets.undone,
-                            onUndo = undo?.takeIf { it.first === line }?.let { { confirming = it.second } },
-                            onRedo = redo?.takeIf { it.first === line }?.let { { confirming = it.second } },
-                        )
+                        history.LineRow(state.band, line, arrows)
                         HorizontalDivider()
                     }
                     if (next != null) {

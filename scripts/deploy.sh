@@ -31,6 +31,8 @@ if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
   TASKS+=(:androidApp:assembleRelease)
 fi
 if [[ "${SKIP_BUILD:-0}" != 1 ]]; then
+  # The build reads the KAPELUSZ_* variables (API URL, version code, keystore) while configuring: a cached
+  # configuration from an earlier build would ship its values instead.
   ./gradlew --no-configuration-cache "${TASKS[@]}"
 fi
 

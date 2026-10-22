@@ -22,7 +22,6 @@ import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -39,10 +38,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
 
 /** An operation in the history that this app version cannot read (made by a newer version). */
 data class UnreadableOp(val opId: String, val eventId: String?)
@@ -64,7 +59,13 @@ data class HistoryPage(val month: String, val entries: List<HistoryItem>, val ne
 class ApiException(val status: Int, val code: String, message: String) : RuntimeException(message)
 
 /** The user must sign in again: there is no token, or the server still refuses a refreshed one. */
-class NeedsSignInException : RuntimeException("Sign in again")
+open class NeedsSignInException(message: String = "Sign in again") : RuntimeException(message)
+
+/**
+ * The user chose "sign out on all devices" (on this or another device): the server refuses every token from before,
+ * Google's included. Nothing is renewed silently; the app signs out (ITERATION_3 R6).
+ */
+class SessionsRevokedException : NeedsSignInException("Signed out on all devices")
 
 /** Typed client for the Kapelusz API. [token] returns an ID token; `true` forces a refresh. */
 class ApiClient(
@@ -74,6 +75,8 @@ class ApiClient(
     private val appVersion: Int = 0,
     /** The server answered "update required". */
     private val onUpdateRequired: () -> Unit = {},
+    /** The server answered "signed out on all devices"; then a [SessionsRevokedException] is thrown. */
+    private val onSessionsRevoked: suspend () -> Unit = {},
     /** The token to send; [refused] is the one the server just refused (null: the current one is wanted). */
     private val token: suspend (refused: String?) -> String?,
 ) {
@@ -95,6 +98,11 @@ class ApiClient(
     /** A new Kapelusz session for [bearer] (a Google ID token or the current session); bypasses the token provider. */
     suspend fun createSession(bearer: String): SessionResponse =
         parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
+
+    /** "Sign out on all devices" (ITERATION_3 R6): the server refuses every session of the user begun before now. */
+    suspend fun revokeSessions() {
+        text(send(HttpMethod.Post, "/sessions/revoke") {})
+    }
 
     suspend fun createBand(request: CreateBandRequest): BandStateResponse =
         call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = KapeluszJson.encodeToString(CreateBandRequest.serializer(), request))
@@ -135,42 +143,11 @@ class ApiClient(
     suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
 
     /**
-     * One page of a month's history, newest first; [before] is the previous page's `next`. Read entry by entry and
-     * operation by operation, so a change made by a newer app version (an operation this one does not know) shows
-     * as such instead of failing the whole page.
+     * One page of a month's history, newest first; [before] is the previous page's `next`. Read leniently by
+     * [HistoryDecoder], so a change made by a newer app version does not fail the whole page.
      */
-    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage {
-        val page = call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer())
-        val entries = page["entries"]?.jsonArray.orEmpty().mapNotNull { element ->
-            val entry = element as? JsonObject ?: return@mapNotNull null
-            val at = entry["at"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
-            // Each operation on its own, in order: one this version cannot read becomes a placeholder.
-            val ops = entry["ops"]?.jsonArray.orEmpty().mapIndexed { index, op ->
-                runCatching { ReadOp.Known(KapeluszJson.decodeFromJsonElement(OpEnvelope.serializer(), op)) }.getOrElse {
-                    val raw = op as? JsonObject
-                    ReadOp.Unknown(
-                        UnreadableOp(
-                            opId = raw?.get("opId")?.jsonPrimitive?.contentOrNull ?: "$at-$index",
-                            eventId = (raw?.get("op") as? JsonObject)?.get("eventId")?.jsonPrimitive?.contentOrNull,
-                        ),
-                    )
-                }
-            }
-            val header = HistoryEntry(
-                userId = entry["userId"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null,
-                memberId = entry["memberId"]?.jsonPrimitive?.contentOrNull,
-                at = at,
-                ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
-                // What each operation changed, for undo; one this version cannot read just cannot be undone here.
-                id = entry["id"]?.jsonPrimitive?.contentOrNull,
-                changes = (entry["changes"] as? JsonObject).orEmpty().mapNotNull { (opId, change) ->
-                    runCatching { opId to KapeluszJson.decodeFromJsonElement(BandChange.serializer(), change) }.getOrNull()
-                }.toMap(),
-            )
-            HistoryItem(header, ops)
-        }
-        return HistoryPage(page["month"]?.jsonPrimitive?.contentOrNull ?: month, entries, page["next"]?.jsonPrimitive?.contentOrNull)
-    }
+    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage =
+        HistoryDecoder.page(call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer()), month)
 
     /** A URL to upload the file of an attachment the server already has. */
     suspend fun requestUpload(bandId: Id, costId: Id, attachmentId: Id): AttachmentUploadResponse = call(
@@ -185,15 +162,29 @@ class ApiClient(
     private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T =
         parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)
 
-    /** Sends with the current token; on 401 refreshes the token once and retries. */
+    /**
+     * Sends with the current token; on 401 refreshes the token once and retries. Not after "signed out on all
+     * devices": a refresh would sign this device in again behind the user's back.
+     */
     private suspend fun send(method: HttpMethod, path: String, configure: HttpRequestBuilder.() -> Unit): HttpResponse {
         val bearer = token(null) ?: throw NeedsSignInException()
         var response = attempt(method, path, bearer, configure)
         if (response.status == HttpStatusCode.Unauthorized) {
+            checkRevoked(errorOf(response.bodyAsText())?.error)
             response = attempt(method, path, token(bearer) ?: throw NeedsSignInException(), configure)
-            if (response.status == HttpStatusCode.Unauthorized) throw NeedsSignInException()
+            if (response.status == HttpStatusCode.Unauthorized) {
+                checkRevoked(errorOf(response.bodyAsText())?.error)
+                throw NeedsSignInException()
+            }
         }
         return response
+    }
+
+    private suspend fun checkRevoked(code: String?) {
+        if (code == ApiErrors.SESSIONS_REVOKED) {
+            onSessionsRevoked()
+            throw SessionsRevokedException()
+        }
     }
 
     private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) =
@@ -207,12 +198,16 @@ class ApiClient(
 
     private suspend fun <T> parse(response: HttpResponse, serializer: KSerializer<T>): T = KapeluszJson.decodeFromString(serializer, text(response))
 
+    private fun errorOf(body: String) = runCatching { KapeluszJson.decodeFromString(ErrorResponse.serializer(), body) }.getOrNull()
+
     /** The body of a successful response; otherwise the server's error as an [ApiException]. */
     private suspend fun text(response: HttpResponse): String {
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
-            val error = runCatching { KapeluszJson.decodeFromString(ErrorResponse.serializer(), text) }.getOrNull()
+            val error = errorOf(text)
             if (error?.error == ApiErrors.UPDATE_REQUIRED) onUpdateRequired()
+            // E.g. exchanging a token for a session (which bypasses [send]).
+            checkRevoked(error?.error)
             throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
         }
         return text

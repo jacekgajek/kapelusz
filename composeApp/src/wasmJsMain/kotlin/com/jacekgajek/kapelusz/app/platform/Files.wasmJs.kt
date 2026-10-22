@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.platform
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,7 +76,7 @@ actual fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentP
             override fun pickFile() {
                 // Undispatched: the chooser must open while the click is still being handled.
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                    val picked = runCatching { pickAndPrepare().await<PickedJs?>() }.getOrElse { null.also { callback.value(PickResult.Failed) } }
+                    val picked = runSuspendCatching { pickAndPrepare().await<PickedJs?>() }.getOrElse { null.also { callback.value(PickResult.Failed) } }
                         ?: return@launch
                     callback.value(
                         when (picked.error) {
@@ -131,7 +132,7 @@ actual fun rememberUrlOpener(): (resolve: suspend () -> String?) -> Unit {
         { resolve ->
             val target = openBlankWindow()
             scope.launch {
-                val url = runCatching { resolve() }.getOrNull()
+                val url = runSuspendCatching { resolve() }.getOrNull()
                 if (url == null) closeWindow(target) else navigateWindow(target, url)
             }
         }

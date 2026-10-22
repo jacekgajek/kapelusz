@@ -284,10 +284,10 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [x] V3-M2.6 CI: production web build, pinned actions (R11)
 
 ### V3-M3 — Quality
-- [ ] V3-M3.1 Refactorings (R12)
-- [ ] V3-M3.2 Accessibility, unused resources, docs, build hygiene (R13)
-- [ ] V3-M3.3 Tests for iteration-2 paths (R14)
-- [ ] V3-M3.4 "Signed out everywhere" (R6) and stuck pushes shown with export or discard (R9)
+- [x] V3-M3.1 Refactorings (R12)
+- [x] V3-M3.2 Accessibility, unused resources, docs, build hygiene (R13)
+- [x] V3-M3.3 Tests for iteration-2 paths (R14)
+- [x] V3-M3.4 "Signed out everywhere" (R6) and stuck pushes shown with export or discard (R9)
 
 ### V3-M4 — New features (one release)
 - [ ] V3-M4.1 Share a settlement as text (§2.1)

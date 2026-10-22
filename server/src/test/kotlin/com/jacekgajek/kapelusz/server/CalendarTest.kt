@@ -94,9 +94,9 @@ class CalendarTest {
         val sub = subscription("alice")
         assertTrue("Club gig" in feed(sub.url).body!!)
         // Alice archived (removed) from the band by the system, as an admin would.
-        val (band, etag) = store.get(Api.bandKey("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }
+        val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }
         val removed = band.copy(members = band.members.map { if (it.id == "m-alice") it.copy(archived = true) else it })
-        store.put(Api.bandKey("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), removed), ifMatch = etag)
+        store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), removed), ifMatch = etag)
         assertFalse("Club gig" in feed(sub.url).body!!)
     }
 

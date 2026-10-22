@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 /**
  * What a device keeps for one band: the last state known from the server ([base], [version]) and the operations
@@ -113,7 +115,7 @@ class BandRepository(
         // in other bands pushed, even if the user never opens them.
         for (summary in _index.value?.bands.orEmpty()) {
             if (summary.id == _index.value?.currentBandId) continue
-            runCatching { readLocal(summary.id, reportUnreadable = false) }.getOrNull()?.let { locals[summary.id] = it }
+            runSuspendCatching { readLocal(summary.id, reportUnreadable = false) }.getOrNull()?.let { locals[summary.id] = it }
         }
         open(_index.value?.currentBandId)
     }
@@ -176,7 +178,7 @@ class BandRepository(
         if (band.id in locals) return
         // Already on the device (e.g. missing from an unreadable index): its unsent changes must not be overwritten
         // (ITERATION_3 R4); the regular sync rebases them on the server's state.
-        val stored = runCatching { readLocal(band.id, reportUnreadable = false) }.getOrNull()
+        val stored = runSuspendCatching { readLocal(band.id, reportUnreadable = false) }.getOrNull()
         locals[band.id] = stored ?: LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
         if (stored == null) persist(band.id)
     }
@@ -242,14 +244,33 @@ class BandRepository(
     suspend fun loseAccess(bandId: Id): String {
         val local = locals.remove(bandId)
         val name = local?.let { replay(it).name } ?: _index.value?.bands?.firstOrNull { it.id == bandId }?.name ?: bandId
-        if (local != null && local.pending.isNotEmpty()) {
-            store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", KapeluszJson.encodeToString(LocalBand.serializer(), local))
-        }
+        if (local != null) keepUnsent(bandId, local)
         store.remove(bandKey(requireUser(), bandId))
         val wasCurrent = currentBandId == bandId
         updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
         if (wasCurrent) _state.value = BandState.NoBand
         return name
+    }
+
+    /**
+     * Drops the band's unsent changes, e.g. ones the server always refuses (ITERATION_3 R9); they are kept under a
+     * backup key first, as when access is lost. Sequence numbers go on from where they were. Returns the dropped
+     * operations: only those in the backup, not ones made while it was being written.
+     */
+    suspend fun discardPending(bandId: Id): List<OpEnvelope> {
+        val local = locals[bandId] ?: return emptyList()
+        keepUnsent(bandId, local)
+        val backedUp = local.pending.map { it.opId }.toSet()
+        rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }) }
+        return local.pending
+    }
+
+    /** The band's unsent changes as readable JSON, for the user to keep (ITERATION_3 R9). */
+    fun pendingAsJson(bandId: Id): String = PrettyJson.encodeToString(ListSerializer(OpEnvelope.serializer()), locals[bandId]?.pending.orEmpty())
+
+    private suspend fun keepUnsent(bandId: Id, local: LocalBand) {
+        if (local.pending.isEmpty()) return
+        store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", KapeluszJson.encodeToString(LocalBand.serializer(), local))
     }
 
     /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
@@ -305,7 +326,7 @@ class BandRepository(
     private suspend fun recoverBands(userId: String, rawIndex: String) {
         val ids = Regex(""""id"\s*:\s*"([A-Za-z0-9_-]{1,64})"""").findAll(rawIndex).map { it.groupValues[1] }.distinct().toList()
         val summaries = ids.mapNotNull { id ->
-            val local = runCatching { readLocal(id, reportUnreadable = false) }.getOrNull() ?: return@mapNotNull null
+            val local = runSuspendCatching { readLocal(id, reportUnreadable = false) }.getOrNull() ?: return@mapNotNull null
             locals[id] = local
             val me = local.base.memberOfUser(userId)
             BandSummary(id, local.base.name, me?.name.orEmpty(), me?.role ?: Role.MEMBER)
@@ -438,6 +459,8 @@ class BandRepository(
 
         /** Identity of the device user in M2, before Google sign-in. */
         const val LOCAL_USER_ID = "local-user"
+
+        private val PrettyJson = Json(from = KapeluszJson) { prettyPrint = true }
 
         fun indexKey(userId: String) = "band-index-$userId"
         fun bandKey(userId: String, bandId: Id) = "band-$userId-$bandId"

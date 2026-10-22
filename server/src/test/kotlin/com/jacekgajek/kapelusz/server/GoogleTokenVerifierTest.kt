@@ -25,10 +25,11 @@ class GoogleTokenVerifierTest {
         expiresInSeconds: Long = 3600,
         emailVerified: Boolean = true,
         signingKey: RSAKey = key,
+        issuedAt: Date? = Date(ISSUED_AT),
     ): String {
         val claims = JWTClaimsSet.Builder()
             .subject("google-sub-1").issuer(issuer).audience(audience)
-            .expirationTime(Date(System.currentTimeMillis() + expiresInSeconds * 1000))
+            .expirationTime(Date(System.currentTimeMillis() + expiresInSeconds * 1000)).issueTime(issuedAt)
             .claim("email", "alice@example.com").claim("email_verified", emailVerified).claim("name", "Alice")
             .claim("picture", "https://lh3.googleusercontent.com/a/alice=s96-c")
             .build()
@@ -39,7 +40,11 @@ class GoogleTokenVerifierTest {
 
     @Test
     fun acceptsValidToken() {
-        assertEquals(VerifiedUser("google-sub-1", "alice@example.com", "Alice", "https://lh3.googleusercontent.com/a/alice=s96-c"), verifier.verify(token()))
+        assertEquals(
+            VerifiedUser("google-sub-1", "alice@example.com", "Alice", "https://lh3.googleusercontent.com/a/alice=s96-c", issuedAt = ISSUED_AT),
+            verifier.verify(token()),
+        )
+        assertEquals(0, verifier.verify(token(issuedAt = null))?.issuedAt, "without iat: issued before any revoke")
         assertEquals("google-sub-1", verifier.verify(token(issuer = "accounts.google.com"))?.userId)
     }
 
@@ -61,5 +66,10 @@ class GoogleTokenVerifierTest {
         assertNull(verifier.pictureOf(old, "someone-else"))
         assertNull(verifier.pictureOf(token(audience = "other-app"), "google-sub-1"), "another app's token")
         assertNull(verifier.pictureOf(token(signingKey = RSAKeyGenerator(2048).keyID("k1").generate()), "google-sub-1"), "not signed by Google")
+    }
+
+    private companion object {
+        /** `iat` is in whole seconds. */
+        val ISSUED_AT = (System.currentTimeMillis() / 1000 - 60) * 1000
     }
 }

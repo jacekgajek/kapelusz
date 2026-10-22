@@ -15,7 +15,6 @@
     <string name="ok">OK</string>
     <string name="cancel">Anuluj</string>
     <string name="create">Utwórz</string>
-    <string name="rename">Zmień nazwę</string>
     <string name="archive">Archiwizuj</string>
     <string name="unarchive">Przywróć</string>
     <string name="move_up">Przesuń w górę</string>
@@ -72,7 +71,6 @@
     <string name="amount">Kwota</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>
     <string name="edit_details">Edytuj szczegóły</string>
-    <string name="event_notes">Notatki (opcjonalnie)</string>
     <string name="event_not_found">To wydarzenie już nie istnieje.</string>
     <string name="delete_event_title">Usunąć wydarzenie?</string>
     <string name="delete_event_confirm">„%1$s” zostanie usunięte. Jego zwroty kosztów znów będą oczekujące.</string>
@@ -196,6 +194,10 @@
     <string name="sign_in_failed">Logowanie nie powiodło się: %1$s</string>
     <string name="account">Konto</string>
     <string name="sign_out">Wyloguj się</string>
+    <string name="sign_out_everywhere">Wyloguj na wszystkich urządzeniach</string>
+    <string name="sign_out_everywhere_text">Kapelusz zostanie wylogowany na każdym urządzeniu, na którym go używasz, także na tym. Na każdym z nich trzeba będzie ponownie zalogować się przez Google. Przydaje się po zgubieniu telefonu albo zalogowaniu na cudzym komputerze.</string>
+    <string name="sign_out_everywhere_failed">Nie udało się wylogować na wszystkich urządzeniach. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="signed_out_everywhere">Wylogowano na wszystkich urządzeniach. Zaloguj się ponownie, aby kontynuować.</string>
     <string name="new_band">Nowy zespół</string>
     <string name="new_band_title">Nowy zespół</string>
     <string name="your_bands">Twoje zespoły</string>
@@ -212,6 +214,13 @@
     <string name="sign_in_again_text">Twoje logowanie wygasło, więc zmiany są na razie zapisywane tylko na tym urządzeniu. Zaloguj się ponownie jako %1$s, aby je zsynchronizować.</string>
     <string name="sign_in_again_wrong_account">To inne konto. Zaloguj się jako %1$s albo wyloguj się w Ustawieniach, aby zmienić konto.</string>
     <string name="lost_access">Nie masz już dostępu do zespołu %1$s. Niezapisane tam zmiany zachowano jako kopię na tym urządzeniu.</string>
+    <string name="stuck_push_title">Zmian z tego urządzenia nie da się wysłać na serwer</string>
+    <string name="stuck_push_export">Eksportuj</string>
+    <string name="stuck_push_discard">Odrzuć</string>
+    <string name="stuck_push_exported">Skopiowano niewysłane zmiany do schowka</string>
+    <string name="stuck_push_export_failed">Nie udało się skopiować do schowka.</string>
+    <string name="stuck_discard_title">Odrzucić niewysłane zmiany?</string>
+    <string name="stuck_discard_text">Zmiany z tego urządzenia, których serwer nie przyjmuje, zostaną usunięte, a zespół będzie wyglądał tak jak na serwerze. Ich kopia zostanie zachowana na tym urządzeniu.</string>
     <string name="other_tab_title">Kapelusz jest otwarty w innej karcie</string>
     <string name="other_tab_text">Aby Twoje zmiany były bezpieczne, Kapelusz może działać tylko w jednej karcie naraz. Możesz kontynuować tutaj; druga karta przestanie działać.</string>
     <string name="use_here">Użyj tutaj</string>
@@ -300,7 +309,6 @@
     <string name="role_owner_note">Właściciel ma wszystkie uprawnienia administratora i jako jedyny może przekazać własność innemu administratorowi.</string>
     <string name="copy_link">Kopiuj link</string>
     <string name="link_copied">Skopiowano link</string>
-    <string name="band">Zespół</string>
     <string name="tab_fund">Kasa</string>
     <string name="fund_balance">Stan kasy</string>
     <string name="fund_not_handed_over">Jeszcze nieprzekazane</string>
@@ -403,7 +411,6 @@
     <string name="h_set_agenda_template">Zmieniono godziny dla nowych wydarzeń</string>
     <string name="agenda_arrival">Przyjazd</string>
     <string name="agenda_concert_start">Początek koncertu</string>
-    <string name="more_details">Więcej szczegółów</string>
     <string name="agenda_add_time">+ Dodaj godzinę</string>
     <string name="agenda_label">Co (np. Próba dźwięku)</string>
     <string name="details">Szczegóły</string>
@@ -493,4 +500,5 @@
     <string name="diag_battery_unrestricted">Bateria: bez ograniczeń</string>
     <string name="reject_limit_reached">Zespół osiągnął limit (np. zbyt wiele wpisów).</string>
     <string name="reject_storage_failed">Nie udało się zapisać na tym urządzeniu (czy pamięć jest pełna?).</string>
+    <string name="loading">Wczytywanie…</string>
 </resources>

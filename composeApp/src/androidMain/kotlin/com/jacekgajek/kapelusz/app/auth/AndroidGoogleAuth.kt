@@ -24,6 +24,7 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
 import com.jacekgajek.kapelusz.app.generated.sign_in_google
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -49,8 +50,10 @@ object AndroidGoogleAuth : GoogleAuth {
     }
 
     override suspend fun signOut() {
-        val activity = activity.get() ?: return
-        CredentialManager.create(activity).clearCredentialState(ClearCredentialStateRequest())
+        // Without an activity too (e.g. signed out from all devices during a background sync): otherwise the next
+        // sign-in would auto-select the account again.
+        val context = activity.get() ?: AndroidPlatform.context ?: return
+        CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
     }
 
     internal suspend fun signIn(activity: Activity): String? =

@@ -15,7 +15,6 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="create">Create</string>
-    <string name="rename">Rename</string>
     <string name="archive">Archive</string>
     <string name="unarchive">Restore</string>
     <string name="move_up">Move up</string>
@@ -72,7 +71,6 @@
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>
     <string name="edit_details">Edit details</string>
-    <string name="event_notes">Notes (optional)</string>
     <string name="event_not_found">This event no longer exists.</string>
     <string name="delete_event_title">Delete event?</string>
     <string name="delete_event_confirm">"%1$s" will be deleted. Its refunds become pending again.</string>
@@ -196,6 +194,10 @@
     <string name="sign_in_failed">Sign-in failed: %1$s</string>
     <string name="account">Account</string>
     <string name="sign_out">Sign out</string>
+    <string name="sign_out_everywhere">Sign out on all devices</string>
+    <string name="sign_out_everywhere_text">Pass the Hat is signed out on every device where you use it, including this one. Each of them has to sign in with Google again. Useful after losing a phone or signing in on someone else’s computer.</string>
+    <string name="sign_out_everywhere_failed">Could not sign out on all devices. Check your connection and try again.</string>
+    <string name="signed_out_everywhere">You were signed out on all devices. Sign in again to continue.</string>
     <string name="new_band">New band</string>
     <string name="new_band_title">New band</string>
     <string name="your_bands">Your bands</string>
@@ -212,6 +214,13 @@
     <string name="sign_in_again_text">Your sign-in expired, so changes are only saved on this device for now. Sign in again as %1$s to sync them.</string>
     <string name="sign_in_again_wrong_account">That is a different account. Sign in as %1$s, or sign out in Settings to switch accounts.</string>
     <string name="lost_access">You no longer have access to %1$s. Changes not yet saved there were kept as a backup on this device.</string>
+    <string name="stuck_push_title">Changes on this device can’t be sent to the server</string>
+    <string name="stuck_push_export">Export</string>
+    <string name="stuck_push_discard">Discard</string>
+    <string name="stuck_push_exported">Unsent changes copied to the clipboard</string>
+    <string name="stuck_push_export_failed">Could not copy to the clipboard.</string>
+    <string name="stuck_discard_title">Discard unsent changes?</string>
+    <string name="stuck_discard_text">The changes on this device that the server refuses are removed, and the band is shown as it is on the server. A copy of them is kept on this device.</string>
     <string name="other_tab_title">Pass the Hat is open in another tab</string>
     <string name="other_tab_text">To keep your changes safe, only one tab can use Pass the Hat at a time. You can continue here; the other tab will stop.</string>
     <string name="use_here">Use here</string>
@@ -300,7 +309,6 @@
     <string name="role_owner_note">The owner has all admin rights and is the only one who can hand ownership over to another admin.</string>
     <string name="copy_link">Copy link</string>
     <string name="link_copied">Link copied</string>
-    <string name="band">Band</string>
     <string name="tab_fund">Band fund</string>
     <string name="fund_balance">Balance</string>
     <string name="fund_not_handed_over">Not handed over yet</string>
@@ -401,7 +409,6 @@
     <string name="h_set_agenda_template">Changed the agenda times of new events</string>
     <string name="agenda_arrival">Arrival</string>
     <string name="agenda_concert_start">Concert start</string>
-    <string name="more_details">More details</string>
     <string name="agenda_add_time">+ Add time</string>
     <string name="agenda_label">What (e.g. Sound check)</string>
     <string name="details">Details</string>
@@ -487,4 +494,5 @@
     <string name="diag_battery_unrestricted">Battery: unrestricted</string>
     <string name="reject_limit_reached">The band has reached a limit for this (e.g. too many entries).</string>
     <string name="reject_storage_failed">Could not save it on this device (is the storage full?).</string>
+    <string name="loading">Loading…</string>
 </resources>

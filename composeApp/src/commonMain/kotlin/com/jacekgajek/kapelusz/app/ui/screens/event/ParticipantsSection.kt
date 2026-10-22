@@ -40,7 +40,8 @@ import com.jacekgajek.kapelusz.app.generated.guest_name
 import com.jacekgajek.kapelusz.app.generated.hide_shares
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
-import com.jacekgajek.kapelusz.app.generated.remove
+import com.jacekgajek.kapelusz.app.ui.components.removeLabel
+import androidx.compose.ui.semantics.Role
 import com.jacekgajek.kapelusz.app.generated.share_weight
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -84,10 +85,11 @@ fun ParticipantsSection(context: EventContext) {
                 label = { Text(guest.name) },
                 trailingIcon = if (canManage) {
                     {
+                        // A button named after the guest, not a bare "Remove" image (ITERATION_3 R13).
                         Icon(
                             Icons.Default.Close,
-                            stringResource(Res.string.remove),
-                            Modifier.clickable { context.actions.run(RemoveParticipant(event.id, guest.id)) },
+                            removeLabel(guest.name),
+                            Modifier.clickable(role = Role.Button) { context.actions.run(RemoveParticipant(event.id, guest.id)) },
                         )
                     }
                 } else {

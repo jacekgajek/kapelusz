@@ -62,7 +62,7 @@ class Handler : RequestStreamHandler {
         )
         } catch (e: IllegalArgumentException) {
             // A malformed %-escape in the query string.
-            respond(output, HttpResponse(400, """{"error":"bad_request","message":"Malformed query string"}""", mapOf("content-type" to "application/json")))
+            respond(output, error(400, ApiErrors.BAD_REQUEST, "Malformed query string"))
             return
         }
         val response = try {
@@ -71,7 +71,7 @@ class Handler : RequestStreamHandler {
             // Calendar feed paths and invite codes are secrets: never log them.
             val path = request.path.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
             System.err.println("Unhandled error for ${request.method} $path: ${e.stackTraceToString()}")
-            HttpResponse(500, """{"error":"internal","message":"Internal error"}""", mapOf("content-type" to "application/json"))
+            error(500, ApiErrors.INTERNAL, "Internal error")
         }
         respond(output, response)
     }
@@ -98,7 +98,7 @@ class Handler : RequestStreamHandler {
          */
         override fun beforeCheckpoint(context: org.crac.Context<out Resource>?) {
             runCatching { verifier.warmUp() }
-            runCatching { store.get("priming/none.json") }
+            runCatching { store.get(StorageKeys.PRIMING) }
             val ops = listOf(
                 CreateEvent("e", "Prime", LocalDate(2026, 1, 1), participants = listOf(Participant("m"))),
                 AddHolding("e", "h", "m", Money(10000), IncomeSource.DOOR),

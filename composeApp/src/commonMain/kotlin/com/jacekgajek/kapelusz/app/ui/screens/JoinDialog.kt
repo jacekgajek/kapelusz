@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,7 +62,7 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
     fun check() = scope.launch {
         busy = true
         error = null
-        runCatching { graph.api.previewInvite(code) }.onSuccess { preview = it }.onFailure { error = explain(it) }
+        runSuspendCatching { graph.api.previewInvite(code) }.onSuccess { preview = it }.onFailure { error = explain(it) }
         busy = false
     }
 
@@ -97,7 +98,7 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
                 TextButton(enabled = !busy, onClick = {
                     scope.launch {
                         busy = true
-                        runCatching { graph.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
+                        runSuspendCatching { graph.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
                         busy = false
                     }
                 }) { Text(stringResource(Res.string.join)) }

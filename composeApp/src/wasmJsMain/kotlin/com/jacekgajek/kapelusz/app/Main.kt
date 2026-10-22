@@ -54,7 +54,7 @@ fun main() {
             }
         }
         when (phase) {
-            Phase.STARTING -> {}
+            Phase.STARTING -> AppLoading()
             Phase.OTHER_TAB -> KapeluszTheme {
                 Surface {
                     OtherTabScreen(onUseHere = {

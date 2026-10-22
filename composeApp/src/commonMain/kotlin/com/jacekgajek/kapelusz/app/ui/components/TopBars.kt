@@ -49,6 +49,7 @@ import com.jacekgajek.kapelusz.app.generated.sign_in_again_title
 import com.jacekgajek.kapelusz.app.generated.sign_in_again_wrong_account
 import com.jacekgajek.kapelusz.app.generated.sign_in_failed
 import com.jacekgajek.kapelusz.app.generated.settings
+import com.jacekgajek.kapelusz.app.generated.stuck_push_title
 import com.jacekgajek.kapelusz.app.generated.sync_error
 import com.jacekgajek.kapelusz.app.generated.update_required_title
 import com.jacekgajek.kapelusz.app.generated.sync_needs_sign_in
@@ -64,6 +65,8 @@ class TopBarState(
     val syncStatus: SyncStatus,
     val bands: List<BandSummary>,
     val currentBandId: String?,
+    /** Bands whose unsent changes the server refuses (ITERATION_3 R9): marked in the switcher, open them to decide. */
+    val stuckBandIds: Set<String>,
     val onSelectBand: (String) -> Unit,
     val onNewBand: () -> Unit,
     val onJoinBand: () -> Unit,
@@ -97,6 +100,11 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extra
                         DropdownMenuItem(
                             text = { Text(band.name) },
                             leadingIcon = { if (band.id == bar.currentBandId) Icon(Icons.Default.Check, null) else Icon(Icons.Default.Groups, null) },
+                            trailingIcon = if (band.id in bar.stuckBandIds) {
+                                { Icon(Icons.Default.Warning, stringResource(Res.string.stuck_push_title), tint = MaterialTheme.colorScheme.error) }
+                            } else {
+                                null
+                            },
                             onClick = { menuOpen = false; if (band.id != bar.currentBandId) bar.onSelectBand(band.id) },
                         )
                     }

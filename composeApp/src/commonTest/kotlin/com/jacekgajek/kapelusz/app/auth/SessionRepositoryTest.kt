@@ -2,11 +2,21 @@ package com.jacekgajek.kapelusz.app.auth
 
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
+import com.jacekgajek.kapelusz.model.KapeluszJson
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -19,9 +29,10 @@ class SessionRepositoryTest {
     private var now = 1_000_000_000L
     private var refreshed: String? = null
     private var refreshCalls = 0
+    private var googleSignOuts = 0
     private val google = object : GoogleAuth {
         override suspend fun refresh(): String? = refreshed.also { refreshCalls++ }
-        override suspend fun signOut() {}
+        override suspend fun signOut() { googleSignOuts++ }
     }
 
     @Test
@@ -178,5 +189,53 @@ class SessionRepositoryTest {
         // A request still in flight with session-1 is refused now: session-2 stays.
         assertEquals("as1.session-2", sessions.validToken(forceRefresh = true, refused = "as1.session-1"))
         assertEquals(2, exchanges.size)
+    }
+
+    /** A server that refuses everything as "signed out on all devices", and the paths it was asked for. */
+    private val revokedPaths = mutableListOf<String>()
+    private val revokedServer = HttpClient(MockEngine { request ->
+        revokedPaths += request.url.encodedPath
+        respond("""{"error":"sessions_revoked","message":"Signed out on all devices"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
+    })
+
+    /** The app's wiring: requests use the repository's tokens, and a revoke signs out. */
+    private fun revokedApi(store: InMemoryStore): Pair<SessionRepository, ApiClient> {
+        lateinit var api: ApiClient
+        val sessions = SessionRepository(store, google, clock = { now }) { bearer -> api.createSession(bearer) }
+        api = ApiClient(revokedServer, "https://api.test", onSessionsRevoked = { sessions.signOut() }) { refused ->
+            sessions.validToken(forceRefresh = refused != null, refused = refused)
+        }
+        return sessions to api
+    }
+
+    /** ITERATION_3 R6: after "sign out on all devices" elsewhere, a refused session is not replaced behind the user's back. */
+    @Test
+    fun aRevokedSessionSignsOutWithoutRenewing() = runTest {
+        val store = InMemoryStore()
+        val (sessions, api) = revokedApi(store)
+        // Signed in earlier: a session from the server, and the Google token still fresh enough to buy another.
+        store.write(SessionRepository.KEY, KapeluszJson.encodeToString(Session.serializer(),
+            Session.fromIdToken(fakeIdToken("sub-1", now / 1000 + 3600)).copy(apiToken = "as1.old", apiExpiresAt = now + 25L * 24 * 3600 * 1000)))
+        sessions.load()
+
+        assertFailsWith<SessionsRevokedException> { api.me() }
+        assertEquals(listOf("/me"), revokedPaths, "no exchange, no retry")
+        assertEquals(0, refreshCalls, "Google is not asked")
+        assertNull(sessions.session.value)
+        assertNull(store.values[SessionRepository.KEY], "the Google token is gone too")
+        assertEquals(1, googleSignOuts, "and Google will not sign in silently")
+    }
+
+    @Test
+    fun aRevokedGoogleTokenIsNotUsedAfterTheExchangeFails() = runTest {
+        val store = InMemoryStore()
+        val (sessions, api) = revokedApi(store)
+        sessions.signedIn(fakeIdToken("sub-1", now / 1000 + 3600))
+
+        assertFailsWith<SessionsRevokedException> { api.me() }
+        assertEquals(listOf("/session"), revokedPaths, "the request itself is not sent with the Google token")
+        assertEquals(0, refreshCalls)
+        assertNull(sessions.session.value)
+        assertNull(store.values[SessionRepository.KEY])
     }
 }

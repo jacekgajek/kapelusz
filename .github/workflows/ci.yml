@@ -23,7 +23,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
-      - name: Test and build
+      # Tests (with headless Chrome for the web ones) and the optimised builds in separate steps: all at once ran the
+      # runner out of memory (exit code 143).
+      - name: Test
+        run: ./gradlew check
+
+      - name: Build
         # The same optimised builds deploy ships (ITERATION_3 R11): the production web bundle (with wasm-opt) and the
         # (unsigned) release APK with R8, so their failures show before a merge.
-        run: ./gradlew check :androidApp:assembleDebug :androidApp:assembleRelease :composeApp:wasmJsBrowserDistribution :server:shadowJar
+        # The runner has about 8 GB. The test step's Gradle and Kotlin daemons still held 6 GB, so they are stopped
+        # first; the Kotlin compiler then runs inside Gradle's JVM (one heap, not two), and R8 and the production wasm
+        # compile run one after the other.
+        run: |
+          ./gradlew --stop
+          (while sleep 30; do echo "memory: $(free -m | awk '/Mem:/ {print $3 " MB used, " $7 " MB available"}')"; done) &
+          OPTS=(-Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8")
+          ./gradlew "${OPTS[@]}" :androidApp:assembleDebug :androidApp:assembleRelease :server:shadowJar
+          ./gradlew "${OPTS[@]}" :composeApp:wasmJsBrowserDistribution

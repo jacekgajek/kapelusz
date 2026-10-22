@@ -84,6 +84,38 @@ object ApiErrors {
 
     /** The attachment's file is already uploaded (files are never replaced). */
     const val ATTACHMENT_EXISTS = "attachment_exists"
+
+    /**
+     * The token (a session or a Google ID token) was issued before the user's "sign out on all devices" (`401`). The
+     * app must not renew it silently: it signs out, and the user signs in with Google again.
+     */
+    const val SESSIONS_REVOKED = "sessions_revoked"
+
+    // The generic codes (ITERATION_3 R12: every code the server sends is listed here).
+
+    /** The request is malformed or breaks a limit (`400`). */
+    const val BAD_REQUEST = "bad_request"
+
+    /** No token, or an invalid or expired one (`401`); also a session too old to renew. */
+    const val UNAUTHORIZED = "unauthorized"
+
+    /** The caller's role does not allow this (`403`). */
+    const val FORBIDDEN = "forbidden"
+
+    /** No such route, member or calendar feed (`404`). */
+    const val NOT_FOUND = "not_found"
+
+    /** The band id is taken by someone else's band (`409`). */
+    const val CONFLICT = "conflict"
+
+    /** Too many concurrent writes to the same data (`409`); the same request can simply be sent again. */
+    const val BUSY = "busy"
+
+    /** The user already uses as many devices in this band as one account may (`400`). */
+    const val TOO_MANY_DEVICES = "too_many_devices"
+
+    /** An unexpected server error (`500`). */
+    const val INTERNAL = "internal"
 }
 
 // ---- sessions ----

@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,22 +24,25 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.app_name
 import com.jacekgajek.kapelusz.app.generated.sign_in_failed
 import com.jacekgajek.kapelusz.app.generated.sign_in_intro
+import com.jacekgajek.kapelusz.app.generated.signed_out_everywhere
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 
 @Composable
-fun SignInScreen(onIdToken: suspend (String) -> Unit) {
+fun SignInScreen(onIdToken: suspend (String) -> Unit, signedOutEverywhere: Boolean = false) {
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
     // Clear of the system bars (edge to edge on Android 15+).
     Box(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineLarge)
+            // After "sign out on all devices" elsewhere, so the sudden sign-in screen is no mystery.
+            if (signedOutEverywhere) Text(stringResource(Res.string.signed_out_everywhere), color = MaterialTheme.colorScheme.error)
             Text(stringResource(Res.string.sign_in_intro), style = MaterialTheme.typography.bodyMedium)
             GoogleSignInButton(
                 onIdToken = { token ->
-                    scope.launch { runCatching { onIdToken(token) }.onFailure { error = it.message } }
+                    scope.launch { runSuspendCatching { onIdToken(token) }.onFailure { error = it.message } }
                 },
                 onError = { error = it },
             )
