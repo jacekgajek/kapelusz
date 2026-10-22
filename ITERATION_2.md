@@ -1,4 +1,4 @@
-# Split Art — Iteration 2 (app 1.0)
+# Kapelusz — Iteration 2 (app 1.0)
 
 The second planning iteration. It ships as **app version 1.0.0** (`kapelusz.versionName`), the first release called
 stable. It builds on iteration 1 as described in `ITERATION_1.md`; section references like "V1 §4.5" point there.
@@ -16,10 +16,10 @@ The app keeps itself up to date without the Play Store.
 - The background sync (§5.1) reads `/download/version.json` **once a day**.
 - If a newer build is published, the app **downloads the APK itself** in the background (about 2.6 MB; mobile data allowed).
 - **Install:**
-  - **silently where Android allows it** (Android 12+, once the installed version was installed by Split Art itself, so Split Art is the "installer of record"); Android may still ask the first time;
-  - otherwise a notification **"Split Art 1.0.1 is ready · Install"** opens Android's install screen.
+  - **silently where Android allows it** (Android 12+, once the installed version was installed by Kapelusz itself, so Kapelusz is the "installer of record"); Android may still ask the first time;
+  - otherwise a notification **"Kapelusz 1.0.1 is ready · Install"** opens Android's install screen.
 - A silent install restarts the app, so it waits until the app is **not in the foreground**.
-- **Once:** Android must allow "install unknown apps" for Split Art. The app explains why before opening that setting. The first update after installing from the browser therefore needs one confirmation; after that it should be hands-off.
+- **Once:** Android must allow "install unknown apps" for Kapelusz. The app explains why before opening that setting. The first update after installing from the browser therefore needs one confirmation; after that it should be hands-off.
 - **Settings:** "Automatic updates" switch (on by default), the current version, and **Check now**.
 - Requires the `REQUEST_INSTALL_PACKAGES` permission.
 - The existing update strip (V1 §6.2) stays as the fallback when automatic updates are off.
@@ -31,7 +31,7 @@ makes this explicit, so the data format can change later without silently broken
 
 - Apps send their version code with every request as the query parameter `appVersion=<versionCode>` (0 for local development builds, which are always allowed). A header would have needed the API's CORS allow-list changed.
 - The server has a **minimum supported version** in its code (`Api.MIN_APP_VERSION`, 0 = everyone), raised whenever a change would break older apps. Below it, or without a version (apps from before iteration 2), it answers `426` with `update_required`. Sync then stops retrying.
-- The app then shows a blocking screen: **"This version of Split Art is too old. Update to continue"** with **Update** (Android: download and install, §1; web: reload).
+- The app then shows a blocking screen: **"This version of Kapelusz is too old. Update to continue"** with **Update** (Android: download and install, §1; web: reload).
 - **Raising the minimum takes two deploys:** first deploy apps that handle the new data, then set the minimum to *that* deploy's run number. A number not yet deployed would refuse every app, and during a deploy the server switches before the new web app and APK are uploaded.
 - History entries an app cannot read are shown as **"A change from a newer version"** instead of failing the whole page.
 - Initial users are known personally, so the policy is pragmatic: raise the minimum when needed and tell people to update.
@@ -78,7 +78,7 @@ Removed in V2-M7: events are archived one at a time from the event's menu, and h
 No in-app map (Google's map and place APIs need an API key and a billing account); Google Maps itself does the picking.
 - An event has the readable **location** text and, separately, a **Maps link** (from Google Maps' Share).
 - **Select on map** (next to the location field) opens Google Maps (the Maps app on Android, a new tab on the web) at the typed location. There you find the place or drop a pin, and *Share → Copy link*; **Paste from Maps** fills the field from the clipboard: a place name goes into the location if it is empty, the link is stored.
-- **Share from Google Maps to Split Art** (Android): Split Art asks *"Set the location of…"* with the upcoming events the user may edit (nearest first) and **New event at this place** (the create dialog with the location filled in). If there is nothing to choose and the user cannot create events, it says so.
+- **Share from Google Maps to Kapelusz** (Android): Kapelusz asks *"Set the location of…"* with the upcoming events the user may edit (nearest first) and **New event at this place** (the create dialog with the location filled in). If there is nothing to choose and the user cannot create events, it says so.
 - **Navigate** on the event (next to the location, for everyone, when there is a location): opens the stored Maps link (the exact pin; directions are one tap away there), otherwise directions to the location text.
 - Editing the location: leads and above, like the rest of the event.
 - The calendar feed puts the Maps link into each entry; gig reminders with a location have a **Navigate** action.
@@ -213,7 +213,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 ### V2-M6 — Times at creation and event locations
 - [x] V2-M6.1 Agenda section shared by the create and edit dialogs; no "More details" (§4.3)
 - [x] V2-M6.2 Maps link on events, Select on map, Paste from Maps (§4.4)
-- [x] V2-M6.3 Share from Google Maps to Split Art (Android) with the "Set the location of…" picker and "New event at this place"
+- [x] V2-M6.3 Share from Google Maps to Kapelusz (Android) with the "Set the location of…" picker and "New event at this place"
 - [x] V2-M6.4 Navigate on the event, the Maps link in the calendar feed, Navigate on reminders
 
 ### V2-M7 — Secret menu, undo, no bulk archive
@@ -232,13 +232,14 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 - [x] V2-M9.2 Google photos of members with an account (§7.4)
 
 ### V2-M10 — Release 1.0
-- [x] V2-M10.0 Renamed to **Kapelusz** (Polish: "hat", and it starts like *kapela*, "band") / **Pass the Hat** in English, decided 2026-10-22 (after a short-lived "Split Art"). No backward compatibility: nobody has the app installed yet.
+- [x] V2-M10.0 Renamed to **Kapelusz** (Polish: "hat", and it starts like *kapela*, "band") / **Pass the Hat** in English, decided 2026-10-22 (after a short-lived "Kapelusz"). No backward compatibility: nobody has the app installed yet.
   - **The name in each language:** the name under the icon follows the phone's language (Kapelusz in Polish, Pass the Hat otherwise), like Calendar / Kalendarz; the web page's title follows the browser's language the same way; the app's texts use the name of the app's language. The calendar feed (one for everyone) is called Kapelusz.
   - **One name where only one is possible:** the web address `https://kapelusz.jacekgajek.com` (the old one is switched off, no redirect), the Android app id `com.jacekgajek.kapelusz`, the downloaded file `kapelusz.apk`, the Kotlin packages and identifiers (`com.jacekgajek.kapelusz`, `Kapelusz…`), device storage (`kapelusz`), the Gradle project, the GitHub repository `kapelusz`.
   - Google sign-in on Android needs a new Android OAuth client (package `com.jacekgajek.kapelusz` + signing key SHA-1), and the web client the new address among its allowed origins.
   - **Kept, because they hold the bands' data or are the infrastructure:** the S3 buckets `jacekgajek-art-split-data` and `-web`, and the Lambda `art-split-api`. Calendar subscription links are on the API's own AWS address, so they do not change.
   - **Infrastructure:** my-aws `terraform/art_split.tf` (the domain and the Lambda handler class) prepared with a read-only plan; the user applies it and updates Google.
-  - Order: merge and deploy 1.0.0 → the user applies Terraform and updates Google → smoke test at the new address → repository rename → GitHub Release.
+  - **Google Cloud:** the Android OAuth client changes its package to `com.jacekgajek.kapelusz` (same SHA-1), the web client gets the new address as an authorized JavaScript origin, and the consent screen's app name (Branding) becomes Kapelusz, so Google's sign-in no longer says "Art Split".
+  - **Order:** the user applies Terraform and updates Google → merge and deploy 1.0.0 → smoke test at the new address → repository rename. Terraform first: a published Lambda version keeps the handler class it was created with, and the new code has only the new one; the other way round, the deploy would fail (or publish a broken version).
 - [x] V2-M10.0a App icon: a top hat with a banknote on honey gold (#F5CB5C), as an Android adaptive icon (with a one-colour layer for themed icons), the notification icon, and the web icons; made from the user's mockup, sources in `design/icon/`
 - [x] V2-M10.1 Release checklist (§10) passed on real phones (2026-10-22, by the user)
 - [ ] V2-M10.2 `kapelusz.versionName=1.0.0`, deploy, GitHub Release
@@ -252,7 +253,7 @@ commit that completes them, task IDs in commit messages, plan changes in the dec
 6. Reminders arrive N days before at the set time, also after a phone restart.
 7. The calendar subscription shows a gig in Google Calendar, including after a lead adds you to one.
 8. Delete band on a throwaway band: the other member's app says it was deleted.
-9. A place shared from Google Maps to Split Art; Navigate on the event and on its reminder.
+9. A place shared from Google Maps to Kapelusz; Navigate on the event and on its reminder.
 10. Undo from history on a real change, and its redo.
 
 Monitoring stays as in iteration 1: server logs in CloudWatch, no crash-reporting service.
