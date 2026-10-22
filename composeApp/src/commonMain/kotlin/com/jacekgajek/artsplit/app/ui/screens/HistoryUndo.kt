@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.app.ui.screens
 
+import com.jacekgajek.artsplit.ops.OpEnvelope
+import com.jacekgajek.artsplit.app.data.nowMillis
+import com.jacekgajek.artsplit.api.HistoryEntry
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +61,27 @@ fun undoTargets(lines: List<HistoryLine>, canUndo: (HistoryLine) -> Boolean = { 
     val undo = active.firstOrNull { it.envelope?.op !is Undo && canUndo(it) }
     val redo = active.firstOrNull { (it.envelope?.op as? Undo)?.original !is Undo }?.takeIf { it.envelope?.op is Undo }
     return UndoTargets(undo, redo, undone)
+}
+
+/**
+ * An undo made on this device, shown at once with [opId] (the id it is sent with): its change counts as undone right
+ * away, so the arrow moves on and the next tap steps further back. It has no arrows itself until the server has it.
+ */
+fun pendingUndoLine(undo: Undo, opId: String, userId: String, memberId: String?): HistoryLine {
+    val now = nowMillis()
+    return HistoryLine(HistoryEntry(userId, memberId, now, emptyList()), OpEnvelope(opId, "", 0, now, undo), opId)
+}
+
+/**
+ * Pending undo lines still worth showing: those not sent yet ([unsent] op ids). Once sent, an accepted one is in the
+ * server's history and a refused one is gone, so neither needs its own line any more.
+ */
+fun stillPending(pending: List<HistoryLine>, unsent: Set<String>): List<HistoryLine> = pending.filter { it.opId in unsent }
+
+/** The server's [lines] with this device's [pending] undos that it does not have yet on top; both newest first. */
+fun withPending(lines: List<HistoryLine>, pending: List<HistoryLine>): List<HistoryLine> {
+    val known = lines.map { it.opId }.toSet()
+    return pending.filter { it.opId !in known }.reversed() + lines
 }
 
 /** Asks before undoing, naming the change: the arrow is small, and an undo changes the band for everyone. */
