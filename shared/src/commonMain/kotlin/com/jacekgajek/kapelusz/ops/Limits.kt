@@ -79,6 +79,12 @@ object Limits {
             if (was?.fundAmount != event.fundAmount) amount(event.fundAmount, "Band fund amount")?.let { return it }
             // Guests are participants too: the participant list is the one to count.
             count(was?.participants?.size ?: 0, event.participants.size, MAX_PARTIES_PER_EVENT, "participants")?.let { return it }
+            if (was?.participants !== event.participants) {
+                for (participant in event.participants) {
+                    val fixed = participant.fixedShare ?: continue
+                    if (was?.participant(participant.partyId)?.fixedShare != fixed) amount(fixed, "Fixed share")?.let { return it }
+                }
+            }
             if (was?.guests !== event.guests) {
                 for (guest in event.guests) {
                     val g = was?.guest(guest.id)

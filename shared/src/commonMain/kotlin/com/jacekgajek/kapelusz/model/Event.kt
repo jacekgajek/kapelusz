@@ -40,10 +40,11 @@ data class Guest(val id: Id, val name: String)
 
 /**
  * A member or guest taking part in an event. [weight] is a share in percent: 100 = one normal share. [addedBy] is the
- * member who added them (unknown for events from before version 2).
+ * member who added them (unknown for events from before version 2). With a [fixedShare] they take exactly that amount
+ * off the top instead of a share by weight (ITERATION_3 §2.4); the weight is kept for switching back.
  */
 @Serializable
-data class Participant(val partyId: Id, val weight: Int = DEFAULT_WEIGHT, val addedBy: Id? = null)
+data class Participant(val partyId: Id, val weight: Int = DEFAULT_WEIGHT, val addedBy: Id? = null, val fixedShare: Money? = null)
 
 /** The built-in agenda times; shown in the user's language as long as nobody renamed them. */
 @Serializable

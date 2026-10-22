@@ -18,6 +18,8 @@ import com.jacekgajek.kapelusz.app.generated.line_gets
 import com.jacekgajek.kapelusz.app.generated.line_hands_over
 import com.jacekgajek.kapelusz.app.generated.line_holds
 import com.jacekgajek.kapelusz.app.generated.line_payout
+import com.jacekgajek.kapelusz.app.generated.line_payout_fixed
+import com.jacekgajek.kapelusz.app.generated.line_payout_fixed_only
 import com.jacekgajek.kapelusz.app.generated.line_payout_share_only
 import com.jacekgajek.kapelusz.app.generated.line_settled
 import com.jacekgajek.kapelusz.app.generated.settle
@@ -54,12 +56,16 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(partyName(context.band, context.event, line.partyId, fundLabel), style = MaterialTheme.typography.titleSmall)
             if (line.partyId != BAND_FUND) {
+                // A fixed share says so (ITERATION_3 §2.4): it does not change with the income.
                 Text(
                     if (line.refunds.isZero) {
-                        stringResource(Res.string.line_payout_share_only, formatMoney(line.target, currency, lang))
+                        stringResource(
+                            if (line.isFixed) Res.string.line_payout_fixed_only else Res.string.line_payout_share_only,
+                            formatMoney(line.target, currency, lang),
+                        )
                     } else {
                         stringResource(
-                            Res.string.line_payout,
+                            if (line.isFixed) Res.string.line_payout_fixed else Res.string.line_payout,
                             formatMoney(line.target, currency, lang),
                             formatMoney(line.share, currency, lang),
                             formatMoney(line.refunds, currency, lang),

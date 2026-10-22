@@ -11,17 +11,20 @@ import com.jacekgajek.kapelusz.model.sumOfMoney
 enum class EventStatus { DRAFT, LOSS, OPEN, SETTLED }
 
 enum class SettlementProblem {
-    /** Income does not cover the fund amount and refunds. */
+    /** Income does not cover the fund amount, refunds and fixed shares. */
     LOSS,
 
-    /** There is money to share but every participant has weight 0. */
+    /** There is money to share but every participant without a fixed share has weight 0. */
     NO_SHARES,
 
     /** A fund amount is set but nobody holds the band fund. */
     NO_TREASURER,
 }
 
-/** One party's numbers in an event. [target] is what the party should end up holding. */
+/**
+ * One party's numbers in an event. [target] is what the party should end up holding. [isFixed]: the [share] is the
+ * participant's fixed amount, not a share by [weight] (ITERATION_3 §2.4).
+ */
 data class PartyLine(
     val partyId: Id,
     val weight: Int,
@@ -31,6 +34,7 @@ data class PartyLine(
     val share: Money,
     val refunds: Money,
     val target: Money,
+    val isFixed: Boolean = false,
 ) {
     val balance: Money get() = collected - sent + received
 
@@ -46,7 +50,7 @@ data class Settlement(
     val income: Money,
     val fundAmount: Money,
     val refundsTotal: Money,
-    /** Income left to share after the fund amount and refunds. */
+    /** Income left to share after the fund amount and refunds; fixed shares come out of it first. */
     val net: Money,
     /** Participants in party order, followed by [BAND_FUND] when the event involves the fund. */
     val lines: List<PartyLine>,
@@ -66,16 +70,22 @@ object SettlementCalculator {
         val income = event.income
         val refundsTotal = event.refunds.sumOfMoney { it.amount }
         val net = income - event.fundAmount - refundsTotal
-        val totalWeight = event.participants.sumOf { it.weight.toLong() }
+        // Fixed shares come off the top; the rest is split by weight among the others (ITERATION_3 §2.4).
+        val fixedTotal = event.participants.sumOfMoney { it.fixedShare ?: Money.ZERO }
+        val rest = net - fixedTotal
+        val weighted = order.mapNotNull { partyId -> event.participant(partyId)!!.takeIf { it.fixedShare == null } }
+        val totalWeight = weighted.sumOf { it.weight.toLong() }
 
         val problems = buildSet {
-            if (net.isNegative) add(SettlementProblem.LOSS)
-            if (net.isPositive && totalWeight == 0L) add(SettlementProblem.NO_SHARES)
+            if (rest.isNegative) add(SettlementProblem.LOSS)
+            if (rest.isPositive && totalWeight == 0L) add(SettlementProblem.NO_SHARES)
             // Only while money for the fund is still to move: a settled event stays settled after the fund is turned off.
             if (band.treasurerMemberId == null && !BandFund.isHandedOver(event)) add(SettlementProblem.NO_TREASURER)
         }
 
-        val shares = if (net.isPositive && totalWeight > 0) splitByWeight(net, order, event, totalWeight) else emptyMap()
+        // A fixed share is owed even at a loss, like a refund: the targets show what the income would have to cover.
+        val fixedShares = event.participants.mapNotNull { p -> p.fixedShare?.let { p.partyId to it } }.toMap()
+        val shares = fixedShares + if (rest.isPositive && totalWeight > 0) splitByWeight(rest, weighted, totalWeight) else emptyMap()
         val refundsByParty = event.refunds.groupBy { band.cost(it.costId)?.memberId }
             .mapValues { (_, refunds) -> refunds.sumOfMoney { it.amount } }
 
@@ -95,6 +105,7 @@ object SettlementCalculator {
                 share = share,
                 refunds = refunds,
                 target = if (partyId == BAND_FUND) event.fundAmount else share + refunds,
+                isFixed = partyId in fixedShares,
             )
         }
 
@@ -126,19 +137,20 @@ object SettlementCalculator {
     }
 
     /**
-     * Splits [net] proportionally to weights. Each share is rounded down; the leftover minor units go one by one
-     * to the largest fractional remainders, ties broken by party order. The shares always sum to exactly [net].
+     * Splits [net] proportionally to the weights of [participants] (in party order). Each share is rounded down; the
+     * leftover minor units go one by one to the largest fractional remainders, ties broken by party order. The shares
+     * always sum to exactly [net].
      */
-    private fun splitByWeight(net: Money, order: List<Id>, event: Event, totalWeight: Long): Map<Id, Money> {
+    private fun splitByWeight(net: Money, participants: List<Participant>, totalWeight: Long): Map<Id, Money> {
         class Part(val partyId: Id, val index: Int, val base: Long, val remainder: Long)
 
         // net × weight ÷ total, computed without forming net × weight (ITERATION_3 R1): exact, and no overflow even for
         // amounts stored before the limits. With net = q·total + r: net·w / total = q·w + r·w / total.
         val q = net.minor / totalWeight
         val r = net.minor % totalWeight
-        val parts = order.mapIndexed { index, partyId ->
-            val weight = event.participant(partyId)!!.weight.toLong()
-            Part(partyId, index, q * weight + r * weight / totalWeight, r * weight % totalWeight)
+        val parts = participants.mapIndexed { index, participant ->
+            val weight = participant.weight.toLong()
+            Part(participant.partyId, index, q * weight + r * weight / totalWeight, r * weight % totalWeight)
         }
         val leftover = net.minor - parts.sumOf { it.base }
         val bonus = parts
