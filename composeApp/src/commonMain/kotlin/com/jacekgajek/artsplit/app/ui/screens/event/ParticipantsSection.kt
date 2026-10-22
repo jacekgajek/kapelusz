@@ -73,8 +73,8 @@ fun ParticipantsSection(context: EventContext) {
                     context.actions.run(if (selected) RemoveParticipant(event.id, member.id) else AddParticipant(event.id, member.id))
                 },
                 label = { Text(member.name) },
-                // The member's Google photo, if they have an account (ITERATION_2 §7.4).
-                leadingIcon = member.pictureUrl?.let { url -> { Avatar(member.name, url, 18.dp) } },
+                // The member's Google photo, or their initials (ITERATION_2 §7.4).
+                leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
             )
         }
         event.guests.forEach { guest ->

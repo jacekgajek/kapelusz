@@ -516,6 +516,8 @@ class Api(
     /** After a join: list the band for the user and cancel every invite for the member (both idempotent). */
     private fun finishJoin(user: VerifiedUser, bandId: String, memberId: String) {
         addBandToUser(user.userId, bandId)
+        // Again now that the band is listed: a sign-in at the same moment may have missed it.
+        pictureOf(user.userId)?.let { url -> runCatching { setMemberPicture(bandId, user.userId, url) } }
         revokeInvitesFor(bandId, memberId)
     }
 
@@ -642,7 +644,8 @@ class Api(
     private fun setMemberPicture(bandId: String, userId: String, url: String) {
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBand(bandId) ?: return
-            val member = band.memberOfUser(userId) ?: return
+            // Not in a band they were removed from: their photo stays out of it.
+            val member = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return
             if (member.pictureUrl == url) return
             try {
                 store.put(bandKey(bandId), encode(Band.serializer(), band.withPicture(userId, url)), ifMatch = etag)

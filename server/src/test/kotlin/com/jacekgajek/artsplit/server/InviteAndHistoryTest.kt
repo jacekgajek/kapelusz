@@ -1,5 +1,8 @@
 package com.jacekgajek.artsplit.server
 
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import com.jacekgajek.artsplit.model.Band
 import com.jacekgajek.artsplit.api.PushResponse
 import com.jacekgajek.artsplit.ops.RejectionReason
 import com.jacekgajek.artsplit.ops.Undo
@@ -216,5 +219,32 @@ class InviteAndHistoryTest {
         now += 1
         val elsewhere = push(OpEnvelope("undo3", "phone", 13, 0, Undo("rename", RenameBand("x"), forged, "../../other/state.json")))
         assertEquals(RejectionReason.NOT_UNDOABLE, elsewhere.rejected.getValue("undo3").reason)
+    }
+
+    @Test
+    fun aJoiningMemberBringsTheirPhotoAndARemovedOneTakesItAway() {
+        setup()
+        val photo = "https://lh3.googleusercontent.com/a/bob=s96-c"
+        // Bob signed in with Google before (his photo is kept with his user).
+        val google = Api(store, { token -> VerifiedUser(token, null, null, picture = photo) }, clock = { now })
+        assertEquals(200, google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer bob"))).status)
+        val code = invite().parse(InviteInfo.serializer()).code
+        val joined = call("POST", "/invites/$code/accept", "bob").parse(BandStateResponse.serializer())
+        assertEquals(photo, joined.band.member("m-bob")?.pictureUrl)
+
+        // Removed from the band: the photo goes, and a later sign-in does not bring it back.
+        call("POST", "/bands/band1/ops", "alice", ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op9", "phone", 9, 9, SetMemberArchived("m-bob", true))))))
+        google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer bob")))
+        val band = ArtSplitJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content)
+        assertNull(band.member("m-bob")?.pictureUrl)
+    }
+
+    @Test
+    fun onlyGooglePhotoAddressesAreKept() {
+        assertTrue(Api.isGooglePhoto("https://lh3.googleusercontent.com/a/ACg8ocK=s96-c"))
+        for (bad in listOf("http://lh3.googleusercontent.com/a/x", "https://lh3.googleusercontent.com.evil.io/a", "https://evil.io/lh3.googleusercontent.com/a",
+            "https://user@lh3.googleusercontent.com/a", "https://lh3.googleusercontent.com/" + "a".repeat(500), "https://lh3.googleusercontent.com/a\"<script>")) {
+            assertFalse(Api.isGooglePhoto(bad), bad)
+        }
     }
 }

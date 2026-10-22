@@ -147,10 +147,11 @@ fun StatusChip(status: EventStatus, archived: Boolean = false) {
 }
 
 @Composable
-fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp) {
+fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorative: Boolean = false) {
     Box(
         Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)
-            .clearAndSetSemantics { contentDescription = name },
+            // Next to the name already (a chip, the account row) it would only be read out twice.
+            .clearAndSetSemantics { if (!decorative) contentDescription = name },
         contentAlignment = Alignment.Center,
     ) {
         // Initials underneath: shown while the photo loads, and instead of it when there is none or it fails.

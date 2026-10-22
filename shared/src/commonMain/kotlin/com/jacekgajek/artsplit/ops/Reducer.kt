@@ -185,7 +185,8 @@ object Reducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(op.archived && member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner cannot be archived" }
         invalidIf(op.archived && band.treasurerMemberId == op.memberId, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
-        return band.updateMember(op.memberId) { it.copy(archived = op.archived) }
+        // A removed member's photo leaves the band with them (the next sign-in brings it back if they return).
+        return band.updateMember(op.memberId) { it.copy(archived = op.archived, pictureUrl = it.pictureUrl.takeUnless { op.archived }) }
     }
 
     private fun deleteMember(band: Band, op: DeleteMember): Band {

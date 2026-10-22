@@ -304,7 +304,7 @@ fun SettingsScreen(
                 rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp); Spacer(Modifier.width(12.dp)) }
+                    accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
                     Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
                 }
