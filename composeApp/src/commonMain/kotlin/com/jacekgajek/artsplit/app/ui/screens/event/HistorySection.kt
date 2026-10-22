@@ -71,7 +71,7 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
             else -> {
                 // Undo steps back through this event's changes, redo forward (VERSION_2 §7.2).
-                val targets = undoTargets(loaded)
+                val targets = undoTargets(loaded) { undoOf(it, context.can) != null }
                 val undo = targets.undo?.let { line -> undoOf(line, context.can)?.let { line to it } }
                 val redo = targets.redo?.let { line -> undoOf(line, context.can)?.let { line to it } }
                 loaded.forEach { line ->
@@ -88,7 +88,10 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     confirming?.let { undo ->
         UndoDialog(context.band, undo, onDismiss = { confirming = null }, onConfirm = {
             confirming = null
-            if (context.actions.run(undo)) scope.launch { graph.sync.syncNow(); reload++ }
+            if (context.actions.run(undo)) {
+                lines = null
+                scope.launch { graph.sync.syncNow(); reload++ }
+            }
         })
     }
 }

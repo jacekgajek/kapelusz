@@ -127,7 +127,11 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
         UndoDialog(state.band, undo, onDismiss = { confirming = null }, onConfirm = {
             confirming = null
             // Once the server has it, the undo is the newest line (and can itself be undone).
-            if (actions.run(undo)) scope.launch { graph.sync.syncNow(); reload++ }
+            // Loading again until the undo is in the history, so its arrow cannot be tapped twice.
+            if (actions.run(undo)) {
+                lines = null
+                scope.launch { graph.sync.syncNow(); reload++ }
+            }
         })
     }
     Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
@@ -147,8 +151,8 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Undo steps back from the newest change, redo forward (VERSION_2 §7.2); both only from this month.
-                    val targets = undoTargets(loaded)
                     val can = Can(state.band, state.userId)
+                    val targets = undoTargets(loaded) { undoOf(it, can) != null }
                     val undo = targets.undo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
                     val redo = targets.redo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
                     items(loaded, key = { it.opId }) { line ->

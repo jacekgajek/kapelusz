@@ -324,6 +324,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.ADMIN) == true },
                     calendar = { change -> if (change == null) graph.api.calendar() else graph.api.changeCalendar(change) },
                     agendaTemplate = state.band.effectiveAgendaTemplate,
+                    agendaTemplateStored = state.band.agendaTemplate != null,
                     onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
                     onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },

@@ -119,4 +119,42 @@ class UndoTest {
         assertEquals("Y", result.changes.getValue("o2").after.settings?.name)
         assertTrue(result.changes.getValue("o2").after.events.isEmpty())
     }
+
+    @Test
+    fun theFundStaysConsistent() {
+        val scenario = Scenario("Alice").event("gig", "Alice").apply(com.jacekgajek.artsplit.ops.SetTreasurer("alice"))
+            .apply(com.jacekgajek.artsplit.ops.SetFundAmount("gig", pln("100")))
+        val undoZero = scenario.recorded(com.jacekgajek.artsplit.ops.SetFundAmount("gig", pln("0")))
+        scenario.apply(com.jacekgajek.artsplit.ops.DisableBandFund)
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoZero).reason, "the fund is off now")
+    }
+
+    @Test
+    fun theTreasurerStaysActive() {
+        val scenario = Scenario("Alice", "Bob", "Carol").apply(com.jacekgajek.artsplit.ops.SetTreasurer("carol"))
+        val undoBob = scenario.recorded(com.jacekgajek.artsplit.ops.SetTreasurer("bob"))
+        scenario.apply(com.jacekgajek.artsplit.ops.SetMemberArchived("carol", true))
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoBob).reason, "Carol is archived")
+    }
+
+    @Test
+    fun onlyLeadsUndoTransfers() {
+        val scenario = Scenario("Alice", "Bob").event("gig", "Alice", "Bob")
+        scenario.apply(LinkUser("bob", "user-bob", Role.MEMBER))
+        val undoTransfer = scenario.recorded(com.jacekgajek.artsplit.ops.RecordTransfer("gig", "t", "bob", "alice", pln("10")))
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(undoTransfer, Actor.User("user-bob")).reason, "removing a transfer needs a lead")
+    }
+
+    @Test
+    fun laterMovesSurviveAndAMoveIsNotUndoneOverAnother() {
+        val scenario = Scenario("Alice", "Bob", "Carol", "Dave")
+        val undoDelete = scenario.recorded(com.jacekgajek.artsplit.ops.DeleteMember("carol"))
+        scenario.apply(MoveMember("dave", 0))
+        scenario.apply(undoDelete)
+        assertEquals(listOf("dave", "alice", "bob", "carol"), scenario.band.members.map { it.id }, "Carol back after Bob; Dave's move kept")
+
+        val undoMove = scenario.recorded(MoveMember("bob", 0))
+        scenario.apply(MoveMember("carol", 1))
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoMove).reason)
+    }
 }

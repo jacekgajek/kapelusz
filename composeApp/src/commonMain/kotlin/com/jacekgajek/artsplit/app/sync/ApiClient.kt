@@ -155,6 +155,7 @@ class ApiClient(
                 at = at,
                 ops = ops.filterIsInstance<ReadOp.Known>().map { it.envelope },
                 // What each operation changed, for undo; one this version cannot read just cannot be undone here.
+                id = entry["id"]?.jsonPrimitive?.contentOrNull,
                 changes = (entry["changes"] as? JsonObject).orEmpty().mapNotNull { (opId, change) ->
                     runCatching { opId to ArtSplitJson.decodeFromJsonElement(BandChange.serializer(), change) }.getOrNull()
                 }.toMap(),

@@ -1,5 +1,6 @@
 package com.jacekgajek.artsplit.ops
 
+import com.jacekgajek.artsplit.domain.BandFund
 import com.jacekgajek.artsplit.domain.CostLedger
 import com.jacekgajek.artsplit.model.AgendaTemplateItem
 import com.jacekgajek.artsplit.model.BAND_FUND
@@ -89,7 +90,14 @@ internal object Undoing {
             after.events.all { (id, value) -> band.event(id) == value } &&
             after.costs.all { (id, value) -> band.cost(id) == value } &&
             after.fundEntries.all { (id, value) -> band.fundEntries.firstOrNull { it.id == id } == value }
-        conflictIf(!unchanged, RejectionReason.CHANGED_SINCE) { "Changed since, can't undo" }
+        // A move has no entity to compare: the order must still be the one it left.
+        val reordered = listOf(
+            Triple(op.change.before.memberOrder, after.memberOrder, band.members.map { it.id }),
+            Triple(op.change.before.eventOrder, after.eventOrder, band.events.map { it.id }),
+            Triple(op.change.before.costOrder, after.costOrder, band.costs.map { it.id }),
+            Triple(op.change.before.fundEntryOrder, after.fundEntryOrder, band.fundEntries.map { it.id }),
+        ).all { (beforeOrder, afterOrder, current) -> beforeOrder == null || afterOrder == null || beforeOrder.toSet() != afterOrder.toSet() || current == afterOrder }
+        conflictIf(!unchanged || !reordered, RejectionReason.CHANGED_SINCE) { "Changed since, can't undo" }
 
         val before = op.change.before
         val settings = before.settings ?: band.settings
@@ -113,7 +121,9 @@ internal object Undoing {
     fun problems(band: Band): Set<String> = buildSet {
         val memberIds = band.members.map { it.id }.toSet()
         val costs = band.costs.associateBy { it.id }
-        band.treasurerMemberId?.let { if (it !in memberIds) add("treasurer $it") }
+        band.treasurerMemberId?.let { id -> if (band.member(id)?.archived != false) add("treasurer $id") }
+        // The fund is off only when it is empty and every event handed over its part (as DisableBandFund requires).
+        if (band.treasurerMemberId == null && !BandFund.canDisable(band)) add("band fund in use without a treasurer")
         for (event in band.events) {
             val guestIds = event.guests.map { it.id }.toSet()
             event.participants.filter { it.partyId !in memberIds && it.partyId !in guestIds }.forEach { add("participant ${it.partyId} at ${event.id}") }
@@ -132,20 +142,22 @@ internal object Undoing {
         band.fundEntries.forEach { entry -> entry.costId?.let { if (it !in costs) add("cost of fund entry ${entry.id}") } }
     }
 
-    /** [list] with [values] put back (null removes), in [order] where given; things added since keep their place. */
+    /**
+     * [list] with [values] put back (null removes). A move is undone to [order] (checked to be unchanged since);
+     * otherwise things coming back go after their old neighbour, and everything else keeps its current place.
+     */
     private fun <T> restore(list: List<T>, values: Map<Id, T?>, order: List<Id>?, id: (T) -> Id): List<T> {
         val present = list.map(id).toSet()
-        val updated = list.mapNotNull { item -> if (id(item) in values) values[id(item)] else item } +
-            values.filterKeys { it !in present }.values.filterNotNull()
-        if (order == null) return updated
-        val position = order.withIndex().associate { it.value to it.index.toDouble() }
-        var last = -1.0
-        val keyed = updated.map { item ->
-            val known = position[id(item)]
-            if (known != null) last = known
-            item to (known ?: (last + 0.5))
+        val result = list.mapNotNull { item -> if (id(item) in values) values[id(item)] else item }.toMutableList()
+        val returning = values.filterKeys { it !in present }.values.filterNotNull()
+        if (order == null) return result + returning
+        if (returning.isEmpty() && result.map(id).toSet() == order.toSet()) return result.sortedBy { order.indexOf(id(it)) }
+        for (item in returning.sortedBy { order.indexOf(id(it)) }) {
+            val earlier = order.subList(0, order.indexOf(id(item)).coerceAtLeast(0))
+            val neighbour = earlier.lastOrNull { previous -> result.any { id(it) == previous } }
+            result.add(if (neighbour == null) 0 else result.indexOfFirst { id(it) == neighbour } + 1, item)
         }
-        return keyed.sortedBy { it.second }.map { it.first }
+        return result
     }
 }
 

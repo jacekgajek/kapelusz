@@ -145,8 +145,11 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 - Undo puts back exactly what that change touched (as it was, including when an event was last changed). It is **refused** ("Changed since, can't undo") when any of those things changed afterwards.
 - Tapping the arrow asks first, naming the change ("Undo 'Bob added cost Fuel 50 PLN'?").
 - Undo is an ordinary change: the same permissions apply as for making the reverse change by hand, and the arrow is shown only to those who may. It appears in history as its own line ("Undid: …").
+- Undoing a recorded transfer or a settlement needs a **lead** (as removing a transfer does), even when a member could record it.
+- Undo is refused when the result would break the band's rules: the band fund in use without a treasurer, an archived treasurer, references to removed members or costs, a cost refunded more than its amount. Undoing a move is refused once the order changed again; things that come back return next to their old neighbours, and later moves stay.
+- The band history offers undo and redo in the current month's view. Changes the user cannot undo are stepped over.
 - Not undoable: joining through an invite, unlinking an account, transferring ownership, deleting the band.
-- Each change records what it touched as it was before (in the history log, by the server). Changes from before V2-M7 have no such record and no arrow.
+- Each change records what it touched, before and after (in the history log, by the server); an undo names the log entry and the server takes the change from there. Changes from before V2-M7, and very large offline batches, have no such record and no arrow.
 
 ## 8. Later (not in 1.0)
 - **Calendar view** of the event list (a month grid).

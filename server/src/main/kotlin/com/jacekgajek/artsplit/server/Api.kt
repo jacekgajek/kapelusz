@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.server
 
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.builtins.MapSerializer
 import com.jacekgajek.artsplit.api.ApiErrors
 import com.jacekgajek.artsplit.api.AttachmentUploadRequest
 import com.jacekgajek.artsplit.api.AttachmentUploadResponse
@@ -200,6 +202,8 @@ class Api(
         badRequestIf(request.ops.size > MAX_OPS_PER_PUSH) { "At most $MAX_OPS_PER_PUSH operations per push" }
         // One push comes from one device. Device ids are short, and each user has a bounded number of them, so no
         // member (not even a viewer, whose ops are all refused) can bloat the band's state.
+        // Each operation's id is its name in the history (e.g. for undo), so it must be unique in the push.
+        badRequestIf(request.ops.map { it.opId }.toSet().size != request.ops.size) { "Operation ids must be unique" }
         val clientIds = request.ops.map { it.clientId }.toSet()
         badRequestIf(clientIds.size > 1) { "All operations of a push must come from one device" }
         clientIds.firstOrNull()?.let { badRequestIf(!it.matches(Regex("[A-Za-z0-9-]{1,64}"))) { "Invalid device id" } }
@@ -249,9 +253,19 @@ class Api(
         badRequestIf(!selected.matches(Regex("\\d{4}-\\d{2}"))) { "month must be yyyy-MM" }
         val prefix = "bands/$bandId/log/$selected/"
         val keys = store.list(prefix).asReversed().let { all -> if (before == null) all else all.dropWhile { it >= prefix + before } }
-        val page = keys.take(HISTORY_PAGE)
-        val entries = page.mapNotNull { key -> store.get(key)?.let { decode(HistoryEntry.serializer(), it.content) } }
-        val next = if (keys.size > page.size) page.last().removePrefix(prefix) else null
+        // At most HISTORY_PAGE entries and about HISTORY_PAGE_BYTES (the recorded changes can be large), at least one.
+        val page = mutableListOf<String>()
+        val entries = mutableListOf<HistoryEntry>()
+        var bytes = 0
+        for (key in keys.take(HISTORY_PAGE)) {
+            val blob = store.get(key) ?: continue
+            if (entries.isNotEmpty() && bytes + blob.content.length > HISTORY_PAGE_BYTES) break
+            bytes += blob.content.length
+            page += key
+            // Its name, so an undo can say which entry it means (VERSION_2 §7.2).
+            entries += decode(HistoryEntry.serializer(), blob.content).copy(id = key.removePrefix("bands/$bandId/log/"))
+        }
+        val next = if (keys.size > page.size && page.isNotEmpty()) page.last().removePrefix(prefix) else null
         return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
     }
 
@@ -365,19 +379,19 @@ class Api(
     // ---- invites ----
 
     /**
-     * [op] with an undo's original operation and change replaced by the ones in the log; an undo of something not in
-     * the log (or from before changes were recorded) gets an empty change, which the reducer refuses.
+     * [op] with an undo's original operation and change replaced by the ones in the history entry it names; an undo of
+     * something not there (or from before changes were recorded) gets an empty change, which the reducer refuses.
+     * A storage failure is not a refusal: it fails the push, and the app tries again.
      */
     private fun recordedUndo(bandId: String, op: Operation): Operation {
         if (op !is Undo) return op
-        val recorded = runCatching {
-            val logKey = store.get(undoKey(bandId, op.undoneOpId))?.content ?: return@runCatching null
-            val entry = store.get(logKey)?.let { decode(HistoryEntry.serializer(), it.content) } ?: return@runCatching null
-            val original = entry.ops.firstOrNull { it.opId == op.undoneOpId }?.op ?: return@runCatching null
-            val change = entry.changes[op.undoneOpId] ?: return@runCatching null
-            op.copy(original = original, change = change)
-        }.getOrNull()
-        return recorded ?: op.copy(change = BandChange(BandPart(), BandPart()))
+        val refused = op.copy(change = BandChange(BandPart(), BandPart()))
+        val name = op.entry?.takeIf { it.matches(Regex("\\d{4}-\\d{2}/[0-9]+-[0-9a-f-]{36}\\.json")) } ?: return refused
+        val entry = store.get("bands/$bandId/log/$name")?.let { decode(HistoryEntry.serializer(), it.content) } ?: return refused
+        // Op ids are unique within a push, so this is the one operation, with its own change.
+        val original = entry.ops.singleOrNull { it.opId == op.undoneOpId }?.op ?: return refused
+        val change = entry.changes[op.undoneOpId] ?: return refused
+        return op.copy(original = original, change = change)
     }
 
     /** The band's file exactly as stored, for admins (VERSION_2 §7.1): putting it back changes nothing. */
@@ -592,19 +606,26 @@ class Api(
     private fun appendLog(user: VerifiedUser, band: Band, bandId: String, ops: List<OpEnvelope>, changes: Map<String, BandChange>) {
         val now = clock()
         val month = monthOf(now)
-        val entry = HistoryEntry(user.userId, band.memberOfUser(user.userId)?.id, now, ops, changes.filterKeys { id -> ops.any { it.opId == id } })
-        val key = "bands/$bandId/log/$month/$now-${UUID.randomUUID()}.json"
-        store.put(key, encode(HistoryEntry.serializer(), entry), ifNoneMatch = true)
-        // Where each operation's change is, so an undo can find it without reading the whole log.
-        ops.forEach { store.put(undoKey(bandId, it.opId), key) }
+        val recorded = changes.filterKeys { id -> ops.any { it.opId == id } }
+        // A huge offline batch is logged without its changes (it cannot be undone), so history pages stay small.
+        val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).length <= MAX_LOGGED_CHANGES } ?: emptyMap()
+        val entry = HistoryEntry(user.userId, band.memberOfUser(user.userId)?.id, now, ops, kept)
+        store.put("bands/$bandId/log/$month/$now-${UUID.randomUUID()}.json", encode(HistoryEntry.serializer(), entry), ifNoneMatch = true)
     }
 
     // ---- helpers ----
 
     private fun monthOf(millis: Long) = DateTimeFormatter.ofPattern("yyyy-MM").withZone(ZoneOffset.UTC).format(Instant.ofEpochMilli(millis))
 
-    private fun <T> parse(request: HttpRequest, serializer: KSerializer<T>): T =
-        decode(serializer, request.body ?: throw ApiError(400, "bad_request", "Missing body"))
+    private fun <T> parse(request: HttpRequest, serializer: KSerializer<T>): T {
+        val body = request.body ?: throw ApiError(400, "bad_request", "Missing body")
+        return try {
+            decode(serializer, body)
+        } catch (e: StackOverflowError) {
+            // E.g. an undo of an undo of … nested thousands deep.
+            throw ApiError(400, "bad_request", "Too deeply nested")
+        }
+    }
 
     private fun <T> ok(serializer: KSerializer<T>, value: T, headers: Map<String, String> = emptyMap()) =
         HttpResponse(200, encode(serializer, value), headers + JSON)
@@ -627,6 +648,9 @@ class Api(
         const val MAX_OPS_PER_PUSH = 500
         const val MAX_DEVICES_PER_USER = 50
         const val HISTORY_PAGE = 100
+        /** A history page stays well below the 6 MB a Lambda response may have. */
+        const val HISTORY_PAGE_BYTES = 1_500_000
+        private const val MAX_LOGGED_CHANGES = 1_000_000
         const val INVITE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
         const val INVITE_LENGTH = 6
         const val INVITE_LIFETIME_MS = 72 * 3600 * 1000L
@@ -642,7 +666,6 @@ class Api(
         fun inviteKey(code: String) = "invites/$code.json"
         fun bandInvitesKey(bandId: String) = "bands/${safe(bandId)}/invites.json"
         fun deletedKey(bandId: String) = "bands/${safe(bandId)}/deleted.json"
-        fun undoKey(bandId: String, opId: String) = "bands/${safe(bandId)}/undo/${safe(opId)}"
         fun calendarKey(userId: String) = "users/${safe(userId)}-calendar.json"
         fun calendarSecretKey(secret: String) = "calendar/$secret.json"
 

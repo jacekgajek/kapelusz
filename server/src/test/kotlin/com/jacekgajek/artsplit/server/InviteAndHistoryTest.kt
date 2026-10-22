@@ -203,13 +203,18 @@ class InviteAndHistoryTest {
         // A made-up change (a different band name to "restore") is replaced by the recorded one.
         val forged = change.copy(before = change.before.copy(settings = change.before.settings!!.copy(name = "Hacked")))
         now += 1
-        val undone = push(OpEnvelope("undo", "phone", 11, 0, Undo("rename", RenameBand("whatever"), forged)))
+        assertEquals(400, call("POST", "/bands/band1/ops", "alice", ArtSplitJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("same", "phone", 20, 0, RenameBand("a")), OpEnvelope("same", "phone", 21, 0, RenameBand("b")))))).status, "op ids are unique in a push")
+        val undone = push(OpEnvelope("undo", "phone", 11, 0, Undo("rename", RenameBand("whatever"), forged, entry.id)))
         assertEquals(listOf("undo"), undone.accepted)
         assertEquals("Night Owls", undone.band.name)
 
         // An undo of something the log does not know is refused.
         now += 1
-        val unknown = push(OpEnvelope("undo2", "phone", 12, 0, Undo("nope", RenameBand("x"), forged)))
+        val unknown = push(OpEnvelope("undo2", "phone", 12, 0, Undo("nope", RenameBand("x"), forged, entry.id)))
         assertEquals(RejectionReason.NOT_UNDOABLE, unknown.rejected.getValue("undo2").reason)
+        // Not in a log entry of this band: nothing to undo.
+        now += 1
+        val elsewhere = push(OpEnvelope("undo3", "phone", 13, 0, Undo("rename", RenameBand("x"), forged, "../../other/state.json")))
+        assertEquals(RejectionReason.NOT_UNDOABLE, elsewhere.rejected.getValue("undo3").reason)
     }
 }

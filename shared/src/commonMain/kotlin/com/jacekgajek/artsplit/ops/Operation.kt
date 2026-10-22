@@ -248,8 +248,8 @@ data class RemoveAttachment(val costId: Id, val attachmentId: Id) : Operation
 // ---- undo (VERSION_2 §7.2) ----
 
 /**
- * Undoes the operation [undoneOpId] ([original]) by putting back what it touched ([change], from the history log).
- * The server fills [original] and [change] in from its own log, so a client cannot make up what is restored.
+ * Undoes the operation [undoneOpId] ([original]) by putting back what it touched ([change]). [entry] names the
+ * history entry it is in; the server takes [original] and [change] from there, so a client cannot make them up.
  */
 @Serializable @SerialName("Undo")
-data class Undo(val undoneOpId: Id, val original: Operation, val change: BandChange) : Operation
+data class Undo(val undoneOpId: Id, val original: Operation, val change: BandChange, val entry: String? = null) : Operation

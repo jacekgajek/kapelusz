@@ -1,5 +1,7 @@
 package com.jacekgajek.artsplit.app.ui.model
 
+import com.jacekgajek.artsplit.app.ui.screens.baseChange
+import com.jacekgajek.artsplit.app.ui.screens.isRedo
 import androidx.compose.runtime.Composable
 import com.jacekgajek.artsplit.app.generated.Res
 import com.jacekgajek.artsplit.app.generated.band_fund
@@ -152,8 +154,8 @@ fun describe(op: Operation, band: Band): String {
         is SettleSuggestions -> op.partyId?.let { stringResource(Res.string.h_settle_party, party(op.eventId, it), event(op.eventId)) }
             ?: stringResource(Res.string.h_settle_all, event(op.eventId))
         is RemoveTransfer -> stringResource(Res.string.h_remove_transfer, event(op.eventId))
-        is Undo -> op.original.let { original ->
-            if (original is Undo) stringResource(Res.string.h_redo, describe(original.original, band)) else stringResource(Res.string.h_undo, describe(original, band))
+        is Undo -> describe(baseChange(op), band).let { change ->
+            if (isRedo(op)) stringResource(Res.string.h_redo, change) else stringResource(Res.string.h_undo, change)
         }
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
         is UpdateCost -> stringResource(Res.string.h_edit_cost)

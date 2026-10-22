@@ -13,6 +13,7 @@ import com.jacekgajek.artsplit.app.generated.undo_confirm
 import com.jacekgajek.artsplit.app.ui.model.Can
 import com.jacekgajek.artsplit.app.ui.model.describe
 import com.jacekgajek.artsplit.model.Band
+import com.jacekgajek.artsplit.ops.Operation
 import com.jacekgajek.artsplit.ops.Undo
 import com.jacekgajek.artsplit.ops.isUndoable
 import org.jetbrains.compose.resources.stringResource
@@ -24,8 +25,9 @@ import org.jetbrains.compose.resources.stringResource
 fun undoOf(line: HistoryLine, can: Can): Undo? {
     val envelope = line.envelope ?: return null
     val change = line.change ?: return null
+    val entry = line.entry.id ?: return null
     if (!isUndoable(envelope.op) || change.isEmpty || change.restoresAttachments) return null
-    return Undo(envelope.opId, envelope.op, change).takeIf { can.allowed(it) }
+    return Undo(envelope.opId, envelope.op, change, entry).takeIf { can.allowed(it) }
 }
 
 /**
@@ -35,7 +37,16 @@ fun undoOf(line: HistoryLine, can: Can): Undo? {
  */
 class UndoTargets(val undo: HistoryLine?, val redo: HistoryLine?, val undone: Set<String>)
 
-fun undoTargets(lines: List<HistoryLine>): UndoTargets {
+/** How deep [op] nests undos: 0 for a change, 1 for its undo, 2 for a redo, … */
+private fun depth(op: Operation): Int = if (op is Undo) 1 + depth(op.original) else 0
+
+/** The change at the bottom of nested undos. */
+fun baseChange(op: Operation): Operation = if (op is Undo) baseChange(op.original) else op
+
+/** An undo with an odd number of undos inside cancels them: it brings the change back (a redo). */
+fun isRedo(undo: Undo): Boolean = depth(undo) % 2 == 0
+
+fun undoTargets(lines: List<HistoryLine>, canUndo: (HistoryLine) -> Boolean = { true }): UndoTargets {
     // Newest first: an undo in effect cancels its target; an undo that was itself undone (redone) cancels nothing.
     val undone = mutableSetOf<String>()
     for (line in lines) {
@@ -43,7 +54,8 @@ fun undoTargets(lines: List<HistoryLine>): UndoTargets {
         (line.envelope?.op as? Undo)?.let { undone += it.undoneOpId }
     }
     val active = lines.filter { it.opId !in undone }
-    val undo = active.firstOrNull { it.envelope?.op !is Undo }
+    // Changes that cannot be undone (an invite accepted, one from before undo existed, …) are stepped over.
+    val undo = active.firstOrNull { it.envelope?.op !is Undo && canUndo(it) }
     val redo = active.firstOrNull { (it.envelope?.op as? Undo)?.original !is Undo }?.takeIf { it.envelope?.op is Undo }
     return UndoTargets(undo, redo, undone)
 }
@@ -55,13 +67,10 @@ fun UndoDialog(band: Band, undo: Undo, onConfirm: () -> Unit, onDismiss: () -> U
         onDismissRequest = onDismiss,
         // A redo is the undo of an undo; it is asked as redoing the original change.
         text = {
-            val original = undo.original
-            Text(
-                if (original is Undo) stringResource(Res.string.redo_confirm, describe(original.original, band))
-                else stringResource(Res.string.undo_confirm, describe(original, band)),
-            )
+            val change = describe(baseChange(undo), band)
+            Text(if (isRedo(undo)) stringResource(Res.string.redo_confirm, change) else stringResource(Res.string.undo_confirm, change))
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(if (undo.original is Undo) Res.string.redo else Res.string.undo)) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(if (isRedo(undo)) Res.string.redo else Res.string.undo)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
 }

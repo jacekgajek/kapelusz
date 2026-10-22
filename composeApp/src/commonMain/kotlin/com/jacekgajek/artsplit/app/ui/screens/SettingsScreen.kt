@@ -195,6 +195,8 @@ fun SettingsScreen(
     onAutoUpdate: (Boolean) -> Unit,
     /** The band's agenda template; [onAgendaTemplate] is null for non-admins. */
     agendaTemplate: List<AgendaTemplateItem>,
+    /** The band stored its own template (even if it equals the defaults). */
+    agendaTemplateStored: Boolean,
     onAgendaTemplate: ((List<AgendaTemplateItem>) -> Unit)?,
     appSettings: AppSettings,
     onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
@@ -287,7 +289,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, onAgendaTemplate)
+            if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
             rememberNotificationPermission()?.let { NotificationsSection(it, appSettings, onAppSettings) }
             CalendarSection(calendar)
             rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
@@ -484,7 +486,7 @@ private fun AppUpdatesSection(controls: UpdateControls, autoUpdate: Boolean, onA
  * following the user's language until renamed. Changes apply to events created from now on.
  */
 @Composable
-private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (List<AgendaTemplateItem>) -> Unit) {
+private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, storedOwnList: Boolean, onSave: (List<AgendaTemplateItem>) -> Unit) {
     val builtInLabels = AgendaKind.entries.associateWith { it.label() }
     // Keyed on the built-in labels too: on the web the texts load asynchronously and are empty at first.
     var drafts by remember(template, builtInLabels) {
@@ -512,7 +514,9 @@ private fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, onSave: (Li
         // Back to the built-in times; saved only with Save, as "the defaults" (null), so later built-in times apply.
         val defaults = AgendaKind.entries.map { TemplateDraft(it, builtInLabels.getValue(it)) }
         TextButton(enabled = drafts != defaults, onClick = { drafts = defaults }) { Text(stringResource(Res.string.agenda_template_reset)) }
-        TextButton(enabled = drafts.all { it.text.isNotBlank() } && items != template, onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
+        // A band that stored the defaults as its own list can still switch to "the defaults" (built-in times added later).
+        val toDefaults = storedOwnList && drafts == defaults
+        TextButton(enabled = drafts.all { it.text.isNotBlank() } && (items != template || toDefaults), onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }
     }
 }
 

@@ -136,7 +136,15 @@ data class InvitePreview(val code: String, val bandId: Id, val bandName: String,
  * for undo; missing in entries from before V2-M7).
  */
 @Serializable
-data class HistoryEntry(val userId: String, val memberId: String?, val at: Long, val ops: List<OpEnvelope>, val changes: Map<String, BandChange> = emptyMap())
+data class HistoryEntry(
+    val userId: String,
+    val memberId: String?,
+    val at: Long,
+    val ops: List<OpEnvelope>,
+    val changes: Map<String, BandChange> = emptyMap(),
+    /** The entry's name in the log ("2026-10/…json"), set when listed; an undo names it. */
+    val id: String? = null,
+)
 
 /** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
 @Serializable

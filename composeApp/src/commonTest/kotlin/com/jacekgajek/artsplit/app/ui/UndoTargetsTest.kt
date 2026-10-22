@@ -42,4 +42,11 @@ class UndoTargetsTest {
         assertNull(afterRedo.redo, "redo is not offered for a redo")
         assertEquals(setOf("uC", "B"), afterRedo.undone)
     }
+
+    @Test
+    fun changesThatCannotBeUndoneAreSteppedOver() {
+        val a = change("A"); val joined = change("join")
+        val targets = undoTargets(listOf(joined, a)) { it.opId != "join" }
+        assertEquals("A", targets.undo?.opId)
+    }
 }
