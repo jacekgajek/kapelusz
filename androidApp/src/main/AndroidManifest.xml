@@ -17,6 +17,10 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Lets the website see that the app is installed (asset_statements.xml). -->
+        <meta-data
+            android:name="asset_statements"
+            android:resource="@string/asset_statements" />
         <activity
             android:name=".android.MainActivity"
             android:exported="true"

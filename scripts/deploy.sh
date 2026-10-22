@@ -65,6 +65,9 @@ aws s3 sync "$DIST" "s3://$WEB_BUCKET" "${WASM_ARGS[@]}"
 # .well-known/ likewise, unless this deploy writes it: without it Android stops opening invite links in the app.
 KEEP_ARGS=(--exclude "download/*")
 [[ -n "${ANDROID_CERT_SHA256:-}" ]] || KEEP_ARGS+=(--exclude ".well-known/*")
+# no-cache (revalidated on every load) also keeps sw.js and the manifests fresh: the service worker caches the app for
+# offline starts itself (network first for these, cache first only for the hashed wasm files), so a new deploy is
+# picked up on the next start.
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*.wasm" "${KEEP_ARGS[@]}" --cache-control "no-cache"
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete "${WASM_ARGS[@]}"
 
@@ -99,4 +102,6 @@ echo "== Smoke check: $API_URL, $WEB_URL"
 check "${API_URL%/}/me?appVersion=0" 401
 check "${WEB_URL%/}/" 200
 check "${WEB_URL%/}/composeApp.js" 200
+check "${WEB_URL%/}/sw.js" 200
+check "${WEB_URL%/}/manifest.json" 200
 echo "== Done"

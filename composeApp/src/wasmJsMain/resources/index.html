@@ -6,13 +6,39 @@
     <!-- Resolve the script, wasm and resources from the site root, also on deep links like /join/ABC123. -->
     <base href="/">
     <title>Pass the Hat</title>
-    <script>
-        // The name in the browser's language, like on Android: Kapelusz in Polish, Pass the Hat otherwise.
-        if ((navigator.language || "").toLowerCase().startsWith("pl")) document.title = "Kapelusz";
-    </script>
+    <!-- Installable (ITERATION_3 §2.3): "Add to Home Screen" opens the app in its own window. -->
+    <link rel="manifest" id="kapelusz-manifest" href="manifest.json">
+    <meta name="theme-color" content="#F5CB5C">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" id="kapelusz-app-title" content="Pass the Hat">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <script>
+        // The name in the browser's language, like on Android: Kapelusz in Polish, Pass the Hat otherwise.
+        if ((navigator.language || "").toLowerCase().startsWith("pl")) {
+            document.title = "Kapelusz";
+            document.getElementById("kapelusz-app-title").content = "Kapelusz";
+            document.getElementById("kapelusz-manifest").href = "manifest.pl.json";
+        }
+    </script>
+    <script>
+        // Keeps the app's files on the device so it starts offline (sw.js). The page also hands over the files it
+        // loaded before the worker took control, so the first visit is enough.
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(function () {});
+            navigator.serviceWorker.ready.then(function (registration) {
+                function keep(entries) {
+                    var urls = entries.map(function (e) { return e.name; }).filter(function (url) { return url.indexOf(location.origin + "/") === 0; });
+                    if (urls.length && registration.active) registration.active.postMessage({ type: "cache", urls: urls });
+                }
+                keep(performance.getEntriesByType("resource"));
+                if (window.PerformanceObserver) new PerformanceObserver(function (list) { keep(list.getEntries()); }).observe({ type: "resource" });
+            });
+        }
+    </script>
     <style>
         /* The Compose canvas fills the window; the page itself never scrolls. */
         html, body {

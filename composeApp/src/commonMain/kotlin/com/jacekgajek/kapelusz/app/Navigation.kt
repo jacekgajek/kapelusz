@@ -249,7 +249,7 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, band
                     if (current != null && stuck != null) {
                         StuckPushBanner(stuck, { graph.bands.pendingAsJson(bandId) }, { graph.discardStuck(bandId) }, { snackbar.showSnackbar(it) })
                     }
-                    if (current != null) AndroidAppBanner(autoUpdate = graph.settings.settings.collectAsState().value.autoUpdate)
+                    if (current != null) AndroidAppBanner(autoUpdate = graph.settings.settings.collectAsState().value.autoUpdate, eventList = current == Tab.EVENTS)
                     if (!wide && current != null) NavigationBar {
                         tabs.forEach { tab ->
                             NavigationBarItem(
