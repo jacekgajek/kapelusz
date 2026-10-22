@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.MeResponse
@@ -143,6 +144,18 @@ class ApiTest {
         assertEquals(400, send("alice", "old-google-token-of-bob").status, "someone else's token")
         assertEquals(204, send("alice", "old-google-token-of-alice").status)
         assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(Api.bandKey("band1")).content).memberOfUser("alice")?.pictureUrl)
+    }
+
+    @Test
+    fun aPushThatWouldMakeTheBandTooLargeToLoadIsRefused() {
+        val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandChars = 3_000)
+        createBand()
+        fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
+            KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400))))))))
+        val statuses = (1..10).map { add(it).status }
+        assertEquals(200, statuses.first())
+        assertEquals(413, statuses.last(), statuses.toString())
+        assertTrue(store.objects.getValue(Api.bandKey("band1")).content.length <= 3_000, "nothing above the cap was written")
     }
 
     @Test

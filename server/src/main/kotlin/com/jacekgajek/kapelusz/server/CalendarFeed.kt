@@ -50,7 +50,7 @@ object CalendarFeed {
             // No time: an all-day entry.
             times.isEmpty() -> return listOf(
                 "BEGIN:VEVENT",
-                "UID:${event.id}@kapelusz",
+                "UID:${text(event.id)}@kapelusz",
                 "DTSTAMP:${utc(stamp)}",
                 "DTSTART;VALUE=DATE:${date(event.date)}",
                 "DTEND;VALUE=DATE:${date(event.date.plus(DatePeriod(days = 1)))}",
@@ -65,7 +65,7 @@ object CalendarFeed {
         }
         return listOf(
             "BEGIN:VEVENT",
-            "UID:${event.id}@kapelusz",
+            "UID:${text(event.id)}@kapelusz",
             "DTSTAMP:${utc(stamp)}",
             "DTSTART:${dateTime(start)}",
             "DTEND:${dateTime(end)}",
@@ -111,7 +111,7 @@ object CalendarFeed {
     private fun hhmm(t: LocalTime) = "${two(t.hour)}:${two(t.minute)}"
 
     /** iCalendar text escaping (RFC 5545 §3.3.11). */
-    private fun text(value: String) = value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n")
+    private fun text(value: String) = value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n")
 
     /** Lines longer than 75 octets continue on the next line after a space (RFC 5545 §3.1). */
     private fun fold(line: String): String {

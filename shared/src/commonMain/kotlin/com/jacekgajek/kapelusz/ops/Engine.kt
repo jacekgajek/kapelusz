@@ -31,7 +31,9 @@ object Engine {
         Permissions.check(band, actor, op)?.let { return ApplyResult.Rejected(it) }
         val memberId = (actor as? Actor.User)?.let { band.memberOfUser(it.userId)?.id }
         return try {
-            ApplyResult.Applied(Reducer.apply(band, op, OpContext(opId, timestamp, memberId)))
+            val result = Reducer.apply(band, op, OpContext(opId, timestamp, memberId))
+            Limits.violation(band, result)?.let { return ApplyResult.Rejected(it) }
+            ApplyResult.Applied(result)
         } catch (e: RejectedException) {
             ApplyResult.Rejected(e.rejection)
         }

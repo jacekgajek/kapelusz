@@ -68,16 +68,16 @@ class GoldenTest {
         .apply(AddHolding("millbrook", "h1", "alice", pln("500"), DOOR))
         .apply(AddHolding("millbrook", "h2", "bob", pln("500"), DOOR))
         .apply(AddHolding("millbrook", "h3", "carol", pln("500"), DOOR))
-        .apply(AddHolding("millbrook", "h4", "helper 2", pln("500"), DOOR))
+        .apply(AddHolding("millbrook", "h4", "helper-2", pln("500"), DOOR))
 
     @Test
     fun g2GuestHolderWithZeroShare() {
         val s = g2().settle("millbrook")
         assertEquals(
-            mapOf("alice" to pln("500"), "bob" to pln("500"), "carol" to pln("500"), "eve" to pln("500"), "helper 2" to pln("0")),
+            mapOf("alice" to pln("500"), "bob" to pln("500"), "carol" to pln("500"), "eve" to pln("500"), "helper-2" to pln("0")),
             s.targets,
         )
-        assertEquals(listOf(SuggestedTransfer("helper 2", "eve", pln("500"))), s.suggestions)
+        assertEquals(listOf(SuggestedTransfer("helper-2", "eve", pln("500"))), s.suggestions)
     }
 
     /** G3: several income sources with notes, all consumed by one refund: settled without any transfer. */

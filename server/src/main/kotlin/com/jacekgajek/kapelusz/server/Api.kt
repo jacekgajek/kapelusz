@@ -95,6 +95,7 @@ class Api(
     private val sessions: SessionTokens = SessionTokens(store, clock),
     /** No minimum by default (tests); the Lambda handler passes [MIN_APP_VERSION]. */
     private val minAppVersion: Int = 0,
+    private val maxBandChars: Int = MAX_BAND_CHARS,
 ) {
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -237,8 +238,13 @@ class Api(
                 throw ApiError(400, "too_many_devices", "Too many devices for this user in this band")
             }
             val result = Engine.applyBatch(band, Actor.User(user.userId), envelopes)
+            val encoded = if (result.band == band) null else encode(Band.serializer(), result.band)
+            // A band must stay loadable: its state goes back in every response, and a Lambda response has 6 MB at most.
+            if (encoded != null && encoded.length > maxBandChars && encoded.length > encode(Band.serializer(), band).length) {
+                throw ApiError(413, ApiErrors.BAND_TOO_LARGE, "The band would be too large; remove old entries or attachments")
+            }
             val newEtag = try {
-                if (result.band == band) etag else store.put(bandKey(bandId), encode(Band.serializer(), result.band), ifMatch = etag)
+                if (encoded == null) etag else store.put(bandKey(bandId), encoded, ifMatch = etag)
             } catch (e: PreconditionFailed) {
                 return@repeat
             }
@@ -732,6 +738,9 @@ class Api(
 
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000
+
+        /** The largest band file a push may produce (ITERATION_3 R1), well below the 6 MB of a Lambda response. */
+        const val MAX_BAND_CHARS = 3_000_000
 
         private const val LOG_READ_BATCH = 16
 

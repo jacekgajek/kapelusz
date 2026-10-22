@@ -110,4 +110,14 @@ class CalendarTest {
         assertTrue(Regex("DTSTAMP:\\d{8}T\\d{6}Z").containsMatchIn(ics), ics)
         assertTrue("DTSTART:20261102T200000\r\nDTEND:20261102T210000" in ics)
     }
+
+    @Test
+    fun anOddEventIdCannotAddLinesToTheFeed() {
+        // Ids are checked when created now; one from before must still not break out of its line.
+        val band = com.jacekgajek.kapelusz.model.Band.create("b", "Night Owls", "PLN", "m", "Alice", "alice").let { b ->
+            b.copy(events = listOf(com.jacekgajek.kapelusz.model.Event("x\r\nURL:https://evil", "Gig", LocalDate(2026, 10, 25), participants = listOf(Participant("m")))))
+        }
+        val ics = CalendarFeed.build(listOf(band), "alice", false, LocalDate(2026, 10, 21), "https://web", kotlinx.datetime.LocalDateTime(2026, 10, 21, 12, 0))
+        assertFalse(ics.lines().any { it.startsWith("URL:https://evil") }, ics)
+    }
 }

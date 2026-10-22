@@ -42,6 +42,7 @@ enum class RejectionReason {
     FUND_NOT_EMPTY,
     NOT_UNDOABLE,
     CHANGED_SINCE,
+    LIMIT_REACHED,
 }
 
 /** Why an operation was not applied: [reason] for users, [message] as a developer-facing English description. */
