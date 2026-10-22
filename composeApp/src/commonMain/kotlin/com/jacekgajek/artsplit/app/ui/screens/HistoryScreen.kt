@@ -164,7 +164,7 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Undo steps back from the newest change, redo forward (VERSION_2 §7.2); both only from this month.
+                    // Undo steps back from the newest change, redo forward (ITERATION_2 §7.2); both only from this month.
                     val can = Can(state.band, state.userId)
                     val targets = undoTargets(loaded) { undoOf(it, can) != null }
                     val undo = targets.undo?.takeIf { offset == 0 }?.let { line -> undoOf(line, can)?.let { line to it } }
@@ -207,7 +207,7 @@ private fun HistoryText(band: Band, line: HistoryLine, who: String, time: LocalD
         Text(
             line.envelope?.let { describe(it.op, band) } ?: stringResource(Res.string.history_newer_version),
             style = MaterialTheme.typography.bodyMedium,
-            // A change that is currently undone (VERSION_2 §7.2).
+            // A change that is currently undone (ITERATION_2 §7.2).
             textDecoration = if (undone) TextDecoration.LineThrough else null,
         )
         Text(

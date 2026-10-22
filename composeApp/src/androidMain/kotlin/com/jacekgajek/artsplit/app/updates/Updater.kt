@@ -39,7 +39,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Automatic updates without the Play Store (VERSION_2 §1): find a newer published build, download and verify it, and
+ * Automatic updates without the Play Store (ITERATION_2 §1): find a newer published build, download and verify it, and
  * install it with [PackageInstaller], silently where Android allows (Android 12+, once Art Split installed itself),
  * otherwise after the user confirms. The rules of when that happens live in [UpdatePolicy]; this object does the
  * Android side and remembers declined and failed versions, so nobody is asked again and again.

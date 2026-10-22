@@ -32,7 +32,7 @@ import com.jacekgajek.artsplit.app.ui.components.VersionLabel
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The server no longer serves this app version (VERSION_2 §2). Nothing would sync, so the app says so plainly and
+ * The server no longer serves this app version (ITERATION_2 §2). Nothing would sync, so the app says so plainly and
  * offers the update: a reload on the web, the automatic updater on Android (or the download if that cannot install).
  */
 @Composable

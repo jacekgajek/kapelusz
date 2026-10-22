@@ -13,7 +13,7 @@ data class UpdateMemory(
     val installingSince: Long = 0,
 )
 
-/** The rules of automatic updates (VERSION_2 §1), kept free of Android so they can be tested. */
+/** The rules of automatic updates (ITERATION_2 §1), kept free of Android so they can be tested. */
 object UpdatePolicy {
     /** An install handed to Android that has not reported back after this long is considered lost. */
     const val INSTALL_TIMEOUT_MS = 10 * 60 * 1000L

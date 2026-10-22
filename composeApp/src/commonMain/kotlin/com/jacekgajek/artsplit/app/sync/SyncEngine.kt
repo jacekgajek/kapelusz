@@ -33,7 +33,7 @@ enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, UPDATE_RE
 class SyncProtocolException(message: String) : RuntimeException(message)
 
 /**
- * Keeps the device and the server in step (VERSION_1 §5.2): creates bands made offline, pushes queued operations,
+ * Keeps the device and the server in step (ITERATION_1 §5.2): creates bands made offline, pushes queued operations,
  * pulls the current band, and refreshes the band list. Runs on demand (after a change), every [interval] while the
  * app is in the foreground, and retries with backoff while offline.
  */
@@ -129,7 +129,7 @@ class SyncEngine(
     }
 
     /**
-     * The background sync (Android, VERSION_2 §5.1): every band the user belongs to, not only the open one, so
+     * The background sync (Android, ITERATION_2 §5.1): every band the user belongs to, not only the open one, so
      * reminders and transfer notifications see current data. Bands not on this device yet are downloaded without
      * opening them. Returns false when it should be retried.
      */

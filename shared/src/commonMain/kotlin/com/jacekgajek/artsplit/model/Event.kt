@@ -12,7 +12,7 @@ data class Event(
     val name: String,
     val date: LocalDate,
     val location: String? = null,
-    /** A Google Maps link to the place (VERSION_2 §4.4); Navigate opens it. */
+    /** A Google Maps link to the place (ITERATION_2 §4.4); Navigate opens it. */
     val mapUrl: String? = null,
     val notes: String? = null,
     val archived: Boolean = false,
@@ -24,7 +24,7 @@ data class Event(
     val transfers: List<Transfer> = emptyList(),
     /** Positive: taken off the top for the band fund. Negative: the fund covers part of the event. */
     val fundAmount: Money = Money.ZERO,
-    /** Agenda times of the day (VERSION_2 §4.1), copied from the band's template when the event is created. */
+    /** Agenda times of the day (ITERATION_2 §4.1), copied from the band's template when the event is created. */
     val agenda: List<AgendaTime> = emptyList(),
     /** Epoch millis of the last operation touching this event. */
     val updatedAt: Long = 0,

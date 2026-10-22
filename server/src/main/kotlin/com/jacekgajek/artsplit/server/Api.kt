@@ -78,7 +78,7 @@ data class StoredInvite(val info: InviteInfo, val createdBy: String)
 private class ApiError(val status: Int, val code: String, message: String) : RuntimeException(message)
 
 /**
- * The HTTP API (VERSION_1 §5.3). Every operation goes through the shared [Engine], i.e. the same permission
+ * The HTTP API (ITERATION_1 §5.3). Every operation goes through the shared [Engine], i.e. the same permission
  * checks and reducer the apps run, so clients cannot bypass the role rules.
  */
 class Api(
@@ -210,7 +210,7 @@ class Api(
         badRequestIf(clientIds.size > 1) { "All operations of a push must come from one device" }
         clientIds.firstOrNull()?.let { badRequestIf(!it.matches(Regex("[A-Za-z0-9-]{1,64}"))) { "Invalid device id" } }
         // Sequence numbers are tracked per user and device, so one user cannot block another user's device.
-        // An undo restores what the server recorded, not what the client says was there (VERSION_2 §7.2).
+        // An undo restores what the server recorded, not what the client says was there (ITERATION_2 §7.2).
         val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}", op = recordedUndo(bandId, it.op)) }
         repeat(MAX_ATTEMPTS) {
             val (band, etag) = loadBandForMember(user, bandId)
@@ -270,7 +270,7 @@ class Api(
                 }
                 bytes += blob.content.length
                 page += key
-                // Its name, so an undo can say which entry it means (VERSION_2 §7.2).
+                // Its name, so an undo can say which entry it means (ITERATION_2 §7.2).
                 entries += decode(HistoryEntry.serializer(), blob.content).copy(id = key.removePrefix("bands/$bandId/log/"))
             }
             if (full) break
@@ -415,7 +415,7 @@ class Api(
         return op.copy(original = original, change = change)
     }
 
-    /** The band's file exactly as stored, for admins (VERSION_2 §7.1): putting it back changes nothing. */
+    /** The band's file exactly as stored, for admins (ITERATION_2 §7.1): putting it back changes nothing. */
     private fun rawState(user: VerifiedUser, bandId: String): HttpResponse {
         loadBandForAdmin(user, bandId, "Only band admins see the raw data")
         val blob = store.get(bandKey(bandId)) ?: throw bandGone(user, bandId)

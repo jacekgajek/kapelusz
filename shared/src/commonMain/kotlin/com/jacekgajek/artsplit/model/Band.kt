@@ -42,7 +42,7 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
-    /** Agenda times new events get (VERSION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
+    /** Agenda times new events get (ITERATION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
     val agendaTemplate: List<AgendaTemplateItem>? = null,
     /** Highest applied operation sequence number per client install, for idempotent sync. */
     val lastSeq: Map<String, Long> = emptyMap(),

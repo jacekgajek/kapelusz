@@ -20,7 +20,7 @@ import kotlinx.datetime.LocalDate
 import java.util.Locale
 
 /**
- * Shows gig reminders and transfer notifications (VERSION_2 §5). Texts are built here rather than from string
+ * Shows gig reminders and transfer notifications (ITERATION_2 §5). Texts are built here rather than from string
  * resources, since they appear from background work outside Compose; the language follows the default locale (the
  * app's choice while it runs, otherwise the system's). The wording avoids gendered Polish verb forms.
  */

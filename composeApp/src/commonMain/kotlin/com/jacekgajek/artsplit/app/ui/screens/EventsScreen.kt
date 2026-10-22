@@ -165,7 +165,7 @@ fun EventsScreen(
         }
     }
 
-    // "New event at this place", from a place shared from Google Maps (VERSION_2 §4.4).
+    // "New event at this place", from a place shared from Google Maps (ITERATION_2 §4.4).
     val sharedPlace by graph.pendingNewEventPlace.collectAsState()
     LaunchedEffect(sharedPlace) { if (sharedPlace != null) creating = true }
     if (creating) {
@@ -252,7 +252,7 @@ private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: S
                 date = today(),
                 location = initialLocation,
                 mapUrl = initialMapUrl,
-                // The band's agenda template, to fill in now or later (VERSION_2 §4.3).
+                // The band's agenda template, to fill in now or later (ITERATION_2 §4.3).
                 agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
             ),
         )

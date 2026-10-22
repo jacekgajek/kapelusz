@@ -38,7 +38,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     // The exchange runs only after construction, when api exists.
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
     val bands = BandRepository(store, scope)
-    /** The server no longer serves this app version (VERSION_2 §2): the app shows "update to continue". */
+    /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
     val updateRequired = MutableStateFlow(false)
     val api: ApiClient = ApiClient(
         http,
@@ -89,7 +89,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     /** Called after signing out, e.g. to cancel this user's reminders (Android). */
     var afterSignOut: () -> Unit = {}
 
-    /** A place shared from Google Maps, waiting for "Set the location of…" (Android, VERSION_2 §4.4). */
+    /** A place shared from Google Maps, waiting for "Set the location of…" (Android, ITERATION_2 §4.4). */
     val pendingSharedPlace = MutableStateFlow<SharedPlace?>(null)
 
     /** The user chose "New event at this place": the create dialog opens with it. */
@@ -117,7 +117,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
     /**
      * Calls [onChange] (debounced) whenever the settings, the bands or the signed-in user change, e.g. to schedule gig
-     * reminders again right away (VERSION_2 §5.2) instead of only when the app leaves the screen.
+     * reminders again right away (ITERATION_2 §5.2) instead of only when the app leaves the screen.
      */
     @OptIn(FlowPreview::class)
     fun watchReminderInputs(onChange: suspend (userId: String) -> Unit) {

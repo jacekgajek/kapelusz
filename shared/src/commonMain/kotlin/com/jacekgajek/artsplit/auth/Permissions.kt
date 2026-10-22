@@ -61,7 +61,7 @@ sealed interface Actor {
 }
 
 /**
- * The role matrix (VERSION_1 §3). Runs on clients (to hide actions) and on the server (to enforce them).
+ * The role matrix (ITERATION_1 §3). Runs on clients (to hide actions) and on the server (to enforce them).
  * Data validity is not checked here; that is the reducer's job.
  */
 object Permissions {
@@ -80,7 +80,7 @@ object Permissions {
 
     /** Lowest role allowed to perform [op] for this actor; "own" exceptions lower it to MEMBER. */
     private fun requiredRole(band: Band, me: Member, op: Operation): Role = when (op) {
-        // Undo is allowed to whoever may make the original change (VERSION_2 §7.2), and the reverse one where that
+        // Undo is allowed to whoever may make the original change (ITERATION_2 §7.2), and the reverse one where that
         // needs more: a member may record their own transfer, but only leads remove transfers.
         is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(op.original))
         is TransferOwnership -> Role.OWNER

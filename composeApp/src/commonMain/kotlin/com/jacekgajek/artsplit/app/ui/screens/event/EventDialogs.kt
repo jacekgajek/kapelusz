@@ -75,7 +75,7 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
                 date = event.date,
                 location = event.location.orEmpty(),
                 mapUrl = event.mapUrl,
-                // Events from before agenda times get the band's template, all unset (VERSION_2 §4.1).
+                // Events from before agenda times get the band's template, all unset (ITERATION_2 §4.1).
                 agenda = event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) } },
             ),
         )

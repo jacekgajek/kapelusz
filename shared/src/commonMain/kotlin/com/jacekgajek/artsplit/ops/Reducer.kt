@@ -259,7 +259,7 @@ object Reducer {
             mapUrl = validMapUrl(op.mapUrl),
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
-            // Who added each participant (the creator), for a personal reminder prompt (VERSION_2 §5.2).
+            // Who added each participant (the creator), for a personal reminder prompt (ITERATION_2 §5.2).
             participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )

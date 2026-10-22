@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 
 /**
- * The background sync (VERSION_2 §5.1): every few hours, all bands; then gig reminders are scheduled again and new
+ * The background sync (ITERATION_2 §5.1): every few hours, all bands; then gig reminders are scheduled again and new
  * transfers involving the user are notified. The local variant (after a restart, or when the app leaves the screen)
  * only reschedules from the data on the device and marks what the user has just seen.
  */

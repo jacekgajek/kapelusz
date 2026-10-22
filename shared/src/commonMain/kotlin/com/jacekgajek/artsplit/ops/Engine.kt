@@ -17,7 +17,7 @@ data class BatchResult(
     val rejected: Map<Id, Rejection>,
     /** Already applied earlier (seq ≤ last seen); neither accepted nor rejected again. */
     val duplicates: List<Id>,
-    /** What each accepted operation changed, for undo (VERSION_2 §7.2). */
+    /** What each accepted operation changed, for undo (ITERATION_2 §7.2). */
     val changes: Map<Id, BandChange> = emptyMap(),
 )
 

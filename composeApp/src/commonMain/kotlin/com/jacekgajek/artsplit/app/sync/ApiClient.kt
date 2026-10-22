@@ -69,7 +69,7 @@ class NeedsSignInException : RuntimeException("Sign in again")
 class ApiClient(
     private val http: HttpClient,
     private val baseUrl: String,
-    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (VERSION_2 §2). */
+    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (ITERATION_2 §2). */
     private val appVersion: Int = 0,
     /** The server answered "update required". */
     private val onUpdateRequired: () -> Unit = {},
@@ -108,7 +108,7 @@ class ApiClient(
         if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
     }
 
-    /** The band's file exactly as stored on the server, for admins (VERSION_2 §7.1). */
+    /** The band's file exactly as stored on the server, for admins (ITERATION_2 §7.1). */
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())

@@ -81,7 +81,7 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
             loaded == null -> CircularProgressIndicator(Modifier.size(24.dp))
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
             else -> {
-                // Undo steps back through this event's changes, redo forward (VERSION_2 §7.2).
+                // Undo steps back through this event's changes, redo forward (ITERATION_2 §7.2).
                 val targets = undoTargets(loaded) { undoOf(it, context.can) != null }
                 val undo = targets.undo?.let { line -> undoOf(line, context.can)?.let { line to it } }
                 val redo = targets.redo?.let { line -> undoOf(line, context.can)?.let { line to it } }

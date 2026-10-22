@@ -324,7 +324,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
                     autoUpdate = settings.autoUpdate,
                     appSettings = settings,
                     onAppSettings = { change -> graph.settings.update(change) },
-                    // The secret menu (VERSION_2 §7.1), for admins of the band.
+                    // The secret menu (ITERATION_2 §7.1), for admins of the band.
                     rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.ADMIN) == true },
                     calendar = { change -> if (change == null) graph.api.calendar() else graph.api.changeCalendar(change) },
                     agendaTemplate = state.band.effectiveAgendaTemplate,
@@ -355,7 +355,7 @@ private fun Navigation(graph: AppGraph, state: BandState.Ready, navController: N
 private const val SHOW_EVERYONE = "showEveryone"
 
 /**
- * A place shared from Google Maps (Android, VERSION_2 §4.4): "Set the location of…" one of the upcoming events the
+ * A place shared from Google Maps (Android, ITERATION_2 §4.4): "Set the location of…" one of the upcoming events the
  * user may edit (nearest first), or "New event at this place". The name fills an empty location; the link replaces.
  */
 @Composable
@@ -407,7 +407,7 @@ private fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEve
 
 /**
  * Asks once, when the first upcoming gig of the user appears, whether they want reminders, naming who added them
- * (VERSION_2 §5.2). Android 13+ only; elsewhere no permission is needed or there are no notifications.
+ * (ITERATION_2 §5.2). Android 13+ only; elsewhere no permission is needed or there are no notifications.
  */
 @Composable
 private fun ReminderPrompt(graph: AppGraph, settings: AppSettings) {
