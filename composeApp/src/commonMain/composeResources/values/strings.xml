@@ -466,11 +466,22 @@
     <string name="history_undone">undone</string>
     <string name="diag_reminders">Gig reminders on this phone</string>
     <string name="diag_notifications">Notifications allowed</string>
-    <string name="diag_battery">Not restricted by battery optimisation</string>
     <string name="diag_open_settings">Open app settings</string>
     <string name="diag_none_scheduled">No reminders scheduled.</string>
     <string name="diag_test">Test reminder in 1 minute</string>
     <string name="diag_test_set">Test reminder at %1$s (Android may deliver it up to an hour later)</string>
     <string name="diag_test_title">Art Split</string>
     <string name="diag_test_text">Test reminder: reminders work on this phone.</string>
+    <string name="notifications_and_calendar">Notifications and calendar</string>
+    <string name="calendar_summary">Your gigs in Google Calendar</string>
+    <string name="reminders_summary_on">Gig reminders on · calendar subscription</string>
+    <string name="reminders_summary_off">Gig reminders off · calendar subscription</string>
+    <string name="fund_summary_on">On · held by %1$s</string>
+    <string name="fund_summary_off">Off</string>
+    <string name="fund_status">Status</string>
+    <string name="fund_explanation">The band fund is money the band keeps together, e.g. for equipment, recordings or travel. An event can put part of its income into it (or take money from it), and costs can be paid back from it. One member, the treasurer, holds the money; the app keeps track of how much is in the fund.</string>
+    <string name="settings_band">Band</string>
+    <string name="settings_personal">Personal</string>
+    <string name="diag_battery_optimised">Battery: optimised (Android default)</string>
+    <string name="diag_battery_unrestricted">Battery: unrestricted</string>
 </resources>
