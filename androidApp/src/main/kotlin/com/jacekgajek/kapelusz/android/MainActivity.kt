@@ -25,6 +25,8 @@ class MainActivity : ComponentActivity() {
     // Sync only while the app is visible.
     override fun onStart() {
         super.onStart()
+        // The screen in front is the one Google's sign-in UI uses (also after another one was closed).
+        AndroidGoogleAuth.activity = WeakReference(this)
         if (graph.sessions.session.value != null) graph.sync.start()
         Updater.appVisible = true
         UpdateWorker.schedule(this)
@@ -76,7 +78,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AndroidGoogleAuth.activity = WeakReference(this)
         // Only on a real launch: after a rotation Android re-delivers the same intent, which must not reopen a dismissed join.
         if (savedInstanceState == null) {
             takeJoinCode(intent)

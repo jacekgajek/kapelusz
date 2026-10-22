@@ -266,8 +266,8 @@ member with CSV/PDF export (for tax returns); duplicating an event; agreed fee a
 - [x] V3-M1.5 Deploy safeguards and post-deploy smoke check (R5)
 
 ### V3-M2 — Hardening P2
-- [ ] V3-M2.1 Server: membership first, quotas, sessions, logs, CORS, attachment keys (R6)
-- [ ] V3-M2.2 Android: one instance, late reminders kept, update notification, threads, notification language, insets (R7)
+- [x] V3-M2.1 Server: membership first, quotas, sessions, logs, CORS, attachment keys (R6)
+- [x] V3-M2.2 Android: one instance, late reminders kept, update notification, threads, notification language, insets (R7)
 - [ ] V3-M2.3 UI: edits send only changes, keyed rows, number parsing, busy flags, saved form state, Polish texts (R8)
 - [ ] V3-M2.4 Sync: removed bands, token races, sequence numbers, error classes, web storage, stuck queues (R9)
 - [ ] V3-M2.5 Band fund rules and archived events (R10)

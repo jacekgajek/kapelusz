@@ -21,6 +21,10 @@ object ReminderScheduler {
     /** "epochMillis|title" of each scheduled reminder, for the secret menu. */
     private const val KEY_TIMES = "times"
     private const val TEST_KEY = "test"
+    private const val EXTRA_KEY = "key"
+    private const val EXTRA_LANGUAGE = "language"
+    /** Reminders shown already, so planning again does not bring them back (the latest few are enough). */
+    private const val KEY_SHOWN = "shown"
     private const val EXTRA_TITLE = "title"
     private const val EXTRA_TEXT = "text"
     private const val EXTRA_NAVIGATE = "navigate"
@@ -38,6 +42,8 @@ object ReminderScheduler {
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_TEXT, text)
                 .putExtra(EXTRA_NAVIGATE, reminder.navigateUrl)
+                .putExtra(EXTRA_KEY, reminder.key)
+                .putExtra(EXTRA_LANGUAGE, language)
             schedule(alarms, at, pending(context, reminder.key, intent))
         }
         prefs.edit {
@@ -74,13 +80,22 @@ object ReminderScheduler {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
+    /** The keys of reminders shown already. */
+    fun shown(context: Context): Set<String> = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_SHOWN, emptySet()).orEmpty()
+
     internal fun show(context: Context, intent: Intent) {
+        intent.getStringExtra(EXTRA_KEY)?.let { key ->
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val shown = (prefs.getStringSet(KEY_SHOWN, emptySet()).orEmpty() + key).toList().takeLast(200).toSet()
+            prefs.edit { putStringSet(KEY_SHOWN, shown) }
+        }
         // Both are missing for the test reminder, which just opens the app.
         val band = intent.getStringExtra(Notifier.EXTRA_BAND)
         val event = intent.getStringExtra(Notifier.EXTRA_EVENT)
         Notifier.showReminder(
             context, ("r$band$event").hashCode(), band, event,
             intent.getStringExtra(EXTRA_TITLE).orEmpty(), intent.getStringExtra(EXTRA_TEXT).orEmpty(), intent.getStringExtra(EXTRA_NAVIGATE),
+            intent.getStringExtra(EXTRA_LANGUAGE),
         )
     }
 }
