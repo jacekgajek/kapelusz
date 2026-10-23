@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -139,13 +140,15 @@ fun EventScreen(
     // Opened from a reminder about an open debt (ITERATION_3 §2.2): the money, straight at To settle.
     val toSettle by graph.pendingToSettle.collectAsState()
     LaunchedEffect(toSettle, event != null) {
-        if (toSettle != eventId || event == null) return@LaunchedEffect
-        graph.pendingToSettle.value = null
+        if (toSettle != eventId || event == null || artist) return@LaunchedEffect
         selectTab(EventTab.MONEY)
-        val index = EventSection.on(EventTab.MONEY).indexOf(EventSection.TO_SETTLE)
-        // Once the money page is laid out.
-        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > index }
-        listState.scrollToItem(index)
+        // Once the money page is laid out (every section is one item, shown or not).
+        val money = EventSection.on(EventTab.MONEY)
+        graph.settings.settings.first { it.eventTab == EventTab.MONEY }
+        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it == money.size }
+        listState.scrollToItem(money.indexOf(EventSection.TO_SETTLE))
+        // Last: clearing it restarts this effect, which would cancel the scroll above.
+        graph.pendingToSettle.value = null
     }
 
     Scaffold(
@@ -178,7 +181,7 @@ fun EventScreen(
                 if (artist) {
                     // Artists get no debt reminders, so nothing scrolls by section here.
                     item("header") { Header(context, status = false) }
-                    item("tabs") { EventTabs(tab, ::selectTab) }
+                    stickyHeader("tabs") { EventTabs(tab, ::selectTab) }
                     if (tab == EventTab.GIG) {
                         item("details") { DetailsSection(context) }
                         item("files") { FilesSection(context) }
@@ -191,10 +194,12 @@ fun EventScreen(
                 }
                 // The tab's sections, in the order of [EventSection]: To settle is found by its index on the money page.
                 EventSection.on(tab).forEach { section ->
-                    item(key = section.name) {
+                    // The switch stays at the top while a long page scrolls under it.
+                    if (section == EventSection.TABS) stickyHeader(key = section.name) { EventTabs(tab, ::selectTab) }
+                    else item(key = section.name) {
                         when (section) {
                             EventSection.HEADER -> Header(context)
-                            EventSection.TABS -> EventTabs(tab, ::selectTab)
+                            EventSection.TABS -> Unit
                             EventSection.DETAILS -> DetailsSection(context)
                             EventSection.FILES -> FilesSection(context)
                             EventSection.PARTICIPANTS -> ParticipantsSection(context)
@@ -234,7 +239,8 @@ private enum class EventSection(val tab: EventTab?) {
 /** The switch between the gig's page and its money (ITERATION_4 §2.4). */
 @Composable
 private fun EventTabs(tab: EventTab, onTab: (EventTab) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+    // Opaque: pinned at the top, the list scrolls under it.
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(vertical = 8.dp)) {
         listOf(EventTab.GIG to Res.string.tab_gig, EventTab.MONEY to Res.string.tab_money).forEachIndexed { index, (value, label) ->
             SegmentedButton(selected = tab == value, onClick = { onTab(value) }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
                 Text(stringResource(label))

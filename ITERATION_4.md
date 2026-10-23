@@ -191,7 +191,7 @@ did not look better.
   who plays, and **"Money" / "Pieniądze"** with the totals card, problems, collected money, cost refunds, settlement,
   To settle and history.
 - **Which tab opens:** the last one used, on any event, kept on the device; the first time, Gig. No date rule.
-- A debt reminder opens Money at To settle (and so Money stays).
+- A debt reminder opens Money at To settle (and so Money stays). The tab switch stays pinned at the top while a page scrolls.
 - **Artists:** the same tabs: Gig with details, files and who plays; Money with their payout and own costs.
 
 ## 3. Later
