@@ -69,7 +69,10 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
   - **Nothing**.
 - No reason and no notification for a refusal (only the red status).
 - A member's or artist's edit never raises an included refund (lowering it still follows the cost); the raise waits for
-  a lead. Resubmitting is explicit (`UpdateCost.resubmit`), so History says "resubmitted".
+  a lead in the event's Waiting list, where Include tops the refund up.
+- Deleting a refused cost from My costs asks for confirmation (artists have no History to undo it).
+- "Settle all" may still record a transfer from an artist who ended up owing (an event reopened after they became one,
+  or an overpayment): the only way to settle it, so it is allowed. Resubmitting is explicit (`UpdateCost.resubmit`), so History says "resubmitted".
 - Undo cannot bring back a refund of a refused cost or money held by an artist.
 - Refuse is offered only for a cost with nothing refunded yet (anywhere, the band fund included); a partly refunded
   cost can still be included, not refused.

@@ -101,7 +101,8 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
                             Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error)
                         }
                     }
-                    OutlinedButton(onClick = { context.actions.run(SetRefund(event.id, cost.id, outstanding)) }) {
+                    // Adds the rest to what this event already refunds of it, if anything.
+                    OutlinedButton(onClick = { context.actions.run(SetRefund(event.id, cost.id, CostLedger.maxRefundAt(band, cost, event))) }) {
                         Text(stringResource(Res.string.include))
                     }
                 }

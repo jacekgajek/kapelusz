@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.ui.components.Actions
+import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import com.jacekgajek.kapelusz.app.generated.costs_none_everyone
 import com.jacekgajek.kapelusz.app.generated.costs_outstanding_total
 import com.jacekgajek.kapelusz.app.generated.costs_outstanding_total_everyone
 import com.jacekgajek.kapelusz.app.generated.delete
+import com.jacekgajek.kapelusz.app.generated.delete_cost_title
 import com.jacekgajek.kapelusz.app.generated.filter_all
 import com.jacekgajek.kapelusz.app.generated.filter_all_members
 import com.jacekgajek.kapelusz.app.generated.filter_mine
@@ -127,6 +129,7 @@ fun MyCostsScreen(
     val actions = rememberActions(graph, snackbar)
     val can = Can(band, state.userId)
     var asking by remember { mutableStateOf<Cost?>(null) }
+    var deleting by remember { mutableStateOf<Cost?>(null) }
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
     val showAll = isLead && everyone
@@ -212,9 +215,9 @@ fun MyCostsScreen(
                                 color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
                             )
                         }
-                        // A refused cost goes with one tap (ITERATION_4 §1.2), as asked: no confirmation.
+                        // A refused cost goes from the list (ITERATION_4 §1.2), once confirmed: artists have no History to undo it.
                         if (ownRefused && can.allowed(DeleteCost(cost.id))) {
-                            IconButton(onClick = { actions.run(DeleteCost(cost.id)) }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
+                            IconButton(onClick = { deleting = cost }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
                         }
                     }
                 }
@@ -222,6 +225,15 @@ fun MyCostsScreen(
         }
     }
     asking?.let { cost -> RefusedCostDialog(cost, actions, onEdit = { onOpenCost(cost.id) }, onDismiss = { asking = null }) }
+    deleting?.let { cost ->
+        ConfirmDialog(
+            title = stringResource(Res.string.delete_cost_title),
+            text = cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost),
+            confirmLabel = stringResource(Res.string.delete),
+            onConfirm = { actions.run(DeleteCost(cost.id)) },
+            onDismiss = { deleting = null },
+        )
+    }
 }
 
 /**

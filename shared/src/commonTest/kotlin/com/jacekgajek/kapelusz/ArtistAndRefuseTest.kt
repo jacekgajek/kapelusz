@@ -149,9 +149,10 @@ class ArtistAndRefuseTest {
         scenario.apply(UpdateCost("c", amount = Change(pln("30"))), bob)
         assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "lowering follows")
         scenario.apply(UpdateCost("c", amount = Change(pln("400"))), bob)
-        assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "the rest waits for a lead")
-        scenario.apply(UpdateCost("c", amount = Change(pln("50"))))
-        assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "no longer the whole cost: left alone")
+        val gig = scenario.band.event("gig")!!
+        assertEquals(pln("30"), gig.refundOf("c")!!.amount, "the rest waits for a lead")
+        assertEquals(listOf("c"), CostLedger.pendingFromEarlier(scenario.band, gig).map { it.id }, "in this event's Waiting list")
+        assertEquals(pln("400"), CostLedger.maxRefundAt(scenario.band, scenario.band.cost("c")!!, gig), "what Include sets")
     }
 
     @Test

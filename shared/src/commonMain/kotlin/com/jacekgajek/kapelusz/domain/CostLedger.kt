@@ -44,12 +44,13 @@ object CostLedger {
         outstanding(band, cost) + (event.refundOf(cost.id)?.amount ?: Money.ZERO)
 
     /**
-     * Outstanding costs of this event's participants that are not refunded here yet and not refused, oldest first: the
-     * "Waiting" list of the event's Refunds section (ITERATION_4 §1.2).
+     * Outstanding costs of this event's participants, not refused, oldest first: the "Waiting" list of the event's
+     * Refunds section (ITERATION_4 §1.2). Also one refunded here in part, e.g. raised by its owner after it was
+     * included: the rest waits for a lead.
      */
     fun pendingFromEarlier(band: Band, event: Event): List<Cost> =
         band.costs
-            .filter { !it.refused && isRefundableAt(it, event) && event.refundOf(it.id) == null && outstanding(band, it).isPositive }
+            .filter { !it.refused && isRefundableAt(it, event) && outstanding(band, it).isPositive }
             .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
 
     /**
