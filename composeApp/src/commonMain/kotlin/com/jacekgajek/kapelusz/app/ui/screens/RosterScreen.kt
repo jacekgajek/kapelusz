@@ -236,8 +236,7 @@ private fun MemberDialog(
     val share = rememberShare()
     val copy = rememberCopy()
     var name by remember(member.id) { mutableStateOf(member.name) }
-    // New invites start as Artist, the most limited role that can still add costs (ITERATION_4 §1.1).
-    var inviteRole by remember(member.id) { mutableStateOf(Role.ARTIST) }
+    var inviteRole by remember(member.id) { mutableStateOf(if (member.role == Role.OWNER) Role.MEMBER else member.role) }
     var shownInvite by remember(member.id) { mutableStateOf(invite) }
     var message by remember { mutableStateOf<String?>(null) }
     var confirmUnlink by remember { mutableStateOf(false) }

@@ -13,8 +13,8 @@ concerns them.
 - **Place in the roles:** below Member: Viewer, Artist, Member, Lead, Admin, Owner. Viewer still sees everything and
   changes nothing; Artist sees less but adds their own costs. So it is not a strict ladder: the visibility rules are
   Artist-specific, not "at least Viewer".
-- **Default:** the role picker for a **new invite** starts on Artist. Existing members keep their roles. A roster entry
-  added without an invite is unchanged.
+- **Not the default:** the invite's role picker still starts on Member, listed as Viewer, Artist, Member, Lead,
+  Admin (changed after the grilling, 2026-10-23). Existing members keep their roles.
 - **What they see (UI only in M1, see §1.4):**
   - Tabs: **Events** and **My costs**, plus Settings (notifications, calendar, account). No Band fund, History, Roster
     or the band-wide settle screen.
@@ -113,7 +113,7 @@ they may see. Rough effort: **one milestone of about V3-M2's size**, mostly serv
 ## 3. Milestones and task checklist
 
 ### V4-M1 — Artists, refusing costs, quieter notifications
-- [x] V4-M1.1 Artist role: default for invites, limited screens and event view, own settlement card, no holdings, role
+- [x] V4-M1.1 Artist role: in the invite picker (Member stays the default), limited screens and event view, own settlement card, no holdings, role
   change guard (§1.1)
 - [x] V4-M1.2 No auto-include for non-leads; "Pending from earlier" renamed Waiting; Refuse; Waiting/Refused
   statuses; one-tap delete; refused-edit dialog (§1.2)
@@ -124,7 +124,7 @@ they may see. Rough effort: **one milestone of about V3-M2's size**, mostly serv
 
 | Date | Decision |
 |---|---|
-| 2026-10-23 | Artist role, default for invites; sees only their events (details + lineup), their costs and their own to-receive sum, never who pays. Events + My costs only. UI-only privacy in M1; the server-side effort is described in §1.4. |
+| 2026-10-23 | Artist role (invites still default to Member, changed after the grilling); sees only their events (details + lineup), their costs and their own to-receive sum, never who pays. Events + My costs only. UI-only privacy in M1; the server-side effort is described in §1.4. |
 | 2026-10-23 | Artists may add costs with or without an event, never hold money (nobody can record collected money for them, they can't hold the band fund), can't record transfers. Making someone an Artist is refused while they hold money in an unsettled event or the band fund. |
 | 2026-10-23 | Costs of non-leads are never auto-included; a lead's cost entry still is; creating an event or adding a participant includes nothing. The event's "Pending from earlier" section becomes "Waiting" / "Oczekujące". Refuse only there; Refused is final for leads; the payer can resubmit by editing (dialog: Edit and resubmit / Delete / Nothing) or delete with one tap. No reason, no notification. Pending and Refund planned shown as "Waiting". |
 | 2026-10-23 | Implementation: Refuse only for a cost with nothing refunded; server-internal ops count as a lead's for auto-include; the gig-reminder question stays (it turns them on). |
