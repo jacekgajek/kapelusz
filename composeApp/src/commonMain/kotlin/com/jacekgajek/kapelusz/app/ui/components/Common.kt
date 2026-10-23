@@ -23,8 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +53,7 @@ import coil3.compose.AsyncImage
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.amount_invalid
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -92,6 +91,9 @@ class Actions(
     private val snackbar: SnackbarHostState,
     private val scope: CoroutineScope,
     private val reasonTexts: Map<RejectionReason, String>,
+    /** The screen's Undo snackbars; without them [runWithUndo] just runs. */
+    private val undos: UndoStack? = null,
+    private val tooLate: String = "",
 ) {
     fun run(op: Operation): Boolean = show(graph.dispatch(op))
 
@@ -107,25 +109,39 @@ class Actions(
     }
 
     /**
-     * Runs [op]; once applied, says [message] with an action ([actionLabel], e.g. "Undo") that runs [undo] while the
-     * snackbar shows.
+     * Runs [op] with Undo in a snackbar saying [message] (ITERATION_5 §2): it is held back from syncing while the
+     * snackbar shows, and Undo takes it back as if it was never made.
      */
-    fun runWithUndo(op: Operation, message: String, actionLabel: String, undo: Operation): Boolean {
-        if (!run(op)) return false
-        scope.launch {
-            if (snackbar.showSnackbar(message, actionLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) run(undo)
-        }
-        return true
+    fun runWithUndo(op: Operation, message: String): Boolean {
+        val stack = undos ?: return run(op)
+        return show(
+            graph.dispatchHeld(op, HOLD_TIME) { held ->
+                val undo = {
+                    // Its hold ran out first (e.g. the device slept): it may be on its way, so only the history can undo it.
+                    if (!graph.withdraw(held)) {
+                        graph.release(held)
+                        say(tooLate)
+                    }
+                }
+                stack.add(UndoItem(message, undo = undo, gone = { graph.release(held) }))
+            },
+        )
+    }
+
+    companion object {
+        /** Longer than the snackbar shows: the snackbar ends the hold itself; this is for when the app is closed. */
+        const val HOLD_TIME = UNDO_TIME + 5_000L
     }
 }
 
 @Composable
-fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState): Actions {
+fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState, undos: UndoStack? = null): Actions {
     val scope = rememberCoroutineScope()
     // Resolved during composition so they follow the in-app language; a non-composable getString() would use the
     // system language on the web.
     val reasonTexts = RejectionReason.entries.associateWith { stringResource(it.labelRes()) }
-    return remember(graph, snackbar, reasonTexts) { Actions(graph, snackbar, scope, reasonTexts) }
+    val tooLate = stringResource(Res.string.undo_too_late)
+    return remember(graph, snackbar, reasonTexts, undos, tooLate) { Actions(graph, snackbar, scope, reasonTexts, undos, tooLate) }
 }
 
 @Composable

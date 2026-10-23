@@ -81,6 +81,8 @@ import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
+import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.agendaLine
 import com.jacekgajek.kapelusz.domain.Places
@@ -126,7 +128,8 @@ fun EventScreen(
     onOpenCost: (costId: String) -> Unit = {},
 ) {
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
+    val undos = remember { UndoStack() }
+    val actions = rememberActions(graph, snackbar, undos)
     // Artists only open the events they play, archived ones too (ITERATION_4 §1.1).
     val artist = state.band.isArtist(state.userId)
     val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
@@ -164,7 +167,12 @@ fun EventScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = {
+            Column {
+                UndoSnackbars(undos)
+                SnackbarHost(snackbar)
+            }
+        },
     ) { padding ->
         if (event == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -390,6 +398,6 @@ private fun FilesSection(context: EventContext) {
     AttachmentsSection(
         context.graph, AttachmentOwner.OfEvent(event.id), event.attachments,
         drafts = emptyList(), onDrafts = {}, editable = editable, actions = context.actions,
-        max = MAX_EVENT_ATTACHMENTS, hint = Res.string.attachment_hint_event, title = null,
+        max = MAX_EVENT_ATTACHMENTS, hint = Res.string.attachment_hint_event, title = null, undoRemoval = true,
     )
 }

@@ -288,6 +288,49 @@ class SyncEngineTest {
         assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
     }
 
+    /** ITERATION_5 §2: a change held for its Undo snackbar is not sent, nor anything after it; Undo takes it back. */
+    @Test
+    fun aHeldChangeWaitsForItsSnackbarAndUndoTakesItBack() = runTest {
+        val server = FakeServer()
+        var now = 1_000L
+        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" }, clock = { now })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { "alice:0" }, repository, this, clock = { now })
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val bandId = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+
+        repository.dispatch(RenameBand("Held"), holdFor = 15_000)
+        val held = repository.lastOpId!!
+        repository.dispatch(AddMember("bob", "Bob")) // made after it: may build on it, so it waits too
+        assertTrue(sync.syncNow())
+        assertEquals("Night Owls", server.bands.getValue(bandId).name)
+        assertEquals(null, server.bands.getValue(bandId).member("bob"))
+
+        assertTrue(repository.withdraw(bandId, held))
+        assertEquals("Night Owls", (repository.state.value as BandState.Ready).band.name, "shown without it at once")
+        assertTrue(sync.syncNow())
+        assertEquals("Night Owls", server.bands.getValue(bandId).name, "never sent")
+        assertTrue(server.bands.getValue(bandId).member("bob") != null, "what came after goes once nothing holds it")
+
+        // Released (its snackbar is gone): sent, and no longer taken back.
+        repository.dispatch(RenameBand("Kept"), holdFor = 15_000)
+        val kept = repository.lastOpId!!
+        repository.release(bandId, kept)
+        assertFalse(repository.withdraw(bandId, kept))
+        assertTrue(sync.syncNow())
+        assertEquals("Kept", server.bands.getValue(bandId).name)
+
+        // A hold whose time passed (e.g. the app was closed meanwhile) no longer counts, nor can it be taken back.
+        repository.dispatch(RenameBand("Expired"), holdFor = 15_000)
+        val expired = repository.lastOpId!!
+        now += 15_000
+        assertFalse(repository.withdraw(bandId, expired))
+        assertTrue(sync.syncNow())
+        assertEquals("Expired", server.bands.getValue(bandId).name)
+        assertTrue(repository.local(bandId)!!.holds.isEmpty(), "holds of sent changes are dropped")
+    }
+
     /** ITERATION_3 R9: a band the list no longer shows is asked for, and dropped when it is gone, though it is not open. */
     @Test
     fun aBandRemovedWhileAnotherIsOpenIsFoundFromTheList() = runTest {

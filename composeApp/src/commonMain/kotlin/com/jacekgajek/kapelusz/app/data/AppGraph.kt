@@ -13,6 +13,7 @@ import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.domain.SharedPlace
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.Rejection
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
@@ -243,4 +244,27 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         }
         return rejection
     }
+
+    /**
+     * Applies an operation locally but holds it back from syncing for [holdFor] ms, while its Undo snackbar shows
+     * (ITERATION_5 §2); [onHeld] gets it. Returns the rejection, if any.
+     */
+    fun dispatchHeld(op: Operation, holdFor: Long, onHeld: (HeldOp) -> Unit): Rejection? {
+        val bandId = bands.currentBandId ?: error("No band open")
+        bands.dispatch(op, holdFor)?.let { return it }
+        onHeld(HeldOp(bandId, bands.lastOpId!!))
+        return null
+    }
+
+    /** Lets a held operation sync now (its snackbar is gone). */
+    fun release(held: HeldOp) {
+        bands.release(held.bandId, held.opId)
+        sync.requestSync()
+    }
+
+    /** Takes a held operation back; false when it may already be on its way (then only the history can undo it). */
+    fun withdraw(held: HeldOp): Boolean = bands.withdraw(held.bandId, held.opId)
 }
+
+/** An operation held back from syncing while its Undo snackbar shows. */
+data class HeldOp(val bandId: Id, val opId: Id)

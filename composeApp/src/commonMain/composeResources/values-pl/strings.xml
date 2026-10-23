@@ -93,6 +93,9 @@
     <string name="delete">Usuń</string>
     <string name="remove">Usuń</string>
     <string name="guest_removed">Usunięto gościa %1$s</string>
+    <string name="undo_too_late">Już wysłane; cofnij to w historii.</string>
+    <string name="attachment_removed">Usunięto %1$s</string>
+    <string name="cost_refused">Odrzucono koszt: %1$s, %2$s</string>
     <string name="more">Więcej</string>
     <string name="amount">Kwota</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>

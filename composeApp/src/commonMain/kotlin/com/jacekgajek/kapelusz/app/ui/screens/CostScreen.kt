@@ -72,6 +72,8 @@ import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
+import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
@@ -105,7 +107,8 @@ fun CostScreen(
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
+    val undos = remember { UndoStack() }
+    val actions = rememberActions(graph, snackbar, undos)
     val existing = costId?.let { band.cost(it) }
     val lang = language
 
@@ -184,7 +187,12 @@ fun CostScreen(
                 TextButton(onClick = ::save, enabled = canSave) { Text(stringResource(Res.string.save)) }
             }
         },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = {
+            Column {
+                UndoSnackbars(undos)
+                SnackbarHost(snackbar)
+            }
+        },
     ) { padding ->
         if (costId != null && existing == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(stringResource(Res.string.cost_not_found)) }
@@ -247,6 +255,7 @@ fun CostScreen(
                     onDrafts = { drafts = it },
                     editable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
                     actions = actions,
+                    undoRemoval = true,
                 )
             }
         }
