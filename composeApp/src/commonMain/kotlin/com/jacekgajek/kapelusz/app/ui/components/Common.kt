@@ -23,6 +23,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -102,6 +104,18 @@ class Actions(
 
     fun say(message: String) {
         scope.launch { snackbar.showSnackbar(message) }
+    }
+
+    /**
+     * Runs [op]; once applied, says [message] with an action ([actionLabel], e.g. "Undo") that runs [undo] while the
+     * snackbar shows.
+     */
+    fun runWithUndo(op: Operation, message: String, actionLabel: String, undo: Operation): Boolean {
+        if (!run(op)) return false
+        scope.launch {
+            if (snackbar.showSnackbar(message, actionLabel, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) run(undo)
+        }
+        return true
     }
 }
 

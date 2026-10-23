@@ -45,10 +45,8 @@ import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
-import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import com.jacekgajek.kapelusz.app.generated.remove
-import com.jacekgajek.kapelusz.app.generated.remove_guest_text
-import com.jacekgajek.kapelusz.app.generated.remove_guest_title
+import com.jacekgajek.kapelusz.app.generated.undo
+import com.jacekgajek.kapelusz.app.generated.guest_removed
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.onClick
 import com.jacekgajek.kapelusz.model.Guest
@@ -74,7 +72,6 @@ fun ParticipantsSection(context: EventContext) {
     val event = context.event
     val canManage = context.can.manageParticipants(event)
     var addingGuest by remember { mutableStateOf(false) }
-    var removingGuest by remember { mutableStateOf<String?>(null) }
     var showShares by remember { mutableStateOf(event.participants.any { it.weight != DEFAULT_WEIGHT || it.fixedShare != null }) }
     var editingWeight by remember { mutableStateOf<String?>(null) }
 
@@ -95,14 +92,23 @@ fun ParticipantsSection(context: EventContext) {
             )
         }
         event.guests.forEach { guest ->
-            // Tapping the chip asks to remove the guest; no cross, which would suggest only it removes them.
+            // Tapping the chip removes the guest at once, with Undo in the snackbar (ITERATION_5 §2.4); no cross,
+            // which would suggest only it removes them.
             val remove = removeLabel(guest.name)
+            val removed = stringResource(Res.string.guest_removed, guest.name)
+            val undo = stringResource(Res.string.undo)
+            val removeGuest = {
+                val participant = event.participant(guest.id)
+                // Undo adds the guest back as they were: a guest holding money cannot be removed, so nothing else is lost.
+                val back = AddGuest(event.id, guest.id, guest.name, participant?.weight ?: DEFAULT_WEIGHT, participant?.fixedShare)
+                context.actions.runWithUndo(RemoveParticipant(event.id, guest.id), removed, undo, back)
+            }
             InputChip(
                 selected = true,
-                onClick = { if (canManage) removingGuest = guest.id },
+                onClick = { if (canManage) removeGuest() },
                 label = { Text(guest.name) },
                 // Read out as what tapping does: "Remove Kasia".
-                modifier = Modifier.semantics { if (canManage) onClick(label = remove) { removingGuest = guest.id; true } },
+                modifier = Modifier.semantics { if (canManage) onClick(label = remove) { removeGuest(); true } },
             )
         }
         if (canManage) AssistChip(
@@ -137,21 +143,6 @@ fun ParticipantsSection(context: EventContext) {
         }
     }
 
-    removingGuest?.let { guestId ->
-        val guest = event.guest(guestId)
-        if (guest == null) {
-            // Removed meanwhile (e.g. by someone else): nothing left to ask.
-            removingGuest = null
-        } else {
-            ConfirmDialog(
-                title = stringResource(Res.string.remove_guest_title, guest.name),
-                text = stringResource(Res.string.remove_guest_text),
-                confirmLabel = stringResource(Res.string.remove),
-                onConfirm = { context.actions.run(RemoveParticipant(event.id, guestId)) },
-                onDismiss = { removingGuest = null },
-            )
-        }
-    }
     if (addingGuest) {
         GuestDialog(context, onDismiss = { addingGuest = false }) { name, weight, fixedShare ->
             context.actions.run(AddGuest(event.id, newId(), name, weight, fixedShare))

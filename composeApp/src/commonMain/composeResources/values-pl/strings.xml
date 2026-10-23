@@ -92,8 +92,7 @@
     <string name="save">Zapisz</string>
     <string name="delete">Usuń</string>
     <string name="remove">Usuń</string>
-    <string name="remove_guest_title">Usunąć gościa %1$s?</string>
-    <string name="remove_guest_text">Gość zostanie usunięty z tego wydarzenia; możesz to cofnąć w historii.</string>
+    <string name="guest_removed">Usunięto gościa %1$s</string>
     <string name="more">Więcej</string>
     <string name="amount">Kwota</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>

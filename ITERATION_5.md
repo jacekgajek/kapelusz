@@ -335,7 +335,39 @@ Two PRs:
   - The hand-over limit "no more than the sender holds" stays in the dialog only; the server enforces only the
     Artist cap.
 
-## 2. Milestones and task checklist
+## 2. V5-M2 — Undo from the snackbar (planned; details to be grilled before implementing)
+
+Destructive actions apply at once and offer **Undo** in a snackbar for a few seconds, instead of asking first in a
+dialog. "Properly": the snackbar sends the real `Undo` operation (one history line, "Undid …", the same rules as undo
+from the history), not a hand-made inverse operation.
+
+### 2.1 Why it needs work
+An `Undo` names the history entry of the change it reverts, and the server reads the original operation and its change
+from that entry (`recordedUndo`). The app only learns entry names by reading the history, i.e. after the change reached
+the server; right after a tap (or offline) it has none.
+
+### 2.2 Proposed mechanism
+- **Server:** the push response names, for each accepted operation, the history entry it was recorded in
+  (`PushResponse.entries: opId → entry name`); `append` picks the name before writing.
+- **App, change not sent yet** (still in the outbox): Undo withdraws it from the outbox and drops it from the local
+  state; nothing reaches the server or the history.
+- **App, change sent:** Undo is an `Undo` operation with the entry name from the push response; tapped before that
+  response arrives, it waits for it (or is queued behind the push).
+- **Refused undo** (e.g. something was built on the removed thing meanwhile): the usual rejection message.
+
+### 2.3 Candidates (to decide which get a snackbar, and which dialogs stay)
+- Remove a guest (replaces the stop-gap in §2.4), take a member out of an event, delete a cost, remove a holding,
+  a transfer, a fund entry, a refund.
+- Not undoable today: removing an attachment (its file is deleted; `restoresAttachments`). Either keep the dialog, or
+  delete files only after the snackbar is gone.
+- Likely to stay dialogs: delete band, delete event, archive/restore, refuse a cost, Paid / Welched.
+
+### 2.4 Stop-gap until then
+Removing a guest already applies at once with an Undo snackbar that adds the guest back with the same id, name and
+share (a guest can only be removed while holding no money, so nothing else is lost). History shows "Removed" and
+"Added" instead of an undo line.
+
+## 3. Milestones and task checklist
 
 ### V5-M1 — Fixes from the whole-app review (scope: §1.7)
 - [x] PR 1 — Core: A1, A2, A5b, A5c, A6 (status part; the renewal throttle stays), A8, A9a, A10d, B2, B3a, B3c, B5,
@@ -343,9 +375,19 @@ Two PRs:
 - [x] PR 2 — App: manifest configChanges, C1′, C2a+b, C4a, C4c, C4d, C5, C6a, C7 (Tier 1), D3, D4, D7 (Tier 1)
 - Later, not scheduled: the rest of Tier 2, Tier 3, Tier 4
 
-## 3. Decision log
+### Performance and guest fixes (between milestones)
+- [x] History in one request for three months; per-request TIMING log; 32 S3 connections kept for reuse (PR #41)
+- [x] History in DynamoDB, a record per operation; history names a removed guest; Add guest with the share editor;
+  guest removal with an Undo snackbar (stop-gap, §2.4) (PR #42)
+
+### V5-M2 — Undo from the snackbar (§2)
+- [ ] Grill the details (§2.2, §2.3), then implement
+
+## 4. Decision log
 
 | Date | Decision |
 |---|---|
 | 2026-10-23 | V5-M1 is the whole-app review's findings, in themed batches; each batch's plan is reported and approved before implementing. |
 | 2026-10-23 | Findings are mostly rare edge cases: scope by effort and code cost (§1.7). Doing Tier 1 and the valuable Tier 2 items in two PRs; the rest later. C1 replaced by removing auto-install (auto-download stays). B1 skipped (would shift existing settled events by 0.01). A10 LinkUser finding dropped (already refused). |
+| 2026-10-23 | History moves to DynamoDB (one record per operation); the old S3 history is dropped (one user so far). Current band state stays one S3 file; event sourcing considered and declined (rule changes would rewrite replays; snapshots needed anyway). |
+| 2026-10-23 | Removals should apply at once with an Undo snackbar rather than a confirmation dialog; done properly (a real `Undo`) in V5-M2; guest removal gets a stop-gap now. |
