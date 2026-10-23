@@ -50,6 +50,7 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.model.Cost
+import com.jacekgajek.kapelusz.model.Role
 import androidx.compose.ui.graphics.Color
 import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
@@ -71,10 +72,12 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     // Someone who cannot include costs still sees their own waiting here, so a cost they just added does not seem
     // lost (and is not added twice); a refused one too, to send again.
     val me = context.me
-    val mine = if (canEdit || me == null) emptyList() else {
+    // Not on an archived event (nothing is refunded there any more), nor for viewers (they have no costs to send again).
+    val mine = if (canEdit || me == null || me.role == Role.VIEWER || event.archived) emptyList() else {
         // Also ones added for this event that cannot be refunded here (their owner does not take part), or refused.
         val forThisEvent = band.costs.filter { it.eventId == event.id && (it.refused || CostLedger.outstanding(band, it).isPositive) }
         (CostLedger.pendingFromEarlier(band, event) + forThisEvent).distinct().filter { it.memberId == me.id }
+            .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
     }
 
     SectionTitle(stringResource(Res.string.refunds))
