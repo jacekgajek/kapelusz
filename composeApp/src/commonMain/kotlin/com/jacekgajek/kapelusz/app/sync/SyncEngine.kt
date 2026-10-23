@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.BandRepository
+import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.AddAttachment
@@ -58,6 +59,7 @@ class SyncEngine(
     private val interval: Long = 30_000,
     /** Attachment files waiting for upload; none in tests that only cover operations. */
     private val uploads: AttachmentUploads? = null,
+    private val clock: () -> Long = ::nowMillis,
 ) {
     private val _status = MutableStateFlow(SyncStatus.IDLE)
     val status: StateFlow<SyncStatus> = _status.asStateFlow()
@@ -288,8 +290,11 @@ class SyncEngine(
         // Refused as a whole before: not again until the user decides (ITERATION_3 R9).
         if (bandId in _stuck.value) return
         while (true) {
-            val batch = batchOf(bands.local(bandId)?.pending.orEmpty())
+            val current = bands.local(bandId) ?: return
+            val batch = batchOf(current.pending, current.holds, clock())
             if (batch.isEmpty()) return
+            // Sent, so no longer taken back by an Undo, whatever the clock says (a hold may only have expired).
+            bands.release(bandId, *batch.map { it.opId }.toTypedArray())
             // Ops added since the last check (a big push goes in batches) must be on disk too (V5-M1 A9a).
             storedOrStop()
             val response = try {
@@ -319,10 +324,13 @@ class SyncEngine(
         const val BATCH_SIZE = 200
         const val DEBOUNCE = 1_000L
 
-        /** The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once (ITERATION_3 R6). */
-        internal fun batchOf(pending: List<OpEnvelope>): List<OpEnvelope> {
+        /**
+         * The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once (ITERATION_3 R6);
+         * none from the first one still [held][LocalBand.holds] on, as later ones may build on it (ITERATION_5 §2).
+         */
+        internal fun batchOf(pending: List<OpEnvelope>, holds: Map<Id, Long> = emptyMap(), now: Long = 0): List<OpEnvelope> {
             var undos = 0
-            return pending.take(BATCH_SIZE).takeWhile { envelope -> envelope.op !is Undo || ++undos <= Limits.MAX_UNDOS_PER_PUSH }
+            return pending.takeWhile { (holds[it.opId] ?: 0) <= now }.take(BATCH_SIZE).takeWhile { envelope -> envelope.op !is Undo || ++undos <= Limits.MAX_UNDOS_PER_PUSH }
         }
     }
 }

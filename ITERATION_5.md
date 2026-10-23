@@ -335,37 +335,34 @@ Two PRs:
   - The hand-over limit "no more than the sender holds" stays in the dialog only; the server enforces only the
     Artist cap.
 
-## 2. V5-M2 — Undo from the snackbar (planned; details to be grilled before implementing)
+## 2. V5-M2 — Undo from the snackbar (grilled 2026-10-23)
 
-Destructive actions apply at once and offer **Undo** in a snackbar for a few seconds, instead of asking first in a
-dialog. "Properly": the snackbar sends the real `Undo` operation (one history line, "Undid …", the same rules as undo
-from the history), not a hand-made inverse operation.
+Some removals apply at once and offer **Undo** in a snackbar instead of asking first in a dialog.
 
-### 2.1 Why it needs work
-An `Undo` names the history entry of the change it reverts, and the server reads the original operation and its change
-from that entry (`recordedUndo`). The app only learns entry names by reading the history, i.e. after the change reached
-the server; right after a tap (or offline) it has none.
+### 2.1 Mechanism: hold, then send (like Gmail's "undo send")
+- The change applies on screen at once, but is **held**: not synced, and nothing queued after it is synced either (later
+  changes may build on it). `LocalBand.holds`: op id → until when.
+- **Undo withdraws it** from the queue and the screen is rebuilt without it; nothing reaches the server or the history.
+  No `Undo` operation, no server change. (Considered first: sending at once and undoing with a real `Undo`, which needs
+  the history entry's name from the push answer and has races with a push in flight or a lost answer; dropped.)
+- The hold ends when its snackbar goes (10 s, the ✕, pushed out by a 4th, the screen left or the app stopped): the
+  change then syncs. A hold also has an expiry (15 s), saved with the queue, so a change held when the app was killed
+  is sent on the next start; past it, Undo says "already sent; undo it from the history".
+- Changes made during the hold that only made sense because of it (e.g. remove a holding, then take its holder out of
+  the event) are refused with the usual message after an Undo; "Settle" is computed when applied, so it is recalculated
+  on the restored state. Checked case by case: nothing can be left inconsistent.
 
-### 2.2 Proposed mechanism
-- **Server:** the push response names, for each accepted operation, the history entry it was recorded in
-  (`PushResponse.entries: opId → entry name`); `append` picks the name before writing.
-- **App, change not sent yet** (still in the outbox): Undo withdraws it from the outbox and drops it from the local
-  state; nothing reaches the server or the history.
-- **App, change sent:** Undo is an `Undo` operation with the entry name from the push response; tapped before that
-  response arrives, it waits for it (or is queued behind the push).
-- **Refused undo** (e.g. something was built on the removed thing meanwhile): the usual rejection message.
+### 2.2 Snackbars
+- 10 s; stacked, at most 3, each with its own time and a ✕; a 4th pushes out the oldest (which then syncs).
+- Per screen (the event and cost screens): leaving the screen ends the holds.
 
-### 2.3 Candidates (to decide which get a snackbar, and which dialogs stay)
-- Remove a guest (replaces the stop-gap in §2.4), take a member out of an event, delete a cost, remove a holding,
-  a transfer, a fund entry, a refund.
-- Not undoable today: removing an attachment (its file is deleted; `restoresAttachments`). Either keep the dialog, or
-  delete files only after the snackbar is gone.
-- Likely to stay dialogs: delete band, delete event, archive/restore, refuse a cost, Paid / Welched.
-
-### 2.4 Stop-gap until then
-Removing a guest already applies at once with an Undo snackbar that adds the guest back with the same id, name and
-share (a guest can only be removed while holding no money, so nothing else is lost). History shows "Removed" and
-"Added" instead of an undo line.
+### 2.3 Which actions
+- **Undo snackbar:** removing a guest (tapping the chip); removing an attachment on the event and cost screens;
+  "Refuse" of a cost.
+- **Keep the dialog — money:** transfers and settling, deleting a cost, removing a holding, a fund entry, a refund;
+  Paid / Welched. Also deleting an event (big, often takes money with it) and attachments inside the holding dialog
+  (a snackbar would be hidden behind the dialog).
+- **Unchanged:** member chips in an event (picking a line-up is common; tapping again is the undo).
 
 ## 3. Milestones and task checklist
 
@@ -378,10 +375,11 @@ share (a guest can only be removed while holding no money, so nothing else is lo
 ### Performance and guest fixes (between milestones)
 - [x] History in one request for three months; per-request TIMING log; 32 S3 connections kept for reuse (PR #41)
 - [x] History in DynamoDB, a record per operation; history names a removed guest; Add guest with the share editor;
-  guest removal with an Undo snackbar (stop-gap, §2.4) (PR #42)
+  guest removal with an Undo snackbar (a stop-gap re-adding the guest; replaced in V5-M2) (PR #42)
 
 ### V5-M2 — Undo from the snackbar (§2)
-- [ ] Grill the details (§2.2, §2.3), then implement
+- [x] Grilled (§2)
+- [ ] Implement: holds in the queue and sync, stacked Undo snackbars, guest / attachment / refuse
 
 ## 4. Decision log
 
@@ -391,3 +389,4 @@ share (a guest can only be removed while holding no money, so nothing else is lo
 | 2026-10-23 | Findings are mostly rare edge cases: scope by effort and code cost (§1.7). Doing Tier 1 and the valuable Tier 2 items in two PRs; the rest later. C1 replaced by removing auto-install (auto-download stays). B1 skipped (would shift existing settled events by 0.01). A10 LinkUser finding dropped (already refused). |
 | 2026-10-23 | History moves to DynamoDB (one record per operation); the old S3 history is dropped (one user so far). Current band state stays one S3 file; event sourcing considered and declined (rule changes would rewrite replays; snapshots needed anyway). |
 | 2026-10-23 | Removals should apply at once with an Undo snackbar rather than a confirmation dialog; done properly (a real `Undo`) in V5-M2; guest removal gets a stop-gap now. |
+| 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |

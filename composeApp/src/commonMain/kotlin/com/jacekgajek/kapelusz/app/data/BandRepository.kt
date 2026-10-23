@@ -46,6 +46,11 @@ data class LocalBand(
      * format is therefore downloaded in full once. Missing (0) for bands stored before this field existed.
      */
     val schema: Int = 0,
+    /**
+     * Operations held back from syncing while their Undo snackbar shows (ITERATION_5 §2): op id → until when (epoch
+     * ms). Nothing from the first held one on is sent; past its time a hold no longer counts (e.g. the app was closed).
+     */
+    val holds: Map<Id, Long> = emptyMap(),
 )
 
 /** The signed-in user's bands on this device and which one is open. */
@@ -190,8 +195,11 @@ class BandRepository(
     var lastOpId: Id? = null
         private set
 
-    /** Applies [op] locally. Returns the rejection if the operation is not allowed or not valid. */
-    fun dispatch(op: Operation): Rejection? {
+    /**
+     * Applies [op] locally. Returns the rejection if the operation is not allowed or not valid. With [holdFor] (ms),
+     * it is not synced until [release]d or that time has passed, and until then [withdraw] can take it back.
+     */
+    fun dispatch(op: Operation, holdFor: Long? = null): Rejection? {
         val bandId = currentBandId ?: error("No band open")
         val current = locals.getValue(bandId)
         val shown = (_state.value as BandState.Ready).band
@@ -199,13 +207,33 @@ class BandRepository(
         return when (val result = Engine.apply(shown, Actor.User(current.userId), op, envelope.opId, envelope.timestamp)) {
             is ApplyResult.Rejected -> result.rejection
             is ApplyResult.Applied -> {
-                locals[bandId] = current.copy(pending = current.pending + envelope, nextSeq = current.nextSeq + 1)
+                val holds = holdFor?.let { current.holds + (envelope.opId to clock() + it) } ?: current.holds
+                locals[bandId] = current.copy(pending = current.pending + envelope, nextSeq = current.nextSeq + 1, holds = holds)
                 lastOpId = envelope.opId
                 _state.value = BandState.Ready(result.band, current.userId)
                 persist(bandId)
                 null
             }
         }
+    }
+
+    /** Lets the held operations [opIds] sync; also called for what is about to be sent, so it is never withdrawn. */
+    fun release(bandId: Id, vararg opIds: Id) {
+        val local = locals[bandId] ?: return
+        if (opIds.none { it in local.holds }) return
+        locals[bandId] = local.copy(holds = local.holds - opIds.toSet())
+        persist(bandId)
+    }
+
+    /**
+     * Undo of the held operation [opId]: dropped as if it was never made. False when it is not held any more (its
+     * time passed, so it may be on its way to the server): then only the history can undo it.
+     */
+    fun withdraw(bandId: Id, opId: Id): Boolean {
+        val until = locals[bandId]?.holds?.get(opId) ?: return false
+        if (until <= clock()) return false
+        rebase(bandId) { local -> local.copy(pending = local.pending.filterNot { it.opId == opId }, holds = local.holds - opId) }
+        return true
     }
 
     // ---- sync hooks ----
@@ -220,7 +248,10 @@ class BandRepository(
     /** The server answered a push: take its state and drop every op it accepted, rejected or already had. */
     fun onPushed(bandId: Id, response: PushResponse) {
         val done = (response.accepted + response.rejected.keys + response.duplicates).toSet()
-        rebase(bandId) { local -> local.copy(base = response.band, version = response.version, pending = local.pending.filterNot { it.opId in done }) }
+        rebase(bandId) { local ->
+            val pending = local.pending.filterNot { it.opId in done }
+            local.copy(base = response.band, version = response.version, pending = pending, holds = local.holds.filterKeys { id -> pending.any { it.opId == id } })
+        }
     }
 
     fun onPulled(bandId: Id, band: Band, version: String) = rebase(bandId) { it.copy(base = band, version = version) }
@@ -261,7 +292,7 @@ class BandRepository(
         val local = locals[bandId] ?: return emptyList()
         keepUnsent(bandId, local)
         val backedUp = local.pending.map { it.opId }.toSet()
-        rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }) }
+        rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }, holds = band.holds - backedUp) }
         return local.pending
     }
 

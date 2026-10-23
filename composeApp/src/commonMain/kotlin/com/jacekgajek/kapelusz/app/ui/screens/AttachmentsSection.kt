@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.ops.RemoveAttachment
+import com.jacekgajek.kapelusz.app.generated.attachment_removed
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_file_name
@@ -82,6 +84,8 @@ fun AttachmentsSection(
     max: Int = MAX_ATTACHMENTS,
     hint: StringResource = Res.string.attachment_hint,
     title: String? = stringResource(Res.string.attachments),
+    /** Removing applies at once with Undo in the snackbar (ITERATION_5 §2); not inside a dialog, which would hide it. */
+    undoRemoval: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val open = rememberUrlOpener()
@@ -107,6 +111,7 @@ fun AttachmentsSection(
         if (title != null) Text(title, style = MaterialTheme.typography.labelLarge)
         attachments.forEach { attachment ->
             val uploading = pending.any { it.attachmentId == attachment.id }
+            val removed = stringResource(Res.string.attachment_removed, attachment.fileName ?: attachment.id)
             AttachmentRow(
                 attachment.kind,
                 attachment.fileName ?: attachment.id,
@@ -122,7 +127,11 @@ fun AttachmentsSection(
                         }
                     }
                 },
-                onRemove = { removing = attachment }.takeIf { editable },
+                onRemove = {
+                    if (!undoRemoval) removing = attachment
+                    else if (owner != null) actions.runWithUndo(RemoveAttachment(owner, attachment.id), removed)
+                    Unit
+                }.takeIf { editable },
                 onRename = { renaming = attachment }.takeIf { editable },
             )
         }

@@ -93,6 +93,9 @@
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
     <string name="guest_removed">Removed guest %1$s</string>
+    <string name="undo_too_late">Already sent; undo it from the history.</string>
+    <string name="attachment_removed">Removed %1$s</string>
+    <string name="cost_refused">Refused %1$s’s cost of %2$s</string>
     <string name="more">More</string>
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>
@@ -129,8 +132,6 @@
     <string name="pending_from_earlier">Waiting</string>
     <string name="include">Include</string>
     <string name="refuse">Refuse</string>
-    <string name="refuse_title">Refuse this cost?</string>
-    <string name="refuse_text">%1$s from %2$s won’t be refunded. Only they can send it again.</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>

@@ -45,7 +45,6 @@ import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
-import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.guest_removed
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.onClick
@@ -92,17 +91,11 @@ fun ParticipantsSection(context: EventContext) {
             )
         }
         event.guests.forEach { guest ->
-            // Tapping the chip removes the guest at once, with Undo in the snackbar (ITERATION_5 §2.4); no cross,
+            // Tapping the chip removes the guest at once, with Undo in the snackbar (ITERATION_5 §2); no cross,
             // which would suggest only it removes them.
             val remove = removeLabel(guest.name)
             val removed = stringResource(Res.string.guest_removed, guest.name)
-            val undo = stringResource(Res.string.undo)
-            val removeGuest = {
-                val participant = event.participant(guest.id)
-                // Undo adds the guest back as they were: a guest holding money cannot be removed, so nothing else is lost.
-                val back = AddGuest(event.id, guest.id, guest.name, participant?.weight ?: DEFAULT_WEIGHT, participant?.fixedShare)
-                context.actions.runWithUndo(RemoveParticipant(event.id, guest.id), removed, undo, back)
-            }
+            val removeGuest = { context.actions.runWithUndo(RemoveParticipant(event.id, guest.id), removed) }
             InputChip(
                 selected = true,
                 onClick = { if (canManage) removeGuest() },
