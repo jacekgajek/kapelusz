@@ -48,7 +48,8 @@ class Handler : RequestStreamHandler {
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context?) {
         val start = System.nanoTime()
-        store.reset()
+        s3Timer.reset()
+        dbTimer.reset()
         var line = "?"
         var status = "-"
         try {
@@ -61,7 +62,7 @@ class Handler : RequestStreamHandler {
             respond(output, response)
         } finally {
             // One line per request: where the time goes (V5 history latency).
-            println("TIMING $line $status ${(System.nanoTime() - start) / 1_000_000}ms ${store.summary()}")
+            println("TIMING $line $status ${(System.nanoTime() - start) / 1_000_000}ms ${s3Timer.summary()} ${dbTimer.summary()}")
         }
     }
 
@@ -105,8 +106,11 @@ class Handler : RequestStreamHandler {
         private val verifier = GoogleTokenVerifier(
             System.getenv("GOOGLE_CLIENT_IDS").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
         )
-        private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data"))
-        private val api = Api(store, verifier, minAppVersion = Api.MIN_APP_VERSION)
+        private val s3Timer = CallTimer("s3")
+        private val dbTimer = CallTimer("db")
+        private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data"), s3Timer)
+        private val history = DynamoHistoryStore(System.getenv("HISTORY_TABLE") ?: "art-split-history", dbTimer)
+        private val api = Api(store, history, verifier, minAppVersion = Api.MIN_APP_VERSION)
 
         init {
             Core.getGlobalContext().register(this)
@@ -119,6 +123,7 @@ class Handler : RequestStreamHandler {
         override fun beforeCheckpoint(context: org.crac.Context<out Resource>?) {
             runCatching { verifier.warmUp() }
             runCatching { store.get(StorageKeys.PRIMING) }
+            runCatching { history.newestFirst("priming", "", "\uffff").firstOrNull() }
             val ops = listOf(
                 CreateEvent("e", "Prime", LocalDate(2026, 1, 1), participants = listOf(Participant("m"))),
                 AddHolding("e", "h", "m", Money(10000), IncomeSource.DOOR),

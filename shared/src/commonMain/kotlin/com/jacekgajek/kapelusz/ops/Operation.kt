@@ -129,7 +129,7 @@ data class DeleteEvent(override val eventId: Id) : Operation
 data class AddParticipant(override val eventId: Id, val memberId: Id, val weight: Int = DEFAULT_WEIGHT, val fixedShare: Money? = null) : Operation
 
 @Serializable @SerialName("AddGuest")
-data class AddGuest(override val eventId: Id, val guestId: Id, val name: String, val weight: Int = DEFAULT_WEIGHT) :
+data class AddGuest(override val eventId: Id, val guestId: Id, val name: String, val weight: Int = DEFAULT_WEIGHT, val fixedShare: Money? = null) :
     Operation
 
 @Serializable @SerialName("RenameGuest")

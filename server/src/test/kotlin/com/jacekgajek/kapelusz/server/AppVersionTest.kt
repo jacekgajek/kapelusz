@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AppVersionTest {
-    private fun api(min: Int) = Api(InMemoryBlobStore(), { VerifiedUser(it, null, null) }, minAppVersion = min)
+    private fun api(min: Int) = Api(InMemoryBlobStore(), InMemoryHistoryStore(), { VerifiedUser(it, null, null) }, minAppVersion = min)
 
     private fun me(api: Api, version: String?) = api.handle(
         HttpRequest("GET", "/me", mapOf("authorization" to "Bearer alice"), query = version?.let { mapOf(ApiErrors.APP_VERSION_PARAMETER to it) } ?: emptyMap()),

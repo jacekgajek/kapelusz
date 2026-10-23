@@ -26,10 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -42,15 +40,14 @@ import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import com.jacekgajek.kapelusz.app.generated.share_weight
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
+import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
@@ -93,21 +90,23 @@ fun ParticipantsSection(context: EventContext) {
             )
         }
         event.guests.forEach { guest ->
-            // Tapping the whole chip removes the guest, as tapping a member's chip takes them out (V5-M1 C7): a full-size
-            // target instead of the small cross, which only marks it.
-            val remove = removeLabel(guest.name)
             InputChip(
                 selected = true,
-                onClick = { if (canManage) context.actions.run(RemoveParticipant(event.id, guest.id)) },
-                enabled = canManage,
+                onClick = {},
                 label = { Text(guest.name) },
                 trailingIcon = if (canManage) {
-                    { Icon(Icons.Default.Close, null) }
+                    {
+                        // A button named after the guest, not a bare "Remove" image (ITERATION_3 R13). Only the cross
+                        // removes the guest: tapping the name did too, which was easy to do by accident.
+                        Icon(
+                            Icons.Default.Close,
+                            removeLabel(guest.name),
+                            Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { context.actions.run(RemoveParticipant(event.id, guest.id)) },
+                        )
+                    }
                 } else {
                     null
                 },
-                // Read out as what tapping does: "Remove Bob".
-                modifier = Modifier.semantics { if (canManage) onClick(label = remove) { context.actions.run(RemoveParticipant(event.id, guest.id)); true } },
             )
         }
         if (canManage) AssistChip(
@@ -143,8 +142,8 @@ fun ParticipantsSection(context: EventContext) {
     }
 
     if (addingGuest) {
-        GuestDialog(onDismiss = { addingGuest = false }) { name, weight ->
-            context.actions.run(AddGuest(event.id, newId(), name, weight))
+        GuestDialog(context, onDismiss = { addingGuest = false }) { name, weight, fixedShare ->
+            context.actions.run(AddGuest(event.id, newId(), name, weight, fixedShare))
         }
     }
     editingWeight?.let { partyId ->
@@ -157,28 +156,38 @@ fun ParticipantsSection(context: EventContext) {
     }
 }
 
+/** A new guest's name and share: a percentage on the slider, or a fixed amount, as in [ShareDialog]. */
 @Composable
-private fun GuestDialog(onDismiss: () -> Unit, onAdd: (String, Int) -> Boolean) {
+private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (String, Int, Money?) -> Boolean) {
+    val lang = language
     var name by remember { mutableStateOf("") }
-    var weight by remember { mutableStateOf(DEFAULT_WEIGHT.toString()) }
-    val parsedWeight = weight.toIntOrNull()?.takeIf { it in 0..10_000 }
+    val editor = rememberShareEditorState(DEFAULT_WEIGHT, null)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.add_guest)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it.take(Limits.MAX_NAME) }, label = { Text(stringResource(Res.string.guest_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                WeightField(weight) { weight = it }
+                ShareEditor(editor, context.currency) {
+                    val guest = Participant(NEW_GUEST, editor.weight)
+                    val preview = context.event.copy(guests = context.event.guests + Guest(NEW_GUEST, name), participants = context.event.participants + guest)
+                    val share = SettlementCalculator.settle(context.band, preview).line(NEW_GUEST)?.share ?: Money.ZERO
+                    Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
+                }
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank() && parsedWeight != null, onClick = { if (onAdd(name.trim(), parsedWeight!!)) onDismiss() }) {
-                Text(stringResource(Res.string.ok))
-            }
+            TextButton(
+                enabled = name.isNotBlank() && editor.valid,
+                onClick = { if (onAdd(name.trim(), editor.weight, editor.parsedAmount.takeIf { editor.fixed })) onDismiss() },
+            ) { Text(stringResource(Res.string.ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
 }
+
+/** The guest being added, in the preview of what their share comes to. */
+private const val NEW_GUEST = "new-guest"
 
 /**
  * A participant's share (ITERATION_3 §2.4): a percentage on a slider in 25% steps, or a fixed amount. OK applies the
@@ -222,20 +231,4 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
-}
-
-@Composable
-private fun WeightField(text: String, onText: (String) -> Unit) {
-    Column {
-        OutlinedTextField(
-            text,
-            { value -> onText(value.filter { it.isDigit() }.take(5)) },
-            label = { Text(stringResource(Res.string.share_weight)) },
-            suffix = { Text("%") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(stringResource(Res.string.share_weight_hint), style = MaterialTheme.typography.bodySmall)
-    }
 }

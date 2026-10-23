@@ -33,7 +33,7 @@ import kotlin.test.assertTrue
 class InviteAndHistoryTest {
     private val store = InMemoryBlobStore()
     private var now = 1_790_000_000_000
-    private val api = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { now })
+    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now })
 
     private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap()) =
         api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
@@ -156,7 +156,7 @@ class InviteAndHistoryTest {
                 return store.put(key, content, ifMatch, ifNoneMatch)
             }
         }
-        runCatching { Api(failing, { VerifiedUser(it, null, null) }, clock = { now }).handle(HttpRequest("POST", "/invites/$code/accept", mapOf("authorization" to "Bearer bob"))) }
+        runCatching { Api(failing, InMemoryHistoryStore(), { VerifiedUser(it, null, null) }, clock = { now }).handle(HttpRequest("POST", "/invites/$code/accept", mapOf("authorization" to "Bearer bob"))) }
         assertTrue(call("GET", "/me", "bob").parse(MeResponse.serializer()).bands.isEmpty(), "the crash left the user record behind")
 
         assertEquals(200, call("POST", "/invites/$code/accept", "bob").status)
@@ -248,7 +248,7 @@ class InviteAndHistoryTest {
         setup()
         val photo = "https://lh3.googleusercontent.com/a/bob=s96-c"
         // Bob signed in with Google before (his photo is kept with his user).
-        val google = Api(store, { token -> VerifiedUser(token, null, null, picture = photo) }, clock = { now })
+        val google = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null, picture = photo) }, clock = { now })
         assertEquals(200, google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer bob"))).status)
         val code = invite().parse(InviteInfo.serializer()).code
         val joined = call("POST", "/invites/$code/accept", "bob").parse(BandStateResponse.serializer())

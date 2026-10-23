@@ -19,9 +19,6 @@ object StorageKeys {
         "${bandPrefix(bandId)}attachments/${safe(attachment.id)}.${attachment.kind.extension}"
 
     /** The band's history; an entry's name (its id in [com.jacekgajek.kapelusz.api.HistoryEntry]) is the rest of its key. */
-    fun log(bandId: String) = "${bandPrefix(bandId)}log/"
-    fun logMonth(bandId: String, month: String) = "${log(bandId)}$month/"
-    fun logEntry(bandId: String, name: String) = "${log(bandId)}$name"
 
     fun user(userId: String) = "users/${safe(userId)}.json"
     fun joinAttempts(userId: String) = "users/${safe(userId)}-join-attempts.json"

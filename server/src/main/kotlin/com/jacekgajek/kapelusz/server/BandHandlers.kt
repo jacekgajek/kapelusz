@@ -127,6 +127,7 @@ internal class BandHandlers(
         userIds.forEach { runCatching { users.removeBandFromUser(it, bandId) } }
         invites.loadCodes(bandId).forEach { code -> runCatching { store.delete(StorageKeys.invite(code)) } }
         store.deleteAll(store.list(StorageKeys.bandPrefix(bandId)).filter { it != StorageKeys.deleted(bandId) })
+        runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
         return HttpResponse(204)
     }
 

@@ -16,6 +16,7 @@ import kotlinx.serialization.SerializationException
  */
 class Api(
     store: BlobStore,
+    historyStore: HistoryStore,
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
     private val sessions: SessionTokens = SessionTokens(store, clock),
@@ -26,7 +27,7 @@ class Api(
     private val revocations = SessionRevocations(store, clock)
     private val bands = BandAccess(store)
     private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands)
-    private val history = HistoryHandlers(store, clock, bands)
+    private val history = HistoryHandlers(historyStore, clock, bands)
     private val attachments = AttachmentHandlers(store, bands)
     private val invites = InviteHandlers(store, clock, bands, users, history)
     private val calendar = CalendarHandlers(store, clock, bands, users)

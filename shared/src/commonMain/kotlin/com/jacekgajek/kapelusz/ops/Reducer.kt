@@ -421,9 +421,10 @@ object Reducer {
     private fun addGuest(band: Band, op: AddGuest): Band = band.updateEvent(op.eventId) { event ->
         invalidIf(event.guest(op.guestId) != null || band.member(op.guestId) != null, RejectionReason.DUPLICATE_ID) { "Id ${op.guestId} already in use" }
         validateWeight(op.weight)
+        op.fixedShare?.let { validatePositive(it, "Fixed share") }
         event.copy(
             guests = event.guests + Guest(op.guestId, op.name.validName("Guest name")),
-            participants = event.participants + Participant(op.guestId, op.weight),
+            participants = event.participants + Participant(op.guestId, op.weight, fixedShare = op.fixedShare),
         )
     }
 

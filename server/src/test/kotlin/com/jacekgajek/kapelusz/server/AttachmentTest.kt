@@ -30,7 +30,7 @@ import kotlin.test.assertTrue
 
 class AttachmentTest {
     private val store = InMemoryBlobStore()
-    private val api = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
+    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
     private var seq = 0L
 
     private fun call(method: String, path: String, user: String, body: String? = null) =

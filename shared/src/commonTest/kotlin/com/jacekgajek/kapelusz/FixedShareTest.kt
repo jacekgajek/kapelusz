@@ -12,6 +12,7 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
+import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.CreateEvent
@@ -35,6 +36,16 @@ import kotlin.test.assertTrue
 class FixedShareTest {
 
     private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
+
+    @Test
+    fun aGuestCanBeAddedWithAFixedAmount() {
+        val scenario = gig()
+            .apply(AddHolding("gig", "h", "alice", pln("1000"), DOOR))
+            .apply(AddGuest("gig", "dave", "Dave", fixedShare = pln("100")))
+        assertEquals(pln("100"), scenario.band.event("gig")!!.participant("dave")!!.fixedShare)
+        assertEquals(pln("100"), scenario.settle("gig").line("dave")!!.share)
+        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(AddGuest("gig", "erin", "Erin", fixedShare = pln("0"))).reason)
+    }
 
     @Test
     fun fixedAmountsComeOffTheTopAndTheRestIsSplitByWeight() {

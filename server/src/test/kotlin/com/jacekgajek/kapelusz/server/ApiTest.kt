@@ -31,9 +31,10 @@ import kotlin.test.assertTrue
 
 class ApiTest {
     private val store = InMemoryBlobStore()
+    private val history = InMemoryHistoryStore()
 
     /** Tokens are just user ids in tests. */
-    private val api = Api(store, { token -> VerifiedUser(token, "$token@example.com", token) }, clock = { 1_790_000_000_000 })
+    private val api = Api(store, history, { token -> VerifiedUser(token, "$token@example.com", token) }, clock = { 1_790_000_000_000 })
 
     private fun call(method: String, path: String, user: String? = "alice", body: String? = null, headers: Map<String, String> = emptyMap()) =
         api.handle(HttpRequest(method, path, headers + listOfNotNull(user?.let { "authorization" to "Bearer $it" }), body))
@@ -57,7 +58,7 @@ class ApiTest {
     @Test
     fun requiresValidToken() {
         assertEquals(401, call("GET", "/me", user = null).status)
-        val rejecting = Api(store, { null })
+        val rejecting = Api(store, InMemoryHistoryStore(), { null })
         assertEquals(401, rejecting.handle(HttpRequest("GET", "/me", mapOf("authorization" to "Bearer x"))).status)
     }
 
@@ -99,7 +100,10 @@ class ApiTest {
         assertEquals(2, retry.band.members.size)
         assertTrue(retry.band.lastSeq.keys.all { it.startsWith("alice/") }, "sequence numbers are per user and device")
 
-        assertEquals(1, store.objects.keys.count { it.startsWith("bands/band1/log/2026-09/") })
+        // One entry for the push (a record per operation); the retried duplicates add nothing.
+        val records = history.bands.getValue("band1").keys
+        assertEquals(2, records.size)
+        assertEquals(1, records.map { it.substringBefore('#') }.distinct().count { it.startsWith("2026-09/") })
     }
 
     @Test
@@ -120,7 +124,7 @@ class ApiTest {
     fun theGooglePhotoReachesTheUsersMembersAtSignIn() {
         val photo = "https://lh3.googleusercontent.com/a/alice-photo=s96-c"
         // Signing in with Google brings the photo; the test verifier stands in for Google.
-        val google = Api(store, { token -> VerifiedUser(token.removeSuffix("-google"), null, null, picture = photo.takeIf { token.endsWith("-google") }) }, clock = { 1_790_000_000_000 })
+        val google = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token.removeSuffix("-google"), null, null, picture = photo.takeIf { token.endsWith("-google") }) }, clock = { 1_790_000_000_000 })
         createBand()
         assertEquals(200, google.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer alice-google"))).status)
         val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
@@ -131,7 +135,7 @@ class ApiTest {
         assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band2")).content).memberOfUser("alice")?.pictureUrl)
 
         // Anything but a Google photo address is ignored.
-        val other = Api(store, { token -> VerifiedUser(token, null, null, picture = "https://evil.example/x.png") }, clock = { 1_790_000_000_000 })
+        val other = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null, picture = "https://evil.example/x.png") }, clock = { 1_790_000_000_000 })
         other.handle(HttpRequest("POST", "/session", mapOf("authorization" to "Bearer alice")))
         assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content).memberOfUser("alice")?.pictureUrl)
     }
@@ -139,7 +143,7 @@ class ApiTest {
     @Test
     fun anAlreadySignedInUserSendsTheirKeptGoogleTokenForThePhoto() {
         val photo = "https://lh3.googleusercontent.com/a/alice-photo=s96-c"
-        val google = Api(store, object : TokenVerifier {
+        val google = Api(store, InMemoryHistoryStore(), object : TokenVerifier {
             override fun verify(token: String) = VerifiedUser(token, null, null)
             override fun pictureOf(token: String, userId: String) = photo.takeIf { token == "old-google-token-of-$userId" }
         }, clock = { 1_790_000_000_000 })
@@ -197,7 +201,7 @@ class ApiTest {
 
     @Test
     fun aPushThatWouldMakeTheBandTooLargeToLoadIsRefused() {
-        val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
+        val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
         createBand()
         fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
             KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400))))))))
@@ -214,7 +218,7 @@ class ApiTest {
     /** V5-M1 A2: the cap counts bytes; text in other scripts takes up to 3 bytes a character. */
     @Test
     fun theSizeCapCountsBytes() {
-        val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
+        val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
         createBand()
         fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
             KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "字".repeat(150))))))))
@@ -260,7 +264,7 @@ class ApiTest {
                 return store.put(key, content, ifMatch, ifNoneMatch)
             }
         }
-        val flakyApi = Api(flaky, { VerifiedUser(it, null, null) })
+        val flakyApi = Api(flaky, InMemoryHistoryStore(), { VerifiedUser(it, null, null) })
         val body = KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("a", "phone", 1, 1, RenameBand("X")))))
         val response = flakyApi.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"), body))
         assertEquals(listOf("a"), response.parse(PushResponse.serializer()).accepted)
