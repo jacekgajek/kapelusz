@@ -92,6 +92,8 @@
     <string name="save">Save</string>
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
+    <string name="remove_guest_title">Remove guest %1$s?</string>
+    <string name="remove_guest_text">The guest is removed from this event; you can undo it in the history.</string>
     <string name="more">More</string>
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>

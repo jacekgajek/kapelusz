@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilterChip
@@ -46,6 +45,12 @@ import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
+import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
+import com.jacekgajek.kapelusz.app.generated.remove
+import com.jacekgajek.kapelusz.app.generated.remove_guest_text
+import com.jacekgajek.kapelusz.app.generated.remove_guest_title
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.onClick
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.Limits
@@ -69,6 +74,7 @@ fun ParticipantsSection(context: EventContext) {
     val event = context.event
     val canManage = context.can.manageParticipants(event)
     var addingGuest by remember { mutableStateOf(false) }
+    var removingGuest by remember { mutableStateOf<String?>(null) }
     var showShares by remember { mutableStateOf(event.participants.any { it.weight != DEFAULT_WEIGHT || it.fixedShare != null }) }
     var editingWeight by remember { mutableStateOf<String?>(null) }
 
@@ -89,23 +95,14 @@ fun ParticipantsSection(context: EventContext) {
             )
         }
         event.guests.forEach { guest ->
+            // Tapping the chip asks to remove the guest; no cross, which would suggest only it removes them.
+            val remove = removeLabel(guest.name)
             InputChip(
                 selected = true,
-                onClick = {},
+                onClick = { if (canManage) removingGuest = guest.id },
                 label = { Text(guest.name) },
-                trailingIcon = if (canManage) {
-                    {
-                        // A button named after the guest, not a bare "Remove" image (ITERATION_3 R13). Only the cross
-                        // removes the guest: tapping the name did too, which was easy to do by accident.
-                        Icon(
-                            Icons.Default.Close,
-                            removeLabel(guest.name),
-                            Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { context.actions.run(RemoveParticipant(event.id, guest.id)) },
-                        )
-                    }
-                } else {
-                    null
-                },
+                // Read out as what tapping does: "Remove Kasia".
+                modifier = Modifier.semantics { if (canManage) onClick(label = remove) { removingGuest = guest.id; true } },
             )
         }
         if (canManage) AssistChip(
@@ -140,6 +137,21 @@ fun ParticipantsSection(context: EventContext) {
         }
     }
 
+    removingGuest?.let { guestId ->
+        val guest = event.guest(guestId)
+        if (guest == null) {
+            // Removed meanwhile (e.g. by someone else): nothing left to ask.
+            removingGuest = null
+        } else {
+            ConfirmDialog(
+                title = stringResource(Res.string.remove_guest_title, guest.name),
+                text = stringResource(Res.string.remove_guest_text),
+                confirmLabel = stringResource(Res.string.remove),
+                onConfirm = { context.actions.run(RemoveParticipant(event.id, guestId)) },
+                onDismiss = { removingGuest = null },
+            )
+        }
+    }
     if (addingGuest) {
         GuestDialog(context, onDismiss = { addingGuest = false }) { name, weight, fixedShare ->
             context.actions.run(AddGuest(event.id, newId(), name, weight, fixedShare))
