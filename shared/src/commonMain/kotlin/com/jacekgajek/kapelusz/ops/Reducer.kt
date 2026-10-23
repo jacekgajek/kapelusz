@@ -51,6 +51,7 @@ object Reducer {
             is SetMemberArchived -> setMemberArchived(band, op)
             is DeleteMember -> deleteMember(band, op)
             is SetMemberRole -> setMemberRole(band, op)
+            is SetMemberShare -> setMemberShare(band, op, ctx)
             is LinkUser -> linkUser(band, op)
             is UnlinkUser -> unlinkUser(band, op)
             is SetTreasurer -> setTreasurer(band, op)
@@ -260,6 +261,26 @@ object Reducer {
         return band.copy(members = band.members.filterNot { it.id == member.id })
     }
 
+    private fun setMemberShare(band: Band, op: SetMemberShare, ctx: OpContext): Band {
+        band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
+        validateWeight(op.weight)
+        op.fixedShare?.let { validatePositive(it, "Fixed share") }
+        invalidIf(op.events.toSet().size != op.events.size, RejectionReason.INVALID_INPUT) { "Events listed twice" }
+        var result = band.updateMember(op.memberId) { it.copy(shareWeight = op.weight, shareFixed = op.fixedShare) }
+        for (eventId in op.events) {
+            result = result.updateEvent(eventId) { event ->
+                // As any change to an event (ITERATION_3 R10): archived ones are read-only.
+                conflictIf(event.archived, RejectionReason.ARCHIVED_EVENT) { "Event $eventId is archived" }
+                event.participant(op.memberId).orNotFound { "Participant ${op.memberId}" }
+                event.copy(
+                    participants = event.participants.map { if (it.partyId == op.memberId) it.copy(weight = op.weight, fixedShare = op.fixedShare) else it },
+                    updatedAt = ctx.timestamp,
+                )
+            }
+        }
+        return result
+    }
+
     private fun setMemberRole(band: Band, op: SetMemberRole): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Use ownership transfer to make someone the owner" }
@@ -367,9 +388,10 @@ object Reducer {
     private fun addParticipant(band: Band, op: AddParticipant, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
         validateWeight(op.weight)
+        op.fixedShare?.let { validatePositive(it, "Fixed share") }
         val updated = band.updateEvent(op.eventId) { event ->
             invalidIf(event.participant(op.memberId) != null, RejectionReason.ALREADY_PARTICIPANT) { "Member already takes part" }
-            event.copy(participants = event.participants + Participant(op.memberId, op.weight, addedBy = ctx.memberId))
+            event.copy(participants = event.participants + Participant(op.memberId, op.weight, addedBy = ctx.memberId, fixedShare = op.fixedShare))
         }
         return updated
     }

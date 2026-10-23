@@ -46,6 +46,7 @@ import com.jacekgajek.kapelusz.app.generated.h_restore_event
 import com.jacekgajek.kapelusz.app.generated.h_restore_member
 import com.jacekgajek.kapelusz.app.generated.h_resubmit_cost
 import com.jacekgajek.kapelusz.app.generated.h_set_fund_amount
+import com.jacekgajek.kapelusz.app.generated.h_set_member_share
 import com.jacekgajek.kapelusz.app.generated.h_set_refund
 import com.jacekgajek.kapelusz.app.generated.h_set_role
 import com.jacekgajek.kapelusz.app.generated.h_set_treasurer
@@ -101,6 +102,7 @@ import com.jacekgajek.kapelusz.app.generated.h_set_agenda_template
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
+import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.DisableBandFund
@@ -181,6 +183,7 @@ fun describe(op: Operation, band: Band): String {
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
         is UpdateCost -> if (op.resubmit) stringResource(Res.string.h_resubmit_cost) else stringResource(Res.string.h_edit_cost)
         is DeleteCost -> stringResource(Res.string.h_delete_cost)
+        is SetMemberShare -> stringResource(Res.string.h_set_member_share, member(op.memberId))
         is RefuseCost -> band.cost(op.costId)?.let { stringResource(Res.string.h_refuse_cost_of, money(it.amount), member(it.memberId)) }
             ?: stringResource(Res.string.h_refuse_cost)
         is AddAttachment -> stringResource(Res.string.h_add_attachment)

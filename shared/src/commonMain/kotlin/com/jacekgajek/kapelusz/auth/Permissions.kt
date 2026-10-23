@@ -41,6 +41,7 @@ import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
+import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.DisableBandFund
@@ -97,6 +98,7 @@ object Permissions {
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
         is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,
         is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer, is RefuseCost, is ReceiveAwaited,
+        is SetMemberShare,
         -> Role.LEAD
 
         is AddHolding -> ownIf(op.partyId == me.id && band.event(op.eventId)?.participant(me.id) != null)

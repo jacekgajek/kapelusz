@@ -58,6 +58,15 @@
     <string name="member_name">Imię</string>
     <string name="not_linked">Bez konta w aplikacji</string>
     <string name="roster_archived">Zarchiwizowani (%1$d)</string>
+    <string name="member_share_title">Domyślny udział</string>
+    <string name="member_share_line">Udział: %1$s</string>
+    <string name="member_share_fixed">%1$s (stała kwota)</string>
+    <string name="member_share_hint">Od tego udziału zaczyna się w nowych wydarzeniach; w każdym można go zmienić.</string>
+    <string name="member_share_apply_title">Użyć go też w nierozliczonych wydarzeniach?</string>
+    <string name="member_share_apply_text">%1$s ma jeszcze poprzedni udział w %2$d z nich: %3$s.</string>
+    <string name="member_share_apply_yes">Tam też</string>
+    <string name="member_share_apply_no">Tylko w nowych</string>
+    <string name="h_set_member_share">Ustawiono domyślny udział: %1$s</string>
     <string name="role_viewer">Obserwator</string>
     <string name="role_artist">Artysta</string>
     <string name="role_member">Członek</string>

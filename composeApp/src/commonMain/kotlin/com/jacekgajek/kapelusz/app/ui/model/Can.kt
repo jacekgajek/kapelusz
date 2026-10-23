@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Id
@@ -23,6 +24,7 @@ import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
+import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
@@ -43,6 +45,7 @@ class Can(private val band: Band, private val userId: String) {
     /** Sees only their own events, costs and payouts (ITERATION_4 §1.1). */
     val artist: Boolean get() = band.isArtist(userId)
     fun refuseCost() = allowed(RefuseCost(PROBE))
+    fun setMemberShare() = allowed(SetMemberShare(PROBE, DEFAULT_WEIGHT, null))
 
     fun createEvent() = allowed(CreateEvent(PROBE, PROBE, PROBE_DATE))
     fun archiveEvents() = allowed(SetEventArchived(PROBE, true))

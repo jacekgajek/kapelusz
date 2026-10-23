@@ -201,13 +201,16 @@ fun EventsScreen(
     }
 }
 
-/** Bands usually play with the same lineup: copy the members (not guests) of the most recent event. */
+/**
+ * Bands usually play with the same lineup: copy the members (not guests) of the most recent event, each with their
+ * default share (ITERATION_4 §2.3).
+ */
 private fun lineupOfLastEvent(band: Band, myId: String?): List<Participant> {
     val last = band.events.filter { !it.archived }.maxWithOrNull(compareBy({ it.date }, { it.updatedAt }))
     val members = last?.participants
-        ?.filter { band.member(it.partyId)?.archived == false }
-        ?.map { Participant(it.partyId) }
-    return members ?: listOfNotNull(myId?.let { Participant(it) })
+        ?.mapNotNull { band.member(it.partyId)?.takeIf { member -> !member.archived } }
+        ?.map { it.asParticipant() }
+    return members ?: listOfNotNull(myId?.let { band.member(it) }?.asParticipant())
 }
 
 @Composable

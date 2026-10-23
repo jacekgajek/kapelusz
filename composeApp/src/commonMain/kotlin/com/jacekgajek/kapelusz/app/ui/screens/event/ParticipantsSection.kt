@@ -40,39 +40,27 @@ import com.jacekgajek.kapelusz.app.generated.guest_name
 import com.jacekgajek.kapelusz.app.generated.hide_shares
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
+import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
 import androidx.compose.ui.semantics.Role
 import com.jacekgajek.kapelusz.app.generated.share_weight
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.SetWeight
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import com.jacekgajek.kapelusz.app.generated.share_by_percent
 import com.jacekgajek.kapelusz.app.generated.share_fixed
-import com.jacekgajek.kapelusz.app.generated.share_fixed_amount
-import com.jacekgajek.kapelusz.app.generated.share_fixed_hint
 import com.jacekgajek.kapelusz.app.generated.share_resulting
-import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
-import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.SetFixedShare
-import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -93,7 +81,7 @@ fun ParticipantsSection(context: EventContext) {
                 selected = selected,
                 enabled = canManage,
                 onClick = {
-                    context.actions.run(if (selected) RemoveParticipant(event.id, member.id) else AddParticipant(event.id, member.id))
+                    context.actions.run(if (selected) RemoveParticipant(event.id, member.id) else AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed))
                 },
                 label = { Text(member.name) },
                 // The member's Google photo, or their initials (ITERATION_2 §7.4).
@@ -197,17 +185,14 @@ private fun GuestDialog(onDismiss: () -> Unit, onAdd: (String, Int) -> Unit) {
 private fun ShareDialog(context: EventContext, participant: Participant, onDismiss: () -> Unit) {
     val event = context.event
     val lang = language
-    var fixed by remember { mutableStateOf(participant.fixedShare != null) }
-    var weight by remember { mutableStateOf(participant.weight) }
-    var amount by remember { mutableStateOf(participant.fixedShare?.let { formatMoneyInput(it, lang) } ?: "") }
-    val parsedAmount = parseMoney(amount)?.takeIf { it.isPositive && it.minor <= Limits.MAX_AMOUNT }
-    val currencyLabel = if (lang == "pl" && context.currency == "PLN") "zł" else context.currency
+    val editor = rememberShareEditorState(participant.weight, participant.fixedShare)
 
     val ops = buildList {
-        if (fixed) {
-            if (parsedAmount != null && parsedAmount != participant.fixedShare) add(SetFixedShare(event.id, participant.partyId, parsedAmount))
+        if (editor.fixed) {
+            val amount = editor.parsedAmount
+            if (amount != null && amount != participant.fixedShare) add(SetFixedShare(event.id, participant.partyId, amount))
         } else {
-            val newWeight = weight.takeIf { it != participant.weight }
+            val newWeight = editor.weight.takeIf { it != participant.weight }
             // Back to a percentage with a new weight in one operation, so one undo reverts the whole dialog.
             if (participant.fixedShare != null) add(SetFixedShare(event.id, participant.partyId, null, newWeight))
             else if (newWeight != null) add(SetWeight(event.id, participant.partyId, newWeight))
@@ -217,40 +202,15 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
         onDismissRequest = onDismiss,
         title = { Text(partyName(context.band, event, participant.partyId, "")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    listOf(false to "%", true to currencyLabel).forEachIndexed { index, (value, label) ->
-                        val description = stringResource(if (value) Res.string.share_fixed_amount else Res.string.share_by_percent)
-                        SegmentedButton(
-                            selected = fixed == value,
-                            onClick = { fixed = value },
-                            shape = SegmentedButtonDefaults.itemShape(index, 2),
-                            modifier = Modifier.semantics { contentDescription = description },
-                        ) { Text(label) }
-                    }
-                }
-                if (fixed) {
-                    MoneyField(amount, { amount = it }, stringResource(Res.string.share_fixed_amount))
-                    Text(stringResource(Res.string.share_fixed_hint), style = MaterialTheme.typography.bodySmall)
-                } else {
-                    Text("$weight%", style = MaterialTheme.typography.titleMedium)
-                    // A weight off the steps (e.g. 110% from before) shows as is; the slider snaps it only when moved.
-                    Slider(
-                        value = weight.coerceIn(0, MAX_SLIDER_WEIGHT).toFloat(),
-                        onValueChange = { weight = (it / WEIGHT_STEP).roundToInt() * WEIGHT_STEP },
-                        valueRange = 0f..MAX_SLIDER_WEIGHT.toFloat(),
-                        steps = MAX_SLIDER_WEIGHT / WEIGHT_STEP - 1,
-                    )
-                    val preview = event.copy(participants = event.participants.map { if (it.partyId == participant.partyId) it.copy(weight = weight, fixedShare = null) else it })
-                    val share = SettlementCalculator.settle(context.band, preview).line(participant.partyId)?.share ?: Money.ZERO
-                    Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
-                    Text(stringResource(Res.string.share_weight_hint), style = MaterialTheme.typography.bodySmall)
-                }
+            ShareEditor(editor, context.currency) {
+                val preview = event.copy(participants = event.participants.map { if (it.partyId == participant.partyId) it.copy(weight = editor.weight, fixedShare = null) else it })
+                val share = SettlementCalculator.settle(context.band, preview).line(participant.partyId)?.share ?: Money.ZERO
+                Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
             }
         },
         confirmButton = {
             TextButton(
-                enabled = !fixed || parsedAmount != null,
+                enabled = editor.valid,
                 onClick = {
                     ops.all { context.actions.run(it) }
                     onDismiss()
@@ -260,9 +220,6 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
 }
-
-private const val WEIGHT_STEP = 25
-private const val MAX_SLIDER_WEIGHT = 200
 
 @Composable
 private fun WeightField(text: String, onText: (String) -> Unit) {
