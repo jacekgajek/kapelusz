@@ -28,6 +28,7 @@ import com.jacekgajek.kapelusz.app.generated.artist_my_costs
 import com.jacekgajek.kapelusz.app.generated.artist_payout
 import com.jacekgajek.kapelusz.app.generated.artist_received
 import com.jacekgajek.kapelusz.app.generated.artist_still_to_receive
+import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.artist_to_receive
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
@@ -72,8 +73,10 @@ fun ArtistPayout(context: EventContext) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             PayoutRow(stringResource(Res.string.artist_to_receive), line.target, context.currency)
             PayoutRow(stringResource(Res.string.artist_received), line.received - line.sent, context.currency)
-            // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta.
-            PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta, context.currency, bold = true)
+            // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
+            // got too much (or owe from before they were an artist), a lead settles it with whoever is owed.
+            if (line.delta.isPositive) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta, context.currency, bold = true)
+            else PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta, context.currency, bold = true)
         }
     }
 }

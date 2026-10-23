@@ -15,6 +15,7 @@
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
     <string name="artist_still_to_receive">Still to receive</string>
+    <string name="artist_to_hand_back">To hand back (a lead settles it)</string>
     <string name="artist_my_costs">Your costs for this event</string>
     <string name="tab_settle">Settle</string>
     <string name="language">Language</string>

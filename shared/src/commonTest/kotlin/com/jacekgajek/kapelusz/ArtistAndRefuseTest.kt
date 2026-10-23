@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
@@ -21,7 +22,6 @@ import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
-import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
@@ -156,7 +156,7 @@ class ArtistAndRefuseTest {
     }
 
     @Test
-    fun undoCannotRefundARefusedCostOrGiveAnArtistMoney() {
+    fun undoCannotRefundARefusedCost() {
         val scenario = gig()
         scenario.apply(AddCost("c", "bob", pln("40"), DATE)).apply(SetRefund("gig", "c", pln("40")))
         val removeRefund = SetRefund("gig", "c", pln("0"))
@@ -165,15 +165,19 @@ class ArtistAndRefuseTest {
         val undoRemove = Undo("u1", removeRefund, BandChange.between(beforeRemove, scenario.band))
         scenario.apply(RefuseCost("c"))
         assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoRemove).reason)
+    }
 
-        val removeHolding = RemoveHolding("gig", "h")
-        scenario.apply(AddHolding("gig", "h", "carol", pln("100"), DOOR))
-        val beforeHolding = scenario.band
-        scenario.apply(removeHolding)
-        val undoHolding = Undo("u2", removeHolding, BandChange.between(beforeHolding, scenario.band))
-        scenario.apply(SetMemberRole("carol", Role.ARTIST))
-        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoHolding).reason)
-        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "t", "carol", "alice", pln("1"))).reason)
+    /** An artist who ends up owing (overpaid, or owing from before) is settled by a lead; they can't do it themselves. */
+    @Test
+    fun aLeadSettlesWhatAnArtistOwes() {
+        val scenario = gig().apply(AddHolding("gig", "h", "alice", pln("300"), DOOR)).apply(SettleSuggestions("gig"))
+        val carol = scenario.userFor("carol", Role.ARTIST)
+        val alice = scenario.userFor("alice", Role.OWNER)
+        scenario.apply(RecordTransfer("gig", "over", "alice", "carol", pln("50")), alice)
+        assertEquals(pln("50"), scenario.settle("gig").line("carol")!!.delta, "overpaid: owes 50 back")
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "back", "carol", "alice", pln("50")), carol).reason)
+        scenario.apply(RecordTransfer("gig", "back", "carol", "alice", pln("50")), alice)
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
     }
 
     @Test
