@@ -41,8 +41,8 @@ data class BandChange(val before: BandPart, val after: BandPart) {
     /** Undoing would bring back attachments whose files the server deleted when they were removed. */
     val restoresAttachments: Boolean
         get() {
-            val now = after.costs.values.filterNotNull().flatMap { it.attachments }.map { it.id }.toSet()
-            return before.costs.values.filterNotNull().flatMap { it.attachments }.any { it.id !in now }
+            val now = after.attachmentIds()
+            return before.attachmentIds().any { it !in now }
         }
 
     companion object {
@@ -186,3 +186,8 @@ private fun <T> diff(before: List<T>, after: List<T>, id: (T) -> Id): Diff<T> {
     val moved = before.map(id).filter { it in new } != after.map(id).filter { it in old }
     return Diff(changed.associateWith { old[it] }, changed.associateWith { new[it] }, before.map(id).takeIf { removed || moved })
 }
+
+/** Ids of the attachments in a part of the band: on costs, on events and on their collected entries. */
+private fun BandPart.attachmentIds(): Set<Id> =
+    (costs.values.filterNotNull().flatMap { it.attachments } +
+        events.values.filterNotNull().flatMap { event -> event.attachments + event.holdings.flatMap { it.attachments } }).map { it.id }.toSet()

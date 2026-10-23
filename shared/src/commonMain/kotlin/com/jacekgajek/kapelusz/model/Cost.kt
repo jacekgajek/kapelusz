@@ -1,9 +1,41 @@
 package com.jacekgajek.kapelusz.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Files on one cost or one collected entry. */
 const val MAX_ATTACHMENTS = 5
+
+/** Files on an event itself (ITERATION_4 §2.1). */
+const val MAX_EVENT_ATTACHMENTS = 10
+
+/** What an attachment belongs to (ITERATION_4 §2.1): a cost's receipt, a collected entry's contract, or the gig's files. */
+@Serializable
+sealed interface AttachmentOwner {
+    /** The event it is part of, if any: archived events are read-only. */
+    val eventId: Id? get() = null
+
+    @Serializable @SerialName("cost")
+    data class OfCost(val costId: Id) : AttachmentOwner
+
+    @Serializable @SerialName("holding")
+    data class OfHolding(override val eventId: Id, val holdingId: Id) : AttachmentOwner
+
+    @Serializable @SerialName("event")
+    data class OfEvent(override val eventId: Id) : AttachmentOwner
+}
+
+/** The attachments of [owner], or null when it does not exist. */
+fun Band.attachmentsOf(owner: AttachmentOwner): List<Attachment>? = when (owner) {
+    is AttachmentOwner.OfCost -> cost(owner.costId)?.attachments
+    is AttachmentOwner.OfHolding -> event(owner.eventId)?.holdings?.firstOrNull { it.id == owner.holdingId }?.attachments
+    is AttachmentOwner.OfEvent -> event(owner.eventId)?.attachments
+}
+
+/** Every attachment in the band, wherever it is. */
+fun Band.allAttachments(): List<Attachment> =
+    costs.flatMap { it.attachments } + events.flatMap { event -> event.attachments + event.holdings.flatMap { it.attachments } }
 
 /** Money a member spent on behalf of the band. Belongs to the member; events repay it via [Refund]s. */
 @Serializable
@@ -31,7 +63,11 @@ data class Attachment(
     val kind: AttachmentKind,
     val fileName: String? = null,
     val sizeBytes: Long? = null,
-)
+) {
+    companion object {
+        const val MAX_FILE_NAME = 120
+    }
+}
 
 @Serializable
 enum class AttachmentKind(val contentType: String, val extension: String, val maxBytes: Long) {

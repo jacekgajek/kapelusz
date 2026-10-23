@@ -79,6 +79,7 @@ import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.KapeluszJson
@@ -240,7 +241,7 @@ fun CostScreen(
                 )
                 AttachmentsSection(
                     graph,
-                    costId = existing?.id,
+                    owner = existing?.let { AttachmentOwner.OfCost(it.id) },
                     attachments = existing?.attachments.orEmpty(),
                     drafts = drafts,
                     onDrafts = { drafts = it },

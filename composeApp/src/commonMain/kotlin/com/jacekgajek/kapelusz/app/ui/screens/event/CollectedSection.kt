@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -27,14 +29,19 @@ import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_money
 import com.jacekgajek.kapelusz.app.generated.amount
+import com.jacekgajek.kapelusz.app.generated.attachment_hint_holding
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.collected_empty
 import com.jacekgajek.kapelusz.app.generated.collected_money
 import com.jacekgajek.kapelusz.app.generated.collected_by
 import com.jacekgajek.kapelusz.app.generated.delete
+import com.jacekgajek.kapelusz.app.generated.delete_entry_title
+import com.jacekgajek.kapelusz.app.generated.delete_files_too
 import com.jacekgajek.kapelusz.app.generated.note_optional
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
+import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
@@ -45,6 +52,8 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.ops.AddHolding
@@ -78,6 +87,13 @@ fun CollectedSection(context: EventContext) {
             MoneyText(holding.amount, context.currency)
             if (context.can.editHolding(event, holding)) EditButton { editing = holding }
         }
+        // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
+        if (holding.attachments.isNotEmpty()) {
+            AttachmentsSection(
+                context.graph, AttachmentOwner.OfHolding(event.id, holding.id), holding.attachments,
+                drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
+            )
+        }
     }
     if (allowedParties.isNotEmpty()) TextButton(onClick = { adding = true }) {
         Icon(Icons.Default.Add, null)
@@ -101,13 +117,18 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
     var amount by remember { mutableStateOf(initial?.let { formatMoneyInput(it.amount, lang) } ?: "") }
     var source by remember { mutableStateOf(initial?.source ?: IncomeSource.DOOR) }
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
+    // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
+    var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
+    // The entry as it is now (a file added in the dialog shows at once).
+    val current = initial?.let { h -> event.holdings.firstOrNull { it.id == h.id } } ?: initial
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.collected_money)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (initial == null) {
                     Dropdown(partyId, parties, { partyId = it }, stringResource(Res.string.collected_by)) {
                         partyName(context.band, event, it, "")
@@ -116,12 +137,24 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Dropdown(source, IncomeSource.entries, { source = it }, stringResource(Res.string.source)) { it.label() }
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                AttachmentsSection(
+                    context.graph,
+                    owner = current?.let { AttachmentOwner.OfHolding(event.id, it.id) },
+                    attachments = current?.attachments.orEmpty(),
+                    drafts = drafts,
+                    onDrafts = { drafts = it },
+                    editable = true,
+                    actions = context.actions,
+                    hint = Res.string.attachment_hint_holding,
+                )
             }
         },
         confirmButton = {
             TextButton(enabled = parsed != null, onClick = {
                 val ok = if (initial == null) {
-                    context.actions.run(AddHolding(event.id, newId(), partyId, parsed!!, source, note.ifBlank { null }))
+                    val id = newId()
+                    context.actions.run(AddHolding(event.id, id, partyId, parsed!!, source, note.ifBlank { null }))
+                        .also { if (it) context.graph.attachments.attachAfterSave(AttachmentOwner.OfHolding(event.id, id), drafts) }
                 } else {
                     context.actions.run(
                         UpdateHolding(
@@ -139,7 +172,10 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
         dismissButton = {
             Row {
                 if (initial != null) {
-                    TextButton(onClick = { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() }) {
+                    // Its files go with it, for good (no undo), so that is asked first.
+                    TextButton(onClick = {
+                        if (current?.attachments.isNullOrEmpty()) { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() } else confirmDelete = true
+                    }) {
                         Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -147,4 +183,13 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
             }
         },
     )
+    if (confirmDelete && initial != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.delete_entry_title),
+            text = stringResource(Res.string.delete_files_too, current?.attachments?.size ?: 0),
+            confirmLabel = stringResource(Res.string.delete),
+            onConfirm = { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() },
+            onDismiss = { confirmDelete = false },
+        )
+    }
 }

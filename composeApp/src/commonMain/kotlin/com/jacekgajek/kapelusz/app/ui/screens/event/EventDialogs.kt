@@ -49,6 +49,7 @@ import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_event_confirm
 import com.jacekgajek.kapelusz.app.generated.delete_event_title
+import com.jacekgajek.kapelusz.app.generated.delete_files_too
 import com.jacekgajek.kapelusz.app.generated.edit_details
 import com.jacekgajek.kapelusz.app.generated.event_date
 import com.jacekgajek.kapelusz.app.generated.event_location
@@ -143,7 +144,8 @@ fun EventMenu(event: Event, settlement: Settlement, actions: Actions, onDeleted:
     if (confirmDelete) {
         ConfirmDialog(
             title = stringResource(Res.string.delete_event_title),
-            text = stringResource(Res.string.delete_event_confirm, event.name),
+            text = stringResource(Res.string.delete_event_confirm, event.name) +
+                event.attachments.size.takeIf { it > 0 }?.let { " " + stringResource(Res.string.delete_files_too, it) }.orEmpty(),
             confirmLabel = stringResource(Res.string.delete),
             onConfirm = { if (actions.run(DeleteEvent(event.id))) onDeleted() },
             onDismiss = { confirmDelete = false },

@@ -87,6 +87,8 @@
     <string name="event_not_found">To wydarzenie już nie istnieje.</string>
     <string name="delete_event_title">Usunąć wydarzenie?</string>
     <string name="delete_event_confirm">„%1$s” zostanie usunięte. Jego zwroty kosztów znów będą oczekujące.</string>
+    <string name="delete_files_too">Jego pliki też zostaną usunięte: %1$d. Tego nie da się cofnąć.</string>
+    <string name="delete_entry_title">Usunąć ten wpis?</string>
     <string name="total_income">Przychód</string>
     <string name="total_fund">Do kasy zespołowej</string>
     <string name="total_refunds">Zwroty kosztów</string>
@@ -203,7 +205,7 @@
     <string name="reject_cost_below_refunded">Koszt nie może być mniejszy niż już zwrócona kwota.</string>
     <string name="reject_cost_refunded_from_fund">Ten koszt został zwrócony z kasy zespołowej.</string>
     <string name="reject_cannot_settle">Tego wydarzenia nie można jeszcze rozliczyć. Sprawdź ostrzeżenia powyżej.</string>
-    <string name="reject_too_many_attachments">Koszt może mieć najwyżej 5 załączników.</string>
+    <string name="reject_too_many_attachments">Nie ma tu miejsca na więcej plików (5 na koszt lub wpis zebranych pieniędzy, 10 na wydarzenie).</string>
     <string name="unreadable_title">Nie udało się odczytać zapisanych danych</string>
     <string name="unreadable_text">Ich kopia została zachowana na tym urządzeniu, więc nic nie przepadło. Możesz zacząć od nowa; kopię da się później przywrócić, jeśli będzie potrzebna.</string>
     <string name="start_over">Zacznij od nowa</string>
@@ -312,8 +314,9 @@
     <string name="h_refuse_cost">Odrzucono koszt</string>
     <string name="h_resubmit_cost">Ponownie zgłoszono odrzucony koszt</string>
     <string name="h_refuse_cost_of">Odrzucono koszt %1$s dla: %2$s</string>
-    <string name="h_add_attachment">Dodano załącznik do kosztu</string>
-    <string name="h_remove_attachment">Usunięto załącznik z kosztu</string>
+    <string name="h_add_attachment">Dodano plik</string>
+    <string name="h_remove_attachment">Usunięto plik</string>
+    <string name="h_rename_attachment">Zmieniono nazwę pliku na %1$s</string>
     <string name="h_unknown">Wprowadzono zmianę</string>
     <string name="history">Historia</string>
     <string name="show_history">Pokaż historię</string>
@@ -371,6 +374,11 @@
     <string name="attachment_add_file">Dodaj zdjęcie lub PDF</string>
     <string name="attachment_take_photo">Zrób zdjęcie</string>
     <string name="attachment_hint">Paragony i faktury: zdjęcia lub pliki PDF, maksymalnie %1$d.</string>
+    <string name="attachment_hint_holding">Umowa lub potwierdzenie: zdjęcia lub pliki PDF, maksymalnie %1$d.</string>
+    <string name="attachment_hint_event">Umowa, rider, plan sceny, setlista: zdjęcia lub pliki PDF, maksymalnie %1$d.</string>
+    <string name="attachment_rename">Zmień nazwę pliku</string>
+    <string name="attachment_file_name">Nazwa pliku</string>
+    <string name="event_files">Pliki</string>
     <string name="attachment_uploading">wysyłanie</string>
     <string name="attachment_waiting_for_save">zostanie dołączony po zapisaniu</string>
     <string name="attachment_not_available">Jeszcze niedostępny: plik nie został wysłany.</string>
@@ -378,7 +386,7 @@
     <string name="attachment_unsupported">Można dołączać tylko zdjęcia i pliki PDF.</string>
     <string name="attachment_failed">Nie udało się odczytać pliku.</string>
     <string name="attachment_remove_title">Usunąć załącznik?</string>
-    <string name="attachment_remove_confirm">%1$s zostanie usunięty z tego kosztu.</string>
+    <string name="attachment_remove_confirm">Plik %1$s zostanie usunięty.</string>
     <string name="transfer_a11y">%1$s dla %2$s</string>
     <string name="events_filtered_empty">Żadne wydarzenie nie pasuje do filtrów.</string>
     <string name="costs_none">Nie ma jeszcze kosztów. Dodaj swoje wydatki na zespół, a zwrot dostaniesz z kolejnych wydarzeń.</string>

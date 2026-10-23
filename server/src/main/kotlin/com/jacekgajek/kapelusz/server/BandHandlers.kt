@@ -100,7 +100,7 @@ internal class BandHandlers(
                 envelopes.filter { it.opId in result.accepted }.map { it.op }
                     .mapNotNull { (it as? UnlinkUser)?.memberId }
                     .forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
-                // Files of attachments that are gone (removed, or their cost deleted); versioning keeps them for 30 days.
+                // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
                 runCatching { attachments.deleteRemoved(bandId, band, result.band) }
                     .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
                 // The change is already saved; a failed log write must not make the client retry it.

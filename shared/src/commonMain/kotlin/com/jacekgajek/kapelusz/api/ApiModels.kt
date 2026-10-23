@@ -142,9 +142,9 @@ data class CalendarSubscriptionChange(val includeAll: Boolean? = null, val reset
 
 // ---- attachments (M5) ----
 
-/** Asks to upload the file of an attachment that is already on the cost (its `AddAttachment` was pushed first). */
+/** Asks to upload the file of an attachment already in the band (its `AddAttachment` was pushed first). */
 @Serializable
-data class AttachmentUploadRequest(val costId: Id, val attachmentId: Id)
+data class AttachmentUploadRequest(val attachmentId: Id)
 
 /** A short-lived URL to `PUT` the file to, with the headers the request must carry exactly. */
 @Serializable

@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -31,11 +33,13 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed
+import com.jacekgajek.kapelusz.app.generated.attachment_file_name
 import com.jacekgajek.kapelusz.app.generated.attachment_hint
 import com.jacekgajek.kapelusz.app.generated.attachment_not_available
 import com.jacekgajek.kapelusz.app.generated.attachment_open_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_confirm
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_title
+import com.jacekgajek.kapelusz.app.generated.attachment_rename
 import com.jacekgajek.kapelusz.app.generated.attachment_take_photo
 import com.jacekgajek.kapelusz.app.generated.attachment_too_large
 import com.jacekgajek.kapelusz.app.generated.attachment_unsupported
@@ -52,31 +56,38 @@ import com.jacekgajek.kapelusz.app.platform.rememberUrlOpener
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
+import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Photos and PDFs of a cost. For a saved cost ([costId] set) a picked file is attached right away; for a new cost
- * the files wait in [drafts] until the cost is saved.
+ * Photos and PDFs of a cost, a collected entry or an event (ITERATION_4 §2.1). For a saved one ([owner] set) a picked
+ * file is attached right away; for a new one the files wait in [drafts] until it is saved.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AttachmentsSection(
     graph: AppGraph,
-    costId: String?,
+    owner: AttachmentOwner?,
     attachments: List<Attachment>,
     drafts: List<PreparedFile>,
     onDrafts: (List<PreparedFile>) -> Unit,
     editable: Boolean,
     actions: Actions,
+    max: Int = MAX_ATTACHMENTS,
+    hint: StringResource = Res.string.attachment_hint,
+    title: String? = stringResource(Res.string.attachments),
 ) {
     val scope = rememberCoroutineScope()
     val open = rememberUrlOpener()
     val pending by graph.uploads.pending.collectAsState()
     var removing by remember { mutableStateOf<Attachment?>(null) }
+    var renaming by remember { mutableStateOf<Attachment?>(null) }
     val tooLarge = stringResource(Res.string.attachment_too_large)
     val unsupported = stringResource(Res.string.attachment_unsupported)
     val failed = stringResource(Res.string.attachment_failed)
@@ -84,7 +95,7 @@ fun AttachmentsSection(
     val openFailed = stringResource(Res.string.attachment_open_failed)
     val picker = rememberAttachmentPicker { result ->
         when (result) {
-            is PickResult.Picked -> if (costId == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attachments.attach(costId, result.file)) }
+            is PickResult.Picked -> if (owner == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attachments.attach(owner, result.file)) }
             PickResult.TooLarge -> actions.say(tooLarge)
             PickResult.Unsupported -> actions.say(unsupported)
             PickResult.Failed -> actions.say(failed)
@@ -93,7 +104,7 @@ fun AttachmentsSection(
     val count = attachments.size + drafts.size
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(stringResource(Res.string.attachments), style = MaterialTheme.typography.labelLarge)
+        if (title != null) Text(title, style = MaterialTheme.typography.labelLarge)
         attachments.forEach { attachment ->
             val uploading = pending.any { it.attachmentId == attachment.id }
             AttachmentRow(
@@ -112,6 +123,7 @@ fun AttachmentsSection(
                     }
                 },
                 onRemove = { removing = attachment }.takeIf { editable },
+                onRename = { renaming = attachment }.takeIf { editable },
             )
         }
         drafts.forEach { draft ->
@@ -122,7 +134,7 @@ fun AttachmentsSection(
                 onRemove = { onDrafts(drafts - draft) }.takeIf { editable },
             )
         }
-        if (editable && count < MAX_ATTACHMENTS) {
+        if (editable && count < max) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = picker::pickFile) {
                     Icon(Icons.Default.AttachFile, null)
@@ -135,7 +147,7 @@ fun AttachmentsSection(
                     }
                 }
             }
-            Text(stringResource(Res.string.attachment_hint, MAX_ATTACHMENTS), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(hint, max), style = MaterialTheme.typography.bodySmall)
         }
     }
 
@@ -144,14 +156,31 @@ fun AttachmentsSection(
             title = stringResource(Res.string.attachment_remove_title),
             text = stringResource(Res.string.attachment_remove_confirm, attachment.fileName ?: attachment.id),
             confirmLabel = stringResource(Res.string.remove),
-            onConfirm = { costId?.let { actions.show(graph.attachments.remove(it, attachment.id)) } },
+            onConfirm = { owner?.let { actions.show(graph.attachments.remove(it, attachment.id)) } },
             onDismiss = { removing = null },
+        )
+    }
+    renaming?.let { attachment ->
+        TextInputDialog(
+            title = stringResource(Res.string.attachment_rename),
+            label = stringResource(Res.string.attachment_file_name),
+            initial = attachment.fileName.orEmpty(),
+            onConfirm = { name -> if (name != attachment.fileName) owner?.let { actions.show(graph.attachments.rename(it, attachment.id, name)) } },
+            onDismiss = { renaming = null },
         )
     }
 }
 
 @Composable
-private fun AttachmentRow(kind: AttachmentKind, name: String, size: Long?, status: String?, onOpen: (() -> Unit)?, onRemove: (() -> Unit)?) {
+private fun AttachmentRow(
+    kind: AttachmentKind,
+    name: String,
+    size: Long?,
+    status: String?,
+    onOpen: (() -> Unit)?,
+    onRemove: (() -> Unit)?,
+    onRename: (() -> Unit)? = null,
+) {
     Row(
         Modifier.fillMaxWidth().clickable(enabled = onOpen != null) { onOpen?.invoke() }.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -161,6 +190,7 @@ private fun AttachmentRow(kind: AttachmentKind, name: String, size: Long?, statu
             Text(name, maxLines = 1)
             Text(listOfNotNull(size?.let(::formatSize), status).joinToString(" · "), style = MaterialTheme.typography.bodySmall)
         }
+        if (onRename != null) IconButton(onClick = onRename) { Icon(Icons.Default.Edit, stringResource(Res.string.attachment_rename) + ": " + name) }
         if (onRemove != null) RemoveButton(name, onRemove)
     }
 }

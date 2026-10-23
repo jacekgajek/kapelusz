@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import com.jacekgajek.kapelusz.app.generated.amount
+import com.jacekgajek.kapelusz.app.generated.attachment_hint_event
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
@@ -57,6 +58,7 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.edit_details
+import com.jacekgajek.kapelusz.app.generated.event_files
 import com.jacekgajek.kapelusz.app.generated.event_not_found
 import com.jacekgajek.kapelusz.app.generated.problem_loss
 import com.jacekgajek.kapelusz.app.generated.problem_loss_fixed
@@ -69,6 +71,7 @@ import com.jacekgajek.kapelusz.app.generated.total_refunds
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
+import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
@@ -83,16 +86,20 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SettlementProblem
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
+import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
 class EventContext(
+    val graph: AppGraph,
     val band: Band,
     val event: Event,
     val settlement: Settlement,
@@ -149,7 +156,7 @@ fun EventScreen(
             }
             return@Scaffold
         }
-        val context = EventContext(state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
+        val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
                 Modifier.widthIn(max = 720.dp).fillMaxWidth(),
@@ -160,6 +167,7 @@ fun EventScreen(
                     // Artists get no debt reminders, so nothing scrolls by section here.
                     item("header") { Header(context, money = false) }
                     item("details") { DetailsSection(context) }
+                    item("files") { FilesSection(context) }
                     item("payout") { ArtistPayout(context) }
                     item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
                     item("lineup") { ArtistLineup(context) }
@@ -168,6 +176,7 @@ fun EventScreen(
                 // In the order of [EventSection]: its ordinal is the item's index, for scrolling to To settle.
                 item(EventSection.HEADER) { Header(context) }
                 item(EventSection.DETAILS) { DetailsSection(context) }
+                item(EventSection.FILES) { FilesSection(context) }
                 item(EventSection.PROBLEMS) { Problems(context) }
                 item(EventSection.PARTICIPANTS) { ParticipantsSection(context) }
                 item(EventSection.COLLECTED) { CollectedSection(context) }
@@ -183,7 +192,7 @@ fun EventScreen(
 }
 
 /** The event screen's sections, in list order: a reminder about an open debt scrolls to [TO_SETTLE] by its ordinal. */
-private enum class EventSection { HEADER, DETAILS, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SUMMARY, SHARE, TO_SETTLE, HISTORY }
+private enum class EventSection { HEADER, DETAILS, FILES, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SUMMARY, SHARE, TO_SETTLE, HISTORY }
 
 /** One list item per section, keyed by it, so the item's index is always the section's ordinal. */
 private fun LazyListScope.item(section: EventSection, content: @Composable () -> Unit) = item(key = section.name) { content() }
@@ -304,4 +313,21 @@ private fun Problems(context: EventContext) {
             }
         }
     }
+}
+
+/**
+ * The gig's own files (ITERATION_4 §2.1): contract, rider, stage plan. Leads add, rename and remove them; everyone,
+ * artists too, can open them.
+ */
+@Composable
+private fun FilesSection(context: EventContext) {
+    val event = context.event
+    val editable = context.can.editEvent(event)
+    if (event.attachments.isEmpty() && !editable) return
+    SectionTitle(stringResource(Res.string.event_files))
+    AttachmentsSection(
+        context.graph, AttachmentOwner.OfEvent(event.id), event.attachments,
+        drafts = emptyList(), onDrafts = {}, editable = editable, actions = context.actions,
+        max = MAX_EVENT_ATTACHMENTS, hint = Res.string.attachment_hint_event, title = null,
+    )
 }

@@ -150,9 +150,9 @@ class ApiClient(
         HistoryDecoder.page(call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer()), month)
 
     /** A URL to upload the file of an attachment the server already has. */
-    suspend fun requestUpload(bandId: Id, costId: Id, attachmentId: Id): AttachmentUploadResponse = call(
+    suspend fun requestUpload(bandId: Id, attachmentId: Id): AttachmentUploadResponse = call(
         HttpMethod.Post, "/bands/$bandId/attachments", AttachmentUploadResponse.serializer(),
-        body = KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest(costId, attachmentId)),
+        body = KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest(attachmentId)),
     )
 
     /** A short-lived URL to open an attachment. */

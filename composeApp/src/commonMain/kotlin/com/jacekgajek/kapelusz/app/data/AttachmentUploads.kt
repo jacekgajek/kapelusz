@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,7 @@ import kotlinx.serialization.builtins.ListSerializer
 
 /** An attachment whose file is stored on this device until it has been uploaded. */
 @Serializable
-data class PendingUpload(val bandId: Id, val costId: Id, val attachmentId: Id)
+data class PendingUpload(val bandId: Id, val attachmentId: Id)
 
 /**
  * The offline queue of attachment files (ITERATION_1 §4.5). A picked file is stored locally (base64, scoped to the
@@ -76,7 +77,7 @@ class AttachmentUploads(
             val local = bands.local(bandId) ?: run { drop(upload); null } ?: continue
             if (local.pending.any { (it.op as? AddAttachment)?.attachment?.id == upload.attachmentId }) continue // not pushed yet
             if (upload.attachmentId in attaching) continue // its operation is being dispatched right now
-            val onServer = local.base.cost(upload.costId)?.attachments?.any { it.id == upload.attachmentId } == true
+            val onServer = local.base.allAttachments().any { it.id == upload.attachmentId }
             if (!onServer) {
                 drop(upload)
                 continue
@@ -88,7 +89,7 @@ class AttachmentUploads(
                 continue
             }
             val target = try {
-                api.requestUpload(bandId, upload.costId, upload.attachmentId)
+                api.requestUpload(bandId, upload.attachmentId)
             } catch (e: ApiException) {
                 // Already uploaded (e.g. an interrupted earlier attempt), or gone from the server: nothing left to do.
                 // Only these explicit answers discard the file; anything else (an older server without this route,
