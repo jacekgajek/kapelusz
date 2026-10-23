@@ -106,9 +106,10 @@ fun EventsScreen(
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
     var creating by remember { mutableStateOf(false) }
-    // Artists see the events they play, not archived ones, and nothing about the band's money (ITERATION_4 §1.1).
+    // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
+    // (ITERATION_4 §1.1).
     val artist = band.isArtist(state.userId)
-    val summaries = eventSummaries(band, state.me, if (artist) settings.copy(onlyMyEvents = true, showArchived = false) else settings)
+    val summaries = eventSummaries(band, state.me, if (artist) settings.copy(onlyMyEvents = true) else settings)
     val today = today()
     val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(band, today) }
     // One card per event: an open gig tonight is unsettled business, not also "upcoming".
@@ -150,9 +151,10 @@ fun EventsScreen(
                     ) { onOpenEvent(upcoming.id) }
                 }
             }
-            if (!artist) item {
+            item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
+                    // Artists only ever see their own events: no "only mine" to switch.
+                    if (!artist) FilterChip(
                         selected = settings.onlyMyEvents,
                         onClick = { graph.settings.update { it.copy(onlyMyEvents = !it.onlyMyEvents) } },
                         label = { Text(stringResource(Res.string.filter_only_mine)) },
@@ -167,6 +169,8 @@ fun EventsScreen(
             if (summaries.isEmpty()) {
                 // Events hidden by the filters are not "no events": say which it is.
                 val text = when {
+                    // Hidden by the archived filter: say so, as for others.
+                    artist && band.events.any { it.participant(state.me?.id ?: "") != null } -> Res.string.events_filtered_empty
                     artist -> Res.string.events_empty_artist
                     // "Create the first one!" only to those who can.
                     band.events.isEmpty() && Can(band, state.userId).createEvent() -> Res.string.events_empty

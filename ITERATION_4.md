@@ -21,7 +21,8 @@ concerns them.
 - **What they see (UI only in M1, see §1.4):**
   - Tabs: **Events** and **My costs**, plus Settings (notifications, calendar, account). No Band fund, History, Roster
     or the band-wide settle screen.
-  - Events: only those a lead added them to (upcoming and past, not archived). On an event: name, date, location and
+  - Events: only those a lead added them to (upcoming and past; archived ones with the "Show archived" filter, as
+    for everyone). On an event: name, date, location and
     map link, agenda times, and the names of who plays. No weights, shares, income, collected money, costs, refunds of
     others, band fund or suggested transfers.
   - Their own settlement card per event: their share + their refunds = **to receive**, received so far, **still to
