@@ -118,9 +118,7 @@ object Reducer {
                 event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull()))
             }
             is UpdateHolding -> band.updateEvent(op.eventId) { event ->
-                val holding = event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
-                // Money collected before they became an artist can be removed, not changed.
-                invalidIf(Artists.isArtist(band, holding.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
+                event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
                 op.amount?.let { validatePositive(it.value, "Holding amount") }
                 event.copy(
                     holdings = event.holdings.map { holding ->
@@ -155,7 +153,6 @@ object Reducer {
                 validateTransferParty(band, event, op.from)
                 validateTransferParty(band, event, op.to)
                 invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
-                invalidIf(Artists.isArtist(band, op.from), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not pay out money" }
                 validatePositive(op.amount, "Transfer amount")
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }

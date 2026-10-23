@@ -15,6 +15,7 @@
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
     <string name="artist_still_to_receive">Still to receive</string>
+    <string name="artist_to_hand_back">To hand back (a lead settles it)</string>
     <string name="artist_my_costs">Your costs for this event</string>
     <string name="tab_settle">Settle</string>
     <string name="language">Language</string>
@@ -56,7 +57,7 @@
     <string name="add_member">Add member</string>
     <string name="member_name">Name</string>
     <string name="not_linked">No app account linked</string>
-    <string name="archived_member">Archived</string>
+    <string name="roster_archived">Archived (%1$d)</string>
     <string name="role_viewer">Viewer</string>
     <string name="role_artist">Artist</string>
     <string name="role_member">Member</string>
