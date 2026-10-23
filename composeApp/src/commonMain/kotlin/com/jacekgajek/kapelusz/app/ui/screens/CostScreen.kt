@@ -156,6 +156,8 @@ fun CostScreen(
                     incurredForEventId = Change(eventId).takeIf { eventId != (opened ?: existing).eventId },
                     category = Change(category).takeIf { category != (opened ?: existing).category },
                     description = Change(description.ifBlank { null }).takeIf { description.trim() != (opened ?: existing).description.orEmpty() },
+                    // Saving their own refused cost sends it to the leads again (ITERATION_4 §1.2).
+                    resubmit = existing.refused && existing.memberId == state.me?.id,
                 ),
             )
         }

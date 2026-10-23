@@ -110,7 +110,8 @@ object NotificationRules {
      */
     fun debtReminders(bands: List<Band>, userId: String, time: LocalTime, now: LocalDateTime, shown: Set<String> = emptySet()): List<DebtReminder> =
         bands.flatMap { band ->
-            val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
+            // Artists never pay out (ITERATION_4 §1.1), and the reminder would name whom to pay.
+            val me = band.memberOfUser(userId)?.takeIf { !it.archived && it.role != Role.ARTIST } ?: return@flatMap emptyList()
             val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
             band.events.filter { !it.archived }.flatMap { event ->
                 val times = (0 until DEBT_REMINDERS).map { nth -> nth to event.date.plus(DatePeriod(days = DEBT_FIRST_DAYS + nth * DEBT_EVERY_DAYS)).atTime(time) }

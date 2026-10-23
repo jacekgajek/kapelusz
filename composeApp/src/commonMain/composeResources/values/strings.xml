@@ -267,6 +267,7 @@
     <string name="join_invalid_code">This code is not valid. It may be mistyped, used already, revoked or expired.</string>
     <string name="join_too_many_attempts">Too many wrong codes. Try again in an hour.</string>
     <string name="join_already_member">You are already a member of this band.</string>
+    <string name="join_holds_money">This invite can’t be used yet: you still hold band money. Ask an admin to settle it first.</string>
     <string name="join_failed">Could not join. Check your connection and try again.</string>
     <string name="h_rename_band">Renamed the band to %1$s</string>
     <string name="h_add_member">Added member %1$s</string>
@@ -308,6 +309,8 @@
     <string name="h_edit_cost">Edited a cost</string>
     <string name="h_delete_cost">Deleted a cost</string>
     <string name="h_refuse_cost">Refused a cost</string>
+    <string name="h_resubmit_cost">Resubmitted a refused cost</string>
+    <string name="h_refuse_cost_of">Refused a cost of %1$s for %2$s</string>
     <string name="h_add_attachment">Added an attachment to a cost</string>
     <string name="h_remove_attachment">Removed an attachment from a cost</string>
     <string name="h_unknown">Made a change</string>
@@ -321,12 +324,13 @@
     <string name="change_own_role_text">You will become %1$s and may lose access to this screen. Only another admin or the owner can give the role back.</string>
     <string name="change_own_role_confirm">Change my role</string>
     <string name="load_more">Load more</string>
-    <string name="role_desc_viewer">Sees everything: events, settlements, the band fund and the history. Cannot change anything.</string>
+    <string name="role_desc_viewer">Sees everything: events, settlements, the band fund and the history. Changes nothing. For a manager, an accountant or anyone who checks but doesn’t play.</string>
     <string name="role_desc_artist">Sees only the events they play (details and who plays), their own costs and what they receive. Adds their own costs, which a lead includes or refuses. Never holds money.</string>
-    <string name="role_desc_member">Everything a viewer can, plus: adds and edits their own costs, records money they collected at events they play, and settles transfers in which they pay or receive money.</string>
+    <string name="role_desc_member">Sees everything: events, settlements, the band fund and the history. Adds and edits their own costs, records money they collected at events they play, and settles transfers in which they pay or receive money.</string>
     <string name="role_desc_lead">Everything a member can, plus: creates and edits events, participants, guests and shares, decides on cost refunds and the band fund, corrects anyone's costs and collected money, and settles whole events.</string>
     <string name="role_desc_admin">Everything a lead can, plus: manages band members, roles and invites, unlinks app accounts, and chooses who holds the band fund.</string>
     <string name="role_owner_note">The owner has all admin rights and is the only one who can hand ownership over to another admin.</string>
+    <string name="role_read_only">Read-only</string>
     <string name="copy_link">Copy link</string>
     <string name="link_copied">Link copied</string>
     <string name="tab_fund">Band fund</string>

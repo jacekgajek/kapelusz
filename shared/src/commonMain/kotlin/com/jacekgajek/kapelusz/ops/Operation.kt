@@ -241,6 +241,8 @@ data class UpdateCost(
     val incurredForEventId: Change<Id?>? = null,
     val category: Change<CostCategory?>? = null,
     val description: Change<String?>? = null,
+    /** Its owner sends a refused cost to the leads again (ITERATION_4 §1.2), with or without other changes. */
+    val resubmit: Boolean = false,
 ) : Operation
 
 @Serializable @SerialName("DeleteCost")

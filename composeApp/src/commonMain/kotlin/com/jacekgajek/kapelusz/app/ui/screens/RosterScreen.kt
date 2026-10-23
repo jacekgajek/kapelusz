@@ -77,6 +77,7 @@ import com.jacekgajek.kapelusz.app.generated.menu_roster
 import com.jacekgajek.kapelusz.app.generated.move_down
 import com.jacekgajek.kapelusz.app.generated.move_up
 import com.jacekgajek.kapelusz.app.generated.not_linked
+import com.jacekgajek.kapelusz.app.generated.reject_holds_money
 import com.jacekgajek.kapelusz.app.generated.revoke_invite
 import com.jacekgajek.kapelusz.app.generated.role
 import com.jacekgajek.kapelusz.app.generated.save
@@ -99,6 +100,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Role
@@ -276,6 +278,7 @@ private fun MemberDialog(
                     val current = shownInvite
                     // In the app's language (a non-composable getString would use the browser's on the web).
                     val failedText = stringResource(Res.string.invite_failed)
+                    val holdsMoneyText = stringResource(Res.string.reject_holds_money)
                     var inviteBusy by remember { mutableStateOf(false) }
                     if (current != null) {
                         Card(Modifier.fillMaxWidth()) {
@@ -315,6 +318,11 @@ private fun MemberDialog(
                         RolePicker(inviteRole, { inviteRole = it }, stringResource(Res.string.invite_role))
                         // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
                         FilledTonalButton(enabled = !inviteBusy, onClick = {
+                            // Someone holding band money cannot become an artist (ITERATION_4 §1.1).
+                            if (inviteRole == Role.ARTIST && Artists.holdsMoney(band, member.id)) {
+                                message = holdsMoneyText
+                                return@FilledTonalButton
+                            }
                             inviteBusy = true
                             scope.launch {
                                 runSuspendCatching { graph.api.createInvite(band.id, member.id, inviteRole) }

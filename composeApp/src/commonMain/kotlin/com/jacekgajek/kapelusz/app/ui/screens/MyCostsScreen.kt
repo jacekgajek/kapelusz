@@ -212,7 +212,7 @@ fun MyCostsScreen(
                                 color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
                             )
                         }
-                        // A refused cost goes with one tap (ITERATION_4 §1.2); History can undo it.
+                        // A refused cost goes with one tap (ITERATION_4 §1.2), as asked: no confirmation.
                         if (ownRefused && can.allowed(DeleteCost(cost.id))) {
                             IconButton(onClick = { actions.run(DeleteCost(cost.id)) }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
                         }

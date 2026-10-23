@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.InvitePreview
 import com.jacekgajek.kapelusz.api.InvitesResponse
 import com.jacekgajek.kapelusz.auth.Actor
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
@@ -14,6 +15,7 @@ import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.OpEnvelope
+import com.jacekgajek.kapelusz.ops.RejectionReason
 import java.security.SecureRandom
 
 /** Invite codes: admins create them for an unlinked member, and whoever has the code joins the band as that member. */
@@ -36,6 +38,7 @@ internal class InviteHandlers(
         badRequestIf(member.userId != null) { "This member is already linked to an account" }
         badRequestIf(member.archived) { "This member is archived" }
         badRequestIf(request.role == Role.OWNER) { "Invites cannot grant ownership" }
+        if (request.role == Role.ARTIST && Artists.holdsMoney(band, member.id)) throw holdsMoney()
         // A new code for the same member replaces the old one.
         loadCodes(bandId).forEach { code -> if (load(code)?.info?.memberId == member.id) delete(bandId, code) }
         // A precondition failure here is a code collision: draw another one.
@@ -82,8 +85,8 @@ internal class InviteHandlers(
             }
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
                 is ApplyResult.Applied -> result.band.withPicture(user.userId, users.pictureOf(user.userId))
-                // The member was linked meanwhile.
-                is ApplyResult.Rejected -> throw notFound()
+                // Became an artist while holding money meanwhile (ITERATION_4 §1.1): the invite stays for when it is settled.
+                is ApplyResult.Rejected -> if (result.rejection.reason == RejectionReason.HOLDS_MONEY) throw holdsMoney() else throw notFound()
             }
             val newEtag = store.put(StorageKeys.band(band.id), encode(Band.serializer(), linked), ifMatch = etag)
             finishJoin(user, band.id, invite.memberId)
@@ -165,4 +168,6 @@ internal class InviteHandlers(
     companion object {
         private val random = SecureRandom()
     }
+
+    private fun holdsMoney() = ApiError(409, ApiErrors.HOLDS_MONEY, "They still hold band money: settle it first")
 }

@@ -3,23 +3,30 @@ package com.jacekgajek.kapelusz
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddParticipant
+import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.RemoveAttachment
+import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -79,10 +86,12 @@ class ArtistAndRefuseTest {
         assertEquals(RejectionReason.COST_REFUSED, scenario.rejected(SetRefund("gig", "c", pln("40")), alice).reason)
         assertEquals(RejectionReason.COST_REFUSED, scenario.rejected(AddFundEntry("f", DATE, "refund", pln("-40"), "c"), alice).reason)
 
-        // A lead's edit keeps it refused; the owner's edit resubmits it.
-        scenario.apply(UpdateCost("c", description = Change("Strings")), alice)
+        // A lead's edit keeps it refused (even saying "resubmit"); the owner's resubmit brings it back.
+        scenario.apply(UpdateCost("c", description = Change("Strings"), resubmit = true), alice)
         assertTrue(scenario.band.cost("c")!!.refused)
-        scenario.apply(UpdateCost("c"), bob)
+        scenario.apply(UpdateCost("c", description = Change("Strings!")), bob)
+        assertTrue(scenario.band.cost("c")!!.refused, "an edit is not a resubmit")
+        scenario.apply(UpdateCost("c", resubmit = true), bob)
         assertFalse(scenario.band.cost("c")!!.refused)
         assertEquals(listOf("c"), CostLedger.pendingFromEarlier(scenario.band, scenario.band.event("gig")!!).map { it.id })
     }
@@ -130,5 +139,56 @@ class ArtistAndRefuseTest {
 
         scenario.apply(SetTreasurer("carol")).apply(LinkUser("carol", "user-carol", Role.MEMBER))
         assertEquals(RejectionReason.HOLDS_MONEY, scenario.rejected(SetMemberRole("carol", Role.ARTIST)).reason, "the band fund holder")
+    }
+
+    @Test
+    fun onlyALeadsEditRaisesAnIncludedRefund() {
+        val scenario = gig()
+        val bob = scenario.userFor("bob", Role.MEMBER)
+        scenario.apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"), bob).apply(SetRefund("gig", "c", pln("40")))
+        scenario.apply(UpdateCost("c", amount = Change(pln("30"))), bob)
+        assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "lowering follows")
+        scenario.apply(UpdateCost("c", amount = Change(pln("400"))), bob)
+        assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "the rest waits for a lead")
+        scenario.apply(UpdateCost("c", amount = Change(pln("50"))))
+        assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "no longer the whole cost: left alone")
+    }
+
+    @Test
+    fun undoCannotRefundARefusedCostOrGiveAnArtistMoney() {
+        val scenario = gig()
+        scenario.apply(AddCost("c", "bob", pln("40"), DATE)).apply(SetRefund("gig", "c", pln("40")))
+        val removeRefund = SetRefund("gig", "c", pln("0"))
+        val beforeRemove = scenario.band
+        scenario.apply(removeRefund)
+        val undoRemove = Undo("u1", removeRefund, BandChange.between(beforeRemove, scenario.band))
+        scenario.apply(RefuseCost("c"))
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoRemove).reason)
+
+        val removeHolding = RemoveHolding("gig", "h")
+        scenario.apply(AddHolding("gig", "h", "carol", pln("100"), DOOR))
+        val beforeHolding = scenario.band
+        scenario.apply(removeHolding)
+        val undoHolding = Undo("u2", removeHolding, BandChange.between(beforeHolding, scenario.band))
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoHolding).reason)
+        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "t", "carol", "alice", pln("1"))).reason)
+    }
+
+    @Test
+    fun artistsLookAfterTheirOwnReceipts() {
+        val scenario = gig()
+        val carol = scenario.userFor("carol", Role.ARTIST)
+        scenario.apply(AddCost("own", "carol", pln("20"), DATE), carol).apply(AddCost("bobs", "bob", pln("20"), DATE))
+        val photo = Attachment("a", AttachmentKind.IMAGE, sizeBytes = 100)
+        scenario.apply(AddAttachment("own", photo), carol).apply(RemoveAttachment("own", "a"), carol)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddAttachment("bobs", photo), carol).reason)
+    }
+
+    @Test
+    fun aRefundFromTheFundCountsAgainstRefusing() {
+        val scenario = gig().apply(SetTreasurer("alice")).apply(AddCost("c", "bob", pln("40"), DATE))
+            .apply(AddFundEntry("f", DATE, "refund", pln("-10"), "c"))
+        assertEquals(RejectionReason.COST_PARTLY_REFUNDED, scenario.rejected(RefuseCost("c")).reason)
     }
 }

@@ -15,6 +15,9 @@ concerns them.
   Artist-specific, not "at least Viewer".
 - **Not the default:** the invite's role picker still starts on Member, listed as Viewer, Artist, Member, Lead,
   Admin (changed after the grilling, 2026-10-23). Existing members keep their roles.
+- **Viewer stays, set apart:** it sees everything and changes nothing (a manager, an accountant), so it is not a step
+  below Artist. The picker lists Artist, Member, Lead, Admin, then "Read-only": Viewer; the descriptions no longer say
+  "everything a viewer can".
 - **What they see (UI only in M1, see §1.4):**
   - Tabs: **Events** and **My costs**, plus Settings (notifications, calendar, account). No Band fund, History, Roster
     or the band-wide settle screen.
@@ -37,7 +40,8 @@ concerns them.
   - So an Artist only ever receives money, and gets no debt reminders (they are only for the one who pays).
   - Making someone an Artist (role change, or an invite accepted for their roster entry) is refused while they hold
     collected money in an unsettled event or hold the band fund: "settle their events / hand over the band fund
-    first". Settled events don't matter.
+    first". Settled events don't matter. An artist invite for someone holding money is refused when created, and when accepted (if
+  they got money meanwhile) the invitee is told to have it settled first; the invite stays.
 - **Notifications:** gig reminders and calendar for their events, as for members. No "transfer recorded with you"
   notification that would name the sender.
 
@@ -64,6 +68,9 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
   - **Delete**;
   - **Nothing**.
 - No reason and no notification for a refusal (only the red status).
+- A member's or artist's edit never raises an included refund (lowering it still follows the cost); the raise waits for
+  a lead. Resubmitting is explicit (`UpdateCost.resubmit`), so History says "resubmitted".
+- Undo cannot bring back a refund of a refused cost or money held by an artist.
 - Refuse is offered only for a cost with nothing refunded yet (anywhere, the band fund included); a partly refunded
   cost can still be included, not refused.
 - A refused cost shows under My costs' "Pending" filter (the default), so its owner sees it.
@@ -128,4 +135,5 @@ they may see. Rough effort: **one milestone of about V3-M2's size**, mostly serv
 | 2026-10-23 | Artists may add costs with or without an event, never hold money (nobody can record collected money for them, they can't hold the band fund), can't record transfers. Making someone an Artist is refused while they hold money in an unsettled event or the band fund. |
 | 2026-10-23 | Costs of non-leads are never auto-included; a lead's cost entry still is; creating an event or adding a participant includes nothing. The event's "Pending from earlier" section becomes "Waiting" / "Oczekujące". Refuse only there; Refused is final for leads; the payer can resubmit by editing (dialog: Edit and resubmit / Delete / Nothing) or delete with one tap. No reason, no notification. Pending and Refund planned shown as "Waiting". |
 | 2026-10-23 | Implementation: Refuse only for a cost with nothing refunded; server-internal ops count as a lead's for auto-include; the gig-reminder question stays (it turns them on). |
+| 2026-10-23 | Viewer kept as read-only access to everything, shown apart below the ladder in the role picker. |
 | 2026-10-23 | Notifications: only debt reminders on by default; debt reminders at 14/28/42/56 days. Artists get no debt reminders (they never owe). |

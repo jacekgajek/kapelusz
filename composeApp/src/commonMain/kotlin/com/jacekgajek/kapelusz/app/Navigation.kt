@@ -165,6 +165,11 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }, onOpenCost = { navController.navigate(CostRoute(it)) }) }
             composable<CostRoute> { entry ->
                 val route = entry.toRoute<CostRoute>()
+                // Artists open only their own costs (e.g. not from a web address someone shared).
+                if (artist && route.costId != null && state.band.cost(route.costId)?.memberId.let { it != null && it != state.me?.id }) {
+                    BackToEvents(navController)
+                    return@composable
+                }
                 CostScreen(graph, state, route.costId, back, forEventId = route.forEventId, onAddedForOther = {
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)

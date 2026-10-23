@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -23,12 +24,16 @@ import com.jacekgajek.kapelusz.app.generated.role_desc_lead
 import com.jacekgajek.kapelusz.app.generated.role_desc_member
 import com.jacekgajek.kapelusz.app.generated.role_desc_viewer
 import com.jacekgajek.kapelusz.app.generated.role_owner_note
+import com.jacekgajek.kapelusz.app.generated.role_read_only
 import com.jacekgajek.kapelusz.model.Role
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** Roles an admin can give; ownership only changes by transfer. */
-val ASSIGNABLE_ROLES = listOf(Role.VIEWER, Role.ARTIST, Role.MEMBER, Role.LEAD, Role.ADMIN)
+/**
+ * Roles an admin can give, from the least to the most a role may change; ownership only changes by transfer. Viewer is
+ * apart: it sees everything but changes nothing (ITERATION_4), so it is not a step below the others.
+ */
+val ASSIGNABLE_ROLES = listOf(Role.ARTIST, Role.MEMBER, Role.LEAD, Role.ADMIN, Role.VIEWER)
 
 private fun Role.description(): StringResource = when (this) {
     Role.VIEWER -> Res.string.role_desc_viewer
@@ -44,6 +49,10 @@ fun RolePicker(selected: Role, onSelect: (Role) -> Unit, title: String, modifier
     Column(modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.labelLarge)
         ASSIGNABLE_ROLES.forEach { role ->
+            if (role == Role.VIEWER) {
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                Text(stringResource(Res.string.role_read_only), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Row(
                 Modifier.fillMaxWidth()
                     .selectable(selected = role == selected, onClick = { onSelect(role) }, role = SemanticsRole.RadioButton)

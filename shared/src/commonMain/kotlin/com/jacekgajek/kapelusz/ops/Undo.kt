@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.ops
 
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
@@ -10,6 +11,7 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.model.Role
 import kotlinx.serialization.Serializable
 
 /** The band-wide settings an operation may change, as one value. */
@@ -147,6 +149,9 @@ internal object Undoing {
             if (CostLedger.outstanding(band, cost).isNegative) add("cost ${cost.id} refunded more than its amount")
         }
         band.fundEntries.forEach { entry -> entry.costId?.let { if (it !in costs) add("cost of fund entry ${entry.id}") } }
+        // ITERATION_4: a refused cost is refunded nowhere, and artists hold no money.
+        band.costs.filter { it.refused && CostLedger.refunded(band, it.id).isPositive }.forEach { add("refused cost ${it.id} refunded") }
+        band.members.filter { it.role == Role.ARTIST && Artists.holdsMoney(band, it.id) }.forEach { add("artist ${it.id} holds money") }
     }
 
     /**
