@@ -318,7 +318,10 @@
     <string name="organiser">Organiser</string>
     <string name="awaited_payment">awaiting payment</string>
     <string name="add_awaited">Add a fee the organiser owes</string>
-    <string name="receive_awaited">Received…</string>
+    <string name="receive_awaited">Paid</string>
+    <string name="awaited_welched">Welched</string>
+    <string name="awaited_welched_title">The organiser won’t pay?</string>
+    <string name="awaited_welched_text">%1$s is removed from the income, and the shares are worked out again.</string>
     <string name="receive_awaited_title">Fee received</string>
     <string name="received_by">Received by</string>
     <string name="receive_awaited_hint">Up to %1$s. Any rest stays awaited.</string>

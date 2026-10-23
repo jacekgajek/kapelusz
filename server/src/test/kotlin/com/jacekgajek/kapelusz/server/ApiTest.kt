@@ -197,7 +197,7 @@ class ApiTest {
 
     @Test
     fun aPushThatWouldMakeTheBandTooLargeToLoadIsRefused() {
-        val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandChars = 3_000)
+        val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
         createBand()
         fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
             KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400))))))))
@@ -209,6 +209,19 @@ class ApiTest {
         val stored = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         assertTrue(stored.cost("c10") == null, "the operation that would pass the cap was not applied")
         assertTrue(store.objects.getValue(StorageKeys.band("band1")).content.length < 4_000)
+    }
+
+    /** V5-M1 A2: the cap counts bytes; text in other scripts takes up to 3 bytes a character. */
+    @Test
+    fun theSizeCapCountsBytes() {
+        val small = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
+        createBand()
+        fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
+            KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "字".repeat(150))))))))
+        val rejected = (1..10).map { add(it) }.map { KapeluszJson.decodeFromString(PushResponse.serializer(), it.body!!) }.count { it.rejected.isNotEmpty() }
+        assertTrue(rejected > 0, "150 characters each, but 450 bytes")
+        val stored = store.objects.getValue(StorageKeys.band("band1")).content
+        assertTrue(stored.encodeToByteArray().size < 4_000, "${stored.encodeToByteArray().size} bytes")
     }
 
     @Test

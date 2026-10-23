@@ -76,7 +76,7 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
   settles it, by "Settle all" or by recording the transfer from the artist; the artist cannot record it. Their payout
   card then says "To hand back (a lead settles it)" without naming whom. Undo no longer guards "artists hold no money"
   (ordinary edits don't either). (Changed 2026-10-23.) Resubmitting is explicit (`UpdateCost.resubmit`), so History says "resubmitted".
-- Undo cannot bring back a refund of a refused cost or money held by an artist.
+- Undo cannot bring back a refund of a refused cost. (It no longer guards "artists hold no money": leads settle an artist's debts.)
 - Refuse is offered only for a cost with nothing refunded yet (anywhere, the band fund included); a partly refunded
   cost can still be included, not refused.
 - A refused cost shows under My costs' "Pending" filter (the default), so its owner sees it.
@@ -161,7 +161,10 @@ collected money, as today).
 - **Reminder:** to the lead who recorded the fee (if they are no longer a lead: to the event's leads), 14, 28, 42 and
   56 days after the gig, with the debt reminders' setting: "The organiser still owes 3000 zł".
 - **Who:** leads record awaited fees and mark them received.
-- **Never paid:** the lead deletes the entry; shares are recomputed from what came in (possibly a loss). History keeps
+- **Buttons** (2026-10-23): under the awaited entry, laid out like Include / Refuse: **"Paid" / "Zapłacili"** (the
+  Received dialog) and a red **"Welched" / "Wydymali"** (deliberately informal), which removes the entry after a
+  confirmation.
+- **Never paid:** the lead deletes the entry (or "Welched"); shares are recomputed from what came in (possibly a loss). History keeps
   the record.
 
 ### 2.3 A default share per member (V4-M4)

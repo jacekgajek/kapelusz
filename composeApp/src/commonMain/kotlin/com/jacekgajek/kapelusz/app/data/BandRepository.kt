@@ -402,19 +402,42 @@ class BandRepository(
      */
     suspend fun flush(): Boolean = writeLock.withLock {
         val user = userId ?: return@withLock true
+        // A change made while a write is under way (a tap, a sync) is written in another pass rather than forgotten.
+        repeat(FLUSH_PASSES) {
+            if (!writeChanged(user)) {
+                retryFlush()
+                return@withLock false
+            }
+            if (dirty.isEmpty() && !indexDirty) return@withLock true
+        }
+        retryFlush()
+        false
+    }
+
+    /**
+     * One pass over what changed. Each is unmarked only once written, and only if it didn't change again during its write
+     * (V5-M1 A1): otherwise that newer change would count as saved. False when a write failed.
+     */
+    private suspend fun writeChanged(user: String): Boolean {
+        var ok = true
         // The index first: it then lists every band that has a file, also after a crash between the writes.
         if (indexDirty) {
             val index = _index.value
-            if (index == null || write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), index))) indexDirty = false
+            if (index == null || write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), index))) {
+                if (_index.value === index) indexDirty = false
+            } else {
+                ok = false
+            }
         }
         for (bandId in dirty.toList()) {
-            // Unmarked only once written: a failure or a cancellation leaves it marked as unsaved.
             val local = locals[bandId]
-            if (local == null || write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), local))) dirty -= bandId
+            if (local == null || write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), local))) {
+                if (locals[bandId] === local) dirty -= bandId
+            } else {
+                ok = false
+            }
         }
-        val saved = dirty.isEmpty() && !indexDirty
-        if (!saved) retryFlush()
-        saved
+        return ok
     }
 
     /** False when the device could not store it (e.g. full): it stays marked as unsaved instead of being forgotten. */
@@ -450,6 +473,9 @@ class BandRepository(
 
         /** How soon a write that failed (e.g. a full device) is tried again. */
         const val FLUSH_RETRY_MS = 30_000L
+
+        /** Write passes per flush: changes arriving during writes are rare and few. */
+        const val FLUSH_PASSES = 3
 
         /** M3 stored the index without the user id. */
         const val UNSCOPED_INDEX_KEY = "band-index"

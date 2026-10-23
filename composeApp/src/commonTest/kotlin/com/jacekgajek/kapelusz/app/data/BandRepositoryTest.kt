@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetRefund
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -52,6 +53,41 @@ class BandRepositoryTest {
         assertTrue(reloaded.local(bandId)!!.needsCreate)
         assertEquals(2, reloaded.local(bandId)!!.pending.size)
         assertEquals(listOf("The Band"), reloaded.index.value!!.bands.map { it.name })
+    }
+
+    /** V5-M1 A1: a change made while the band is being written is written too, not taken as saved with the old copy. */
+    @Test
+    fun aChangeMadeDuringAWriteIsWrittenToo() = runTest {
+        val inner = InMemoryStore()
+        val gate = CompletableDeferred<Unit>()
+        var holdNextBandWrite = false
+        val store = object : KeyValueStore by inner {
+            override suspend fun write(key: String, value: String) {
+                if (holdNextBandWrite && key.startsWith("band-alice-")) {
+                    holdNextBandWrite = false
+                    gate.await()
+                }
+                inner.write(key, value)
+            }
+        }
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        repository.createBand("The Band", "PLN", "Alice")
+        testScheduler.advanceUntilIdle()
+        val bandId = ready(repository).band.id
+
+        holdNextBandWrite = true
+        assertNull(repository.dispatch(AddMember("bob", "Bob")))
+        testScheduler.runCurrent()
+        // The write of the band with Bob is under way; Carol comes now.
+        assertNull(repository.dispatch(AddMember("carol", "Carol")))
+        gate.complete(Unit)
+        testScheduler.advanceUntilIdle()
+
+        val reloaded = BandRepository(inner, TestScope(testScheduler), ids())
+        reloaded.load("alice")
+        assertEquals(bandId, ready(reloaded).band.id)
+        assertEquals(listOf("Alice", "Bob", "Carol"), ready(reloaded).band.members.map { it.name })
     }
 
     @Test

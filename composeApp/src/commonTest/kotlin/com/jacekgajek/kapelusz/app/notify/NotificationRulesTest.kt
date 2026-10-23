@@ -215,7 +215,8 @@ class NotificationRulesTest {
         assertEquals(null, due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000)))), "paid since it was planned")
         // Part paid since: the text is built from what is still owed.
         assertEquals(listOf(Owed("Alice", Money(3000))), due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))))?.owed)
-        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 29, 23, 0)), "hours late")
+        // V5-M1 D2b: however late Android delivers it, up to the next one, it still comes.
+        assertEquals(listOf(Owed("Alice", Money(5000))), NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 30, 9, 0))?.owed, "hours late")
         assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/other/debt1", LocalTime(18, 0), firing), "event gone")
     }
 }

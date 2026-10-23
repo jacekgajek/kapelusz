@@ -183,7 +183,7 @@ class SyncEngine(
                     syncBand(bandId, pull = true)
                 }
                 if (result == SyncStatus.NEEDS_SIGN_IN || result == SyncStatus.OFFLINE || result == SyncStatus.UPDATE_REQUIRED) {
-                    _status.value = result
+                    _status.value = backgroundShown(result)
                     return false
                 }
                 if (result != SyncStatus.SYNCED) allOk = false
@@ -194,10 +194,17 @@ class SyncEngine(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            classify(e).let { if (it == SyncStatus.NEEDS_SIGN_IN || it == SyncStatus.UPDATE_REQUIRED) _status.value = it }
+            classify(e).let { if (it == SyncStatus.UPDATE_REQUIRED) _status.value = it }
             false
         }
     }
+
+    /**
+     * What a background round may show. Not "sign in again" (V5-M1 A6): in the background a token can't be renewed
+     * (that needs the app on screen), and the foreground would then stop syncing until the user signs in by hand
+     * although its own silent renewal would work.
+     */
+    private fun backgroundShown(result: SyncStatus): SyncStatus = if (result == SyncStatus.NEEDS_SIGN_IN) _status.value else result
 
     private suspend fun syncBand(bandId: Id, pull: Boolean): SyncStatus = try {
         pushBand(bandId)
@@ -264,10 +271,14 @@ class SyncEngine(
         bands.adoptFromServer(response.band, response.version)
     }
 
+    private suspend fun storedOrStop() {
+        if (!bands.flush()) throw SyncProtocolException("This device could not store the band; not pushing until it can")
+    }
+
     private suspend fun pushBand(bandId: Id) {
         // What is pushed must already be on disk, or a crash after the push could make later ops reuse sequence numbers:
-        // if the device cannot store it now, nothing is pushed (ITERATION_3 R4).
-        if (!bands.flush()) throw SyncProtocolException("This device could not store the band; not pushing until it can")
+        // if the device cannot store it now, nothing is pushed (ITERATION_3 R4). Checked again before every batch.
+        storedOrStop()
         val local = bands.local(bandId) ?: return
         if (local.needsCreate) {
             val owner = local.base.owner ?: return
@@ -279,6 +290,8 @@ class SyncEngine(
         while (true) {
             val batch = batchOf(bands.local(bandId)?.pending.orEmpty())
             if (batch.isEmpty()) return
+            // Ops added since the last check (a big push goes in batches) must be on disk too (V5-M1 A9a).
+            storedOrStop()
             val response = try {
                 api.push(bandId, batch)
             } catch (e: ApiException) {

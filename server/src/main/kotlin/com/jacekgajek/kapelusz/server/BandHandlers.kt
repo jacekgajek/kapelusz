@@ -21,7 +21,7 @@ import com.jacekgajek.kapelusz.ops.UnlinkUser
 internal class BandHandlers(
     private val store: BlobStore,
     private val clock: () -> Long,
-    private val maxBandChars: Int,
+    private val maxBandBytes: Int,
     private val bands: BandAccess,
     private val users: UserHandlers,
     private val history: HistoryHandlers,
@@ -84,10 +84,11 @@ internal class BandHandlers(
             // A band must stay loadable: its state goes back in every response, and a Lambda response has 6 MB at most.
             // Too large: the batch again, refusing just the operations that would grow it past the cap (ITERATION_3 R1),
             // so the rest goes through and the device's queue does not get stuck.
-            if (encoded != null && encoded.length > maxBandChars) {
+            // Measured in UTF-8 bytes, what the response limit counts (V5-M1 A2): characters undercount other scripts.
+            if (encoded != null && encoded.utf8Size() > maxBandBytes) {
                 result = Engine.applyBatch(band, Actor.User(user.userId), envelopes) { before, after ->
-                    val size = encode(Band.serializer(), after).length
-                    if (size > maxBandChars && size > encode(Band.serializer(), before).length) {
+                    val size = encode(Band.serializer(), after).utf8Size()
+                    if (size > maxBandBytes && size > encode(Band.serializer(), before).utf8Size()) {
                         Rejection(RejectionCode.CONFLICT, "The band would be too large; remove old entries or attachments", RejectionReason.LIMIT_REACHED)
                     } else null
                 }

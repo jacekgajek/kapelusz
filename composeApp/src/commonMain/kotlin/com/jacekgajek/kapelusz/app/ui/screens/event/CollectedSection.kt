@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +35,9 @@ import com.jacekgajek.kapelusz.app.generated.add_money
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.attachment_hint_holding
 import com.jacekgajek.kapelusz.app.generated.awaited_payment
+import com.jacekgajek.kapelusz.app.generated.awaited_welched
+import com.jacekgajek.kapelusz.app.generated.awaited_welched_text
+import com.jacekgajek.kapelusz.app.generated.awaited_welched_title
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.collected_empty
@@ -83,6 +87,7 @@ fun CollectedSection(context: EventContext) {
     var adding by remember { mutableStateOf(false) }
     var addingAwaited by remember { mutableStateOf(false) }
     var receiving by remember { mutableStateOf<Holding?>(null) }
+    var welching by remember { mutableStateOf<Holding?>(null) }
     val allowedParties = context.can.holdingParties(event)
     val receiveParties = context.can.receiveParties(event)
     val organiser = stringResource(Res.string.organiser)
@@ -107,9 +112,15 @@ fun CollectedSection(context: EventContext) {
             MoneyText(holding.amount, context.currency)
             if (context.can.editHolding(event, holding)) EditButton { editing = holding }
         }
-        // A fee the organiser still owes (ITERATION_4 §2.2): when it comes, whoever got it takes it over.
+        // A fee the organiser still owes (ITERATION_4 §2.2): paid (whoever got it takes it over), or never paid (it goes).
+        // Laid out like Include / Refuse under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
-            TextButton(onClick = { receiving = holding }) { Text(stringResource(Res.string.receive_awaited)) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                if (context.can.editHolding(event, holding)) TextButton(onClick = { welching = holding }) {
+                    Text(stringResource(Res.string.awaited_welched), color = MaterialTheme.colorScheme.error)
+                }
+                OutlinedButton(onClick = { receiving = holding }) { Text(stringResource(Res.string.receive_awaited)) }
+            }
         }
         // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
         if (holding.attachments.isNotEmpty()) {
@@ -128,6 +139,15 @@ fun CollectedSection(context: EventContext) {
         Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
     }
     if (addingAwaited) HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = { addingAwaited = false })
+    welching?.let { holding ->
+        ConfirmDialog(
+            title = stringResource(Res.string.awaited_welched_title),
+            text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)),
+            confirmLabel = stringResource(Res.string.awaited_welched),
+            onConfirm = { context.actions.run(RemoveHolding(event.id, holding.id)) },
+            onDismiss = { welching = null },
+        )
+    }
     receiving?.let { holding ->
         // Received meanwhile (e.g. on another phone): nothing left to receive.
         val current = event.holdings.firstOrNull { it.id == holding.id }

@@ -56,3 +56,6 @@ internal fun <T> decode(serializer: KSerializer<T>, text: String) = KapeluszJson
 
 /** The UTC month (`yyyy-MM`) of [millis]: history is stored per month. */
 internal fun monthOf(millis: Long): String = DateTimeFormatter.ofPattern("yyyy-MM").withZone(ZoneOffset.UTC).format(Instant.ofEpochMilli(millis))
+
+/** Size in UTF-8 bytes: what storage and the response limit count, unlike [String.length] (V5-M1 A2). */
+internal fun String.utf8Size(): Int = encodeToByteArray().size

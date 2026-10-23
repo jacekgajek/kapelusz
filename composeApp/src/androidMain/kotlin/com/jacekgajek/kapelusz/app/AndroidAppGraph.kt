@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.app
 
 import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.FileStore
@@ -19,7 +20,11 @@ object AndroidAppGraph {
         val app = context.applicationContext
         AndroidPlatform.context = app
         return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth).also { graph ->
-            graph.afterSignOut = { ReminderScheduler.reschedule(app, emptyList()) }
+            // Nothing of the previous user stays: no alarms, nothing in the notification tray.
+            graph.afterSignOut = {
+                ReminderScheduler.reschedule(app, emptyList())
+                NotificationManagerCompat.from(app).cancelAll()
+            }
             // A changed reminder time or gig applies at once, not only when the app leaves the screen.
             graph.watchReminderInputs { userId -> BackgroundSyncWorker.rescheduleReminders(app, graph, userId) }
             instance = graph

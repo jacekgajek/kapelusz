@@ -318,7 +318,10 @@
     <string name="organiser">Organizator</string>
     <string name="awaited_payment">czeka na zapłatę</string>
     <string name="add_awaited">Dodaj zapłatę od organizatora</string>
-    <string name="receive_awaited">Otrzymano…</string>
+    <string name="receive_awaited">Zapłacili</string>
+    <string name="awaited_welched">Wydymali</string>
+    <string name="awaited_welched_title">Organizator nie zapłaci?</string>
+    <string name="awaited_welched_text">Kwota %1$s znika z przychodu, a udziały zostaną przeliczone.</string>
     <string name="receive_awaited_title">Otrzymana zapłata</string>
     <string name="received_by">Kto otrzymał</string>
     <string name="receive_awaited_hint">Najwyżej %1$s. Reszta dalej czeka na zapłatę.</string>

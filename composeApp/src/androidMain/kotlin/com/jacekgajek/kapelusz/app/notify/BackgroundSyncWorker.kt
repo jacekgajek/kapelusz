@@ -39,8 +39,11 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
             return@withContext Result.success()
         }
         val local = inputData.getBoolean(LOCAL, false)
+        // A "soon" run follows the app or a reminder: what is on the device already was seen there, but what this sync
+        // brings is new and is notified (V5-M1 D1).
+        if (!local && inputData.getBoolean(SOON, false)) afterSync(applicationContext, graph, userId, notifyTransfers = false)
         val synced = local || graph.sync.syncAll()
-        afterSync(applicationContext, graph, userId, notifyTransfers = !local && !inputData.getBoolean(SOON, false))
+        afterSync(applicationContext, graph, userId, notifyTransfers = !local)
         if (synced) Result.success() else Result.retry()
     }
 
@@ -68,8 +71,7 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
             WorkManager.getInstance(context).enqueueUniqueWork(
                 "sync-soon",
                 ExistingWorkPolicy.REPLACE,
-                // Not expedited: before Android 12 that needs a foreground notification. Transfers are not notified: the
-                // user has just seen them in the app.
+                // Not expedited: before Android 12 that needs a foreground notification.
                 OneTimeWorkRequestBuilder<BackgroundSyncWorker>().setConstraints(network).setInputData(workDataOf(SOON to true)).build(),
             )
         }
@@ -83,6 +85,12 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
             )
         }
 
+        /**
+         * The user this run started for is still the one signed in (V5-M1 A5b): a sign-out during a sync must not have the
+         * previous user's reminders scheduled again, or transfers notified, from the data still in memory.
+         */
+        private fun stillSignedIn(graph: AppGraph, userId: String) = graph.sessions.session.value?.userId == userId
+
         /** One at a time: the periodic and the local runs both reschedule alarms and update what was seen. */
         private val afterSyncLock = Mutex()
 
@@ -90,6 +98,7 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
         internal suspend fun rescheduleReminders(context: Context, graph: AppGraph, userId: String) = afterSyncLock.withLock { reminders(context, graph, userId) }
 
         private suspend fun reminders(context: Context, graph: AppGraph, userId: String) {
+            if (!stillSignedIn(graph, userId)) return
             val settings = graph.settingsForBackground()
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val bands = graph.bands.allBands()
@@ -103,6 +112,7 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
         }
 
         internal suspend fun afterSync(context: Context, graph: AppGraph, userId: String, notifyTransfers: Boolean) = afterSyncLock.withLock {
+            if (!stillSignedIn(graph, userId)) return@withLock
             reminders(context, graph, userId)
             val settings = graph.settingsForBackground()
             val bands = graph.bands.allBands()

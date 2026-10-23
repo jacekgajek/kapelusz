@@ -39,11 +39,12 @@ internal class HistoryHandlers(
         for (batch in keys.take(Api.HISTORY_PAGE).chunked(LOG_READ_BATCH)) {
             for ((key, blob) in batch.zip(readAll(batch))) {
                 blob ?: continue
-                if (entries.isNotEmpty() && bytes + blob.content.length > Api.HISTORY_PAGE_BYTES) {
+                val size = blob.content.utf8Size()
+                if (entries.isNotEmpty() && bytes + size > Api.HISTORY_PAGE_BYTES) {
                     full = true
                     break
                 }
-                bytes += blob.content.length
+                bytes += size
                 page += key
                 // Its name, so an undo can say which entry it means (ITERATION_2 §7.2).
                 // An unreadable entry is skipped, not the whole page: the rest of the history stays readable.

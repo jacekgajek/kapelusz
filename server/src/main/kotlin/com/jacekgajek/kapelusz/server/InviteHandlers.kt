@@ -53,7 +53,9 @@ internal class InviteHandlers(
 
     fun revoke(user: VerifiedUser, bandId: String, code: String): HttpResponse {
         bands.loadForAdmin(user, bandId)
-        if (load(code)?.info?.bandId == bandId) delete(bandId, code)
+        // Codes are stored upper-case, as preview and accept read them (V5-M1 A10d).
+        val stored = code.uppercase()
+        if (load(stored)?.info?.bandId == bandId) delete(bandId, stored)
         return HttpResponse(204)
     }
 
