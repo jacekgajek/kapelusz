@@ -21,7 +21,7 @@ class Api(
     private val sessions: SessionTokens = SessionTokens(store, clock),
     /** No minimum by default (tests); the Lambda handler passes [MIN_APP_VERSION]. */
     private val minAppVersion: Int = 0,
-    maxBandChars: Int = MAX_BAND_CHARS,
+    maxBandBytes: Int = MAX_BAND_BYTES,
 ) {
     private val revocations = SessionRevocations(store, clock)
     private val bands = BandAccess(store)
@@ -30,7 +30,7 @@ class Api(
     private val attachments = AttachmentHandlers(store, bands)
     private val invites = InviteHandlers(store, clock, bands, users, history)
     private val calendar = CalendarHandlers(store, clock, bands, users)
-    private val bandHandlers = BandHandlers(store, clock, maxBandChars, bands, users, history, invites, attachments)
+    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments)
 
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -138,8 +138,11 @@ class Api(
         /** Bands one user may belong to (ITERATION_3 R6): far above any musician's, and a bound on storage per account. */
         const val MAX_BANDS_PER_USER = 20
 
-        /** The largest band file a push may produce (ITERATION_3 R1), well below the 6 MB of a Lambda response. */
-        const val MAX_BAND_CHARS = 3_000_000
+        /**
+         * The largest band file a push may produce, in UTF-8 bytes (ITERATION_3 R1, V5-M1 A2): well below the 6 MB of a
+         * Lambda response, which also escapes it once more.
+         */
+        const val MAX_BAND_BYTES = 3_000_000
 
         const val INVITE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
         const val INVITE_LENGTH = 6

@@ -50,6 +50,7 @@ import com.jacekgajek.kapelusz.app.generated.reject_storage_failed
 import com.jacekgajek.kapelusz.app.generated.reject_treasurer_must_stay
 import com.jacekgajek.kapelusz.app.generated.reject_user_already_member
 import com.jacekgajek.kapelusz.app.generated.reject_viewer_not_participant
+import com.jacekgajek.kapelusz.app.generated.reject_viewer_still_plays
 import com.jacekgajek.kapelusz.app.generated.role_admin
 import com.jacekgajek.kapelusz.app.generated.role_artist
 import com.jacekgajek.kapelusz.app.generated.role_lead
@@ -129,6 +130,7 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.EVENT_UNSETTLED -> Res.string.reject_event_unsettled
     RejectionReason.ARTIST_HOLDS_NO_MONEY -> Res.string.reject_artist_holds_no_money
     RejectionReason.VIEWER_NOT_PARTICIPANT -> Res.string.reject_viewer_not_participant
+    RejectionReason.VIEWER_STILL_PLAYS -> Res.string.reject_viewer_still_plays
     RejectionReason.HOLDS_MONEY -> Res.string.reject_holds_money
     RejectionReason.COST_REFUSED -> Res.string.reject_cost_refused
     RejectionReason.COST_PARTLY_REFUNDED -> Res.string.reject_cost_partly_refunded

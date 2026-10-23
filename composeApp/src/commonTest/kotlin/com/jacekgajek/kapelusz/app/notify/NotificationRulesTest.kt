@@ -175,9 +175,14 @@ class NotificationRulesTest {
         )
         assertEquals(listOf("b/gig/debt0", "b/gig/debt1", "b/gig/debt2", "b/gig/debt3"), reminders.map { it.key })
         assertEquals(listOf(Owed("Alice", Money(5000))), reminders.first().owed)
-        // Four weeks in, after the second: the last two are left.
-        assertEquals(listOf(2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 30, 12, 0)).map { it.nth })
-        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 11, 27, 12, 0)), "never more than four")
+        // Four weeks in, after the second was shown: the last two are left.
+        val shown = setOf("b/gig/debt0", "b/gig/debt1")
+        assertEquals(listOf(2, 3), NotificationRules.debtReminders(listOf(debt), "u-bob", LocalTime(18, 0), LocalDateTime(2026, 10, 30, 12, 0), shown).map { it.nth })
+        // V5-M1 D2b: one Android hasn't delivered yet is still planned, however late, until the next is due.
+        assertEquals(listOf(1, 2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 30, 12, 0)).map { it.nth })
+        val all = shown + setOf("b/gig/debt2", "b/gig/debt3")
+        assertEquals(emptyList(), NotificationRules.debtReminders(listOf(debt), "u-bob", LocalTime(18, 0), LocalDateTime(2026, 11, 27, 12, 0), all), "never more than four")
+        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 12, 11, 12, 0)), "nor long after the last")
     }
 
     @Test
@@ -215,7 +220,8 @@ class NotificationRulesTest {
         assertEquals(null, due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000)))), "paid since it was planned")
         // Part paid since: the text is built from what is still owed.
         assertEquals(listOf(Owed("Alice", Money(3000))), due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))))?.owed)
-        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 29, 23, 0)), "hours late")
+        // V5-M1 D2b: however late Android delivers it, up to the next one, it still comes.
+        assertEquals(listOf(Owed("Alice", Money(5000))), NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 30, 9, 0))?.owed, "hours late")
         assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/other/debt1", LocalTime(18, 0), firing), "event gone")
     }
 }

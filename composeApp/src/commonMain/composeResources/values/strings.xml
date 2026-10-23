@@ -203,6 +203,7 @@
     <string name="reject_event_unsettled">Only settled events can be archived.</string>
     <string name="reject_artist_holds_no_money">Artists don’t hold money: no collected money and no band fund.</string>
     <string name="reject_viewer_not_participant">Viewers take no part in events.</string>
+    <string name="reject_viewer_still_plays">They still play in events not settled yet, or hold the band fund: settle those events or hand over the fund first.</string>
     <string name="reject_holds_money">They still hold money: settle their events or hand over the band fund first.</string>
     <string name="reject_cost_refused">This cost was refused.</string>
     <string name="reject_cost_partly_refunded">Part of this cost is already refunded, so it can’t be refused.</string>
@@ -286,6 +287,7 @@
     <string name="join_too_many_attempts">Too many wrong codes. Try again in an hour.</string>
     <string name="join_already_member">You are already a member of this band.</string>
     <string name="join_holds_money">This invite can’t be used yet: you still hold band money. Ask an admin to settle it first.</string>
+    <string name="join_still_plays">This invite can’t be used yet: you still play in events not settled yet, or hold the band fund. Ask an admin to settle them first.</string>
     <string name="join_failed">Could not join. Check your connection and try again.</string>
     <string name="h_rename_band">Renamed the band to %1$s</string>
     <string name="h_add_member">Added member %1$s</string>
@@ -318,7 +320,10 @@
     <string name="organiser">Organiser</string>
     <string name="awaited_payment">awaiting payment</string>
     <string name="add_awaited">Add a fee the organiser owes</string>
-    <string name="receive_awaited">Received…</string>
+    <string name="receive_awaited">Paid</string>
+    <string name="awaited_welched">Welched</string>
+    <string name="awaited_welched_title">The organiser won’t pay?</string>
+    <string name="awaited_welched_text">%1$s is removed from the income, and the shares are worked out again.</string>
     <string name="receive_awaited_title">Fee received</string>
     <string name="received_by">Received by</string>
     <string name="receive_awaited_hint">Up to %1$s. Any rest stays awaited.</string>

@@ -31,6 +31,8 @@ enum class RejectionReason {
     ARTIST_HOLDS_NO_MONEY,
     /** Viewers see the band's money but take no part in events. */
     VIEWER_NOT_PARTICIPANT,
+    /** Someone still playing in an unsettled event, or holding the band fund, cannot become a viewer (V5-M1 B2). */
+    VIEWER_STILL_PLAYS,
     /** Someone holding money in an unsettled event, or the band fund, cannot become an artist. */
     HOLDS_MONEY,
     /** A refused cost is not refunded until its owner resubmits it (ITERATION_4 §1.2). */

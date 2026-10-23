@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.content.edit
 import com.jacekgajek.kapelusz.app.AndroidAppGraph
 import kotlinx.coroutines.CancellationException
@@ -71,12 +70,11 @@ object ReminderScheduler {
         .putExtra(EXTRA_TEXT, text)
 
     /**
-     * Before Android 12 an inexact alarm may come very late, so a 15-minute window is asked for; from 12 on,
-     * allow-while-idle alarms arrive within about an hour.
+     * Allowed to go off while the phone is idle (Doze), on every version (V5-M1 D2a): a plain window alarm before
+     * Android 12 waits for the phone to wake up, which may be hours later.
      */
     private fun schedule(alarms: AlarmManager, at: Long, pending: PendingIntent) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) alarms.setWindow(AlarmManager.RTC_WAKEUP, at, 15 * 60 * 1000L, pending)
-        else alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
     }
 
     /** The scheduled reminders, soonest first: when (epoch millis) and for which gig. */

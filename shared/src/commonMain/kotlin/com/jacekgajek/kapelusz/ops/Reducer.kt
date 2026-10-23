@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
@@ -297,6 +298,7 @@ object Reducer {
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Use ownership transfer to make someone the owner" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner's role cannot be changed" }
         if (op.role == Role.ARTIST && member.role != Role.ARTIST) validateHoldsNoMoney(band, member.id)
+        if (op.role == Role.VIEWER && member.role != Role.VIEWER) validateCanWatchOnly(band, member.id)
         return band.updateMember(op.memberId) { it.copy(role = op.role) }
     }
 
@@ -306,6 +308,7 @@ object Reducer {
         conflictIf(band.memberOfUser(op.userId) != null, RejectionReason.USER_ALREADY_MEMBER) { "User is already a member of this band" }
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Invites cannot grant ownership" }
         if (op.role == Role.ARTIST) validateHoldsNoMoney(band, member.id)
+        if (op.role == Role.VIEWER) validateCanWatchOnly(band, member.id)
         return band.updateMember(op.memberId) { it.copy(userId = op.userId, role = op.role, archived = false) }
     }
 
@@ -320,12 +323,16 @@ object Reducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.archived, RejectionReason.ARCHIVED_MEMBER) { "An archived member cannot hold the band fund" }
         invalidIf(Artists.isArtist(band, member.id), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "An artist cannot hold the band fund" }
+        // The holder records the fund's transfers, which a viewer may not (V5-M1 B2).
+        invalidIf(member.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "A viewer cannot hold the band fund" }
         return band.copy(treasurerMemberId = member.id)
     }
 
     private fun transferOwnership(band: Band, op: TransferOwnership): Band {
         val target = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
         invalidIf(target.userId == null || target.role != Role.ADMIN, RejectionReason.OWNERSHIP_NEEDS_ADMIN) { "Ownership can only go to a linked admin" }
+        // An archived owner could do nothing at all, the band included (V5-M1 B3a).
+        invalidIf(target.archived, RejectionReason.ARCHIVED_MEMBER) { "Ownership cannot go to an archived member" }
         val currentOwner = band.owner
         return band.copy(
             members = band.members.map {
@@ -505,6 +512,8 @@ object Reducer {
         val transfers = suggestions.mapIndexed { index, suggestion ->
             Transfer("${ctx.opId}-$index", suggestion.from, suggestion.to, suggestion.amount, null, ctx.timestamp, ctx.memberId)
         }
+        // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
+        invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
         return band.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
     }
 
@@ -633,6 +642,13 @@ object Reducer {
             event.copy(holdings = event.holdings.map { if (it.id == holding.id) updated else it })
         }
     }
+
+    /**
+     * Someone becoming a viewer may not still play in an unsettled event or hold the band fund (V5-M1 B2): a viewer
+     * records no transfers, so money they hold would be stuck.
+     */
+    private fun validateCanWatchOnly(band: Band, memberId: Id) =
+        conflictIf(!Viewers.mayBecome(band, memberId), RejectionReason.VIEWER_STILL_PLAYS) { "Settle their events or hand over the band fund first" }
 
     /** A viewer only watches: they don't play in events (and so never get a share or a transfer). */
     private fun validateNotViewer(band: Band, memberId: Id) =

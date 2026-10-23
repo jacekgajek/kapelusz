@@ -131,7 +131,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             defaultYourName = defaultName,
             onOpen = { openBand(it, false) },
             onCreate = { name, currency, yourName -> graph.bands.createBand(name, currency, yourName); graph.sync.requestSync() },
-            onSignOut = { scope.launch { graph.signOut() } },
+            onSignOut = { graph.signOutInBackground() },
             onJoin = { joining = true },
         )
         is BandState.Ready -> CompositionLocalProvider(

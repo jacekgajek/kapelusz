@@ -178,13 +178,12 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             composable<SettingsRoute> { entry ->
                 val page = entry.toRoute<SettingsRoute>().page?.let { name -> SettingsPage.entries.firstOrNull { it.name == name } }
                 val session by graph.sessions.session.collectAsState()
-                val scope = rememberCoroutineScope()
                 SettingsScreen(
                     language = settings.language,
                     onLanguage = { code -> graph.settings.update { it.copy(language = code) } },
                     account = session?.let { it.email ?: it.name },
                     accountPicture = state.me?.pictureUrl,
-                    onSignOut = { scope.launch { graph.signOut() } },
+                    onSignOut = { graph.signOutInBackground() },
                     onSignOutEverywhere = { graph.signOutEverywhere() },
                     bandName = state.band.name,
                     onRenameBand = { name: String -> graph.dispatch(RenameBand(name)); Unit }

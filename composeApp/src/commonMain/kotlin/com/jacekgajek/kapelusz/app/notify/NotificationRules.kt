@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.notify
 
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
@@ -112,14 +113,23 @@ object NotificationRules {
      * from them, or from the band fund they hold. Recomputed on every sync like [reminders], so they stop once the
      * transfers are recorded or nothing is owed any more; late ones are kept the same way.
      */
-    fun debtReminders(bands: List<Band>, userId: String, time: LocalTime, now: LocalDateTime, shown: Set<String> = emptySet()): List<DebtReminder> =
+    fun debtReminders(
+        bands: List<Band>,
+        userId: String,
+        time: LocalTime,
+        now: LocalDateTime,
+        shown: Set<String> = emptySet(),
+        // Not shown yet, however late, up to when the next one is due (V5-M1 D2b): planning again (which replaces every
+        // alarm) must not drop one Android delivers late.
+        since: LocalDateTime = debtLateSince(now),
+    ): List<DebtReminder> =
         bands.flatMap { band ->
             // Artists never pay out (ITERATION_4 §1.1), and the reminder would name whom to pay.
             val me = band.memberOfUser(userId)?.takeIf { !it.archived && it.role != Role.ARTIST } ?: return@flatMap emptyList()
             val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
             band.events.filter { !it.archived }.flatMap { event ->
                 val times = (0 until DEBT_REMINDERS).map { nth -> nth to event.date.plus(DatePeriod(days = DEBT_FIRST_DAYS + nth * DEBT_EVERY_DAYS)).atTime(time) }
-                    .filter { (_, at) -> at >= lateSince(now) }
+                    .filter { (_, at) -> at >= since }
                 // Settling is only worked out for events that still have reminders to come.
                 if (times.isEmpty()) return@flatMap emptyList()
                 // Between the user and the band fund they hold no money changes hands: nothing to remind of.
@@ -153,11 +163,15 @@ object NotificationRules {
 
     /**
      * The debt reminder [key] as it stands when its alarm goes off, or null when it is no longer due: the alarm holds
-     * the texts from when it was planned, and the debt may have been paid or changed since. Null too when it is more
-     * than [LATE_HOURS] late, as for planning.
+     * the texts from when it was planned, and the debt may have been paid or changed since. Late is fine, up to when the
+     * next one is due, as for planning.
      */
     fun dueDebtReminder(bands: List<Band>, userId: String, key: String, time: LocalTime, now: LocalDateTime): DebtReminder? =
         debtReminders(bands, userId, time, now).firstOrNull { it.key == key }
+
+    /** How late a debt or fee reminder may still come: until the next one is due (V5-M1 D2b). */
+    private fun debtLateSince(now: LocalDateTime): LocalDateTime =
+        now.toInstant(TimeZone.UTC).minus(DEBT_EVERY_DAYS.days).toLocalDateTime(TimeZone.UTC)
 
     /** Every transfer on this device, as `band/transfer` keys: what has been seen so far. */
     fun transferKeys(bands: List<Band>): Set<String> =

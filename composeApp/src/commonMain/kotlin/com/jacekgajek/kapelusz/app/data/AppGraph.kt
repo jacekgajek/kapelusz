@@ -160,6 +160,14 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         sync.resumeAfterSignIn()
     }.await()
 
+    /**
+     * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and
+     * its scope with it, which must not stop the rest of signing out.
+     */
+    fun signOutInBackground() {
+        scope.launch { signOut() }
+    }
+
     suspend fun signOut() {
         sync.stop()
         sessions.signOut()

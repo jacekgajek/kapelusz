@@ -76,6 +76,9 @@ object ApiErrors {
     /** An artist invite for someone who still holds band money (ITERATION_4 §1.1): settle it first (`409`). */
     const val HOLDS_MONEY = "holds_money"
 
+    /** A viewer invite for someone still playing in an unsettled event or holding the band fund (V5-M1 B2) (`409`). */
+    const val STILL_PLAYS = "still_plays"
+
     /**
      * No such attachment on the cost (it was removed, or its operation refused). Distinct from a generic 404 so a
      * client only ever discards a waiting file on this answer, never on e.g. an older server without the route.

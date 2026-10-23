@@ -67,11 +67,11 @@ class Attachments(
         if (files.isNotEmpty()) scope.launch { files.forEach { attach(owner, it) } }
     }
 
-    fun remove(owner: AttachmentOwner, attachmentId: Id): Rejection? {
-        val rejection = dispatch(RemoveAttachment(owner, attachmentId))
-        if (rejection == null) scope.launch { uploads.cancel(attachmentId) }
-        return rejection
-    }
+    /**
+     * Removes an attachment. Its waiting file stays until the server agrees (V5-M1 A8): if it refuses the removal, the
+     * attachment stays and still needs that file; once the attachment is gone there, the upload queue drops it.
+     */
+    fun remove(owner: AttachmentOwner, attachmentId: Id): Rejection? = dispatch(RemoveAttachment(owner, attachmentId))
 
     fun rename(owner: AttachmentOwner, attachmentId: Id, fileName: String): Rejection? = dispatch(RenameAttachment(owner, attachmentId, fileName))
 
