@@ -10,18 +10,13 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import androidx.work.workDataOf
 import com.jacekgajek.kapelusz.app.AndroidAppGraph
 import java.util.concurrent.TimeUnit
 
-/** The daily update check (and installing a downloaded update once the app is in the background). */
+/** The daily update check: downloads a new build, which the user then installs (V5-M1 C1′). */
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val context = applicationContext
-        if (inputData.getBoolean(INSTALL_ONLY, false)) {
-            Updater.installIfReady(context)
-            return Result.success()
-        }
         if (!AndroidAppGraph.get(context).settingsForBackground().autoUpdate) return Result.success()
         return if (Updater.checkAndDownload(context)) Result.success() else Result.retry()
     }
@@ -29,8 +24,6 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     companion object {
         private const val DAILY = "update-check"
         private const val NOW = "update-now"
-        private const val INSTALL_ONLY = "installOnly"
-        private const val INSTALL_DELAY_MINUTES = 30L
         private val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
         /** Keeps the daily check scheduled (idempotent); called on app start. */
@@ -48,19 +41,6 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 NOW,
                 ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequestBuilder<UpdateWorker>().setConstraints(network).build(),
-            )
-        }
-
-        /** The app left the foreground: install what is downloaded. */
-        fun installWhenIdle(context: Context) {
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "update-install",
-                ExistingWorkPolicy.REPLACE,
-                // Installing restarts the app, so it waits until the app has been out of sight for a while: leaving it
-                // briefly (a photo for a cost, looking something up in another app) must not lose what is on screen.
-                // Coming back cancels nothing; the install checks again that the app is not visible.
-                OneTimeWorkRequestBuilder<UpdateWorker>().setInputData(workDataOf(INSTALL_ONLY to true))
-                    .setInitialDelay(INSTALL_DELAY_MINUTES, TimeUnit.MINUTES).build(),
             )
         }
     }

@@ -42,7 +42,8 @@ import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import com.jacekgajek.kapelusz.app.generated.share_weight
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -51,6 +52,7 @@ import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddParticipant
+import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.app.generated.share_fixed
@@ -60,6 +62,7 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.SetFixedShare
 import org.jetbrains.compose.resources.stringResource
 
@@ -76,7 +79,7 @@ fun ParticipantsSection(context: EventContext) {
     SectionTitle(stringResource(Res.string.participants))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Viewers only watch (they take no part in events).
-        band.members.filter { (!it.archived && it.role != com.jacekgajek.kapelusz.model.Role.VIEWER) || event.participant(it.id) != null }.forEach { member ->
+        band.members.filter { (!it.archived && it.role != Role.VIEWER) || event.participant(it.id) != null }.forEach { member ->
             val selected = event.participant(member.id) != null
             FilterChip(
                 selected = selected,
@@ -90,22 +93,21 @@ fun ParticipantsSection(context: EventContext) {
             )
         }
         event.guests.forEach { guest ->
+            // Tapping the whole chip removes the guest, as tapping a member's chip takes them out (V5-M1 C7): a full-size
+            // target instead of the small cross, which only marks it.
+            val remove = removeLabel(guest.name)
             InputChip(
                 selected = true,
-                onClick = {},
+                onClick = { if (canManage) context.actions.run(RemoveParticipant(event.id, guest.id)) },
+                enabled = canManage,
                 label = { Text(guest.name) },
                 trailingIcon = if (canManage) {
-                    {
-                        // A button named after the guest, not a bare "Remove" image (ITERATION_3 R13).
-                        Icon(
-                            Icons.Default.Close,
-                            removeLabel(guest.name),
-                            Modifier.clickable(role = Role.Button) { context.actions.run(RemoveParticipant(event.id, guest.id)) },
-                        )
-                    }
+                    { Icon(Icons.Default.Close, null) }
                 } else {
                     null
                 },
+                // Read out as what tapping does: "Remove Bob".
+                modifier = Modifier.semantics { if (canManage) onClick(label = remove) { context.actions.run(RemoveParticipant(event.id, guest.id)); true } },
             )
         }
         if (canManage) AssistChip(
@@ -156,7 +158,7 @@ fun ParticipantsSection(context: EventContext) {
 }
 
 @Composable
-private fun GuestDialog(onDismiss: () -> Unit, onAdd: (String, Int) -> Unit) {
+private fun GuestDialog(onDismiss: () -> Unit, onAdd: (String, Int) -> Boolean) {
     var name by remember { mutableStateOf("") }
     var weight by remember { mutableStateOf(DEFAULT_WEIGHT.toString()) }
     val parsedWeight = weight.toIntOrNull()?.takeIf { it in 0..10_000 }
@@ -165,12 +167,12 @@ private fun GuestDialog(onDismiss: () -> Unit, onAdd: (String, Int) -> Unit) {
         title = { Text(stringResource(Res.string.add_guest)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.guest_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(name, { name = it.take(Limits.MAX_NAME) }, label = { Text(stringResource(Res.string.guest_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 WeightField(weight) { weight = it }
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank() && parsedWeight != null, onClick = { onAdd(name.trim(), parsedWeight!!); onDismiss() }) {
+            TextButton(enabled = name.isNotBlank() && parsedWeight != null, onClick = { if (onAdd(name.trim(), parsedWeight!!)) onDismiss() }) {
                 Text(stringResource(Res.string.ok))
             }
         },
@@ -213,8 +215,8 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
             TextButton(
                 enabled = editor.valid,
                 onClick = {
-                    ops.all { context.actions.run(it) }
-                    onDismiss()
+                    // Refused (e.g. removed from the event meanwhile): the dialog stays (V5-M1 C4c).
+                    if (ops.all { context.actions.run(it) }) onDismiss()
                 },
             ) { Text(stringResource(Res.string.ok)) }
         },

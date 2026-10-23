@@ -14,5 +14,5 @@ internal class Strings(language: String?) {
 
     fun readyTitle(versionName: String) = if (polish) "Kapelusz $versionName jest gotowy" else "Pass the Hat $versionName is ready"
 
-    fun readyText() = if (polish) "Dotknij, aby zainstalować aktualizację." else "Tap to install the update."
+    fun readyText() = if (polish) "Dotknij, aby otworzyć aplikację i zainstalować." else "Tap to open the app and install it."
 }

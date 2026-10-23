@@ -75,7 +75,9 @@ async function networkFirst(event, request, key) {
     // With a copy at hand, a hanging network (a weak signal) does not keep the app from starting.
     const timeout = new Promise((resolve) => setTimeout(() => resolve(null), NETWORK_TIMEOUT_MS));
     try {
-        return (await Promise.race([network, timeout])) || cached;
+        // An error answer (a server or CDN hiccup, a captive portal) loses to the good copy too (V5-M1 D7).
+        const answer = await Promise.race([network, timeout]);
+        return answer && answer.ok ? answer : cached;
     } catch (e) {
         return cached;
     }

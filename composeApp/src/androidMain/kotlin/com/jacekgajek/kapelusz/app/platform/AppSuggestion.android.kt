@@ -39,15 +39,15 @@ internal fun fetchPublished(): PublishedVersion? {
     }
 }
 
-// Checked once per process; the banner is composed again on every tab screen.
-private var published: Result<PublishedVersion?>? = null
+// Checked once per process (the banner is composed again on every tab screen); a failed check (e.g. offline) is tried
+// again next time rather than kept for the life of the process (V5-M1 D7).
+private var published: PublishedVersion? = null
 
 actual suspend fun appDownload(): AppDownload? {
     val context = AndroidPlatform.context ?: return null
     // Debug builds (installDebug) always have version 1; they would see every published release as an update.
     if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) return null
-    val published = (published ?: withContext(Dispatchers.IO) { runCatching { fetchPublished() } }.also { published = it })
-        .getOrNull() ?: return null
+    val published = published ?: withContext(Dispatchers.IO) { runCatching { fetchPublished() }.getOrNull() }?.also { published = it } ?: return null
     val dismissed = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(DISMISSED_VERSION, 0)
     if (published.versionCode <= installedVersionCode(context) || published.versionCode <= dismissed) return null
     return AppDownload("${AppConfig.WEB_URL}/download/kapelusz.apk", isUpdate = true, published.versionCode, published.versionName)

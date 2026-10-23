@@ -58,7 +58,7 @@ import com.jacekgajek.kapelusz.app.generated.delete_cost_confirm
 import com.jacekgajek.kapelusz.app.generated.delete_cost_title
 import com.jacekgajek.kapelusz.app.generated.description_optional
 import com.jacekgajek.kapelusz.app.generated.edit_cost
-import com.jacekgajek.kapelusz.app.generated.event_not_found
+import com.jacekgajek.kapelusz.app.generated.cost_not_found
 import com.jacekgajek.kapelusz.app.generated.paid_by
 import com.jacekgajek.kapelusz.app.generated.paid_by_name
 import com.jacekgajek.kapelusz.app.generated.save
@@ -187,7 +187,7 @@ fun CostScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         if (costId != null && existing == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(stringResource(Res.string.event_not_found)) }
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(stringResource(Res.string.cost_not_found)) }
             return@Scaffold
         }
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {

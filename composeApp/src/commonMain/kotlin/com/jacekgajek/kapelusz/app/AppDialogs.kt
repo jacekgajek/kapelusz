@@ -24,6 +24,7 @@ import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_was_deleted
 import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.debt_prompt
 import com.jacekgajek.kapelusz.app.generated.lost_access
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.place_new_event
@@ -44,6 +45,9 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -137,14 +141,48 @@ internal fun ReminderPrompt(graph: AppGraph, settings: AppSettings) {
         confirmButton = {
             TextButton(onClick = {
                 // Answered now, so a screen rotation during Android's dialog cannot bring the prompt back.
-                graph.settings.update { it.copy(notificationPromptDone = true) }
+                // The permission covers the debt reminders too: no second question about them (V5-M1 D3).
+                graph.settings.update { it.copy(notificationPromptDone = true, debtPromptDone = true) }
                 permission.request { granted -> graph.settings.update { it.copy(remindersEnabled = granted) } }
             }) { Text(stringResource(Res.string.reminder_prompt_yes)) }
         },
         dismissButton = {
-            TextButton(onClick = { graph.settings.update { it.copy(notificationPromptDone = true, remindersEnabled = false) } }) {
+            TextButton(onClick = { graph.settings.update { it.copy(notificationPromptDone = true, debtPromptDone = true, remindersEnabled = false) } }) {
                 Text(stringResource(Res.string.reminder_prompt_not_now))
             }
+        },
+    )
+}
+
+/**
+ * Debt reminders are on by default (ITERATION_4 §1.3), but on Android 13+ they show only with the notification
+ * permission, which the gig prompt asks for only with a gig of one's own coming. So once the user has money to pass on
+ * and the permission wasn't given, asks once (V5-M1 D3).
+ */
+@Composable
+internal fun DebtReminderPrompt(graph: AppGraph, settings: AppSettings) {
+    val permission = rememberNotificationPermission() ?: return
+    if (settings.debtPromptDone || !settings.debtReminders || !permission.needsAsking) return
+    val userId = graph.sessions.session.collectAsState().value?.userId ?: return
+    val bandState by graph.bands.state.collectAsState()
+    val first = remember(bandState, settings.notificationPromptDone) {
+        val bands = graph.bands.allBands()
+        // Not over the gig prompt: that one asks for the same permission first.
+        if (!settings.notificationPromptDone && NotificationRules.firstUpcomingGig(bands, userId, today()) != null) return@remember null
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        NotificationRules.debtReminders(bands, userId, settings.reminderTime, now).firstOrNull()
+    } ?: return
+    AlertDialog(
+        onDismissRequest = {},
+        text = { Text(stringResource(Res.string.debt_prompt, first.eventName)) },
+        confirmButton = {
+            TextButton(onClick = {
+                graph.settings.update { it.copy(debtPromptDone = true) }
+                permission.request {}
+            }) { Text(stringResource(Res.string.reminder_prompt_yes)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { graph.settings.update { it.copy(debtPromptDone = true) } }) { Text(stringResource(Res.string.reminder_prompt_not_now)) }
         },
     )
 }

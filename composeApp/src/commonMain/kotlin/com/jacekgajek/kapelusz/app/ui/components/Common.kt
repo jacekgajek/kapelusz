@@ -284,7 +284,7 @@ fun PartialSettleDialog(
     to: String,
     suggested: Money,
     currency: String,
-    onConfirm: (Money) -> Unit,
+    onConfirm: (Money) -> Boolean,
     onDismiss: () -> Unit,
 ) {
     val lang = language
@@ -307,7 +307,8 @@ fun PartialSettleDialog(
             }
         },
         confirmButton = {
-            TextButton(enabled = parsed != null, onClick = { onConfirm(parsed!!); onDismiss() }) {
+            // Refused (e.g. more than an artist is owed now): the dialog stays, with the amount (V5-M1 C4c).
+            TextButton(enabled = parsed != null, onClick = { if (onConfirm(parsed!!)) onDismiss() }) {
                 Text(stringResource(Res.string.settle))
             }
         },

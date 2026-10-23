@@ -11,6 +11,8 @@ data class UpdateMemory(
     /** An install of this version was handed to Android at [installingSince] and has not reported back yet. */
     val installingVersion: Long? = null,
     val installingSince: Long = 0,
+    /** The "downloaded, tap to install" notification was shown for this version (once each). */
+    val notifiedVersion: Long? = null,
 ) {
     /** An install of [version] was handed to Android at [now]. */
     fun installing(version: Long, now: Long) = copy(installingVersion = version, installingSince = now)
@@ -37,34 +39,23 @@ object UpdatePolicy {
     /** An install handed to Android that has not reported back after this long is considered lost. */
     const val INSTALL_TIMEOUT_MS = 10 * 60 * 1000L
 
-    /**
-     * Whether a downloaded [version] may be installed now without the user asking for it: automatic updates are on,
-     * the app is out of sight, the user has not declined this version, it did not fail before, Android has not asked
-     * to confirm it (that waits for the user's tap instead of prompting on every exit), and no install of it is in
-     * flight.
-     */
-    fun mayInstallAutomatically(version: Long, autoUpdate: Boolean, appVisible: Boolean, memory: UpdateMemory, now: Long): Boolean =
-        autoUpdate && !appVisible && memory.declinedVersion != version && memory.failedVersion != version &&
-            memory.confirmVersion != version && !isInstalling(version, memory, now)
-
     fun isInstalling(version: Long, memory: UpdateMemory, now: Long): Boolean =
         memory.installingVersion == version && now - memory.installingSince < INSTALL_TIMEOUT_MS
 
     /**
-     * The step after a check found the downloaded [version]: install it when the user asked ([installNow]) or the
-     * rules allow; an install in flight is not interrupted; otherwise show what waits for the user.
+     * The step after a check found the downloaded [version]: install it only when the user asked ([installNow]):
+     * updates download by themselves but never install by themselves (V5-M1 C1′), since installing restarts the app
+     * and could lose what is on screen; an install in flight is not interrupted; otherwise show what waits for the user.
      */
     fun afterCheck(
         version: Long,
         versionName: String,
         installNow: Boolean,
-        autoUpdate: Boolean,
-        appVisible: Boolean,
         canInstallApps: Boolean,
         memory: UpdateMemory,
         now: Long,
     ): UpdateStep = when {
-        installNow || mayInstallAutomatically(version, autoUpdate, appVisible, memory, now) -> UpdateStep.Install
+        installNow -> UpdateStep.Install
         isInstalling(version, memory, now) -> UpdateStep.Show(UpdateStatus.Installing(versionName))
         else -> UpdateStep.Show(waitingStatus(version, versionName, canInstallApps, memory))
     }

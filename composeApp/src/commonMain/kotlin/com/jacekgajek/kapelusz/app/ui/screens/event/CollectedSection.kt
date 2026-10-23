@@ -176,6 +176,11 @@ fun CollectedSection(context: EventContext) {
 @Composable
 private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty: String, parties: List<String>, onDismiss: () -> Unit) {
     val event = context.event
+    // Gone meanwhile (removed, or an awaited fee received on another phone): nothing left to edit (V5-M1 C4d).
+    if (initial != null && event.holdings.none { it.id == initial.id }) {
+        LaunchedEffect(Unit) { onDismiss() }
+        return
+    }
     val lang = language
     var partyId by remember { mutableStateOf(defaultParty) }
     var amount by remember { mutableStateOf(initial?.let { formatMoneyInput(it.amount, lang) } ?: "") }

@@ -38,6 +38,7 @@ import com.jacekgajek.kapelusz.app.generated.details_discard_title
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.ops.Change
+import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import org.jetbrains.compose.resources.stringResource
 
@@ -80,14 +81,14 @@ fun DetailsSection(context: EventContext) {
         DetailsEditor(text.orEmpty(), onSave = { value ->
             // Trimmed like the server does, so an unchanged text sends nothing.
             val cleaned = value.trim().ifBlank { null }
-            if (cleaned != text) context.actions.run(UpdateEvent(event.id, notes = Change(cleaned)))
+            cleaned == text || context.actions.run(UpdateEvent(event.id, notes = Change(cleaned)))
         }, onDismiss = { editing = false })
     }
 }
 
 /** Full screen, so a long setlist is comfortable to paste and edit. */
 @Composable
-private fun DetailsEditor(initial: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+private fun DetailsEditor(initial: String, onSave: (String) -> Boolean, onDismiss: () -> Unit) {
     var value by remember { mutableStateOf(initial) }
     var confirmDiscard by remember { mutableStateOf(false) }
     // A pasted setlist is easy to lose: leaving with changes asks first.
@@ -96,7 +97,10 @@ private fun DetailsEditor(initial: String, onSave: (String) -> Unit, onDismiss: 
         Scaffold(
             topBar = {
                 BackTopBar(stringResource(Res.string.details), leave) {
-                    TextButton(onClick = { onSave(value); onDismiss() }) { Text(stringResource(Res.string.save)) }
+                    // Refused (the snackbar says why): the editor stays, with what was typed (V5-M1 C4a).
+                    TextButton(enabled = value.trim().length <= Limits.MAX_NOTES, onClick = { if (onSave(value)) onDismiss() }) {
+                        Text(stringResource(Res.string.save))
+                    }
                 }
             },
         ) { padding ->
@@ -105,6 +109,9 @@ private fun DetailsEditor(initial: String, onSave: (String) -> Unit, onDismiss: 
                     value,
                     { value = it },
                     placeholder = { Text(stringResource(Res.string.details_hint)) },
+                    // How much room is left, so a long setlist isn't refused only on Save.
+                    supportingText = { Text("${value.trim().length} / ${Limits.MAX_NOTES}") },
+                    isError = value.trim().length > Limits.MAX_NOTES,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }

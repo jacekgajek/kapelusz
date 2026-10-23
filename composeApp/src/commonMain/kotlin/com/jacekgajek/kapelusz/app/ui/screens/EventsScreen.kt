@@ -46,6 +46,7 @@ import com.jacekgajek.kapelusz.app.ui.model.setTimes
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
+import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.upcoming_event
 import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
 import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
@@ -243,7 +244,17 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                     event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
                 }
                 // A draft has no money in it yet: nothing to be settled about.
-                if (summary.settlement.status != EventStatus.DRAFT) MyNumberText(summary.myNumber, band.currency)
+                val number = summary.myNumber
+                when {
+                    summary.settlement.status == EventStatus.DRAFT -> {}
+                    // An artist doesn't hand money over: a lead settles what they got too much (V5-M1 C7).
+                    !showStatus && number is MyNumber.HandOver -> Text(
+                        stringResource(Res.string.artist_to_hand_back) + ": " + formatMoney(number.amount, band.currency, language),
+                        color = MoneyColors.negative,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    else -> MyNumberText(number, band.currency)
+                }
             }
         }
     }

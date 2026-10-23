@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,8 +35,11 @@ import com.jacekgajek.kapelusz.app.generated.refund_of
 import com.jacekgajek.kapelusz.app.generated.refunds
 import com.jacekgajek.kapelusz.app.generated.refunds_empty
 import com.jacekgajek.kapelusz.app.generated.refuse
+import com.jacekgajek.kapelusz.app.generated.refuse_text
+import com.jacekgajek.kapelusz.app.generated.refuse_title
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
@@ -59,6 +63,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
     val band = context.band
     val event = context.event
     var editing by remember { mutableStateOf<Cost?>(null) }
+    var refusing by remember { mutableStateOf<Cost?>(null) }
     val canEdit = context.can.editRefunds(event)
     val pending = if (canEdit) CostLedger.pendingFromEarlier(band, event) else emptyList()
 
@@ -97,7 +102,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
                 // Include it here, or refuse it for good (ITERATION_4 §1.2): only a cost with nothing refunded yet.
                 Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (context.can.refuseCost() && outstanding == cost.amount) {
-                        TextButton(onClick = { context.actions.run(RefuseCost(cost.id)) }) {
+                        TextButton(onClick = { refusing = cost }) {
                             Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error)
                         }
                     }
@@ -117,6 +122,16 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
     }
 
     editing?.let { cost -> RefundDialog(context, cost, onDismiss = { editing = null }) }
+    // Refusing is final for leads (only its owner can send it again): asked first, next to Include (V5-M1 C7).
+    refusing?.let { cost ->
+        ConfirmDialog(
+            title = stringResource(Res.string.refuse_title),
+            text = stringResource(Res.string.refuse_text, formatMoney(cost.amount, context.currency, language), band.member(cost.memberId)?.name.orEmpty()),
+            confirmLabel = stringResource(Res.string.refuse),
+            onConfirm = { context.actions.run(RefuseCost(cost.id)) },
+            onDismiss = { refusing = null },
+        )
+    }
 }
 
 @Composable
@@ -134,8 +149,14 @@ private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifie
 }
 
 @Composable
-private fun RefundDialog(context: EventContext, cost: Cost, onDismiss: () -> Unit) {
+private fun RefundDialog(context: EventContext, opened: Cost, onDismiss: () -> Unit) {
     val event = context.event
+    // As it is now: its amount may have changed meanwhile, or it may be gone (V5-M1 C4d).
+    val cost = context.band.cost(opened.id)
+    if (cost == null) {
+        LaunchedEffect(Unit) { onDismiss() }
+        return
+    }
     val max = CostLedger.maxRefundAt(context.band, cost, event)
     val lang = language
     var amount by remember { mutableStateOf(formatMoneyInput(event.refundOf(cost.id)?.amount ?: max, lang)) }
