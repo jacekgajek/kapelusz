@@ -8,7 +8,11 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.sumOfMoney
 
-enum class EventStatus { DRAFT, LOSS, OPEN, SETTLED }
+/**
+ * [AWAITING]: everything that came in has been passed on, but the organiser still owes part of the income
+ * (ITERATION_4 §2.2).
+ */
+enum class EventStatus { DRAFT, LOSS, OPEN, AWAITING, SETTLED }
 
 enum class SettlementProblem {
     /** Income does not cover the fund amount, refunds and fixed shares. */
@@ -105,7 +109,7 @@ object SettlementCalculator {
             .mapValues { (_, refunds) -> refunds.sumOfMoney { it.amount } }
 
         val involvesFund = !event.fundAmount.isZero ||
-            event.transfers.any { it.from == BAND_FUND || it.to == BAND_FUND }
+            event.transfers.any { it.from == BAND_FUND || it.to == BAND_FUND } || event.holdings.any { it.partyId == BAND_FUND }
         val partyIds = order + if (involvesFund) listOf(BAND_FUND) else emptyList()
 
         val lines = partyIds.map { partyId ->
@@ -129,6 +133,8 @@ object SettlementCalculator {
             event.holdings.isEmpty() && event.transfers.isEmpty() && !event.fundAmount.isNegative -> EventStatus.DRAFT
             SettlementProblem.LOSS in problems -> EventStatus.LOSS
             problems.isEmpty() && lines.all { it.isSettled } -> EventStatus.SETTLED
+            // The organiser's fee holds no line: nobody has a surplus to pass on until it comes (ITERATION_4 §2.2).
+            problems.isEmpty() && event.awaited.isPositive && lines.none { it.delta.isPositive } -> EventStatus.AWAITING
             else -> EventStatus.OPEN
         }
         val suggestions = if (status == EventStatus.OPEN && problems.isEmpty()) {

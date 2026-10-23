@@ -157,13 +157,13 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
             if (contributions.isNotEmpty()) {
                 item { SectionTitle(stringResource(Res.string.fund_from_events)) }
                 items(contributions, key = { "event-${it.id}" }) { event ->
-                    val handedOver = event.transfers.filter { it.to == BAND_FUND }.sumOfMoney { it.amount } -
-                        event.transfers.filter { it.from == BAND_FUND }.sumOfMoney { it.amount }
+                    // Counts a fee paid straight to the fund too (ITERATION_4 §2.2).
+                    val handedOver = BandFund.isHandedOver(event)
                     Row(Modifier.fillMaxWidth().clickable { onOpenEvent(event.id) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(event.name)
                             Text(
-                                "${formatDate(event.date, lang)} · " + stringResource(if (handedOver == event.fundAmount) Res.string.fund_handed_over else Res.string.fund_waiting),
+                                "${formatDate(event.date, lang)} · " + stringResource(if (handedOver) Res.string.fund_handed_over else Res.string.fund_waiting),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }

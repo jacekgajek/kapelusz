@@ -64,7 +64,8 @@ fun unsettledEvent(band: Band, today: LocalDate): Event? =
         .filter { !it.archived && it.date <= today }
         .filter { event ->
             when (SettlementCalculator.settle(band, event).status) {
-                EventStatus.OPEN, EventStatus.LOSS -> true
+                // Awaiting payment too: the organiser still owes (ITERATION_4 §2.2).
+                EventStatus.OPEN, EventStatus.LOSS, EventStatus.AWAITING -> true
                 EventStatus.DRAFT -> event.date < today
                 EventStatus.SETTLED -> false
             }

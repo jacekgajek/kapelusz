@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddHolding
@@ -16,9 +17,11 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetFundAmount
+import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -119,6 +122,27 @@ class NotificationRulesTest {
         val back = gig.apply("u-bob", RecordTransfer("gig", "new", "bob", "alice", Money(1)))
         val later = NotificationRules.checkTransfers(listOf(back), "u-alice", missing.seen, missing.baselined)
         assertEquals(listOf("new"), later.notices.flatMap { notice -> notice.transfers.map { it.id } })
+    }
+
+    /** ITERATION_4 §2.2: the lead who recorded a fee the organiser owes is reminded until it comes. */
+    @Test
+    fun theRecordingLeadIsRemindedOfAnAwaitedFee() {
+        val band = base.apply(
+            "u-bob",
+            CreateEvent("gig", "Club gig", LocalDate(2026, 10, 1), participants = listOf(Participant("alice"), Participant("bob"))),
+            AddHolding("gig", "fee", ORGANISER, Money(300000), IncomeSource.CONTRACT),
+        )
+        val bobs = debtReminders(band, "u-bob")
+        assertEquals(listOf("b/gig/fee0", "b/gig/fee1", "b/gig/fee2", "b/gig/fee3"), bobs.map { it.key })
+        assertEquals(Money(300000), bobs.first().organiserOwes)
+        assertEquals(emptyList(), debtReminders(band, "u-alice"), "another lead: not theirs to chase")
+        val due = NotificationRules.dueDebtReminder(listOf(band), "u-bob", "b/gig/fee1", LocalTime(18, 0), LocalDateTime(2026, 10, 29, 18, 30))
+        assertEquals(Money(300000), due?.organiserOwes, "checked again when its alarm goes off")
+        val received = band.apply("u-bob", ReceiveAwaited("gig", "fee", "paid", "bob", Money(300000)))
+        assertTrue(debtReminders(received, "u-bob").none { it.organiserOwes != null }, "paid")
+        // Bob is no longer a lead: the leads in the event chase it (Alice, the owner, plays).
+        val demoted = band.apply("system", SetMemberRole("bob", Role.MEMBER))
+        assertEquals(Money(300000), debtReminders(demoted, "u-alice").first().organiserOwes)
     }
 
     @Test

@@ -21,7 +21,9 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.sumOfMoney
 
 /** A gig reminder to show at [at] (local time), [daysBefore] days before the event. */
 data class Reminder(
@@ -53,9 +55,11 @@ data class DebtReminder(
     val at: LocalDateTime,
     val currency: String,
     val owed: List<Owed>,
+    /** Not a debt of the user's but a fee the organiser still owes, which this lead recorded (ITERATION_4 §2.2). */
+    val organiserOwes: Money? = null,
 ) {
     /** Stable per event and reminder, so rescheduling replaces rather than duplicates. */
-    val key: String get() = "$bandId/$eventId/debt$nth"
+    val key: String get() = "$bandId/$eventId/${if (organiserOwes != null) "fee" else "debt"}$nth"
 }
 
 /** [amount] still to send to [toName] (null: the band fund); [fromFund]: out of the band fund, which the user holds. */
@@ -122,12 +126,30 @@ object NotificationRules {
                 val owed = SettlementCalculator.settle(band, event).suggestions.filter { it.from in mine && it.to !in mine }.map {
                     Owed(it.to.takeIf { to -> to != BAND_FUND }?.let { to -> partyName(band, event, to, "") }, it.amount, it.from == BAND_FUND)
                 }
-                if (owed.isEmpty()) return@flatMap emptyList()
-                times.mapNotNull { (nth, at) ->
-                    DebtReminder(band.id, event.id, event.name, event.date, nth, at, band.currency, owed).takeUnless { it.at <= now && it.key in shown }
+                val fee = organiserOwes(band, event, me)
+                times.flatMap { (nth, at) ->
+                    listOfNotNull(
+                        DebtReminder(band.id, event.id, event.name, event.date, nth, at, band.currency, owed).takeIf { owed.isNotEmpty() },
+                        fee?.let { DebtReminder(band.id, event.id, event.name, event.date, nth, at, band.currency, emptyList(), it) },
+                    ).filterNot { it.at <= now && it.key in shown }
                 }
             }
         }.sortedBy { it.at }
+
+    /**
+     * What the organiser still owes for [event] that [me] is to chase (ITERATION_4 §2.2): fees they recorded while a lead;
+     * those whose recorder is no longer a lead go to the leads in the event, or to every lead when none plays in it.
+     * Null when there is nothing.
+     */
+    private fun organiserOwes(band: Band, event: Event, me: Member): Money? {
+        if (!me.role.atLeast(Role.LEAD)) return null
+        fun isLead(id: Id?) = id?.let { band.member(it) }?.takeIf { !it.archived }?.role?.atLeast(Role.LEAD) == true
+        val leadsInEvent = event.participants.any { isLead(it.partyId) }
+        val mine = event.holdings.filter {
+            it.awaited && (it.recordedBy == me.id || (!isLead(it.recordedBy) && (event.participant(me.id) != null || !leadsInEvent)))
+        }
+        return mine.sumOfMoney { it.amount }.takeIf { it.isPositive }
+    }
 
     /**
      * The debt reminder [key] as it stands when its alarm goes off, or null when it is no longer due: the alarm holds

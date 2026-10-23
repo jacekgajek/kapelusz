@@ -16,6 +16,7 @@
     <string name="share_text_still_to_pay">Do przekazania:</string>
     <string name="share_text_all_settled">Wszystko rozliczone</string>
     <string name="share_text_incomplete">Jeszcze nierozliczone: najpierw trzeba coś poprawić w aplikacji</string>
+    <string name="share_text_awaiting_rest">Reszta zostanie rozliczona, gdy organizator zapłaci</string>
     <string name="share_text_footer">Kapelusz · kapelusz.jacekgajek.com</string>
     <!-- Przypomnienie o nierozliczonych długach (ITERATION_3 §2.2) -->
     <string name="notifications_debts">Przypomnienia o nierozliczonych długach</string>

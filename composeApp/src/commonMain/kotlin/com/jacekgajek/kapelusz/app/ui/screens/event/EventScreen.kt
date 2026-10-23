@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
 import com.jacekgajek.kapelusz.app.generated.fund_amount_to_hint
 import com.jacekgajek.kapelusz.app.generated.fund_direction_from
 import com.jacekgajek.kapelusz.app.generated.fund_direction_to
+import com.jacekgajek.kapelusz.app.generated.total_awaited
 import com.jacekgajek.kapelusz.app.generated.total_from_fund
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -225,6 +226,8 @@ private fun Header(context: EventContext, money: Boolean = true) {
         if (money) Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
+                // Part of the income is a fee the organiser has not paid yet (ITERATION_4 §2.2).
+                if (event.awaited.isPositive) TotalRow(stringResource(Res.string.total_awaited), event.awaited, context.currency)
                 val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
                 if (!s.fundAmount.isZero || canSetFund) {
                     // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.

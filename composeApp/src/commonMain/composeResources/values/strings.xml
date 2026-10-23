@@ -298,6 +298,18 @@
     <string name="h_add_holding">Recorded %1$s collected by %2$s at %3$s</string>
     <string name="h_edit_holding">Edited collected money at %1$s</string>
     <string name="h_remove_holding">Removed collected money at %1$s</string>
+    <string name="h_add_awaited">Recorded %1$s the organiser owes for %2$s</string>
+    <string name="h_receive_awaited">Recorded %1$s received from the organiser by %2$s at %3$s</string>
+    <string name="organiser">Organiser</string>
+    <string name="awaited_payment">awaiting payment</string>
+    <string name="add_awaited">Add a fee the organiser owes</string>
+    <string name="receive_awaited">Received…</string>
+    <string name="receive_awaited_title">Fee received</string>
+    <string name="received_by">Received by</string>
+    <string name="receive_awaited_hint">Up to %1$s. Any rest stays awaited.</string>
+    <string name="total_awaited">of which not paid yet</string>
+    <string name="share_awaited">Still owed by the organiser: %1$s</string>
+    <string name="status_awaiting">Awaiting payment</string>
     <string name="h_set_refund">Set a cost refund of %1$s at %2$s</string>
     <string name="h_defer_refund">Deferred a cost refund at %1$s</string>
     <string name="h_set_fund_amount">Set the band fund amount to %1$s at %2$s</string>
@@ -371,7 +383,7 @@
     <string name="fund_amount_from_hint">The band fund adds this to the money shared, e.g. to cover a loss.</string>
     <string name="reject_attachment_too_large">The file is too large (photos up to 3 MB, PDFs up to 10 MB).</string>
     <string name="attachments">Attachments</string>
-    <string name="attachment_add_file">Add photo or PDF</string>
+    <string name="attachment_add_file">Attach</string>
     <string name="attachment_take_photo">Take photo</string>
     <string name="attachment_hint">Receipts and invoices: photos or PDFs, up to %1$d.</string>
     <string name="attachment_hint_holding">The contract or a confirmation: photos or PDFs, up to %1$d.</string>
@@ -470,7 +482,7 @@
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
-    <string name="notifications_time">At</string>
+    <string name="notifications_time">Send reminders at:</string>
     <string name="notifications_transfers">Transfers others record with me</string>
     <string name="calendar_title">Calendar subscription</string>
     <string name="calendar_hint">Your gigs from all your bands in Google Calendar (or any calendar app), kept up to date. The link is private: anyone with it sees your gigs (no money).</string>

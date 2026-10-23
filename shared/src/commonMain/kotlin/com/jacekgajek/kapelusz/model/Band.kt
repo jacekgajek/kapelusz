@@ -9,6 +9,12 @@ typealias Id = String
 /** Party id of the band fund in transfers and settlement lines. */
 const val BAND_FUND: Id = "band-fund"
 
+/**
+ * Holder of collected money that has not come in yet: a fee the organiser still owes (ITERATION_4 §2.2). It counts in
+ * the event's income and shares but is never asked to pay; "Received…" moves it to whoever got it.
+ */
+const val ORGANISER: Id = "organiser"
+
 /** Roles form a single cumulative axis: each role can do everything the previous one can. */
 @Serializable
 enum class Role {

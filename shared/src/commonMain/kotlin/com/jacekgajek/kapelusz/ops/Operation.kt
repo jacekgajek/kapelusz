@@ -157,6 +157,13 @@ data class AddHolding(
     val note: String? = null,
 ) : Operation
 
+/**
+ * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, in full or [amount] of it (ITERATION_4 §2.2):
+ * that much becomes [partyId]'s collected money, as entry [receivedId]; the rest stays awaited.
+ */
+@Serializable @SerialName("ReceiveAwaited")
+data class ReceiveAwaited(override val eventId: Id, val holdingId: Id, val receivedId: Id, val partyId: Id, val amount: Money) : Operation
+
 @Serializable @SerialName("UpdateHolding")
 data class UpdateHolding(
     override val eventId: Id,

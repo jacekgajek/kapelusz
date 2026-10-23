@@ -15,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.share_awaited
 import com.jacekgajek.kapelusz.app.generated.share_settlement
 import com.jacekgajek.kapelusz.app.generated.share_settlement_copied
 import com.jacekgajek.kapelusz.app.generated.share_settlement_failed
 import com.jacekgajek.kapelusz.app.generated.share_text_all_settled
+import com.jacekgajek.kapelusz.app.generated.share_text_awaiting_rest
 import com.jacekgajek.kapelusz.app.generated.share_text_incomplete
 import com.jacekgajek.kapelusz.app.generated.share_text_done
 import com.jacekgajek.kapelusz.app.generated.share_text_footer
@@ -58,6 +60,8 @@ private fun settlementWords() = SettlementWords(
     allSettled = stringResource(Res.string.share_text_all_settled),
     incomplete = stringResource(Res.string.share_text_incomplete),
     footer = stringResource(Res.string.share_text_footer),
+    awaited = stringResource(Res.string.share_awaited),
+    awaitingRest = stringResource(Res.string.share_text_awaiting_rest),
 )
 
 /**

@@ -2,12 +2,15 @@ package com.jacekgajek.kapelusz.app.ui.model
 
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
+import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddGuest
@@ -15,6 +18,7 @@ import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
@@ -51,7 +55,15 @@ class Can(private val band: Band, private val userId: String) {
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */
     fun holdingParties(event: Event): List<Id> =
-        if (!open(event)) emptyList() else event.participants.map { it.partyId }.filter { allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
+        if (!open(event)) emptyList() else event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) && allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
+
+    /** A fee the organiser still owes (ITERATION_4 §2.2): leads record it and mark it received. */
+    fun recordAwaited(event: Event) = open(event) && allowed(AddHolding(event.id, PROBE, ORGANISER, Money(1), IncomeSource.CONTRACT))
+
+    /** Who an awaited fee can have been paid to: someone in the event who may hold money, or the band fund when it is on. */
+    fun receiveParties(event: Event): List<Id> =
+        if (!open(event) || !allowed(ReceiveAwaited(event.id, PROBE, PROBE, PROBE, Money(1)))) emptyList()
+        else event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) } + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId != null })
 
     fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))
     fun addCost() = meId != null && allowed(AddCost(PROBE, meId, Money(1), PROBE_DATE))

@@ -4,6 +4,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.allAttachments
 
 /**
@@ -156,6 +157,7 @@ object Limits {
 
     private fun id(value: Id, what: String): Rejection? = when {
         value == BAND_FUND -> invalid("\"$BAND_FUND\" is reserved for the band fund, not a $what")
+        value == ORGANISER -> invalid("\"$ORGANISER\" is reserved for awaited fees, not a $what")
         !ID.matches(value) -> invalid("Invalid $what id")
         else -> null
     }

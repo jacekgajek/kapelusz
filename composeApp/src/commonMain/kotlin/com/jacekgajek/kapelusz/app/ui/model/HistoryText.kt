@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.h_add_attachment
+import com.jacekgajek.kapelusz.app.generated.h_add_awaited
 import com.jacekgajek.kapelusz.app.generated.h_add_cost
 import com.jacekgajek.kapelusz.app.generated.h_redo
 import com.jacekgajek.kapelusz.app.generated.h_undo
@@ -28,6 +29,7 @@ import com.jacekgajek.kapelusz.app.generated.h_edit_holding
 import com.jacekgajek.kapelusz.app.generated.h_link_user
 import com.jacekgajek.kapelusz.app.generated.h_move_member
 import com.jacekgajek.kapelusz.app.generated.h_promote_guest
+import com.jacekgajek.kapelusz.app.generated.h_receive_awaited
 import com.jacekgajek.kapelusz.app.generated.h_record_transfer
 import com.jacekgajek.kapelusz.app.generated.h_refuse_cost
 import com.jacekgajek.kapelusz.app.generated.h_refuse_cost_of
@@ -62,6 +64,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Undo
@@ -78,6 +81,7 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.PromoteGuest
+import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
@@ -153,7 +157,9 @@ fun describe(op: Operation, band: Band): String {
             stringResource(Res.string.h_clear_fixed_share_weight, party(op.eventId, op.partyId), "$weight%", event(op.eventId))
         } ?: stringResource(Res.string.h_clear_fixed_share, party(op.eventId, op.partyId), event(op.eventId))
         is RemoveParticipant -> stringResource(Res.string.h_remove_participant, party(op.eventId, op.partyId), event(op.eventId))
-        is AddHolding -> stringResource(Res.string.h_add_holding, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))
+        is AddHolding -> if (op.partyId == ORGANISER) stringResource(Res.string.h_add_awaited, money(op.amount), event(op.eventId))
+            else stringResource(Res.string.h_add_holding, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))
+        is ReceiveAwaited -> stringResource(Res.string.h_receive_awaited, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))
         is UpdateHolding -> stringResource(Res.string.h_edit_holding, event(op.eventId))
         is RemoveHolding -> stringResource(Res.string.h_remove_holding, event(op.eventId))
         is SetRefund -> if (op.amount.isZero) {

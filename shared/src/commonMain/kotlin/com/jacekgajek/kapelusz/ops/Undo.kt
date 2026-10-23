@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.model.ORGANISER
 import kotlinx.serialization.Serializable
 
 /** The band-wide settings an operation may change, as one value. */
@@ -135,7 +136,7 @@ internal object Undoing {
             val guestIds = event.guests.map { it.id }.toSet()
             event.participants.filter { it.partyId !in memberIds && it.partyId !in guestIds }.forEach { add("participant ${it.partyId} at ${event.id}") }
             val parties = event.participants.map { it.partyId }.toSet()
-            event.holdings.filter { it.partyId !in parties }.forEach { add("holding ${it.id} at ${event.id}") }
+            event.holdings.filter { it.partyId !in parties && it.partyId != ORGANISER && it.partyId != BAND_FUND }.forEach { add("holding ${it.id} at ${event.id}") }
             event.transfers.filter { t -> listOf(t.from, t.to).any { it != BAND_FUND && it !in parties } }.forEach { add("transfer ${it.id} at ${event.id}") }
             event.refunds.filter { refund -> costs[refund.costId]?.let { CostLedger.isRefundableAt(it, event) } != true }
                 .forEach { add("refund of ${it.costId} at ${event.id}") }

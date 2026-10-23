@@ -142,6 +142,27 @@ Decided 2026-10-23 (grilling). A contract, a rider, a stage plan: files belong t
   undone. File changes in an entry's dialog apply at once (Cancel doesn't take them back); amount, source and note wait
   for Save, as before.
 
+### 2.2 Awaited fees (V4-M3)
+
+Decided 2026-10-23 (grilling). An agreed fee the organiser has not paid yet (no deposits: money that came in is
+collected money, as today).
+
+- **Recording:** in Collected, a lead adds an entry **"awaiting from the organiser"** (amount, source, note, files as
+  for any entry). It counts in the event's income and shares at once.
+- **Arrival:** **"Received…"** on that entry: who got it (a participant who may hold money, or the band fund when it is
+  on) and how much. That much becomes their collected money; any rest stays awaited.
+- **Settling meanwhile:** everyone sees their final number now, but transfers are suggested only for money actually
+  held: whoever holds a surplus passes it on now, the rest is paid once the fee arrives. Nobody is told to pay money
+  they don't have, and nobody gets a debt reminder for it.
+- **Status:** **"Awaiting payment" / "Czeka na zapłatę"** once everything that is in has been passed on (until then
+  "Open", as now). Not settled, so it cannot be archived; it counts as unsettled business (Continue card, leads' Settle
+  list).
+- **Reminder:** to the lead who recorded the fee (if they are no longer a lead: to the event's leads), 14, 28, 42 and
+  56 days after the gig, with the debt reminders' setting: "The organiser still owes 3000 zł".
+- **Who:** leads record awaited fees and mark them received.
+- **Never paid:** the lead deletes the entry; shares are recomputed from what came in (possibly a loss). History keeps
+  the record.
+
 ## 3. Later
 
 - Server-side privacy for Artists (§1.4).
@@ -200,6 +221,9 @@ Sources (for the figures above; re-check before deciding):
 ### V4-M2 — Files on collected money and events
 - [x] V4-M2.1 Files on collected entries and on events, renaming files (§2.1)
 
+### V4-M3 — Awaited fees
+- [x] V4-M3.1 Awaited entries, Received…, settling meanwhile, Awaiting payment status, reminder to the lead (§2.2)
+
 ## 5. Decision log
 
 | Date | Decision |
@@ -211,3 +235,5 @@ Sources (for the figures above; re-check before deciding):
 | 2026-10-23 | Viewer kept as read-only access to everything, shown apart below the ladder in the role picker. |
 | 2026-10-23 | Notifications: only debt reminders on by default; debt reminders at 14/28/42/56 days. Artists get no debt reminders (they never owe). |
 | 2026-10-23 | Files on collected entries (5) and on events (10), kinds as receipts, renamable; entry files follow who may edit the entry and are hidden from artists; event files by leads, seen by all. Integration proposals with their fees listed under Later. |
+| 2026-10-23 | Notifications: the time of day moves to the top of the page as "Send reminders at:" / "Wysyłaj o godzinie:" (it applies to every reminder). |
+| 2026-10-23 | Awaited fees (no deposits): an "awaiting from the organiser" entry counts in shares; transfers only for money held; "Received…" by a participant or the band fund; status "Awaiting payment", not archivable; reminder to the recording lead at 14/28/42/56 days; never paid = delete the entry. |
