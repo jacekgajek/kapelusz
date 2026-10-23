@@ -105,7 +105,19 @@ object Notifier {
      * [language]: the app's (as the texts were made), so the action and the channel match them (ITERATION_3 R7).
      * [toSettle]: a debt reminder, opening the event at To settle (ITERATION_3 §2.2).
      */
-    fun showReminder(context: Context, id: Int, bandId: String?, eventId: String?, title: String, text: String, navigateUrl: String?, language: String? = null, toSettle: Boolean = false) {
+    fun showReminder(
+        context: Context,
+        id: Int,
+        bandId: String?,
+        eventId: String?,
+        title: String,
+        text: String,
+        navigateUrl: String?,
+        language: String? = null,
+        toSettle: Boolean = false,
+        /** A debt reminder that opens the event at its top, not at To settle (an awaited fee, ITERATION_4 §2.2). */
+        openAtTop: Boolean = false,
+    ) {
         if (!canNotify(context)) return
         val pl = polish(language)
         channels(context, pl)
@@ -113,7 +125,7 @@ object Notifier {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
-            .setContentIntent(openEvent(context, id, bandId, eventId, toSettle))
+            .setContentIntent(openEvent(context, id, bandId, eventId, toSettle && !openAtTop))
             .setAutoCancel(true)
         // One line per person owed in a debt reminder.
         if ('\n' in text) builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))

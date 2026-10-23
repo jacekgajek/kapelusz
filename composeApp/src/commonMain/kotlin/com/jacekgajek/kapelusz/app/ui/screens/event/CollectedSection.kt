@@ -86,6 +86,8 @@ fun CollectedSection(context: EventContext) {
     val allowedParties = context.can.holdingParties(event)
     val receiveParties = context.can.receiveParties(event)
     val organiser = stringResource(Res.string.organiser)
+    // A fee paid straight to the band's account is held by the fund.
+    val fund = stringResource(Res.string.band_fund)
 
     SectionTitle(stringResource(Res.string.collected_money))
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
@@ -95,7 +97,7 @@ fun CollectedSection(context: EventContext) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(if (holding.awaited) organiser else partyName(context.band, event, holding.partyId, ""))
+                Text(if (holding.awaited) organiser else partyName(context.band, event, holding.partyId, fund))
                 Text(
                     listOfNotNull(holding.source.label(), holding.note, stringResource(Res.string.awaited_payment).takeIf { holding.awaited }).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,

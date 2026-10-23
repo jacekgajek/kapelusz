@@ -32,6 +32,8 @@ data class SettlementWords(
     val footer: String,
     /** "%1$s" filled with what the organiser still owes (ITERATION_4 §2.2). */
     val awaited: String = "",
+    /** Closes the text while the organiser still owes part of the income. */
+    val awaitingRest: String = "",
 )
 
 /**
@@ -70,6 +72,7 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
             add(words.stillToPay)
             settlement.suggestions.forEach { add(transfer(it.from, it.to, it.amount)) }
         }
+        if (event.awaited.isPositive && settlement.problems.isEmpty()) add(words.awaitingRest)
         add(words.footer)
     }.joinToString("\n")
 }

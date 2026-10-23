@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
+import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.events_to_settle
@@ -85,7 +86,8 @@ fun SettleScreen(
             (settlement.line(me?.id ?: "")?.delta?.isPositive == true)
     }
     val forLeads = if (me?.role?.atLeast(Role.LEAD) == true) {
-        active.filter { (_, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS || s.status == EventStatus.AWAITING }
+        // A booked gig with its fee entered is not business yet: awaiting payment counts once the gig is over.
+        active.filter { (event, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS || (s.status == EventStatus.AWAITING && event.date <= today()) }
     } else {
         emptyList()
     }

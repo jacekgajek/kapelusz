@@ -21,6 +21,7 @@ import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetFundAmount
+import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -135,8 +136,13 @@ class NotificationRulesTest {
         assertEquals(listOf("b/gig/fee0", "b/gig/fee1", "b/gig/fee2", "b/gig/fee3"), bobs.map { it.key })
         assertEquals(Money(300000), bobs.first().organiserOwes)
         assertEquals(emptyList(), debtReminders(band, "u-alice"), "another lead: not theirs to chase")
+        val due = NotificationRules.dueDebtReminder(listOf(band), "u-bob", "b/gig/fee1", LocalTime(18, 0), LocalDateTime(2026, 10, 29, 18, 30))
+        assertEquals(Money(300000), due?.organiserOwes, "checked again when its alarm goes off")
         val received = band.apply("u-bob", ReceiveAwaited("gig", "fee", "paid", "bob", Money(300000)))
         assertTrue(debtReminders(received, "u-bob").none { it.organiserOwes != null }, "paid")
+        // Bob is no longer a lead: the leads in the event chase it (Alice, the owner, plays).
+        val demoted = band.apply("system", SetMemberRole("bob", Role.MEMBER))
+        assertEquals(Money(300000), debtReminders(demoted, "u-alice").first().organiserOwes)
     }
 
     @Test

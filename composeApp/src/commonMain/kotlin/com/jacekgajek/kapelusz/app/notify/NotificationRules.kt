@@ -137,13 +137,17 @@ object NotificationRules {
         }.sortedBy { it.at }
 
     /**
-     * What the organiser still owes for [event] that [me] is to chase (ITERATION_4 §2.2): fees they recorded while a lead,
-     * and those whose recorder is no longer a lead, for every lead in the event. Null when there is nothing.
+     * What the organiser still owes for [event] that [me] is to chase (ITERATION_4 §2.2): fees they recorded while a lead;
+     * those whose recorder is no longer a lead go to the leads in the event, or to every lead when none plays in it.
+     * Null when there is nothing.
      */
     private fun organiserOwes(band: Band, event: Event, me: Member): Money? {
         if (!me.role.atLeast(Role.LEAD)) return null
         fun isLead(id: Id?) = id?.let { band.member(it) }?.takeIf { !it.archived }?.role?.atLeast(Role.LEAD) == true
-        val mine = event.holdings.filter { it.awaited && (it.recordedBy == me.id || (!isLead(it.recordedBy) && event.participant(me.id) != null)) }
+        val leadsInEvent = event.participants.any { isLead(it.partyId) }
+        val mine = event.holdings.filter {
+            it.awaited && (it.recordedBy == me.id || (!isLead(it.recordedBy) && (event.participant(me.id) != null || !leadsInEvent)))
+        }
         return mine.sumOfMoney { it.amount }.takeIf { it.isPositive }
     }
 

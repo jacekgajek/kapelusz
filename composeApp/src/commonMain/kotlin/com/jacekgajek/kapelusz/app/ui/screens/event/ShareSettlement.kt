@@ -20,6 +20,7 @@ import com.jacekgajek.kapelusz.app.generated.share_settlement
 import com.jacekgajek.kapelusz.app.generated.share_settlement_copied
 import com.jacekgajek.kapelusz.app.generated.share_settlement_failed
 import com.jacekgajek.kapelusz.app.generated.share_text_all_settled
+import com.jacekgajek.kapelusz.app.generated.share_text_awaiting_rest
 import com.jacekgajek.kapelusz.app.generated.share_text_incomplete
 import com.jacekgajek.kapelusz.app.generated.share_text_done
 import com.jacekgajek.kapelusz.app.generated.share_text_footer
@@ -60,6 +61,7 @@ private fun settlementWords() = SettlementWords(
     incomplete = stringResource(Res.string.share_text_incomplete),
     footer = stringResource(Res.string.share_text_footer),
     awaited = stringResource(Res.string.share_awaited),
+    awaitingRest = stringResource(Res.string.share_text_awaiting_rest),
 )
 
 /**

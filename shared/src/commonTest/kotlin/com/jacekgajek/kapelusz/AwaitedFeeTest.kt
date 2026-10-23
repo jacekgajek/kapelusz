@@ -103,4 +103,22 @@ class AwaitedFeeTest {
         scenario.apply(Undo("u", receive, BandChange.between(before, scenario.band)))
         assertEquals(pln("3000"), scenario.band.event("gig")!!.awaited)
     }
+
+    @Test
+    fun receivingIsChecked() {
+        val scenario = gig()
+        assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1"))).reason, "fund off")
+        assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "nobody", pln("1"))).reason)
+        assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(ReceiveAwaited("gig", "fee", "door", "alice", pln("1"))).reason)
+        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("0"))).reason)
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(com.jacekgajek.kapelusz.ops.AddMember(ORGANISER, "Org")).reason, "a reserved id")
+    }
+
+    @Test
+    fun aFeeHeldByTheFundKeepsItInUse() {
+        val scenario = gig().apply(SetTreasurer("alice")).apply(ReceiveAwaited("gig", "fee", "paid", BAND_FUND, pln("3000")))
+        assertEquals(pln("3000"), BandFund.balance(scenario.band))
+        assertEquals(pln("-3000"), BandFund.notHandedOver(scenario.band), "to pay out")
+        assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(com.jacekgajek.kapelusz.ops.DisableBandFund).reason)
+    }
 }

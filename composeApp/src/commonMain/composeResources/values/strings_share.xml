@@ -16,6 +16,7 @@
     <string name="share_text_still_to_pay">Still to pay:</string>
     <string name="share_text_all_settled">All settled</string>
     <string name="share_text_incomplete">Not settled yet: there is something to sort out in the app first</string>
+    <string name="share_text_awaiting_rest">The rest is paid out once the organiser pays</string>
     <string name="share_text_footer">Pass the Hat · kapelusz.jacekgajek.com</string>
     <!-- Reminder about open debts (ITERATION_3 §2.2) -->
     <string name="notifications_debts">Reminders about open debts</string>

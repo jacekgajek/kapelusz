@@ -125,9 +125,11 @@ object ReminderScheduler {
             // The debt may have been paid on another device: fetch it, so the next reminders are planned from that.
             BackgroundSyncWorker.syncSoon(context)
         }
+        // An organiser's fee (ITERATION_4 §2.2) has its own notification too: it comes at the same time as a debt one.
+        val fee = intent.getStringExtra(EXTRA_KEY)?.substringAfterLast('/')?.startsWith("fee") == true
         Notifier.showReminder(
-            context, ((if (toSettle) "d" else "r") + band + event).hashCode(), band, event,
-            title, text, intent.getStringExtra(EXTRA_NAVIGATE), intent.getStringExtra(EXTRA_LANGUAGE), toSettle,
+            context, ((if (fee) "f" else if (toSettle) "d" else "r") + band + event).hashCode(), band, event,
+            title, text, intent.getStringExtra(EXTRA_NAVIGATE), intent.getStringExtra(EXTRA_LANGUAGE), toSettle, openAtTop = fee,
         )
     }
 
