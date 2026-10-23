@@ -44,6 +44,7 @@
     <string name="event_date">Date</string>
     <string name="event_location">Location (optional)</string>
     <string name="events_empty">No events yet. Create the first one!</string>
+    <string name="events_empty_cannot_create">No events yet.</string>
     <string name="events_empty_artist">No events yet. A lead adds you to the events you play.</string>
     <string name="continue_event">Continue: %1$s · %2$s</string>
     <string name="filter_only_mine">Only my events</string>

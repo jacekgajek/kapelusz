@@ -44,6 +44,7 @@
     <string name="event_date">Data</string>
     <string name="event_location">Miejsce (opcjonalnie)</string>
     <string name="events_empty">Nie ma jeszcze wydarzeń. Utwórz pierwsze!</string>
+    <string name="events_empty_cannot_create">Nie ma jeszcze wydarzeń.</string>
     <string name="events_empty_artist">Nie ma jeszcze wydarzeń. Lider doda cię do tych, w których grasz.</string>
     <string name="continue_event">Kontynuuj: %1$s · %2$s</string>
     <string name="filter_only_mine">Tylko moje</string>

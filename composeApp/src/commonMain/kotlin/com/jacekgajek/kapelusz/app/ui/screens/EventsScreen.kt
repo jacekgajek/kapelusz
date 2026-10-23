@@ -39,6 +39,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.selected
+import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
@@ -64,6 +65,7 @@ import com.jacekgajek.kapelusz.app.generated.continue_event
 import com.jacekgajek.kapelusz.app.generated.create
 import com.jacekgajek.kapelusz.app.generated.events_empty
 import com.jacekgajek.kapelusz.app.generated.events_empty_artist
+import com.jacekgajek.kapelusz.app.generated.events_empty_cannot_create
 import com.jacekgajek.kapelusz.app.generated.events_filtered_empty
 import com.jacekgajek.kapelusz.app.generated.filter_only_mine
 import com.jacekgajek.kapelusz.app.generated.filter_show_archived
@@ -166,7 +168,9 @@ fun EventsScreen(
                 // Events hidden by the filters are not "no events": say which it is.
                 val text = when {
                     artist -> Res.string.events_empty_artist
-                    band.events.isEmpty() -> Res.string.events_empty
+                    // "Create the first one!" only to those who can.
+                    band.events.isEmpty() && Can(band, state.userId).createEvent() -> Res.string.events_empty
+                    band.events.isEmpty() -> Res.string.events_empty_cannot_create
                     else -> Res.string.events_filtered_empty
                 }
                 item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
@@ -234,7 +238,8 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
                     event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
                 }
-                MyNumberText(summary.myNumber, band.currency)
+                // A draft has no money in it yet: nothing to be settled about.
+                if (summary.settlement.status != EventStatus.DRAFT) MyNumberText(summary.myNumber, band.currency)
             }
         }
     }
