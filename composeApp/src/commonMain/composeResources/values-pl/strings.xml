@@ -383,7 +383,7 @@
     <string name="fund_amount_from_hint">Kasa zespołowa dokłada tę kwotę do podziału, np. żeby pokryć stratę.</string>
     <string name="reject_attachment_too_large">Plik jest za duży (zdjęcia do 3 MB, PDF do 10 MB).</string>
     <string name="attachments">Załączniki</string>
-    <string name="attachment_add_file">Dodaj zdjęcie lub PDF</string>
+    <string name="attachment_add_file">Załącz</string>
     <string name="attachment_take_photo">Zrób zdjęcie</string>
     <string name="attachment_hint">Paragony i faktury: zdjęcia lub pliki PDF, maksymalnie %1$d.</string>
     <string name="attachment_hint_holding">Umowa lub potwierdzenie: zdjęcia lub pliki PDF, maksymalnie %1$d.</string>

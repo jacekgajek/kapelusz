@@ -383,7 +383,7 @@
     <string name="fund_amount_from_hint">The band fund adds this to the money shared, e.g. to cover a loss.</string>
     <string name="reject_attachment_too_large">The file is too large (photos up to 3 MB, PDFs up to 10 MB).</string>
     <string name="attachments">Attachments</string>
-    <string name="attachment_add_file">Add photo or PDF</string>
+    <string name="attachment_add_file">Attach</string>
     <string name="attachment_take_photo">Take photo</string>
     <string name="attachment_hint">Receipts and invoices: photos or PDFs, up to %1$d.</string>
     <string name="attachment_hint_holding">The contract or a confirmation: photos or PDFs, up to %1$d.</string>
