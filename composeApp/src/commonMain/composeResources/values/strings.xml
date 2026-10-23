@@ -87,6 +87,8 @@
     <string name="event_not_found">This event no longer exists.</string>
     <string name="delete_event_title">Delete event?</string>
     <string name="delete_event_confirm">"%1$s" will be deleted. Its refunds become pending again.</string>
+    <string name="delete_files_too">Its files are deleted too: %1$d. This can’t be undone.</string>
+    <string name="delete_entry_title">Delete this entry?</string>
     <string name="total_income">Income</string>
     <string name="total_fund">To band fund</string>
     <string name="total_refunds">Cost refunds</string>

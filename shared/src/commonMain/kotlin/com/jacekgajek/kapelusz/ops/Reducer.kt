@@ -561,10 +561,9 @@ object Reducer {
         return band.updateEvent(eventId) { it.copy(refunds = it.refunds + Refund(cost.id, amount), updatedAt = ctx.timestamp) }
     }
 
-    /** A file name people see and download under: not empty, bounded. */
-    private fun validFileName(name: String): String = name.trim().also {
+    /** A file name people see and download under: not empty; a long one is shortened, as when a file is added. */
+    private fun validFileName(name: String): String = name.trim().take(Attachment.MAX_FILE_NAME).also {
         invalidIf(it.isEmpty(), RejectionReason.EMPTY_NAME) { "File name cannot be empty" }
-        invalidIf(it.length > Attachment.MAX_FILE_NAME, RejectionReason.INVALID_INPUT) { "File name is too long" }
     }
 
     /** The attachments of a cost, a collected entry or an event (ITERATION_4 §2.1), changed by [transform]. */

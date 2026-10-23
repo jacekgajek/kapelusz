@@ -35,10 +35,13 @@ import com.jacekgajek.kapelusz.app.generated.collected_empty
 import com.jacekgajek.kapelusz.app.generated.collected_money
 import com.jacekgajek.kapelusz.app.generated.collected_by
 import com.jacekgajek.kapelusz.app.generated.delete
+import com.jacekgajek.kapelusz.app.generated.delete_entry_title
+import com.jacekgajek.kapelusz.app.generated.delete_files_too
 import com.jacekgajek.kapelusz.app.generated.note_optional
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
@@ -116,6 +119,7 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
     // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
     var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // The entry as it is now (a file added in the dialog shows at once).
     val current = initial?.let { h -> event.holdings.firstOrNull { it.id == h.id } } ?: initial
@@ -168,7 +172,10 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
         dismissButton = {
             Row {
                 if (initial != null) {
-                    TextButton(onClick = { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() }) {
+                    // Its files go with it, for good (no undo), so that is asked first.
+                    TextButton(onClick = {
+                        if (current?.attachments.isNullOrEmpty()) { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() } else confirmDelete = true
+                    }) {
                         Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -176,4 +183,13 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
             }
         },
     )
+    if (confirmDelete && initial != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.delete_entry_title),
+            text = stringResource(Res.string.delete_files_too, current?.attachments?.size ?: 0),
+            confirmLabel = stringResource(Res.string.delete),
+            onConfirm = { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() },
+            onDismiss = { confirmDelete = false },
+        )
+    }
 }

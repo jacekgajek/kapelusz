@@ -138,6 +138,9 @@ Decided 2026-10-23 (grilling). A contract, a rider, a stage plan: files belong t
   everyone, Artists included (a rider or setlist is useful to them).
 - **History and undo:** adding, removing and renaming show in History; undo as for receipts (a removed file cannot come
   back once its file is deleted).
+- Deleting a collected entry that has files asks first, and deleting an event says its files go too: neither can be
+  undone. File changes in an entry's dialog apply at once (Cancel doesn't take them back); amount, source and note wait
+  for Save, as before.
 
 ## 3. Later
 
@@ -157,9 +160,9 @@ choosing.
 | Integration | What it gives | Initial | Idle | Per use | Who pays / notes |
 |---|---|---|---|---|---|
 | **Bank transfer QR / payment details** (Polish "Rekomendacja ZBP" QR, EPC QR for SEPA) | "Pay" on a suggested transfer shows a QR the bank app scans, with amount and title filled in | none | none | none | No provider: the app draws the QR. Needs each member's account number stored. |
-| **BLIK / Revolut / PayPal.me links** | Open a payment to a member from the transfer list | none | none | none | Personal links only; no confirmation back to the app. |
+| **Revolut.me / PayPal.me links** | Open a payment to a member from the transfer list | none | none | none | Personal links only; no confirmation back to the app. BLIK has no personal payment links (phone transfers live inside bank apps), so for BLIK the transfer QR above is the way. |
 | **Payment gateway** (Stripe, Przelewy24, PayU, Tpay) | Pay transfers by card/BLIK in the app; recorded automatically | Stripe: none. P24: ~49 zł activation via some channels | Stripe: none. P24: none, or ~50 zł/month for lower BLIK rates | Stripe PL ~1.5% + 1 zł per card payment. P24 ~1–1.6% + ~0.30 zł | Band (or each member) as a merchant: needs a business account. The app gets webhooks. The heaviest legally (payment flows). |
-| **Bank account data (PSD2)** (GoCardless Bank Account Data, ex-Nordigen; Kontomatik; Salt Edge) | Match incoming bank transfers to suggested ones, and mark them settled | usually none | free tier for a few connections (GoCardless, to verify); commercial providers monthly | per connection / per call on paid plans | App. Each member links their bank (consent renews every 90–180 days). |
+| **Bank account data (PSD2)** (GoCardless Bank Account Data, ex-Nordigen; Kontomatik; Salt Edge) | Match incoming bank transfers to suggested ones, and mark them settled | usually none | GoCardless reportedly stopped taking new Bank Account Data customers in 2025 (to verify); commercial providers charge monthly | per connection / per call on paid plans | App. Each member links their bank (consent renews every 90–180 days). |
 | **Invoicing** (Fakturownia, inFakt, wFirma) | Issue the contract invoice from an event; its total becomes collected money | none | the band's own subscription (free tiers have a few documents a month) | none beyond the plan | Band, with its own API key. Only for bands with a business. |
 | **KSeF** (Polish national e-invoice system) | Fetch invoices for the band's contracts / send them | none | none | none | Free government API, but complex: certificates and an XML schema. Only for bands that invoice as a business. |
 | **E-signature** (Autenti, DocuSign, Yousign) | Sign a gig contract from the event's Files | none | subscription (per month, per sender) | per envelope on some plans | Band. Overlaps with the new event Files (§2.1). |
@@ -169,12 +172,12 @@ choosing.
 | **Email notifications** (Amazon SES) | Reminders and "transfer recorded" by email, for web and iPhone users without push | none | none | ~$0.10 per 1,000 emails | App. Needs a verified sending domain. |
 | **SMS reminders** (SMSAPI, OVHcloud SMS, Twilio) | Debt or gig reminders by SMS | none | none (prepaid packages) | ~0.11–0.14 zł per SMS in Poland (OVHcloud packages); Twilio more | App or band. Needs phone numbers and consent. |
 | **Web push** (browsers, iPhone home-screen apps) | Notifications in the web app / installed PWA | none | none | none | Free (browser push services). Needs a push sender on the server. |
-| **WhatsApp Business / Messenger** | Send a settlement or reminder into the band's chat | WhatsApp: business verification | none | WhatsApp: per conversation/template message | Band or app. Today's Share already covers most of this for free. |
+| **WhatsApp Business / Messenger** | Send a settlement or reminder to members | none (business verification is a process, not a fee) | none | WhatsApp: per template message (since July 2025) | Band or app. These APIs generally can't post into an ordinary group chat; today's Share already covers that for free. |
 | **Receipt OCR** (Google Cloud Vision, Amazon Textract, an LLM API) | Fill in amount, date and category from a receipt photo | none | none | ~$1.50 per 1,000 images (Vision text detection, with a free monthly allowance); an LLM call per receipt | App. |
 | **Place search / autocomplete** (Google Places API New) | Type a venue, get its address and map pin | none | none (free caps per SKU: ~10k Essentials / 5k Pro events a month) | beyond the caps, ~$3–$40 per 1,000 depending on the fields | App. Paste from Maps stays free. |
 | **Exchange rates** (NBP API) | Gigs paid in EUR: convert at the official rate on the gig date | none | none | none | Free public API. |
-| **Gig listings** (Bandsintown for Artists, Songkick) | Import upcoming gigs as events | none | none | none | Access needs approval; terms limit use. |
-| **Sign in with Apple** | Needed for a native iPhone app (App Store rule when Google sign-in is offered) | none | Apple Developer Program, $99/year | none | App. Only with a native iOS app. |
+| **Gig listings** (Bandsintown for Artists) | Import upcoming gigs as events | none | none | none | Access needs approval; terms limit use. Songkick's API is not open to new applicants. |
+| **Sign in with Apple** | For a native iPhone app: the App Store asks for a privacy-friendly sign-in option besides Google (guideline 4.8); Sign in with Apple is the usual one | none | Apple Developer Program, $99/year | none | App. Only with a native iOS app. |
 
 Sources (for the figures above; re-check before deciding):
 - Stripe Poland rates: [Oliver Pay, Poland](https://oliverpos.com/en-sg/payments/poland/)
