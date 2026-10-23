@@ -41,6 +41,7 @@ import com.jacekgajek.kapelusz.app.generated.confirm
 import com.jacekgajek.kapelusz.app.generated.hand_over
 import com.jacekgajek.kapelusz.app.generated.hand_over_from
 import com.jacekgajek.kapelusz.app.generated.hand_over_hint
+import com.jacekgajek.kapelusz.app.generated.hand_over_max
 import com.jacekgajek.kapelusz.app.generated.hand_over_to
 import com.jacekgajek.kapelusz.app.generated.keep_for_fund
 import com.jacekgajek.kapelusz.app.generated.note_optional
@@ -65,9 +66,11 @@ import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.BAND_FUND
+import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
@@ -181,13 +184,13 @@ private fun transferParties(context: EventContext): List<String> {
     return lines + (if (context.band.treasurerMemberId != null && BAND_FUND !in lines) listOf(BAND_FUND) else emptyList())
 }
 
-/** Recipients the user may record a transfer to from [from]. */
+/** Recipients the user may record a transfer to from [from]: not artists, who never hold money (ITERATION_4 §1.1). */
 private fun handOverRecipients(context: EventContext, from: String): List<String> =
-    transferParties(context).filter { it != from && context.can.recordTransfer(context.event, from, it) }
+    transferParties(context).filter { it != from && !Artists.isArtist(context.band, it) && context.can.recordTransfer(context.event, from, it) }
 
-/** Parties the user may record a hand-over from (themselves for members, anyone for leads). */
+/** Parties holding money the user may record a hand-over from (themselves for members, anyone for leads). */
 private fun handOverSenders(context: EventContext): List<String> =
-    transferParties(context).filter { handOverRecipients(context, it).isNotEmpty() }
+    transferParties(context).filter { context.settlement.line(it)?.balance?.isPositive == true && handOverRecipients(context, it).isNotEmpty() }
 
 /** Manual transfer, e.g. one holder handing all collected money to another who then pays everyone. */
 @Composable
@@ -196,9 +199,8 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     val settlement = context.settlement
     val fundLabel = stringResource(Res.string.band_fund)
     val senders = handOverSenders(context)
-    val holders = settlement.lines.filter { it.balance.isPositive && it.partyId in senders }.map { it.partyId }
     val lang = language
-    val firstFrom = context.me?.id?.takeIf { it in holders } ?: holders.firstOrNull() ?: senders.firstOrNull()
+    val firstFrom = context.me?.id?.takeIf { it in senders } ?: senders.firstOrNull()
     val firstTo = firstFrom?.let { handOverRecipients(context, it).firstOrNull() }
     // A sync may have left nobody to hand over from or to (e.g. the user was removed from the event).
     if (firstFrom == null || firstTo == null) {
@@ -209,7 +211,9 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     var to by remember { mutableStateOf(firstTo) }
     var amount by remember { mutableStateOf(settlement.line(from)?.balance?.takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }
     var note by remember { mutableStateOf("") }
-    val parsed = parseMoney(amount)?.takeIf { it.isPositive }
+    // At most what the sender holds: a hand-over passes on money, it doesn't make any up.
+    val held = settlement.line(from)?.balance ?: Money.ZERO
+    val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= held }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -226,6 +230,7 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                     partyName(context.band, event, it, fundLabel)
                 }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
+                Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             }
         },

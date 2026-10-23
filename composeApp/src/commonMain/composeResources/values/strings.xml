@@ -144,6 +144,7 @@
     <string name="keep_for_fund">%1$s keeps %2$s for the band fund</string>
     <string name="hand_over">Hand over money</string>
     <string name="hand_over_hint">Record money given to someone else, e.g. all collected money to the person who pays everyone out.</string>
+    <string name="hand_over_max">Up to what they hold: %1$s</string>
     <string name="hand_over_from">From</string>
     <string name="hand_over_to">To</string>
     <string name="recorded_transfers">Recorded transfers</string>

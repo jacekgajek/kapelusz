@@ -180,6 +180,11 @@ object Reducer {
                 validateTransferParty(band, event, op.to)
                 invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
                 validatePositive(op.amount, "Transfer amount")
+                // An artist is paid what they are owed, never more: they don't hold money (ITERATION_4 §1.1).
+                if (Artists.isArtist(band, op.to)) {
+                    val owed = SettlementCalculator.settle(band, event).line(op.to)?.delta?.let { -it } ?: Money.ZERO
+                    invalidIf(op.amount > owed, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist is owed" }
+                }
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }
             is SettleSuggestions -> settleSuggestions(band, op, ctx)

@@ -144,6 +144,7 @@
     <string name="keep_for_fund">%1$s zatrzymuje %2$s na kasę zespołową</string>
     <string name="hand_over">Przekaż pieniądze</string>
     <string name="hand_over_hint">Zapisz pieniądze przekazane komuś innemu, np. całą zebraną kwotę osobie, która rozliczy resztę.</string>
+    <string name="hand_over_max">Najwyżej tyle, ile ma: %1$s</string>
     <string name="hand_over_from">Od</string>
     <string name="hand_over_to">Do</string>
     <string name="recorded_transfers">Zapisane przekazania</string>
