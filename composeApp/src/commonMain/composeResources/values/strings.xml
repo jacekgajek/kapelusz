@@ -203,7 +203,7 @@
     <string name="reject_cost_below_refunded">The cost cannot be less than what was already refunded.</string>
     <string name="reject_cost_refunded_from_fund">This cost was refunded from the band fund.</string>
     <string name="reject_cannot_settle">This event cannot be settled yet. Check the warnings above.</string>
-    <string name="reject_too_many_attachments">A cost can have at most 5 attachments.</string>
+    <string name="reject_too_many_attachments">No room for more files here (5 per cost or collected entry, 10 per event).</string>
     <string name="unreadable_title">Your saved data could not be read</string>
     <string name="unreadable_text">A copy was kept as a backup on this device, so nothing is lost. You can start over now; the backup can be restored later if needed.</string>
     <string name="start_over">Start over</string>
@@ -312,8 +312,9 @@
     <string name="h_refuse_cost">Refused a cost</string>
     <string name="h_resubmit_cost">Resubmitted a refused cost</string>
     <string name="h_refuse_cost_of">Refused a cost of %1$s for %2$s</string>
-    <string name="h_add_attachment">Added an attachment to a cost</string>
-    <string name="h_remove_attachment">Removed an attachment from a cost</string>
+    <string name="h_add_attachment">Added a file</string>
+    <string name="h_remove_attachment">Removed a file</string>
+    <string name="h_rename_attachment">Renamed a file to %1$s</string>
     <string name="h_unknown">Made a change</string>
     <string name="history">History</string>
     <string name="show_history">Show history</string>
@@ -371,6 +372,11 @@
     <string name="attachment_add_file">Add photo or PDF</string>
     <string name="attachment_take_photo">Take photo</string>
     <string name="attachment_hint">Receipts and invoices: photos or PDFs, up to %1$d.</string>
+    <string name="attachment_hint_holding">The contract or a confirmation: photos or PDFs, up to %1$d.</string>
+    <string name="attachment_hint_event">Contract, rider, stage plan, setlist: photos or PDFs, up to %1$d.</string>
+    <string name="attachment_rename">Rename file</string>
+    <string name="attachment_file_name">File name</string>
+    <string name="event_files">Files</string>
     <string name="attachment_uploading">uploading</string>
     <string name="attachment_waiting_for_save">attached when you save</string>
     <string name="attachment_not_available">Not available yet: the file has not been uploaded.</string>
@@ -378,7 +384,7 @@
     <string name="attachment_unsupported">Only photos and PDFs can be attached.</string>
     <string name="attachment_failed">Could not read the file.</string>
     <string name="attachment_remove_title">Remove attachment?</string>
-    <string name="attachment_remove_confirm">%1$s will be removed from this cost.</string>
+    <string name="attachment_remove_confirm">%1$s will be removed.</string>
     <string name="transfer_a11y">%1$s to %2$s</string>
     <string name="events_filtered_empty">No events match the filters.</string>
     <string name="costs_none">No costs yet. Add what you paid for the band and get it back from the next events.</string>

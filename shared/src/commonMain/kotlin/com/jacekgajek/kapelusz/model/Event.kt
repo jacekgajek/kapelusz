@@ -26,6 +26,8 @@ data class Event(
     val fundAmount: Money = Money.ZERO,
     /** Agenda times of the day (ITERATION_2 §4.1), copied from the band's template when the event is created. */
     val agenda: List<AgendaTime> = emptyList(),
+    /** Files about the gig, not tied to any money: contract, rider, stage plan (ITERATION_4 §2.1). */
+    val attachments: List<Attachment> = emptyList(),
     /** Epoch millis of the last operation touching this event. */
     val updatedAt: Long = 0,
 ) {
@@ -91,6 +93,8 @@ data class Holding(
     val amount: Money,
     val source: IncomeSource,
     val note: String? = null,
+    /** E.g. the contract this money was paid under (ITERATION_4 §2.1). */
+    val attachments: List<Attachment> = emptyList(),
 )
 
 /** Part of a cost repaid out of this event's income. At most one per cost per event. */

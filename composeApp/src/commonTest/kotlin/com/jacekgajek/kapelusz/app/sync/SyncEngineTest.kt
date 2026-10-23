@@ -32,6 +32,7 @@ import com.jacekgajek.kapelusz.app.data.PendingUpload
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import kotlinx.datetime.LocalDate
@@ -138,7 +139,7 @@ private class FakeServer {
             path.endsWith("/attachments") && !attachmentsRoute -> respond("""{"error":"not_found","message":"No route"}""", HttpStatusCode.NotFound, json)
             path.endsWith("/attachments") -> {
                 val upload = KapeluszJson.decodeFromString(AttachmentUploadRequest.serializer(), body!!)
-                val listed = bands.getValue(path.split('/')[2]).cost(upload.costId)?.attachments?.any { it.id == upload.attachmentId } == true
+                val listed = bands.getValue(path.split('/')[2]).allAttachments().any { it.id == upload.attachmentId }
                 if (!listed) respond("""{"error":"attachment_not_found","message":"No such attachment"}""", HttpStatusCode.NotFound, json)
                 else ok(AttachmentUploadResponse.serializer(), AttachmentUploadResponse("https://s3.test/${upload.attachmentId}", mapOf("content-type" to "image/jpeg")))
             }
@@ -398,10 +399,10 @@ class SyncEngineTest {
         val me = (repository.state.value as BandState.Ready).me!!.id
         assertEquals(null, repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1))))
         assertEquals(null, repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4))))
-        uploads.enqueue(PendingUpload(bandId, "c1", "a1"), "AAAA")
+        uploads.enqueue(PendingUpload(bandId, "a1"), "AAAA")
         uploads.published("a1")
         // Also queued: a file whose attachment is not on the cost (refused or removed meanwhile): dropped, not uploaded.
-        uploads.enqueue(PendingUpload(bandId, "c1", "gone"), "BBBB")
+        uploads.enqueue(PendingUpload(bandId, "gone"), "BBBB")
         uploads.published("gone")
 
         assertTrue(sync.syncNow())
@@ -426,7 +427,7 @@ class SyncEngineTest {
         val me = (repository.state.value as BandState.Ready).me!!.id
         repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
         repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.PDF, "invoice.pdf", 4)))
-        uploads.enqueue(PendingUpload(repository.currentBandId!!, "c1", "a1"), "AAAA")
+        uploads.enqueue(PendingUpload(repository.currentBandId!!, "a1"), "AAAA")
         uploads.published("a1")
 
         sync.syncNow()
@@ -453,7 +454,7 @@ class SyncEngineTest {
         val me = (repository.state.value as BandState.Ready).me!!.id
         repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
         repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4)))
-        uploads.enqueue(PendingUpload(repository.currentBandId!!, "c1", "a1"), "AAAA")
+        uploads.enqueue(PendingUpload(repository.currentBandId!!, "a1"), "AAAA")
         uploads.published("a1")
 
         sync.syncNow()
@@ -585,7 +586,7 @@ class SyncEngineTest {
         val me = (repository.state.value as BandState.Ready).me!!.id
         assertEquals(null, repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1))))
         assertEquals(null, repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 4))))
-        uploads.enqueue(PendingUpload(bandId, "c1", "a1"), "AAAA")
+        uploads.enqueue(PendingUpload(bandId, "a1"), "AAAA")
         uploads.published("a1")
         assertTrue(sync.syncNow())
         assertEquals(setOf(bandId), sync.stuck.value.keys)

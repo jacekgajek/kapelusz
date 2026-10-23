@@ -36,6 +36,7 @@ import com.jacekgajek.kapelusz.app.generated.h_remove_fund_entry
 import com.jacekgajek.kapelusz.app.generated.h_remove_holding
 import com.jacekgajek.kapelusz.app.generated.h_remove_participant
 import com.jacekgajek.kapelusz.app.generated.h_remove_transfer
+import com.jacekgajek.kapelusz.app.generated.h_rename_attachment
 import com.jacekgajek.kapelusz.app.generated.h_rename_band
 import com.jacekgajek.kapelusz.app.generated.h_rename_guest
 import com.jacekgajek.kapelusz.app.generated.h_rename_member
@@ -84,6 +85,7 @@ import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
+import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.RenameGuest
 import com.jacekgajek.kapelusz.ops.RenameMember
@@ -177,6 +179,7 @@ fun describe(op: Operation, band: Band): String {
             ?: stringResource(Res.string.h_refuse_cost)
         is AddAttachment -> stringResource(Res.string.h_add_attachment)
         is RemoveAttachment -> stringResource(Res.string.h_remove_attachment)
+        is RenameAttachment -> stringResource(Res.string.h_rename_attachment, op.fileName)
         else -> stringResource(Res.string.h_unknown)
     }
 }

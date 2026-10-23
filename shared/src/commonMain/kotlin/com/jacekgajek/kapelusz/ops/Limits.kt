@@ -4,6 +4,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.allAttachments
 
 /**
  * Limits on everything that comes into a band (ITERATION_3 R1), checked after every operation on the band it
@@ -42,7 +43,9 @@ object Limits {
         count(before.costs.size, after.costs.size, MAX_COSTS, "costs")?.let { return it }
         count(before.fundEntries.size, after.fundEntries.size, MAX_FUND_ENTRIES, "band fund entries")?.let { return it }
         // Files cost storage: a budget per band (ITERATION_3 R6), checked only when attachments change.
-        if (after.costs !== before.costs) count(before.costs.sumOf { it.attachments.size }, after.costs.sumOf { it.attachments.size }, MAX_BAND_ATTACHMENTS, "attachments")?.let { return it }
+        if (after.costs !== before.costs || after.events !== before.events) {
+            count(before.allAttachments().size, after.allAttachments().size, MAX_BAND_ATTACHMENTS, "attachments")?.let { return it }
+        }
         // Untouched lists are the same object (the reducer copies only what changes): nothing to look at.
         if (after.members !== before.members) members(before, after)?.let { return it }
         if (after.events !== before.events) events(before, after)?.let { return it }

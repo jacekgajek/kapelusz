@@ -9,6 +9,8 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.AgendaKind
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
@@ -17,12 +19,14 @@ import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
+import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Refund
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.Transfer
+import com.jacekgajek.kapelusz.model.allAttachments
 
 /** Who applies an operation, and when. [memberId] is null for server-internal (system) operations. */
 data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?)
@@ -170,22 +174,28 @@ object Reducer {
                 conflictIf(CostLedger.refunded(band, cost.id).isPositive, RejectionReason.COST_PARTLY_REFUNDED) { "Part of the cost is already refunded" }
                 band.updateCost(cost.id) { it.copy(refused = true) }
             }
-            is AddAttachment -> band.updateCost(op.costId) { cost ->
-                invalidIf(cost.attachments.size >= MAX_ATTACHMENTS, RejectionReason.TOO_MANY_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
+            is AddAttachment -> band.updateAttachments(op.owner) { attachments ->
+                val max = if (op.owner is AttachmentOwner.OfEvent) MAX_EVENT_ATTACHMENTS else MAX_ATTACHMENTS
+                invalidIf(attachments.size >= max, RejectionReason.TOO_MANY_ATTACHMENTS) { "At most $max attachments here" }
                 // Unique in the whole band: the id names its file in storage (ITERATION_3 R6).
-                invalidIf(band.costs.any { c -> c.attachments.any { it.id == op.attachment.id } }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
+                invalidIf(band.allAttachments().any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
                 // The size is signed into the upload URL, so the stored file cannot be larger than declared here.
                 val size = op.attachment.sizeBytes
                 invalidIf(size == null || size <= 0, RejectionReason.INVALID_INPUT) { "Attachment size is required" }
                 invalidIf(size!! > op.attachment.kind.maxBytes, RejectionReason.ATTACHMENT_TOO_LARGE) { "Attachment exceeds ${op.attachment.kind.maxBytes} bytes" }
                 invalidIf(!op.attachment.id.matches(Regex("[A-Za-z0-9_-]{1,64}")), RejectionReason.INVALID_INPUT) { "Invalid attachment id" }
-                cost.copy(attachments = cost.attachments + op.attachment)
+                // A device's file name can be anything: kept short rather than refused.
+                attachments + op.attachment.copy(fileName = op.attachment.fileName?.trim()?.take(Attachment.MAX_FILE_NAME)?.ifEmpty { null })
             }
-            is RemoveAttachment -> band.updateCost(op.costId) { cost ->
-                cost.attachments.firstOrNull { it.id == op.attachmentId }.orNotFound { "Attachment ${op.attachmentId}" }
-                cost.copy(attachments = cost.attachments.filterNot { it.id == op.attachmentId })
+            is RemoveAttachment -> band.updateAttachments(op.owner) { attachments ->
+                attachments.firstOrNull { it.id == op.attachmentId }.orNotFound { "Attachment ${op.attachmentId}" }
+                attachments.filterNot { it.id == op.attachmentId }
             }
-
+            is RenameAttachment -> band.updateAttachments(op.owner) { attachments ->
+                attachments.firstOrNull { it.id == op.attachmentId }.orNotFound { "Attachment ${op.attachmentId}" }
+                val name = validFileName(op.fileName)
+                attachments.map { if (it.id == op.attachmentId) it.copy(fileName = name) else it }
+            }
             is Undo -> Undoing.apply(band, op)
         }
         // While the fund is off (ITERATION_3 R10), a change may not leave it holding or owing money: that needs a treasurer.
@@ -549,6 +559,23 @@ object Reducer {
         if (cost.refused || event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band
         val amount = CostLedger.outstanding(band, cost).takeIf { it.isPositive } ?: return band
         return band.updateEvent(eventId) { it.copy(refunds = it.refunds + Refund(cost.id, amount), updatedAt = ctx.timestamp) }
+    }
+
+    /** A file name people see and download under: not empty, bounded. */
+    private fun validFileName(name: String): String = name.trim().also {
+        invalidIf(it.isEmpty(), RejectionReason.EMPTY_NAME) { "File name cannot be empty" }
+        invalidIf(it.length > Attachment.MAX_FILE_NAME, RejectionReason.INVALID_INPUT) { "File name is too long" }
+    }
+
+    /** The attachments of a cost, a collected entry or an event (ITERATION_4 §2.1), changed by [transform]. */
+    private inline fun Band.updateAttachments(owner: AttachmentOwner, transform: (List<Attachment>) -> List<Attachment>): Band = when (owner) {
+        is AttachmentOwner.OfCost -> updateCost(owner.costId) { it.copy(attachments = transform(it.attachments)) }
+        is AttachmentOwner.OfEvent -> updateEvent(owner.eventId) { it.copy(attachments = transform(it.attachments)) }
+        is AttachmentOwner.OfHolding -> updateEvent(owner.eventId) { event ->
+            val holding = event.holdings.firstOrNull { it.id == owner.holdingId }.orNotFound { "Holding ${owner.holdingId}" }
+            val updated = holding.copy(attachments = transform(holding.attachments))
+            event.copy(holdings = event.holdings.map { if (it.id == holding.id) updated else it })
+        }
     }
 
     /** The change is a lead's (or above), or the server's own, which is allowed everything. */

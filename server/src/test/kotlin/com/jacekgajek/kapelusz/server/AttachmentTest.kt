@@ -48,7 +48,7 @@ class AttachmentTest {
 
     private fun upload(user: String, attachmentId: String = "a1") = call(
         "POST", "/bands/band1/attachments", user,
-        KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest("c1", attachmentId)),
+        KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest(attachmentId)),
     )
 
     private val photo = Attachment("a1", AttachmentKind.IMAGE, "receipt.jpg", 120_000)
@@ -109,5 +109,29 @@ class AttachmentTest {
         assertEquals(RejectionReason.ATTACHMENT_TOO_LARGE, tooLarge.rejected.values.single().reason)
         val noSize = push("alice", AddAttachment("c1", Attachment("nosize", AttachmentKind.PDF, "x.pdf")))
         assertEquals(RejectionReason.INVALID_INPUT, noSize.rejected.values.single().reason)
+    }
+
+    /** ITERATION_4 §2.1: files of collected entries and of events go the same way, and leave with what they belong to. */
+    @Test
+    fun filesOfCollectedMoneyAndEvents() {
+        setup()
+        val entry = com.jacekgajek.kapelusz.model.AttachmentOwner.OfHolding("gig", "h")
+        val gig = com.jacekgajek.kapelusz.model.AttachmentOwner.OfEvent("gig")
+        push(
+            "alice",
+            com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice"))),
+            com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-alice", Money(200000), com.jacekgajek.kapelusz.model.IncomeSource.CONTRACT),
+            AddAttachment(entry, Attachment("contract", AttachmentKind.PDF, "contract.pdf", 300_000)),
+            AddAttachment(gig, Attachment("rider", AttachmentKind.PDF, "rider.pdf", 100_000)),
+        )
+        assertTrue(upload("alice", "contract").parse(AttachmentUploadResponse.serializer()).putUrl.contains("attachments/contract.pdf"))
+        store.files += "bands/band1/attachments/contract.pdf"
+        store.files += "bands/band1/attachments/rider.pdf"
+        assertEquals("memory://get/bands/band1/attachments/rider.pdf", call("GET", "/bands/band1/attachments/rider", "bob").parse(AttachmentUrlResponse.serializer()).url)
+
+        push("alice", com.jacekgajek.kapelusz.ops.RemoveHolding("gig", "h"))
+        assertFalse(store.exists("bands/band1/attachments/contract.pdf"), "removing the entry deletes its files")
+        push("alice", com.jacekgajek.kapelusz.ops.DeleteEvent("gig"))
+        assertFalse(store.exists("bands/band1/attachments/rider.pdf"), "deleting the event deletes its files")
     }
 }

@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.Guest
@@ -252,11 +253,26 @@ data class DeleteCost(val costId: Id) : Operation
 @Serializable @SerialName("RefuseCost")
 data class RefuseCost(val costId: Id) : Operation
 
+/** Attaches a file to a cost, a collected entry or an event ([owner], ITERATION_4 §2.1). */
 @Serializable @SerialName("AddAttachment")
-data class AddAttachment(val costId: Id, val attachment: Attachment) : Operation
+data class AddAttachment(val owner: AttachmentOwner, val attachment: Attachment) : Operation {
+    constructor(costId: Id, attachment: Attachment) : this(AttachmentOwner.OfCost(costId), attachment)
+
+    override val eventId: Id? get() = owner.eventId
+}
 
 @Serializable @SerialName("RemoveAttachment")
-data class RemoveAttachment(val costId: Id, val attachmentId: Id) : Operation
+data class RemoveAttachment(val owner: AttachmentOwner, val attachmentId: Id) : Operation {
+    constructor(costId: Id, attachmentId: Id) : this(AttachmentOwner.OfCost(costId), attachmentId)
+
+    override val eventId: Id? get() = owner.eventId
+}
+
+/** Gives an attachment another file name (ITERATION_4 §2.1). */
+@Serializable @SerialName("RenameAttachment")
+data class RenameAttachment(val owner: AttachmentOwner, val attachmentId: Id, val fileName: String) : Operation {
+    override val eventId: Id? get() = owner.eventId
+}
 
 // ---- undo (ITERATION_2 §7.2) ----
 

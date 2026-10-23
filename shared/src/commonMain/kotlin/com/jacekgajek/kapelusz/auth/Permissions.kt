@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.auth
 
 import com.jacekgajek.kapelusz.domain.CostLedger
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
@@ -31,6 +32,7 @@ import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
+import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.RenameGuest
 import com.jacekgajek.kapelusz.ops.RenameMember
@@ -107,8 +109,9 @@ object Permissions {
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
         is UpdateCost -> ownCost(band, me, op.costId)
         is DeleteCost -> ownCost(band, me, op.costId)
-        is AddAttachment -> ownCost(band, me, op.costId)
-        is RemoveAttachment -> ownCost(band, me, op.costId)
+        is AddAttachment -> ownAttachments(band, me, op.owner)
+        is RemoveAttachment -> ownAttachments(band, me, op.owner)
+        is RenameAttachment -> ownAttachments(band, me, op.owner)
     }
 
     private fun reverseRole(op: Operation): Role = when (op) {
@@ -122,6 +125,16 @@ object Permissions {
         partyId == me.id || (partyId == BAND_FUND && band.treasurerMemberId == me.id)
 
     private fun ownIf(isOwn: Boolean, own: Role = Role.MEMBER) = if (isOwn) own else Role.LEAD
+
+    /**
+     * Files follow what they belong to (ITERATION_4 §2.1): a cost's as the cost, a collected entry's as the entry (its
+     * holder, or leads), the event's as the event (leads).
+     */
+    private fun ownAttachments(band: Band, me: Member, owner: AttachmentOwner): Role = when (owner) {
+        is AttachmentOwner.OfCost -> ownCost(band, me, owner.costId)
+        is AttachmentOwner.OfHolding -> ownIf(band.event(owner.eventId)?.holdings?.firstOrNull { it.id == owner.holdingId }?.partyId == me.id)
+        is AttachmentOwner.OfEvent -> Role.LEAD
+    }
 
     private fun ownCost(band: Band, me: Member, costId: String): Role {
         val cost = band.cost(costId) ?: return Role.LEAD

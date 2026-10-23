@@ -247,7 +247,7 @@ class HistoryAndUndoTest {
         assertEquals(RejectionReason.ROLE_REQUIRED, push("bob", AddAttachment("c1", photo)).rejected.values.single().reason)
         push("alice", AddAttachment("c1", photo))
         // ... but any member may upload the file of a listed attachment (the operation was the check).
-        fun upload(user: String) = call("POST", "/bands/band1/attachments", user, KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest("c1", "a1")))
+        fun upload(user: String) = call("POST", "/bands/band1/attachments", user, KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest("a1")))
         assertEquals(200, upload("bob").status)
         store.files += StorageKeys.attachment("band1", photo)
         assertEquals(200, call("GET", "/bands/band1/attachments/a1", "bob").status)
