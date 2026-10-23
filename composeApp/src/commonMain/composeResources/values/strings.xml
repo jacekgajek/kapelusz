@@ -154,6 +154,7 @@
     <string name="filter_all">All</string>
     <string name="cost_status_pending">Waiting</string>
     <string name="cost_status_refused">Refused</string>
+    <string name="cost_approved_part">approved %1$s</string>
     <string name="cost_status_partly">Partly refunded</string>
     <string name="cost_status_refunded">Refunded</string>
     <string name="costs_empty">No costs match this filter.</string>

@@ -40,6 +40,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
+import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.app.ui.screens.labelRes
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
@@ -111,7 +112,7 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
             Column(horizontalAlignment = Alignment.End) {
                 MoneyText(cost.amount, context.currency)
                 Text(
-                    stringResource(status.labelRes()),
+                    costStatusText(band, cost, status),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
                 )
