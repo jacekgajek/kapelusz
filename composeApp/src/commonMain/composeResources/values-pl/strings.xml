@@ -7,6 +7,8 @@
     <string name="menu_roster">Członkowie zespołu</string>
     <string name="tab_events">Wydarzenia</string>
     <string name="tab_my_costs">Moje koszty</string>
+    <string name="tab_gig">Koncert</string>
+    <string name="tab_money">Pieniądze</string>
     <string name="refused_cost_title">Ten koszt został odrzucony</string>
     <string name="refused_cost_text">Co chcesz zrobić?</string>
     <string name="refused_cost_resubmit">Popraw i zgłoś ponownie</string>

@@ -7,6 +7,8 @@
     <string name="menu_roster">Band members</string>
     <string name="tab_events">Events</string>
     <string name="tab_my_costs">My costs</string>
+    <string name="tab_gig">Gig</string>
+    <string name="tab_money">Money</string>
     <string name="refused_cost_title">This cost was refused</string>
     <string name="refused_cost_text">What do you want to do?</string>
     <string name="refused_cost_resubmit">Edit and resubmit</string>

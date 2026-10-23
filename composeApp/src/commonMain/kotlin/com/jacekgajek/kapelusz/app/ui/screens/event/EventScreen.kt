@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -11,12 +12,15 @@ import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
 import com.jacekgajek.kapelusz.app.generated.fund_amount_to_hint
 import com.jacekgajek.kapelusz.app.generated.fund_direction_from
 import com.jacekgajek.kapelusz.app.generated.fund_direction_to
+import com.jacekgajek.kapelusz.app.generated.tab_gig
+import com.jacekgajek.kapelusz.app.generated.tab_money
 import com.jacekgajek.kapelusz.app.generated.total_awaited
 import com.jacekgajek.kapelusz.app.generated.total_from_fund
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import kotlin.math.abs
+import kotlinx.coroutines.flow.first
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
@@ -32,7 +36,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,11 +55,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.EventTab
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.edit_details
 import com.jacekgajek.kapelusz.app.generated.event_files
@@ -129,12 +134,22 @@ fun EventScreen(
     val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
     val listState = rememberLazyListState()
-    // Opened from a reminder about an open debt (ITERATION_3 §2.2): straight to To settle.
+    // Two pages (ITERATION_4 §2.4): the gig, and its money. Each event opens on the one last used there.
+    val bandId = state.band.id
+    val tab = graph.settings.settings.collectAsState().value.eventTab(bandId, eventId)
+    fun selectTab(selected: EventTab) = graph.settings.update { it.withEventTab(bandId, eventId, selected) }
+    // Opened from a reminder about an open debt (ITERATION_3 §2.2): the money, straight at To settle.
     val toSettle by graph.pendingToSettle.collectAsState()
     LaunchedEffect(toSettle, event != null) {
-        if (toSettle != eventId || event == null) return@LaunchedEffect
+        if (toSettle != eventId || event == null || artist) return@LaunchedEffect
+        selectTab(EventTab.MONEY)
+        // Once the money page is laid out (every section is one item, shown or not).
+        val money = EventSection.on(EventTab.MONEY)
+        graph.settings.settings.first { it.eventTab(bandId, eventId) == EventTab.MONEY }
+        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it == money.size }
+        listState.scrollToItem(money.indexOf(EventSection.TO_SETTLE))
+        // Last: clearing it restarts this effect, which would cancel the scroll above.
         graph.pendingToSettle.value = null
-        listState.scrollToItem(EventSection.TO_SETTLE.ordinal)
     }
 
     Scaffold(
@@ -166,44 +181,79 @@ fun EventScreen(
             ) {
                 if (artist) {
                     // Artists get no debt reminders, so nothing scrolls by section here.
-                    item("header") { Header(context, money = false) }
-                    item("details") { DetailsSection(context) }
-                    item("files") { FilesSection(context) }
-                    item("payout") { ArtistPayout(context) }
-                    item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
-                    item("lineup") { ArtistLineup(context) }
+                    item("header") { Header(context, status = false) }
+                    stickyHeader("tabs") { EventTabs(tab, ::selectTab) }
+                    if (tab == EventTab.GIG) {
+                        item("details") { DetailsSection(context) }
+                        item("files") { FilesSection(context) }
+                        item("lineup") { ArtistLineup(context) }
+                    } else {
+                        item("payout") { ArtistPayout(context) }
+                        item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
+                    }
                     return@LazyColumn
                 }
-                // In the order of [EventSection]: its ordinal is the item's index, for scrolling to To settle.
-                item(EventSection.HEADER) { Header(context) }
-                item(EventSection.DETAILS) { DetailsSection(context) }
-                item(EventSection.FILES) { FilesSection(context) }
-                item(EventSection.PROBLEMS) { Problems(context) }
-                item(EventSection.PARTICIPANTS) { ParticipantsSection(context) }
-                item(EventSection.COLLECTED) { CollectedSection(context) }
-                item(EventSection.REFUNDS) { RefundsSection(context, onAddCost = { onAddCost(eventId) }) }
-                item(EventSection.SUMMARY) { SummarySection(context) }
-                item(EventSection.SHARE) { shareSettlement?.let { ShareSettlementButton(it) } }
-                item(EventSection.TO_SETTLE) { TransfersSection(context) }
-                item(EventSection.HISTORY) { HistorySection(context, graph) }
+                // The tab's sections, in the order of [EventSection]: To settle is found by its index on the money page.
+                EventSection.on(tab).forEach { section ->
+                    // The switch stays at the top while a long page scrolls under it.
+                    if (section == EventSection.TABS) stickyHeader(key = section.name) { EventTabs(tab, ::selectTab) }
+                    else item(key = section.name) {
+                        when (section) {
+                            EventSection.HEADER -> Header(context)
+                            EventSection.TABS -> Unit
+                            EventSection.DETAILS -> DetailsSection(context)
+                            EventSection.FILES -> FilesSection(context)
+                            EventSection.PARTICIPANTS -> ParticipantsSection(context)
+                            EventSection.TOTALS -> Totals(context)
+                            EventSection.PROBLEMS -> Problems(context)
+                            EventSection.COLLECTED -> CollectedSection(context)
+                            EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) })
+                            EventSection.SUMMARY -> SummarySection(context)
+                            EventSection.SHARE -> shareSettlement?.let { ShareSettlementButton(it) }
+                            EventSection.TO_SETTLE -> TransfersSection(context)
+                            EventSection.HISTORY -> HistorySection(context, graph)
+                        }
+                    }
+                }
             }
         }
         if (editing) EditDetailsDialog(state.band, event, actions, onDismiss = { editing = false })
     }
 }
 
-/** The event screen's sections, in list order: a reminder about an open debt scrolls to [TO_SETTLE] by its ordinal. */
-private enum class EventSection { HEADER, DETAILS, FILES, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SUMMARY, SHARE, TO_SETTLE, HISTORY }
+/**
+ * The event screen's sections in list order, each on one of the two pages ([tab]) or above both (null). One list item
+ * each, so a reminder about an open debt finds [TO_SETTLE] by its index on the money page.
+ */
+private enum class EventSection(val tab: EventTab?) {
+    HEADER(null), TABS(null),
+    DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG),
+    TOTALS(EventTab.MONEY), PROBLEMS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY), SUMMARY(EventTab.MONEY),
+    SHARE(EventTab.MONEY), TO_SETTLE(EventTab.MONEY), HISTORY(EventTab.MONEY),
+    ;
 
-/** One list item per section, keyed by it, so the item's index is always the section's ordinal. */
-private fun LazyListScope.item(section: EventSection, content: @Composable () -> Unit) = item(key = section.name) { content() }
+    companion object {
+        fun on(tab: EventTab) = entries.filter { it.tab == null || it.tab == tab }
+    }
+}
+
+/** The switch between the gig's page and its money (ITERATION_4 §2.4). */
+@Composable
+private fun EventTabs(tab: EventTab, onTab: (EventTab) -> Unit) {
+    // Opaque: pinned at the top, the list scrolls under it.
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(vertical = 8.dp)) {
+        listOf(EventTab.GIG to Res.string.tab_gig, EventTab.MONEY to Res.string.tab_money).forEachIndexed { index, (value, label) ->
+            SegmentedButton(selected = tab == value, onClick = { onTab(value) }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
+                Text(stringResource(label))
+            }
+        }
+    }
+}
 
 @Composable
-private fun Header(context: EventContext, money: Boolean = true) {
+private fun Header(context: EventContext, status: Boolean = true) {
     val event = context.event
     val s = context.settlement
-    var editingFund by remember { mutableStateOf(false) }
-    if (editingFund) FundAmountDialog(context, onDismiss = { editingFund = false })
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -211,7 +261,7 @@ private fun Header(context: EventContext, money: Boolean = true) {
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            if (money) StatusChip(s.status, event.archived)
+            if (status) StatusChip(s.status, event.archived)
         }
         event.agendaLine()?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         // Google Maps: the stored link (the exact pin), otherwise directions to the location text.
@@ -223,24 +273,33 @@ private fun Header(context: EventContext, money: Boolean = true) {
                 leadingIcon = { Icon(Icons.Default.Directions, null) },
             )
         }
-        if (money) Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
-                // Part of the income is a fee the organiser has not paid yet (ITERATION_4 §2.2).
-                if (event.awaited.isPositive) TotalRow(stringResource(Res.string.total_awaited), event.awaited, context.currency)
-                val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
-                if (!s.fundAmount.isZero || canSetFund) {
-                    // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
-                    TotalRow(
-                        stringResource(if (s.fundAmount.isNegative) Res.string.total_from_fund else Res.string.total_fund),
-                        -s.fundAmount,
-                        context.currency,
-                        onEdit = { editingFund = true }.takeIf { canSetFund },
-                    )
-                }
-                if (!s.refundsTotal.isZero) TotalRow(stringResource(Res.string.total_refunds), -s.refundsTotal, context.currency)
-                TotalRow(stringResource(Res.string.total_net), s.net, context.currency, bold = true)
+    }
+}
+
+/** The event's money at a glance: what came in, what goes to or from the fund and to refunds, and what is shared. */
+@Composable
+private fun Totals(context: EventContext) {
+    val event = context.event
+    val s = context.settlement
+    var editingFund by remember { mutableStateOf(false) }
+    if (editingFund) FundAmountDialog(context, onDismiss = { editingFund = false })
+    Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
+            // Part of the income is a fee the organiser has not paid yet (ITERATION_4 §2.2).
+            if (event.awaited.isPositive) TotalRow(stringResource(Res.string.total_awaited), event.awaited, context.currency)
+            val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
+            if (!s.fundAmount.isZero || canSetFund) {
+                // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
+                TotalRow(
+                    stringResource(if (s.fundAmount.isNegative) Res.string.total_from_fund else Res.string.total_fund),
+                    -s.fundAmount,
+                    context.currency,
+                    onEdit = { editingFund = true }.takeIf { canSetFund },
+                )
             }
+            if (!s.refundsTotal.isZero) TotalRow(stringResource(Res.string.total_refunds), -s.refundsTotal, context.currency)
+            TotalRow(stringResource(Res.string.total_net), s.net, context.currency, bold = true)
         }
     }
 }
