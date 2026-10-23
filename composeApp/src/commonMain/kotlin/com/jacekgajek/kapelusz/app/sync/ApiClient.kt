@@ -143,11 +143,14 @@ class ApiClient(
     suspend fun acceptInvite(code: String): BandStateResponse = call(HttpMethod.Post, "/invites/$code/accept", BandStateResponse.serializer())
 
     /**
-     * One page of a month's history, newest first; [before] is the previous page's `next`. Read leniently by
+     * One page of a month's history, newest first; [before] is the previous page's `next`. With [months] above 1, the
+     * first page of that many months back from [month], in one request (no `next`). Read leniently by
      * [HistoryDecoder], so a change made by a newer app version does not fail the whole page.
      */
-    suspend fun history(bandId: Id, month: String, before: String? = null): HistoryPage =
-        HistoryDecoder.page(call(HttpMethod.Get, "/bands/$bandId/log?month=$month" + (before?.let { "&before=$it" } ?: ""), JsonObject.serializer()), month)
+    suspend fun history(bandId: Id, month: String, before: String? = null, months: Int = 1): HistoryPage {
+        val query = "month=$month" + (before?.let { "&before=$it" } ?: "") + (if (months > 1) "&months=$months" else "")
+        return HistoryDecoder.page(call(HttpMethod.Get, "/bands/$bandId/log?$query", JsonObject.serializer()), month)
+    }
 
     /** A URL to upload the file of an attachment the server already has. */
     suspend fun requestUpload(bandId: Id, attachmentId: Id): AttachmentUploadResponse = call(

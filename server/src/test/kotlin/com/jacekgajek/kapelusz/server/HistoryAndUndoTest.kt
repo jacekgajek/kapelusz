@@ -99,6 +99,57 @@ class HistoryAndUndoTest {
 
     private fun undo(entry: String?, undoneOpId: String = "op2") = Undo(undoneOpId, RenameBand("claimed"), BandChange(BandPart(), BandPart()), entry)
 
+    // ---- several months in one request ----
+
+    @Test
+    fun severalMonthsComeInOneAnswerNewestFirst() {
+        createBand()
+        val july = seed("2026-07", 1_000_000_000_001)
+        val (augustOld, augustNew) = (2L..3L).map { seed("2026-08", 1_000_000_000_000 + it) }
+        val september = seed("2026-09", 1_000_000_000_004)
+        val june = seed("2026-06", 1_000_000_000_000)
+        val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "3")).parse(HistoryResponse.serializer())
+        assertEquals(listOf(september, augustNew, augustOld, july), page.entries.map { it.id }, "June is a fourth month back")
+        assertEquals("2026-09", page.month)
+        assertNull(page.next)
+        // Across a year boundary.
+        val january = seed("2027-01", 1_000_000_000_005)
+        val december = seed("2026-12", 1_000_000_000_006)
+        val turn = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2027-01", "months" to "2")).parse(HistoryResponse.serializer())
+        assertEquals(listOf(january, december), turn.entries.map { it.id })
+        assertEquals(listOf(june), log(month = "2026-06").entries.map { it.id }, "one month by default")
+    }
+
+    @Test
+    fun aBusyMonthDoesNotCrowdOutTheOthers() {
+        createBand()
+        val august = seed("2026-08", 1_000_000_000_000)
+        val september = (1L..Api.HISTORY_PAGE + 1L).map { seed("2026-09", 1_000_000_000_000 + it) }
+        val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "2")).parse(HistoryResponse.serializer())
+        assertEquals(september.reversed().take(Api.HISTORY_PAGE) + august, page.entries.map { it.id }, "at most a page a month")
+    }
+
+    @Test
+    fun aLargeMonthDoesNotUseUpTheOthersBytes() {
+        createBand()
+        val august = seed("2026-08", 1_000_000_000_000, chars = 400_000)
+        val (older, newer) = (1L..2L).map { seed("2026-09", 1_000_000_000_000 + it, chars = 400_000) }
+        val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "3")).parse(HistoryResponse.serializer())
+        // A third of the budget a month: one 400 kB entry each.
+        assertEquals(listOf(newer, august), page.entries.map { it.id }, "$older is over September's share")
+    }
+
+    @Test
+    fun aMonthsRangeIsCheckedAndNotPaged() {
+        createBand()
+        for (months in listOf("0", "4", "x")) {
+            assertEquals(400, call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to months)).status, months)
+        }
+        assertEquals(400, call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "2", "before" to "1")).status)
+        assertEquals(400, call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-13")).status)
+        assertEquals(404, call("GET", "/bands/band1/log", "bob", query = mapOf("month" to "2026-09", "months" to "3")).status, "members only")
+    }
+
     // ---- the history byte budget ----
 
     @Test

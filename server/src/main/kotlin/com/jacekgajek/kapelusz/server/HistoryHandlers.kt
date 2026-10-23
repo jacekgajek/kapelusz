@@ -10,9 +10,11 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Undo
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import java.time.YearMonth
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 /** A band's history: one file per accepted push, per month; pages of it, and the undos that name an entry. */
 internal class HistoryHandlers(
@@ -23,49 +25,76 @@ internal class HistoryHandlers(
     /**
      * One page of a month's history, newest first. [before] is the `next` cursor of the previous page; listing keys is
      * cheap, only the page's entries are fetched, so a busy month never times out.
+     *
+     * With [months] above 1, the first page of that many months back from [month] in one answer (no `next`): one
+     * request instead of one per month, so the app does not wake a new server instance for each month.
      */
-    fun history(user: VerifiedUser, bandId: String, month: String?, before: String?): HttpResponse {
-        bands.loadForMember(user, bandId)
+    fun history(user: VerifiedUser, bandId: String, month: String?, before: String?, months: String? = null): HttpResponse {
         val selected = month ?: monthOf(clock())
         badRequestIf(!selected.matches(Regex("\\d{4}-\\d{2}"))) { "month must be yyyy-MM" }
-        val prefix = StorageKeys.logMonth(bandId, selected)
-        val keys = store.list(prefix).asReversed().let { all -> if (before == null) all else all.dropWhile { it >= prefix + before } }
-        // At most HISTORY_PAGE entries and about HISTORY_PAGE_BYTES (the recorded changes can be large), at least one.
-        val page = mutableListOf<String>()
+        val first = runCatching { YearMonth.parse(selected) }.getOrNull()
+        badRequestIf(first == null) { "month must be yyyy-MM" }
+        val count = if (months == null) 1 else months.toIntOrNull() ?: 0
+        badRequestIf(count !in 1..MAX_MONTHS) { "months must be 1 to $MAX_MONTHS" }
+        badRequestIf(count > 1 && before != null) { "before pages a single month" }
+        val prefixes = (0 until count).map { StorageKeys.logMonth(bandId, first!!.minusMonths(it.toLong()).toString()) }
+        // The months are listed while the membership is checked; nothing is answered unless the check passes.
+        val listings = prefixes.map { prefix -> logReader.submit<List<String>> { store.list(prefix) } }
+        try {
+            bands.loadForMember(user, bandId)
+        } catch (e: Exception) {
+            listings.forEach { it.cancel(true) }
+            throw e
+        }
+        val prefix = prefixes.first()
+        // Newest first within each month; the cursor applies to the one month it pages.
+        val listed = awaitAll(listings).map { it.asReversed() }
+            .mapIndexed { index, keys -> if (index > 0 || before == null) keys else keys.dropWhile { it >= prefix + before } }
+        // Each month gets at most HISTORY_PAGE entries and its share of about HISTORY_PAGE_BYTES (the recorded changes
+        // can be large), at least one entry: a busy month never crowds out the others, and the answer stays small.
+        val budget = Api.HISTORY_PAGE_BYTES / count
+        val bytes = IntArray(count)
+        val taken = IntArray(count)
+        val full = BooleanArray(count)
+        var lastTaken: String? = null
         val entries = mutableListOf<HistoryEntry>()
-        var bytes = 0
         // Read in parallel batches (one at a time, a page of a hundred small files took seconds), stopping at the budget.
-        var full = false
-        for (batch in keys.take(Api.HISTORY_PAGE).chunked(LOG_READ_BATCH)) {
-            for ((key, blob) in batch.zip(readAll(batch))) {
+        var remaining = listed.flatMapIndexed { index, keys -> keys.take(Api.HISTORY_PAGE).map { index to it } }
+        while (true) {
+            remaining = remaining.filterNot { (index, _) -> full[index] }
+            val batch = remaining.take(LOG_READ_BATCH).ifEmpty { break }
+            remaining = remaining.drop(batch.size)
+            for ((item, blob) in batch.zip(readAll(batch.map { it.second }))) {
+                val (index, key) = item
+                if (full[index]) continue
                 blob ?: continue
                 val size = blob.content.utf8Size()
-                if (entries.isNotEmpty() && bytes + size > Api.HISTORY_PAGE_BYTES) {
-                    full = true
-                    break
+                if (taken[index] > 0 && bytes[index] + size > budget) {
+                    full[index] = true
+                    continue
                 }
-                bytes += size
-                page += key
+                bytes[index] += size
+                taken[index]++
+                if (index == 0) lastTaken = key
                 // Its name, so an undo can say which entry it means (ITERATION_2 §7.2).
                 // An unreadable entry is skipped, not the whole page: the rest of the history stays readable.
                 val entry = runCatching { decode(HistoryEntry.serializer(), blob.content) }.getOrNull() ?: continue
                 entries += entry.copy(id = key.removePrefix(StorageKeys.log(bandId)))
             }
-            if (full) break
         }
-        val next = if (keys.size > page.size && page.isNotEmpty()) page.last().removePrefix(prefix) else null
+        val next = if (count == 1 && listed[0].size > taken[0]) lastTaken?.removePrefix(prefix) else null
         return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
     }
 
-    /** The files at [keys] (null: gone), read at the same time; if one fails, the others are not waited for. */
-    private fun readAll(keys: List<String>): List<Blob?> {
-        val reads = keys.map { key -> logReader.submit<Blob?> { store.get(key) } }
-        return try {
-            reads.map { it.get() }
-        } catch (e: ExecutionException) {
-            reads.forEach { it.cancel(true) }
-            throw e.cause ?: e
-        }
+    /** The files at [keys] (null: gone), read at the same time. */
+    private fun readAll(keys: List<String>): List<Blob?> = awaitAll(keys.map { key -> logReader.submit<Blob?> { store.get(key) } })
+
+    /** The results of [running]; if one fails, the others are not waited for. */
+    private fun <T> awaitAll(running: List<Future<T>>): List<T> = try {
+        running.map { it.get() }
+    } catch (e: ExecutionException) {
+        running.forEach { it.cancel(true) }
+        throw e.cause ?: e
     }
 
     /**
@@ -96,6 +125,9 @@ internal class HistoryHandlers(
 
     companion object {
         private const val LOG_READ_BATCH = 16
+
+        /** Months one history request may cover. */
+        const val MAX_MONTHS = 3
 
         /** Reads history files in parallel (network-bound, so more threads than cores). */
         private val logReader by lazy { Executors.newFixedThreadPool(16) { task -> Thread(task, "log-reader").apply { isDaemon = true } } }

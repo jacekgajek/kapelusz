@@ -1,8 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.async
 import androidx.compose.runtime.rememberCoroutineScope
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
@@ -50,11 +47,9 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     }
     LaunchedEffect(context.event.id, history.reload) {
         history.load {
-            // Newest month first; each page is newest first. The first page of each month is enough for one event.
-            // The months load at the same time.
-            val entries = coroutineScope {
-                (0 until MONTHS).map { offset -> async { graph.api.history(context.band.id, historyMonth(offset)).entries } }.awaitAll().flatten()
-            }
+            // Newest first; the first page of each month is enough for one event. One request for all the months: one
+            // per month would each wake a server instance of its own, which is slower than reading them together.
+            val entries = graph.api.history(context.band.id, historyMonth(0), months = MONTHS).entries
             entries.flatMap { it.toLines() }.filter { line ->
                 line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
             }

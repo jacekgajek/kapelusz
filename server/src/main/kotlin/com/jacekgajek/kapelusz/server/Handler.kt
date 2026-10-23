@@ -47,33 +47,47 @@ data class ApiGatewayResponse(val statusCode: Int, val headers: Map<String, Stri
 class Handler : RequestStreamHandler {
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context?) {
-        val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
+        val start = System.nanoTime()
+        store.reset()
+        var line = "?"
+        var status = "-"
+        try {
+            val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
+            // Calendar feed paths and invite codes are secrets: never log them.
+            val path = event.rawPath.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
+            line = "${event.requestContext.http.method} $path"
+            val response = handle(event, path)
+            status = response.status.toString()
+            respond(output, response)
+        } finally {
+            // One line per request: where the time goes (V5 history latency).
+            println("TIMING $line $status ${(System.nanoTime() - start) / 1_000_000}ms ${store.summary()}")
+        }
+    }
+
+    private fun handle(event: ApiGatewayRequest, path: String): HttpResponse {
         val body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it }
         val request = try {
             HttpRequest(
-            method = event.requestContext.http.method,
-            path = event.rawPath,
-            headers = event.headers.mapKeys { it.key.lowercase() },
-            body = body,
-            query = event.rawQueryString.split('&').filter { '=' in it }.associate {
-                val (key, value) = it.split('=', limit = 2)
-                URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
-            },
-        )
+                method = event.requestContext.http.method,
+                path = event.rawPath,
+                headers = event.headers.mapKeys { it.key.lowercase() },
+                body = body,
+                query = event.rawQueryString.split('&').filter { '=' in it }.associate {
+                    val (key, value) = it.split('=', limit = 2)
+                    URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
+                },
+            )
         } catch (e: IllegalArgumentException) {
             // A malformed %-escape in the query string.
-            respond(output, error(400, ApiErrors.BAD_REQUEST, "Malformed query string"))
-            return
+            return error(400, ApiErrors.BAD_REQUEST, "Malformed query string")
         }
-        val response = try {
+        return try {
             api.handle(request)
         } catch (e: Exception) {
-            // Calendar feed paths and invite codes are secrets: never log them.
-            val path = request.path.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
             System.err.println("Unhandled error for ${request.method} $path: ${e.stackTraceToString()}")
             error(500, ApiErrors.INTERNAL, "Internal error")
         }
-        respond(output, response)
     }
 
     private fun respond(output: OutputStream, response: HttpResponse) {
@@ -82,10 +96,16 @@ class Handler : RequestStreamHandler {
     }
 
     companion object : Resource {
+        init {
+            // The JDK keeps only 5 idle connections per host by default (read once, on first use, so set before any
+            // request): history reads 16 files at a time, and each read beyond 5 opened a new TLS connection to S3.
+            System.setProperty("http.maxConnections", "32")
+        }
+
         private val verifier = GoogleTokenVerifier(
             System.getenv("GOOGLE_CLIENT_IDS").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
         )
-        private val store = S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data")
+        private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data"))
         private val api = Api(store, verifier, minAppVersion = Api.MIN_APP_VERSION)
 
         init {
