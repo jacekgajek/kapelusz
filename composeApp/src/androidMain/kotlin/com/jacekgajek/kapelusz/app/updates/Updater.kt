@@ -113,8 +113,9 @@ object Updater {
                 _status.value = step.status
                 // Downloaded while the app is away: say so once; tapping opens the app, whose strip offers the install.
                 if (step.status is UpdateStatus.Ready && !appVisible && memory.notifiedVersion != published.versionCode) {
-                    context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { notifyReady(context, published.versionName, it) }
-                    remember(context) { it.copy(notifiedVersion = published.versionCode) }
+                    val shown = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { notifyReady(context, published.versionName, it) } == true
+                    // Only once shown: with notifications off now, a later check (after they are allowed) still tells.
+                    if (shown) remember(context) { it.copy(notifiedVersion = published.versionCode) }
                 }
             }
         }
@@ -214,11 +215,12 @@ object Updater {
     /** The "ready to install" notification, once it no longer applies: confirmed in the app, declined, or installed. */
     private fun cancelReady(context: Context) = NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
 
-    private fun notifyReady(context: Context, versionName: String, confirmIntent: Intent) {
+    /** False when notifications are off. */
+    private fun notifyReady(context: Context, versionName: String, confirmIntent: Intent): Boolean {
         val notifications = NotificationManagerCompat.from(context)
         val strings = Strings(AndroidAppGraph.get(context).settings.settings.value.language)
         // Without the notification permission (asked for with gig reminders) the in-app strip offers the install.
-        if (!notifications.areNotificationsEnabled()) return
+        if (!notifications.areNotificationsEnabled()) return false
         context.getSystemService(NotificationManager::class.java)
             .createNotificationChannel(NotificationChannel(CHANNEL, strings.channelName(), NotificationManager.IMPORTANCE_DEFAULT))
         val tap = PendingIntent.getActivity(context, 0, confirmIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -231,6 +233,7 @@ object Updater {
             .build()
         @SuppressLint("MissingPermission") // checked by areNotificationsEnabled()
         notifications.notify(NOTIFICATION_ID, notification)
+        return true
     }
 
     private suspend fun download(context: Context, published: PublishedVersion): Boolean = withContext(Dispatchers.IO) {

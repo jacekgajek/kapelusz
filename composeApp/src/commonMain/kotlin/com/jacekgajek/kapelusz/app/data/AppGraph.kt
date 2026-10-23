@@ -93,6 +93,12 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     private var backgroundUser: String? = null
 
     /** Called after signing out, e.g. to cancel this user's reminders (Android). */
+    /**
+     * The band whose screens the navigation was last set up for by whoever switched to it (a tapped notification opening
+     * one of its events): the "another band is shown" reset then leaves that navigation alone (V5-M1 C2b).
+     */
+    var navigatedForBand: String? = null
+
     var afterSignOut: () -> Unit = {}
 
     /** A place shared from Google Maps, waiting for "Set the location of…" (Android, ITERATION_2 §4.4). */

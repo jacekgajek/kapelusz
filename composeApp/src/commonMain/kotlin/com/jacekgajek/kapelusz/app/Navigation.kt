@@ -120,6 +120,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
         graph.pendingOpenEvent.value = null
         // A notification can outlive its band (deleted, access lost): then the tap only opens the app.
         if (!graph.bands.hasStored(bandId)) return@LaunchedEffect
+        // First: opening the band shows another band, whose reset must not undo the event opened below.
+        graph.navigatedForBand = bandId
         if (graph.bands.currentBandId != bandId) graph.bands.open(bandId)
         // From the event list, like switching bands: Back must not lead into the other band's screens.
         navController.resetTo(EventsRoute)

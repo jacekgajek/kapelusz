@@ -96,7 +96,9 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         when {
             bandState is BandState.NoBand -> shownBandId = shownBandId?.let { NO_BAND }
             readyBandId != null && readyBandId != shownBandId -> {
-                if (shownBandId != null) navController.resetTo(EventsRoute)
+                // Unless the switch already set up its screens (a notification opening one of its events).
+                if (shownBandId != null && graph.navigatedForBand != readyBandId) navController.resetTo(EventsRoute)
+                graph.navigatedForBand = null
                 shownBandId = readyBandId
             }
         }

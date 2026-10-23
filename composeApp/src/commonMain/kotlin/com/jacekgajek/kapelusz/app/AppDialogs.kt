@@ -141,12 +141,13 @@ internal fun ReminderPrompt(graph: AppGraph, settings: AppSettings) {
         confirmButton = {
             TextButton(onClick = {
                 // Answered now, so a screen rotation during Android's dialog cannot bring the prompt back.
-                graph.settings.update { it.copy(notificationPromptDone = true) }
+                // The permission covers the debt reminders too: no second question about them (V5-M1 D3).
+                graph.settings.update { it.copy(notificationPromptDone = true, debtPromptDone = true) }
                 permission.request { granted -> graph.settings.update { it.copy(remindersEnabled = granted) } }
             }) { Text(stringResource(Res.string.reminder_prompt_yes)) }
         },
         dismissButton = {
-            TextButton(onClick = { graph.settings.update { it.copy(notificationPromptDone = true, remindersEnabled = false) } }) {
+            TextButton(onClick = { graph.settings.update { it.copy(notificationPromptDone = true, debtPromptDone = true, remindersEnabled = false) } }) {
                 Text(stringResource(Res.string.reminder_prompt_not_now))
             }
         },
