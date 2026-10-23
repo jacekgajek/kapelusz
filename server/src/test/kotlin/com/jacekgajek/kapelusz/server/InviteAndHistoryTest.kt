@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.server
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.Undo
@@ -69,6 +70,23 @@ class InviteAndHistoryTest {
 
         assertEquals(404, call("POST", "/invites/${info.code}/accept", "carol").status, "single use")
         assertTrue(call("GET", "/bands/band1/invites", "alice").parse(InvitesResponse.serializer()).invites.isEmpty())
+    }
+
+    /** ITERATION_4 §1.1: someone holding band money cannot become an artist, by invite either. */
+    @Test
+    fun anArtistInviteWaitsUntilTheirMoneyIsSettled() {
+        setup()
+        fun push(id: String, seq: Long, op: com.jacekgajek.kapelusz.ops.Operation) =
+            call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope(id, "phone", seq, 1, op)))))
+        val artist = invite(role = Role.ARTIST).parse(InviteInfo.serializer())
+        push("e", 2, com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", kotlinx.datetime.LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice"), com.jacekgajek.kapelusz.model.Participant("m-bob"))))
+        push("h", 3, com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-bob", com.jacekgajek.kapelusz.model.Money(10000), com.jacekgajek.kapelusz.model.IncomeSource.DOOR))
+
+        val refused = call("POST", "/invites/${artist.code}/accept", "bob")
+        assertEquals(409, refused.status)
+        assertTrue(ApiErrors.HOLDS_MONEY in refused.body!!)
+        assertEquals(409, invite(role = Role.ARTIST).status, "and no new artist invite for them")
+        assertEquals(200, invite(role = Role.MEMBER).status)
     }
 
     @Test

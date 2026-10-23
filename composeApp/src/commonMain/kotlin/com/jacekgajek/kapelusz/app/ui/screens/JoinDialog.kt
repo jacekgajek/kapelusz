@@ -32,6 +32,7 @@ import com.jacekgajek.kapelusz.app.generated.join_already_member
 import com.jacekgajek.kapelusz.app.generated.join_band
 import com.jacekgajek.kapelusz.app.generated.join_failed
 import com.jacekgajek.kapelusz.app.generated.join_hint
+import com.jacekgajek.kapelusz.app.generated.join_holds_money
 import com.jacekgajek.kapelusz.app.generated.join_invalid_code
 import com.jacekgajek.kapelusz.app.generated.join_preview
 import com.jacekgajek.kapelusz.app.generated.join_too_many_attempts
@@ -56,6 +57,7 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
         ApiErrors.INVITE_NOT_FOUND -> Res.string.join_invalid_code
         ApiErrors.TOO_MANY_ATTEMPTS -> Res.string.join_too_many_attempts
         ApiErrors.ALREADY_MEMBER -> Res.string.join_already_member
+        ApiErrors.HOLDS_MONEY -> Res.string.join_holds_money
         else -> Res.string.join_failed
     }
 

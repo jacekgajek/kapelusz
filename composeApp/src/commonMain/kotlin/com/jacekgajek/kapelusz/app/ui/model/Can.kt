@@ -16,6 +16,7 @@ import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetRefund
@@ -34,6 +35,10 @@ class Can(private val band: Band, private val userId: String) {
     private val meId: Id? = band.memberOfUser(userId)?.id
 
     fun allowed(op: Operation): Boolean = Permissions.isAllowed(band, actor, op)
+
+    /** Sees only their own events, costs and payouts (ITERATION_4 §1.1). */
+    val artist: Boolean get() = band.isArtist(userId)
+    fun refuseCost() = allowed(RefuseCost(PROBE))
 
     fun createEvent() = allowed(CreateEvent(PROBE, PROBE, PROBE_DATE))
     fun archiveEvents() = allowed(SetEventArchived(PROBE, true))
@@ -66,3 +71,6 @@ class Can(private val band: Band, private val userId: String) {
         val PROBE_DATE = LocalDate(2000, 1, 1)
     }
 }
+
+/** Artists see only their own events, costs and payouts (ITERATION_4 §1.1). Hidden in the UI only, see its §1.4. */
+fun Band.isArtist(userId: String?): Boolean = userId != null && memberOfUser(userId)?.role == Role.ARTIST

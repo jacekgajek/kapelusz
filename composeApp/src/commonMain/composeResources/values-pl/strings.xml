@@ -7,6 +7,15 @@
     <string name="menu_roster">Członkowie zespołu</string>
     <string name="tab_events">Wydarzenia</string>
     <string name="tab_my_costs">Moje koszty</string>
+    <string name="refused_cost_title">Ten koszt został odrzucony</string>
+    <string name="refused_cost_text">Co chcesz zrobić?</string>
+    <string name="refused_cost_resubmit">Popraw i zgłoś ponownie</string>
+    <string name="refused_cost_nothing">Nic</string>
+    <string name="artist_payout">Twoja wypłata</string>
+    <string name="artist_to_receive">Do otrzymania</string>
+    <string name="artist_received">Otrzymano dotąd</string>
+    <string name="artist_still_to_receive">Pozostało do otrzymania</string>
+    <string name="artist_my_costs">Twoje koszty dla tego wydarzenia</string>
     <string name="tab_settle">Rozliczenia</string>
     <string name="language">Język</string>
     <string name="language_system">Język urządzenia</string>
@@ -32,6 +41,7 @@
     <string name="event_date">Data</string>
     <string name="event_location">Miejsce (opcjonalnie)</string>
     <string name="events_empty">Nie ma jeszcze wydarzeń. Utwórz pierwsze!</string>
+    <string name="events_empty_artist">Nie ma jeszcze wydarzeń. Lider doda cię do tych, w których grasz.</string>
     <string name="continue_event">Kontynuuj: %1$s · %2$s</string>
     <string name="filter_only_mine">Tylko moje</string>
     <string name="filter_show_archived">Pokaż archiwalne</string>
@@ -48,6 +58,7 @@
     <string name="not_linked">Bez konta w aplikacji</string>
     <string name="archived_member">Zarchiwizowany</string>
     <string name="role_viewer">Obserwator</string>
+    <string name="role_artist">Artysta</string>
     <string name="role_member">Członek</string>
     <string name="role_lead">Lider</string>
     <string name="role_admin">Administrator</string>
@@ -98,8 +109,9 @@
     <string name="refunds_empty">Brak kosztów do zwrotu.</string>
     <string name="refund_of">z %1$s</string>
     <string name="refund_max">Maksymalnie %1$s. Ustaw 0 lub wybierz Odłóż, aby zwrócić później.</string>
-    <string name="pending_from_earlier">Oczekujące z wcześniej</string>
+    <string name="pending_from_earlier">Oczekujące</string>
     <string name="include">Uwzględnij</string>
+    <string name="refuse">Odrzuć</string>
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
     <string name="summary">Rozliczenie</string>
@@ -126,6 +138,7 @@
     <string name="edit_cost">Koszt</string>
     <string name="filter_all">Wszystkie</string>
     <string name="cost_status_pending">Oczekuje</string>
+    <string name="cost_status_refused">Odrzucony</string>
     <string name="cost_status_partly">Częściowo zwrócony</string>
     <string name="cost_status_refunded">Zwrócony</string>
     <string name="costs_empty">Żaden koszt nie pasuje do filtra.</string>
@@ -145,7 +158,6 @@
     <string name="nothing_to_settle">Nie ma nic do rozliczenia.</string>
     <string name="open_event">Otwórz</string>
     <string name="you_hold">Masz %1$s do przekazania: %2$s</string>
-    <string name="cost_status_planned">Zwrot zaplanowany</string>
     <string name="cost_planned_at">%1$s do zwrotu w: %2$s (jeszcze nierozliczone)</string>
     <string name="settle_part">Część…</string>
     <string name="settle_part_title">Rozlicz część</string>
@@ -172,6 +184,10 @@
     <string name="reject_archived_member">Ten członek jest zarchiwizowany.</string>
     <string name="reject_archived_event">To wydarzenie jest zarchiwizowane. Przywróć je, aby je zmienić.</string>
     <string name="reject_event_unsettled">Archiwizować można tylko rozliczone wydarzenia.</string>
+    <string name="reject_artist_holds_no_money">Artyści nie trzymają pieniędzy: nie zbierają ich ani nie prowadzą kasy zespołowej.</string>
+    <string name="reject_holds_money">Ta osoba wciąż trzyma pieniądze: najpierw rozlicz jej wydarzenia lub przekaż kasę zespołową.</string>
+    <string name="reject_cost_refused">Ten koszt został odrzucony.</string>
+    <string name="reject_cost_partly_refunded">Część tego kosztu jest już zwrócona, więc nie można go odrzucić.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
     <string name="reject_ownership_needs_admin">Własność można przekazać tylko administratorowi z kontem w aplikacji.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>
@@ -251,6 +267,7 @@
     <string name="join_invalid_code">Ten kod jest nieprawidłowy. Może zawierać literówkę, został już użyty, unieważniony lub wygasł.</string>
     <string name="join_too_many_attempts">Zbyt wiele błędnych kodów. Spróbuj ponownie za godzinę.</string>
     <string name="join_already_member">Już należysz do tego zespołu.</string>
+    <string name="join_holds_money">Tego zaproszenia nie da się jeszcze użyć: wciąż trzymasz pieniądze zespołu. Poproś administratora o rozliczenie.</string>
     <string name="join_failed">Nie udało się dołączyć. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="h_rename_band">Zmieniono nazwę zespołu na %1$s</string>
     <string name="h_add_member">Dodano członka: %1$s</string>
@@ -291,6 +308,9 @@
     <string name="h_add_cost">Dodano koszt %1$s dla: %2$s</string>
     <string name="h_edit_cost">Edytowano koszt</string>
     <string name="h_delete_cost">Usunięto koszt</string>
+    <string name="h_refuse_cost">Odrzucono koszt</string>
+    <string name="h_resubmit_cost">Ponownie zgłoszono odrzucony koszt</string>
+    <string name="h_refuse_cost_of">Odrzucono koszt %1$s dla: %2$s</string>
     <string name="h_add_attachment">Dodano załącznik do kosztu</string>
     <string name="h_remove_attachment">Usunięto załącznik z kosztu</string>
     <string name="h_unknown">Wprowadzono zmianę</string>
@@ -304,11 +324,13 @@
     <string name="change_own_role_text">Twoja rola zmieni się na: %1$s i możesz stracić dostęp do tego ekranu. Przywrócić ją może tylko inny administrator lub właściciel.</string>
     <string name="change_own_role_confirm">Zmień moją rolę</string>
     <string name="load_more">Pokaż więcej</string>
-    <string name="role_desc_viewer">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Nie może niczego zmieniać.</string>
-    <string name="role_desc_member">To samo co obserwator, a do tego: dodaje i edytuje własne koszty, zapisuje pieniądze zebrane przez siebie na wydarzeniach, w których gra, i rozlicza przekazania, w których płaci lub otrzymuje pieniądze.</string>
+    <string name="role_desc_viewer">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Niczego nie zmienia. Dla menedżera, księgowego lub każdego, kto sprawdza, ale nie gra.</string>
+    <string name="role_desc_artist">Widzi tylko wydarzenia, w których gra (szczegóły i skład), swoje koszty i to, ile ma otrzymać. Dodaje własne koszty, które lider uwzględnia lub odrzuca. Nigdy nie trzyma pieniędzy.</string>
+    <string name="role_desc_member">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Dodaje i edytuje własne koszty, zapisuje pieniądze zebrane przez siebie na wydarzeniach, w których gra, i rozlicza przekazania, w których płaci lub otrzymuje pieniądze.</string>
     <string name="role_desc_lead">To samo co członek, a do tego: tworzy i edytuje wydarzenia, uczestników, gości i udziały, decyduje o zwrotach kosztów i kasie zespołowej, poprawia koszty i zebrane pieniądze innych oraz rozlicza całe wydarzenia.</string>
     <string name="role_desc_admin">To samo co lider, a do tego: zarządza składem zespołu, rolami i zaproszeniami, odłącza konta w aplikacji i wybiera, kto trzyma kasę zespołową.</string>
     <string name="role_owner_note">Właściciel ma wszystkie uprawnienia administratora i jako jedyny może przekazać własność innemu administratorowi.</string>
+    <string name="role_read_only">Tylko do odczytu</string>
     <string name="copy_link">Kopiuj link</string>
     <string name="link_copied">Skopiowano link</string>
     <string name="tab_fund">Kasa</string>

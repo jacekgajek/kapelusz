@@ -22,6 +22,7 @@ import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.PromoteGuest
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
@@ -92,7 +93,7 @@ object Permissions {
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
         is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,
-        is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer,
+        is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer, is RefuseCost,
         -> Role.LEAD
 
         is AddHolding -> ownIf(op.partyId == me.id && band.event(op.eventId)?.participant(me.id) != null)
@@ -102,7 +103,8 @@ object Permissions {
         is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to))
         is SettleSuggestions -> ownIf(op.partyId != null && ownsParty(band, me, op.partyId))
 
-        is AddCost -> ownIf(op.memberId == me.id)
+        // Artists too look after their own costs (ITERATION_4 §1.1); money held or moved stays from members up.
+        is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
         is UpdateCost -> ownCost(band, me, op.costId)
         is DeleteCost -> ownCost(band, me, op.costId)
         is AddAttachment -> ownCost(band, me, op.costId)
@@ -119,11 +121,11 @@ object Permissions {
     private fun ownsParty(band: Band, me: Member, partyId: String) =
         partyId == me.id || (partyId == BAND_FUND && band.treasurerMemberId == me.id)
 
-    private fun ownIf(isOwn: Boolean) = if (isOwn) Role.MEMBER else Role.LEAD
+    private fun ownIf(isOwn: Boolean, own: Role = Role.MEMBER) = if (isOwn) own else Role.LEAD
 
     private fun ownCost(band: Band, me: Member, costId: String): Role {
         val cost = band.cost(costId) ?: return Role.LEAD
-        return ownIf(cost.memberId == me.id && !CostLedger.isLockedForOwner(band, cost))
+        return ownIf(cost.memberId == me.id && !CostLedger.isLockedForOwner(band, cost), Role.ARTIST)
     }
 
     private fun forbidden(reason: RejectionReason, message: String) = Rejection(RejectionCode.FORBIDDEN, message, reason)

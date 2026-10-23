@@ -8,7 +8,7 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.sumOfMoney
 
 /** What the cost's owner sees: nothing assigned, assigned but not paid yet, partly paid, fully paid. */
-enum class CostStatus { PENDING, REFUND_PLANNED, PARTLY_REFUNDED, REFUNDED }
+enum class CostStatus { PENDING, REFUND_PLANNED, PARTLY_REFUNDED, REFUNDED, REFUSED }
 
 /**
  * Refund bookkeeping of costs across events and the band fund.
@@ -44,12 +44,13 @@ object CostLedger {
         outstanding(band, cost) + (event.refundOf(cost.id)?.amount ?: Money.ZERO)
 
     /**
-     * Outstanding costs of this event's participants that are not refunded here yet, oldest first:
-     * the "Pending from earlier" list of the event's Refunds section.
+     * Outstanding costs of this event's participants, not refused, oldest first: the "Waiting" list of the event's
+     * Refunds section (ITERATION_4 §1.2). Also one refunded here in part, e.g. raised by its owner after it was
+     * included: the rest waits for a lead.
      */
     fun pendingFromEarlier(band: Band, event: Event): List<Cost> =
         band.costs
-            .filter { isRefundableAt(it, event) && event.refundOf(it.id) == null && outstanding(band, it).isPositive }
+            .filter { !it.refused && isRefundableAt(it, event) && outstanding(band, it).isPositive }
             .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
 
     /**
@@ -76,11 +77,13 @@ class CostStatuses(private val band: Band) {
         band.events.filter { it.id in settledEventIds }.sumOfMoney { it.refundOf(costId)?.amount ?: Money.ZERO } +
             CostLedger.fundRefunds(band, costId)
 
-    fun unpaid(cost: Cost): Money = cost.amount - paid(cost.id)
+    /** A refused cost is not expected to be paid back. */
+    fun unpaid(cost: Cost): Money = if (cost.refused) Money.ZERO else cost.amount - paid(cost.id)
 
     fun status(cost: Cost): CostStatus {
         val paid = paid(cost.id)
         return when {
+            cost.refused -> CostStatus.REFUSED
             paid >= cost.amount -> CostStatus.REFUNDED
             paid.isPositive -> CostStatus.PARTLY_REFUNDED
             CostLedger.refunded(band, cost.id).isPositive -> CostStatus.REFUND_PLANNED

@@ -4,6 +4,7 @@ import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.Role
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -36,7 +37,8 @@ object CalendarFeed {
             val me = band.memberOfUser(userId)?.takeUnless { it.archived } ?: continue
             for (event in band.events) {
                 if (event.archived || event.date < from) continue
-                if (!includeAll && event.participant(me.id) == null) continue
+                // Artists get only the events they play, whatever they chose (ITERATION_4 §1.1).
+                if ((!includeAll || me.role == Role.ARTIST) && event.participant(me.id) == null) continue
                 lines += eventLines(band, event, webUrl, stamp)
             }
         }

@@ -61,6 +61,7 @@ import com.jacekgajek.kapelusz.app.ui.components.labelRes
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.BandFundScreen
 import com.jacekgajek.kapelusz.app.ui.screens.CostScreen
 import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
@@ -84,6 +85,12 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+
+/** A screen an artist does not get (e.g. a bookmarked web address, or a role changed while on it): the event list. */
+@Composable
+private fun BackToEvents(navController: NavHostController) {
+    LaunchedEffect(Unit) { navController.resetTo(EventsRoute) }
+}
 
 private enum class Tab(val route: Any, val icon: ImageVector, val label: StringResource) {
     EVENTS(EventsRoute, Icons.Default.Event, Res.string.tab_events),
@@ -133,7 +140,9 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
 
     // The band fund tab appears once someone holds the fund (admins choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null
-    val tabs = Tab.entries.filter { it != Tab.FUND || fundEnabled }
+    // Artists get their events and their costs only (ITERATION_4 §1.1).
+    val artist = state.band.isArtist(state.userId)
+    val tabs = Tab.entries.filter { (it != Tab.FUND || fundEnabled) && (!artist || it == Tab.EVENTS || it == Tab.MY_COSTS) }
     // E.g. after switching to a band without a band fund while on its tab.
     LaunchedEffect(fundEnabled) {
         if (!fundEnabled && navController.currentDestination?.hasRoute(FundRoute::class) == true) navController.resetTo(EventsRoute)
@@ -145,13 +154,22 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<MyCostsRoute> { entry ->
                 val everyone by entry.savedStateHandle.getStateFlow(SHOW_EVERYONE, false).collectAsState()
-                MyCostsScreen(state, everyone, { entry.savedStateHandle[SHOW_EVERYONE] = it }, { navController.navigate(CostRoute(it)) }, toSettings, toRoster)
+                MyCostsScreen(graph, state, everyone, { entry.savedStateHandle[SHOW_EVERYONE] = it }, { navController.navigate(CostRoute(it)) }, toSettings, toRoster)
             }
-            composable<SettleRoute> { SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster) }
-            composable<FundRoute> { BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) }) }
-            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }) }
+            composable<SettleRoute> {
+                if (artist) BackToEvents(navController) else SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
+            }
+            composable<FundRoute> {
+                if (artist) BackToEvents(navController) else BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) })
+            }
+            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }, onOpenCost = { navController.navigate(CostRoute(it)) }) }
             composable<CostRoute> { entry ->
                 val route = entry.toRoute<CostRoute>()
+                // Artists open only their own costs (e.g. not from a web address someone shared).
+                if (artist && route.costId != null && state.band.cost(route.costId)?.memberId.let { it != null && it != state.me?.id }) {
+                    BackToEvents(navController)
+                    return@composable
+                }
                 CostScreen(graph, state, route.costId, back, forEventId = route.forEventId, onAddedForOther = {
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
@@ -185,6 +203,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     autoUpdate = settings.autoUpdate,
                     appSettings = settings,
                     onAppSettings = { change -> graph.settings.update(change) },
+                    artist = artist,
                     // The secret menu (ITERATION_2 §7.1), for admins of the band.
                     rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.ADMIN) == true },
                     calendar = { change -> if (change == null) graph.api.calendar() else graph.api.changeCalendar(change) },
@@ -199,8 +218,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     onBack = back,
                 )
             }
-            composable<RosterRoute> { RosterScreen(graph, state, back) }
-            composable<HistoryRoute> { HistoryScreen(graph, state, back) }
+            composable<RosterRoute> { if (artist) BackToEvents(navController) else RosterScreen(graph, state, back) }
+            composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph, state, back) }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
                     graph.bands.createBand(name, currency, yourName)

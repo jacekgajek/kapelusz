@@ -27,6 +27,14 @@ enum class RejectionReason {
     ARCHIVED_EVENT,
     /** Only settled events and drafts can be archived. */
     EVENT_UNSETTLED,
+    /** Artists never hold money: no collected money, no band fund (ITERATION_4 §1.1). */
+    ARTIST_HOLDS_NO_MONEY,
+    /** Someone holding money in an unsettled event, or the band fund, cannot become an artist. */
+    HOLDS_MONEY,
+    /** A refused cost is not refunded until its owner resubmits it (ITERATION_4 §1.2). */
+    COST_REFUSED,
+    /** Only a cost with nothing refunded yet can be refused. */
+    COST_PARTLY_REFUNDED,
     OWNER_ROLE_FIXED,
     OWNERSHIP_NEEDS_ADMIN,
     MEMBER_LINKED,

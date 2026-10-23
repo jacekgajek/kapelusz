@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -112,11 +113,14 @@ object Reducer {
             is AddHolding -> band.updateEvent(op.eventId) { event ->
                 invalidIf(event.holdings.any { it.id == op.holdingId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.holdingId} already exists" }
                 invalidIf(event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
+                invalidIf(Artists.isArtist(band, op.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
                 validatePositive(op.amount, "Holding amount")
                 event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull()))
             }
             is UpdateHolding -> band.updateEvent(op.eventId) { event ->
-                event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
+                val holding = event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
+                // Money collected before they became an artist can be removed, not changed.
+                invalidIf(Artists.isArtist(band, holding.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
                 op.amount?.let { validatePositive(it.value, "Holding amount") }
                 event.copy(
                     holdings = event.holdings.map { holding ->
@@ -151,6 +155,7 @@ object Reducer {
                 validateTransferParty(band, event, op.from)
                 validateTransferParty(band, event, op.to)
                 invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
+                invalidIf(Artists.isArtist(band, op.from), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not pay out money" }
                 validatePositive(op.amount, "Transfer amount")
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }
@@ -163,6 +168,11 @@ object Reducer {
             is AddCost -> addCost(band, op, ctx)
             is UpdateCost -> updateCost(band, op, ctx)
             is DeleteCost -> deleteCost(band, op, ctx)
+            is RefuseCost -> {
+                val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
+                conflictIf(CostLedger.refunded(band, cost.id).isPositive, RejectionReason.COST_PARTLY_REFUNDED) { "Part of the cost is already refunded" }
+                band.updateCost(cost.id) { it.copy(refused = true) }
+            }
             is AddAttachment -> band.updateCost(op.costId) { cost ->
                 invalidIf(cost.attachments.size >= MAX_ATTACHMENTS, RejectionReason.TOO_MANY_ATTACHMENTS) { "A cost can have at most $MAX_ATTACHMENTS attachments" }
                 // Unique in the whole band: the id names its file in storage (ITERATION_3 R6).
@@ -227,6 +237,7 @@ object Reducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Use ownership transfer to make someone the owner" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner's role cannot be changed" }
+        if (op.role == Role.ARTIST && member.role != Role.ARTIST) validateHoldsNoMoney(band, member.id)
         return band.updateMember(op.memberId) { it.copy(role = op.role) }
     }
 
@@ -235,6 +246,7 @@ object Reducer {
         conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Member is already linked to a user" }
         conflictIf(band.memberOfUser(op.userId) != null, RejectionReason.USER_ALREADY_MEMBER) { "User is already a member of this band" }
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Invites cannot grant ownership" }
+        if (op.role == Role.ARTIST) validateHoldsNoMoney(band, member.id)
         return band.updateMember(op.memberId) { it.copy(userId = op.userId, role = op.role, archived = false) }
     }
 
@@ -248,6 +260,7 @@ object Reducer {
     private fun setTreasurer(band: Band, op: SetTreasurer): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.archived, RejectionReason.ARCHIVED_MEMBER) { "An archived member cannot hold the band fund" }
+        invalidIf(Artists.isArtist(band, member.id), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "An artist cannot hold the band fund" }
         return band.copy(treasurerMemberId = member.id)
     }
 
@@ -291,8 +304,7 @@ object Reducer {
             participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )
-        val created = band.copy(events = band.events + event)
-        return op.participants.fold(created) { acc, participant -> includeOwnCosts(acc, op.eventId, participant.partyId, ctx) }
+        return band.copy(events = band.events + event)
     }
 
     private fun deleteEvent(band: Band, op: DeleteEvent): Band {
@@ -332,7 +344,7 @@ object Reducer {
             invalidIf(event.participant(op.memberId) != null, RejectionReason.ALREADY_PARTICIPANT) { "Member already takes part" }
             event.copy(participants = event.participants + Participant(op.memberId, op.weight, addedBy = ctx.memberId))
         }
-        return includeOwnCosts(updated, op.eventId, op.memberId, ctx)
+        return updated
     }
 
     private fun addGuest(band: Band, op: AddGuest): Band = band.updateEvent(op.eventId) { event ->
@@ -380,6 +392,7 @@ object Reducer {
             invalidIf(op.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "Refund cannot be negative" }
             if (op.amount.isZero) return@updateEvent event.copy(refunds = event.refunds.filterNot { it.costId == cost.id })
             invalidIf(!CostLedger.isRefundableAt(cost, event), RejectionReason.NOT_REFUNDABLE_HERE) { "Costs can only be refunded at events their owner takes part in" }
+            conflictIf(cost.refused, RejectionReason.COST_REFUSED) { "The cost was refused" }
             val max = CostLedger.maxRefundAt(band, cost, event)
             invalidIf(op.amount > max, RejectionReason.REFUND_TOO_LARGE) { "Refund ${op.amount} exceeds outstanding $max" }
             val refunds = if (event.refundOf(cost.id) != null) {
@@ -398,6 +411,7 @@ object Reducer {
         op.costId?.let { costId ->
             val cost = band.cost(costId).orNotFound { "Cost $costId" }
             invalidIf(!op.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "A cost refund from the fund must be negative" }
+            conflictIf(cost.refused, RejectionReason.COST_REFUSED) { "The cost was refused" }
             invalidIf(-op.amount > CostLedger.outstanding(band, cost), RejectionReason.REFUND_TOO_LARGE) { "Refund exceeds the outstanding amount" }
         }
         return band.copy(fundEntries = band.fundEntries + FundEntry(op.entryId, op.date, op.description.validName("Description"), op.amount, op.costId))
@@ -456,7 +470,7 @@ object Reducer {
             createdAt = ctx.timestamp,
         )
         val added = band.copy(costs = band.costs + cost)
-        return op.incurredForEventId?.let { includeOwnCosts(added, it, op.memberId, ctx) } ?: added
+        return op.incurredForEventId?.let { includeByLead(added, it, cost.id, ctx) } ?: added
     }
 
     private fun updateCost(band: Band, op: UpdateCost, ctx: OpContext): Band {
@@ -471,6 +485,8 @@ object Reducer {
                 eventId = if (op.incurredForEventId != null) op.incurredForEventId.value else it.eventId,
                 category = if (op.category != null) op.category.value else it.category,
                 description = if (op.description != null) op.description.value.blankToNull() else it.description,
+                // Its owner resubmits a refused cost by editing it (ITERATION_4 §1.2); nobody else can.
+                refused = it.refused && !(op.resubmit && ctx.memberId == it.memberId),
             )
         }
         // A refund that covered the whole remainder at the cost's own event keeps covering it (not when the cost moves
@@ -482,7 +498,8 @@ object Reducer {
         if (ownEvent != null && ownRefund != null && newAmount != cost.amount && !ownEvent.archived && ownEvent.transfers.isEmpty()) {
             val refundedElsewhere = CostLedger.refunded(band, cost.id) - ownRefund.amount
             if (ownRefund.amount == cost.amount - refundedElsewhere) {
-                val adjusted = newAmount - refundedElsewhere
+                // Only a lead's edit raises the refund; anyone else's raise waits for a lead (ITERATION_4 §1.2).
+                val adjusted = (newAmount - refundedElsewhere).let { if (isLead(band, ctx) || it < ownRefund.amount) it else ownRefund.amount }
                 invalidIf(adjusted.isNegative, RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }
                 result = result.updateEvent(ownEvent.id) { event ->
                     event.copy(
@@ -495,7 +512,7 @@ object Reducer {
         invalidIf(newAmount < CostLedger.refunded(result, cost.id), RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }
         // Moving the cost to another event pre-includes it there, as when it is added.
         val newEventId = op.incurredForEventId?.value
-        if (newEventId != null && newEventId != cost.eventId) result = includeOwnCosts(result, newEventId, cost.memberId, ctx)
+        if (newEventId != null && newEventId != cost.eventId) result = includeByLead(result, newEventId, cost.id, ctx)
         return result
     }
 
@@ -524,21 +541,25 @@ object Reducer {
     }
 
     /**
-     * Pre-includes, in full, the member's outstanding costs incurred for this event, while the event is still open
-     * (ITERATION_3 R2): once money moved (transfers recorded) or it is archived, refunds are a lead's decision.
+     * A cost a lead enters (theirs or anyone's) for an event is included there in full, while the event is still open
+     * (ITERATION_3 R2): once money moved (transfers recorded) or it is archived, refunds are decided one by one. Costs
+     * others enter wait for a lead's Include or Refuse (ITERATION_4 §1.2).
      */
-    private fun includeOwnCosts(band: Band, eventId: Id, memberId: Id, ctx: OpContext): Band {
+    private fun includeByLead(band: Band, eventId: Id, costId: Id, ctx: OpContext): Band {
+        if (!isLead(band, ctx)) return band
         val event = band.event(eventId) ?: return band
-        if (event.participant(memberId) == null || event.archived || event.transfers.isNotEmpty()) return band
-        val newRefunds = band.costs
-            .filter { it.memberId == memberId && it.eventId == eventId && event.refundOf(it.id) == null }
-            .mapNotNull { cost -> CostLedger.outstanding(band, cost).takeIf { it.isPositive }?.let { Refund(cost.id, it) } }
-        return if (newRefunds.isEmpty()) {
-            band
-        } else {
-            band.updateEvent(eventId) { it.copy(refunds = it.refunds + newRefunds, updatedAt = ctx.timestamp) }
-        }
+        val cost = band.cost(costId) ?: return band
+        if (cost.refused || event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band
+        val amount = CostLedger.outstanding(band, cost).takeIf { it.isPositive } ?: return band
+        return band.updateEvent(eventId) { it.copy(refunds = it.refunds + Refund(cost.id, amount), updatedAt = ctx.timestamp) }
     }
+
+    /** The change is a lead's (or above), or the server's own, which is allowed everything. */
+    private fun isLead(band: Band, ctx: OpContext) = ctx.memberId == null || band.member(ctx.memberId)?.role?.atLeast(Role.LEAD) == true
+
+    /** Someone becoming an artist (ITERATION_4 §1.1) may not hold money in an unsettled event or the band fund. */
+    private fun validateHoldsNoMoney(band: Band, memberId: Id) =
+        conflictIf(Artists.holdsMoney(band, memberId), RejectionReason.HOLDS_MONEY) { "Settle their events or hand over the band fund first" }
 
     // ---- helpers ----
 

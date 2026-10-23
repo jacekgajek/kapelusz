@@ -12,7 +12,12 @@ const val BAND_FUND: Id = "band-fund"
 /** Roles form a single cumulative axis: each role can do everything the previous one can. */
 @Serializable
 enum class Role {
-    VIEWER, MEMBER, LEAD, ADMIN, OWNER;
+    /**
+     * Sees only their own events, costs and what they receive; adds their own costs; never holds money (ITERATION_4
+     * §1.1). Below [MEMBER], which can do everything an artist can, but not "at least [VIEWER]" in what it sees: viewers
+     * see everything.
+     */
+    VIEWER, ARTIST, MEMBER, LEAD, ADMIN, OWNER;
 
     fun atLeast(other: Role) = ordinal >= other.ordinal
 }

@@ -73,6 +73,9 @@ object ApiErrors {
     /** The caller is already a member of the invited band. */
     const val ALREADY_MEMBER = "already_member"
 
+    /** An artist invite for someone who still holds band money (ITERATION_4 §1.1): settle it first (`409`). */
+    const val HOLDS_MONEY = "holds_money"
+
     /**
      * No such attachment on the cost (it was removed, or its operation refused). Distinct from a generic 404 so a
      * client only ever discards a waiting file on this answer, never on e.g. an older server without the route.

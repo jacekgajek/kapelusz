@@ -10,13 +10,17 @@ import com.jacekgajek.kapelusz.app.generated.category_travel
 import com.jacekgajek.kapelusz.app.generated.reject_already_participant
 import com.jacekgajek.kapelusz.app.generated.reject_archived_event
 import com.jacekgajek.kapelusz.app.generated.reject_archived_member
+import com.jacekgajek.kapelusz.app.generated.reject_artist_holds_no_money
 import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle
 import com.jacekgajek.kapelusz.app.generated.reject_cost_below_refunded
+import com.jacekgajek.kapelusz.app.generated.reject_cost_partly_refunded
 import com.jacekgajek.kapelusz.app.generated.reject_cost_refunded_from_fund
+import com.jacekgajek.kapelusz.app.generated.reject_cost_refused
 import com.jacekgajek.kapelusz.app.generated.reject_duplicate_id
 import com.jacekgajek.kapelusz.app.generated.reject_empty_name
 import com.jacekgajek.kapelusz.app.generated.reject_event_has_transfers
 import com.jacekgajek.kapelusz.app.generated.reject_event_unsettled
+import com.jacekgajek.kapelusz.app.generated.reject_holds_money
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_amount
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_input
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_share
@@ -46,6 +50,7 @@ import com.jacekgajek.kapelusz.app.generated.reject_storage_failed
 import com.jacekgajek.kapelusz.app.generated.reject_treasurer_must_stay
 import com.jacekgajek.kapelusz.app.generated.reject_user_already_member
 import com.jacekgajek.kapelusz.app.generated.role_admin
+import com.jacekgajek.kapelusz.app.generated.role_artist
 import com.jacekgajek.kapelusz.app.generated.role_lead
 import com.jacekgajek.kapelusz.app.generated.role_member
 import com.jacekgajek.kapelusz.app.generated.role_owner
@@ -94,6 +99,7 @@ fun CostCategory.label(): String = stringResource(
 fun Role.label(): String = stringResource(
     when (this) {
         Role.VIEWER -> Res.string.role_viewer
+        Role.ARTIST -> Res.string.role_artist
         Role.MEMBER -> Res.string.role_member
         Role.LEAD -> Res.string.role_lead
         Role.ADMIN -> Res.string.role_admin
@@ -120,6 +126,10 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.ARCHIVED_MEMBER -> Res.string.reject_archived_member
     RejectionReason.ARCHIVED_EVENT -> Res.string.reject_archived_event
     RejectionReason.EVENT_UNSETTLED -> Res.string.reject_event_unsettled
+    RejectionReason.ARTIST_HOLDS_NO_MONEY -> Res.string.reject_artist_holds_no_money
+    RejectionReason.HOLDS_MONEY -> Res.string.reject_holds_money
+    RejectionReason.COST_REFUSED -> Res.string.reject_cost_refused
+    RejectionReason.COST_PARTLY_REFUNDED -> Res.string.reject_cost_partly_refunded
     RejectionReason.OWNER_ROLE_FIXED -> Res.string.reject_owner_role_fixed
     RejectionReason.OWNERSHIP_NEEDS_ADMIN -> Res.string.reject_ownership_needs_admin
     RejectionReason.MEMBER_LINKED -> Res.string.reject_member_linked

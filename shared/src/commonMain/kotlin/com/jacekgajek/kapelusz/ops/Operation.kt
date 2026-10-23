@@ -241,10 +241,16 @@ data class UpdateCost(
     val incurredForEventId: Change<Id?>? = null,
     val category: Change<CostCategory?>? = null,
     val description: Change<String?>? = null,
+    /** Its owner sends a refused cost to the leads again (ITERATION_4 §1.2), with or without other changes. */
+    val resubmit: Boolean = false,
 ) : Operation
 
 @Serializable @SerialName("DeleteCost")
 data class DeleteCost(val costId: Id) : Operation
+
+/** A lead refuses to refund a waiting cost (ITERATION_4 §1.2). Its owner resubmits it by editing it ([UpdateCost]). */
+@Serializable @SerialName("RefuseCost")
+data class RefuseCost(val costId: Id) : Operation
 
 @Serializable @SerialName("AddAttachment")
 data class AddAttachment(val costId: Id, val attachment: Attachment) : Operation

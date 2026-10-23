@@ -33,6 +33,7 @@ import com.jacekgajek.kapelusz.app.generated.refund_max
 import com.jacekgajek.kapelusz.app.generated.refund_of
 import com.jacekgajek.kapelusz.app.generated.refunds
 import com.jacekgajek.kapelusz.app.generated.refunds_empty
+import com.jacekgajek.kapelusz.app.generated.refuse
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
@@ -48,6 +49,7 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.SetRefund
 import org.jetbrains.compose.resources.stringResource
 
@@ -87,11 +89,22 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
         Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
         pending.forEach { cost ->
             val outstanding = CostLedger.outstanding(band, cost)
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                CostDescription(context, cost, Modifier.weight(1f))
-                MoneyText(outstanding, context.currency, Modifier.padding(horizontal = 8.dp))
-                OutlinedButton(onClick = { context.actions.run(SetRefund(event.id, cost.id, outstanding)) }) {
-                    Text(stringResource(Res.string.include))
+            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CostDescription(context, cost, Modifier.weight(1f))
+                    MoneyText(outstanding, context.currency, Modifier.padding(start = 8.dp))
+                }
+                // Include it here, or refuse it for good (ITERATION_4 §1.2): only a cost with nothing refunded yet.
+                Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (context.can.refuseCost() && outstanding == cost.amount) {
+                        TextButton(onClick = { context.actions.run(RefuseCost(cost.id)) }) {
+                            Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    // Adds the rest to what this event already refunds of it, if anything.
+                    OutlinedButton(onClick = { context.actions.run(SetRefund(event.id, cost.id, CostLedger.maxRefundAt(band, cost, event))) }) {
+                        Text(stringResource(Res.string.include))
+                    }
                 }
             }
         }

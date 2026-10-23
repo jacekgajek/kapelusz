@@ -75,6 +75,8 @@ class TopBarState(
     /** Signs in again with a fresh Google token; returns false if it was a different account. */
     val onReauthenticate: suspend (String) -> Boolean,
     val accountEmail: String?,
+    /** Artists have no roster or history (ITERATION_4 §1.1). */
+    val artist: Boolean = false,
 )
 
 val LocalTopBarState = staticCompositionLocalOf<TopBarState?> { null }
@@ -120,8 +122,8 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extra
                     )
                     HorizontalDivider()
                 }
-                DropdownMenuItem(text = { Text(stringResource(Res.string.menu_roster)) }, onClick = { menuOpen = false; onRoster() })
-                if (onHistory != null) {
+                if (bar?.artist != true) DropdownMenuItem(text = { Text(stringResource(Res.string.menu_roster)) }, onClick = { menuOpen = false; onRoster() })
+                if (onHistory != null && bar?.artist != true) {
                     DropdownMenuItem(text = { Text(stringResource(Res.string.history)) }, onClick = { menuOpen = false; onHistory() })
                 }
                 DropdownMenuItem(text = { Text(stringResource(Res.string.menu_settings)) }, onClick = { menuOpen = false; onSettings() })
