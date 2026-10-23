@@ -132,14 +132,16 @@ internal class HistoryHandlers(
         val now = clock()
         val recorded = changes.filterKeys { id -> ops.any { it.opId == id } }
         // A huge offline batch is logged without its changes (it cannot be undone), so history pages stay small.
-        val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).length <= MAX_LOGGED_CHANGES } ?: emptyMap()
+        val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() <= MAX_LOGGED_CHANGES } ?: emptyMap()
         val memberId = band.memberOfUser(user.userId)?.id
         val name = "${monthOf(now)}/$now-${UUID.randomUUID()}.json"
-        val pushed = ops.mapIndexed { index, envelope ->
+        val pushed = ops.mapIndexedNotNull { index, envelope ->
             val part = HistoryEntry(user.userId, memberId, now, listOf(envelope), kept[envelope.opId]?.let { mapOf(envelope.opId to it) } ?: emptyMap())
-            // A record over what the table takes keeps its operation without the change (that one cannot be undone).
+            // A record over what the table takes keeps its operation without the change (that one cannot be undone);
+            // an operation too large even alone is left out, rather than the whole push failing to be written.
             val content = encode(HistoryEntry.serializer(), part).takeIf { it.utf8Size() <= MAX_RECORD_BYTES }
-                ?: encode(HistoryEntry.serializer(), part.copy(changes = emptyMap()))
+                ?: encode(HistoryEntry.serializer(), part.copy(changes = emptyMap())).takeIf { it.utf8Size() <= MAX_RECORD_BYTES }
+                ?: return@mapIndexedNotNull null.also { System.err.println("History of band $bandId: operation ${envelope.opId} too large to record") }
             HistoryRecord("$name#${index.toString().padStart(3, '0')}", content)
         }
         records.put(bandId, pushed)

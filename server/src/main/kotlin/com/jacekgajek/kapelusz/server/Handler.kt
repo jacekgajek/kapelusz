@@ -123,7 +123,7 @@ class Handler : RequestStreamHandler {
         override fun beforeCheckpoint(context: org.crac.Context<out Resource>?) {
             runCatching { verifier.warmUp() }
             runCatching { store.get(StorageKeys.PRIMING) }
-            runCatching { history.newestFirst("priming", "", "\uffff").firstOrNull() }
+            runCatching { history.keys("priming") }
             val ops = listOf(
                 CreateEvent("e", "Prime", LocalDate(2026, 1, 1), participants = listOf(Participant("m"))),
                 AddHolding("e", "h", "m", Money(10000), IncomeSource.DOOR),

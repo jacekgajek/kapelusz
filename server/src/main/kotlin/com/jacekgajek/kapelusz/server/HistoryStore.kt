@@ -58,25 +58,36 @@ class DynamoHistoryStore(
     }
 
     override fun put(bandId: String, records: List<HistoryRecord>) {
-        // A transaction takes up to 100 items: a usual push is one write, all or nothing.
-        records.chunked(MAX_TRANSACTION).forEach { chunk ->
-            val items = chunk.map { record ->
-                val item = mapOf(BAND to text(bandId), KEY to text(record.key), ENTRY to text(record.content))
-                TransactWriteItem.builder().put(Put.builder().tableName(table).item(item).build()).build()
-            }
+        // A transaction takes up to 100 items and 4 MB: a usual push is one write, all or nothing.
+        var chunk = mutableListOf<TransactWriteItem>()
+        var bytes = 0
+        fun write() {
+            if (chunk.isEmpty()) return
+            val items = chunk
             timer.timed { dynamo.transactWriteItems(TransactWriteItemsRequest.builder().transactItems(items).build()) }
+            chunk = mutableListOf()
+            bytes = 0
         }
+        for (record in records) {
+            val size = bandId.utf8Size() + record.key.utf8Size() + record.content.utf8Size() + ITEM_OVERHEAD
+            if (chunk.size == MAX_TRANSACTION || bytes + size > MAX_TRANSACTION_BYTES) write()
+            val item = mapOf(BAND to text(bandId), KEY to text(record.key), ENTRY to text(record.content))
+            chunk += TransactWriteItem.builder().put(Put.builder().tableName(table).item(item).build()).build()
+            bytes += size
+        }
+        write()
     }
 
     override fun deleteBand(bandId: String) {
-        val keys = newestFirst(bandId, "", "￿").map { it.key }.toList()
-        keys.chunked(MAX_BATCH).forEach { chunk ->
+        // A push appended while the band is being deleted may leave records behind; nothing reads them any more.
+        keys(bandId).chunked(MAX_BATCH).forEach { chunk ->
             var requests = chunk.map { key ->
                 WriteRequest.builder().deleteRequest(DeleteRequest.builder().key(mapOf(BAND to text(bandId), KEY to text(key))).build()).build()
             }
-            // DynamoDB may leave some for later when busy: those again, a few times.
-            repeat(MAX_ATTEMPTS) {
+            // DynamoDB may leave some for later when busy: those again, a few times, waiting longer each time.
+            for (attempt in 0 until MAX_ATTEMPTS) {
                 if (requests.isEmpty()) return@forEach
+                if (attempt > 0) Thread.sleep(RETRY_DELAY_MS shl attempt)
                 val response = timer.timed { dynamo.batchWriteItem(BatchWriteItemRequest.builder().requestItems(mapOf(table to requests)).build()) }
                 requests = response.unprocessedItems()[table].orEmpty()
             }
@@ -84,11 +95,37 @@ class DynamoHistoryStore(
         }
     }
 
+    /** All keys of [bandId]'s records, without their content (a key condition may not have an empty bound). */
+    fun keys(bandId: String): List<String> {
+        val keys = mutableListOf<String>()
+        var start: Map<String, AttributeValue>? = null
+        do {
+            val request = QueryRequest.builder().tableName(table)
+                .keyConditionExpression("#band = :band")
+                .projectionExpression("#sk")
+                .expressionAttributeNames(mapOf("#band" to BAND, "#sk" to KEY))
+                .expressionAttributeValues(mapOf(":band" to text(bandId)))
+                .apply { if (start != null) exclusiveStartKey(start) }
+                .build()
+            val response = timer.timed { dynamo.query(request) }
+            response.items().forEach { keys += it.getValue(KEY).s() }
+            start = response.lastEvaluatedKey().takeIf { response.hasLastEvaluatedKey() && it.isNotEmpty() }
+        } while (start != null)
+        return keys
+    }
+
     companion object {
         private const val BAND = "band"
         private const val KEY = "sk"
         private const val ENTRY = "entry"
         private const val MAX_TRANSACTION = 100
+
+        /** Under the 4 MB a transaction may have, with room for what DynamoDB counts beyond the values. */
+        private const val MAX_TRANSACTION_BYTES = 3_500_000
+
+        /** Attribute names and the like, counted generously. */
+        private const val ITEM_OVERHEAD = 100
+        private const val RETRY_DELAY_MS = 50L
         private const val MAX_BATCH = 25
         private const val MAX_ATTEMPTS = 5
 

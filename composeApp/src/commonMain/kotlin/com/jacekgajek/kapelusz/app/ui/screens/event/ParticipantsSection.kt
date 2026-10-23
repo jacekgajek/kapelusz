@@ -40,7 +40,6 @@ import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
-import androidx.compose.ui.semantics.semantics
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
