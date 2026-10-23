@@ -16,7 +16,7 @@ internal class AttachmentHandlers(private val store: BlobStore, private val band
      */
     fun upload(user: VerifiedUser, bandId: String, request: AttachmentUploadRequest): HttpResponse {
         val (band, _) = bands.loadForMember(user, bandId)
-        if (!band.memberOfUser(user.userId)!!.role.atLeast(Role.MEMBER)) throw ApiError(403, ApiErrors.FORBIDDEN, "Viewers cannot upload")
+        if (!band.memberOfUser(user.userId)!!.role.atLeast(Role.ARTIST)) throw ApiError(403, ApiErrors.FORBIDDEN, "Viewers cannot upload")
         val attachment = band.cost(request.costId)?.attachments?.firstOrNull { it.id == request.attachmentId }
             ?: throw ApiError(404, ApiErrors.ATTACHMENT_NOT_FOUND, "No such attachment")
         val key = StorageKeys.attachment(bandId, attachment)

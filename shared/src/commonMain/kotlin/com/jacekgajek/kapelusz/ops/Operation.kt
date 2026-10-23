@@ -246,6 +246,10 @@ data class UpdateCost(
 @Serializable @SerialName("DeleteCost")
 data class DeleteCost(val costId: Id) : Operation
 
+/** A lead refuses to refund a waiting cost (ITERATION_4 §1.2). Its owner resubmits it by editing it ([UpdateCost]). */
+@Serializable @SerialName("RefuseCost")
+data class RefuseCost(val costId: Id) : Operation
+
 @Serializable @SerialName("AddAttachment")
 data class AddAttachment(val costId: Id, val attachment: Attachment) : Operation
 

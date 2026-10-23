@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.Transfer
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -97,9 +98,9 @@ object NotificationRules {
             }
         }.sortedBy { it.at }
 
-    /** Debt reminders: the first two weeks after the gig, then weekly, at most four (ITERATION_3 §2.2). */
+    /** Debt reminders: every two weeks after the gig, at most four (ITERATION_3 §2.2, ITERATION_4 §1.3). */
     const val DEBT_FIRST_DAYS = 14
-    const val DEBT_EVERY_DAYS = 7
+    const val DEBT_EVERY_DAYS = 14
     const val DEBT_REMINDERS = 4
 
     /**
@@ -141,10 +142,10 @@ object NotificationRules {
 
     /**
      * Transfers not in [seen] that involve the user (sending, receiving, or the band fund they hold) and that someone
-     * else recorded; grouped per event.
+     * else recorded; grouped per event. Not for artists: the notice names who paid (ITERATION_4 §1.1).
      */
     fun newTransfers(bands: List<Band>, userId: String, seen: Set<String>): List<TransferNotice> = bands.flatMap { band ->
-        val me = band.memberOfUser(userId)?.takeIf { !it.archived } ?: return@flatMap emptyList()
+        val me = band.memberOfUser(userId)?.takeIf { !it.archived && it.role != Role.ARTIST } ?: return@flatMap emptyList()
         val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
         band.events.mapNotNull { event ->
             val fresh = event.transfers.filter { "${band.id}/${it.id}" !in seen && (it.from in mine || it.to in mine) && it.recordedBy != me.id }

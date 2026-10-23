@@ -119,11 +119,13 @@ fun SettingsScreen(
     page: SettingsPage?,
     onOpenPage: (SettingsPage) -> Unit,
     onBack: () -> Unit,
+    /** No band fund and no whole-band calendar for artists (ITERATION_4 §1.1). */
+    artist: Boolean = false,
 ) {
     val permission = rememberNotificationPermission()
     when (page) {
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
-            FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
+            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
         }
         SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
             if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
@@ -133,7 +135,7 @@ fun SettingsScreen(
         SettingsPage.NOTIFICATIONS -> SettingsPageScaffold(stringResource(notificationsTitle(permission)), onBack) {
             permission?.let { NotificationsSection(it, appSettings, onAppSettings) }
             // Without notifications (web) the page is the calendar, already named in the top bar.
-            CalendarSection(calendar, showTitle = permission != null)
+            CalendarSection(calendar, showTitle = permission != null, showIncludeAll = !artist)
         }
         null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
             var choosingLanguage by remember { mutableStateOf(false) }
@@ -142,7 +144,7 @@ fun SettingsScreen(
             // Grouped by whom they affect: the band's settings change things for everyone, the personal ones only for you.
             SectionHeader(stringResource(Res.string.settings_band), Modifier.padding(horizontal = 16.dp))
             SettingsItem(Icons.Default.Groups, stringResource(Res.string.band_name), bandName, onClick = onRenameBand?.let { { renaming = true } })
-            SettingsItem(
+            if (!artist) SettingsItem(
                 Icons.Default.Savings,
                 stringResource(Res.string.band_fund),
                 treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off),

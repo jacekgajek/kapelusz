@@ -88,6 +88,7 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.app.ui.model.Can
+import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
@@ -103,10 +104,19 @@ class EventContext(
 }
 
 @Composable
-fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack: () -> Unit, onAddCost: (eventId: String) -> Unit = {}) {
+fun EventScreen(
+    graph: AppGraph,
+    state: BandState.Ready,
+    eventId: String,
+    onBack: () -> Unit,
+    onAddCost: (eventId: String) -> Unit = {},
+    onOpenCost: (costId: String) -> Unit = {},
+) {
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
-    val event = state.band.event(eventId)
+    // Artists only open the events they play, not archived ones (ITERATION_4 §1.1).
+    val artist = state.band.isArtist(state.userId)
+    val event = state.band.event(eventId)?.takeUnless { artist && (it.archived || state.me?.let { me -> it.participant(me.id) } == null) }
     var editing by remember { mutableStateOf(false) }
     val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
@@ -122,7 +132,7 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
     Scaffold(
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
-                shareSettlement?.let { ShareSettlementIcon(it) }
+                if (!artist) shareSettlement?.let { ShareSettlementIcon(it) }
                 if (event != null && settlement != null) {
                     val can = Can(state.band, state.userId)
                     if (can.editEvent(event)) IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
@@ -146,6 +156,15 @@ fun EventScreen(graph: AppGraph, state: BandState.Ready, eventId: String, onBack
                 state = listState,
                 contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
             ) {
+                if (artist) {
+                    // Artists get no debt reminders, so nothing scrolls by section here.
+                    item("header") { Header(context, money = false) }
+                    item("details") { DetailsSection(context) }
+                    item("payout") { ArtistPayout(context) }
+                    item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
+                    item("lineup") { ArtistLineup(context) }
+                    return@LazyColumn
+                }
                 // In the order of [EventSection]: its ordinal is the item's index, for scrolling to To settle.
                 item(EventSection.HEADER) { Header(context) }
                 item(EventSection.DETAILS) { DetailsSection(context) }
@@ -170,7 +189,7 @@ private enum class EventSection { HEADER, DETAILS, PROBLEMS, PARTICIPANTS, COLLE
 private fun LazyListScope.item(section: EventSection, content: @Composable () -> Unit) = item(key = section.name) { content() }
 
 @Composable
-private fun Header(context: EventContext) {
+private fun Header(context: EventContext, money: Boolean = true) {
     val event = context.event
     val s = context.settlement
     var editingFund by remember { mutableStateOf(false) }
@@ -182,7 +201,7 @@ private fun Header(context: EventContext) {
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            StatusChip(s.status, event.archived)
+            if (money) StatusChip(s.status, event.archived)
         }
         event.agendaLine()?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         // Google Maps: the stored link (the exact pin), otherwise directions to the location text.
@@ -194,7 +213,7 @@ private fun Header(context: EventContext) {
                 leadingIcon = { Icon(Icons.Default.Directions, null) },
             )
         }
-        Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        if (money) Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
                 val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))

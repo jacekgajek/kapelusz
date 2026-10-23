@@ -29,6 +29,7 @@ import com.jacekgajek.kapelusz.app.generated.h_link_user
 import com.jacekgajek.kapelusz.app.generated.h_move_member
 import com.jacekgajek.kapelusz.app.generated.h_promote_guest
 import com.jacekgajek.kapelusz.app.generated.h_record_transfer
+import com.jacekgajek.kapelusz.app.generated.h_refuse_cost
 import com.jacekgajek.kapelusz.app.generated.h_remove_attachment
 import com.jacekgajek.kapelusz.app.generated.h_remove_fund_entry
 import com.jacekgajek.kapelusz.app.generated.h_remove_holding
@@ -75,6 +76,7 @@ import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.PromoteGuest
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding
@@ -169,6 +171,7 @@ fun describe(op: Operation, band: Band): String {
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
         is UpdateCost -> stringResource(Res.string.h_edit_cost)
         is DeleteCost -> stringResource(Res.string.h_delete_cost)
+        is RefuseCost -> stringResource(Res.string.h_refuse_cost)
         is AddAttachment -> stringResource(Res.string.h_add_attachment)
         is RemoveAttachment -> stringResource(Res.string.h_remove_attachment)
         else -> stringResource(Res.string.h_unknown)

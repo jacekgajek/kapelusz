@@ -114,12 +114,14 @@ internal fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEv
 
 /**
  * Asks once, when the first upcoming gig of the user appears, whether they want reminders, naming who added them
- * (ITERATION_2 §5.2). Android 13+ only; elsewhere no permission is needed or there are no notifications.
+ * (ITERATION_2 §5.2). Android 13+ only; elsewhere no permission is needed or there are no notifications. Gig reminders
+ * start off (ITERATION_4 §1.3), so this is how they are turned on; the permission it asks for also lets the debt
+ * reminders through.
  */
 @Composable
 internal fun ReminderPrompt(graph: AppGraph, settings: AppSettings) {
     val permission = rememberNotificationPermission() ?: return
-    if (settings.notificationPromptDone || !settings.remindersEnabled || !permission.needsAsking) return
+    if (settings.notificationPromptDone || !permission.needsAsking) return
     val userId = graph.sessions.session.collectAsState().value?.userId ?: return
     val bandState by graph.bands.state.collectAsState()
     val (band, event) = remember(bandState) { NotificationRules.firstUpcomingGig(graph.bands.allBands(), userId, today()) } ?: return

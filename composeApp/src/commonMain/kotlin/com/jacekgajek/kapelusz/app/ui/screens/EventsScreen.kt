@@ -40,6 +40,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.selected
 import com.jacekgajek.kapelusz.model.AgendaTime
+import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
@@ -61,6 +62,7 @@ import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.continue_event
 import com.jacekgajek.kapelusz.app.generated.create
 import com.jacekgajek.kapelusz.app.generated.events_empty
+import com.jacekgajek.kapelusz.app.generated.events_empty_artist
 import com.jacekgajek.kapelusz.app.generated.events_filtered_empty
 import com.jacekgajek.kapelusz.app.generated.filter_only_mine
 import com.jacekgajek.kapelusz.app.generated.filter_show_archived
@@ -101,11 +103,15 @@ fun EventsScreen(
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
     var creating by remember { mutableStateOf(false) }
-    val summaries = eventSummaries(band, state.me, settings)
+    // Artists see the events they play, not archived ones, and nothing about the band's money (ITERATION_4 §1.1).
+    val artist = band.isArtist(state.userId)
+    val summaries = eventSummaries(band, state.me, if (artist) settings.copy(onlyMyEvents = true, showArchived = false) else settings)
     val today = today()
-    val continueEvent = remember(band, today) { unsettledEvent(band, today) }
+    val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(band, today) }
     // One card per event: an open gig tonight is unsettled business, not also "upcoming".
-    val upcoming = remember(band, state.me, today, continueEvent) { upcomingEvent(band, state.me, today, except = continueEvent?.id) }
+    val upcoming = remember(band, state.me, today, continueEvent, artist) {
+        upcomingEvent(band, state.me, today, except = continueEvent?.id)?.takeIf { !artist || it.participant(state.me?.id ?: "") != null }
+    }
 
     Scaffold(
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
@@ -141,7 +147,7 @@ fun EventsScreen(
                     ) { onOpenEvent(upcoming.id) }
                 }
             }
-            item {
+            if (!artist) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = settings.onlyMyEvents,
@@ -157,11 +163,15 @@ fun EventsScreen(
             }
             if (summaries.isEmpty()) {
                 // Events hidden by the filters are not "no events": say which it is.
-                val text = if (band.events.isEmpty()) Res.string.events_empty else Res.string.events_filtered_empty
+                val text = when {
+                    artist -> Res.string.events_empty_artist
+                    band.events.isEmpty() -> Res.string.events_empty
+                    else -> Res.string.events_filtered_empty
+                }
                 item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
             }
             items(summaries, key = { it.event.id }) { summary ->
-                EventRow(band, summary) { onOpenEvent(summary.event.id) }
+                EventRow(band, summary, showStatus = !artist) { onOpenEvent(summary.event.id) }
             }
         }
     }
@@ -201,7 +211,7 @@ private fun lineupOfLastEvent(band: Band, myId: String?): List<Participant> {
 }
 
 @Composable
-private fun EventRow(band: Band, summary: EventSummary, onClick: () -> Unit) {
+private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onClick: () -> Unit) {
     val event = summary.event
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -214,7 +224,7 @@ private fun EventRow(band: Band, summary: EventSummary, onClick: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                StatusChip(summary.settlement.status, event.archived)
+                if (showStatus) StatusChip(summary.settlement.status, event.archived)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy((-6).dp)) {

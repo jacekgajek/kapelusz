@@ -30,6 +30,7 @@ import com.jacekgajek.kapelusz.app.ui.components.LoadingScreen
 import com.jacekgajek.kapelusz.app.ui.components.LocalTopBarState
 import com.jacekgajek.kapelusz.app.ui.components.SignInAgainDialog
 import com.jacekgajek.kapelusz.app.ui.components.TopBarState
+import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.JoinDialog
 import com.jacekgajek.kapelusz.app.ui.screens.SignInScreen
 import com.jacekgajek.kapelusz.app.ui.screens.UnreadableDataScreen
@@ -146,6 +147,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onSyncNow = { graph.sync.requestSync() },
                 onReauthenticate = reauthenticate,
                 accountEmail = session?.email,
+                artist = bandState.band.isArtist(session?.userId),
             ),
         ) { Navigation(graph, bandState, navController, defaultName) }
         is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })

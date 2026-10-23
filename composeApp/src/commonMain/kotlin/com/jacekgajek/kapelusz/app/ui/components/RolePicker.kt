@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.role_desc_admin
+import com.jacekgajek.kapelusz.app.generated.role_desc_artist
 import com.jacekgajek.kapelusz.app.generated.role_desc_lead
 import com.jacekgajek.kapelusz.app.generated.role_desc_member
 import com.jacekgajek.kapelusz.app.generated.role_desc_viewer
@@ -27,10 +28,11 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Roles an admin can give; ownership only changes by transfer. */
-val ASSIGNABLE_ROLES = listOf(Role.VIEWER, Role.MEMBER, Role.LEAD, Role.ADMIN)
+val ASSIGNABLE_ROLES = listOf(Role.VIEWER, Role.ARTIST, Role.MEMBER, Role.LEAD, Role.ADMIN)
 
 private fun Role.description(): StringResource = when (this) {
     Role.VIEWER -> Res.string.role_desc_viewer
+    Role.ARTIST -> Res.string.role_desc_artist
     Role.MEMBER -> Res.string.role_desc_member
     Role.LEAD -> Res.string.role_desc_lead
     Role.ADMIN, Role.OWNER -> Res.string.role_desc_admin

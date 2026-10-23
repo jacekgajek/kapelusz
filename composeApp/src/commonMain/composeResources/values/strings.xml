@@ -7,6 +7,15 @@
     <string name="menu_roster">Band members</string>
     <string name="tab_events">Events</string>
     <string name="tab_my_costs">My costs</string>
+    <string name="refused_cost_title">This cost was refused</string>
+    <string name="refused_cost_text">What do you want to do?</string>
+    <string name="refused_cost_resubmit">Edit and resubmit</string>
+    <string name="refused_cost_nothing">Nothing</string>
+    <string name="artist_payout">Your payout</string>
+    <string name="artist_to_receive">To receive</string>
+    <string name="artist_received">Received so far</string>
+    <string name="artist_still_to_receive">Still to receive</string>
+    <string name="artist_my_costs">Your costs for this event</string>
     <string name="tab_settle">Settle</string>
     <string name="language">Language</string>
     <string name="language_system">Device language</string>
@@ -32,6 +41,7 @@
     <string name="event_date">Date</string>
     <string name="event_location">Location (optional)</string>
     <string name="events_empty">No events yet. Create the first one!</string>
+    <string name="events_empty_artist">No events yet. A lead adds you to the events you play.</string>
     <string name="continue_event">Continue: %1$s · %2$s</string>
     <string name="filter_only_mine">Only my events</string>
     <string name="filter_show_archived">Show archived</string>
@@ -48,6 +58,7 @@
     <string name="not_linked">No app account linked</string>
     <string name="archived_member">Archived</string>
     <string name="role_viewer">Viewer</string>
+    <string name="role_artist">Artist</string>
     <string name="role_member">Member</string>
     <string name="role_lead">Lead</string>
     <string name="role_admin">Admin</string>
@@ -98,8 +109,9 @@
     <string name="refunds_empty">No costs to refund.</string>
     <string name="refund_of">of %1$s</string>
     <string name="refund_max">At most %1$s. Set 0 or use Defer to refund it later.</string>
-    <string name="pending_from_earlier">Pending from earlier</string>
+    <string name="pending_from_earlier">Waiting</string>
     <string name="include">Include</string>
+    <string name="refuse">Refuse</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>
@@ -125,7 +137,8 @@
     <string name="add_cost">Add cost</string>
     <string name="edit_cost">Cost</string>
     <string name="filter_all">All</string>
-    <string name="cost_status_pending">Pending</string>
+    <string name="cost_status_pending">Waiting</string>
+    <string name="cost_status_refused">Refused</string>
     <string name="cost_status_partly">Partly refunded</string>
     <string name="cost_status_refunded">Refunded</string>
     <string name="costs_empty">No costs match this filter.</string>
@@ -145,7 +158,6 @@
     <string name="nothing_to_settle">Nothing to settle.</string>
     <string name="open_event">Open</string>
     <string name="you_hold">You hold %1$s to hand over at %2$s</string>
-    <string name="cost_status_planned">Refund planned</string>
     <string name="cost_planned_at">%1$s to be refunded at %2$s (not settled yet)</string>
     <string name="settle_part">Part…</string>
     <string name="settle_part_title">Settle part</string>
@@ -172,6 +184,10 @@
     <string name="reject_archived_member">This member is archived.</string>
     <string name="reject_archived_event">This event is archived. Restore it to change it.</string>
     <string name="reject_event_unsettled">Only settled events can be archived.</string>
+    <string name="reject_artist_holds_no_money">Artists don’t hold money: no collected money and no band fund.</string>
+    <string name="reject_holds_money">They still hold money: settle their events or hand over the band fund first.</string>
+    <string name="reject_cost_refused">This cost was refused.</string>
+    <string name="reject_cost_partly_refunded">Part of this cost is already refunded, so it can’t be refused.</string>
     <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_ownership_needs_admin">Ownership can only go to an admin with an app account.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
@@ -291,6 +307,7 @@
     <string name="h_add_cost">Added a cost of %1$s for %2$s</string>
     <string name="h_edit_cost">Edited a cost</string>
     <string name="h_delete_cost">Deleted a cost</string>
+    <string name="h_refuse_cost">Refused a cost</string>
     <string name="h_add_attachment">Added an attachment to a cost</string>
     <string name="h_remove_attachment">Removed an attachment from a cost</string>
     <string name="h_unknown">Made a change</string>
@@ -305,6 +322,7 @@
     <string name="change_own_role_confirm">Change my role</string>
     <string name="load_more">Load more</string>
     <string name="role_desc_viewer">Sees everything: events, settlements, the band fund and the history. Cannot change anything.</string>
+    <string name="role_desc_artist">Sees only the events they play (details and who plays), their own costs and what they receive. Adds their own costs, which a lead includes or refuses. Never holds money.</string>
     <string name="role_desc_member">Everything a viewer can, plus: adds and edits their own costs, records money they collected at events they play, and settles transfers in which they pay or receive money.</string>
     <string name="role_desc_lead">Everything a member can, plus: creates and edits events, participants, guests and shares, decides on cost refunds and the band fund, corrects anyone's costs and collected money, and settles whole events.</string>
     <string name="role_desc_admin">Everything a lead can, plus: manages band members, roles and invites, unlinks app accounts, and chooses who holds the band fund.</string>

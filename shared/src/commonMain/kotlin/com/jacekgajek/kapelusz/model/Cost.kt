@@ -12,12 +12,14 @@ data class Cost(
     val memberId: Id,
     val amount: Money,
     val date: LocalDate,
-    /** Event the cost was incurred for, if any. Its refund there is pre-included. */
+    /** Event the cost was incurred for, if any. A lead's cost is pre-included there (ITERATION_4 §1.2). */
     val eventId: Id? = null,
     val category: CostCategory? = null,
     val description: String? = null,
     val attachments: List<Attachment> = emptyList(),
     val createdAt: Long = 0,
+    /** A lead refused to refund it (ITERATION_4 §1.2): no event or the fund repays it until its owner resubmits it. */
+    val refused: Boolean = false,
 )
 
 @Serializable

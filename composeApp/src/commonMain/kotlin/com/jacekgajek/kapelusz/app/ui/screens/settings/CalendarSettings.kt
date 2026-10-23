@@ -46,7 +46,12 @@ import org.jetbrains.compose.resources.stringResource
  * Calendar, include the whole band, or make a new link.
  */
 @Composable
-internal fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription, showTitle: Boolean = true) {
+internal fun CalendarSection(
+    calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
+    showTitle: Boolean = true,
+    /** Artists' feeds have only the events they play (ITERATION_4 §1.1). */
+    showIncludeAll: Boolean = true,
+) {
     val scope = rememberCoroutineScope()
     val copy = rememberCopy()
     val uriHandler = LocalUriHandler.current
@@ -80,7 +85,7 @@ internal fun CalendarSection(calendar: suspend (CalendarSubscriptionChange?) -> 
         }
         if (isAndroidApp()) Text(stringResource(Res.string.calendar_add_on_computer), style = MaterialTheme.typography.bodySmall)
         // Not while a change is under way: a late answer could otherwise show a link that a reset just replaced.
-        SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !working) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
+        if (showIncludeAll) SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !working) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
         TextButton(onClick = { confirmReset = true }, enabled = !working) { Text(stringResource(Res.string.calendar_reset)) }
         Text(stringResource(Res.string.calendar_refresh_note), style = MaterialTheme.typography.bodySmall)
     }

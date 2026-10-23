@@ -120,4 +120,21 @@ class CalendarTest {
         val ics = CalendarFeed.build(listOf(band), "alice", false, LocalDate(2026, 10, 21), "https://web", kotlinx.datetime.LocalDateTime(2026, 10, 21, 12, 0))
         assertFalse(ics.lines().any { it.startsWith("URL:https://evil") }, ics)
     }
+
+    /** ITERATION_4 §1.1: an artist's feed has only the events they play, even with "include all" on. */
+    @Test
+    fun anArtistsFeedHasOnlyTheirGigs() {
+        val band = com.jacekgajek.kapelusz.model.Band.create("b", "Night Owls", "PLN", "m", "Alice", "alice").let { b ->
+            b.copy(
+                members = b.members + com.jacekgajek.kapelusz.model.Member("c", "Carol", userId = "carol", role = com.jacekgajek.kapelusz.model.Role.ARTIST),
+                events = listOf(
+                    com.jacekgajek.kapelusz.model.Event("mine", "Carol plays", LocalDate(2026, 10, 25), participants = listOf(Participant("c"))),
+                    com.jacekgajek.kapelusz.model.Event("other", "Alice alone", LocalDate(2026, 10, 26), participants = listOf(Participant("m"))),
+                ),
+            )
+        }
+        val ics = CalendarFeed.build(listOf(band), "carol", true, LocalDate(2026, 10, 21), "https://web", kotlinx.datetime.LocalDateTime(2026, 10, 21, 12, 0))
+        assertTrue("Carol plays" in ics, ics)
+        assertFalse("Alice alone" in ics, ics)
+    }
 }

@@ -81,6 +81,20 @@ class NotificationRulesTest {
         assertTrue(NotificationRules.newTransfers(listOf(after), "u-alice", NotificationRules.transferKeys(listOf(after))).isEmpty())
     }
 
+    /** ITERATION_4 §1.1: the notice would name who paid them. */
+    @Test
+    fun artistsGetNoTransferNotices() {
+        val gig = base.apply(
+            "u-bob",
+            AddMember("carol", "Carol"),
+            CreateEvent("gig", "Club gig", LocalDate(2026, 10, 1), participants = listOf(Participant("bob"), Participant("carol"))),
+            AddHolding("gig", "h", "bob", Money(10000), IncomeSource.DOOR),
+        ).apply("system", LinkUser("carol", "u-carol", Role.ARTIST))
+        val seen = NotificationRules.transferKeys(listOf(gig))
+        val paid = gig.apply("u-bob", RecordTransfer("gig", "t", "bob", "carol", Money(5000)))
+        assertTrue(NotificationRules.newTransfers(listOf(paid), "u-carol", seen).isEmpty())
+    }
+
     @Test
     fun theFirstUpcomingGigNamesWhoAddedMe() {
         val band = base.apply("u-bob", CreateEvent("gig", "Club gig", LocalDate(2026, 10, 25), participants = listOf(Participant("alice"))))
@@ -129,17 +143,17 @@ class NotificationRulesTest {
         NotificationRules.debtReminders(listOf(band), user, LocalTime(18, 0), now)
 
     @Test
-    fun debtRemindersTwoWeeksAfterTheGigThenWeeklyAtMostFour() {
+    fun debtRemindersEveryTwoWeeksAfterTheGigAtMostFour() {
         val reminders = debtReminders(debt, "u-bob")
         assertEquals(
-            listOf(LocalDateTime(2026, 10, 15, 18, 0), LocalDateTime(2026, 10, 22, 18, 0), LocalDateTime(2026, 10, 29, 18, 0), LocalDateTime(2026, 11, 5, 18, 0)),
+            listOf(LocalDateTime(2026, 10, 15, 18, 0), LocalDateTime(2026, 10, 29, 18, 0), LocalDateTime(2026, 11, 12, 18, 0), LocalDateTime(2026, 11, 26, 18, 0)),
             reminders.map { it.at },
         )
         assertEquals(listOf("b/gig/debt0", "b/gig/debt1", "b/gig/debt2", "b/gig/debt3"), reminders.map { it.key })
         assertEquals(listOf(Owed("Alice", Money(5000))), reminders.first().owed)
-        // Two weeks in, after the second: the last two are left.
-        assertEquals(listOf(2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 23, 12, 0)).map { it.nth })
-        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 11, 6, 12, 0)), "never more than four")
+        // Four weeks in, after the second: the last two are left.
+        assertEquals(listOf(2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 30, 12, 0)).map { it.nth })
+        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 11, 27, 12, 0)), "never more than four")
     }
 
     @Test
@@ -170,14 +184,14 @@ class NotificationRulesTest {
 
     @Test
     fun aDebtReminderIsCheckedAgainWhenItsAlarmGoesOff() {
-        // The second reminder, due on 22 Oct at 18:00; Android delivers it a little late.
-        val firing = LocalDateTime(2026, 10, 22, 18, 30)
+        // The second reminder, due on 29 Oct at 18:00; Android delivers it a little late.
+        val firing = LocalDateTime(2026, 10, 29, 18, 30)
         fun due(band: Band) = NotificationRules.dueDebtReminder(listOf(band), "u-bob", "b/gig/debt1", LocalTime(18, 0), firing)
         assertEquals(listOf(Owed("Alice", Money(5000))), due(debt)?.owed)
         assertEquals(null, due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(5000)))), "paid since it was planned")
         // Part paid since: the text is built from what is still owed.
         assertEquals(listOf(Owed("Alice", Money(3000))), due(debt.apply("u-bob", RecordTransfer("gig", "t", "bob", "alice", Money(2000))))?.owed)
-        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 22, 23, 0)), "hours late")
+        assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/gig/debt1", LocalTime(18, 0), LocalDateTime(2026, 10, 29, 23, 0)), "hours late")
         assertEquals(null, NotificationRules.dueDebtReminder(listOf(debt), "u-bob", "b/other/debt1", LocalTime(18, 0), firing), "event gone")
     }
 }
