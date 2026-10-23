@@ -96,6 +96,12 @@ class Handler : RequestStreamHandler {
     }
 
     companion object : Resource {
+        init {
+            // The JDK keeps only 5 idle connections per host by default (read once, on first use, so set before any
+            // request): history reads 16 files at a time, and each read beyond 5 opened a new TLS connection to S3.
+            System.setProperty("http.maxConnections", "32")
+        }
+
         private val verifier = GoogleTokenVerifier(
             System.getenv("GOOGLE_CLIENT_IDS").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
         )
