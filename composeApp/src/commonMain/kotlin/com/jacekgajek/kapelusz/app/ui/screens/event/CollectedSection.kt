@@ -139,10 +139,19 @@ fun CollectedSection(context: EventContext) {
         Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
     }
     if (addingAwaited) HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = { addingAwaited = false })
-    welching?.let { holding ->
+    welching?.let { tapped ->
+        // As it is now: part of it may have come in meanwhile, on another phone.
+        val holding = event.holdings.firstOrNull { it.id == tapped.id }
+        if (holding == null) {
+            LaunchedEffect(Unit) { welching = null }
+            return@let
+        }
+        val files = holding.attachments.size
         ConfirmDialog(
             title = stringResource(Res.string.awaited_welched_title),
-            text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)),
+            text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)) +
+                // Its files (the contract) go with it, for good.
+                files.takeIf { it > 0 }?.let { " " + stringResource(Res.string.delete_files_too, it) }.orEmpty(),
             confirmLabel = stringResource(Res.string.awaited_welched),
             onConfirm = { context.actions.run(RemoveHolding(event.id, holding.id)) },
             onDismiss = { welching = null },

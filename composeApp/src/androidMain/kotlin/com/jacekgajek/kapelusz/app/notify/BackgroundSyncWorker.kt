@@ -103,6 +103,8 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val bands = graph.bands.allBands()
             val shown = ReminderScheduler.shown(context)
+            // Again: reading the settings may have waited, and a sign-out can have come meanwhile.
+            if (!stillSignedIn(graph, userId)) return
             ReminderScheduler.reschedule(
                 context,
                 if (settings.remindersEnabled) NotificationRules.reminders(bands, userId, settings.reminderDays, settings.reminderTime, now, shown) else emptyList(),
@@ -123,7 +125,7 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
                 seen = prefs.getStringSet("seen-$userId", null).orEmpty(),
                 baselined = prefs.getStringSet("baselined-$userId", null).orEmpty(),
             )
-            if (notifyTransfers && settings.transferNotifications) {
+            if (notifyTransfers && settings.transferNotifications && stillSignedIn(graph, userId)) {
                 check.notices.forEach { notice -> bands.firstOrNull { it.id == notice.bandId }?.let { Notifier.showTransfers(context, it, notice, settings.language) } }
             }
             prefs.edit {

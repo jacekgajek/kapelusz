@@ -92,6 +92,7 @@ import com.jacekgajek.kapelusz.app.generated.move_down
 import com.jacekgajek.kapelusz.app.generated.move_up
 import com.jacekgajek.kapelusz.app.generated.not_linked
 import com.jacekgajek.kapelusz.app.generated.reject_holds_money
+import com.jacekgajek.kapelusz.app.generated.reject_viewer_still_plays
 import com.jacekgajek.kapelusz.app.generated.revoke_invite
 import com.jacekgajek.kapelusz.app.generated.role
 import com.jacekgajek.kapelusz.app.generated.roster_archived
@@ -119,6 +120,7 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.MemberShares
+import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
@@ -391,6 +393,7 @@ private fun MemberDialog(
                     // In the app's language (a non-composable getString would use the browser's on the web).
                     val failedText = stringResource(Res.string.invite_failed)
                     val holdsMoneyText = stringResource(Res.string.reject_holds_money)
+                    val stillPlaysText = stringResource(Res.string.reject_viewer_still_plays)
                     var inviteBusy by remember { mutableStateOf(false) }
                     if (current != null) {
                         Card(Modifier.fillMaxWidth()) {
@@ -433,6 +436,11 @@ private fun MemberDialog(
                             // Someone holding band money cannot become an artist (ITERATION_4 §1.1).
                             if (inviteRole == Role.ARTIST && Artists.holdsMoney(band, member.id)) {
                                 message = holdsMoneyText
+                                return@FilledTonalButton
+                            }
+                            // Nor a viewer while playing in an unsettled event or holding the fund (V5-M1 B2).
+                            if (inviteRole == Role.VIEWER && !Viewers.mayBecome(band, member.id)) {
+                                message = stillPlaysText
                                 return@FilledTonalButton
                             }
                             inviteBusy = true

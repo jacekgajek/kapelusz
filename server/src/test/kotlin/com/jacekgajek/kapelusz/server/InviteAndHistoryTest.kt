@@ -86,6 +86,10 @@ class InviteAndHistoryTest {
         assertEquals(409, refused.status)
         assertTrue(ApiErrors.HOLDS_MONEY in refused.body!!)
         assertEquals(409, invite(role = Role.ARTIST).status, "and no new artist invite for them")
+        // V5-M1 B2: nor a viewer invite while they play in an unsettled gig, with its own reason.
+        val viewer = invite(role = Role.VIEWER)
+        assertEquals(409, viewer.status)
+        assertTrue(ApiErrors.STILL_PLAYS in viewer.body!!)
         assertEquals(200, invite(role = Role.MEMBER).status)
     }
 

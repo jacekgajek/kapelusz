@@ -175,9 +175,14 @@ class NotificationRulesTest {
         )
         assertEquals(listOf("b/gig/debt0", "b/gig/debt1", "b/gig/debt2", "b/gig/debt3"), reminders.map { it.key })
         assertEquals(listOf(Owed("Alice", Money(5000))), reminders.first().owed)
-        // Four weeks in, after the second: the last two are left.
-        assertEquals(listOf(2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 30, 12, 0)).map { it.nth })
-        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 11, 27, 12, 0)), "never more than four")
+        // Four weeks in, after the second was shown: the last two are left.
+        val shown = setOf("b/gig/debt0", "b/gig/debt1")
+        assertEquals(listOf(2, 3), NotificationRules.debtReminders(listOf(debt), "u-bob", LocalTime(18, 0), LocalDateTime(2026, 10, 30, 12, 0), shown).map { it.nth })
+        // V5-M1 D2b: one Android hasn't delivered yet is still planned, however late, until the next is due.
+        assertEquals(listOf(1, 2, 3), debtReminders(debt, "u-bob", LocalDateTime(2026, 10, 30, 12, 0)).map { it.nth })
+        val all = shown + setOf("b/gig/debt2", "b/gig/debt3")
+        assertEquals(emptyList(), NotificationRules.debtReminders(listOf(debt), "u-bob", LocalTime(18, 0), LocalDateTime(2026, 11, 27, 12, 0), all), "never more than four")
+        assertEquals(emptyList(), debtReminders(debt, "u-bob", LocalDateTime(2026, 12, 11, 12, 0)), "nor long after the last")
     }
 
     @Test

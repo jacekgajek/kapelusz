@@ -37,13 +37,13 @@ class ViewerTest {
     @Test
     fun aViewerCantBeLeftHoldingMoneyOrTheFund() {
         val scenario = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob").apply(AddHolding("gig", "h", "bob", pln("300"), DOOR))
-        assertEquals(RejectionReason.VIEWER_NOT_PARTICIPANT, scenario.rejected(SetMemberRole("bob", Role.VIEWER)).reason)
-        assertEquals(RejectionReason.VIEWER_NOT_PARTICIPANT, scenario.rejected(LinkUser("bob", "user-bob", Role.VIEWER)).reason)
+        assertEquals(RejectionReason.VIEWER_STILL_PLAYS, scenario.rejected(SetMemberRole("bob", Role.VIEWER)).reason)
+        assertEquals(RejectionReason.VIEWER_STILL_PLAYS, scenario.rejected(LinkUser("bob", "user-bob", Role.VIEWER)).reason)
         scenario.apply(SettleSuggestions("gig")).apply(LinkUser("bob", "user-bob", Role.VIEWER))
         assertEquals(Role.VIEWER, scenario.band.member("bob")!!.role, "settled: fine")
         assertEquals(RejectionReason.VIEWER_NOT_PARTICIPANT, scenario.rejected(SetTreasurer("bob")).reason)
         scenario.apply(SetTreasurer("carol")).apply(LinkUser("carol", "user-carol", Role.MEMBER))
-        assertEquals(RejectionReason.VIEWER_NOT_PARTICIPANT, scenario.rejected(SetMemberRole("carol", Role.VIEWER)).reason, "the fund holder")
+        assertEquals(RejectionReason.VIEWER_STILL_PLAYS, scenario.rejected(SetMemberRole("carol", Role.VIEWER)).reason, "the fund holder")
     }
 
     /** V5-M1 B3a: ownership never goes to an archived admin. */

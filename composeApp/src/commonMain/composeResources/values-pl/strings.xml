@@ -203,6 +203,7 @@
     <string name="reject_event_unsettled">Archiwizować można tylko rozliczone wydarzenia.</string>
     <string name="reject_artist_holds_no_money">Artyści nie trzymają pieniędzy: nie zbierają ich ani nie prowadzą kasy zespołowej.</string>
     <string name="reject_viewer_not_participant">Obserwatorzy nie biorą udziału w wydarzeniach.</string>
+    <string name="reject_viewer_still_plays">Ta osoba wciąż gra w nierozliczonych wydarzeniach lub prowadzi kasę zespołową: najpierw je rozlicz albo przekaż kasę.</string>
     <string name="reject_holds_money">Ta osoba wciąż trzyma pieniądze: najpierw rozlicz jej wydarzenia lub przekaż kasę zespołową.</string>
     <string name="reject_cost_refused">Ten koszt został odrzucony.</string>
     <string name="reject_cost_partly_refunded">Część tego kosztu jest już zwrócona, więc nie można go odrzucić.</string>
@@ -286,6 +287,7 @@
     <string name="join_too_many_attempts">Zbyt wiele błędnych kodów. Spróbuj ponownie za godzinę.</string>
     <string name="join_already_member">Już należysz do tego zespołu.</string>
     <string name="join_holds_money">Tego zaproszenia nie da się jeszcze użyć: wciąż trzymasz pieniądze zespołu. Poproś administratora o rozliczenie.</string>
+    <string name="join_still_plays">Tego zaproszenia nie da się jeszcze użyć: wciąż grasz w nierozliczonych wydarzeniach lub prowadzisz kasę zespołową. Poproś administratora o rozliczenie.</string>
     <string name="join_failed">Nie udało się dołączyć. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="h_rename_band">Zmieniono nazwę zespołu na %1$s</string>
     <string name="h_add_member">Dodano członka: %1$s</string>

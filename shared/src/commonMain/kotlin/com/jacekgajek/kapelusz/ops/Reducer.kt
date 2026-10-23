@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
@@ -647,13 +647,8 @@ object Reducer {
      * Someone becoming a viewer may not still play in an unsettled event or hold the band fund (V5-M1 B2): a viewer
      * records no transfers, so money they hold would be stuck.
      */
-    private fun validateCanWatchOnly(band: Band, memberId: Id) {
-        conflictIf(band.treasurerMemberId == memberId, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Hand over the band fund first" }
-        val playing = band.events.any { event ->
-            !event.archived && event.participant(memberId) != null && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
-        }
-        conflictIf(playing, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Takes part in events not settled yet" }
-    }
+    private fun validateCanWatchOnly(band: Band, memberId: Id) =
+        conflictIf(!Viewers.mayBecome(band, memberId), RejectionReason.VIEWER_STILL_PLAYS) { "Settle their events or hand over the band fund first" }
 
     /** A viewer only watches: they don't play in events (and so never get a share or a transfer). */
     private fun validateNotViewer(band: Band, memberId: Id) =
