@@ -215,7 +215,7 @@ fun EventScreen(
                             EventSection.TOTALS -> Totals(context)
                             EventSection.PROBLEMS -> Problems(context)
                             EventSection.COLLECTED -> CollectedSection(context)
-                            EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) })
+                            EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
                             EventSection.SUMMARY -> SummarySection(context)
                             EventSection.SHARE -> shareSettlement?.let { ShareSettlementButton(it) }
                             EventSection.TO_SETTLE -> TransfersSection(context)
