@@ -177,6 +177,10 @@ Decided 2026-10-23 (grilling).
   artists don't see the roster.
 - **Where:** in the member's dialog on Band members (admins), or a dialog of its own for leads who are not admins
   (tapping the member).
+- A fixed default matches events by the amount alone, and applying a fixed amount keeps the event's percentage
+  underneath. Events that changed before the change arrived (archived, settled, member removed) are skipped, never
+  losing the new default. Leaving the "there too?" question keeps the default without touching events. Archived
+  members have no default to set.
 
 ## 3. Later
 
@@ -256,3 +260,4 @@ Sources (for the figures above; re-check before deciding):
 | 2026-10-23 | Notifications: the time of day moves to the top of the page as "Send reminders at:" / "Wysyłaj o godzinie:" (it applies to every reminder). |
 | 2026-10-23 | Awaited fees (no deposits): an "awaiting from the organiser" entry counts in shares; transfers only for money held; "Received…" by a participant or the band fund; status "Awaiting payment", not archivable; reminder to the recording lead at 14/28/42/56 days; never paid = delete the entry. |
 | 2026-10-23 | Default share per member (percent or fixed), Lead+ edit, everyone on the roster sees it; a starting point for events, never changes them by itself; on change, optionally applied to the member's not-settled, not-archived events where they still have the old default. |
+| 2026-10-23 | Viewer fixes: viewers can't be added to events (refused, and not offered); the Settle screen shows only transfers the user may record; viewers see everyone's costs in My costs. |

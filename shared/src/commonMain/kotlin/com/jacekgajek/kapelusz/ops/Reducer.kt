@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -262,18 +263,23 @@ object Reducer {
     }
 
     private fun setMemberShare(band: Band, op: SetMemberShare, ctx: OpContext): Band {
-        band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
+        validateActiveMember(band, op.memberId)
         validateWeight(op.weight)
         op.fixedShare?.let { validatePositive(it, "Fixed share") }
-        invalidIf(op.events.toSet().size != op.events.size, RejectionReason.INVALID_INPUT) { "Events listed twice" }
+        val member = band.member(op.memberId)!!
         var result = band.updateMember(op.memberId) { it.copy(shareWeight = op.weight, shareFixed = op.fixedShare) }
-        for (eventId in op.events) {
-            result = result.updateEvent(eventId) { event ->
-                // As any change to an event (ITERATION_3 R10): archived ones are read-only.
-                conflictIf(event.archived, RejectionReason.ARCHIVED_EVENT) { "Event $eventId is archived" }
-                event.participant(op.memberId).orNotFound { "Participant ${op.memberId}" }
-                event.copy(
-                    participants = event.participants.map { if (it.partyId == op.memberId) it.copy(weight = op.weight, fixedShare = op.fixedShare) else it },
+        // Events that changed since the user chose them (archived, settled, the member removed, e.g. on another phone)
+        // are left alone rather than losing the new default with them.
+        for (eventId in op.events.distinct()) {
+            band.event(eventId)?.takeIf { MemberShares.canApply(band, it, member) } ?: continue
+            result = result.updateEvent(eventId) {
+                it.copy(
+                    participants = it.participants.map { p ->
+                        if (p.partyId != op.memberId) p
+                        // A fixed amount keeps the percentage underneath, so switching back restores it (as in events).
+                        else if (op.fixedShare != null) p.copy(fixedShare = op.fixedShare)
+                        else p.copy(weight = op.weight, fixedShare = null)
+                    },
                     updatedAt = ctx.timestamp,
                 )
             }
@@ -338,7 +344,10 @@ object Reducer {
         op.participants.forEach { participant ->
             validateWeight(participant.weight)
             participant.fixedShare?.let { validatePositive(it, "Fixed share") }
-            if (participant.partyId !in guestIds) validateActiveMember(band, participant.partyId)
+            if (participant.partyId !in guestIds) {
+                validateActiveMember(band, participant.partyId)
+                validateNotViewer(band, participant.partyId)
+            }
         }
         val event = Event(
             id = op.eventId,
@@ -387,6 +396,7 @@ object Reducer {
 
     private fun addParticipant(band: Band, op: AddParticipant, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
+        validateNotViewer(band, op.memberId)
         validateWeight(op.weight)
         op.fixedShare?.let { validatePositive(it, "Fixed share") }
         val updated = band.updateEvent(op.eventId) { event ->
@@ -618,6 +628,10 @@ object Reducer {
             event.copy(holdings = event.holdings.map { if (it.id == holding.id) updated else it })
         }
     }
+
+    /** A viewer only watches: they don't play in events (and so never get a share or a transfer). */
+    private fun validateNotViewer(band: Band, memberId: Id) =
+        invalidIf(band.member(memberId)?.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Viewers take no part in events" }
 
     /** The change is a lead's (or above), or the server's own, which is allowed everything. */
     private fun isLead(band: Band, ctx: OpContext) = ctx.memberId == null || band.member(ctx.memberId)?.role?.atLeast(Role.LEAD) == true

@@ -75,7 +75,8 @@ fun ParticipantsSection(context: EventContext) {
 
     SectionTitle(stringResource(Res.string.participants))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        band.members.filter { !it.archived || event.participant(it.id) != null }.forEach { member ->
+        // Viewers only watch (they take no part in events).
+        band.members.filter { (!it.archived && it.role != com.jacekgajek.kapelusz.model.Role.VIEWER) || event.participant(it.id) != null }.forEach { member ->
             val selected = event.participant(member.id) != null
             FilterChip(
                 selected = selected,

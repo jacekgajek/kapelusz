@@ -118,8 +118,7 @@ import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
@@ -166,7 +165,9 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     // Leads set default shares (ITERATION_4 §2.3); admins also manage the rest of a member in their dialog.
     val canShare = can.setMemberShare()
     var sharing by remember { mutableStateOf<String?>(null) }
-    val open: (Member) -> (() -> Unit)? = { member -> if (isAdmin) ({ selected = member.id }) else if (canShare) ({ sharing = member.id }) else null }
+    val open: (Member) -> (() -> Unit)? = { member ->
+        if (isAdmin) ({ selected = member.id }) else if (canShare && !member.archived) ({ sharing = member.id }) else null
+    }
 
     Scaffold(
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
@@ -234,7 +235,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             can = can,
             actions = actions,
             onInvitesChanged = reloadInvites,
-            onEditShare = { sharing = member.id }.takeIf { canShare },
+            onEditShare = { sharing = member.id }.takeIf { canShare && !member.archived },
             onDismiss = { selected = null },
         )
     }
@@ -254,11 +255,8 @@ private fun shareText(member: Member, currency: String): String =
 private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDismiss: () -> Unit) {
     val editor = rememberShareEditorState(member.shareWeight, member.shareFixed)
     var applying by remember { mutableStateOf<Pair<Int, Money?>?>(null) }
-    val stillOld = band.events.filter { event ->
-        val participant = event.participant(member.id)
-        !event.archived && participant != null && participant.weight == member.shareWeight && participant.fixedShare == member.shareFixed &&
-            SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
-    }
+    // Not on every slider step: it settles each event.
+    val stillOld = remember(band, member) { MemberShares.stillDefault(band, member) }
     fun save(weight: Int, fixed: Money?, events: List<Event>) {
         if (actions.run(SetMemberShare(member.id, weight, fixed, events.map { it.id }))) onDismiss()
     }
@@ -291,7 +289,8 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
         val (weight, fixed) = pending
         val names = stillOld.take(3).joinToString(", ") { it.name } + if (stillOld.size > 3) "…" else ""
         AlertDialog(
-            onDismissRequest = onDismiss,
+            // Save was pressed already: leaving the question keeps the new default, without touching events.
+            onDismissRequest = { save(weight, fixed, emptyList()) },
             title = { Text(stringResource(Res.string.member_share_apply_title)) },
             text = { Text(stringResource(Res.string.member_share_apply_text, member.name, stillOld.size, names)) },
             confirmButton = { TextButton(onClick = { save(weight, fixed, stillOld) }) { Text(stringResource(Res.string.member_share_apply_yes)) } },

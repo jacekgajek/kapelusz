@@ -43,6 +43,7 @@ import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.app.generated.upcoming_event
 import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
@@ -208,9 +209,9 @@ fun EventsScreen(
 private fun lineupOfLastEvent(band: Band, myId: String?): List<Participant> {
     val last = band.events.filter { !it.archived }.maxWithOrNull(compareBy({ it.date }, { it.updatedAt }))
     val members = last?.participants
-        ?.mapNotNull { band.member(it.partyId)?.takeIf { member -> !member.archived } }
+        ?.mapNotNull { band.member(it.partyId)?.takeIf { member -> !member.archived && member.role != Role.VIEWER } }
         ?.map { it.asParticipant() }
-    return members ?: listOfNotNull(myId?.let { band.member(it) }?.asParticipant())
+    return members ?: listOfNotNull(myId?.let { band.member(it) }?.takeIf { it.role != Role.VIEWER }?.asParticipant())
 }
 
 @Composable

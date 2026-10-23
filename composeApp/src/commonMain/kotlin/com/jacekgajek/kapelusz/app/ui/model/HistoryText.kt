@@ -183,7 +183,7 @@ fun describe(op: Operation, band: Band): String {
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
         is UpdateCost -> if (op.resubmit) stringResource(Res.string.h_resubmit_cost) else stringResource(Res.string.h_edit_cost)
         is DeleteCost -> stringResource(Res.string.h_delete_cost)
-        is SetMemberShare -> stringResource(Res.string.h_set_member_share, member(op.memberId))
+        is SetMemberShare -> stringResource(Res.string.h_set_member_share, member(op.memberId), op.fixedShare?.let(::money) ?: "${op.weight}%")
         is RefuseCost -> band.cost(op.costId)?.let { stringResource(Res.string.h_refuse_cost_of, money(it.amount), member(it.memberId)) }
             ?: stringResource(Res.string.h_refuse_cost)
         is AddAttachment -> stringResource(Res.string.h_add_attachment)

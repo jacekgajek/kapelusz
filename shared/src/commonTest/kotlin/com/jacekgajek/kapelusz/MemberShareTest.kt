@@ -1,13 +1,20 @@
 package com.jacekgajek.kapelusz
 
+import com.jacekgajek.kapelusz.domain.MemberShares
+import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.SetEventArchived
+import com.jacekgajek.kapelusz.ops.SetFixedShare
+import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberShare
+import com.jacekgajek.kapelusz.ops.SetWeight
+import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.Undo
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -45,9 +52,35 @@ class MemberShareTest {
     }
 
     @Test
+    fun eventsThatChangedMeanwhileAreLeftAlone() {
+        // Chosen on a phone, then archived, settled or left elsewhere before the change arrived: the default still counts.
+        val scenario = Scenario("Alice", "Bob", "Carol").event("old", "Alice", "Bob").event("done", "Alice", "Bob").event("other", "Alice")
+            .apply(AddHolding("done", "h", "alice", pln("100"), DOOR)).apply(SettleSuggestions("done"))
+            .apply(SetEventArchived("old", true))
+        scenario.apply(SetMemberShare("bob", 75, null, events = listOf("old", "done", "other", "gone", "done")))
+        assertEquals(75, scenario.band.member("bob")!!.shareWeight)
+        assertEquals(100, scenario.band.event("old")!!.participant("bob")!!.weight)
+        assertEquals(100, scenario.band.event("done")!!.participant("bob")!!.weight)
+    }
+
+    @Test
+    fun aFixedDefaultMatchesByAmountAndKeepsThePercentageUnderneath() {
+        val scenario = Scenario("Alice", "Bob").event("gig", "Alice", "Bob")
+            .apply(SetWeight("gig", "bob", 75)).apply(SetFixedShare("gig", "bob", pln("300")))
+            .apply(SetMemberShare("bob", 100, pln("300")))
+        val member = scenario.band.member("bob")!!
+        assertEquals(listOf("gig"), MemberShares.stillDefault(scenario.band, member).map { it.id }, "the same 300, whatever the hidden percentage")
+        scenario.apply(SetMemberShare("bob", 100, pln("400"), events = listOf("gig")))
+        val bob = scenario.band.event("gig")!!.participant("bob")!!
+        assertEquals(pln("400"), bob.fixedShare)
+        assertEquals(75, bob.weight, "back to percent would restore 75%")
+    }
+
+    @Test
     fun itIsChecked() {
-        val scenario = Scenario("Alice", "Bob").event("old", "Alice", "Bob").apply(SetEventArchived("old", true))
-        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(SetMemberShare("bob", 75, null, events = listOf("old"))).reason)
+        val scenario = Scenario("Alice", "Bob").apply(SetMemberArchived("bob", true))
+        assertEquals(RejectionReason.ARCHIVED_MEMBER, scenario.rejected(SetMemberShare("bob", 75, null)).reason)
+        scenario.apply(SetMemberArchived("bob", false))
         assertEquals(RejectionReason.INVALID_SHARE, scenario.rejected(SetMemberShare("bob", -1, null)).reason)
         assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(SetMemberShare("bob", 100, pln("0"))).reason)
         assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(SetMemberShare("bob", 100, Money(Limits.MAX_AMOUNT + 1))).reason)
