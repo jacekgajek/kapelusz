@@ -42,10 +42,12 @@ private const val MONTHS = 3
 fun HistorySection(context: EventContext, graph: AppGraph, section: SectionState) {
     val scope = rememberCoroutineScope()
     val history = remember(context.event.id) { HistoryController(graph, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
-    // Loaded only when opened: it asks the server.
-    CollapsibleHeader(stringResource(Res.string.history), section)
-    if (!section.expanded) return
-    LaunchedEffect(context.event.id, history.reload) {
+    // Loaded when first opened (it asks the server), and kept while on the event: closing and opening it again doesn't
+    // fetch it again.
+    var wanted by remember(context.event.id) { mutableStateOf(false) }
+    LaunchedEffect(section.expanded) { if (section.expanded) wanted = true }
+    LaunchedEffect(context.event.id, history.reload, wanted) {
+        if (!wanted) return@LaunchedEffect
         history.load {
             // Newest month first; each page is newest first. The first page of each month is enough for one event.
             // The months load at the same time.
@@ -57,6 +59,8 @@ fun HistorySection(context: EventContext, graph: AppGraph, section: SectionState
             }
         }
     }
+    CollapsibleHeader(stringResource(Res.string.history), section)
+    if (!section.expanded) return
     val loaded = history.shown()
     Column {
         when {

@@ -57,7 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ArtistLineup(context: EventContext, section: SectionState) {
     val event = context.event
-    CollapsibleHeader(stringResource(Res.string.participants), section, summary = { ParticipantBubbles(context.band, event) })
+    CollapsibleHeader(stringResource(Res.string.participants), section, summary = { ParticipantBubbles(context.band, event, max = 5) })
     if (!section.expanded) return
     event.participants.forEach { participant ->
         val name = partyName(context.band, event, participant.partyId, "")

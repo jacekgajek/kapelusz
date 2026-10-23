@@ -170,10 +170,15 @@ fun EventScreen(
             return@Scaffold
         }
         val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
-        // Before the gig (today included) what it is: who plays, details, files. After it, its money (ITERATION_4 §2.4).
+        // Before the gig what it is: who plays, details, files. After it, its money. On the day, both (ITERATION_4 §2.4).
         // Money that needs a lead opens its section anyway: a fee still owed, costs waiting.
-        val past = event.date < today()
-        val costsWaiting = context.can.editRefunds(event) && CostLedger.pendingFromEarlier(state.band, event).isNotEmpty()
+        // Worked out once per visit: a section must not close under the user when they deal with what opened it (the fee
+        // received, the last waiting cost included), a sync brings that, or the date changes.
+        val defaults = remember(eventId) {
+            val today = today()
+            val costsWaiting = context.can.editRefunds(event) && CostLedger.pendingFromEarlier(state.band, event).isNotEmpty()
+            Defaults(info = event.date >= today, money = event.date <= today, awaited = event.awaited.isPositive, costsWaiting)
+        }
         fun section(key: String, default: Boolean) = SectionState(opened[key] ?: default) { opened[key] = !(opened[key] ?: default) }
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
@@ -184,23 +189,23 @@ fun EventScreen(
                 if (artist) {
                     // Artists get no debt reminders, so nothing scrolls by section here.
                     item("header") { Header(context, money = false) }
-                    item("details") { DetailsSection(context, section("details", !past)) }
-                    item("files") { FilesSection(context, section("files", !past)) }
-                    item("payout") { ArtistPayout(context, section("payout", past)) }
-                    item("costs") { ArtistCosts(context, section("costs", past), onOpenCost, onAddCost = { onAddCost(eventId) }) }
-                    item("lineup") { ArtistLineup(context, section("lineup", !past)) }
+                    item("details") { DetailsSection(context, section("details", defaults.info)) }
+                    item("files") { FilesSection(context, section("files", defaults.info)) }
+                    item("payout") { ArtistPayout(context, section("payout", defaults.money)) }
+                    item("costs") { ArtistCosts(context, section("costs", defaults.money), onOpenCost, onAddCost = { onAddCost(eventId) }) }
+                    item("lineup") { ArtistLineup(context, section("lineup", defaults.info)) }
                     return@LazyColumn
                 }
                 // In the order of [EventSection]: its ordinal is the item's index, for scrolling to To settle.
                 item(EventSection.HEADER) { Header(context) }
-                item(EventSection.DETAILS) { DetailsSection(context, section(EventSection.DETAILS.name, !past)) }
-                item(EventSection.FILES) { FilesSection(context, section(EventSection.FILES.name, !past)) }
+                item(EventSection.DETAILS) { DetailsSection(context, section(EventSection.DETAILS.name, defaults.info)) }
+                item(EventSection.FILES) { FilesSection(context, section(EventSection.FILES.name, defaults.info)) }
                 item(EventSection.PROBLEMS) { Problems(context) }
-                item(EventSection.PARTICIPANTS) { ParticipantsSection(context, section(EventSection.PARTICIPANTS.name, !past)) }
-                item(EventSection.COLLECTED) { CollectedSection(context, section(EventSection.COLLECTED.name, past || event.awaited.isPositive)) }
-                item(EventSection.REFUNDS) { RefundsSection(context, section(EventSection.REFUNDS.name, past || costsWaiting), onAddCost = { onAddCost(eventId) }) }
+                item(EventSection.PARTICIPANTS) { ParticipantsSection(context, section(EventSection.PARTICIPANTS.name, defaults.info)) }
+                item(EventSection.COLLECTED) { CollectedSection(context, section(EventSection.COLLECTED.name, defaults.money || defaults.awaited)) }
+                item(EventSection.REFUNDS) { RefundsSection(context, section(EventSection.REFUNDS.name, defaults.money || defaults.costsWaiting), onAddCost = { onAddCost(eventId) }) }
                 item(EventSection.SETTLEMENT) {
-                    SettlementSection(context, section(EventSection.SETTLEMENT.name, past)) { shareSettlement?.let { ShareSettlementButton(it) } }
+                    SettlementSection(context, section(EventSection.SETTLEMENT.name, defaults.money)) { shareSettlement?.let { ShareSettlementButton(it) } }
                 }
                 item(EventSection.HISTORY) { HistorySection(context, graph, section(EventSection.HISTORY.name, false)) }
             }
@@ -211,6 +216,16 @@ fun EventScreen(
 
 /** The event screen's sections, in list order: a reminder about an open debt scrolls to [SETTLEMENT] by its ordinal. */
 private enum class EventSection { HEADER, DETAILS, FILES, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SETTLEMENT, HISTORY }
+
+/** What decides which sections start open (ITERATION_4 §2.4), as it was when the event was opened. */
+private class Defaults(
+    /** On the gig's day or before it: who plays, details, files. */
+    val info: Boolean,
+    /** On the gig's day or after it: collected money, refunds, settlement. */
+    val money: Boolean,
+    val awaited: Boolean,
+    val costsWaiting: Boolean,
+)
 
 /** Keeps the sections opened or closed by hand across rotation and coming back from a cost. */
 private val OpenedSaver = listSaver<SnapshotStateMap<String, Boolean>, String>(

@@ -402,6 +402,8 @@
     <string name="event_files">Files</string>
     <string name="section_expanded">expanded</string>
     <string name="section_collapsed">collapsed</string>
+    <string name="section_expand">expand</string>
+    <string name="section_collapse">collapse</string>
     <string name="section_waiting_count">waiting: %1$d</string>
     <string name="attachment_uploading">uploading</string>
     <string name="attachment_waiting_for_save">attached when you save</string>

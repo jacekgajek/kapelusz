@@ -39,7 +39,6 @@ import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import org.jetbrains.compose.resources.stringResource
 
-/** Per party: what they should end up with (share + refunds), what they hold now, and the difference. */
 /**
  * Settlement (ITERATION_4 §2.4): everyone's share, sharing it as text, and what is still to settle or was recorded, as
  * one collapsible section. Closed, it says what the user gets or hands over (or the event's status).
@@ -59,6 +58,7 @@ fun SettlementSection(context: EventContext, section: SectionState, share: @Comp
     TransfersSection(context)
 }
 
+/** Per party: what they should end up with (share + refunds), what they hold now, and the difference. */
 @Composable
 fun SummarySection(context: EventContext) {
     val lines = context.settlement.lines

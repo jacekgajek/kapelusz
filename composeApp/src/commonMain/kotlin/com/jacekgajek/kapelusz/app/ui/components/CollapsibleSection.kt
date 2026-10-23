@@ -20,7 +20,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.section_collapse
 import com.jacekgajek.kapelusz.app.generated.section_collapsed
+import com.jacekgajek.kapelusz.app.generated.section_expand
 import com.jacekgajek.kapelusz.app.generated.section_expanded
 import org.jetbrains.compose.resources.stringResource
 
@@ -39,9 +41,10 @@ class SectionState(val expanded: Boolean, val toggle: () -> Unit) {
 @Composable
 fun CollapsibleHeader(title: String, state: SectionState, summary: (@Composable () -> Unit)? = null, actions: @Composable () -> Unit = {}) {
     val stateText = stringResource(if (state.expanded) Res.string.section_expanded else Res.string.section_collapsed)
+    val action = stringResource(if (state.expanded) Res.string.section_collapse else Res.string.section_expand)
     Row(
         Modifier.fillMaxWidth()
-            .clickable(role = Role.Button, onClick = state.toggle)
+            .clickable(role = Role.Button, onClickLabel = action, onClick = state.toggle)
             .semantics { stateDescription = stateText }
             .padding(top = 16.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,

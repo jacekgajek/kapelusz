@@ -189,8 +189,8 @@ Decided 2026-10-23 (grilling).
 - **Sections:** Details, Files, Participants, Collected money, Cost refunds, **Settlement** (Rozliczenie: shares, Share
   as text, To settle and recorded transfers, merged into one section) and History. The top (date, place, agenda,
   Navigate, the totals card) and the problem card always show.
-- **By date:** before the gig (today included) Participants, Details and Files are open, the money (Collected, Cost
-  refunds, Settlement) closed; after it the other way round. History always starts closed.
+- **By date:** before the gig Participants, Details and Files are open, the money (Collected, Cost refunds, Settlement)
+  closed; after it the other way round; **on the gig's day all of them are open**. History always starts closed.
 - **Needing attention opens it anyway:** Collected money while the organiser still owes a fee, Cost refunds while costs
   wait for a lead, Settlement when opened from a debt reminder.
 - **Closed, a section says the gist** next to its title: participants as bubbles, the first line of details, the number
@@ -282,4 +282,4 @@ Sources (for the figures above; re-check before deciding):
 | 2026-10-23 | Awaited fees (no deposits): an "awaiting from the organiser" entry counts in shares; transfers only for money held; "Received…" by a participant or the band fund; status "Awaiting payment", not archivable; reminder to the recording lead at 14/28/42/56 days; never paid = delete the entry. |
 | 2026-10-23 | Default share per member (percent or fixed), Lead+ edit, everyone on the roster sees it; a starting point for events, never changes them by itself; on change, optionally applied to the member's not-settled, not-archived events where they still have the old default. |
 | 2026-10-23 | Viewer fixes: viewers can't be added to events (refused, and not offered); the Settle screen shows only transfers the user may record; viewers see everyone's costs in My costs. |
-| 2026-10-23 | Event screen sections collapsible: before the gig its info open and money closed, after it the reverse; attention opens money sections; Settlement merges shares and To settle; History closed; manual choice lasts while on the event; artists the same. |
+| 2026-10-23 | Event screen sections collapsible: before the gig its info open and money closed, after it the reverse, on the day both; attention opens money sections; Settlement merges shares and To settle; History closed; manual choice lasts while on the event; artists the same. |

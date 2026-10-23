@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -97,6 +98,7 @@ fun CollectedSection(context: EventContext, section: SectionState) {
             listOfNotNull(formatMoney(event.income, context.currency, language), awaitedLabel.takeIf { event.awaited.isPositive }).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     })
     if (!section.expanded) return

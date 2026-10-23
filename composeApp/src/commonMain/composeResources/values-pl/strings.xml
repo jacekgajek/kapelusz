@@ -402,6 +402,8 @@
     <string name="event_files">Pliki</string>
     <string name="section_expanded">rozwinięta</string>
     <string name="section_collapsed">zwinięta</string>
+    <string name="section_expand">rozwiń</string>
+    <string name="section_collapse">zwiń</string>
     <string name="section_waiting_count">oczekuje: %1$d</string>
     <string name="attachment_uploading">wysyłanie</string>
     <string name="attachment_waiting_for_save">zostanie dołączony po zapisaniu</string>

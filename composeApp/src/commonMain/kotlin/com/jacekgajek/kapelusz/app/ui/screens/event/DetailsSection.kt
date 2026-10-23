@@ -60,7 +60,7 @@ fun DetailsSection(context: EventContext, section: SectionState) {
         stringResource(Res.string.details),
         section,
         // Closed: its first line.
-        summary = text?.let { { Text(it.lineSequence().first(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall) } },
+        summary = text?.let { { Text(it.lineSequence().firstOrNull { line -> line.isNotBlank() }.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall) } },
         actions = { if (canEdit && text != null) EditButton { editing = true } },
     )
     when {

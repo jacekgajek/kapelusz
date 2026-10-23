@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
@@ -69,7 +70,7 @@ fun RefundsSection(context: EventContext, section: SectionState, onAddCost: () -
     val refunded = formatMoney(event.refunds.sumOfMoney { it.amount }, context.currency, language)
     val waiting = stringResource(Res.string.section_waiting_count, pending.size)
     CollapsibleHeader(stringResource(Res.string.refunds), section, summary = {
-        Text(listOfNotNull(refunded, waiting.takeIf { pending.isNotEmpty() }).joinToString(" · "), style = MaterialTheme.typography.bodySmall, maxLines = 1)
+        Text(listOfNotNull(refunded, waiting.takeIf { pending.isNotEmpty() }).joinToString(" · "), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     })
     if (!section.expanded) return
     if (event.refunds.isEmpty() && pending.isEmpty()) {

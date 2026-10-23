@@ -77,7 +77,7 @@ fun ParticipantsSection(context: EventContext, section: SectionState) {
     var editingWeight by remember { mutableStateOf<String?>(null) }
 
     // Closed: who plays, as bubbles like in the event list.
-    CollapsibleHeader(stringResource(Res.string.participants), section, summary = { ParticipantBubbles(band, event) })
+    CollapsibleHeader(stringResource(Res.string.participants), section, summary = { ParticipantBubbles(band, event, max = 5) })
     if (!section.expanded) return
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Viewers only watch (they take no part in events).
@@ -245,8 +245,11 @@ private fun WeightField(text: String, onText: (String) -> Unit) {
 
 /** Who plays, as overlapping photo/initial bubbles (the event list's row too). */
 @Composable
-fun ParticipantBubbles(band: Band, event: Event, modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
-        event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
+fun ParticipantBubbles(band: Band, event: Event, modifier: Modifier = Modifier, max: Int = 8) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy((-6).dp), verticalAlignment = Alignment.CenterVertically) {
+        event.participants.take(max).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
+        // In a section's title row there is room for fewer: the rest as a count.
+        val more = event.participants.size - max
+        if (more > 0) Text("+$more", Modifier.padding(start = 10.dp), style = MaterialTheme.typography.labelMedium)
     }
 }
