@@ -57,7 +57,7 @@
     <string name="add_member">Dodaj członka</string>
     <string name="member_name">Imię</string>
     <string name="not_linked">Bez konta w aplikacji</string>
-    <string name="archived_member">Zarchiwizowany</string>
+    <string name="roster_archived">Zarchiwizowani (%1$d)</string>
     <string name="role_viewer">Obserwator</string>
     <string name="role_artist">Artysta</string>
     <string name="role_member">Członek</string>

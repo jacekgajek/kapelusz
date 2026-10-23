@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
@@ -42,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +60,6 @@ import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
-import com.jacekgajek.kapelusz.app.generated.archived_member
 import com.jacekgajek.kapelusz.app.generated.change_own_role_confirm
 import com.jacekgajek.kapelusz.app.generated.change_own_role_text
 import com.jacekgajek.kapelusz.app.generated.change_own_role_title
@@ -80,6 +83,7 @@ import com.jacekgajek.kapelusz.app.generated.not_linked
 import com.jacekgajek.kapelusz.app.generated.reject_holds_money
 import com.jacekgajek.kapelusz.app.generated.revoke_invite
 import com.jacekgajek.kapelusz.app.generated.role
+import com.jacekgajek.kapelusz.app.generated.roster_archived
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.share_invite
 import com.jacekgajek.kapelusz.app.generated.share_invite_text
@@ -138,7 +142,9 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
         }
     }
     LaunchedEffect(band.id, isAdmin) { if (isAdmin) reloadInvites() }
-    val members = band.members
+    // Archived members below, in a section of their own: bands that change players collect many of them.
+    val (archived, active) = band.members.partition { it.archived }
+    var showArchived by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
@@ -155,36 +161,31 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             if (isAdmin && invitesFailed) {
                 item { Text(stringResource(Res.string.invites_unavailable), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
             }
-            itemsIndexed(members, key = { _, member -> member.id }) { index, member ->
-                val invite = invites?.firstOrNull { it.memberId == member.id }
-                ListItem(
-                    modifier = Modifier.clickable(enabled = isAdmin) { selected = member.id },
-                    // Decorative: the name follows right after it (ITERATION_3 R13).
-                    leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
-                    headlineContent = {
-                        Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
-                    },
-                    supportingContent = {
-                        Column {
-                            Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
-                            if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
-                            if (member.archived) Text(stringResource(Res.string.archived_member))
-                        }
-                    },
-                    trailingContent = {
-                        if (isAdmin) {
-                            Row {
-                                IconButton(onClick = { actions.run(MoveMember(member.id, index - 1)) }, enabled = index > 0) {
-                                    Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + member.name)
-                                }
-                                IconButton(onClick = { actions.run(MoveMember(member.id, index + 1)) }, enabled = index < members.lastIndex) {
-                                    Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down) + ": " + member.name)
-                                }
-                            }
-                        }
-                    },
-                )
-                HorizontalDivider()
+            itemsIndexed(active, key = { _, member -> member.id }) { index, member ->
+                // Moves are by roster position, which counts archived members too: next to the neighbour above or below.
+                val up = active.getOrNull(index - 1)?.let { band.members.indexOf(it) }
+                val down = active.getOrNull(index + 1)?.let { band.members.indexOf(it) }
+                MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, isAdmin, onClick = { selected = member.id }) {
+                    IconButton(onClick = { up?.let { actions.run(MoveMember(member.id, it)) } }, enabled = up != null) {
+                        Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + member.name)
+                    }
+                    IconButton(onClick = { down?.let { actions.run(MoveMember(member.id, it)) } }, enabled = down != null) {
+                        Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down) + ": " + member.name)
+                    }
+                }
+            }
+            if (archived.isNotEmpty()) {
+                // Collapsed at first: only a count, so a long list of past players doesn't bury the band.
+                item(key = "archived-title") {
+                    ListItem(
+                        modifier = Modifier.clickable { showArchived = !showArchived },
+                        headlineContent = { Text(stringResource(Res.string.roster_archived, archived.size), style = MaterialTheme.typography.titleMedium) },
+                        trailingContent = { Icon(if (showArchived) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null) },
+                    )
+                }
+                if (showArchived) items(archived, key = { it.id }) { member ->
+                    MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, isAdmin, onClick = { selected = member.id })
+                }
             }
         }
     }
@@ -213,6 +214,27 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             onDismiss = { selected = null },
         )
     }
+}
+
+/** A roster row; [moves] are the admin's up/down buttons (only for active members). */
+@Composable
+private fun MemberRow(member: Member, invite: InviteInfo?, isAdmin: Boolean, onClick: () -> Unit, moves: (@Composable () -> Unit)? = null) {
+    ListItem(
+        modifier = Modifier.clickable(enabled = isAdmin, onClick = onClick),
+        // Decorative: the name follows right after it (ITERATION_3 R13).
+        leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
+        headlineContent = {
+            Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
+        },
+        supportingContent = {
+            Column {
+                Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
+                if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
+            }
+        },
+        trailingContent = { if (isAdmin && moves != null) Row { moves() } },
+    )
+    HorizontalDivider()
 }
 
 @Composable

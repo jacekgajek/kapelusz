@@ -57,7 +57,7 @@
     <string name="add_member">Add member</string>
     <string name="member_name">Name</string>
     <string name="not_linked">No app account linked</string>
-    <string name="archived_member">Archived</string>
+    <string name="roster_archived">Archived (%1$d)</string>
     <string name="role_viewer">Viewer</string>
     <string name="role_artist">Artist</string>
     <string name="role_member">Member</string>
