@@ -298,6 +298,18 @@
     <string name="h_add_holding">Zapisano %1$s zebrane przez %2$s w: %3$s</string>
     <string name="h_edit_holding">Edytowano zebrane pieniądze w: %1$s</string>
     <string name="h_remove_holding">Usunięto zebrane pieniądze w: %1$s</string>
+    <string name="h_add_awaited">Zapisano %1$s do zapłaty przez organizatora za: %2$s</string>
+    <string name="h_receive_awaited">Zapisano %1$s otrzymane od organizatora przez: %2$s w: %3$s</string>
+    <string name="organiser">Organizator</string>
+    <string name="awaited_payment">czeka na zapłatę</string>
+    <string name="add_awaited">Dodaj zapłatę od organizatora</string>
+    <string name="receive_awaited">Otrzymano…</string>
+    <string name="receive_awaited_title">Otrzymana zapłata</string>
+    <string name="received_by">Kto otrzymał</string>
+    <string name="receive_awaited_hint">Najwyżej %1$s. Reszta dalej czeka na zapłatę.</string>
+    <string name="total_awaited">w tym jeszcze niezapłacone</string>
+    <string name="share_awaited">Organizator jeszcze nie zapłacił: %1$s</string>
+    <string name="status_awaiting">Czeka na zapłatę</string>
     <string name="h_set_refund">Ustawiono zwrot kosztu %1$s w: %2$s</string>
     <string name="h_defer_refund">Odłożono zwrot kosztu w: %1$s</string>
     <string name="h_set_fund_amount">Ustawiono kwotę do kasy zespołowej na %1$s w: %2$s</string>
@@ -476,7 +488,7 @@
         <item quantity="many">%1$d dni</item>
         <item quantity="other">%1$d dni</item>
     </plurals>
-    <string name="notifications_time">O godzinie</string>
+    <string name="notifications_time">Wysyłaj o godzinie:</string>
     <string name="notifications_transfers">Przelewy zapisane przez innych z moim udziałem</string>
     <string name="calendar_title">Subskrypcja kalendarza</string>
     <string name="calendar_hint">Twoje koncerty ze wszystkich zespołów w Kalendarzu Google (lub innej aplikacji kalendarza), zawsze aktualne. Link jest prywatny: każdy, kto go ma, widzi Twoje koncerty (bez kwot).</string>

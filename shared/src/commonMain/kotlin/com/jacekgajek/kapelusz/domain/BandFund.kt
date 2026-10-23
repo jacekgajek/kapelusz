@@ -11,11 +11,14 @@ import com.jacekgajek.kapelusz.model.sumOfMoney
 /** Band fund ("Kasa zespołowa") totals. */
 object BandFund {
 
-    /** Money the fund actually has: recorded event transfers to/from the fund plus manual entries. */
-    fun balance(band: Band): Money = transferredFromEvents(band) + band.fundEntries.sumOfMoney { it.amount }
+    /**
+     * Money the fund actually has: recorded event transfers to/from the fund, fees paid straight to it (ITERATION_4
+     * §2.2) and manual entries.
+     */
+    fun balance(band: Band): Money = transferredFromEvents(band) + band.events.sumOfMoney(::heldBy) + band.fundEntries.sumOfMoney { it.amount }
 
     /** Fund amounts promised by events whose transfers are not recorded yet. */
-    fun notHandedOver(band: Band): Money = band.events.sumOfMoney { it.fundAmount } - transferredFromEvents(band)
+    fun notHandedOver(band: Band): Money = band.events.sumOfMoney { it.fundAmount - heldBy(it) } - transferredFromEvents(band)
 
     /**
      * The fund may be turned off only when it holds nothing and no event still owes it money or expects money from it.
@@ -24,7 +27,10 @@ object BandFund {
     fun canDisable(band: Band): Boolean = balance(band).isZero && band.events.all { isHandedOver(it) }
 
     /** The event's fund amount has been transferred to (or, if negative, from) the fund in full. */
-    fun isHandedOver(event: Event): Boolean = transferred(event.transfers) == event.fundAmount
+    fun isHandedOver(event: Event): Boolean = transferred(event.transfers) + heldBy(event) == event.fundAmount
+
+    /** A fee paid straight to the band's account: the fund collected it for the event (ITERATION_4 §2.2). */
+    private fun heldBy(event: Event): Money = event.holdings.filter { it.partyId == BAND_FUND }.sumOfMoney { it.amount }
 
     private fun transferred(transfers: List<Transfer>): Money = transfers.map {
         when (BAND_FUND) {

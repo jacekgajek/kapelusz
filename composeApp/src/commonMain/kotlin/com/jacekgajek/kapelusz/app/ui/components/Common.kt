@@ -63,6 +63,7 @@ import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.settle_part_hint
 import com.jacekgajek.kapelusz.app.generated.settle_part_title
 import com.jacekgajek.kapelusz.app.generated.status_archived
+import com.jacekgajek.kapelusz.app.generated.status_awaiting
 import com.jacekgajek.kapelusz.app.generated.status_draft
 import com.jacekgajek.kapelusz.app.generated.status_loss
 import com.jacekgajek.kapelusz.app.generated.status_open
@@ -143,6 +144,7 @@ fun StatusChip(status: EventStatus, archived: Boolean = false) {
         status == EventStatus.DRAFT -> Res.string.status_draft to MaterialTheme.colorScheme.surfaceVariant
         status == EventStatus.OPEN -> Res.string.status_open to MaterialTheme.colorScheme.tertiaryContainer
         status == EventStatus.SETTLED -> Res.string.status_settled to MaterialTheme.colorScheme.secondaryContainer
+        status == EventStatus.AWAITING -> Res.string.status_awaiting to MaterialTheme.colorScheme.tertiaryContainer
         else -> Res.string.status_loss to MaterialTheme.colorScheme.errorContainer
     }
     // A label, not a button: an AssistChip would be announced (and focusable) as something to tap.

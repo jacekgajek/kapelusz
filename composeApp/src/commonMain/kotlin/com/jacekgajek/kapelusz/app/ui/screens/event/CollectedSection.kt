@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,12 +25,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.add_awaited
 import com.jacekgajek.kapelusz.app.generated.add_money
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.attachment_hint_holding
+import com.jacekgajek.kapelusz.app.generated.awaited_payment
+import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.collected_empty
 import com.jacekgajek.kapelusz.app.generated.collected_money
@@ -38,6 +43,11 @@ import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_entry_title
 import com.jacekgajek.kapelusz.app.generated.delete_files_too
 import com.jacekgajek.kapelusz.app.generated.note_optional
+import com.jacekgajek.kapelusz.app.generated.organiser
+import com.jacekgajek.kapelusz.app.generated.receive_awaited
+import com.jacekgajek.kapelusz.app.generated.receive_awaited_hint
+import com.jacekgajek.kapelusz.app.generated.receive_awaited_title
+import com.jacekgajek.kapelusz.app.generated.received_by
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
@@ -50,14 +60,17 @@ import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.Change
+import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.UpdateHolding
 import org.jetbrains.compose.resources.stringResource
@@ -68,7 +81,11 @@ fun CollectedSection(context: EventContext) {
     val event = context.event
     var editing by remember { mutableStateOf<Holding?>(null) }
     var adding by remember { mutableStateOf(false) }
+    var addingAwaited by remember { mutableStateOf(false) }
+    var receiving by remember { mutableStateOf<Holding?>(null) }
     val allowedParties = context.can.holdingParties(event)
+    val receiveParties = context.can.receiveParties(event)
+    val organiser = stringResource(Res.string.organiser)
 
     SectionTitle(stringResource(Res.string.collected_money))
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
@@ -78,14 +95,19 @@ fun CollectedSection(context: EventContext) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(partyName(context.band, event, holding.partyId, ""))
+                Text(if (holding.awaited) organiser else partyName(context.band, event, holding.partyId, ""))
                 Text(
-                    listOfNotNull(holding.source.label(), holding.note).joinToString(" · "),
+                    listOfNotNull(holding.source.label(), holding.note, stringResource(Res.string.awaited_payment).takeIf { holding.awaited }).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
+                    color = if (holding.awaited) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                 )
             }
             MoneyText(holding.amount, context.currency)
             if (context.can.editHolding(event, holding)) EditButton { editing = holding }
+        }
+        // A fee the organiser still owes (ITERATION_4 §2.2): when it comes, whoever got it takes it over.
+        if (holding.awaited && receiveParties.isNotEmpty()) {
+            TextButton(onClick = { receiving = holding }) { Text(stringResource(Res.string.receive_awaited)) }
         }
         // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
         if (holding.attachments.isNotEmpty()) {
@@ -98,6 +120,17 @@ fun CollectedSection(context: EventContext) {
     if (allowedParties.isNotEmpty()) TextButton(onClick = { adding = true }) {
         Icon(Icons.Default.Add, null)
         Text(stringResource(Res.string.add_money), Modifier.padding(start = 8.dp))
+    }
+    if (context.can.recordAwaited(event)) TextButton(onClick = { addingAwaited = true }) {
+        Icon(Icons.Default.Schedule, null)
+        Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
+    }
+    if (addingAwaited) HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = { addingAwaited = false })
+    receiving?.let { holding ->
+        // Received meanwhile (e.g. on another phone): nothing left to receive.
+        val current = event.holdings.firstOrNull { it.id == holding.id }
+        if (current == null || receiveParties.isEmpty()) LaunchedEffect(Unit) { receiving = null }
+        else ReceiveDialog(context, current, receiveParties, onDismiss = { receiving = null })
     }
 
     if (adding) {
@@ -115,7 +148,7 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
     val lang = language
     var partyId by remember { mutableStateOf(defaultParty) }
     var amount by remember { mutableStateOf(initial?.let { formatMoneyInput(it.amount, lang) } ?: "") }
-    var source by remember { mutableStateOf(initial?.source ?: IncomeSource.DOOR) }
+    var source by remember { mutableStateOf(initial?.source ?: if (defaultParty == ORGANISER) IncomeSource.CONTRACT else IncomeSource.DOOR) }
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
     // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
     var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
@@ -129,7 +162,7 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
         title = { Text(stringResource(Res.string.collected_money)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (initial == null) {
+                if (initial == null && partyId != ORGANISER) {
                     Dropdown(partyId, parties, { partyId = it }, stringResource(Res.string.collected_by)) {
                         partyName(context.band, event, it, "")
                     }
@@ -192,4 +225,32 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
             onDismiss = { confirmDelete = false },
         )
     }
+}
+
+/** "Received…" on an awaited fee (ITERATION_4 §2.2): who got it, and how much of it (all, by default). */
+@Composable
+private fun ReceiveDialog(context: EventContext, awaited: Holding, parties: List<String>, onDismiss: () -> Unit) {
+    val event = context.event
+    val lang = language
+    val fund = stringResource(Res.string.band_fund)
+    var partyId by remember { mutableStateOf(context.me?.id?.takeIf { it in parties } ?: parties.first()) }
+    var amount by remember { mutableStateOf(formatMoneyInput(awaited.amount, lang)) }
+    val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= awaited.amount }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.receive_awaited_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Dropdown(partyId, parties, { partyId = it }, stringResource(Res.string.received_by)) { partyName(context.band, event, it, fund) }
+                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
+                Text(stringResource(Res.string.receive_awaited_hint, formatMoney(awaited.amount, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = parsed != null, onClick = {
+                if (context.actions.run(ReceiveAwaited(event.id, awaited.id, newId(), partyId, parsed!!))) onDismiss()
+            }) { Text(stringResource(Res.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
 }

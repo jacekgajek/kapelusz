@@ -30,6 +30,8 @@ data class SettlementWords(
     /** Instead of "Still to pay" while the event has a problem to sort out first (a loss, no shares, no treasurer). */
     val incomplete: String,
     val footer: String,
+    /** "%1$s" filled with what the organiser still owes (ITERATION_4 §2.2). */
+    val awaited: String = "",
 )
 
 /**
@@ -53,6 +55,7 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
                 },
             ).joinToString(" · "),
         )
+        if (event.awaited.isPositive) add(fill(words.awaited, money(event.awaited)))
         val shares = settlement.lines.filter { it.partyId != BAND_FUND }
         if (shares.isNotEmpty()) add(fill(words.shares, shares.joinToString(", ") { shareText(it, name(it.partyId), ::money, words) }))
         if (event.transfers.isNotEmpty()) {

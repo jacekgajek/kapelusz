@@ -85,7 +85,7 @@ fun SettleScreen(
             (settlement.line(me?.id ?: "")?.delta?.isPositive == true)
     }
     val forLeads = if (me?.role?.atLeast(Role.LEAD) == true) {
-        active.filter { (_, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS }
+        active.filter { (_, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS || s.status == EventStatus.AWAITING }
     } else {
         emptyList()
     }

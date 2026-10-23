@@ -35,6 +35,9 @@ data class Event(
     fun guest(id: Id): Guest? = guests.firstOrNull { it.id == id }
     fun refundOf(costId: Id): Refund? = refunds.firstOrNull { it.costId == costId }
     val income: Money get() = holdings.sumOfMoney { it.amount }
+
+    /** Part of [income] the organiser still owes (ITERATION_4 §2.2). */
+    val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.amount }
 }
 
 @Serializable
@@ -95,7 +98,11 @@ data class Holding(
     val note: String? = null,
     /** E.g. the contract this money was paid under (ITERATION_4 §2.1). */
     val attachments: List<Attachment> = emptyList(),
-)
+    /** Who recorded it; for an awaited fee ([ORGANISER]), the lead reminded to chase it (ITERATION_4 §2.2). */
+    val recordedBy: Id? = null,
+) {
+    val awaited: Boolean get() = partyId == ORGANISER
+}
 
 /** Part of a cost repaid out of this event's income. At most one per cost per event. */
 @Serializable

@@ -80,6 +80,11 @@ object Notifier {
             val fromFund = if (!owed.fromFund) "" else if (pl) " (z kasy zespołowej)" else " (from the band fund)"
             return if (pl) "$amount $to$fromFund" else "$to $amount$fromFund"
         }
+        // A fee the organiser still owes, for the lead who recorded it (ITERATION_4 §2.2).
+        reminder.organiserOwes?.let { fee ->
+            val amount = formatMoney(fee, reminder.currency, lang)
+            return if (pl) "Organizator wciąż nie zapłacił: $amount" to gig else "The organiser still owes $amount" to "for $gig"
+        }
         val single = reminder.owed.singleOrNull()
         return when {
             single != null && pl -> "Do oddania: ${line(single)}" to gig

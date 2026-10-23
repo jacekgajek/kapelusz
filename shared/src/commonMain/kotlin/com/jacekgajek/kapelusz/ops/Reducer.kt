@@ -22,6 +22,7 @@ import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Refund
 import com.jacekgajek.kapelusz.model.Role
@@ -116,10 +117,11 @@ object Reducer {
 
             is AddHolding -> band.updateEvent(op.eventId) { event ->
                 invalidIf(event.holdings.any { it.id == op.holdingId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.holdingId} already exists" }
-                invalidIf(event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
+                // Or the organiser: a fee agreed but not paid yet (ITERATION_4 §2.2).
+                invalidIf(op.partyId != ORGANISER && event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
                 invalidIf(Artists.isArtist(band, op.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
                 validatePositive(op.amount, "Holding amount")
-                event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull()))
+                event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull(), recordedBy = ctx.memberId))
             }
             is UpdateHolding -> band.updateEvent(op.eventId) { event ->
                 event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
@@ -134,6 +136,24 @@ object Reducer {
                         )
                     },
                 )
+            }
+            is ReceiveAwaited -> band.updateEvent(op.eventId) { event ->
+                val awaited = event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
+                invalidIf(!awaited.awaited, RejectionReason.INVALID_INPUT) { "Only an awaited fee can be received" }
+                invalidIf(event.holdings.any { it.id == op.receivedId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.receivedId} already exists" }
+                validatePositive(op.amount, "Received amount")
+                invalidIf(op.amount > awaited.amount, RejectionReason.INVALID_AMOUNT) { "More than is awaited" }
+                if (op.partyId == BAND_FUND) {
+                    invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "The band fund is off" }
+                } else {
+                    invalidIf(event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
+                    invalidIf(Artists.isArtist(band, op.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
+                }
+                val full = op.amount == awaited.amount
+                // Its files (the contract) go with the money once all of it is in.
+                val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), ctx.memberId)
+                val rest = if (full) emptyList() else listOf(awaited.copy(amount = awaited.amount - op.amount))
+                event.copy(holdings = event.holdings.flatMap { if (it.id == awaited.id) rest + received else listOf(it) })
             }
             is RemoveHolding -> band.updateEvent(op.eventId) { event ->
                 event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }

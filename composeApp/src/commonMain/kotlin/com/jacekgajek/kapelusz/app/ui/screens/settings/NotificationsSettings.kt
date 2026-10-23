@@ -47,6 +47,13 @@ internal fun NotificationsSection(permission: NotificationPermission, settings: 
         Text(stringResource(Res.string.notifications_blocked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         TextButton(onClick = { permission.request { granted -> if (!granted) permission.openSettings() } }) { Text(stringResource(Res.string.notifications_allow)) }
     }
+    // First: it applies to every reminder below (gigs, debts, awaited fees), not only to the one it used to follow.
+    if (settings.remindersEnabled || settings.debtReminders) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(Res.string.notifications_time), Modifier.weight(1f))
+            TextButton(onClick = { pickingTime = true }) { Text(formatTime(settings.reminderTime)) }
+        }
+    }
     SwitchRow(stringResource(Res.string.notifications_reminders), settings.remindersEnabled) { on ->
         update { it.copy(remindersEnabled = on, notificationPromptDone = true) }
         if (on && permission.needsAsking) permission.request {}
@@ -68,13 +75,6 @@ internal fun NotificationsSection(permission: NotificationPermission, settings: 
     SwitchRow(stringResource(Res.string.notifications_debts), settings.debtReminders) { on ->
         update { it.copy(debtReminders = on) }
         if (on && permission.needsAsking) permission.request {}
-    }
-    // Debt reminders come at the time of day of gig reminders too.
-    if (settings.remindersEnabled || settings.debtReminders) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(Res.string.notifications_time), Modifier.weight(1f))
-            TextButton(onClick = { pickingTime = true }) { Text(formatTime(settings.reminderTime)) }
-        }
     }
     SwitchRow(stringResource(Res.string.notifications_transfers), settings.transferNotifications) { on -> update { it.copy(transferNotifications = on) } }
     if (pickingTime) {
