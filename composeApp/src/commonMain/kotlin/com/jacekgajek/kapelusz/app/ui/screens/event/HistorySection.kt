@@ -5,6 +5,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.async
 import androidx.compose.runtime.rememberCoroutineScope
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Column
@@ -25,8 +27,6 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
-import com.jacekgajek.kapelusz.app.generated.show_history
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.screens.historyMonth
 import com.jacekgajek.kapelusz.app.ui.screens.toLines
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -39,15 +39,12 @@ private const val MONTHS = 3
 
 /** Changes to this event, newest first; loaded on demand. */
 @Composable
-fun HistorySection(context: EventContext, graph: AppGraph) {
-    var shown by remember(context.event.id) { mutableStateOf(false) }
+fun HistorySection(context: EventContext, graph: AppGraph, section: SectionState) {
     val scope = rememberCoroutineScope()
     val history = remember(context.event.id) { HistoryController(graph, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
-    SectionTitle(stringResource(Res.string.history))
-    if (!shown) {
-        TextButton(onClick = { shown = true }) { Text(stringResource(Res.string.show_history)) }
-        return
-    }
+    // Loaded only when opened: it asks the server.
+    CollapsibleHeader(stringResource(Res.string.history), section)
+    if (!section.expanded) return
     LaunchedEffect(context.event.id, history.reload) {
         history.load {
             // Newest month first; each page is newest first. The first page of each month is enough for one event.

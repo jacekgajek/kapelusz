@@ -35,11 +35,13 @@ import com.jacekgajek.kapelusz.app.generated.refunds
 import com.jacekgajek.kapelusz.app.generated.refunds_empty
 import com.jacekgajek.kapelusz.app.generated.refuse
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.generated.section_waiting_count
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
@@ -49,20 +51,27 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.sumOfMoney
 import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.SetRefund
 import org.jetbrains.compose.resources.stringResource
 
 /** Costs repaid out of this event: included ones, and outstanding costs of participants that could be. */
 @Composable
-fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
+fun RefundsSection(context: EventContext, section: SectionState, onAddCost: () -> Unit) {
     val band = context.band
     val event = context.event
     var editing by remember { mutableStateOf<Cost?>(null) }
     val canEdit = context.can.editRefunds(event)
     val pending = if (canEdit) CostLedger.pendingFromEarlier(band, event) else emptyList()
 
-    SectionTitle(stringResource(Res.string.refunds))
+    // Closed: the total refunded here, and how many costs wait for a lead.
+    val refunded = formatMoney(event.refunds.sumOfMoney { it.amount }, context.currency, language)
+    val waiting = stringResource(Res.string.section_waiting_count, pending.size)
+    CollapsibleHeader(stringResource(Res.string.refunds), section, summary = {
+        Text(listOfNotNull(refunded, waiting.takeIf { pending.isNotEmpty() }).joinToString(" · "), style = MaterialTheme.typography.bodySmall, maxLines = 1)
+    })
+    if (!section.expanded) return
     if (event.refunds.isEmpty() && pending.isEmpty()) {
         Text(stringResource(Res.string.refunds_empty), style = MaterialTheme.typography.bodyMedium)
     }

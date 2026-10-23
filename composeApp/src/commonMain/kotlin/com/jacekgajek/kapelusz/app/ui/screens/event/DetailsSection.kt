@@ -32,11 +32,12 @@ import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.show_all
 import com.jacekgajek.kapelusz.app.generated.show_less
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.generated.details_discard
 import com.jacekgajek.kapelusz.app.generated.details_discard_title
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import org.jetbrains.compose.resources.stringResource
@@ -48,32 +49,37 @@ private const val COLLAPSED_LINES = 6
  * selectable for copying. Stored as the event's notes. Leads and above edit it in a full-screen editor.
  */
 @Composable
-fun DetailsSection(context: EventContext) {
+fun DetailsSection(context: EventContext, section: SectionState) {
     val event = context.event
     val canEdit = context.can.editEvent(event)
     val text = event.notes
     var editing by remember { mutableStateOf(false) }
     var expanded by remember(event.id) { mutableStateOf(false) }
     if (text == null && !canEdit) return
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        SectionTitle(stringResource(Res.string.details), Modifier.weight(1f))
-        if (canEdit && text != null) EditButton { editing = true }
-    }
-    if (text == null) {
-        TextButton(onClick = { editing = true }) { Text(stringResource(Res.string.details_add)) }
-    } else {
-        var overflowing by remember(text) { mutableStateOf(false) }
-        SelectionContainer {
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_LINES,
-                overflow = TextOverflow.Ellipsis,
-                onTextLayout = { if (!expanded) overflowing = it.hasVisualOverflow },
-            )
-        }
-        if (overflowing || expanded) {
-            TextButton(onClick = { expanded = !expanded }) { Text(stringResource(if (expanded) Res.string.show_less else Res.string.show_all)) }
+    CollapsibleHeader(
+        stringResource(Res.string.details),
+        section,
+        // Closed: its first line.
+        summary = text?.let { { Text(it.lineSequence().first(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall) } },
+        actions = { if (canEdit && text != null) EditButton { editing = true } },
+    )
+    when {
+        !section.expanded -> Unit
+        text == null -> TextButton(onClick = { editing = true }) { Text(stringResource(Res.string.details_add)) }
+        else -> {
+            var overflowing by remember(text) { mutableStateOf(false) }
+            SelectionContainer {
+                Text(
+                    text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { if (!expanded) overflowing = it.hasVisualOverflow },
+                )
+            }
+            if (overflowing || expanded) {
+                TextButton(onClick = { expanded = !expanded }) { Text(stringResource(if (expanded) Res.string.show_less else Res.string.show_all)) }
+            }
         }
     }
     if (editing) {

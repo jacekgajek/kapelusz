@@ -51,12 +51,13 @@ import com.jacekgajek.kapelusz.app.generated.received_by
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
@@ -77,7 +78,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** "Where the money sits": who collected how much, from which source. */
 @Composable
-fun CollectedSection(context: EventContext) {
+fun CollectedSection(context: EventContext, section: SectionState) {
     val event = context.event
     var editing by remember { mutableStateOf<Holding?>(null) }
     var adding by remember { mutableStateOf(false) }
@@ -89,7 +90,16 @@ fun CollectedSection(context: EventContext) {
     // A fee paid straight to the band's account is held by the fund.
     val fund = stringResource(Res.string.band_fund)
 
-    SectionTitle(stringResource(Res.string.collected_money))
+    // Closed: the total, and that part of it is still awaited.
+    val awaitedLabel = stringResource(Res.string.awaited_payment)
+    CollapsibleHeader(stringResource(Res.string.collected_money), section, summary = {
+        Text(
+            listOfNotNull(formatMoney(event.income, context.currency, language), awaitedLabel.takeIf { event.awaited.isPositive }).joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+        )
+    })
+    if (!section.expanded) return
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
     event.holdings.forEach { holding ->
         Row(

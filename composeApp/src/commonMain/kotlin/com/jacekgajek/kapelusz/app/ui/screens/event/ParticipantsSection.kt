@@ -40,14 +40,16 @@ import com.jacekgajek.kapelusz.app.generated.guest_name
 import com.jacekgajek.kapelusz.app.generated.hide_shares
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
 import androidx.compose.ui.semantics.Role
 import com.jacekgajek.kapelusz.app.generated.share_weight
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddParticipant
@@ -58,6 +60,7 @@ import com.jacekgajek.kapelusz.app.generated.share_resulting
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.SetFixedShare
@@ -65,7 +68,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ParticipantsSection(context: EventContext) {
+fun ParticipantsSection(context: EventContext, section: SectionState) {
     val band = context.band
     val event = context.event
     val canManage = context.can.manageParticipants(event)
@@ -73,7 +76,9 @@ fun ParticipantsSection(context: EventContext) {
     var showShares by remember { mutableStateOf(event.participants.any { it.weight != DEFAULT_WEIGHT || it.fixedShare != null }) }
     var editingWeight by remember { mutableStateOf<String?>(null) }
 
-    SectionTitle(stringResource(Res.string.participants))
+    // Closed: who plays, as bubbles like in the event list.
+    CollapsibleHeader(stringResource(Res.string.participants), section, summary = { ParticipantBubbles(band, event) })
+    if (!section.expanded) return
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Viewers only watch (they take no part in events).
         band.members.filter { (!it.archived && it.role != com.jacekgajek.kapelusz.model.Role.VIEWER) || event.participant(it.id) != null }.forEach { member ->
@@ -235,5 +240,13 @@ private fun WeightField(text: String, onText: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
         Text(stringResource(Res.string.share_weight_hint), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** Who plays, as overlapping photo/initial bubbles (the event list's row too). */
+@Composable
+fun ParticipantBubbles(band: Band, event: Event, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
+        event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
     }
 }

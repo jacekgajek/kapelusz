@@ -341,7 +341,6 @@
     <string name="h_rename_attachment">Renamed a file to %1$s</string>
     <string name="h_unknown">Made a change</string>
     <string name="history">History</string>
-    <string name="show_history">Show history</string>
     <string name="history_empty">No changes yet.</string>
     <string name="history_unavailable">History needs a connection to the server.</string>
     <string name="previous_month">Previous month</string>
@@ -401,6 +400,9 @@
     <string name="attachment_rename">Rename file</string>
     <string name="attachment_file_name">File name</string>
     <string name="event_files">Files</string>
+    <string name="section_expanded">expanded</string>
+    <string name="section_collapsed">collapsed</string>
+    <string name="section_waiting_count">waiting: %1$d</string>
     <string name="attachment_uploading">uploading</string>
     <string name="attachment_waiting_for_save">attached when you save</string>
     <string name="attachment_not_available">Not available yet: the file has not been uploaded.</string>
@@ -549,4 +551,8 @@
     <string name="reject_limit_reached">The band has reached a limit for this (e.g. too many entries).</string>
     <string name="reject_storage_failed">Could not save it on this device (is the storage full?).</string>
     <string name="loading">Loading…</string>
+    <plurals name="files_count">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
 </resources>

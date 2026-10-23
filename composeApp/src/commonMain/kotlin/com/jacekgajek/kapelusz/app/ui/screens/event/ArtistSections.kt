@@ -33,11 +33,13 @@ import com.jacekgajek.kapelusz.app.generated.artist_to_receive
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
 import com.jacekgajek.kapelusz.app.ui.screens.labelRes
@@ -45,6 +47,7 @@ import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.sumOfMoney
 import org.jetbrains.compose.resources.stringResource
 
 // What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout and their own costs; none
@@ -52,9 +55,10 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Who plays: names only, no weights or shares. */
 @Composable
-fun ArtistLineup(context: EventContext) {
+fun ArtistLineup(context: EventContext, section: SectionState) {
     val event = context.event
-    SectionTitle(stringResource(Res.string.participants))
+    CollapsibleHeader(stringResource(Res.string.participants), section, summary = { ParticipantBubbles(context.band, event) })
+    if (!section.expanded) return
     event.participants.forEach { participant ->
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -66,9 +70,12 @@ fun ArtistLineup(context: EventContext) {
 
 /** What the artist gets from this event (their share and refunds), how much came, how much is still to come; never from whom. */
 @Composable
-fun ArtistPayout(context: EventContext) {
+fun ArtistPayout(context: EventContext, section: SectionState) {
     val line = context.me?.let { context.settlement.line(it.id) } ?: return
-    SectionTitle(stringResource(Res.string.artist_payout))
+    CollapsibleHeader(stringResource(Res.string.artist_payout), section, summary = {
+        Text(formatMoney(line.target, context.currency, language), style = MaterialTheme.typography.bodySmall)
+    })
+    if (!section.expanded) return
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             PayoutRow(stringResource(Res.string.artist_to_receive), line.target, context.currency)
@@ -91,13 +98,16 @@ private fun PayoutRow(label: String, amount: Money, currency: String, bold: Bool
 
 /** The artist's own costs for this event, with their statuses, and adding one. */
 @Composable
-fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: () -> Unit) {
+fun ArtistCosts(context: EventContext, section: SectionState, onOpenCost: (String) -> Unit, onAddCost: () -> Unit) {
     val band = context.band
     val me = context.me ?: return
     val costs = band.costs.filter { it.memberId == me.id && it.eventId == context.event.id }.sortedByDescending { it.date }
     val statuses = remember(band) { CostStatuses(band) }
     var asking by remember { mutableStateOf<Cost?>(null) }
-    SectionTitle(stringResource(Res.string.artist_my_costs))
+    CollapsibleHeader(stringResource(Res.string.artist_my_costs), section, summary = {
+        Text(formatMoney(costs.sumOfMoney { it.amount }, context.currency, language), style = MaterialTheme.typography.bodySmall)
+    })
+    if (!section.expanded) return
     costs.forEach { cost ->
         val status = statuses.status(cost)
         Row(

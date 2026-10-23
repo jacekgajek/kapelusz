@@ -24,10 +24,15 @@ import com.jacekgajek.kapelusz.app.generated.line_payout_share_only
 import com.jacekgajek.kapelusz.app.generated.line_settled
 import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.summary
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
+import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.model.MyNumber
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.model.myNumber
 import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.app.ui.screens.MyNumberText
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
@@ -35,11 +40,29 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import org.jetbrains.compose.resources.stringResource
 
 /** Per party: what they should end up with (share + refunds), what they hold now, and the difference. */
+/**
+ * Settlement (ITERATION_4 §2.4): everyone's share, sharing it as text, and what is still to settle or was recorded, as
+ * one collapsible section. Closed, it says what the user gets or hands over (or the event's status).
+ */
+@Composable
+fun SettlementSection(context: EventContext, section: SectionState, share: @Composable () -> Unit) {
+    val settlement = context.settlement
+    if (settlement.lines.isEmpty() && context.event.transfers.isEmpty()) return
+    val mine = myNumber(context.event, settlement, context.me)
+    CollapsibleHeader(stringResource(Res.string.summary), section, summary = {
+        if (mine == MyNumber.NotParticipating || settlement.status == EventStatus.SETTLED) StatusChip(settlement.status, context.event.archived)
+        else MyNumberText(mine, context.currency)
+    })
+    if (!section.expanded) return
+    SummarySection(context)
+    share()
+    TransfersSection(context)
+}
+
 @Composable
 fun SummarySection(context: EventContext) {
     val lines = context.settlement.lines
     if (lines.isEmpty()) return
-    SectionTitle(stringResource(Res.string.summary))
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             lines.forEach { line -> SummaryRow(context, line) }

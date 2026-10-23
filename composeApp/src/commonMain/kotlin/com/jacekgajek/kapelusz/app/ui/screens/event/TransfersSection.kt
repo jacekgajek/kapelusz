@@ -58,7 +58,7 @@ import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SubsectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
@@ -82,7 +82,7 @@ fun TransfersSection(context: EventContext) {
     var removing by remember { mutableStateOf<Transfer?>(null) }
 
     if (settlement.canSettle && settlement.suggestions.isNotEmpty()) {
-        SectionTitle(stringResource(Res.string.to_settle))
+        SubsectionTitle(stringResource(Res.string.to_settle))
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
@@ -106,7 +106,7 @@ fun TransfersSection(context: EventContext) {
     }
 
     if (event.transfers.isNotEmpty()) {
-        SectionTitle(stringResource(Res.string.recorded_transfers))
+        SubsectionTitle(stringResource(Res.string.recorded_transfers))
         val fundLabel = stringResource(Res.string.band_fund)
         event.transfers.forEach { transfer ->
             Row(

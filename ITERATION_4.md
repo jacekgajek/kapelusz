@@ -182,6 +182,24 @@ Decided 2026-10-23 (grilling).
   losing the new default. Leaving the "there too?" question keeps the default without touching events. Archived
   members have no default to set.
 
+### 2.4 Collapsible event sections (V4-M5)
+
+Decided 2026-10-23 (grilling).
+
+- **Sections:** Details, Files, Participants, Collected money, Cost refunds, **Settlement** (Rozliczenie: shares, Share
+  as text, To settle and recorded transfers, merged into one section) and History. The top (date, place, agenda,
+  Navigate, the totals card) and the problem card always show.
+- **By date:** before the gig (today included) Participants, Details and Files are open, the money (Collected, Cost
+  refunds, Settlement) closed; after it the other way round. History always starts closed.
+- **Needing attention opens it anyway:** Collected money while the organiser still owes a fee, Cost refunds while costs
+  wait for a lead, Settlement when opened from a debt reminder.
+- **Closed, a section says the gist** next to its title: participants as bubbles, the first line of details, the number
+  of files, the collected total (and "awaiting payment"), the refunded total (and how many wait), and the user's number
+  ("you get 450 zł") or the status.
+- **By hand:** tapping a title opens or closes it; that lasts while on the event (rotation, a cost and back); opening
+  the event again starts from the date rule.
+- **Artists:** the same rule for their sections (details, files, who plays before; payout, own costs after).
+
 ## 3. Later
 
 - Server-side privacy for Artists (§1.4).
@@ -240,6 +258,9 @@ Sources (for the figures above; re-check before deciding):
 ### V4-M2 — Files on collected money and events
 - [x] V4-M2.1 Files on collected entries and on events, renaming files (§2.1)
 
+### V4-M5 — Collapsible event sections
+- [x] V4-M5.1 Collapsible sections with date-based defaults, gists when closed, merged Settlement (§2.4)
+
 ### V4-M4 — Default share per member
 - [x] V4-M4.1 Member default share (percent or fixed), used for new participants, optional apply to open events (§2.3)
 
@@ -261,3 +282,4 @@ Sources (for the figures above; re-check before deciding):
 | 2026-10-23 | Awaited fees (no deposits): an "awaiting from the organiser" entry counts in shares; transfers only for money held; "Received…" by a participant or the band fund; status "Awaiting payment", not archivable; reminder to the recording lead at 14/28/42/56 days; never paid = delete the entry. |
 | 2026-10-23 | Default share per member (percent or fixed), Lead+ edit, everyone on the roster sees it; a starting point for events, never changes them by itself; on change, optionally applied to the member's not-settled, not-archived events where they still have the old default. |
 | 2026-10-23 | Viewer fixes: viewers can't be added to events (refused, and not offered); the Settle screen shows only transfers the user may record; viewers see everyone's costs in My costs. |
+| 2026-10-23 | Event screen sections collapsible: before the gig its info open and money closed, after it the reverse; attention opens money sections; Settlement merges shares and To settle; History closed; manual choice lasts while on the event; artists the same. |

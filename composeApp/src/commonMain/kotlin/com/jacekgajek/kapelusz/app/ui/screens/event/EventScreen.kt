@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.attachment_hint_event
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.files_count
 import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
 import com.jacekgajek.kapelusz.app.generated.fund_amount_to_hint
 import com.jacekgajek.kapelusz.app.generated.fund_direction_from
@@ -18,6 +19,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import kotlin.math.abs
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
@@ -49,14 +51,19 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.edit_details
 import com.jacekgajek.kapelusz.app.generated.event_files
@@ -72,12 +79,13 @@ import com.jacekgajek.kapelusz.app.generated.total_refunds
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SectionState
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.agendaLine
+import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.app.generated.navigate
 import androidx.compose.material.icons.filled.Directions
@@ -96,6 +104,7 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
@@ -129,12 +138,15 @@ fun EventScreen(
     val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
     val listState = rememberLazyListState()
-    // Opened from a reminder about an open debt (ITERATION_3 §2.2): straight to To settle.
+    // Sections opened or closed by hand while here (ITERATION_4 §2.4); the rest follow the date (see below).
+    val opened = rememberSaveable(eventId, saver = OpenedSaver) { mutableStateMapOf<String, Boolean>() }
+    // Opened from a reminder about an open debt (ITERATION_3 §2.2): straight to To settle, open.
     val toSettle by graph.pendingToSettle.collectAsState()
     LaunchedEffect(toSettle, event != null) {
         if (toSettle != eventId || event == null) return@LaunchedEffect
         graph.pendingToSettle.value = null
-        listState.scrollToItem(EventSection.TO_SETTLE.ordinal)
+        opened[EventSection.SETTLEMENT.name] = true
+        listState.scrollToItem(EventSection.SETTLEMENT.ordinal)
     }
 
     Scaffold(
@@ -158,6 +170,11 @@ fun EventScreen(
             return@Scaffold
         }
         val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
+        // Before the gig (today included) what it is: who plays, details, files. After it, its money (ITERATION_4 §2.4).
+        // Money that needs a lead opens its section anyway: a fee still owed, costs waiting.
+        val past = event.date < today()
+        val costsWaiting = context.can.editRefunds(event) && CostLedger.pendingFromEarlier(state.band, event).isNotEmpty()
+        fun section(key: String, default: Boolean) = SectionState(opened[key] ?: default) { opened[key] = !(opened[key] ?: default) }
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
                 Modifier.widthIn(max = 720.dp).fillMaxWidth(),
@@ -167,33 +184,39 @@ fun EventScreen(
                 if (artist) {
                     // Artists get no debt reminders, so nothing scrolls by section here.
                     item("header") { Header(context, money = false) }
-                    item("details") { DetailsSection(context) }
-                    item("files") { FilesSection(context) }
-                    item("payout") { ArtistPayout(context) }
-                    item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
-                    item("lineup") { ArtistLineup(context) }
+                    item("details") { DetailsSection(context, section("details", !past)) }
+                    item("files") { FilesSection(context, section("files", !past)) }
+                    item("payout") { ArtistPayout(context, section("payout", past)) }
+                    item("costs") { ArtistCosts(context, section("costs", past), onOpenCost, onAddCost = { onAddCost(eventId) }) }
+                    item("lineup") { ArtistLineup(context, section("lineup", !past)) }
                     return@LazyColumn
                 }
                 // In the order of [EventSection]: its ordinal is the item's index, for scrolling to To settle.
                 item(EventSection.HEADER) { Header(context) }
-                item(EventSection.DETAILS) { DetailsSection(context) }
-                item(EventSection.FILES) { FilesSection(context) }
+                item(EventSection.DETAILS) { DetailsSection(context, section(EventSection.DETAILS.name, !past)) }
+                item(EventSection.FILES) { FilesSection(context, section(EventSection.FILES.name, !past)) }
                 item(EventSection.PROBLEMS) { Problems(context) }
-                item(EventSection.PARTICIPANTS) { ParticipantsSection(context) }
-                item(EventSection.COLLECTED) { CollectedSection(context) }
-                item(EventSection.REFUNDS) { RefundsSection(context, onAddCost = { onAddCost(eventId) }) }
-                item(EventSection.SUMMARY) { SummarySection(context) }
-                item(EventSection.SHARE) { shareSettlement?.let { ShareSettlementButton(it) } }
-                item(EventSection.TO_SETTLE) { TransfersSection(context) }
-                item(EventSection.HISTORY) { HistorySection(context, graph) }
+                item(EventSection.PARTICIPANTS) { ParticipantsSection(context, section(EventSection.PARTICIPANTS.name, !past)) }
+                item(EventSection.COLLECTED) { CollectedSection(context, section(EventSection.COLLECTED.name, past || event.awaited.isPositive)) }
+                item(EventSection.REFUNDS) { RefundsSection(context, section(EventSection.REFUNDS.name, past || costsWaiting), onAddCost = { onAddCost(eventId) }) }
+                item(EventSection.SETTLEMENT) {
+                    SettlementSection(context, section(EventSection.SETTLEMENT.name, past)) { shareSettlement?.let { ShareSettlementButton(it) } }
+                }
+                item(EventSection.HISTORY) { HistorySection(context, graph, section(EventSection.HISTORY.name, false)) }
             }
         }
         if (editing) EditDetailsDialog(state.band, event, actions, onDismiss = { editing = false })
     }
 }
 
-/** The event screen's sections, in list order: a reminder about an open debt scrolls to [TO_SETTLE] by its ordinal. */
-private enum class EventSection { HEADER, DETAILS, FILES, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SUMMARY, SHARE, TO_SETTLE, HISTORY }
+/** The event screen's sections, in list order: a reminder about an open debt scrolls to [SETTLEMENT] by its ordinal. */
+private enum class EventSection { HEADER, DETAILS, FILES, PROBLEMS, PARTICIPANTS, COLLECTED, REFUNDS, SETTLEMENT, HISTORY }
+
+/** Keeps the sections opened or closed by hand across rotation and coming back from a cost. */
+private val OpenedSaver = listSaver<SnapshotStateMap<String, Boolean>, String>(
+    save = { map -> map.flatMap { listOf(it.key, it.value.toString()) } },
+    restore = { list -> mutableStateMapOf<String, Boolean>().apply { list.chunked(2).forEach { (key, value) -> put(key, value.toBoolean()) } } },
+)
 
 /** One list item per section, keyed by it, so the item's index is always the section's ordinal. */
 private fun LazyListScope.item(section: EventSection, content: @Composable () -> Unit) = item(key = section.name) { content() }
@@ -323,11 +346,15 @@ private fun Problems(context: EventContext) {
  * artists too, can open them.
  */
 @Composable
-private fun FilesSection(context: EventContext) {
+private fun FilesSection(context: EventContext, section: SectionState) {
     val event = context.event
     val editable = context.can.editEvent(event)
     if (event.attachments.isEmpty() && !editable) return
-    SectionTitle(stringResource(Res.string.event_files))
+    val count = event.attachments.size
+    CollapsibleHeader(stringResource(Res.string.event_files), section, summary = {
+        Text(pluralStringResource(Res.plurals.files_count, count, count), style = MaterialTheme.typography.bodySmall)
+    })
+    if (!section.expanded) return
     AttachmentsSection(
         context.graph, AttachmentOwner.OfEvent(event.id), event.attachments,
         drafts = emptyList(), onDrafts = {}, editable = editable, actions = context.actions,

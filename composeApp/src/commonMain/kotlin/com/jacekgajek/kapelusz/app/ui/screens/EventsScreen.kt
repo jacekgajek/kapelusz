@@ -37,6 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
+import com.jacekgajek.kapelusz.app.ui.screens.event.ParticipantBubbles
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.selected
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -231,17 +232,16 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 if (showStatus) StatusChip(summary.settlement.status, event.archived)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
-                    event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
-                }
+                ParticipantBubbles(band, event, Modifier.weight(1f))
                 MyNumberText(summary.myNumber, band.currency)
             }
         }
     }
 }
 
+/** What the user gets or hands over in an event ("you get 450 zł"); also the closed settlement section's gist. */
 @Composable
-private fun MyNumberText(number: MyNumber, currency: String) {
+fun MyNumberText(number: MyNumber, currency: String) {
     when (number) {
         is MyNumber.Get -> Text(
             stringResource(Res.string.my_get, formatMoney(number.amount, currency, language)),

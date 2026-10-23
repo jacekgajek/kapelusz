@@ -245,6 +245,12 @@ fun TextInputDialog(title: String, label: String, initial: String, onConfirm: (S
     )
 }
 
+/** A heading inside a section (e.g. "To settle" within Settlement, ITERATION_4 §2.4). */
+@Composable
+fun SubsectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.titleSmall, modifier = modifier.padding(top = 12.dp, bottom = 4.dp).semantics { heading() })
+}
+
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
