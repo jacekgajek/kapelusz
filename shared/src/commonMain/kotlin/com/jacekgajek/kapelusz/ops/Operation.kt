@@ -57,6 +57,13 @@ data class SetMemberArchived(val memberId: Id, val archived: Boolean) : Operatio
 @Serializable @SerialName("DeleteMember")
 data class DeleteMember(val memberId: Id) : Operation
 
+/**
+ * A member's default share (ITERATION_4 §2.3): [weight], or [fixedShare] when set. Also applied, in the same step, to
+ * their share in [events] (chosen by the user: events not settled where they still had the old default).
+ */
+@Serializable @SerialName("SetMemberShare")
+data class SetMemberShare(val memberId: Id, val weight: Int, val fixedShare: Money?, val events: List<Id> = emptyList()) : Operation
+
 @Serializable @SerialName("SetMemberRole")
 data class SetMemberRole(val memberId: Id, val role: Role) : Operation
 
@@ -119,7 +126,7 @@ data class SetEventArchived(override val eventId: Id, val archived: Boolean) : O
 data class DeleteEvent(override val eventId: Id) : Operation
 
 @Serializable @SerialName("AddParticipant")
-data class AddParticipant(override val eventId: Id, val memberId: Id, val weight: Int = DEFAULT_WEIGHT) : Operation
+data class AddParticipant(override val eventId: Id, val memberId: Id, val weight: Int = DEFAULT_WEIGHT, val fixedShare: Money? = null) : Operation
 
 @Serializable @SerialName("AddGuest")
 data class AddGuest(override val eventId: Id, val guestId: Id, val name: String, val weight: Int = DEFAULT_WEIGHT) :

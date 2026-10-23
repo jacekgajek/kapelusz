@@ -132,7 +132,9 @@ fun MyCostsScreen(
     var deleting by remember { mutableStateOf<Cost?>(null) }
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
-    val showAll = isLead && everyone
+    // A viewer sees everything, costs included, and has none of their own to switch to.
+    val viewer = state.me?.role == Role.VIEWER
+    val showAll = viewer || (isLead && everyone)
     val mine = band.costs.filter { showAll || it.memberId == state.me?.id }.sortedByDescending { it.date }
     val statuses = remember(band) { CostStatuses(band) }
     val shown = mine.filter { filter.matches(statuses.status(it)) }

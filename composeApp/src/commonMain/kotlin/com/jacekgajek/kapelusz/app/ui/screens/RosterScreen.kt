@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.clickable
@@ -60,6 +62,7 @@ import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
+import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.change_own_role_confirm
 import com.jacekgajek.kapelusz.app.generated.change_own_role_text
 import com.jacekgajek.kapelusz.app.generated.change_own_role_title
@@ -76,6 +79,14 @@ import com.jacekgajek.kapelusz.app.generated.link_copied
 import com.jacekgajek.kapelusz.app.generated.make_owner
 import com.jacekgajek.kapelusz.app.generated.make_owner_confirm
 import com.jacekgajek.kapelusz.app.generated.member_name
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_no
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_text
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_title
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_yes
+import com.jacekgajek.kapelusz.app.generated.member_share_fixed
+import com.jacekgajek.kapelusz.app.generated.member_share_hint
+import com.jacekgajek.kapelusz.app.generated.member_share_line
+import com.jacekgajek.kapelusz.app.generated.member_share_title
 import com.jacekgajek.kapelusz.app.generated.menu_roster
 import com.jacekgajek.kapelusz.app.generated.move_down
 import com.jacekgajek.kapelusz.app.generated.move_up
@@ -102,17 +113,23 @@ import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.RenameMember
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
+import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import kotlinx.coroutines.launch
@@ -145,6 +162,12 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     // Archived members below, in a section of their own: bands that change players collect many of them.
     val (archived, active) = band.members.partition { it.archived }
     var showArchived by rememberSaveable { mutableStateOf(false) }
+    // Leads set default shares (ITERATION_4 §2.3); admins also manage the rest of a member in their dialog.
+    val canShare = can.setMemberShare()
+    var sharing by remember { mutableStateOf<String?>(null) }
+    val open: (Member) -> (() -> Unit)? = { member ->
+        if (isAdmin) ({ selected = member.id }) else if (canShare && !member.archived) ({ sharing = member.id }) else null
+    }
 
     Scaffold(
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
@@ -165,7 +188,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                 // Moves are by roster position, which counts archived members too: next to the neighbour above or below.
                 val up = active.getOrNull(index - 1)?.let { band.members.indexOf(it) }
                 val down = active.getOrNull(index + 1)?.let { band.members.indexOf(it) }
-                MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, isAdmin, onClick = { selected = member.id }) {
+                val moves: @Composable () -> Unit = {
                     IconButton(onClick = { up?.let { actions.run(MoveMember(member.id, it)) } }, enabled = up != null) {
                         Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + member.name)
                     }
@@ -173,6 +196,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                         Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down) + ": " + member.name)
                     }
                 }
+                MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), moves = moves.takeIf { isAdmin })
             }
             if (archived.isNotEmpty()) {
                 // Collapsed at first: only a count, so a long list of past players doesn't bury the band.
@@ -184,7 +208,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                     )
                 }
                 if (showArchived) items(archived, key = { it.id }) { member ->
-                    MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, isAdmin, onClick = { selected = member.id })
+                    MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member))
                 }
             }
         }
@@ -211,16 +235,75 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             can = can,
             actions = actions,
             onInvitesChanged = reloadInvites,
+            onEditShare = { sharing = member.id }.takeIf { canShare && !member.archived },
             onDismiss = { selected = null },
+        )
+    }
+    sharing?.let { id -> band.member(id) }?.let { member -> MemberShareDialog(band, member, actions, onDismiss = { sharing = null }) }
+}
+
+/** "100%" or "300 zł (fixed)": a member's default share (ITERATION_4 §2.3). */
+@Composable
+private fun shareText(member: Member, currency: String): String =
+    member.shareFixed?.let { stringResource(Res.string.member_share_fixed, formatMoney(it, currency, language)) } ?: "${member.shareWeight}%"
+
+/**
+ * A member's default share (ITERATION_4 §2.3). Saving it offers to use it in their events not settled yet where they
+ * still have the old one; settled and archived events are never changed.
+ */
+@Composable
+private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDismiss: () -> Unit) {
+    val editor = rememberShareEditorState(member.shareWeight, member.shareFixed)
+    var applying by remember { mutableStateOf<Pair<Int, Money?>?>(null) }
+    // Not on every slider step: it settles each event.
+    val stillOld = remember(band, member) { MemberShares.stillDefault(band, member) }
+    fun save(weight: Int, fixed: Money?, events: List<Event>) {
+        if (actions.run(SetMemberShare(member.id, weight, fixed, events.map { it.id }))) onDismiss()
+    }
+    val pending = applying
+    if (pending == null) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("${stringResource(Res.string.member_share_title)}: ${member.name}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ShareEditor(editor, band.currency)
+                    Text(stringResource(Res.string.member_share_hint), style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = editor.valid, onClick = {
+                    // A fixed share keeps the percentage it had, so switching back restores it (as in events).
+                    val fixed = if (editor.fixed) editor.parsedAmount else null
+                    val weight = editor.weight
+                    when {
+                        weight == member.shareWeight && fixed == member.shareFixed -> onDismiss()
+                        stillOld.isEmpty() -> save(weight, fixed, emptyList())
+                        else -> applying = weight to fixed
+                    }
+                }) { Text(stringResource(Res.string.save)) }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+        )
+    } else {
+        val (weight, fixed) = pending
+        val names = stillOld.take(3).joinToString(", ") { it.name } + if (stillOld.size > 3) "…" else ""
+        AlertDialog(
+            // Save was pressed already: leaving the question keeps the new default, without touching events.
+            onDismissRequest = { save(weight, fixed, emptyList()) },
+            title = { Text(stringResource(Res.string.member_share_apply_title)) },
+            text = { Text(stringResource(Res.string.member_share_apply_text, member.name, stillOld.size, names)) },
+            confirmButton = { TextButton(onClick = { save(weight, fixed, stillOld) }) { Text(stringResource(Res.string.member_share_apply_yes)) } },
+            dismissButton = { TextButton(onClick = { save(weight, fixed, emptyList()) }) { Text(stringResource(Res.string.member_share_apply_no)) } },
         )
     }
 }
 
 /** A roster row; [moves] are the admin's up/down buttons (only for active members). */
 @Composable
-private fun MemberRow(member: Member, invite: InviteInfo?, isAdmin: Boolean, onClick: () -> Unit, moves: (@Composable () -> Unit)? = null) {
+private fun MemberRow(member: Member, invite: InviteInfo?, currency: String, onClick: (() -> Unit)?, moves: (@Composable () -> Unit)? = null) {
     ListItem(
-        modifier = Modifier.clickable(enabled = isAdmin, onClick = onClick),
+        modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
         // Decorative: the name follows right after it (ITERATION_3 R13).
         leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
         headlineContent = {
@@ -230,9 +313,10 @@ private fun MemberRow(member: Member, invite: InviteInfo?, isAdmin: Boolean, onC
             Column {
                 Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
                 if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
+                Text(stringResource(Res.string.member_share_line, shareText(member, currency)))
             }
         },
-        trailingContent = { if (isAdmin && moves != null) Row { moves() } },
+        trailingContent = { if (moves != null) Row { moves() } },
     )
     HorizontalDivider()
 }
@@ -254,6 +338,8 @@ private fun MemberDialog(
     can: Can,
     actions: Actions,
     onInvitesChanged: () -> Unit,
+    /** Opens the default share (ITERATION_4 §2.3); null for those who may not change it. */
+    onEditShare: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -287,6 +373,10 @@ private fun MemberDialog(
                     TextButton(enabled = name.isNotBlank() && name.trim() != member.name, onClick = { actions.run(RenameMember(member.id, name)) }) {
                         Text(stringResource(Res.string.save))
                     }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(Res.string.member_share_line, shareText(member, band.currency)), Modifier.weight(1f))
+                    if (onEditShare != null) EditButton(onEditShare)
                 }
                 // Without an account the role only takes effect when they join, which the invite's role decides.
                 if (!isOwner && member.userId != null) {

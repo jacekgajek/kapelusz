@@ -66,6 +66,7 @@ object Limits {
                 if (after.events.any { event -> event.guest(member.id) != null }) return invalid("Id ${member.id} is a guest's")
             }
             if (was?.name != member.name) text(member.name, MAX_NAME, "Member name")?.let { return it }
+            member.shareFixed?.let { fixed -> if (was?.shareFixed != fixed) amount(fixed, "Fixed share")?.let { return it } }
         }
         return null
     }

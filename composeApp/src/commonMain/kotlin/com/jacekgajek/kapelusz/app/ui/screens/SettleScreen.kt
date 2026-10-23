@@ -49,6 +49,7 @@ import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.partyName
@@ -77,8 +78,10 @@ fun SettleScreen(
 
     val active = band.events.filter { !it.archived }.sortedByDescending { it.date }.map { it to SettlementCalculator.settle(band, it) }
     val myParties = setOfNotNull(me?.id, BAND_FUND.takeIf { me != null && band.treasurerMemberId == me.id })
+    val can = Can(band, state.userId)
+    // Only transfers the user may record (a viewer may not, e.g. one added to an event before that was refused).
     val mine = active.mapNotNull { (event, settlement) ->
-        val suggestions = settlement.suggestions.filter { it.from in myParties || it.to in myParties }
+        val suggestions = settlement.suggestions.filter { (it.from in myParties || it.to in myParties) && can.recordTransfer(event, it.from, it.to) }
         if (settlement.canSettle && suggestions.isNotEmpty()) Triple(event, settlement, suggestions) else null
     }
     val holding = active.filter { (event, settlement) ->

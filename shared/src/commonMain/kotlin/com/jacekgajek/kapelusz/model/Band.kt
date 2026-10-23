@@ -44,7 +44,13 @@ data class Member(
      * operation, not in the history, and ignored by undo.
      */
     val pictureUrl: String? = null,
-)
+    /** Where their share starts in a new event (ITERATION_4 §2.3): a percentage weight, or [shareFixed] when set. */
+    val shareWeight: Int = DEFAULT_WEIGHT,
+    val shareFixed: Money? = null,
+) {
+    /** A participant with this member's default share. */
+    fun asParticipant(addedBy: Id? = null) = Participant(id, shareWeight, addedBy, shareFixed)
+}
 
 /** Full state of one band; stored as `bands/{id}/state.json`. */
 @Serializable
