@@ -132,8 +132,6 @@
     <string name="pending_from_earlier">Waiting</string>
     <string name="include">Include</string>
     <string name="refuse">Refuse</string>
-    <string name="refuse_title">Refuse this cost?</string>
-    <string name="refuse_text">%1$s from %2$s won’t be refunded. Only they can send it again.</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>

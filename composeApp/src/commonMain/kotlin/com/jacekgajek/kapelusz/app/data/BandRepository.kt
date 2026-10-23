@@ -217,11 +217,11 @@ class BandRepository(
         }
     }
 
-    /** Lets the held operation [opId] sync. */
-    fun release(bandId: Id, opId: Id) {
+    /** Lets the held operations [opIds] sync; also called for what is about to be sent, so it is never withdrawn. */
+    fun release(bandId: Id, vararg opIds: Id) {
         val local = locals[bandId] ?: return
-        if (opId !in local.holds) return
-        locals[bandId] = local.copy(holds = local.holds - opId)
+        if (opIds.none { it in local.holds }) return
+        locals[bandId] = local.copy(holds = local.holds - opIds.toSet())
         persist(bandId)
     }
 
@@ -292,7 +292,7 @@ class BandRepository(
         val local = locals[bandId] ?: return emptyList()
         keepUnsent(bandId, local)
         val backedUp = local.pending.map { it.opId }.toSet()
-        rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }) }
+        rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }, holds = band.holds - backedUp) }
         return local.pending
     }
 

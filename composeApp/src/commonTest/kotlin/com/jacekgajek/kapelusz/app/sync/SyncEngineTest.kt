@@ -331,6 +331,30 @@ class SyncEngineTest {
         assertTrue(repository.local(bandId)!!.holds.isEmpty(), "holds of sent changes are dropped")
     }
 
+    /** ITERATION_5 §2: once sent, a change is never taken back by an Undo, even if the clock then goes back. */
+    @Test
+    fun aSentChangeCannotBeWithdrawnWhenTheClockGoesBack() = runTest {
+        val server = FakeServer()
+        var now = 1_000L
+        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" }, clock = { now })
+        val sync = SyncEngine(ApiClient(server.client, "https://api.test") { "alice:0" }, repository, this, clock = { now })
+        repository.load("alice")
+        repository.createBand("Night Owls", "PLN", "Alice")
+        val bandId = repository.currentBandId!!
+        assertTrue(sync.syncNow())
+
+        server.offline = true
+        repository.dispatch(RenameBand("Sent"), holdFor = 15_000)
+        val sent = repository.lastOpId!!
+        now += 15_000 // its hold ran out (e.g. the snackbar's timer lagged), so a push takes it
+        assertFalse(sync.syncNow())
+        now -= 15_000 // the clock is set back: by time alone it would look held again
+        assertFalse(repository.withdraw(bandId, sent), "it may have reached the server")
+        server.offline = false
+        assertTrue(sync.syncNow())
+        assertEquals("Sent", server.bands.getValue(bandId).name)
+    }
+
     /** ITERATION_3 R9: a band the list no longer shows is asked for, and dropped when it is gone, though it is not open. */
     @Test
     fun aBandRemovedWhileAnotherIsOpenIsFoundFromTheList() = runTest {

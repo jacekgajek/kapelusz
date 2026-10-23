@@ -132,8 +132,6 @@
     <string name="pending_from_earlier">Oczekujące</string>
     <string name="include">Uwzględnij</string>
     <string name="refuse">Odrzuć</string>
-    <string name="refuse_title">Odrzucić ten koszt?</string>
-    <string name="refuse_text">%1$s od: %2$s nie zostanie zwrócone. Tylko ta osoba może zgłosić to ponownie.</string>
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
     <string name="summary">Rozliczenie</string>

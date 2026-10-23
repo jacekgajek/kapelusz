@@ -293,6 +293,8 @@ class SyncEngine(
             val current = bands.local(bandId) ?: return
             val batch = batchOf(current.pending, current.holds, clock())
             if (batch.isEmpty()) return
+            // Sent, so no longer taken back by an Undo, whatever the clock says (a hold may only have expired).
+            bands.release(bandId, *batch.map { it.opId }.toTypedArray())
             // Ops added since the last check (a big push goes in batches) must be on disk too (V5-M1 A9a).
             storedOrStop()
             val response = try {

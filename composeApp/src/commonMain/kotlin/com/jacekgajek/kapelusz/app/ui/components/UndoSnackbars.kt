@@ -17,6 +17,10 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalAccessibilityManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -39,6 +43,9 @@ class UndoItem(val message: String, val undo: () -> Unit, val gone: () -> Unit)
 @Stable
 class UndoStack {
     val items = mutableStateListOf<UndoItem>()
+
+    /** How long each snackbar shows: [UNDO_TIME], or longer if the user's accessibility settings ask for it. */
+    var timeout: Long = UNDO_TIME
 
     fun add(item: UndoItem) {
         items += item
@@ -65,6 +72,10 @@ class UndoStack {
 fun UndoSnackbars(stack: UndoStack) {
     val undoLabel = stringResource(Res.string.undo)
     val closeLabel = stringResource(Res.string.close)
+    // The user's "time to take action" (Android accessibility), as Material's own snackbars do.
+    stack.timeout = LocalAccessibilityManager.current
+        ?.calculateRecommendedTimeoutMillis(UNDO_TIME, containsIcons = true, containsText = true, containsControls = true)
+        ?: UNDO_TIME
     // Leaving the screen, or the app, ends every hold: Undo is offered only while it can be seen.
     DisposableEffect(stack) { onDispose { stack.dismissAll() } }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { stack.dismissAll() }
@@ -72,11 +83,12 @@ fun UndoSnackbars(stack: UndoStack) {
         stack.items.forEach { item ->
             key(item) {
                 LaunchedEffect(item) {
-                    delay(UNDO_TIME)
+                    delay(stack.timeout)
                     stack.dismiss(item)
                 }
                 Snackbar(
-                    modifier = Modifier.padding(horizontal = 12.dp),
+                    // Read out when it appears, as Material's snackbar host does.
+                    modifier = Modifier.padding(horizontal = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     action = { TextButton(onClick = { stack.undo(item) }) { Text(undoLabel) } },
                     dismissAction = { IconButton(onClick = { stack.dismiss(item) }) { Icon(Icons.Default.Close, closeLabel) } },
                 ) { Text(item.message) }

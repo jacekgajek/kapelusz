@@ -263,7 +263,12 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /** Takes a held operation back; false when it may already be on its way (then only the history can undo it). */
-    fun withdraw(held: HeldOp): Boolean = bands.withdraw(held.bandId, held.opId)
+    fun withdraw(held: HeldOp): Boolean {
+        if (!bands.withdraw(held.bandId, held.opId)) return false
+        // What was queued behind it waited for it, and goes now.
+        sync.requestSync()
+        return true
+    }
 }
 
 /** An operation held back from syncing while its Undo snackbar shows. */

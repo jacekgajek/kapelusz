@@ -115,7 +115,7 @@ class Actions(
     fun runWithUndo(op: Operation, message: String): Boolean {
         val stack = undos ?: return run(op)
         return show(
-            graph.dispatchHeld(op, HOLD_TIME) { held ->
+            graph.dispatchHeld(op, stack.timeout + HOLD_MARGIN) { held ->
                 val undo = {
                     // Its hold ran out first (e.g. the device slept): it may be on its way, so only the history can undo it.
                     if (!graph.withdraw(held)) {
@@ -129,8 +129,11 @@ class Actions(
     }
 
     companion object {
-        /** Longer than the snackbar shows: the snackbar ends the hold itself; this is for when the app is closed. */
-        const val HOLD_TIME = UNDO_TIME + 5_000L
+        /**
+         * A hold lasts this much longer than its snackbar shows: the snackbar ends the hold itself; the hold's own end
+         * is for when the app is closed meanwhile.
+         */
+        const val HOLD_MARGIN = 5_000L
     }
 }
 

@@ -100,7 +100,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
                 Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (context.can.refuseCost() && outstanding == cost.amount) {
                         // One tap, with Undo in the snackbar (ITERATION_5 §2): it sends the cost back, it takes no money.
-                        val refused = stringResource(Res.string.cost_refused, band.member(cost.memberId)?.name.orEmpty(), formatMoney(cost.amount, context.currency, language))
+                        val refused = stringResource(Res.string.cost_refused, band.member(cost.memberId)?.name ?: "?", formatMoney(cost.amount, context.currency, language))
                         TextButton(onClick = { context.actions.runWithUndo(RefuseCost(cost.id), refused) }) {
                             Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error)
                         }
@@ -121,7 +121,6 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit) {
     }
 
     editing?.let { cost -> RefundDialog(context, cost, onDismiss = { editing = null }) }
-    // Refusing is final for leads (only its owner can send it again): asked first, next to Include (V5-M1 C7).
 }
 
 @Composable
