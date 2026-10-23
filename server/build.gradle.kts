@@ -16,6 +16,10 @@ dependencies {
         exclude(group = "software.amazon.awssdk", module = "apache-client")
         exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
     }
+    implementation(libs.aws.dynamodb) {
+        exclude(group = "software.amazon.awssdk", module = "apache-client")
+        exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
+    }
     implementation(libs.aws.url.connection.client)
     implementation(libs.nimbus.jose.jwt)
     // The CRaC API: Handler primes the Lambda before its SnapStart snapshot is taken.

@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
@@ -42,7 +43,8 @@ class HistoryAndUndoTest {
     private val store = InMemoryBlobStore()
     /** In 2026-09; every push one millisecond later, so the log's order is the order of the pushes. */
     private var now = 1_790_000_000_000
-    private val api = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { now })
+    private val history = InMemoryHistoryStore()
+    private val api = Api(store, history, { token -> VerifiedUser(token, null, null) }, clock = { now })
     private var seq = 0L
 
     private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap(), api: Api = this.api) =
@@ -93,9 +95,13 @@ class HistoryAndUndoTest {
     private fun seed(month: String, at: Long, chars: Int = 100, changes: Map<String, BandChange> = emptyMap(), bandId: String = "band1"): String {
         val name = "$month/$at-${UUID.randomUUID()}.json"
         val entry = HistoryEntry("alice", "m-alice", at, listOf(OpEnvelope("seeded$at", "alice/phone", at, at, RenameBand("x".repeat(chars)))), changes)
-        store.put(StorageKeys.logEntry(bandId, name), KapeluszJson.encodeToString(HistoryEntry.serializer(), entry))
+        record(bandId, name, KapeluszJson.encodeToString(HistoryEntry.serializer(), entry))
         return name
     }
+
+    /** Stores [content] as the only operation of the push [name], the way the server records one. */
+    private fun record(bandId: String, name: String, vararg content: String) =
+        history.put(bandId, content.mapIndexed { index, it -> HistoryRecord("$name#${index.toString().padStart(3, '0')}", it) })
 
     private fun undo(entry: String?, undoneOpId: String = "op2") = Undo(undoneOpId, RenameBand("claimed"), BandChange(BandPart(), BandPart()), entry)
 
@@ -178,15 +184,47 @@ class HistoryAndUndoTest {
     }
 
     @Test
-    fun entriesGoneBetweenListingAndReadingAreSkipped() {
+    fun aPushComesBackAsOneEntryAndAnUnreadableOperationLeavesOutOnlyItself() {
         createBand()
-        val (oldest, gone, newest) = (1L..3L).map { seed("2026-08", 1_000_000_000_000 + it) }
-        // Listed, but deleted before it was read (e.g. by a band deleted meanwhile).
-        val vanishing = object : BlobStore by store {
-            override fun get(key: String) = if (key.endsWith(gone)) null else store.get(key)
-        }
-        val api = Api(vanishing, { VerifiedUser(it, null, null) }, clock = { now })
-        assertEquals(listOf(newest, oldest), wholeMonth("2026-08", api).map { it.id })
+        push("alice", RenameBand("One"), RenameBand("Two"), RenameBand("Three"))
+        val entry = log().entries.first()
+        assertEquals(listOf("One", "Two", "Three"), entry.ops.map { (it.op as RenameBand).name }, "in the order pushed")
+        assertEquals(entry.ops.map { it.opId }.toSet(), entry.changes.keys)
+        // The middle operation's record is damaged: the other two still show, and can still be undone.
+        val band = history.bands.getValue("band1")
+        band["${entry.id}#001"] = "{not json"
+        assertEquals(listOf("One", "Three"), log().entries.first().ops.map { (it.op as RenameBand).name })
+        val last = entry.ops.last()
+        assertTrue(push("alice", Undo(last.opId, last.op, BandChange(BandPart(), BandPart()), entry.id)).rejected.isEmpty())
+    }
+
+    @Test
+    fun aRecordTooLargeForTheTableKeepsItsOperationWithoutTheChange() {
+        createBand()
+        val band = Band.create("band1", "Night Owls", "PLN", "m-alice", "Alice", "alice")
+        val handlers = HistoryHandlers(history, { now }, BandAccess(store))
+        val small = OpEnvelope("small", "phone", 1, 0, RenameBand("A"))
+        val large = OpEnvelope("large", "phone", 2, 0, RenameBand("B"))
+        // Under the push's limit together, but one operation's change alone is over what one record takes.
+        val event = Event("e1", "Gig", LocalDate(2026, 9, 1), notes = "n".repeat(HistoryHandlers.MAX_RECORD_BYTES))
+        val changes = mapOf(
+            "small" to BandChange(BandPart(), BandPart()),
+            "large" to BandChange(BandPart(events = mapOf("e1" to null)), BandPart(events = mapOf("e1" to event))),
+        )
+        handlers.append(VerifiedUser("alice", null, null), band, "band1", listOf(small, large), changes)
+        assertTrue(history.bands.getValue("band1").values.all { it.length <= HistoryHandlers.MAX_RECORD_BYTES })
+        val entry = log().entries.single()
+        assertEquals(listOf("small", "large"), entry.ops.map { it.opId }, "both operations are listed")
+        assertEquals(setOf("small"), entry.changes.keys, "only the small one can be undone")
+    }
+
+    @Test
+    fun deletingTheBandDeletesItsHistory() {
+        createBand()
+        push("alice", RenameBand("Gone soon"))
+        assertTrue(history.bands.getValue("band1").isNotEmpty())
+        assertEquals(204, call("DELETE", "/bands/band1", "alice").status)
+        assertTrue(history.bands["band1"].isNullOrEmpty())
     }
 
     // ---- dropped oversize changes ----
@@ -225,17 +263,17 @@ class HistoryAndUndoTest {
         val realEntry = HistoryEntry(real.userId, real.memberId, real.at, real.ops, real.changes)
         // An entry from before changes were recorded, and one listing the operation twice (corrupted).
         val unrecorded = "2026-09/1790000000001-${UUID.randomUUID()}.json"
-        store.put(StorageKeys.logEntry("band1", unrecorded), KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry.copy(changes = emptyMap())))
+        record("band1", unrecorded, KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry.copy(changes = emptyMap())))
         val twice = "2026-09/1790000000002-${UUID.randomUUID()}.json"
-        store.put(StorageKeys.logEntry("band1", twice), KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry.copy(ops = realEntry.ops + realEntry.ops)))
+        KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry).let { record("band1", twice, it, it) }
         // The same entry, but in another band's log: an undo only reads its own band's.
         createBand("band2")
         val elsewhere = "2026-09/1790000000003-${UUID.randomUUID()}.json"
-        store.put(StorageKeys.logEntry("band2", elsewhere), KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry))
+        record("band2", elsewhere, KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry))
 
         // An entry that is not JSON any more: its undo is refused, the history around it stays readable.
         val corrupt = "2026-09/1790000000004-${UUID.randomUUID()}.json"
-        store.put(StorageKeys.logEntry("band1", corrupt), "{not json")
+        record("band1", corrupt, "{not json")
         assertTrue(wholeMonth("2026-09").any { entry -> entry.ops.any { it.opId == "op2" } })
 
         val refused = listOf(

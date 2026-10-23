@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
 
 class DeleteBandTest {
     private val store = InMemoryBlobStore()
-    private val api = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
+    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
 
     private fun call(method: String, path: String, user: String, body: String? = null) =
         api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))

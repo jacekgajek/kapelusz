@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
 class CalendarTest {
     private val store = InMemoryBlobStore()
     // 2026-10-21 12:00 UTC
-    private val api = Api(store, { token -> VerifiedUser(token, null, null) }, clock = { 1_792_584_000_000 })
+    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_792_584_000_000 })
 
     private fun call(method: String, path: String, user: String?, body: String? = null) = api.handle(
         HttpRequest(method, path, listOfNotNull("host" to "api.test", user?.let { "authorization" to "Bearer $it" }).toMap(), body),

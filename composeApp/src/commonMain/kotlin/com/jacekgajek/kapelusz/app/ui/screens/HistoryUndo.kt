@@ -91,7 +91,7 @@ fun UndoDialog(band: Band, undo: Undo, onConfirm: () -> Unit, onDismiss: () -> U
         onDismissRequest = onDismiss,
         // A redo is the undo of an undo; it is asked as redoing the original change.
         text = {
-            val change = describe(baseChange(undo), band)
+            val change = describe(baseChange(undo), band, undo.change)
             Text(if (isRedo(undo)) stringResource(Res.string.redo_confirm, change) else stringResource(Res.string.undo_confirm, change))
         },
         confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(if (isRedo(undo)) Res.string.redo else Res.string.undo)) } },

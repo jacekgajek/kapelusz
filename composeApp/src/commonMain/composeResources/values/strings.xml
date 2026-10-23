@@ -92,6 +92,7 @@
     <string name="save">Save</string>
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
+    <string name="guest_removed">Removed guest %1$s</string>
     <string name="more">More</string>
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>

@@ -66,6 +66,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
+import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Undo
@@ -119,15 +120,20 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * One history line for an operation, e.g. "Recorded 250,00 zł from Dave to Alice at Oakfield Jazz Club". Names come
- * from the band as it is now; things deleted since then show as "?".
+ * from the band as it is now, or else from what the operation [change]d (e.g. a guest it removed); "?" when neither has
+ * them (an entry logged without its changes).
  */
 @Composable
-fun describe(op: Operation, band: Band): String {
+fun describe(op: Operation, band: Band, change: BandChange? = null): String {
     val lang = language
     val fund = stringResource(Res.string.band_fund)
-    fun member(id: Id) = band.member(id)?.name ?: "?"
-    fun event(id: Id) = band.event(id)?.name ?: "?"
-    fun party(eventId: Id, id: Id) = partyName(band, band.event(eventId), id, fund).takeIf { it != id } ?: member(id)
+    val parts = listOfNotNull(change?.before, change?.after)
+    fun member(id: Id) = band.member(id)?.name ?: parts.firstNotNullOfOrNull { it.members[id]?.name } ?: "?"
+    fun event(id: Id) = band.event(id)?.name ?: parts.firstNotNullOfOrNull { it.events[id]?.name } ?: "?"
+    fun party(eventId: Id, id: Id) = partyName(band, band.event(eventId), id, fund).takeIf { it != id }
+        ?: band.member(id)?.name
+        ?: parts.firstNotNullOfOrNull { it.events[eventId]?.guest(id)?.name }
+        ?: member(id)
     fun money(amount: Money) = formatMoney(amount, band.currency, lang)
     return when (op) {
         is RenameBand -> stringResource(Res.string.h_rename_band, op.name)
@@ -177,7 +183,7 @@ fun describe(op: Operation, band: Band): String {
         is SettleSuggestions -> op.partyId?.let { stringResource(Res.string.h_settle_party, party(op.eventId, it), event(op.eventId)) }
             ?: stringResource(Res.string.h_settle_all, event(op.eventId))
         is RemoveTransfer -> stringResource(Res.string.h_remove_transfer, event(op.eventId))
-        is Undo -> describe(baseChange(op), band).let { change ->
+        is Undo -> describe(baseChange(op), band, op.change).let { change ->
             if (isRedo(op)) stringResource(Res.string.h_redo, change) else stringResource(Res.string.h_undo, change)
         }
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))

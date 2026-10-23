@@ -191,7 +191,7 @@ fun HistoryRow(band: Band, line: HistoryLine, undone: Boolean = false, onUndo: (
 private fun HistoryText(band: Band, line: HistoryLine, who: String, time: LocalDateTime, undone: Boolean, modifier: Modifier) {
     Column(modifier.padding(vertical = 6.dp)) {
         Text(
-            line.envelope?.let { describe(it.op, band) } ?: stringResource(Res.string.history_newer_version),
+            line.envelope?.let { describe(it.op, band, line.change) } ?: stringResource(Res.string.history_newer_version),
             style = MaterialTheme.typography.bodyMedium,
             // A change that is currently undone (ITERATION_2 §7.2).
             textDecoration = if (undone) TextDecoration.LineThrough else null,

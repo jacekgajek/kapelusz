@@ -17,7 +17,7 @@ class SessionTest {
     private var now = 1_790_000_000_000
 
     // "Google" accepts any token that looks like a Google one: "google-<sub>", or "google-<sub>@<issued at>".
-    private val api = Api(store, { token ->
+    private val api = Api(store, InMemoryHistoryStore(), { token ->
         token.removePrefix("google-").takeIf { token.startsWith("google-") }?.split('@')?.let { parts ->
             VerifiedUser(parts[0], "${parts[0]}@example.com", parts[0], issuedAt = parts.getOrNull(1)?.toLong())
         }
@@ -134,14 +134,14 @@ class SessionTest {
         val token = session("google-alice").token
         store.put(StorageKeys.user("alice"), "{not json")
         // A fresh instance, which has not read the record yet. (A band of someone else: the check reads no user record.)
-        val other = Api(store, { null }, clock = { now })
+        val other = Api(store, InMemoryHistoryStore(), { null }, clock = { now })
         assertEquals(404, other.handle(HttpRequest("GET", "/bands/nope/state", mapOf("authorization" to "Bearer $token"))).status)
     }
 
     @Test
     fun anotherInstanceLearnsOfTheRevokeWithinAMinute() {
         val token = session("google-alice").token
-        val other = Api(store, { null }, clock = { now })
+        val other = Api(store, InMemoryHistoryStore(), { null }, clock = { now })
         assertEquals(200, other.handle(HttpRequest("GET", "/me", mapOf("authorization" to "Bearer $token"))).status)
         now += 1000
         assertEquals(204, call("POST", "/sessions/revoke", token).status)
