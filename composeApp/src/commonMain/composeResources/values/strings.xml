@@ -97,6 +97,7 @@
     <string name="note_optional">Note (optional)</string>
     <string name="edit_details">Edit details</string>
     <string name="event_not_found">This event no longer exists.</string>
+    <string name="cost_not_found">This cost no longer exists.</string>
     <string name="delete_event_title">Delete event?</string>
     <string name="delete_event_confirm">"%1$s" will be deleted. Its refunds become pending again.</string>
     <string name="delete_files_too">Its files are deleted too: %1$d. This can’t be undone.</string>
@@ -127,6 +128,8 @@
     <string name="pending_from_earlier">Waiting</string>
     <string name="include">Include</string>
     <string name="refuse">Refuse</string>
+    <string name="refuse_title">Refuse this cost?</string>
+    <string name="refuse_text">%1$s from %2$s won’t be refunded. Only they can send it again.</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>
@@ -448,12 +451,12 @@
     <string name="delete_band_confirm">Delete forever</string>
     <string name="delete_band_failed">The band was not deleted. Check your connection and try again.</string>
     <string name="updates_title">App updates</string>
-    <string name="updates_auto">Install updates automatically</string>
+    <string name="updates_auto">Download updates automatically</string>
     <string name="updates_check_now">Check now</string>
     <string name="updates_checking">Checking for updates…</string>
     <string name="updates_up_to_date">Pass the Hat is up to date.</string>
     <string name="updates_downloading">Downloading %1$s…</string>
-    <string name="updates_ready">%1$s is downloaded. It installs when you leave the app.</string>
+    <string name="updates_ready">%1$s is downloaded and ready to install.</string>
     <string name="updates_install_now">Install now</string>
     <string name="updates_needs_permission">To update itself to %1$s, Pass the Hat needs your permission to install apps.</string>
     <string name="updates_allow">Allow</string>
@@ -493,6 +496,7 @@
     </plurals>
     <string name="reminder_prompt_yes">Yes</string>
     <string name="reminder_prompt_not_now">Not now</string>
+    <string name="debt_prompt">You still have money to pass on after %1$s. Remind you every two weeks until it’s settled?</string>
     <string name="notifications_title">Notifications</string>
     <string name="notifications_blocked">Android does not show notifications from Pass the Hat yet.</string>
     <string name="notifications_allow">Allow notifications</string>

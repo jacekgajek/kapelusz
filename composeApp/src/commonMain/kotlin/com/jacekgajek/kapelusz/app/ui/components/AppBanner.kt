@@ -87,6 +87,8 @@ private fun UpdateStrip(controls: UpdateControls, modifier: Modifier) {
     val status by controls.status.collectAsState()
     val (text, button, action) = when (val s = status) {
         is UpdateStatus.NeedsConfirmation -> Triple(stringResource(Res.string.updates_needs_confirmation, s.versionName), Res.string.updates_install, controls::confirm)
+        // Downloaded: installing waits for the user's tap, as it restarts the app (V5-M1 C1′).
+        is UpdateStatus.Ready -> Triple(stringResource(Res.string.updates_needs_confirmation, s.versionName), Res.string.updates_install, controls::installNow)
         is UpdateStatus.NeedsInstallPermission -> Triple(stringResource(Res.string.updates_needs_permission, s.versionName), Res.string.updates_allow, controls::openInstallPermission)
         else -> return
     }

@@ -21,8 +21,11 @@
         <meta-data
             android:name="asset_statements"
             android:resource="@string/asset_statements" />
+        <!-- Compose follows these changes itself (V5-M1): turning the phone, dark mode, split screen or a foldable no
+             longer rebuild the activity, which would close dialogs and reset forms. Language is left to Android. -->
         <activity
             android:name=".android.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>

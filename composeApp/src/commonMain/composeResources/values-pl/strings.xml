@@ -97,6 +97,7 @@
     <string name="note_optional">Notatka (opcjonalnie)</string>
     <string name="edit_details">Edytuj szczegóły</string>
     <string name="event_not_found">To wydarzenie już nie istnieje.</string>
+    <string name="cost_not_found">Ten koszt już nie istnieje.</string>
     <string name="delete_event_title">Usunąć wydarzenie?</string>
     <string name="delete_event_confirm">„%1$s” zostanie usunięte. Jego zwroty kosztów znów będą oczekujące.</string>
     <string name="delete_files_too">Jego pliki też zostaną usunięte: %1$d. Tego nie da się cofnąć.</string>
@@ -127,6 +128,8 @@
     <string name="pending_from_earlier">Oczekujące</string>
     <string name="include">Uwzględnij</string>
     <string name="refuse">Odrzuć</string>
+    <string name="refuse_title">Odrzucić ten koszt?</string>
+    <string name="refuse_text">%1$s od: %2$s nie zostanie zwrócone. Tylko ta osoba może zgłosić to ponownie.</string>
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
     <string name="summary">Rozliczenie</string>
@@ -450,12 +453,12 @@
     <string name="delete_band_confirm">Usuń na zawsze</string>
     <string name="delete_band_failed">Zespół nie został usunięty. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="updates_title">Aktualizacje aplikacji</string>
-    <string name="updates_auto">Instaluj aktualizacje automatycznie</string>
+    <string name="updates_auto">Pobieraj aktualizacje automatycznie</string>
     <string name="updates_check_now">Sprawdź teraz</string>
     <string name="updates_checking">Sprawdzanie aktualizacji…</string>
     <string name="updates_up_to_date">Kapelusz jest aktualny.</string>
     <string name="updates_downloading">Pobieranie %1$s…</string>
-    <string name="updates_ready">Wersja %1$s jest pobrana. Zainstaluje się, gdy opuścisz aplikację.</string>
+    <string name="updates_ready">Wersja %1$s jest pobrana i gotowa do instalacji.</string>
     <string name="updates_install_now">Zainstaluj teraz</string>
     <string name="updates_needs_permission">Aby zaktualizować się do wersji %1$s, Kapelusz potrzebuje zgody na instalowanie aplikacji.</string>
     <string name="updates_allow">Zezwól</string>
@@ -497,6 +500,7 @@
     </plurals>
     <string name="reminder_prompt_yes">Tak</string>
     <string name="reminder_prompt_not_now">Nie teraz</string>
+    <string name="debt_prompt">Po wydarzeniu %1$s masz jeszcze pieniądze do przekazania. Przypominać co dwa tygodnie, aż będzie rozliczone?</string>
     <string name="notifications_title">Powiadomienia</string>
     <string name="notifications_blocked">Android nie pokazuje jeszcze powiadomień z Kapelusza.</string>
     <string name="notifications_allow">Zezwól na powiadomienia</string>

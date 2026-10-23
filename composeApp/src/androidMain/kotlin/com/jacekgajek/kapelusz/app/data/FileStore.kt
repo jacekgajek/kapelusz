@@ -17,11 +17,17 @@ class FileStore(private val directory: File) : KeyValueStore {
         val temp = File.createTempFile(key, ".tmp", directory)
         // On the disk before it replaces the old file (ITERATION_3 R9): after a power loss, an older file coming back
         // would reuse sequence numbers the server has seen, and the next changes would be dropped as duplicates.
-        FileOutputStream(temp).use { out ->
-            out.write(value.toByteArray())
-            out.fd.sync()
+        try {
+            FileOutputStream(temp).use { out ->
+                out.write(value.toByteArray())
+                out.fd.sync()
+            }
+            check(temp.renameTo(file(key))) { "Could not save $key" }
+        } catch (e: Throwable) {
+            // A failed write (e.g. a full device) leaves no temp file behind (V5-M1 D7).
+            temp.delete()
+            throw e
         }
-        check(temp.renameTo(file(key))) { "Could not save $key" }
     }
 
     override suspend fun remove(key: String) {

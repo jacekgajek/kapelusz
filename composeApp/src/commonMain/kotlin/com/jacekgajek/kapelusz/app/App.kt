@@ -11,6 +11,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
@@ -83,9 +84,23 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     val stuck by graph.sync.stuck.collectAsState()
     val session by graph.sessions.session.collectAsState()
     val defaultName = session?.name?.substringBefore(' ').orEmpty()
-    // Opening a band from the first screen must not navigate: the navigation host only exists once a band is open,
-    // and it starts on the event list anyway. Switching from inside a band resets the back stack to the event list.
+    // Opening a band from the first screen must not navigate: the navigation host only exists once a band is open.
+    // Switching from inside a band resets the back stack to the event list.
     var openError by remember { mutableStateOf(false) }
+    // Any other band shown than the last one (also after having none, e.g. access lost, then opening, creating or
+    // joining one) starts on its event list (V5-M1 C2b): the navigation host keeps its back stack meanwhile, and the
+    // old band's screens (an event, a cost) would come back. Not on the app's first band: a web address must survive.
+    val readyBandId = (bandState as? BandState.Ready)?.band?.id
+    var shownBandId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(readyBandId, bandState is BandState.NoBand) {
+        when {
+            bandState is BandState.NoBand -> shownBandId = shownBandId?.let { NO_BAND }
+            readyBandId != null && readyBandId != shownBandId -> {
+                if (shownBandId != null) navController.resetTo(EventsRoute)
+                shownBandId = readyBandId
+            }
+        }
+    }
     var signingInAgain by remember { mutableStateOf(false) }
     val openBand: (bandId: String, resetNavigation: Boolean) -> Unit = { bandId, resetNavigation ->
         scope.launch {
@@ -153,3 +168,6 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
     }
 }
+
+/** [BandContent]'s marker: a band was shown, then none. */
+private const val NO_BAND = "-"

@@ -38,8 +38,6 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         graph.sync.stop()
         Updater.appVisible = false
-        // A downloaded update installs while the app is out of sight (it restarts the app).
-        UpdateWorker.installWhenIdle(this)
         // Reminders follow what was just changed; transfers seen in the app are not notified later.
         BackgroundSyncWorker.refreshLocal(this)
         // Changes not sent yet go out as soon as there is a network, not hours later with the periodic sync.
@@ -81,7 +79,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Only on a real launch: after a rotation Android re-delivers the same intent, which must not reopen a dismissed join.
-        if (savedInstanceState == null) {
+        // Nor when started again from Recents (e.g. after a reboot): that is the task's old intent (V5-M1 D7).
+        val fromRecents = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
+        if (savedInstanceState == null && !fromRecents) {
             takeJoinCode(intent)
             takeEventToOpen(intent)
             takeSharedPlace(intent)

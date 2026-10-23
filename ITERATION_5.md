@@ -340,7 +340,7 @@ Two PRs:
 ### V5-M1 — Fixes from the whole-app review (scope: §1.7)
 - [x] PR 1 — Core: A1, A2, A5b, A5c, A6 (status part; the renewal throttle stays), A8, A9a, A10d, B2, B3a, B3c, B5,
   D1, D2a, D2b; plus the awaited fee's "Paid" / "Welched" buttons (see ITERATION_4 §2.2)
-- [ ] PR 2 — App: manifest configChanges, C1′, C2a+b, C4a, C4c, C4d, C5, C6a, C7 (Tier 1), D3, D4, D7 (Tier 1)
+- [x] PR 2 — App: manifest configChanges, C1′, C2a+b, C4a, C4c, C4d, C5, C6a, C7 (Tier 1), D3, D4, D7 (Tier 1)
 - Later, not scheduled: the rest of Tier 2, Tier 3, Tier 4
 
 ## 3. Decision log

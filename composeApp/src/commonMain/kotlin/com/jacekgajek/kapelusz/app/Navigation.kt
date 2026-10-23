@@ -126,6 +126,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
         navController.navigate(EventRoute(eventId))
     }
     ReminderPrompt(graph, settings)
+    DebtReminderPrompt(graph, settings)
     LaunchedEffect(state.me?.pictureUrl) { graph.sendPictureIfMissing(state.me) }
     SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
     val toSettings = { navController.navigate(SettingsRoute()) }
@@ -190,7 +191,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                         .takeIf { Can(state.band, state.userId).allowed(RenameBand("probe")) },
                     treasurer = state.band.treasurerMemberId,
                     treasurerName = state.band.treasurerMemberId?.let { state.band.member(it)?.name },
-                    treasurerOptions = state.band.members.filter { !it.archived }.map { it.id to it.name },
+                    // Artists hold no money and viewers record no transfers: neither can hold the fund (V5-M1 C6a).
+                    treasurerOptions = state.band.members.filter { !it.archived && it.role != Role.ARTIST && it.role != Role.VIEWER }.map { it.id to it.name },
                     onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
                     onDisableFund = { graph.dispatch(DisableBandFund); Unit }
@@ -234,8 +236,11 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
 private const val SHOW_EVERYONE = "showEveryone"
 
 /** Navigates to [route] and drops everything else from the back stack. */
-internal fun NavHostController.resetTo(route: Any) = navigate(route) {
-    popUpTo(graph.id) { inclusive = true }
+internal fun NavHostController.resetTo(route: Any) {
+    // The tabs' saved back stacks too (V5-M1 C2a): after a band switch, a tab must not bring back an event or a cost
+    // of the band before.
+    Tab.entries.forEach { clearBackStack(it.route) }
+    navigate(route) { popUpTo(graph.id) { inclusive = true } }
 }
 
 /** Bottom navigation on phones, a rail on wide screens; shown only on the tab screens. */

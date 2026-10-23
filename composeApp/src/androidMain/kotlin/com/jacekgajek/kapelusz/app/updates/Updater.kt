@@ -106,24 +106,19 @@ object Updater {
         }
         val (published, apk) = pendingApk(context) ?: return true
         val memory = memory(context)
-        val autoUpdate = withContext(Dispatchers.Main) { AndroidAppGraph.get(context).settingsForBackground().autoUpdate }
-        val step = UpdatePolicy.afterCheck(
-            published.versionCode, published.versionName, installNow, autoUpdate, appVisible, canInstallApps(context), memory, System.currentTimeMillis(),
-        )
+        val step = UpdatePolicy.afterCheck(published.versionCode, published.versionName, installNow, canInstallApps(context), memory, System.currentTimeMillis())
         when (step) {
             UpdateStep.Install -> install(context, published, apk)
-            is UpdateStep.Show -> _status.value = step.status
+            is UpdateStep.Show -> {
+                _status.value = step.status
+                // Downloaded while the app is away: say so once; tapping opens the app, whose strip offers the install.
+                if (step.status is UpdateStatus.Ready && !appVisible && memory.notifiedVersion != published.versionCode) {
+                    context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { notifyReady(context, published.versionName, it) }
+                    remember(context) { it.copy(notifiedVersion = published.versionCode) }
+                }
+            }
         }
         true
-    }
-
-    /** The app is out of sight: install a downloaded update if [UpdatePolicy] allows. */
-    suspend fun installIfReady(context: Context) = lock.withLock {
-        val (published, apk) = pendingApk(context) ?: return@withLock
-        val autoUpdate = withContext(Dispatchers.Main) { AndroidAppGraph.get(context).settingsForBackground().autoUpdate }
-        if (UpdatePolicy.mayInstallAutomatically(published.versionCode, autoUpdate, appVisible, memory(context), System.currentTimeMillis())) {
-            install(context, published, apk)
-        }
     }
 
     /** For buttons: work that must not stop when the screen goes away. */
@@ -280,6 +275,7 @@ object Updater {
             confirmVersion = p.getLong(KEY_CONFIRM, 0).takeIf { it > 0 },
             installingVersion = p.getLong(KEY_INSTALLING, 0).takeIf { it > 0 },
             installingSince = p.getLong(KEY_INSTALLING_SINCE, 0),
+            notifiedVersion = p.getLong(KEY_NOTIFIED, 0).takeIf { it > 0 },
         )
     }
 
@@ -291,6 +287,7 @@ object Updater {
             putLong(KEY_CONFIRM, next.confirmVersion ?: 0)
             putLong(KEY_INSTALLING, next.installingVersion ?: 0)
             putLong(KEY_INSTALLING_SINCE, next.installingSince)
+            putLong(KEY_NOTIFIED, next.notifiedVersion ?: 0)
         }
     }
 
@@ -313,4 +310,5 @@ object Updater {
     private const val KEY_CONFIRM = "confirmVersion"
     private const val KEY_INSTALLING = "installingVersion"
     private const val KEY_INSTALLING_SINCE = "installingSince"
+    private const val KEY_NOTIFIED = "notified"
 }

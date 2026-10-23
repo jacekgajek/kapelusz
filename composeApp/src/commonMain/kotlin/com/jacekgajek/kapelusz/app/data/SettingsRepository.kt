@@ -34,6 +34,8 @@ data class AppSettings(
     val debtReminders: Boolean = true,
     /** The one-time "get a reminder before your gigs?" prompt was answered. */
     val notificationPromptDone: Boolean = false,
+    /** The one-time "remind you of money to pass on?" prompt was answered (V5-M1 D3). */
+    val debtPromptDone: Boolean = false,
     /**
      * Events (`band/event`) last left on the Money tab (ITERATION_4 §2.4); every other event opens on Gig. The most
      * recent last, at most [MAX_MONEY_TAB_EVENTS].

@@ -460,7 +460,8 @@ private fun MemberDialog(
                 if (can.transferOwnership() && member.userId != null && member.role == Role.ADMIN) {
                     OutlinedButton(onClick = { confirmOwner = true }) { Text(stringResource(Res.string.make_owner)) }
                 }
-                if (!isOwner) {
+                // Not yourself: an archived member can do nothing in the band, so you could not undo it (V5-M1 C5).
+                if (!isOwner && !isMe) {
                     OutlinedButton(onClick = { actions.run(SetMemberArchived(member.id, !member.archived)) }) {
                         Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
                     }
