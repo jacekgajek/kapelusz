@@ -34,7 +34,13 @@ data class AppSettings(
     val debtReminders: Boolean = true,
     /** The one-time "get a reminder before your gigs?" prompt was answered. */
     val notificationPromptDone: Boolean = false,
+    /** The event screen's tab last used, on any event (ITERATION_4 §2.4); the gig's own first. */
+    val eventTab: EventTab = EventTab.GIG,
 )
+
+/** The event screen's two pages (ITERATION_4 §2.4): what the gig is, and its money. */
+@Serializable
+enum class EventTab { GIG, MONEY }
 
 class SettingsRepository(private val store: KeyValueStore, private val scope: CoroutineScope) {
     private val _settings = MutableStateFlow(AppSettings())
