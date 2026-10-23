@@ -134,9 +134,10 @@ fun EventScreen(
     val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
     val listState = rememberLazyListState()
-    // Two pages (ITERATION_4 §2.4): the gig, and its money. The last one used, on any event, stays.
-    val tab = graph.settings.settings.collectAsState().value.eventTab
-    fun selectTab(selected: EventTab) = graph.settings.update { it.copy(eventTab = selected) }
+    // Two pages (ITERATION_4 §2.4): the gig, and its money. Each event opens on the one last used there.
+    val bandId = state.band.id
+    val tab = graph.settings.settings.collectAsState().value.eventTab(bandId, eventId)
+    fun selectTab(selected: EventTab) = graph.settings.update { it.withEventTab(bandId, eventId, selected) }
     // Opened from a reminder about an open debt (ITERATION_3 §2.2): the money, straight at To settle.
     val toSettle by graph.pendingToSettle.collectAsState()
     LaunchedEffect(toSettle, event != null) {
@@ -144,7 +145,7 @@ fun EventScreen(
         selectTab(EventTab.MONEY)
         // Once the money page is laid out (every section is one item, shown or not).
         val money = EventSection.on(EventTab.MONEY)
-        graph.settings.settings.first { it.eventTab == EventTab.MONEY }
+        graph.settings.settings.first { it.eventTab(bandId, eventId) == EventTab.MONEY }
         snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it == money.size }
         listState.scrollToItem(money.indexOf(EventSection.TO_SETTLE))
         // Last: clearing it restarts this effect, which would cancel the scroll above.

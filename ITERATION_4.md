@@ -190,7 +190,8 @@ did not look better.
 - **Two tabs** under the event's header (date, place, agenda, Navigate): **"Gig" / "Koncert"** with details, files and
   who plays, and **"Money" / "Pieniądze"** with the totals card, problems, collected money, cost refunds, settlement,
   To settle and history.
-- **Which tab opens:** the last one used, on any event, kept on the device; the first time, Gig. No date rule.
+- **Which tab opens:** the one last used **on that event**, kept on the device; an event not opened yet opens on Gig.
+  No date rule.
 - A debt reminder opens Money at To settle (and so Money stays). The tab switch stays pinned at the top while a page scrolls.
 - **Artists:** the same tabs: Gig with details, files and who plays; Money with their payout and own costs.
 
@@ -276,4 +277,4 @@ Sources (for the figures above; re-check before deciding):
 | 2026-10-23 | Awaited fees (no deposits): an "awaiting from the organiser" entry counts in shares; transfers only for money held; "Received…" by a participant or the band fund; status "Awaiting payment", not archivable; reminder to the recording lead at 14/28/42/56 days; never paid = delete the entry. |
 | 2026-10-23 | Default share per member (percent or fixed), Lead+ edit, everyone on the roster sees it; a starting point for events, never changes them by itself; on change, optionally applied to the member's not-settled, not-archived events where they still have the old default. |
 | 2026-10-23 | Viewer fixes: viewers can't be added to events (refused, and not offered); the Settle screen shows only transfers the user may record; viewers see everyone's costs in My costs. |
-| 2026-10-23 | Event screen decluttered by two tabs, Gig and Money, the last one used kept (no date rule); collapsible sections were tried and dropped. |
+| 2026-10-23 | Event screen decluttered by two tabs, Gig and Money, the last one used kept per event (no date rule); collapsible sections were tried and dropped. |

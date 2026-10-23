@@ -34,9 +34,24 @@ data class AppSettings(
     val debtReminders: Boolean = true,
     /** The one-time "get a reminder before your gigs?" prompt was answered. */
     val notificationPromptDone: Boolean = false,
-    /** The event screen's tab last used, on any event (ITERATION_4 §2.4); the gig's own first. */
-    val eventTab: EventTab = EventTab.GIG,
-)
+    /**
+     * Events (`band/event`) last left on the Money tab (ITERATION_4 §2.4); every other event opens on Gig. The most
+     * recent last, at most [MAX_MONEY_TAB_EVENTS].
+     */
+    val moneyTabEvents: List<String> = emptyList(),
+) {
+    fun eventTab(bandId: String, eventId: String): EventTab = if ("$bandId/$eventId" in moneyTabEvents) EventTab.MONEY else EventTab.GIG
+
+    fun withEventTab(bandId: String, eventId: String, tab: EventTab): AppSettings {
+        val key = "$bandId/$eventId"
+        val others = moneyTabEvents - key
+        return copy(moneyTabEvents = if (tab == EventTab.MONEY) (others + key).takeLast(MAX_MONEY_TAB_EVENTS) else others)
+    }
+
+    companion object {
+        const val MAX_MONEY_TAB_EVENTS = 200
+    }
+}
 
 /** The event screen's two pages (ITERATION_4 §2.4): what the gig is, and its money. */
 @Serializable
