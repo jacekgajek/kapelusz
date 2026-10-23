@@ -44,6 +44,7 @@
     <string name="event_date">Data</string>
     <string name="event_location">Miejsce (opcjonalnie)</string>
     <string name="events_empty">Nie ma jeszcze wydarzeń. Utwórz pierwsze!</string>
+    <string name="events_empty_cannot_create">Nie ma jeszcze wydarzeń.</string>
     <string name="events_empty_artist">Nie ma jeszcze wydarzeń. Lider doda cię do tych, w których grasz.</string>
     <string name="continue_event">Kontynuuj: %1$s · %2$s</string>
     <string name="filter_only_mine">Tylko moje</string>
@@ -143,6 +144,7 @@
     <string name="keep_for_fund">%1$s zatrzymuje %2$s na kasę zespołową</string>
     <string name="hand_over">Przekaż pieniądze</string>
     <string name="hand_over_hint">Zapisz pieniądze przekazane komuś innemu, np. całą zebraną kwotę osobie, która rozliczy resztę.</string>
+    <string name="hand_over_max">Najwyżej tyle, ile ma: %1$s</string>
     <string name="hand_over_from">Od</string>
     <string name="hand_over_to">Do</string>
     <string name="recorded_transfers">Zapisane przekazania</string>
@@ -153,6 +155,7 @@
     <string name="filter_all">Wszystkie</string>
     <string name="cost_status_pending">Oczekuje</string>
     <string name="cost_status_refused">Odrzucony</string>
+    <string name="cost_approved_part">zatwierdzono %1$s</string>
     <string name="cost_status_partly">Częściowo zwrócony</string>
     <string name="cost_status_refunded">Zwrócony</string>
     <string name="costs_empty">Żaden koszt nie pasuje do filtra.</string>

@@ -39,6 +39,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.selected
+import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
@@ -64,6 +65,7 @@ import com.jacekgajek.kapelusz.app.generated.continue_event
 import com.jacekgajek.kapelusz.app.generated.create
 import com.jacekgajek.kapelusz.app.generated.events_empty
 import com.jacekgajek.kapelusz.app.generated.events_empty_artist
+import com.jacekgajek.kapelusz.app.generated.events_empty_cannot_create
 import com.jacekgajek.kapelusz.app.generated.events_filtered_empty
 import com.jacekgajek.kapelusz.app.generated.filter_only_mine
 import com.jacekgajek.kapelusz.app.generated.filter_show_archived
@@ -104,9 +106,10 @@ fun EventsScreen(
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
     var creating by remember { mutableStateOf(false) }
-    // Artists see the events they play, not archived ones, and nothing about the band's money (ITERATION_4 §1.1).
+    // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
+    // (ITERATION_4 §1.1).
     val artist = band.isArtist(state.userId)
-    val summaries = eventSummaries(band, state.me, if (artist) settings.copy(onlyMyEvents = true, showArchived = false) else settings)
+    val summaries = eventSummaries(band, state.me, if (artist) settings.copy(onlyMyEvents = true) else settings)
     val today = today()
     val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(band, today) }
     // One card per event: an open gig tonight is unsettled business, not also "upcoming".
@@ -148,9 +151,10 @@ fun EventsScreen(
                     ) { onOpenEvent(upcoming.id) }
                 }
             }
-            if (!artist) item {
+            item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
+                    // Artists only ever see their own events: no "only mine" to switch.
+                    if (!artist) FilterChip(
                         selected = settings.onlyMyEvents,
                         onClick = { graph.settings.update { it.copy(onlyMyEvents = !it.onlyMyEvents) } },
                         label = { Text(stringResource(Res.string.filter_only_mine)) },
@@ -165,8 +169,12 @@ fun EventsScreen(
             if (summaries.isEmpty()) {
                 // Events hidden by the filters are not "no events": say which it is.
                 val text = when {
+                    // Hidden by the archived filter: say so, as for others.
+                    artist && band.events.any { it.participant(state.me?.id ?: "") != null } -> Res.string.events_filtered_empty
                     artist -> Res.string.events_empty_artist
-                    band.events.isEmpty() -> Res.string.events_empty
+                    // "Create the first one!" only to those who can.
+                    band.events.isEmpty() && Can(band, state.userId).createEvent() -> Res.string.events_empty
+                    band.events.isEmpty() -> Res.string.events_empty_cannot_create
                     else -> Res.string.events_filtered_empty
                 }
                 item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
@@ -234,7 +242,8 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
                     event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
                 }
-                MyNumberText(summary.myNumber, band.currency)
+                // A draft has no money in it yet: nothing to be settled about.
+                if (summary.settlement.status != EventStatus.DRAFT) MyNumberText(summary.myNumber, band.currency)
             }
         }
     }

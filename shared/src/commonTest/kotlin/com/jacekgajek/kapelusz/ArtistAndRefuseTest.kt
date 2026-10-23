@@ -170,13 +170,17 @@ class ArtistAndRefuseTest {
     /** An artist who ends up owing (overpaid, or owing from before) is settled by a lead; they can't do it themselves. */
     @Test
     fun aLeadSettlesWhatAnArtistOwes() {
-        val scenario = gig().apply(AddHolding("gig", "h", "alice", pln("300"), DOOR)).apply(SettleSuggestions("gig"))
+        val scenario = gig().apply(AddHolding("gig", "h", "alice", pln("300"), DOOR))
+            .apply(AddCost("c", "carol", pln("50"), DATE)).apply(SetRefund("gig", "c", pln("50"))).apply(SettleSuggestions("gig"))
         val carol = scenario.userFor("carol", Role.ARTIST)
         val alice = scenario.userFor("alice", Role.OWNER)
-        scenario.apply(RecordTransfer("gig", "over", "alice", "carol", pln("50")), alice)
-        assertEquals(pln("50"), scenario.settle("gig").line("carol")!!.delta, "overpaid: owes 50 back")
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "back", "carol", "alice", pln("50")), carol).reason)
-        scenario.apply(RecordTransfer("gig", "back", "carol", "alice", pln("50")), alice)
+        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "over", "alice", "carol", pln("1")), alice).reason, "never more than owed")
+        // The refund taken back after it was paid: she got too much (less her bigger share now).
+        scenario.apply(SetRefund("gig", "c", pln("0")), alice)
+        val owes = scenario.settle("gig").line("carol")!!.delta
+        assertTrue(owes.isPositive, "overpaid: owes some back")
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "back", "carol", "alice", owes), carol).reason)
+        scenario.apply(RecordTransfer("gig", "back", "carol", "alice", owes), alice).apply(SettleSuggestions("gig"))
         assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
     }
 

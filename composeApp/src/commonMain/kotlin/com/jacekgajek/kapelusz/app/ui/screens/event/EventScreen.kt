@@ -127,9 +127,9 @@ fun EventScreen(
 ) {
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
-    // Artists only open the events they play, not archived ones (ITERATION_4 §1.1).
+    // Artists only open the events they play, archived ones too (ITERATION_4 §1.1).
     val artist = state.band.isArtist(state.userId)
-    val event = state.band.event(eventId)?.takeUnless { artist && (it.archived || state.me?.let { me -> it.participant(me.id) } == null) }
+    val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
     var editing by remember { mutableStateOf(false) }
     val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -178,7 +180,14 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
                     Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    OutlinedButton(onClick = onSignOut) { Text(stringResource(Res.string.sign_out)) }
+                    // Signing out takes a moment (sync stops, data is cleared): a spinner at once, and no second tap. The
+                    // screen goes away when it is done.
+                    var signingOut by remember { mutableStateOf(false) }
+                    OutlinedButton(enabled = !signingOut, onClick = { signingOut = true; onSignOut() }) {
+                        if (signingOut) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        if (signingOut) Spacer(Modifier.width(8.dp))
+                        Text(stringResource(Res.string.sign_out))
+                    }
                 }
                 var signingOutEverywhere by remember { mutableStateOf(false) }
                 TextButton(onClick = { signingOutEverywhere = true }, modifier = Modifier.align(Alignment.End)) {

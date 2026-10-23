@@ -44,6 +44,7 @@
     <string name="event_date">Date</string>
     <string name="event_location">Location (optional)</string>
     <string name="events_empty">No events yet. Create the first one!</string>
+    <string name="events_empty_cannot_create">No events yet.</string>
     <string name="events_empty_artist">No events yet. A lead adds you to the events you play.</string>
     <string name="continue_event">Continue: %1$s · %2$s</string>
     <string name="filter_only_mine">Only my events</string>
@@ -143,6 +144,7 @@
     <string name="keep_for_fund">%1$s keeps %2$s for the band fund</string>
     <string name="hand_over">Hand over money</string>
     <string name="hand_over_hint">Record money given to someone else, e.g. all collected money to the person who pays everyone out.</string>
+    <string name="hand_over_max">Up to what they hold: %1$s</string>
     <string name="hand_over_from">From</string>
     <string name="hand_over_to">To</string>
     <string name="recorded_transfers">Recorded transfers</string>
@@ -153,6 +155,7 @@
     <string name="filter_all">All</string>
     <string name="cost_status_pending">Waiting</string>
     <string name="cost_status_refused">Refused</string>
+    <string name="cost_approved_part">approved %1$s</string>
     <string name="cost_status_partly">Partly refunded</string>
     <string name="cost_status_refunded">Refunded</string>
     <string name="costs_empty">No costs match this filter.</string>

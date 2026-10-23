@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
+import com.jacekgajek.kapelusz.app.generated.cost_approved_part
 import com.jacekgajek.kapelusz.app.generated.cost_status_partly
 import com.jacekgajek.kapelusz.app.generated.cost_status_pending
 import com.jacekgajek.kapelusz.app.generated.cost_status_refunded
@@ -78,8 +79,10 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.CostStatus
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
@@ -93,6 +96,18 @@ fun CostStatus.labelRes(): StringResource = when (this) {
     CostStatus.REFUSED -> Res.string.cost_status_refused
     CostStatus.PARTLY_REFUNDED -> Res.string.cost_status_partly
     CostStatus.REFUNDED -> Res.string.cost_status_refunded
+}
+
+/**
+ * A cost's status as its owner reads it. Part of it approved but not paid yet still waits, with how much was approved:
+ * "Waiting · approved 100 zł" (ITERATION_4 §1.2).
+ */
+@Composable
+fun costStatusText(band: Band, cost: Cost, status: CostStatus): String {
+    val label = stringResource(status.labelRes())
+    val approved = CostLedger.refunded(band, cost.id)
+    if (status != CostStatus.REFUND_PLANNED || approved >= cost.amount) return label
+    return "$label · " + stringResource(Res.string.cost_approved_part, formatMoney(approved, band.currency, language))
 }
 
 /** Coarse refund filter: anything not fully refunded yet counts as pending. */
@@ -212,7 +227,7 @@ fun MyCostsScreen(
                         Column(horizontalAlignment = Alignment.End) {
                             MoneyText(cost.amount, band.currency, bold = true)
                             Text(
-                                stringResource(status.labelRes()),
+                                costStatusText(band, cost, status),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
                             )
