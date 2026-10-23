@@ -47,32 +47,42 @@ internal class HistoryHandlers(
             throw e
         }
         val prefix = prefixes.first()
-        val keys = awaitAll(listings).flatMap { it.asReversed() }
-            .let { all -> if (before == null) all else all.dropWhile { it >= prefix + before } }
-        // At most HISTORY_PAGE entries a month and about HISTORY_PAGE_BYTES (the recorded changes can be large), at least one.
-        val page = mutableListOf<String>()
+        // Newest first within each month; the cursor applies to the one month it pages.
+        val listed = awaitAll(listings).map { it.asReversed() }
+            .mapIndexed { index, keys -> if (index > 0 || before == null) keys else keys.dropWhile { it >= prefix + before } }
+        // Each month gets at most HISTORY_PAGE entries and its share of about HISTORY_PAGE_BYTES (the recorded changes
+        // can be large), at least one entry: a busy month never crowds out the others, and the answer stays small.
+        val budget = Api.HISTORY_PAGE_BYTES / count
+        val bytes = IntArray(count)
+        val taken = IntArray(count)
+        val full = BooleanArray(count)
+        var lastTaken: String? = null
         val entries = mutableListOf<HistoryEntry>()
-        var bytes = 0
         // Read in parallel batches (one at a time, a page of a hundred small files took seconds), stopping at the budget.
-        var full = false
-        for (batch in keys.take(Api.HISTORY_PAGE * count).chunked(LOG_READ_BATCH)) {
-            for ((key, blob) in batch.zip(readAll(batch))) {
+        var remaining = listed.flatMapIndexed { index, keys -> keys.take(Api.HISTORY_PAGE).map { index to it } }
+        while (true) {
+            remaining = remaining.filterNot { (index, _) -> full[index] }
+            val batch = remaining.take(LOG_READ_BATCH).ifEmpty { break }
+            remaining = remaining.drop(batch.size)
+            for ((item, blob) in batch.zip(readAll(batch.map { it.second }))) {
+                val (index, key) = item
+                if (full[index]) continue
                 blob ?: continue
                 val size = blob.content.utf8Size()
-                if (entries.isNotEmpty() && bytes + size > Api.HISTORY_PAGE_BYTES) {
-                    full = true
-                    break
+                if (taken[index] > 0 && bytes[index] + size > budget) {
+                    full[index] = true
+                    continue
                 }
-                bytes += size
-                page += key
+                bytes[index] += size
+                taken[index]++
+                if (index == 0) lastTaken = key
                 // Its name, so an undo can say which entry it means (ITERATION_2 §7.2).
                 // An unreadable entry is skipped, not the whole page: the rest of the history stays readable.
                 val entry = runCatching { decode(HistoryEntry.serializer(), blob.content) }.getOrNull() ?: continue
                 entries += entry.copy(id = key.removePrefix(StorageKeys.log(bandId)))
             }
-            if (full) break
         }
-        val next = if (count == 1 && keys.size > page.size && page.isNotEmpty()) page.last().removePrefix(prefix) else null
+        val next = if (count == 1 && listed[0].size > taken[0]) lastTaken?.removePrefix(prefix) else null
         return ok(HistoryResponse.serializer(), HistoryResponse(selected, entries, next))
     }
 

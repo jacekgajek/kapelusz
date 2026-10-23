@@ -49,36 +49,45 @@ class Handler : RequestStreamHandler {
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context?) {
         val start = System.nanoTime()
         store.reset()
-        val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
+        var line = "?"
+        var status = "-"
+        try {
+            val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
+            // Calendar feed paths and invite codes are secrets: never log them.
+            val path = event.rawPath.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
+            line = "${event.requestContext.http.method} $path"
+            val response = handle(event, path)
+            status = response.status.toString()
+            respond(output, response)
+        } finally {
+            // One line per request: where the time goes (V5 history latency).
+            println("TIMING $line $status ${(System.nanoTime() - start) / 1_000_000}ms ${store.summary()}")
+        }
+    }
+
+    private fun handle(event: ApiGatewayRequest, path: String): HttpResponse {
         val body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it }
         val request = try {
             HttpRequest(
-            method = event.requestContext.http.method,
-            path = event.rawPath,
-            headers = event.headers.mapKeys { it.key.lowercase() },
-            body = body,
-            query = event.rawQueryString.split('&').filter { '=' in it }.associate {
-                val (key, value) = it.split('=', limit = 2)
-                URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
-            },
-        )
+                method = event.requestContext.http.method,
+                path = event.rawPath,
+                headers = event.headers.mapKeys { it.key.lowercase() },
+                body = body,
+                query = event.rawQueryString.split('&').filter { '=' in it }.associate {
+                    val (key, value) = it.split('=', limit = 2)
+                    URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
+                },
+            )
         } catch (e: IllegalArgumentException) {
             // A malformed %-escape in the query string.
-            respond(output, error(400, ApiErrors.BAD_REQUEST, "Malformed query string"))
-            return
+            return error(400, ApiErrors.BAD_REQUEST, "Malformed query string")
         }
-        // Calendar feed paths and invite codes are secrets: never log them.
-        val path = request.path.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
-        val response = try {
+        return try {
             api.handle(request)
         } catch (e: Exception) {
             System.err.println("Unhandled error for ${request.method} $path: ${e.stackTraceToString()}")
             error(500, ApiErrors.INTERNAL, "Internal error")
         }
-        respond(output, response)
-        // One line per request: where the time goes (V5 history latency). The month of a history request is not secret.
-        val month = listOfNotNull(request.query["month"]?.let { "month=$it" }, request.query["months"]?.let { "months=$it" }).joinToString(" ")
-        println("TIMING ${request.method} $path ${response.status} ${(System.nanoTime() - start) / 1_000_000}ms ${store.summary()} $month".trimEnd())
     }
 
     private fun respond(output: OutputStream, response: HttpResponse) {

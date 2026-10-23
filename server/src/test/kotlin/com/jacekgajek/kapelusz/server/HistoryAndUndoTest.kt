@@ -121,6 +121,25 @@ class HistoryAndUndoTest {
     }
 
     @Test
+    fun aBusyMonthDoesNotCrowdOutTheOthers() {
+        createBand()
+        val august = seed("2026-08", 1_000_000_000_000)
+        val september = (1L..Api.HISTORY_PAGE + 1L).map { seed("2026-09", 1_000_000_000_000 + it) }
+        val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "2")).parse(HistoryResponse.serializer())
+        assertEquals(september.reversed().take(Api.HISTORY_PAGE) + august, page.entries.map { it.id }, "at most a page a month")
+    }
+
+    @Test
+    fun aLargeMonthDoesNotUseUpTheOthersBytes() {
+        createBand()
+        val august = seed("2026-08", 1_000_000_000_000, chars = 400_000)
+        val (older, newer) = (1L..2L).map { seed("2026-09", 1_000_000_000_000 + it, chars = 400_000) }
+        val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "3")).parse(HistoryResponse.serializer())
+        // A third of the budget a month: one 400 kB entry each.
+        assertEquals(listOf(newer, august), page.entries.map { it.id }, "$older is over September's share")
+    }
+
+    @Test
     fun aMonthsRangeIsCheckedAndNotPaged() {
         createBand()
         for (months in listOf("0", "4", "x")) {
