@@ -18,6 +18,8 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 data class Blob(val content: String, val etag: String)
 
@@ -141,4 +143,44 @@ class S3BlobStore(
             .region(region())
             .build()
     }
+}
+
+/**
+ * [store] counting its storage calls and their time, for the per-request timing log. One Lambda instance serves one
+ * request at a time, so [reset] at the start of each request is enough; calls made in parallel add up their times.
+ */
+class TimedBlobStore(private val store: BlobStore) : BlobStore by store {
+    private val calls = AtomicInteger()
+    private val nanos = AtomicLong()
+
+    fun reset() {
+        calls.set(0)
+        nanos.set(0)
+    }
+
+    /** E.g. `s3=15 calls/1290ms`. */
+    fun summary(): String = "s3=${calls.get()} calls/${nanos.get() / 1_000_000}ms"
+
+    private fun <T> timed(call: () -> T): T {
+        val start = System.nanoTime()
+        try {
+            return call()
+        } finally {
+            calls.incrementAndGet()
+            nanos.addAndGet(System.nanoTime() - start)
+        }
+    }
+
+    override fun get(key: String): Blob? = timed { store.get(key) }
+
+    override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String =
+        timed { store.put(key, content, ifMatch, ifNoneMatch) }
+
+    override fun delete(key: String) = timed { store.delete(key) }
+
+    override fun deleteAll(keys: List<String>) = timed { store.deleteAll(keys) }
+
+    override fun list(prefix: String): List<String> = timed { store.list(prefix) }
+
+    override fun exists(key: String): Boolean = timed { store.exists(key) }
 }
