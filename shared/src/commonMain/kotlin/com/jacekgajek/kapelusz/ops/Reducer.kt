@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -62,6 +63,26 @@ object Reducer {
                 band.copy(treasurerMemberId = null)
             }
             is TransferOwnership -> transferOwnership(band, op)
+            is InviteToSettleTogether -> {
+                val from = band.member(op.fromMemberId).orNotFound { "Member ${op.fromMemberId}" }
+                val to = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
+                conflictIf(!SettleTogether.mayInvite(band, from, to), RejectionReason.CANNOT_SETTLE_TOGETHER) { "${from.id} cannot invite ${to.id} to settle together" }
+                band.updateMember(from.id) { it.copy(invitedToSettle = to.id) }
+            }
+            is CancelSettleTogether -> band.dropInvite(op.fromMemberId, op.toMemberId)
+            is DeclineSettleTogether -> band.dropInvite(op.fromMemberId, op.toMemberId)
+            is AcceptSettleTogether -> {
+                band.dropInvite(op.fromMemberId, op.toMemberId)
+                    .updateMember(op.fromMemberId) { it.copy(settlesWith = op.toMemberId) }
+                    .updateMember(op.toMemberId) { it.copy(settlesWith = op.fromMemberId) }
+                    // Two artists can't be a pair: someone in it must be able to pass money on (§7).
+                    .also { conflictIf(SettleTogether.tidy(it) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
+            }
+            is StopSettlingTogether -> {
+                conflictIf(band.member(op.memberId)?.settlesWith != op.partnerId, RejectionReason.NOT_FOUND) { "${op.memberId} does not settle with ${op.partnerId}" }
+                SettleTogether.keepSettled(band, op.memberId, op.partnerId)
+                    .updateMember(op.memberId) { it.copy(settlesWith = null) }.updateMember(op.partnerId) { it.copy(settlesWith = null) }
+            }
 
             is CreateEvent -> createEvent(band, op, ctx)
             is UpdateEvent -> band.updateEvent(op.eventId) { event ->
@@ -175,7 +196,7 @@ object Reducer {
                 band.copy(fundEntries = band.fundEntries.filterNot { it.id == op.entryId })
             }
 
-            is RecordTransfer -> band.updateEvent(op.eventId) { event ->
+            is RecordTransfer -> if (op.together) recordTogether(band, op, ctx) else band.updateEvent(op.eventId) { event ->
                 invalidIf(event.transfers.any { it.id == op.transferId }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
                 validateTransferParty(band, event, op.from)
                 validateTransferParty(band, event, op.to)
@@ -231,10 +252,18 @@ object Reducer {
             result.treasurerMemberId == null && band.treasurerMemberId == null && BandFund.canDisable(band) && !BandFund.canDisable(result),
             RejectionReason.NO_TREASURER,
         ) { "Choose a treasurer before using the band fund" }
+        // Archiving, unlinking or a role change can end a pair or an invitation (ITERATION_5 §7); an undo is checked instead.
+        val tidied = if (op is Undo) result else SettleTogether.tidy(result)
         return op.eventId
             ?.takeIf { op !is DeleteEvent }
-            ?.let { eventId -> result.updateEvent(eventId) { it.copy(updatedAt = ctx.timestamp) } }
-            ?: result
+            ?.let { eventId -> tidied.updateEvent(eventId) { it.copy(updatedAt = ctx.timestamp) } }
+            ?: tidied
+    }
+
+    /** An invitation to settle together, answered or taken back. */
+    private fun Band.dropInvite(fromMemberId: Id, toMemberId: Id): Band {
+        conflictIf(member(fromMemberId)?.invitedToSettle != toMemberId, RejectionReason.NOT_FOUND) { "No invitation from $fromMemberId to $toMemberId" }
+        return updateMember(fromMemberId) { it.copy(invitedToSettle = null) }
     }
 
     // ---- roster ----
@@ -510,12 +539,50 @@ object Reducer {
         val settlement = SettlementCalculator.settle(band, event)
         conflictIf(!settlement.canSettle, RejectionReason.CANNOT_SETTLE) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }
         val suggestions = op.partyId?.let { settlement.suggestionsFor(it) } ?: settlement.suggestions
-        val transfers = suggestions.mapIndexed { index, suggestion ->
-            Transfer("${ctx.opId}-$index", suggestion.from, suggestion.to, suggestion.amount, null, ctx.timestamp, ctx.memberId)
+        // A pair's transfer is recorded between real people, maybe as two (ITERATION_5 §7), each split against what the
+        // ones before it left: who holds what, who is still owed.
+        var result = band
+        suggestions.forEachIndexed { index, suggestion ->
+            val now = result.event(event.id)!!
+            val parts = SettleTogether.split(result, SettlementCalculator.settle(result, now), suggestion.from, suggestion.to, suggestion.amount)
+            val transfers = parts.mapIndexed { part, it ->
+                Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId)
+            }
+            // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
+            invalidIf(transfers.any { t -> now.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
+            validateArtistsPaid(result, now, parts)
+            result = result.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
         }
-        // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
-        invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
+        return result
+    }
+
+    /** A suggestion's transfer, settled or in part, where a pair is either partner (ITERATION_5 §7). */
+    private fun recordTogether(band: Band, op: RecordTransfer, ctx: OpContext): Band {
+        val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
+        validateTransferParty(band, event, op.from)
+        validateTransferParty(band, event, op.to)
+        validatePositive(op.amount, "Transfer amount")
+        val settlement = SettlementCalculator.settle(band, event)
+        invalidIf(op.from == op.to || settlement.party(op.from)?.let { op.to in it.partyIds } == true, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
+        val parts = SettleTogether.split(band, settlement, op.from, op.to, op.amount)
+        val transfers = parts.mapIndexed { index, part ->
+            Transfer(if (index == 0) op.transferId else "${op.transferId}-$index", part.from, part.to, part.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId)
+        }
+        invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
+        validateArtistsPaid(band, event, parts)
         return band.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
+    }
+
+    /** An artist is paid what they are owed, never more, and pays nothing (ITERATION_4 §1.1); the split sees to both. */
+    private fun validateArtistsPaid(band: Band, event: Event, parts: List<com.jacekgajek.kapelusz.domain.SuggestedTransfer>) {
+        val settlement = SettlementCalculator.settle(band, event)
+        parts.forEach { part ->
+            invalidIf(Artists.isArtist(band, part.from), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not pass money on" }
+            if (Artists.isArtist(band, part.to)) {
+                val owed = settlement.line(part.to)?.delta?.let { -it } ?: Money.ZERO
+                invalidIf(part.amount > owed, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist is owed" }
+            }
+        }
     }
 
     private fun validateTransferParty(band: Band, event: Event, partyId: Id) {

@@ -436,7 +436,11 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 ### Fixes and features after V5-M2
 - [x] A member sees their own waiting and refused costs in an event's refunds (PR #44)
 - [x] Event screen, sharing and wording (§3) (PR #45)
-- [ ] Event pages, settling with Undo, attachments viewer (§4)
+- [x] Event pages, settling with Undo, attachments viewer (§4) (PR #46, #47)
+
+### V5-M3 — Settling together (§7)
+- [x] Grilled (§7)
+- [ ] Implement: pairs in the shared model and settlement, invitations, member dialog for everyone, events-list card
 
 ## 6. Decision log
 
@@ -447,3 +451,52 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-23 | History moves to DynamoDB (one record per operation); the old S3 history is dropped (one user so far). Current band state stays one S3 file; event sourcing considered and declined (rule changes would rewrite replays; snapshots needed anyway). |
 | 2026-10-23 | Removals should apply at once with an Undo snackbar rather than a confirmation dialog; done properly (a real `Undo`) in V5-M2; guest removal gets a stop-gap now. |
 | 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |
+| 2026-10-24 | Settling together (§7): pairs only, stored once per band and applied when settling; transfers always recorded between real people (no pair id); only settlement and its transfers change, everything else stays per person. |
+
+## 7. V5-M3 — Settling together (grilled 2026-10-24)
+
+"Wspólne rozliczenie" / "Settle together": two members settle as one party, e.g. a couple sharing a wallet.
+
+### 7.1 Model
+- Pairs only; a member is in at most one pair or invitation at a time. Stored on the members (`settlesWith`, both
+  naming each other; `invitedToSettle` on the inviter), so undo and history see it with the member.
+- Applied when an event is settled: in an event where both take part they are one party; where only one plays, they
+  settle alone. When a pair ends, the events it settled together keep it (`Event.settledTogether`), so they stay
+  settled; only events not settled yet are split again.
+- **Only Settlement and its transfers change.** What each collected, holds ("You hold"), spent, is refunded and earns
+  stays their own, as do the fund, shares and participants.
+
+### 7.2 Invitations and who may do what
+- Each for themselves only (nobody, admins included, pairs others): members and up invite and end a pair; the invited
+  one answers, artists included. Artists may be invited and accept, but neither invite nor end a pair.
+- Both need an account, neither may be a viewer, archived, in a pair or with an invitation waiting either way.
+- The pair ends by itself (and an invitation is cancelled) when either is archived, unlinked or made a viewer, or when
+  both end up artists. Moving between member, lead, admin and owner, or one becoming an artist, keeps it. The
+  confirmation of that change says so, with the number of events not settled yet.
+- History lists every step; none can be undone (from History or a snackbar). Undoing the archive or role change that
+  ended a pair brings it back; undoing an older change keeps a pair formed since.
+
+### 7.3 Settlement and transfers
+- The two lines are summed into one party ("Bob and Alice"), in the place of the partner first in roster order;
+  suggestions are between parties. Tapping the pair's row in the summary shows each partner's payout and holdings.
+- A pair's transfer is recorded between real people (`RecordTransfer.together`, `SettleSuggestions`), against the
+  state it is applied to:
+  - paid by a pair: out of what each holds, the bigger holder first, so nobody's "You hold" goes below zero; one tap
+    may record two transfers (Undo takes back both); an artist never pays; Settle all splits each transfer against
+    what the ones before it left;
+  - received by a pair: the one owed more gets it, an artist no more than they are owed (the rest to the partner);
+  - between the band fund and the treasurer's pair: always the treasurer, who holds the fund (the pair is matched with
+    the fund first, as the treasurer alone would be).
+- Either partner settles, confirms or settles part of the pair's transfers, in events where both play; the Settle tab shows them to both, and
+  debt reminders remind both. "You hold" stays one's own: only what the pair still has to pass on counts.
+- The shared settlement text names the pair in "Still to pay"; recorded transfers name the real people.
+
+### 7.4 Screens
+- Tapping a member on the roster opens their dialog for everyone who sees the roster: admins as before, with a linked
+  member's role behind a "Role: …" row (the radio buttons stay in view when creating an invite); leads see the default
+  share and settling together; members only settling together. Nothing is shown on the roster rows.
+- The section: "Settle together with me" (with what it means), "Waiting for … · Cancel invitation", Accept / Decline,
+  "Settles together with …", or "You settle together with … · Stop settling together" (with a confirmation naming
+  how many events not settled yet are split again).
+- An invitation waiting for you is a card on top of the events list until answered.
+

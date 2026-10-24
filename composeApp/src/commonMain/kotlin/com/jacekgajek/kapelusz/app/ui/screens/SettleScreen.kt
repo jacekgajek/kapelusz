@@ -32,6 +32,7 @@ import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.events_to_settle
 import com.jacekgajek.kapelusz.app.generated.nothing_to_settle
@@ -54,7 +55,9 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.RecordTransfer
@@ -77,17 +80,25 @@ fun SettleScreen(
     val lang = language
 
     val active = band.events.filter { !it.archived }.sortedByDescending { it.date }.map { it to SettlementCalculator.settle(band, it) }
-    val myParties = setOfNotNull(me?.id, BAND_FUND.takeIf { me != null && band.treasurerMemberId == me.id })
     val can = Can(band, state.userId)
-    // Only transfers the user may record (a viewer may not, e.g. one added to an event before that was refused).
+    // Only transfers the user may record (a viewer may not, e.g. one added to an event before that was refused); a
+    // pair's are both partners' (ITERATION_5 §7).
     val mine = active.mapNotNull { (event, settlement) ->
-        val suggestions = settlement.suggestions.filter { (it.from in myParties || it.to in myParties) && can.recordTransfer(event, it.from, it.to) }
+        val myParties = (me?.let { settlement.party(it.id)?.partyIds } ?: listOfNotNull(me?.id)) +
+            listOfNotNull(BAND_FUND.takeIf { me != null && band.treasurerMemberId == me.id })
+        val suggestions = settlement.suggestions.filter { (it.from in myParties || it.to in myParties) && can.settleSuggestion(event, it.from, it.to) }
         if (settlement.canSettle && suggestions.isNotEmpty()) Triple(event, settlement, suggestions) else null
     }
-    val holding = active.filter { (event, settlement) ->
-        settlement.status == EventStatus.OPEN && mine.none { it.first.id == event.id } &&
-            (settlement.line(me?.id ?: "")?.delta?.isPositive == true)
+    // What the user holds is their own, also in a pair; only what the pair still has to pass on counts (§7).
+    fun held(settlement: Settlement): Money? {
+        val own = settlement.line(me?.id ?: "")?.delta?.takeIf { it.isPositive } ?: return null
+        val pair = settlement.party(me!!.id)?.delta?.takeIf { it.isPositive } ?: return null
+        return minOf(own, pair)
     }
+    val holding = active.filter { (event, settlement) ->
+        settlement.status == EventStatus.OPEN && mine.none { it.first.id == event.id } && held(settlement) != null
+    }
+    val pair = stringResource(Res.string.pair_names)
     val forLeads = if (me?.role?.atLeast(Role.LEAD) == true) {
         // A booked gig with its fee entered is not business yet: awaiting payment counts once the gig is over.
         active.filter { (event, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS || (s.status == EventStatus.AWAITING && event.date <= today()) }
@@ -108,7 +119,7 @@ fun SettleScreen(
                 item { Text(stringResource(Res.string.nothing_to_settle), Modifier.padding(vertical = 32.dp)) }
             }
             if (mine.isNotEmpty()) item { SectionTitle(stringResource(Res.string.your_transfers)) }
-            items(mine, key = { "mine-${it.first.id}" }) { (event, _, suggestions) ->
+            items(mine, key = { "mine-${it.first.id}" }) { (event, settlement, suggestions) ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -121,8 +132,8 @@ fun SettleScreen(
                         }
                         // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
                         suggestions.forEach { suggestion -> key(suggestion.from, suggestion.to) {
-                            val from = partyName(band, event, suggestion.from, fundLabel)
-                            val to = partyName(band, event, suggestion.to, fundLabel)
+                            val from = partyName(band, event, settlement, suggestion.from, fundLabel, pair)
+                            val to = partyName(band, event, settlement, suggestion.to, fundLabel, pair)
                             var partial by remember { mutableStateOf(false) }
                             // Names over the full width; the amount and the buttons below, so long names never squeeze them.
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -131,13 +142,13 @@ fun SettleScreen(
                                     MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
                                     TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                                     FilledTonalButton(onClick = {
-                                        actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
+                                        actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))
                                     }) { Text(stringResource(Res.string.settle)) }
                                 }
                             }
                             if (partial) {
                                 PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
-                                    actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it))
+                                    actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it, together = true))
                                 }, onDismiss = { partial = false })
                             }
                         } }
@@ -149,7 +160,7 @@ fun SettleScreen(
                     Text(
                         stringResource(
                             Res.string.you_hold,
-                            formatMoney(settlement.line(me!!.id)!!.delta, band.currency, lang),
+                            formatMoney(held(settlement)!!, band.currency, lang),
                             event.name,
                         ),
                         Modifier.padding(16.dp),

@@ -76,8 +76,14 @@ fun ArtistPayout(context: EventContext) {
             PayoutRow(stringResource(Res.string.artist_received), line.received - line.sent, context.currency)
             // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
             // got too much (or owe from before they were an artist), a lead settles it with whoever is owed.
-            if (line.delta.isPositive) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta, context.currency, bold = true)
-            else PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta, context.currency, bold = true)
+            // Settling together (ITERATION_5 §7), what the partner got counts too, and what they hold is theirs to pass
+            // on: only what the pair is still owed is to come.
+            val pair = context.settlement.party(line.partyId)?.takeIf { it.partnerId != null }
+            when {
+                pair != null -> PayoutRow(stringResource(Res.string.artist_still_to_receive), (-pair.delta).coerceAtLeast(Money.ZERO), context.currency, bold = true)
+                line.delta.isPositive -> PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta, context.currency, bold = true)
+                else -> PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta, context.currency, bold = true)
+            }
         }
     }
 }

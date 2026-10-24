@@ -47,6 +47,13 @@ data class Member(
     /** Where their share starts in a new event (ITERATION_4 §2.3): a percentage weight, or [shareFixed] when set. */
     val shareWeight: Int = DEFAULT_WEIGHT,
     val shareFixed: Money? = null,
+    /**
+     * Who they settle together with (ITERATION_5 §7): in events where both take part, the two are one party on
+     * Settlement and in its transfers, and separate everywhere else. Both members name each other.
+     */
+    val settlesWith: Id? = null,
+    /** Who they invited to settle together, while that member has not answered (ITERATION_5 §7). */
+    val invitedToSettle: Id? = null,
 ) {
     /** A participant with this member's default share. */
     fun asParticipant(addedBy: Id? = null) = Participant(id, shareWeight, addedBy, shareFixed)

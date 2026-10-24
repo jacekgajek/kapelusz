@@ -84,6 +84,28 @@ data object DisableBandFund : Operation
 @Serializable @SerialName("TransferOwnership")
 data class TransferOwnership(val toMemberId: Id) : Operation
 
+// ---- Settling together (ITERATION_5 §7): each for themselves ----
+
+/** [fromMemberId] invites [toMemberId] to settle together. */
+@Serializable @SerialName("InviteToSettleTogether")
+data class InviteToSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
+
+/** The inviter takes the invitation back. */
+@Serializable @SerialName("CancelSettleTogether")
+data class CancelSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
+
+/** The invited member says yes: from now on the two settle together. */
+@Serializable @SerialName("AcceptSettleTogether")
+data class AcceptSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
+
+/** The invited member says no. */
+@Serializable @SerialName("DeclineSettleTogether")
+data class DeclineSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
+
+/** [memberId] stops settling together with [partnerId]. */
+@Serializable @SerialName("StopSettlingTogether")
+data class StopSettlingTogether(val memberId: Id, val partnerId: Id) : Operation
+
 // ---- Events (lead) ----
 
 @Serializable @SerialName("CreateEvent")
@@ -214,7 +236,12 @@ data class RemoveFundEntry(val entryId: Id) : Operation
 
 // ---- Transfers ----
 
-/** A manual transfer or hand-over between parties (or a single settled suggestion). */
+/**
+ * A manual transfer or hand-over between parties (or a single settled suggestion). [together]: a suggestion's parties,
+ * where a pair settling together is either partner; recorded between real people as
+ * [com.jacekgajek.kapelusz.domain.SettleTogether.split] says, against the state it is applied to, as [transferId] and
+ * `transferId-1` (ITERATION_5 §7).
+ */
 @Serializable @SerialName("RecordTransfer")
 data class RecordTransfer(
     override val eventId: Id,
@@ -223,6 +250,7 @@ data class RecordTransfer(
     val to: Id,
     val amount: Money,
     val note: String? = null,
+    val together: Boolean = false,
 ) : Operation
 
 /**

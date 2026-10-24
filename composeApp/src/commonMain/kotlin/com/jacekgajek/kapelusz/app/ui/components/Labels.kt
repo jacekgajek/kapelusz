@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle_together
 import com.jacekgajek.kapelusz.app.generated.category_accommodation
 import com.jacekgajek.kapelusz.app.generated.category_equipment
 import com.jacekgajek.kapelusz.app.generated.category_food
@@ -155,4 +156,5 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.CHANGED_SINCE -> Res.string.reject_changed_since
     RejectionReason.LIMIT_REACHED -> Res.string.reject_limit_reached
     RejectionReason.STORAGE_FAILED -> Res.string.reject_storage_failed
+    RejectionReason.CANNOT_SETTLE_TOGETHER -> Res.string.reject_cannot_settle_together
 }

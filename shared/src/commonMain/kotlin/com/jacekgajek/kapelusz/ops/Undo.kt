@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
+import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
@@ -75,9 +76,14 @@ data class BandChange(val before: BandPart, val after: BandPart) {
     }
 }
 
-/** Kinds of changes that cannot be undone: joining by invite, unlinking an account, and passing on ownership. */
+/**
+ * Kinds of changes that cannot be undone: joining by invite, unlinking an account, passing on ownership, and settling
+ * together, which is each member's own decision (ITERATION_5 §7).
+ */
 fun isUndoable(op: Operation): Boolean = when (op) {
-    is LinkUser, is UnlinkUser, is TransferOwnership -> false
+    is LinkUser, is UnlinkUser, is TransferOwnership,
+    is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
+    -> false
     is Undo -> isUndoable(op.original)
     else -> true
 }
@@ -93,8 +99,9 @@ internal object Undoing {
         invalidIf(!isUndoable(op.original) || op.change.isEmpty || op.change.restoresAttachments, RejectionReason.NOT_UNDOABLE) { "This change cannot be undone" }
         val after = op.change.after
         val unchanged = (after.settings == null || after.settings == band.settings) &&
-            // A photo is not a change of the band (the server updates it at sign-in): undo ignores it.
-            after.members.all { (id, value) -> band.member(id)?.copy(pictureUrl = null) == value?.copy(pictureUrl = null) } &&
+            // A photo is not a change of the band (the server updates it at sign-in): undo ignores it. So does it a pair
+            // formed or ended since (ITERATION_5 §7), which the undone change didn't touch.
+            after.members.all { (id, value) -> band.member(id)?.plain() == value?.plain() } &&
             after.events.all { (id, value) -> band.event(id) == value } &&
             after.costs.all { (id, value) -> band.cost(id) == value } &&
             after.fundEntries.all { (id, value) -> band.fundEntries.firstOrNull { it.id == id } == value }
@@ -113,7 +120,21 @@ internal object Undoing {
             name = settings.name,
             treasurerMemberId = settings.treasurerMemberId,
             agendaTemplate = settings.agendaTemplate,
-            members = restore(band.members, before.members.mapValues { (id, member) -> member?.copy(pictureUrl = band.member(id)?.pictureUrl ?: member.pictureUrl) }, before.memberOrder) { it.id },
+            members = restore(
+                band.members,
+                before.members.mapValues { (id, member) ->
+                    val current = band.member(id)
+                    // A pair or invitation the change ended comes back (e.g. undoing an archive); one it left alone stays
+                    // as it is now.
+                    val later = after.members[id]
+                    member?.copy(
+                        pictureUrl = current?.pictureUrl ?: member.pictureUrl,
+                        settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith,
+                        invitedToSettle = if (current == null || member.invitedToSettle != later?.invitedToSettle) member.invitedToSettle else current.invitedToSettle,
+                    )
+                },
+                before.memberOrder,
+            ) { it.id },
             // Exactly as before (also Event.updatedAt), so after a redo the original change can be undone again.
             events = restore(band.events, before.events, before.eventOrder) { it.id },
             costs = restore(band.costs, before.costs, before.costOrder) { it.id },
@@ -130,6 +151,8 @@ internal object Undoing {
         val memberIds = band.members.map { it.id }.toSet()
         val costs = band.costs.associateBy { it.id }
         band.treasurerMemberId?.let { id -> if (band.member(id)?.archived != false) add("treasurer $id") }
+        // A pair or invitation that no longer holds, e.g. one partner settling with someone else since (ITERATION_5 §7).
+        if (SettleTogether.tidy(band) != band) add("settling together")
         // The fund is off only when it is empty and every event handed over its part (as DisableBandFund requires).
         if (band.treasurerMemberId == null && !BandFund.canDisable(band)) add("band fund in use without a treasurer")
         for (event in band.events) {
@@ -172,6 +195,9 @@ internal object Undoing {
 }
 
 private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate)
+
+/** A member as undo compares them: without the photo and the pair, which change on their own. */
+private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null)
 
 private class Diff<T>(val before: Map<Id, T?>, val after: Map<Id, T?>, val order: List<Id>?)
 

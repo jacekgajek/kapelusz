@@ -27,7 +27,8 @@ enum class SettlementProblem {
 
 /**
  * One party's numbers in an event. [target] is what the party should end up holding. [isFixed]: the [share] is the
- * participant's fixed amount, not a share by [weight] (ITERATION_3 §2.4).
+ * participant's fixed amount, not a share by [weight] (ITERATION_3 §2.4). [partnerId]: a pair settling together
+ * (ITERATION_5 §7), [partyId] and [partnerId] as one, every number the sum of theirs.
  */
 data class PartyLine(
     val partyId: Id,
@@ -39,7 +40,11 @@ data class PartyLine(
     val refunds: Money,
     val target: Money,
     val isFixed: Boolean = false,
+    val partnerId: Id? = null,
 ) {
+    /** The people in this party: one, or the two of a pair. */
+    val partyIds: List<Id> get() = listOfNotNull(partyId, partnerId)
+
     val balance: Money get() = collected - sent + received
 
     /** Positive: holds too much and must pay out. Negative: is still owed money. */
@@ -58,12 +63,21 @@ data class Settlement(
     val net: Money,
     /** Sum of the participants' fixed shares, paid out of [net] before the rest is split by weight. */
     val fixedTotal: Money,
-    /** Participants in party order, followed by [BAND_FUND] when the event involves the fund. */
+    /** Participants in party order, followed by [BAND_FUND] when the event involves the fund; each on their own. */
     val lines: List<PartyLine>,
+    /** Between [parties]: a pair is named by its [PartyLine.partyId]. */
     val suggestions: List<SuggestedTransfer>,
     val status: EventStatus,
     val problems: Set<SettlementProblem>,
+    /** The pairs settling together here (ITERATION_5 §7), each partner mapped to the other. */
+    val partners: Map<Id, Id> = emptyMap(),
 ) {
+    /**
+     * Who settles here: [lines] with each pair as one line (ITERATION_5 §7), in the place of the partner first in party
+     * order. The same as [lines] without pairs.
+     */
+    val parties: List<PartyLine> by lazy { mergePairs(lines, partners) }
+
     val canSettle: Boolean get() = status == EventStatus.OPEN && problems.isEmpty()
 
     /**
@@ -79,7 +93,15 @@ data class Settlement(
     /** How much income is missing on a [SettlementProblem.LOSS], or zero. */
     val shortfall: Money get() = if (rest.isNegative) -rest else Money.ZERO
     fun line(partyId: Id): PartyLine? = lines.firstOrNull { it.partyId == partyId }
-    fun suggestionsFor(partyId: Id) = suggestions.filter { it.from == partyId || it.to == partyId }
+
+    /** The party [partyId] settles in: their own line, or their pair's. */
+    fun party(partyId: Id): PartyLine? = parties.firstOrNull { partyId in it.partyIds }
+
+    /** Suggestions [partyId] is in, also as half of a pair. */
+    fun suggestionsFor(partyId: Id): List<SuggestedTransfer> {
+        val ids = party(partyId)?.partyIds ?: listOf(partyId)
+        return suggestions.filter { it.from in ids || it.to in ids }
+    }
 }
 
 object SettlementCalculator {
@@ -128,21 +150,26 @@ object SettlementCalculator {
             )
         }
 
+        // A pair settles as one (ITERATION_5 §7): what one of them holds may pay what the other is owed.
+        val partners = SettleTogether.partners(band, event)
+        val parties = mergePairs(lines, partners)
         val status = when {
             // No money in it yet (ITERATION_3 R10): an event the band fund pays for is not a draft, even with nothing collected.
             event.holdings.isEmpty() && event.transfers.isEmpty() && !event.fundAmount.isNegative -> EventStatus.DRAFT
             SettlementProblem.LOSS in problems -> EventStatus.LOSS
-            problems.isEmpty() && lines.all { it.isSettled } -> EventStatus.SETTLED
+            problems.isEmpty() && parties.all { it.isSettled } -> EventStatus.SETTLED
             // The organiser's fee holds no line: nobody has a surplus to pass on until it comes (ITERATION_4 §2.2).
-            problems.isEmpty() && event.awaited.isPositive && lines.none { it.delta.isPositive } -> EventStatus.AWAITING
+            problems.isEmpty() && event.awaited.isPositive && parties.none { it.delta.isPositive } -> EventStatus.AWAITING
             else -> EventStatus.OPEN
         }
         val suggestions = if (status == EventStatus.OPEN && problems.isEmpty()) {
-            suggestTransfers(lines, band.treasurerMemberId)
+            // The treasurer's pair is paired with the fund first, as the treasurer alone would be.
+            val treasurer = band.treasurerMemberId?.let { id -> parties.firstOrNull { id in it.partyIds }?.partyId ?: id }
+            suggestTransfers(parties, treasurer)
         } else {
             emptyList()
         }
-        return Settlement(income, event.fundAmount, refundsTotal, net, fixedTotal, lines, suggestions, status, problems)
+        return Settlement(income, event.fundAmount, refundsTotal, net, fixedTotal, lines, suggestions, status, problems, partners)
     }
 
     /** Roster members in roster order, then guests in the order they were added. */
@@ -213,5 +240,28 @@ object SettlementCalculator {
             move(debtor, creditor, minOf(delta.getValue(debtor), -delta.getValue(creditor)))
         }
         return result
+    }
+}
+
+/** [lines] with each pair of [partners] summed into one line, where the partner first in [lines] is. */
+internal fun mergePairs(lines: List<PartyLine>, partners: Map<Id, Id>): List<PartyLine> {
+    if (partners.isEmpty()) return lines
+    val byId = lines.associateBy { it.partyId }
+    val seen = mutableSetOf<Id>()
+    return lines.mapNotNull { line ->
+        if (line.partyId in seen) return@mapNotNull null
+        val partner = partners[line.partyId]?.let { byId[it] } ?: return@mapNotNull line
+        seen += partner.partyId
+        PartyLine(
+            partyId = line.partyId,
+            weight = line.weight + partner.weight,
+            collected = line.collected + partner.collected,
+            sent = line.sent + partner.sent,
+            received = line.received + partner.received,
+            share = line.share + partner.share,
+            refunds = line.refunds + partner.refunds,
+            target = line.target + partner.target,
+            partnerId = partner.partyId,
+        )
     }
 }

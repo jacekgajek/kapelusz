@@ -34,6 +34,8 @@ data class SettlementWords(
     val awaited: String = "",
     /** Closes the text while the organiser still owes part of the income. */
     val awaitingRest: String = "",
+    /** "%1$s and %2$s": a pair settling together (ITERATION_5 §7). */
+    val pair: String = "%1\$s & %2\$s",
 )
 
 /**
@@ -44,6 +46,8 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
     fun money(amount: Money) = formatMoney(amount, band.currency, language)
     fun name(partyId: Id) = partyName(band, event, partyId, words.fundLabel)
     fun transfer(from: Id, to: Id, amount: Money) = "${name(from)} → ${name(to)}: ${money(amount)}"
+    // A suggestion is between parties: a pair settling together by both names (ITERATION_5 §7).
+    fun party(partyId: Id) = partyName(band, event, settlement, partyId, words.fundLabel, words.pair)
     return buildList {
         add("${event.name} · ${formatShortDate(event.date, language)}")
         add(
@@ -70,7 +74,7 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
             add(words.incomplete)
         } else if (settlement.suggestions.isNotEmpty()) {
             add(words.stillToPay)
-            settlement.suggestions.forEach { add(transfer(it.from, it.to, it.amount)) }
+            settlement.suggestions.forEach { add("${party(it.from)} → ${party(it.to)}: ${money(it.amount)}") }
         }
         if (event.awaited.isPositive && settlement.problems.isEmpty()) add(words.awaitingRest)
         add(words.footer)

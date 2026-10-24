@@ -54,6 +54,9 @@ class Can(private val band: Band, private val userId: String) {
     fun editRefunds(event: Event) = open(event) && allowed(SetRefund(event.id, PROBE, Money.ZERO))
     fun settleAll(event: Event) = open(event) && allowed(SettleSuggestions(event.id))
     fun recordTransfer(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1)))
+
+    /** A suggestion's transfer, where a pair settling together is either partner (ITERATION_5 §7). */
+    fun settleSuggestion(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1), together = true))
     fun removeTransfer(event: Event) = open(event) && allowed(RemoveTransfer(event.id, PROBE))
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */

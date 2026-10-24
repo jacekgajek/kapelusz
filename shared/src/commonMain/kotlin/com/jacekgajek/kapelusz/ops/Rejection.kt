@@ -61,6 +61,8 @@ enum class RejectionReason {
     LIMIT_REACHED,
     /** The device could not store it (full, or its storage failed); only ever reported locally. */
     STORAGE_FAILED,
+    /** Someone in a pair or with an invitation waiting, or who can't settle together (ITERATION_5 §7). */
+    CANNOT_SETTLE_TOGETHER,
 }
 
 /** Why an operation was not applied: [reason] for users, [message] as a developer-facing English description. */

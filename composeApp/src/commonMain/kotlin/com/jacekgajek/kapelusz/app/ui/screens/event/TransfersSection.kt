@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.transfer_recorded
 import com.jacekgajek.kapelusz.app.generated.settled_all
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -183,11 +184,15 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
 private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) {
     val band = context.band
     val fundLabel = stringResource(Res.string.band_fund)
-    val keepsForFund = suggestion.to == BAND_FUND && suggestion.from == band.treasurerMemberId
+    val settlement = context.settlement
+    // The treasurer keeps it, also for a pair they settle in (ITERATION_5 §7).
+    val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
+        band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
     var partial by remember { mutableStateOf(false) }
     val lang = language
-    val from = partyName(band, context.event, suggestion.from, fundLabel)
-    val to = partyName(band, context.event, suggestion.to, fundLabel)
+    val pair = stringResource(Res.string.pair_names)
+    val from = partyName(band, context.event, settlement, suggestion.from, fundLabel, pair)
+    val to = partyName(band, context.event, settlement, suggestion.to, fundLabel, pair)
     // Read without arguments, so its placeholders stay for the amount known only on tap (as in SettlementWords).
     val recordedText = stringResource(Res.string.transfer_recorded)
     // "Recorded: Ania → Bartek 250,00 zł", said with Undo.
@@ -195,7 +200,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
     // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, fundLabel) }
+        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
                 if (!keepsForFund) Row(verticalAlignment = Alignment.CenterVertically) {
@@ -203,21 +208,21 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                     MoneyText(suggestion.amount, context.currency, bold = true)
                 }
             }
-            if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
+            if (context.can.settleSuggestion(context.event, suggestion.from, suggestion.to)) {
                 if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                 FilledTonalButton(onClick = {
-                    context.actions.runWithUndo(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount), recorded(suggestion.amount))
+                    context.actions.runWithUndo(settleOp(context, suggestion, suggestion.amount), recorded(suggestion.amount))
                 }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
             }
         }
     }
     if (partial) {
         PartialSettleDialog(
-            from = partyName(band, context.event, suggestion.from, fundLabel),
-            to = partyName(band, context.event, suggestion.to, fundLabel),
+            from = from,
+            to = to,
             suggested = suggestion.amount,
             currency = context.currency,
-            onConfirm = { context.actions.runWithUndo(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, it), recorded(it)) },
+            onConfirm = { context.actions.runWithUndo(settleOp(context, suggestion, it), recorded(it)) },
             onDismiss = { partial = false },
         )
     }
@@ -319,17 +324,21 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SuggestionText(context: EventContext, suggestion: SuggestedTransfer, keepsForFund: Boolean, fundLabel: String) {
+private fun SuggestionText(context: EventContext, suggestion: SuggestedTransfer, keepsForFund: Boolean, from: String, to: String) {
     val band = context.band
     if (keepsForFund) {
         Text(
             stringResource(
                 Res.string.keep_for_fund,
-                partyName(band, context.event, suggestion.from, fundLabel),
+                partyName(band, context.event, band.treasurerMemberId!!, ""),
                 formatMoney(suggestion.amount, context.currency, language),
             ),
         )
     } else {
-        TransferParties(partyName(band, context.event, suggestion.from, fundLabel), partyName(band, context.event, suggestion.to, fundLabel))
+        TransferParties(from, to)
     }
 }
+
+/** Records [amount] of a suggestion; a pair's is recorded between the real people (ITERATION_5 §7). */
+private fun settleOp(context: EventContext, suggestion: SuggestedTransfer, amount: Money) =
+    RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, amount, together = true)

@@ -10,12 +10,14 @@ import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
+import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
@@ -61,6 +63,7 @@ class SettlementTextTest {
             allSettled = strings.getValue("share_text_all_settled"),
             incomplete = strings.getValue("share_text_incomplete"),
             footer = strings.getValue("share_text_footer"),
+            pair = strings.getValue("pair_names"),
         )
     }
 
@@ -99,6 +102,24 @@ class SettlementTextTest {
             """.trimIndent(),
             text(gig, "en"),
         )
+    }
+
+    @Test
+    fun aPairSettlingTogetherIsNamedTogether() {
+        // Bob and Carol settle together (ITERATION_5 §7); Bob collected 300, a third each.
+        val band = gig
+            .let { (Engine.apply(it, Actor.System, AddMember("carol", "Carol"), "m2", 1) as ApplyResult.Applied).band }
+            .let { (Engine.apply(it, Actor.System, LinkUser("carol", "u-carol", Role.MEMBER), "l2", 1) as ApplyResult.Applied).band }
+            .let { (Engine.apply(it, Actor.System, InviteToSettleTogether("bob", "carol"), "i", 1) as ApplyResult.Applied).band }
+            .let { (Engine.apply(it, Actor.System, AcceptSettleTogether("bob", "carol"), "a", 1) as ApplyResult.Applied).band }
+            .apply(
+                CreateEvent("pair-gig", "Pair gig", LocalDate(2026, 9, 12), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol"))),
+                AddHolding("pair-gig", "h2", "bob", Money(30000), IncomeSource.DOOR),
+            )
+        val text = settlementText(band, band.event("pair-gig")!!, SettlementCalculator.settle(band, band.event("pair-gig")!!), "pl", words("values-pl"))
+            .replace('\u00A0', ' ')
+        assertTrue("Bob i Carol → Alice: 100,00 zł" in text, text)
+        assertTrue("Udziały: Alice 100,00 zł, Bob 100,00 zł, Carol 100,00 zł" in text, text)
     }
 
     @Test

@@ -4,6 +4,13 @@ import com.jacekgajek.kapelusz.app.ui.screens.baseChange
 import com.jacekgajek.kapelusz.app.ui.screens.isRedo
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.h_pair_ended
+import com.jacekgajek.kapelusz.app.generated.h_stop_settle_together
+import com.jacekgajek.kapelusz.app.generated.h_decline_settle_together
+import com.jacekgajek.kapelusz.app.generated.h_accept_settle_together
+import com.jacekgajek.kapelusz.app.generated.h_cancel_settle_together
+import com.jacekgajek.kapelusz.app.generated.h_invite_settle_together
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.h_add_attachment
 import com.jacekgajek.kapelusz.app.generated.h_add_awaited
@@ -67,6 +74,11 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
+import com.jacekgajek.kapelusz.ops.CancelSettleTogether
+import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
+import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
+import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Undo
@@ -135,7 +147,15 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
         ?: parts.firstNotNullOfOrNull { it.events[eventId]?.guest(id)?.name }
         ?: member(id)
     fun money(amount: Money) = formatMoney(amount, band.currency, lang)
-    return when (op) {
+    val pairNames = stringResource(Res.string.pair_names)
+    // A suggestion's transfer settled together names the pair, as it was suggested (ITERATION_5 §7).
+    fun transferParty(eventId: Id, id: Id, together: Boolean): String {
+        val partner = band.member(id)?.settlesWith?.takeIf { together && band.event(eventId)?.participant(it) != null }
+            ?: return party(eventId, id)
+        val names = listOf(id, partner).sortedBy { p -> band.members.indexOfFirst { it.id == p } }.map { member(it) }
+        return pairNames.replace("%1\$s", names[0]).replace("%2\$s", names[1])
+    }
+    val text = when (op) {
         is RenameBand -> stringResource(Res.string.h_rename_band, op.name)
         is AddMember -> stringResource(Res.string.h_add_member, op.name)
         is RenameMember -> stringResource(Res.string.h_rename_member, op.name)
@@ -179,7 +199,18 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
         is AddFundEntry -> stringResource(Res.string.h_add_fund_entry, op.description, money(op.amount))
         is UpdateFundEntry -> stringResource(Res.string.h_edit_fund_entry)
         is RemoveFundEntry -> stringResource(Res.string.h_remove_fund_entry)
-        is RecordTransfer -> stringResource(Res.string.h_record_transfer, money(op.amount), party(op.eventId, op.from), party(op.eventId, op.to), event(op.eventId))
+        is RecordTransfer -> stringResource(
+            Res.string.h_record_transfer,
+            money(op.amount),
+            transferParty(op.eventId, op.from, op.together),
+            transferParty(op.eventId, op.to, op.together),
+            event(op.eventId),
+        )
+        is InviteToSettleTogether -> stringResource(Res.string.h_invite_settle_together, member(op.fromMemberId), member(op.toMemberId))
+        is CancelSettleTogether -> stringResource(Res.string.h_cancel_settle_together, member(op.fromMemberId), member(op.toMemberId))
+        is AcceptSettleTogether -> stringResource(Res.string.h_accept_settle_together, member(op.toMemberId), member(op.fromMemberId))
+        is DeclineSettleTogether -> stringResource(Res.string.h_decline_settle_together, member(op.toMemberId), member(op.fromMemberId))
+        is StopSettlingTogether -> stringResource(Res.string.h_stop_settle_together, member(op.memberId), member(op.partnerId))
         is SettleSuggestions -> op.partyId?.let { stringResource(Res.string.h_settle_party, party(op.eventId, it), event(op.eventId)) }
             ?: stringResource(Res.string.h_settle_all, event(op.eventId))
         is RemoveTransfer -> stringResource(Res.string.h_remove_transfer, event(op.eventId))
@@ -197,4 +228,10 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
         is RenameAttachment -> stringResource(Res.string.h_rename_attachment, op.fileName)
         else -> stringResource(Res.string.h_unknown)
     }
+    // A pair ended by an archive, an unlink or a role change says so (ITERATION_5 §7).
+    val ended = if (change == null || op is StopSettlingTogether || op is Undo) emptyList() else change.before.members.values.filterNotNull()
+        .filter { before -> before.settlesWith != null && change.after.members[before.id]?.settlesWith == null }
+        .map { it.id }.sortedBy { id -> band.members.indexOfFirst { it.id == id } }
+    if (ended.size < 2) return text
+    return stringResource(Res.string.h_pair_ended, text, member(ended[0]), member(ended[1]))
 }

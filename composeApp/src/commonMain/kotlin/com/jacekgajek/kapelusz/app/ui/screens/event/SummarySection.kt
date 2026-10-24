@@ -1,14 +1,23 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,6 +31,8 @@ import com.jacekgajek.kapelusz.app.generated.line_payout_fixed
 import com.jacekgajek.kapelusz.app.generated.line_payout_fixed_only
 import com.jacekgajek.kapelusz.app.generated.line_payout_share_only
 import com.jacekgajek.kapelusz.app.generated.line_settled
+import com.jacekgajek.kapelusz.app.generated.pair_breakdown
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.summary
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -34,10 +45,13 @@ import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import org.jetbrains.compose.resources.stringResource
 
-/** Per party: what they should end up with (share + refunds), what they hold now, and the difference. */
+/**
+ * Per party: what they should end up with (share + refunds), what they hold now, and the difference. A pair settling
+ * together is one row, opened to show each partner's numbers (ITERATION_5 §7).
+ */
 @Composable
 fun SummarySection(context: EventContext) {
-    val lines = context.settlement.lines
+    val lines = context.settlement.parties
     if (lines.isEmpty()) return
     SectionTitle(stringResource(Res.string.summary))
     Card(Modifier.fillMaxWidth()) {
@@ -52,9 +66,20 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
     val currency = context.currency
     val lang = language
     val fundLabel = stringResource(Res.string.band_fund)
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    val isPair = line.partnerId != null
+    var open by remember(line.partyId) { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = isPair) { open = !open }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(partyName(context.band, context.event, line.partyId, fundLabel), style = MaterialTheme.typography.titleSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    partyName(context.band, context.event, context.settlement, line.partyId, fundLabel, stringResource(Res.string.pair_names)),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                if (isPair) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+            }
             if (line.partyId != BAND_FUND) {
                 // A fixed share says so (ITERATION_3 §2.4): it does not change with the income.
                 Text(
@@ -75,6 +100,20 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                 )
             }
             Text(stringResource(Res.string.line_holds, formatMoney(line.balance, currency, lang)), style = MaterialTheme.typography.bodySmall)
+            // Each partner's own numbers: their share and refunds, and what they hold.
+            if (open) line.partyIds.forEach { id ->
+                val own = context.settlement.line(id) ?: return@forEach
+                Text(
+                    stringResource(
+                        Res.string.pair_breakdown,
+                        partyName(context.band, context.event, id, fundLabel),
+                        formatMoney(own.target, currency, lang),
+                        formatMoney(own.balance, currency, lang),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         // Information only (ITERATION_2 §7.4): transfers are recorded in To settle, one "X → Y" at a time or all at once.
         Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {

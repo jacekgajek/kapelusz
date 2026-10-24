@@ -40,6 +40,7 @@ import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -61,6 +62,7 @@ private fun settlementWords() = SettlementWords(
     footer = stringResource(Res.string.share_text_footer),
     awaited = stringResource(Res.string.share_awaited),
     awaitingRest = stringResource(Res.string.share_text_awaiting_rest),
+    pair = stringResource(Res.string.pair_names),
 )
 
 /**

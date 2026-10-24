@@ -126,15 +126,19 @@ object NotificationRules {
         bands.flatMap { band ->
             // Artists never pay out (ITERATION_4 §1.1), and the reminder would name whom to pay.
             val me = band.memberOfUser(userId)?.takeIf { !it.archived && it.role != Role.ARTIST } ?: return@flatMap emptyList()
-            val mine = setOfNotNull(me.id, BAND_FUND.takeIf { band.treasurerMemberId == me.id })
             band.events.filter { !it.archived }.flatMap { event ->
                 val times = (0 until DEBT_REMINDERS).map { nth -> nth to event.date.plus(DatePeriod(days = DEBT_FIRST_DAYS + nth * DEBT_EVERY_DAYS)).atTime(time) }
                     .filter { (_, at) -> at >= since }
                 // Settling is only worked out for events that still have reminders to come.
                 if (times.isEmpty()) return@flatMap emptyList()
                 // Between the user and the band fund they hold no money changes hands: nothing to remind of.
-                val owed = SettlementCalculator.settle(band, event).suggestions.filter { it.from in mine && it.to !in mine }.map {
-                    Owed(it.to.takeIf { to -> to != BAND_FUND }?.let { to -> partyName(band, event, to, "") }, it.amount, it.from == BAND_FUND)
+                val settlement = SettlementCalculator.settle(band, event)
+                // A pair settling together owes as one (ITERATION_5 §7): both partners are reminded.
+                val party = settlement.party(me.id)?.partyIds ?: listOf(me.id)
+                // The treasurer's pair keeps the fund's part: nobody in it pays the fund.
+                val mine = party + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId in party })
+                val owed = settlement.suggestions.filter { it.from in mine && it.to !in mine }.map {
+                    Owed(it.to.takeIf { to -> to != BAND_FUND }?.let { to -> partyName(band, event, settlement, to, "", "%1\$s & %2\$s") }, it.amount, it.from == BAND_FUND)
                 }
                 val fee = organiserOwes(band, event, me)
                 times.flatMap { (nth, at) ->
