@@ -75,7 +75,7 @@ object Reducer {
                 band.dropInvite(op.fromMemberId, op.toMemberId)
                     .updateMember(op.fromMemberId) { it.copy(settlesWith = op.toMemberId) }
                     .updateMember(op.toMemberId) { it.copy(settlesWith = op.fromMemberId) }
-                    // Two artists can't be a pair: someone in it must be able to pass money on (§7).
+                    // Both still may settle together (§7.2).
                     .also { conflictIf(SettleTogether.tidy(it) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
             }
             is StopSettlingTogether -> {

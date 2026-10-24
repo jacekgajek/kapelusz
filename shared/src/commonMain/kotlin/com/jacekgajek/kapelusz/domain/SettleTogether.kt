@@ -14,11 +14,14 @@ import com.jacekgajek.kapelusz.model.Role
  */
 object SettleTogether {
 
-    /** May be in a pair at all: on the roster, with an account (to answer), and taking part in events. */
-    fun canPair(member: Member): Boolean = !member.archived && member.userId != null && member.role != Role.VIEWER
+    /**
+     * May be in a pair at all: on the roster, with an account (to answer), from members up. Not viewers, who play in no
+     * event, nor artists, who hold no money and see only their own numbers (§7.2).
+     */
+    fun canPair(member: Member): Boolean = !member.archived && member.userId != null && member.role.atLeast(Role.MEMBER) && member.role != Role.VIEWER
 
-    /** May send an invitation: as [canPair], from members up (artists only answer one). */
-    fun canInvite(member: Member): Boolean = canPair(member) && member.role.atLeast(Role.MEMBER)
+    /** May send an invitation: as [canPair]. */
+    fun canInvite(member: Member): Boolean = canPair(member)
 
     /** In a pair, or with an invitation sent or received. */
     fun isTaken(band: Band, memberId: Id): Boolean {
@@ -33,13 +36,11 @@ object SettleTogether {
     fun mayInvite(band: Band, from: Member, to: Member): Boolean =
         from.id != to.id && canInvite(from) && canPair(to) && !isTaken(band, from.id) && !isTaken(band, to.id)
 
-    /** A pair is two of these, never two artists: someone in it records what the pair hands over (§7). */
-    private fun validPair(a: Member, b: Member) =
-        canPair(a) && canPair(b) && a.settlesWith == b.id && b.settlesWith == a.id && !(a.role == Role.ARTIST && b.role == Role.ARTIST)
+    private fun validPair(a: Member, b: Member) = canPair(a) && canPair(b) && a.settlesWith == b.id && b.settlesWith == a.id
 
     /**
-     * [band] without the pairs and invitations a change made impossible (§7): someone archived, unlinked or made a
-     * viewer, two artists left together, or an inviter who may no longer invite. Nothing else changes.
+     * [band] without the pairs and invitations a change made impossible (§7): someone archived, unlinked, or made a
+     * viewer or an artist. Nothing else changes.
      */
     fun tidy(band: Band): Band {
         val byId = band.members.associateBy { it.id }
@@ -95,8 +96,7 @@ object SettleTogether {
      * between real people (ITERATION_5 §7.3):
      * - a pair passing money on: each pays out of what they hold, the bigger holder first (anything over that is the
      *   bigger holder's);
-     * - a pair receiving: the one owed more gets it, but an artist no more than they are owed, the rest going to the
-     *   partner;
+     * - a pair receiving: the one owed more gets it;
      * - money between the band fund and a pair with the treasurer: always the treasurer, who holds the fund.
      */
     fun split(band: Band, settlement: Settlement, from: Id, to: Id, amount: Money): List<SuggestedTransfer> {
@@ -110,7 +110,8 @@ object SettleTogether {
             senders.size == 1 -> listOf(from to amount.minor)
             to == BAND_FUND && treasurer in senders -> listOf(treasurer!! to amount.minor)
             else -> {
-                // An artist holds no money (ITERATION_4 §1.1): what they got is not theirs to pass on.
+                // An artist holds no money (ITERATION_4 §1.1): only in a pair kept by an event settled before one of them
+                // became an artist (Event.settledTogether), and only if that event is reopened.
                 fun holds(id: Id) = if (Artists.isArtist(band, id)) 0 else (line(id)?.balance?.minor ?: 0).coerceAtLeast(0)
                 val byHolding = senders.sortedByDescending { holds(it) }
                 var left = amount.minor

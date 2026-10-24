@@ -452,6 +452,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-23 | Removals should apply at once with an Undo snackbar rather than a confirmation dialog; done properly (a real `Undo`) in V5-M2; guest removal gets a stop-gap now. |
 | 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |
 | 2026-10-24 | Settling together (§7): pairs only, stored once per band and applied when settling; transfers always recorded between real people (no pair id); only settlement and its transfers change, everything else stays per person. |
+| 2026-10-24 | Artists don't settle together after all: their payout with the pair's numbers was confusing ("still to receive" twice their share). Becoming an artist ends a pair. |
 
 ## 7. V5-M3 — Settling together (grilled 2026-10-24)
 
@@ -467,12 +468,12 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
   stays their own, as do the fund, shares and participants.
 
 ### 7.2 Invitations and who may do what
-- Each for themselves only (nobody, admins included, pairs others): members and up invite and end a pair; the invited
-  one answers, artists included. Artists may be invited and accept, but neither invite nor end a pair.
-- Both need an account, neither may be a viewer, archived, in a pair or with an invitation waiting either way.
-- The pair ends by itself (and an invitation is cancelled) when either is archived, unlinked or made a viewer, or when
-  both end up artists. Moving between member, lead, admin and owner, or one becoming an artist, keeps it. The
-  confirmation of that change says so, with the number of events not settled yet.
+- Each for themselves only (nobody, admins included, pairs others): members and up invite, answer and end a pair.
+- Both need an account and must be members or up (not viewers, not artists: dropped 2026-10-24, an artist's payout
+  with a pair's numbers was confusing), neither archived, in a pair or with an invitation waiting either way.
+- The pair ends by itself (and an invitation is cancelled) when either is archived, unlinked, or made a viewer or an
+  artist. Moving between member, lead, admin and owner keeps it. The confirmation of that change says so, with the
+  number of events not settled yet.
 - History lists every step; none can be undone (from History or a snackbar). Undoing the archive or role change that
   ended a pair brings it back; undoing an older change keeps a pair formed since.
 
@@ -484,7 +485,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
   - paid by a pair: out of what each holds, the bigger holder first, so nobody's "You hold" goes below zero; one tap
     may record two transfers (Undo takes back both); an artist never pays; Settle all splits each transfer against
     what the ones before it left;
-  - received by a pair: the one owed more gets it, an artist no more than they are owed (the rest to the partner);
+  - received by a pair: the one owed more gets it;
   - between the band fund and the treasurer's pair: always the treasurer, who holds the fund (the pair is matched with
     the fund first, as the treasurer alone would be).
 - Either partner settles, confirms or settles part of the pair's transfers, in events where both play; the Settle tab shows them to both, and

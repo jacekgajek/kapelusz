@@ -550,7 +550,7 @@ private fun MemberDialog(
                         // Changing your own role can take away the rights you are using right now: ask first.
                         isMe -> confirmOwnRole = role
                         // So does a change that ends their settling together (ITERATION_5 §7).
-                        pairEndsWarningNeeded(band, member, role) -> confirmRole = role
+                        pairEndsWarningNeeded(member, role) -> confirmRole = role
                         else -> actions.run(SetMemberRole(member.id, role))
                     }
                 }, stringResource(Res.string.role), Modifier.verticalScroll(rememberScrollState()))
