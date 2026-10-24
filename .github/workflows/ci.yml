@@ -30,7 +30,10 @@ jobs:
 
       - name: Build
         # The same optimised builds deploy ships (ITERATION_3 R11): the production web bundle (with wasm-opt) and the
-        # (unsigned) release APK with R8, so their failures show before a merge.
+        # (unsigned) release APK with R8. Only on main (ITERATION_5 decision log, 2026-10-24): pull requests run the
+        # tests alone, about half the time; a failure only these builds show is caught after the merge, and the deploy
+        # waits for main's CI, so it never ships.
+        if: github.event_name == 'push'
         # The runner has about 8 GB. The test step's Gradle and Kotlin daemons still held 6 GB, so they are stopped
         # first; the Kotlin compiler then runs inside Gradle's JVM (one heap, not two), and R8 and the production wasm
         # compile run one after the other.
