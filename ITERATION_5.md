@@ -475,6 +475,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |
 | 2026-10-24 | Settling together (§7): pairs only, stored once per band and applied when settling; transfers always recorded between real people (no pair id); only settlement and its transfers change, everything else stays per person. |
 | 2026-10-24 | BLIK numbers (§8): one phone number per member and band, set only by its member; shown only to who settles the transfer, hidden in the app only (every device still gets the band's data). |
+| 2026-10-24 | Pull requests' CI runs the tests only; the optimised release builds (R8, wasm-opt, about 5 of 9 minutes) run on main after the merge, before the deploy, which waits for them. A failure only they show now breaks main instead of a pull request (was ITERATION_3 R11: before a merge). |
 | 2026-10-24 | Event links (§10) carry only the event id: ids are unique across bands, so the app finds the band itself and the link reveals nothing about it. |
 | 2026-10-24 | Place suggestions (§9) go through our server: the Google key never ships in the app or the web page, and only leads (who edit events) use it. |
 | 2026-10-24 | Artists don't settle together after all: their payout with the pair's numbers was confusing ("still to receive" twice their share). Becoming an artist ends a pair. |
