@@ -93,7 +93,7 @@
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
     <string name="guest_removed">Removed guest %1$s</string>
-    <string name="copy_amount">Copy amount</string>
+    <string name="copy_amount">Copy %1$s</string>
     <string name="amount_copied">Copied %1$s</string>
     <string name="copy_failed">Could not copy.</string>
     <string name="undo_too_late">Already sent; undo it from the history.</string>
@@ -332,7 +332,7 @@
     <string name="awaited_welched">Welched</string>
     <string name="awaited_welched_title">Didn’t pay?</string>
     <string name="awaited_welched_text">%1$s is removed from the income, and the shares are worked out again.</string>
-    <string name="receive_awaited_title">Fee received</string>
+    <string name="receive_awaited_title">Planned payment received</string>
     <string name="received_by">Received by</string>
     <string name="receive_awaited_hint">Up to %1$s. Any rest stays awaited.</string>
     <string name="total_awaited">of which not paid yet</string>

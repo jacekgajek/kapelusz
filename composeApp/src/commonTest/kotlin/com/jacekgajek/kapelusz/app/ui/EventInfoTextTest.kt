@@ -17,7 +17,7 @@ class EventInfoTextTest {
             "e", "Wynaturzenie", LocalDate(2026, 11, 7),
             location = "Klub Pod Jaszczurami", mapUrl = "https://maps.app.goo.gl/abc", notes = "Setlista:\n1. Intro\n",
         )
-        val text = eventInfoText(event, listOf("Przyjazd 18:00", "Koncert 20:00"), listOf("Ania", "Bartek", "Kasia"), words)
+        val text = eventInfoText(event, listOf("Przyjazd 18:00", "Koncert 20:00"), listOf("Ania", "Bartek", "Kasia"), words, "pl")
         assertEquals(
             """
             Wynaturzenie
@@ -44,6 +44,7 @@ class EventInfoTextTest {
     @Test
     fun onlyWhatThereIs() {
         val event = Event("e", "Próba", LocalDate(2026, 1, 2), location = " ", notes = "  ")
-        assertEquals("Próba\n\nData: 02.01.2026\n\nkapelusz.jacekgajek.com", eventInfoText(event, emptyList(), emptyList(), words))
+        assertEquals("Próba\n\nData: 02.01.2026\n\nkapelusz.jacekgajek.com", eventInfoText(event, emptyList(), emptyList(), words, "pl"))
+        assertEquals("Próba\n\nData: 02 Jan 2026\n\nkapelusz.jacekgajek.com", eventInfoText(event, emptyList(), emptyList(), words, "en"), "English dates as elsewhere in the app")
     }
 }

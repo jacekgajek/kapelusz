@@ -24,6 +24,8 @@ import com.jacekgajek.kapelusz.app.generated.share_info_failed
 import com.jacekgajek.kapelusz.app.generated.share_text_footer
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberShare
+import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.partyName
@@ -41,8 +43,9 @@ class InfoWords(val date: String, val place: String, val map: String, val plan: 
  * notes as they are; the line-up on one line; the app's address last, as under a shared settlement. Parts apart by a
  * blank line; what the event does not have is left out.
  */
-fun eventInfoText(event: Event, plan: List<String>, lineup: List<String>, words: InfoWords): String {
-    val date = event.date.let { "${it.day.toString().padStart(2, '0')}.${it.month.ordinal.plus(1).toString().padStart(2, '0')}.${it.year}" }
+fun eventInfoText(event: Event, plan: List<String>, lineup: List<String>, words: InfoWords, language: String): String {
+    // As everywhere in the app: 07.11.2026 in Polish, 07 Nov 2026 in English (07.11 would read as July 11 there).
+    val date = formatDate(event.date, language)
     val where = listOfNotNull(
         "${words.date}: $date",
         event.location?.takeIf { it.isNotBlank() }?.let { "${words.place}: ${it.trim()}" },
@@ -64,6 +67,7 @@ fun eventInfoText(event: Event, plan: List<String>, lineup: List<String>, words:
 internal fun rememberShareInfo(band: Band, event: Event, snackbar: SnackbarHostState): () -> Unit {
     val share = rememberShare()
     val scope = rememberCoroutineScope()
+    val lang = language
     val words = InfoWords(
         stringResource(Res.string.info_date),
         stringResource(Res.string.info_place),
@@ -77,7 +81,7 @@ internal fun rememberShareInfo(band: Band, event: Event, snackbar: SnackbarHostS
     val copied = stringResource(Res.string.share_info_copied)
     val failed = stringResource(Res.string.share_info_failed)
     return {
-        val text = eventInfoText(event, plan, lineup, words)
+        val text = eventInfoText(event, plan, lineup, words, lang)
         scope.launch {
             when (share(text)) {
                 ShareResult.COPIED -> snackbar.showSnackbar(copied)

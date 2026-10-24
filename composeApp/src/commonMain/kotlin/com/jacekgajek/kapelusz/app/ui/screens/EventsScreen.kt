@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.getValue
@@ -346,10 +347,11 @@ private fun AvatarStack(people: List<Pair<String, String?>>, modifier: Modifier 
         val shown = if (all) people.size else ((maxWidth - size) / tightest).toInt().coerceIn(1, people.size - 1)
         val step = if (all) step(people.size) else tightest
         Row(horizontalArrangement = Arrangement.spacedBy(step - size)) {
-            people.take(shown).forEach { (name, picture) -> Avatar(name, picture, size) }
+            // Exactly their size: a row short of room would otherwise squash the last one into an oval.
+            people.take(shown).forEach { (name, picture) -> Box(Modifier.requiredSize(size)) { Avatar(name, picture, size) } }
             if (!all) {
                 Box(
-                    Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                    Modifier.requiredSize(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
                 ) { Text("+${people.size - shown}", style = MaterialTheme.typography.labelSmall) }
             }

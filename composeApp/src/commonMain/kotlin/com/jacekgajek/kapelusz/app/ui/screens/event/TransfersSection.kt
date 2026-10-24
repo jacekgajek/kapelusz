@@ -204,7 +204,7 @@ private fun CopyAmountButton(context: EventContext, amount: Money) {
     val copied = stringResource(Res.string.amount_copied, text)
     val failed = stringResource(Res.string.copy_failed)
     IconButton(onClick = { scope.launch { context.actions.say(if (copy(text)) copied else failed) } }) {
-        Icon(Icons.Default.ContentCopy, stringResource(Res.string.copy_amount), Modifier.size(20.dp))
+        Icon(Icons.Default.ContentCopy, stringResource(Res.string.copy_amount, text), Modifier.size(20.dp))
     }
 }
 
