@@ -121,10 +121,11 @@ class Api(
 
     companion object {
         /**
-         * The oldest app version (deploy run number) the server still serves; older apps show "update required".
+         * The oldest app version (its version code: the run number of the CI run that deployed it; before 2026-10-25,
+         * of the separate Deploy workflow's run) the server still serves; older apps show "update required".
          *
          * Raise it in two steps, never in the change that needs it: first deploy apps that handle the new data, then
-         * set this to **that deploy's run number** (already live, so its web app and APK exist). Setting it to a
+         * set this to **that deploy's version code** (already live, so its web app and APK exist). Setting it to a
          * number not yet deployed would refuse every app, and during a deploy the server switches before the new web
          * app and APK are uploaded.
          */

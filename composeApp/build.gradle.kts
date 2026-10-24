@@ -26,7 +26,7 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     val webClientId = setting("KAPELUSZ_GOOGLE_WEB_CLIENT_ID", "kapelusz.googleWebClientId")
     val webUrl = setting("KAPELUSZ_WEB_URL", "kapelusz.webUrl")
     val versionName = providers.gradleProperty("kapelusz.versionName")
-    // CI passes the deploy run number; local builds are "dev".
+    // CI passes its run number; local builds are "dev".
     val versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orElse("0")
     inputs.property("versionName", versionName)
     inputs.property("versionCode", versionCode)

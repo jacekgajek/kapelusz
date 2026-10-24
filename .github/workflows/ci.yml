@@ -1,13 +1,20 @@
 name: CI
 
+# Pull requests: the tests. Pushes to main: the tests, then the deploy, which builds the signed release artefacts once
+# (scripts/deploy.sh builds everything before uploading anything) and ships them (ITERATION_5 decision log, 2026-10-25).
 on:
   pull_request:
   push:
     branches: [main]
 
+# A newer push to a pull request cancels its older run. On main a running run always finishes, so a deploy is never cut
+# short; of the runs waiting behind it only the newest is kept, which has every change anyway.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -23,23 +30,91 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
-      # Tests (with headless Chrome for the web ones) and the optimised builds in separate steps: all at once ran the
-      # runner out of memory (exit code 143).
+      # With headless Chrome for the web tests.
       - name: Test
         run: ./gradlew check
 
-      - name: Build
-        # The same optimised builds deploy ships (ITERATION_3 R11): the production web bundle (with wasm-opt) and the
-        # (unsigned) release APK with R8. Only on main (ITERATION_5 decision log, 2026-10-24): pull requests run the
-        # tests alone, about half the time; a failure only these builds show is caught after the merge, and the deploy
-        # waits for main's CI, so it never ships.
-        if: github.event_name == 'push'
-        # The runner has about 8 GB. The test step's Gradle and Kotlin daemons still held 6 GB, so they are stopped
-        # first; the Kotlin compiler then runs inside Gradle's JVM (one heap, not two), and R8 and the production wasm
-        # compile run one after the other.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      id-token: write   # GitHub OIDC -> AWS role, no stored AWS keys
+      contents: write   # GitHub Release with the APK
+    env:
+      KAPELUSZ_API_URL: ${{ vars.API_URL }}
+      KAPELUSZ_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+      WEB_BUCKET: ${{ vars.WEB_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Release keystore and certificate fingerprints
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
+          DEBUG_SHA256: ${{ vars.ANDROID_DEBUG_CERT_SHA256 }}
+        shell: bash
         run: |
-          ./gradlew --stop
-          (while sleep 30; do echo "memory: $(free -m | awk '/Mem:/ {print $3 " MB used, " $7 " MB available"}')"; done) &
-          OPTS=(-Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8")
-          ./gradlew "${OPTS[@]}" :androidApp:assembleDebug :androidApp:assembleRelease :server:shadowJar
-          ./gradlew "${OPTS[@]}" :composeApp:wasmJsBrowserDistribution
+          set -euo pipefail
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          # The size is not secret; a truncated ANDROID_KEYSTORE_BASE64 shows up here (keytool then says EOFException).
+          echo "Keystore from ANDROID_KEYSTORE_BASE64: $(stat -c %s "$RUNNER_TEMP/release.jks") bytes"
+          # keytool reports errors on stdout: keep its output, and on failure show its error and the keystore's aliases
+          # (neither is secret), e.g. a wrong ANDROID_KEY_ALIAS or keystore password.
+          if ! LISTING=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" 2>&1); then
+            echo "::error::$(echo "$LISTING" | grep -i 'keytool error' | head -1)"
+            echo "Aliases in the keystore (needs the right keystore password):"
+            keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" 2>&1 | grep -iE 'Entry|keytool error' || true
+            rm -f "$RUNNER_TEMP/release.jks"
+            exit 1
+          fi
+          RELEASE=$(echo "$LISTING" | sed -n 's/.*SHA256: *//p' | head -1)
+          # Without a fingerprint the deploy would silently drop assetlinks.json and break Android App Links.
+          if [[ -z "$RELEASE" ]]; then echo "::error::Could not read the release certificate fingerprint"; exit 1; fi
+          echo "ANDROID_CERT_SHA256=${RELEASE}${DEBUG_SHA256:+,$DEBUG_SHA256}" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build and deploy API, web and APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
+          # Android installs an update only with a higher version code: CI's run number grows with every run. (It
+          # was the separate Deploy workflow's run number until 2026-10-25, a lower one: the codes only went up.)
+          KAPELUSZ_VERSION_CODE: ${{ github.run_number }}
+        run: scripts/deploy.sh
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          CODE: ${{ github.run_number }}
+        run: |
+          # A re-run of the same deploy keeps its run number, and with it the release.
+          if gh release view "build-$CODE" >/dev/null 2>&1; then exit 0; fi
+          FILE="$RUNNER_TEMP/kapelusz-$APK_VERSION_NAME-$CODE.apk"
+          cp androidApp/build/outputs/apk/release/androidApp-release.apk "$FILE"
+          gh release create "build-$CODE" "$FILE" --target "$SHA" --title "Kapelusz (Pass the Hat) $APK_VERSION_NAME (build $CODE)" \
+            --notes "Bandmates download it from https://kapelusz.jacekgajek.com/download/kapelusz.apk"
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
