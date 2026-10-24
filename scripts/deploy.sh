@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Deploys the API (Lambda) and the web app (S3 + CloudFront). Used by .github/workflows/deploy.yml and locally:
+# Deploys the API (Lambda) and the web app (S3 + CloudFront). Used by the deploy job of .github/workflows/ci.yml and
+# locally:
 #   AWS_PROFILE=... WEB_BUCKET=jacekgajek-art-split-web CLOUDFRONT_DISTRIBUTION_ID=... scripts/deploy.sh
 # Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_KEYSTORE_PATH (and ANDROID_KEYSTORE_PASSWORD,
 # ANDROID_KEY_ALIAS, KAPELUSZ_VERSION_CODE) it also publishes the signed APK at /download/kapelusz.apk.

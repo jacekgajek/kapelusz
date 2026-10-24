@@ -49,9 +49,10 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 
 ## Deploy
 
-CI (`.github/workflows/ci.yml`) tests every pull request and push to `main`. After it passes on `main`,
-`.github/workflows/deploy.yml` runs `scripts/deploy.sh`: it uploads the API to Lambda, the web app to S3 and
-CloudFront, and the signed APK to the website and a GitHub Release. AWS access uses GitHub OIDC, and the keystore
+CI (`.github/workflows/ci.yml`) tests every pull request and push to `main`. On `main`, once the tests pass, its
+deploy job runs `scripts/deploy.sh`: it builds the release artefacts once (the signed APK, the production web bundle,
+the server jar) and uploads the API to Lambda, the web app to S3 and CloudFront, and the APK to the website and a
+GitHub Release. The version code is CI's run number. AWS access uses GitHub OIDC, and the keystore
 comes from the repository's secrets. Running `scripts/deploy.sh` by hand is described at its top.
 
 ## Documents
