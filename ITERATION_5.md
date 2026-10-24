@@ -410,6 +410,8 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 7. **Several files at once:** the file picker (Android, web) takes several; each becomes an attachment, as many as
    there is room for ("Added 3 of 5 files: there is room for 5 here"); one too large or of another type is skipped and
    said, the others still attached. The camera takes one.
+8. **Costs' files on the event:** each cost in the Money page's refunds (included, waiting, a member's own) shows its
+   files under it, read-only: thumbnails and PDFs, opened in the viewer, to check a receipt before including it.
 
 ## 5. Milestones and task checklist
 

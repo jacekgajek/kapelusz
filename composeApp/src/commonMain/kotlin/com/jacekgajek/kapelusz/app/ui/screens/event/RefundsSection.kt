@@ -50,6 +50,8 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.model.Cost
+import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.model.Role
 import androidx.compose.ui.graphics.Color
 import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
@@ -102,6 +104,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
             }
             if (canEdit) EditButton { editing = cost }
         }
+        CostFiles(context, cost)
     }
     if (pending.isNotEmpty()) {
         Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
@@ -112,6 +115,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
                     CostDescription(context, cost, Modifier.weight(1f))
                     MoneyText(outstanding, context.currency, Modifier.padding(start = 8.dp))
                 }
+                CostFiles(context, cost)
                 // Include it here, or refuse it for good (ITERATION_4 §1.2): only a cost with nothing refunded yet.
                 Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (context.can.refuseCost() && outstanding == cost.amount) {
@@ -217,6 +221,20 @@ private fun MyWaitingCosts(context: EventContext, costs: List<Cost>, onOpenCost:
                 )
             }
         }
+        CostFiles(context, cost)
     }
     asking?.let { cost -> RefusedCostDialog(cost, context.actions, onEdit = { onOpenCost(cost.id) }, onDismiss = { asking = null }) }
+}
+
+/**
+ * A cost's files (receipts) under it, to check before including it: thumbnails and PDFs, opened in the viewer; changed
+ * on the cost's own screen (ITERATION_5 §4.8).
+ */
+@Composable
+private fun CostFiles(context: EventContext, cost: Cost) {
+    if (cost.attachments.isEmpty()) return
+    AttachmentsSection(
+        context.graph, AttachmentOwner.OfCost(cost.id), cost.attachments,
+        drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
+    )
 }
