@@ -110,7 +110,10 @@ class Handler : RequestStreamHandler {
         private val dbTimer = CallTimer("db")
         private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data"), s3Timer)
         private val history = DynamoHistoryStore(System.getenv("HISTORY_TABLE") ?: "art-split-history", dbTimer)
-        private val api = Api(store, history, verifier, minAppVersion = Api.MIN_APP_VERSION)
+        private val api = Api(
+            store, history, verifier, minAppVersion = Api.MIN_APP_VERSION,
+            placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
+        )
 
         init {
             Core.getGlobalContext().register(this)

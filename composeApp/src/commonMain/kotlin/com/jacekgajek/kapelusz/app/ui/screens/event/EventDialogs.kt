@@ -70,7 +70,7 @@ import com.jacekgajek.kapelusz.ops.UpdateEvent
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () -> Unit) {
+fun EditDetailsDialog(band: Band, event: Event, actions: Actions, placeSearch: PlaceSearch?, onDismiss: () -> Unit) {
     // Compared with the event as it was when the dialog opened: only what the user changed is sent (ITERATION_3 R8).
     val opened = remember { event }
     var fields by remember {
@@ -92,7 +92,7 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, onDismiss: () 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.edit_details)) },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) { EventFields(fields) { fields = it } } },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) { EventFields(fields, placeSearch) { fields = it } } },
         confirmButton = {
             TextButton(enabled = fields.name.isNotBlank(), onClick = {
                 val update = UpdateEvent(

@@ -122,6 +122,9 @@ object ApiErrors {
 
     /** An unexpected server error (`500`). */
     const val INTERNAL = "internal"
+
+    /** Place search is not set up on this server (no Google key), or Google did not answer: Location stays plain text. */
+    const val PLACES_UNAVAILABLE = "places_unavailable"
 }
 
 // ---- sessions ----
@@ -197,3 +200,12 @@ data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, v
 /** POST /me/picture: a Google sign-in token of the user (may have expired); its photo becomes theirs in their bands. */
 @Serializable
 data class PictureRequest(val googleToken: String)
+
+// ---- place search (ITERATION_5 §9) ----
+
+/** A place Google suggests for what was typed in Location: its [name] and, apart, its [address] (may be absent). */
+@Serializable
+data class PlaceSuggestion(val placeId: String, val name: String, val address: String? = null)
+
+@Serializable
+data class PlacesResponse(val places: List<PlaceSuggestion>)

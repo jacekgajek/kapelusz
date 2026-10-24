@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz
 
+import kotlin.test.assertTrue
+import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SharedPlace
 import com.jacekgajek.kapelusz.model.Event
@@ -63,5 +65,21 @@ class PlacesTest {
         scenario.apply(UpdateEvent("e", mapUrl = Change(null)))
         assertEquals("Klub", scenario.band.event("e")!!.location)
         assertNull(scenario.band.event("e")!!.mapUrl)
+    }
+
+    @Test
+    fun aPickedPlaceIsItsNameAndTownWithItsExactPin() {
+        val stodola = PlaceSuggestion("ChIJ abc", "Stodoła", "Stefana Batorego 10, 02-591 Warszawa, Polska")
+        assertEquals("Stodoła, Warszawa", Places.label(stodola), "the postal code is dropped")
+        assertEquals("Warszawa", Places.label(PlaceSuggestion("p", "Warszawa", "Polska")), "a town alone")
+        assertEquals("Hala Stulecia", Places.label(PlaceSuggestion("p", "Hala Stulecia", null)))
+        assertEquals("Klub Wrocław", Places.label(PlaceSuggestion("p", "Klub Wrocław", "Wrocław, Polska")), "the town already in the name")
+        assertEquals("Ryman Auditorium, Nashville", Places.label(PlaceSuggestion("p", "Ryman Auditorium", "Broadway, Nashville, TN, USA")), "not the state")
+        assertEquals("The Venue, London", Places.label(PlaceSuggestion("p", "The Venue", "1 High St, London SW1A 1AA, UK")))
+
+        val url = Places.mapUrl(stodola)
+        assertEquals("https://www.google.com/maps/search/?api=1&query=Stodo%C5%82a&query_place_id=ChIJ%20abc", url)
+        assertTrue(Places.isValidUrl(url))
+        assertEquals(url, Places.parse(url)?.url, "taken for a Maps link like a pasted one")
     }
 }
