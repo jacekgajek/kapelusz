@@ -93,6 +93,8 @@
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
     <string name="guest_removed">Removed guest %1$s</string>
+    <string name="transfer_recorded">Recorded: %1$s → %2$s %3$s</string>
+    <string name="settled_all">Settled everything</string>
     <string name="amount_copied">Copied %1$s</string>
     <string name="copy_failed">Could not copy.</string>
     <string name="undo_too_late">Already sent; undo it from the history.</string>

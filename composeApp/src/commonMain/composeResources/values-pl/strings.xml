@@ -93,6 +93,8 @@
     <string name="delete">Usuń</string>
     <string name="remove">Usuń</string>
     <string name="guest_removed">Usunięto gościa %1$s</string>
+    <string name="transfer_recorded">Zapisano: %1$s → %2$s %3$s</string>
+    <string name="settled_all">Rozliczono wszystko</string>
     <string name="amount_copied">Skopiowano %1$s</string>
     <string name="copy_failed">Nie udało się skopiować.</string>
     <string name="undo_too_late">Już wysłane; cofnij to w historii.</string>

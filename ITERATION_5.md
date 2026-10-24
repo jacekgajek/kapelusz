@@ -384,7 +384,28 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
    "Add a planned payment", Welched asks "Didn't pay?". "Organiser" stays only as the name of who holds a planned
    payment.
 
-## 4. Milestones and task checklist
+## 4. Event pages, settling with Undo, attachments viewer (grilled 2026-10-24)
+
+1. **Settling with Undo:** Settle, Confirm (keep for the fund), Settle all and Part → OK record at once with the Undo
+   snackbar (§2), e.g. "Recorded: Ania → Bartek 250,00 zł" / "Settled everything".
+2. **Images as thumbnails:** square ~96 dp thumbnails in a wrapping grid, without names; PDFs stay rows. Each file is
+   downloaded once and kept on the device (disk cache by attachment id, ~100 MB, offline too; on the web only for the
+   session); one still uploading shows from the local copy.
+3. **Full-screen viewer:** pinch to zoom, pan, double tap; swipe between all attachments of the same cost, received
+   money or event ("2 / 4 · name"); top bar: close, and on the right copy (the actual image; PNG on the web, where the
+   browser allows), rename and remove for whoever may edit (remove with Undo where the snackbar can show). On Android a
+   PDF opens in it too (pages rendered by the system, scrolling vertically, zoomable; copy copies the visible page) with
+   "Open in app" handing it to the phone's PDF reader; on the web PDFs open in the browser as before.
+4. **Three pages: Gig | Money | Settlement.** Material tabs (text, underline; no checkmark, no borders), fixed at the
+   top; swipe between pages; each keeps its scroll position. Money: status, totals, received money, refunds.
+   Settlement: status, problems, who gets what, To settle, recorded transfers, Share settlement, history. The debt
+   reminder opens Settlement at To settle. Artists keep two pages (Gig, Money), with the same tabs and swiping.
+5. **Participants as rows** (as artists see them): avatar and name, a grey line with the share when not the default
+   100%, edit (the share dialog) and remove (at once, with Undo; a participant holding money still cannot be removed)
+   for whoever manages participants. Members in roster order, then guests. Members not taking part stay tappable
+   chips in one wrapping row, with "Add guest". Replaces "Adjust shares".
+
+## 5. Milestones and task checklist
 
 ### V5-M1 — Fixes from the whole-app review (scope: §1.7)
 - [x] PR 1 — Core: A1, A2, A5b, A5c, A6 (status part; the renewal throttle stays), A8, A9a, A10d, B2, B3a, B3c, B5,
@@ -403,9 +424,10 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 
 ### Fixes and features after V5-M2
 - [x] A member sees their own waiting and refused costs in an event's refunds (PR #44)
-- [ ] Event screen, sharing and wording (§3)
+- [x] Event screen, sharing and wording (§3) (PR #45)
+- [ ] Event pages, settling with Undo, attachments viewer (§4)
 
-## 5. Decision log
+## 6. Decision log
 
 | Date | Decision |
 |---|---|

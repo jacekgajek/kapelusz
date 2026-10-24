@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.transfer_recorded
+import com.jacekgajek.kapelusz.app.generated.settled_all
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import kotlinx.coroutines.launch
 import com.jacekgajek.kapelusz.app.generated.copy_failed
@@ -102,8 +104,10 @@ fun TransfersSection(context: EventContext) {
                 }
             }
         }
+        // One tap with Undo in the snackbar (ITERATION_5 §4.1), as Settle and Part are.
+        val settledAll = stringResource(Res.string.settled_all)
         if (context.can.settleAll(event)) Button(
-            onClick = { context.actions.run(SettleSuggestions(event.id)) },
+            onClick = { context.actions.runWithUndo(SettleSuggestions(event.id), settledAll) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         ) {
             Icon(Icons.Default.DoneAll, null)
@@ -162,6 +166,13 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val fundLabel = stringResource(Res.string.band_fund)
     val keepsForFund = suggestion.to == BAND_FUND && suggestion.from == band.treasurerMemberId
     var partial by remember { mutableStateOf(false) }
+    val lang = language
+    val from = partyName(band, context.event, suggestion.from, fundLabel)
+    val to = partyName(band, context.event, suggestion.to, fundLabel)
+    // Read without arguments, so its placeholders stay for the amount known only on tap (as in SettlementWords).
+    val recordedText = stringResource(Res.string.transfer_recorded)
+    // "Recorded: Ania → Bartek 250,00 zł", said with Undo.
+    fun recorded(amount: Money) = recordedText.replace("%1\$s", from).replace("%2\$s", to).replace("%3\$s", formatMoney(amount, context.currency, lang))
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
     // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -176,7 +187,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
                 if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                 FilledTonalButton(onClick = {
-                    context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
+                    context.actions.runWithUndo(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount), recorded(suggestion.amount))
                 }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
             }
         }
@@ -187,7 +198,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             to = partyName(band, context.event, suggestion.to, fundLabel),
             suggested = suggestion.amount,
             currency = context.currency,
-            onConfirm = { context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, it)) },
+            onConfirm = { context.actions.runWithUndo(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, it), recorded(it)) },
             onDismiss = { partial = false },
         )
     }
