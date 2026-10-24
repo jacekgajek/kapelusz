@@ -94,6 +94,9 @@
     <string name="delete">Usuń</string>
     <string name="remove">Usuń</string>
     <string name="guest_removed">Usunięto gościa %1$s</string>
+    <string name="when_where">Kiedy i gdzie</string>
+    <string name="add_place">+ Dodaj miejsce</string>
+    <string name="add_times">+ Dodaj godziny</string>
     <string name="attachment_limit_partial">Dodano %1$d z %2$d plików: limit tutaj to %3$d.</string>
     <string name="attachment_open_in_app">Otwórz w aplikacji</string>
     <string name="attachment_unavailable">Nie można teraz pokazać tego pliku: jeszcze nie został wysłany albo nie masz połączenia.</string>
