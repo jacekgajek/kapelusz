@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.domain.EventLinks
 import kotlinx.coroutines.delay
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 private enum class Phase { STARTING, OTHER_TAB, READY }
 
 private const val JOIN_CODE_KEY = "kapelusz-join-code"
+private const val EVENT_LINK_KEY = "kapelusz-event-link"
 
 // The running build, for smoke tests of a deploy: `kapeluszVersion` in the browser console.
 private fun exposeVersion(label: String) {
@@ -40,6 +42,13 @@ fun main() {
     MainScope().launch {
         graph.pendingJoinCode.collect { code ->
             if (code == null) window.sessionStorage.removeItem(JOIN_CODE_KEY) else window.sessionStorage.setItem(JOIN_CODE_KEY, code)
+        }
+    }
+    // An event link likewise, until it is opened (ITERATION_5 §10).
+    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { graph.pendingEventLink.value = it }
+    MainScope().launch {
+        graph.pendingEventLink.collect { id ->
+            if (id == null) window.sessionStorage.removeItem(EVENT_LINK_KEY) else window.sessionStorage.setItem(EVENT_LINK_KEY, id)
         }
     }
     ComposeViewport {
@@ -77,6 +86,13 @@ fun main() {
  * A join link (`/join/ABC123`, served by CloudFront's SPA fallback) carries an invite code. It is taken once, and the
  * address is reset to the app root so a reload does not offer the same invite again.
  */
+/** An event link (`/e/<eventId>`, ITERATION_5 §10): taken once, the address reset to the app root like a join link. */
+private fun takeEventLinkFromUrl(): String? {
+    val eventId = EventLinks.eventId(window.location.pathname) ?: return null
+    window.history.replaceState(null, "", "/" + window.location.hash)
+    return eventId
+}
+
 private fun takeJoinCodeFromUrl(): String? {
     val match = Regex("^/join/([A-Za-z0-9]{6})/?$").find(window.location.pathname) ?: return null
     window.history.replaceState(null, "", "/" + window.location.hash)

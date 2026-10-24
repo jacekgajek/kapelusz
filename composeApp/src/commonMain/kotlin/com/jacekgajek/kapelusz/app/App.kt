@@ -1,5 +1,23 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.app.generated.event_link_offline
+import com.jacekgajek.kapelusz.app.data.LinkedEvent
+import com.jacekgajek.kapelusz.app.data.linkedEvent
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.event_link_opening
+import com.jacekgajek.kapelusz.app.generated.event_link_no_access
+import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.ok
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -138,6 +156,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         )
     }
     LostAccessDialog(graph)
+    EventLinkOpening(graph)
     when (bandState) {
         BandState.Loading -> LoadingScreen()
         BandState.NoBand -> ZeroScreen(
@@ -173,3 +192,50 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
 
 /** [BandContent]'s marker: a band was shown, then none. */
 private const val NO_BAND = "-"
+
+/**
+ * An event link (ITERATION_5 §10): opens its event in whichever of the user's bands has it, switching band like a
+ * reminder does; "Opening the event…" while the bands are looked through (a new device downloads them first), and "no
+ * access" when none of the user's bands has it for them.
+ */
+@Composable
+private fun EventLinkOpening(graph: AppGraph) {
+    val eventLink by graph.pendingEventLink.collectAsState()
+    var failed by remember { mutableStateOf<LinkedEvent?>(null) }
+    LaunchedEffect(eventLink) {
+        val eventId = eventLink ?: return@LaunchedEffect
+        when (val found = graph.linkedEvent(eventId)) {
+            is LinkedEvent.Found -> {
+                // Without an open band there are no screens yet to open it from: the band first, marked as opened for
+                // the event, so that showing it doesn't reset the screens to its event list.
+                if (graph.bands.state.value !is BandState.Ready) {
+                    graph.navigatedForBand = found.bandId
+                    graph.bands.open(found.bandId)
+                }
+                graph.pendingOpenEvent.value = found.bandId to eventId
+            }
+            else -> failed = found
+        }
+        // Last: clearing it ends this effect.
+        graph.pendingEventLink.value = null
+    }
+    if (eventLink != null) {
+        AlertDialog(
+            onDismissRequest = {},
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    CircularProgressIndicator(Modifier.size(24.dp))
+                    Text(stringResource(Res.string.event_link_opening))
+                }
+            },
+            confirmButton = { TextButton(onClick = { graph.pendingEventLink.value = null }) { Text(stringResource(Res.string.cancel)) } },
+        )
+    }
+    failed?.let { reason ->
+        AlertDialog(
+            onDismissRequest = { failed = null },
+            text = { Text(stringResource(if (reason == LinkedEvent.Unreachable) Res.string.event_link_offline else Res.string.event_link_no_access)) },
+            confirmButton = { TextButton(onClick = { failed = null }) { Text(stringResource(Res.string.ok)) } },
+        )
+    }
+}

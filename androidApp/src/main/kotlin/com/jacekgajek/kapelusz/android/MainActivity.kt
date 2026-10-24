@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.android
 
+import com.jacekgajek.kapelusz.domain.EventLinks
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -70,10 +71,14 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra(Notifier.EXTRA_BAND)
     }
 
-    /** A join link (https://kapelusz.jacekgajek.com/join/CODE) opened the app: offer to join with its code. */
+    /**
+     * A join link (https://kapelusz.jacekgajek.com/join/CODE) opened the app: offer to join with its code. An event link
+     * (…/e/EVENT_ID, ITERATION_5 §10): open that event.
+     */
     private fun takeJoinCode(intent: Intent?) {
         val path = intent?.data?.path ?: return
         Regex("^/join/([A-Za-z0-9]{6})/?$").find(path)?.let { graph.pendingJoinCode.value = it.groupValues[1].uppercase() }
+        EventLinks.eventId(path)?.let { graph.pendingEventLink.value = it }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

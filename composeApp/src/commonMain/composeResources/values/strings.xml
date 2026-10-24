@@ -621,4 +621,9 @@
     <string name="location_clear">Clear the location</string>
     <string name="map_reading">Reading the link…</string>
     <string name="map_unreadable">Couldn't read the link. Try again, or type the place.</string>
+    <string name="event_link_opening">Opening the event…</string>
+    <string name="event_link_no_access">You don't have access to this event. Ask your band leader to invite you.</string>
+    <string name="event_link_copy">Copy link</string>
+    <string name="event_link_copied">Link copied</string>
+    <string name="event_link_offline">Couldn't open the event: no connection. Try again when you're online.</string>
 </resources>

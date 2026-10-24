@@ -116,6 +116,9 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     /** The user chose "New event at this place": the create dialog opens with it. */
     val pendingNewEventPlace = MutableStateFlow<SharedPlace?>(null)
 
+    /** An event link's event id (ITERATION_5 §10), opened once the user is signed in and their bands are known. */
+    val pendingEventLink = MutableStateFlow<String?>(null)
+
     /** A gig to open, e.g. from a reminder notification: band id and event id. */
     val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
 

@@ -25,7 +25,6 @@
     <string name="share_text_all_settled">All settled</string>
     <string name="share_text_incomplete">Not settled yet: there is something to sort out in the app first</string>
     <string name="share_text_awaiting_rest">The rest is paid out once the planned payment arrives</string>
-    <string name="share_text_footer">kapelusz.jacekgajek.com</string>
     <!-- Reminder about open debts (ITERATION_3 §2.2) -->
     <string name="notifications_debts">Reminders about open debts</string>
 </resources>

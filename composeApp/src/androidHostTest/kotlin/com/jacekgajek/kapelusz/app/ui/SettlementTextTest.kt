@@ -62,7 +62,8 @@ class SettlementTextTest {
             stillToPay = strings.getValue("share_text_still_to_pay"),
             allSettled = strings.getValue("share_text_all_settled"),
             incomplete = strings.getValue("share_text_incomplete"),
-            footer = strings.getValue("share_text_footer"),
+            // The app passes the event's link; any text does for the layout.
+            footer = "kapelusz.jacekgajek.com",
             pair = strings.getValue("pair_names"),
         )
     }

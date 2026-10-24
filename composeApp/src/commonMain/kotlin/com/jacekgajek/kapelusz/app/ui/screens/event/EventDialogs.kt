@@ -1,5 +1,14 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.jacekgajek.kapelusz.domain.EventLinks
+import com.jacekgajek.kapelusz.app.AppConfig
+import androidx.compose.material.icons.filled.Link
+import com.jacekgajek.kapelusz.app.generated.event_link_copy
+import com.jacekgajek.kapelusz.app.generated.event_link_copied
+import com.jacekgajek.kapelusz.app.generated.copy_failed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -109,15 +118,28 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceL
 }
 
 /**
- * Overflow menu: archive (only settled events and drafts) / restore, delete (only events without recorded transfers
- * can be deleted).
+ * Overflow menu: Copy link (ITERATION_5 §10), and for who may ([manage]) archive (only settled events and drafts) /
+ * restore, delete (only events without recorded transfers can be deleted).
  */
 @Composable
-fun EventMenu(event: Event, settlement: Settlement, actions: Actions, onDeleted: () -> Unit) {
+fun EventMenu(event: Event, settlement: Settlement, actions: Actions, manage: Boolean, onDeleted: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    val copy = rememberCopy()
+    val scope = rememberCoroutineScope()
+    val copied = stringResource(Res.string.event_link_copied)
+    val failed = stringResource(Res.string.copy_failed)
     IconButton(onClick = { open = true }) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more)) }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.event_link_copy)) },
+            leadingIcon = { Icon(Icons.Default.Link, null) },
+            onClick = {
+                open = false
+                scope.launch { actions.say(if (copy(EventLinks.url(AppConfig.WEB_URL, event.id))) copied else failed) }
+            },
+        )
+        if (!manage) return@DropdownMenu
         val canArchive = event.archived || settlement.canArchive
         DropdownMenuItem(
             text = {

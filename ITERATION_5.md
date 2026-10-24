@@ -455,6 +455,15 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 - [x] Set up: Places API (New) and Geocoding API enabled, key restricted to them, `kapelusz_google_places_api_key` applied
 - [x] Implement §9.1: Location is the place itself (full address on pick, Maps links read by the server, no stored link)
 
+### V5-M6 — Event links (§10)
+
+- [x] Grill (2026-10-24)
+- [x] Implement: `/e/<eventId>` in shared texts, the calendar and Copy link; opened on Android (App Link) and the web
+
+### Later
+
+- [ ] Consider one "Leader" role instead of Admin and Lead: in practice a band's leader is its admin (2026-10-24)
+
 ## 6. Decision log
 
 | Date | Decision |
@@ -466,6 +475,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |
 | 2026-10-24 | Settling together (§7): pairs only, stored once per band and applied when settling; transfers always recorded between real people (no pair id); only settlement and its transfers change, everything else stays per person. |
 | 2026-10-24 | BLIK numbers (§8): one phone number per member and band, set only by its member; shown only to who settles the transfer, hidden in the app only (every device still gets the band's data). |
+| 2026-10-24 | Event links (§10) carry only the event id: ids are unique across bands, so the app finds the band itself and the link reveals nothing about it. |
 | 2026-10-24 | Place suggestions (§9) go through our server: the Google key never ships in the app or the web page, and only leads (who edit events) use it. |
 | 2026-10-24 | Artists don't settle together after all: their payout with the pair's numbers was confusing ("still to receive" twice their share). Becoming an artist ends a pair. |
 
@@ -575,3 +585,21 @@ shared info) opens Google Maps directions to that text, which takes an address o
 - **Removed:** `Event.mapUrl` and the operations' `mapUrl` (old data and old apps' operations still read: unknown
   fields are ignored); the "Linked to the map" row. Existing events lose their stored pins; Navigate goes to their
   location text.
+
+## 10. V5-M6 — Event links (grilled 2026-10-24)
+
+- **The link:** `https://kapelusz.jacekgajek.com/e/<eventId>`. Event ids are UUIDs, unique across bands: no band in
+  the link; the app looks for the event in the user's bands.
+- **Where:** the last line of Share info and Share settlement (was the app's address); the calendar feed's
+  description ends with "Band · <event link>" (its URL stays the directions, §9.1); "Copy link" in the event's ⋮
+  menu, for everyone ("Link copied").
+- **Opening it:** on Android with the app (an App Link: the manifest claims `/e/`, the domain is verified through
+  `assetlinks.json`) the app opens directly; elsewhere (iPhone, desktop, Android without the app or with an app from
+  before) the web app opens it. Either way:
+  - in one of the user's bands: that band (switched to if needed) and the event, as a reminder opens it;
+  - signed out: after signing in; not on the device (a gig just created, a band not on this device yet): "Opening
+    the event…" while all the user's bands are brought up to date from the server, then looked in again; the server
+    out of reach: "Couldn't open the event: no connection";
+  - not in the user's bands, an artist's gig they don't play, or deleted (not told apart): "You don't have access to
+    this event. Ask your band leader to invite you." ("band leader": what bands call their admin);
+  - the address goes back to the app's start, so a reload doesn't open it again (as join links).

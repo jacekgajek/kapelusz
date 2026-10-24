@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.domain.EventLinks
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -77,8 +78,8 @@ object CalendarFeed {
 
     private fun commonLines(band: Band, event: Event, times: List<AgendaTime>, webUrl: String): List<String> {
         val agenda = times.joinToString("\n") { listOf(label(it), hhmm(it.time!!)).filter(String::isNotBlank).joinToString(" ") }
-        // The app's address, not the event's: an event link only resolves in the band that is open.
-        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · $webUrl").joinToString("\n\n")
+        // The event's own link, opening it in the app (ITERATION_5 §10).
+        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · ${EventLinks.url(webUrl, event.id)}").joinToString("\n\n")
         return listOfNotNull(
             "SUMMARY:${text(event.name)}",
             event.location?.let { "LOCATION:${text(it)}" },

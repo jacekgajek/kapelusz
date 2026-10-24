@@ -67,6 +67,7 @@ class CalendarTest {
         assertTrue("DTSTART;VALUE=DATE:20261028" in ics && "DTEND;VALUE=DATE:20261029" in ics, "no time: all day")
         assertTrue("DTSTART:20261030T233000" in ics && "DTEND:20261031T003000" in ics, "one time: an hour")
         assertTrue("URL:https://www.google.com/maps/dir/?api=1&destination=Klub%20Stodo%C5%82a%2C%20Batorego%2010%2C%2002-591%20Warszawa\r\n" in ics, "directions to the location, unescaped (a URI) and unfolded back whole")
+        assertTrue("· https://kapelusz.jacekgajek.com/e/one" in ics.substringAfter("UID:one@kapelusz").substringAfter("DESCRIPTION:").substringBefore("\r\n"), "the event's own link in its description")
         assertFalse("Bob's gig" in ics, "not mine")
         assertFalse("Long ago" in ics, "older than 3 months")
         assertTrue(response.body!!.split("\r\n").all { it.encodeToByteArray().size <= 75 }, "folded")

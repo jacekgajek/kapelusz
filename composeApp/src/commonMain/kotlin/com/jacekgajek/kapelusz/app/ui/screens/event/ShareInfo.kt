@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.domain.EventLinks
+import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.domain.Places
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,7 +24,6 @@ import com.jacekgajek.kapelusz.app.generated.info_plan
 import com.jacekgajek.kapelusz.app.generated.share_info
 import com.jacekgajek.kapelusz.app.generated.share_info_copied
 import com.jacekgajek.kapelusz.app.generated.share_info_failed
-import com.jacekgajek.kapelusz.app.generated.share_text_footer
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
@@ -76,7 +77,8 @@ internal fun rememberShareInfo(band: Band, event: Event, snackbar: SnackbarHostS
         stringResource(Res.string.info_map),
         stringResource(Res.string.info_plan),
         stringResource(Res.string.info_lineup),
-        stringResource(Res.string.share_text_footer),
+        // The event's own link, opening it in the app (ITERATION_5 §10).
+        EventLinks.url(AppConfig.WEB_URL, event.id),
     )
     val plan = event.setTimes().map { "${it.displayLabel()} ${formatAgendaTime(it)}" }
     val lineup = event.participants.map { partyName(band, event, it.partyId, "") }
