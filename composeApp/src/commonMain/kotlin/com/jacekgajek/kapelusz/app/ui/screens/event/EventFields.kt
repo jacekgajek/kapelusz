@@ -1,5 +1,10 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import com.jacekgajek.kapelusz.app.generated.location_clear
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
@@ -180,14 +185,24 @@ private fun LocationField(state: EventFieldsState, placeSearch: PlaceSearch?, on
         delay(SEARCH_PAUSE_MS)
         suggestions = runSuspendCatching { placeSearch(query.take(Places.MAX_QUERY)) }.getOrDefault(emptyList())
     }
+    // One line of text that wraps when long (a full address), so all of it shows; Enter adds no new line.
     OutlinedTextField(
         state.location,
         {
-            typed = it
-            onState(state.copy(location = it))
+            val text = it.replace("\n", " ")
+            typed = text
+            onState(state.copy(location = text))
         },
         label = { Text(stringResource(Res.string.event_location)) },
-        singleLine = true,
+        trailingIcon = if (state.location.isNotEmpty()) {
+            {
+                IconButton(onClick = {
+                    typed = null
+                    onState(state.copy(location = ""))
+                }) { Icon(Icons.Default.Clear, stringResource(Res.string.location_clear)) }
+            }
+        } else null,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         modifier = Modifier.fillMaxWidth(),
     )
     if (suggestions.isNotEmpty()) {

@@ -553,3 +553,5 @@ Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is 
   the Terraform variable `kapelusz_google_places_api_key`; it takes effect with the next deploy (each publishes a
   Lambda version with the configuration of that moment).
 - **Nothing new in the band data:** the same location text and Maps link as before.
+- **The field (2026-10-24):** one line of text that wraps when long (a full address shows whole; Enter adds no line),
+  with a clear button while it has text. Clearing keeps a linked pin (its own ✕ removes it).
