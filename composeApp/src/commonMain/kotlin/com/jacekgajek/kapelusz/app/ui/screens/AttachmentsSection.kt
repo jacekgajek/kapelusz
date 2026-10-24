@@ -1,6 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.compose.foundation.clickable
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.io.encoding.Base64
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
@@ -95,7 +97,17 @@ fun AttachmentsSection(
     title: String? = stringResource(Res.string.attachments),
     /** Removing applies at once with Undo in the snackbar (ITERATION_5 §2); not inside a dialog, which would hide it. */
     undoRemoval: Boolean = false,
+    /** Shown inside a dialog: messages go under the buttons, as the screen's snackbar is hidden behind the dialog. */
+    inDialog: Boolean = false,
 ) {
+    var notice by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(notice) {
+        if (notice != null) {
+            delay(NOTICE_MS)
+            notice = null
+        }
+    }
+    val say = { message: String -> if (inDialog) notice = message else actions.say(message) }
     val scope = rememberCoroutineScope()
     val open = rememberUrlOpener()
     val pending by graph.uploads.pending.collectAsState()
@@ -115,10 +127,10 @@ fun AttachmentsSection(
         if (owner == null) onDrafts(drafts + taken) else scope.launch { taken.forEach { actions.show(graph.attachments.attach(owner, it)) } }
         val problem = results.firstOrNull { it !is PickResult.Picked }
         when {
-            taken.size < files.size -> actions.say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))
-            problem == PickResult.TooLarge -> actions.say(tooLarge)
-            problem == PickResult.Unsupported -> actions.say(unsupported)
-            problem == PickResult.Failed -> actions.say(failed)
+            taken.size < files.size -> say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))
+            problem == PickResult.TooLarge -> say(tooLarge)
+            problem == PickResult.Unsupported -> say(unsupported)
+            problem == PickResult.Failed -> say(failed)
         }
     }
     var viewing by remember { mutableStateOf<Int?>(null) }
@@ -132,7 +144,7 @@ fun AttachmentsSection(
         open {
             graph.attachments.url(attachment.id).getOrElse { error ->
                 val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
-                actions.say(if (notUploaded) notAvailable else openFailed)
+                say(if (notUploaded) notAvailable else openFailed)
                 null
             }
         }
@@ -188,6 +200,7 @@ fun AttachmentsSection(
             }
             Text(stringResource(hint, max), style = MaterialTheme.typography.bodySmall)
         }
+        notice?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
     }
 
     viewing?.let { start ->
@@ -264,6 +277,9 @@ private fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?) {
 }
 
 private val THUMBNAIL = 96.dp
+
+/** How long a message stays under the buttons in a dialog. */
+private const val NOTICE_MS = 6_000L
 
 private fun formatSize(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "${(bytes * 10 / (1024 * 1024)) / 10.0} MB"
