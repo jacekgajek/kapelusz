@@ -34,6 +34,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import kotlinx.coroutines.launch
+import com.jacekgajek.kapelusz.app.generated.copy_failed
+import com.jacekgajek.kapelusz.app.generated.amount_copied
+import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.filled.ContentCopy
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -157,7 +165,12 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, fundLabel) }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { if (!keepsForFund) MoneyText(suggestion.amount, context.currency, bold = true) }
+            Box(Modifier.weight(1f)) {
+                if (!keepsForFund) Row(verticalAlignment = Alignment.CenterVertically) {
+                    CopyAmountButton(context, suggestion.amount)
+                    MoneyText(suggestion.amount, context.currency, bold = true)
+                }
+            }
             if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
                 if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                 FilledTonalButton(onClick = {
@@ -176,6 +189,30 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             onDismiss = { partial = false },
         )
     }
+}
+
+/**
+ * An icon that copies the amount alone, as typed into a bank app (`2304,45` in Polish, no currency), e.g. for a transfer
+ * (ITERATION_5 §3).
+ */
+@Composable
+private fun CopyAmountButton(context: EventContext, amount: Money) {
+    val copy = rememberCopy()
+    val scope = rememberCoroutineScope()
+    val text = formatMoneyInput(amount, language)
+    val copied = stringResource(Res.string.amount_copied, text)
+    val failed = stringResource(Res.string.copy_failed)
+    // Just the icon beside the amount; screen readers skip it (the amount itself is read out).
+    Icon(
+        Icons.Default.ContentCopy,
+        null,
+        Modifier
+            .padding(end = 6.dp)
+            .size(18.dp)
+            .clickable { scope.launch { context.actions.say(if (copy(text)) copied else failed) } }
+            .clearAndSetSemantics {},
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** Everyone who can take part in a transfer of this event: participants, plus the band fund if it is set up. */

@@ -171,7 +171,7 @@ fun MoneyText(
 }
 
 @Composable
-fun StatusChip(status: EventStatus, archived: Boolean = false) {
+fun StatusChip(status: EventStatus, archived: Boolean = false, modifier: Modifier = Modifier) {
     val (label, container) = when {
         archived -> Res.string.status_archived to MaterialTheme.colorScheme.surfaceVariant
         status == EventStatus.DRAFT -> Res.string.status_draft to MaterialTheme.colorScheme.surfaceVariant
@@ -181,7 +181,7 @@ fun StatusChip(status: EventStatus, archived: Boolean = false) {
         else -> Res.string.status_loss to MaterialTheme.colorScheme.errorContainer
     }
     // A label, not a button: an AssistChip would be announced (and focusable) as something to tap.
-    Surface(color = container, shape = MaterialTheme.shapes.small) {
+    Surface(modifier, color = container, shape = MaterialTheme.shapes.small) {
         Text(stringResource(label), Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
     }
 }

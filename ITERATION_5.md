@@ -364,7 +364,27 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
   (a snackbar would be hidden behind the dialog).
 - **Unchanged:** member chips in an event (picking a line-up is common; tapping again is the undo).
 
-## 3. Milestones and task checklist
+## 3. Event screen, sharing and wording (grilled 2026-10-24)
+
+1. **Copy the amount:** a copy button left of each suggested transfer's amount in "To settle", for everyone who sees
+   it; copies the amount alone as typed into a bank app (`2304,45` in Polish, `2304.45` in English, always two
+   decimals, no currency) and says "Copied 2304,45". Not on recorded transfers.
+2. **The header moves into the Gig tab:** nothing between the title and the tabs. The Gig tab starts with "date ·
+   place" and Navigate on its right, then the set times; then details, files, line-up. The status becomes a
+   full-width row on top of the Money tab (no extra note for archived events: everything is greyed out). The Artist
+   view likewise.
+3. **Avatars on the events list** keep their size and overlap more to fit beside the text; below about a third of each
+   showing, the first ones and "+N" (the true total; no cap of 8 any more).
+4. **Share info** replaces the top bar's share icon (which shared the settlement, as the Money tab's button still
+   does): a full-width button at the end of the Gig tab, for everyone, drafts too. Name; Date, Place, and Map when the
+   event has a stored pin; Plan, a time per line; the notes as they are; Line-up on one line; the app's address last;
+   parts apart by a blank line, missing ones left out. The settlement's footer is now the address alone too.
+5. **Wording:** money is "received" or "planned", not "collected" or "from the organiser", everywhere in both languages
+   (section, buttons, "Received by", the shared settlement, history, errors, role descriptions): "Add received money",
+   "Add a planned payment", Welched asks "Didn't pay?". "Organiser" stays only as the name of who holds a planned
+   payment.
+
+## 4. Milestones and task checklist
 
 ### V5-M1 — Fixes from the whole-app review (scope: §1.7)
 - [x] PR 1 — Core: A1, A2, A5b, A5c, A6 (status part; the renewal throttle stays), A8, A9a, A10d, B2, B3a, B3c, B5,
@@ -379,9 +399,13 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 
 ### V5-M2 — Undo from the snackbar (§2)
 - [x] Grilled (§2)
-- [ ] Implement: holds in the queue and sync, stacked Undo snackbars, guest / attachment / refuse
+- [x] Implement: holds in the queue and sync, stacked Undo snackbars, guest / attachment / refuse (PR #43)
 
-## 4. Decision log
+### Fixes and features after V5-M2
+- [x] A member sees their own waiting and refused costs in an event's refunds (PR #44)
+- [ ] Event screen, sharing and wording (§3)
+
+## 5. Decision log
 
 | Date | Decision |
 |---|---|

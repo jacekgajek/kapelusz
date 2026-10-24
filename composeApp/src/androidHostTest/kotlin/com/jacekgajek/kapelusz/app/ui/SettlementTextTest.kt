@@ -95,7 +95,7 @@ class SettlementTextTest {
             Still to pay:
             Bob → Alice: 625.00 PLN
             Bob → Band fund (Alice): 50.00 PLN
-            Pass the Hat · kapelusz.jacekgajek.com
+            kapelusz.jacekgajek.com
             """.trimIndent(),
             text(gig, "en"),
         )
@@ -113,7 +113,7 @@ class SettlementTextTest {
             Do przekazania:
             Bob → Alice: 625,00 zł
             Bob → Kasa zespołowa (Alice): 50,00 zł
-            Kapelusz · kapelusz.jacekgajek.com
+            kapelusz.jacekgajek.com
             """.trimIndent(),
             text(gig, "pl"),
         )
@@ -129,7 +129,7 @@ class SettlementTextTest {
             Bob → Alice: 625.00 PLN
             Bob → Band fund (Alice): 50.00 PLN
             All settled
-            Pass the Hat · kapelusz.jacekgajek.com
+            kapelusz.jacekgajek.com
             """.trimIndent(),
             text(settled, "en").lines().drop(3).joinToString("\n"),
         )
@@ -140,7 +140,7 @@ class SettlementTextTest {
             Bob → Alice: 625,00 zł
             Bob → Kasa zespołowa (Alice): 50,00 zł
             Wszystko rozliczone
-            Kapelusz · kapelusz.jacekgajek.com
+            kapelusz.jacekgajek.com
             """.trimIndent(),
             text(settled, "pl").lines().drop(3).joinToString("\n"),
         )
@@ -177,7 +177,7 @@ class SettlementTextTest {
         // A loss: more for the band fund than the income.
         val loss = gig.apply(SetFundAmount("gig", Money(200000)))
         assertEquals(
-            listOf("Bob → Band fund (Alice): 50.00 PLN", "Not settled yet: there is something to sort out in the app first", "Pass the Hat · kapelusz.jacekgajek.com"),
+            listOf("Bob → Band fund (Alice): 50.00 PLN", "Not settled yet: there is something to sort out in the app first", "kapelusz.jacekgajek.com"),
             text(loss, "en").lines().takeLast(3),
         )
         assertEquals("Jeszcze nierozliczone: najpierw trzeba coś poprawić w aplikacji", text(loss, "pl").lines().dropLast(1).last())

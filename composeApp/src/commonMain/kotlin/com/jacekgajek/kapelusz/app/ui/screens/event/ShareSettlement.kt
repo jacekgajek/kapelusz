@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -87,12 +86,6 @@ internal fun rememberShareSettlement(band: Band, event: Event?, settlement: Sett
             }
         }
     }
-}
-
-/** The Share icon of the event's top bar. */
-@Composable
-internal fun ShareSettlementIcon(onShare: () -> Unit) {
-    IconButton(onClick = onShare) { Icon(Icons.Default.Share, stringResource(Res.string.share_settlement)) }
 }
 
 /** "Share settlement" under the Settlement panel, for everyone in the band. */

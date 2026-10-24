@@ -4,6 +4,14 @@
     <string name="share_settlement">Share settlement</string>
     <string name="share_settlement_copied">Settlement copied to the clipboard</string>
     <string name="share_settlement_failed">Could not share the settlement.</string>
+    <string name="share_info">Share info</string>
+    <string name="share_info_copied">Gig info copied to the clipboard</string>
+    <string name="share_info_failed">Could not share the gig info.</string>
+    <string name="info_date">Date</string>
+    <string name="info_place">Place</string>
+    <string name="info_map">Map</string>
+    <string name="info_plan">Plan</string>
+    <string name="info_lineup">Line-up</string>
     <!-- The shared text itself -->
     <string name="share_text_income">Income %1$s</string>
     <string name="share_text_refunds">costs refunded %1$s</string>
@@ -16,8 +24,8 @@
     <string name="share_text_still_to_pay">Still to pay:</string>
     <string name="share_text_all_settled">All settled</string>
     <string name="share_text_incomplete">Not settled yet: there is something to sort out in the app first</string>
-    <string name="share_text_awaiting_rest">The rest is paid out once the organiser pays</string>
-    <string name="share_text_footer">Pass the Hat · kapelusz.jacekgajek.com</string>
+    <string name="share_text_awaiting_rest">The rest is paid out once the planned payment arrives</string>
+    <string name="share_text_footer">kapelusz.jacekgajek.com</string>
     <!-- Reminder about open debts (ITERATION_3 §2.2) -->
     <string name="notifications_debts">Reminders about open debts</string>
 </resources>

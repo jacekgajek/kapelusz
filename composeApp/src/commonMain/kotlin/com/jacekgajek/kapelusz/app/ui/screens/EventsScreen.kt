@@ -26,6 +26,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -240,9 +247,7 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 if (showStatus) StatusChip(summary.settlement.status, event.archived)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
-                    event.participants.take(8).forEach { Avatar(partyName(band, event, it.partyId, ""), band.member(it.partyId)?.pictureUrl) }
-                }
+                AvatarStack(event.participants.map { partyName(band, event, it.partyId, "") to band.member(it.partyId)?.pictureUrl }, Modifier.weight(1f))
                 // A draft has no money in it yet: nothing to be settled about.
                 val number = summary.myNumber
                 when {
@@ -325,3 +330,33 @@ private fun EventCard(icon: ImageVector, text: String, color: Color, onClick: ()
     }
 }
 
+/**
+ * Everyone's avatars in the room left beside the card's text (ITERATION_5 §3): the same size, overlapping more as room
+ * runs out; when even then a third of each would not show, the first ones and "+N" for the rest.
+ */
+@Composable
+private fun AvatarStack(people: List<Pair<String, String?>>, modifier: Modifier = Modifier) {
+    if (people.isEmpty()) return
+    BoxWithConstraints(modifier) {
+        val size = AVATAR_SIZE
+        val loose = size - 6.dp
+        val tightest = size / 3
+        fun step(count: Int) = if (count <= 1) loose else ((maxWidth - size) / (count - 1)).coerceAtMost(loose)
+        val all = step(people.size) >= tightest
+        // Faces and a "+N" bubble, all at the tightest step.
+        val shown = if (all) people.size else ((maxWidth - size) / tightest).toInt().coerceIn(1, people.size - 1)
+        val step = if (all) step(people.size) else tightest
+        Row(horizontalArrangement = Arrangement.spacedBy(step - size)) {
+            // Exactly their size: a row short of room would otherwise squash the last one into an oval.
+            people.take(shown).forEach { (name, picture) -> Box(Modifier.requiredSize(size)) { Avatar(name, picture, size) } }
+            if (!all) {
+                Box(
+                    Modifier.requiredSize(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) { Text("+${people.size - shown}", style = MaterialTheme.typography.labelSmall) }
+            }
+        }
+    }
+}
+
+private val AVATAR_SIZE = 28.dp
