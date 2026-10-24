@@ -537,7 +537,7 @@ Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is 
 ## 9. V5-M5 — Place suggestions in Location (2026-10-24)
 
 - **In the event dialogs** (new event, "When and where"): typing 3 or more characters in Location shows, after a
-  ~300 ms pause, up to 5 places from Google under the field (name, and the address in grey), with "Powered by Google".
+  ~500 ms pause, up to 5 places from Google under the field (name, and the address in grey), with "Powered by Google".
   Picking one puts in the name and town ("Stodoła, Warszawa": the address part before the country, without postal
   codes) and links the place's exact pin (a Google Maps link with its place id), as Paste from Maps does. Free text
   still works; offline, or with place search off, the field is plain text. Paste from Maps and sharing from Maps stay.

@@ -217,4 +217,4 @@ private fun LocationField(state: EventFieldsState, placeSearch: PlaceSearch?, on
 }
 
 /** How long typing pauses before places are asked for, so not every keystroke is a request. */
-private const val SEARCH_PAUSE_MS = 300L
+private const val SEARCH_PAUSE_MS = 500L
