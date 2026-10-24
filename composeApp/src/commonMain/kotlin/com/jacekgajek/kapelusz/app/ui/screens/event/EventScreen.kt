@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -51,6 +50,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
+import com.jacekgajek.kapelusz.app.generated.tab_settlement
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.Tab
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -136,21 +143,27 @@ fun EventScreen(
     var editing by remember { mutableStateOf(false) }
     val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
-    val listState = rememberLazyListState()
-    // Two pages (ITERATION_4 §2.4): the gig, and its money. Each event opens on the one last used there.
+    // Pages (ITERATION_5 §4.4): the gig, its money, and who gets what; artists see the gig and their own money. Each
+    // event opens on the page last used there; swiping or the tabs switch, and each page keeps its own scroll position.
     val bandId = state.band.id
-    val tab = graph.settings.settings.collectAsState().value.eventTab(bandId, eventId)
-    fun selectTab(selected: EventTab) = graph.settings.update { it.withEventTab(bandId, eventId, selected) }
-    // Opened from a reminder about an open debt (ITERATION_3 §2.2): the money, straight at To settle.
+    val tabs = if (artist) listOf(EventTab.GIG, EventTab.MONEY) else EventTab.entries
+    val stored = graph.settings.settings.collectAsState().value.eventTab(bandId, eventId)
+    val pagerState = rememberPagerState(initialPage = tabs.indexOf(stored).coerceAtLeast(0)) { tabs.size }
+    val listStates = tabs.associateWith { rememberLazyListState() }
+    LaunchedEffect(pagerState, tabs) {
+        // getOrNull: a role changing to Artist meanwhile takes a page away before the pager catches up.
+        snapshotFlow { pagerState.settledPage }.collect { page -> tabs.getOrNull(page)?.let { tab -> graph.settings.update { it.withEventTab(bandId, eventId, tab) } } }
+    }
+    // Opened from a reminder about an open debt (ITERATION_3 §2.2): the settlement, straight at To settle.
     val toSettle by graph.pendingToSettle.collectAsState()
     LaunchedEffect(toSettle, event != null) {
         if (toSettle != eventId || event == null || artist) return@LaunchedEffect
-        selectTab(EventTab.MONEY)
-        // Once the money page is laid out (every section is one item, shown or not).
-        val money = EventSection.on(EventTab.MONEY)
-        graph.settings.settings.first { it.eventTab(bandId, eventId) == EventTab.MONEY }
-        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it == money.size }
-        listState.scrollToItem(money.indexOf(EventSection.TO_SETTLE))
+        pagerState.scrollToPage(tabs.indexOf(EventTab.SETTLEMENT))
+        // Once the page is laid out (every section is one item, shown or not).
+        val sections = EventSection.on(EventTab.SETTLEMENT)
+        val list = listStates.getValue(EventTab.SETTLEMENT)
+        snapshotFlow { list.layoutInfo.totalItemsCount }.first { it == sections.size }
+        list.scrollToItem(sections.indexOf(EventSection.TO_SETTLE))
         // Last: clearing it restarts this effect, which would cancel the scroll above.
         graph.pendingToSettle.value = null
     }
@@ -181,48 +194,49 @@ fun EventScreen(
         }
         val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
         val shareInfo = rememberShareInfo(state.band, event, snackbar)
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            LazyColumn(
-                Modifier.widthIn(max = 720.dp).fillMaxWidth(),
-                state = listState,
-                contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
-            ) {
-                if (artist) {
-                    // Artists get no debt reminders, so nothing scrolls by section here.
-                    stickyHeader("tabs") { EventTabs(tab, ::selectTab) }
-                    if (tab == EventTab.GIG) {
-                        item("when") { WhenAndWhere(context) }
-                        item("details") { DetailsSection(context) }
-                        item("files") { FilesSection(context) }
-                        item("lineup") { ArtistLineup(context) }
-                        item("share") { ShareInfoButton(shareInfo) }
-                    } else {
-                        item("payout") { ArtistPayout(context) }
-                        item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
-                    }
-                    return@LazyColumn
-                }
-                // The tab's sections, in the order of [EventSection]: To settle is found by its index on the money page.
-                EventSection.on(tab).forEach { section ->
-                    // The switch stays at the top while a long page scrolls under it.
-                    if (section == EventSection.TABS) stickyHeader(key = section.name) { EventTabs(tab, ::selectTab) }
-                    else item(key = section.name) {
-                        when (section) {
-                            EventSection.TABS -> Unit
-                            EventSection.WHEN -> WhenAndWhere(context)
-                            EventSection.DETAILS -> DetailsSection(context)
-                            EventSection.FILES -> FilesSection(context)
-                            EventSection.PARTICIPANTS -> ParticipantsSection(context)
-                            EventSection.SHARE_INFO -> ShareInfoButton(shareInfo)
-                            EventSection.STATUS -> StatusChip(context.settlement.status, event.archived, Modifier.fillMaxWidth().padding(top = 8.dp))
-                            EventSection.TOTALS -> Totals(context)
-                            EventSection.PROBLEMS -> Problems(context)
-                            EventSection.COLLECTED -> CollectedSection(context)
-                            EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
-                            EventSection.SUMMARY -> SummarySection(context)
-                            EventSection.SHARE -> shareSettlement?.let { ShareSettlementButton(it) }
-                            EventSection.TO_SETTLE -> TransfersSection(context)
-                            EventSection.HISTORY -> HistorySection(context, graph)
+        Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
+            EventTabs(tabs, pagerState)
+            HorizontalPager(pagerState, Modifier.fillMaxSize(), key = { tabs[it] }) { page ->
+                val tab = tabs[page]
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    LazyColumn(
+                        Modifier.widthIn(max = 720.dp).fillMaxWidth(),
+                        state = listStates.getValue(tab),
+                        contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
+                    ) {
+                        if (artist) {
+                            // Artists get no debt reminders, so nothing scrolls by section here.
+                            if (tab == EventTab.GIG) {
+                                item("when") { WhenAndWhere(context) }
+                                item("details") { DetailsSection(context) }
+                                item("files") { FilesSection(context) }
+                                item("lineup") { ArtistLineup(context) }
+                                item("share") { ShareInfoButton(shareInfo) }
+                            } else {
+                                item("payout") { ArtistPayout(context) }
+                                item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
+                            }
+                            return@LazyColumn
+                        }
+                        // The page's sections, in the order of [EventSection]: To settle is found by its index.
+                        EventSection.on(tab).forEach { section ->
+                            item(key = section.name) {
+                                when (section) {
+                                    EventSection.WHEN -> WhenAndWhere(context)
+                                    EventSection.DETAILS -> DetailsSection(context)
+                                    EventSection.FILES -> FilesSection(context)
+                                    EventSection.PARTICIPANTS -> ParticipantsSection(context)
+                                    EventSection.SHARE_INFO -> ShareInfoButton(shareInfo)
+                                    EventSection.STATUS -> StatusChip(context.settlement.status, event.archived, Modifier.fillMaxWidth().padding(top = 8.dp))
+                                    EventSection.TOTALS -> Totals(context)
+                                    EventSection.COLLECTED -> CollectedSection(context)
+                                    EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
+                                    EventSection.PROBLEMS -> Problems(context)
+                                    EventSection.SUMMARY -> SummarySection(context)
+                                    EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement)
+                                    EventSection.HISTORY -> HistorySection(context, graph)
+                                }
+                            }
                         }
                     }
                 }
@@ -233,32 +247,40 @@ fun EventScreen(
 }
 
 /**
- * The event screen's sections in list order, each on one of the two pages ([tab]) or above both (null). One list item
- * each, so a reminder about an open debt finds [TO_SETTLE] by its index on the money page.
+ * The event screen's sections in list order, each on the pages ([tabs]) it shows on. One list item each, so a reminder
+ * about an open debt finds [TO_SETTLE] by its index on the settlement page.
  */
-private enum class EventSection(val tab: EventTab?) {
-    TABS(null),
+private enum class EventSection(vararg val tabs: EventTab) {
     WHEN(EventTab.GIG), DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG), SHARE_INFO(EventTab.GIG),
-    STATUS(EventTab.MONEY), TOTALS(EventTab.MONEY), PROBLEMS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY), SUMMARY(EventTab.MONEY),
-    SHARE(EventTab.MONEY), TO_SETTLE(EventTab.MONEY), HISTORY(EventTab.MONEY),
+    STATUS(EventTab.MONEY, EventTab.SETTLEMENT),
+    TOTALS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY),
+    PROBLEMS(EventTab.SETTLEMENT), SUMMARY(EventTab.SETTLEMENT), TO_SETTLE(EventTab.SETTLEMENT), HISTORY(EventTab.SETTLEMENT),
     ;
 
     companion object {
-        fun on(tab: EventTab) = entries.filter { it.tab == null || it.tab == tab }
+        fun on(tab: EventTab) = entries.filter { tab in it.tabs }
     }
 }
 
-/** The switch between the gig's page and its money (ITERATION_4 §2.4). */
+/** The pages' tabs (ITERATION_5 §4.4): text and the underline, no checkmark or borders, so three labels fit a phone. */
 @Composable
-private fun EventTabs(tab: EventTab, onTab: (EventTab) -> Unit) {
-    // Opaque: pinned at the top, the list scrolls under it.
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(vertical = 8.dp)) {
-        listOf(EventTab.GIG to Res.string.tab_gig, EventTab.MONEY to Res.string.tab_money).forEachIndexed { index, (value, label) ->
-            SegmentedButton(selected = tab == value, onClick = { onTab(value) }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
-                Text(stringResource(label))
-            }
+private fun EventTabs(tabs: List<EventTab>, pagerState: PagerState) {
+    val scope = rememberCoroutineScope()
+    PrimaryTabRow(selectedTabIndex = pagerState.currentPage, modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
+        tabs.forEachIndexed { index, tab ->
+            Tab(
+                selected = pagerState.currentPage == index,
+                onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                text = { Text(stringResource(tab.label())) },
+            )
         }
     }
+}
+
+private fun EventTab.label() = when (this) {
+    EventTab.GIG -> Res.string.tab_gig
+    EventTab.MONEY -> Res.string.tab_money
+    EventTab.SETTLEMENT -> Res.string.tab_settlement
 }
 
 /** The top of the gig page (ITERATION_5 §3): date and place with Navigate beside them, then the set times. */
@@ -320,7 +342,7 @@ private fun TotalRow(label: String, amount: Money, currency: String, bold: Boole
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = if (bold) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
         MoneyText(amount, currency, bold = bold)
-        if (onEdit != null) EditButton(onEdit)
+        if (onEdit != null) EditButton(onClick = onEdit)
     }
 }
 

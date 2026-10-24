@@ -39,21 +39,22 @@ private const val MAX_EDGE = 1600
 private const val JPEG_QUALITY = 80
 
 @Composable
-actual fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentPicker {
+actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     val callback = rememberUpdatedState(onResult)
     // Survives the activity being recreated while the camera app is in front.
     var photoPath by rememberSaveable { mutableStateOf<String?>(null) }
-    val files = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) scope.launch { callback.value(prepare(context, uri)) }
+    val files = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        // One after another: each photo is decoded and re-encoded, several at once would need several times the memory.
+        if (uris.isNotEmpty()) scope.launch { callback.value(uris.map { prepare(context, it) }) }
     }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
         val path = photoPath ?: return@rememberLauncherForActivityResult
         photoPath = null
         scope.launch {
             val file = File(path)
-            if (taken) callback.value(prepare(context, Uri.fromFile(file), photo = true))
+            if (taken) callback.value(listOf(prepare(context, Uri.fromFile(file), photo = true)))
             file.delete()
         }
     }
@@ -63,7 +64,7 @@ actual fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentP
                 try {
                     files.launch(arrayOf("image/*", "application/pdf"))
                 } catch (e: ActivityNotFoundException) {
-                    callback.value(PickResult.Failed)
+                    callback.value(listOf(PickResult.Failed))
                 }
             }
 
@@ -74,7 +75,7 @@ actual fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentP
                     camera.launch(FileProvider.getUriForFile(context, "${context.packageName}.files", file))
                 } catch (e: ActivityNotFoundException) {
                     photoPath = null
-                    callback.value(PickResult.Failed)
+                    callback.value(listOf(PickResult.Failed))
                 }
             }
         }

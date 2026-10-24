@@ -1,9 +1,20 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.compose.foundation.clickable
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.io.encoding.Base64
+import com.jacekgajek.kapelusz.app.ui.components.removeLabel
+import com.jacekgajek.kapelusz.app.platform.pdfInViewer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.key
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,10 +40,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.ops.RemoveAttachment
-import com.jacekgajek.kapelusz.app.generated.attachment_removed
+import com.jacekgajek.kapelusz.app.generated.attachment_limit_partial
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_file_name
@@ -41,6 +52,7 @@ import com.jacekgajek.kapelusz.app.generated.attachment_not_available
 import com.jacekgajek.kapelusz.app.generated.attachment_open_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_confirm
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_title
+import com.jacekgajek.kapelusz.app.generated.attachment_removed
 import com.jacekgajek.kapelusz.app.generated.attachment_rename
 import com.jacekgajek.kapelusz.app.generated.attachment_take_photo
 import com.jacekgajek.kapelusz.app.generated.attachment_too_large
@@ -49,12 +61,11 @@ import com.jacekgajek.kapelusz.app.generated.attachment_uploading
 import com.jacekgajek.kapelusz.app.generated.attachment_waiting_for_save
 import com.jacekgajek.kapelusz.app.generated.attachments
 import com.jacekgajek.kapelusz.app.generated.remove
-import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.platform.PickResult
-import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.platform.rememberAttachmentPicker
 import com.jacekgajek.kapelusz.app.platform.rememberUrlOpener
+import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
@@ -63,6 +74,7 @@ import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
+import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -71,7 +83,6 @@ import org.jetbrains.compose.resources.stringResource
  * Photos and PDFs of a cost, a collected entry or an event (ITERATION_4 §2.1). For a saved one ([owner] set) a picked
  * file is attached right away; for a new one the files wait in [drafts] until it is saved.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AttachmentsSection(
     graph: AppGraph,
@@ -86,7 +97,17 @@ fun AttachmentsSection(
     title: String? = stringResource(Res.string.attachments),
     /** Removing applies at once with Undo in the snackbar (ITERATION_5 §2); not inside a dialog, which would hide it. */
     undoRemoval: Boolean = false,
+    /** Shown inside a dialog: messages go under the buttons, as the screen's snackbar is hidden behind the dialog. */
+    inDialog: Boolean = false,
 ) {
+    var notice by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(notice) {
+        if (notice != null) {
+            delay(NOTICE_MS)
+            notice = null
+        }
+    }
+    val say = { message: String -> if (inDialog) notice = message else actions.say(message) }
     val scope = rememberCoroutineScope()
     val open = rememberUrlOpener()
     val pending by graph.uploads.pending.collectAsState()
@@ -97,45 +118,66 @@ fun AttachmentsSection(
     val failed = stringResource(Res.string.attachment_failed)
     val notAvailable = stringResource(Res.string.attachment_not_available)
     val openFailed = stringResource(Res.string.attachment_open_failed)
-    val picker = rememberAttachmentPicker { result ->
-        when (result) {
-            is PickResult.Picked -> if (owner == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attachments.attach(owner, result.file)) }
-            PickResult.TooLarge -> actions.say(tooLarge)
-            PickResult.Unsupported -> actions.say(unsupported)
-            PickResult.Failed -> actions.say(failed)
+    val partialText = stringResource(Res.string.attachment_limit_partial)
+    val count = attachments.size + drafts.size
+    val picker = rememberAttachmentPicker { results ->
+        // As many as there is room for, in the order chosen; the rest is said, not silently dropped.
+        val files = results.filterIsInstance<PickResult.Picked>().map { it.file }
+        val taken = files.take((max - count).coerceAtLeast(0))
+        if (owner == null) onDrafts(drafts + taken) else scope.launch { taken.forEach { actions.show(graph.attachments.attach(owner, it)) } }
+        val problem = results.firstOrNull { it !is PickResult.Picked }
+        when {
+            taken.size < files.size -> say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))
+            problem == PickResult.TooLarge -> say(tooLarge)
+            problem == PickResult.Unsupported -> say(unsupported)
+            problem == PickResult.Failed -> say(failed)
         }
     }
-    val count = attachments.size + drafts.size
+    var viewing by remember { mutableStateOf<Int?>(null) }
+    val removedText = stringResource(Res.string.attachment_removed)
+    // At once with Undo where the screen shows the snackbar, else asked first (in a dialog, which would hide it).
+    val remove = { attachment: Attachment ->
+        if (!undoRemoval) removing = attachment
+        else if (owner != null) actions.runWithUndo(RemoveAttachment(owner, attachment.id), removedText.replace("%1\$s", attachment.fileName ?: attachment.id))
+    }
+    val openInBrowser = { attachment: Attachment ->
+        open {
+            graph.attachments.url(attachment.id).getOrElse { error ->
+                val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
+                say(if (notUploaded) notAvailable else openFailed)
+                null
+            }
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (title != null) Text(title, style = MaterialTheme.typography.labelLarge)
-        attachments.forEach { attachment ->
+        // Images as thumbnails, PDFs as rows (ITERATION_5 §4.2); tapping one opens the viewer on it, swiping through
+        // the rest. On the web the viewer has the images only: PDFs open in the browser, as before.
+        val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
+        val images = attachments.filter { it.kind == AttachmentKind.IMAGE }
+        val imageDrafts = drafts.filter { it.kind == AttachmentKind.IMAGE }
+        if (images.isNotEmpty() || imageDrafts.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                images.forEach { attachment ->
+                    key(attachment.id) { AttachmentThumbnail(graph, attachment, THUMBNAIL) { viewing = viewable.indexOf(attachment) } }
+                }
+                imageDrafts.forEach { draft -> key(draft) { DraftThumbnail(draft, onRemove = { onDrafts(drafts - draft) }.takeIf { editable }) } }
+            }
+        }
+        attachments.filter { it.kind == AttachmentKind.PDF }.forEach { attachment ->
             val uploading = pending.any { it.attachmentId == attachment.id }
-            val removed = stringResource(Res.string.attachment_removed, attachment.fileName ?: attachment.id)
             AttachmentRow(
                 attachment.kind,
                 attachment.fileName ?: attachment.id,
                 attachment.sizeBytes,
                 status = if (uploading) stringResource(Res.string.attachment_uploading) else null,
-                onOpen = {
-                    if (uploading) actions.say(notAvailable)
-                    else open {
-                        graph.attachments.url(attachment.id).getOrElse { error ->
-                            val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
-                            actions.say(if (notUploaded) notAvailable else openFailed)
-                            null
-                        }
-                    }
-                },
-                onRemove = {
-                    if (!undoRemoval) removing = attachment
-                    else if (owner != null) actions.runWithUndo(RemoveAttachment(owner, attachment.id), removed)
-                    Unit
-                }.takeIf { editable },
+                onOpen = { if (pdfInViewer) viewing = viewable.indexOf(attachment) else openInBrowser(attachment) },
+                onRemove = { remove(attachment) }.takeIf { editable },
                 onRename = { renaming = attachment }.takeIf { editable },
             )
         }
-        drafts.forEach { draft ->
+        drafts.filter { it.kind == AttachmentKind.PDF }.forEach { draft ->
             AttachmentRow(
                 draft.kind, draft.fileName, draft.sizeBytes,
                 status = stringResource(Res.string.attachment_waiting_for_save),
@@ -158,8 +200,19 @@ fun AttachmentsSection(
             }
             Text(stringResource(hint, max), style = MaterialTheme.typography.bodySmall)
         }
+        notice?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
     }
 
+    viewing?.let { start ->
+        val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
+        AttachmentViewer(
+            graph, viewable, start,
+            onRename = { attachment: Attachment -> renaming = attachment }.takeIf { editable },
+            onRemove = { attachment: Attachment -> remove(attachment) }.takeIf { editable },
+            onOpenElsewhere = openInBrowser,
+            onDismiss = { viewing = null },
+        )
+    }
     removing?.let { attachment ->
         ConfirmDialog(
             title = stringResource(Res.string.attachment_remove_title),
@@ -203,6 +256,30 @@ private fun AttachmentRow(
         if (onRemove != null) RemoveButton(name, onRemove)
     }
 }
+
+/** A photo picked for something not saved yet, from its local copy; the cross takes it off again. */
+@OptIn(ExperimentalEncodingApi::class)
+@Composable
+private fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?) {
+    val bytes = remember(draft) { runCatching { Base64.decode(draft.base64) }.getOrNull() }
+    Box {
+        ThumbnailBox(THUMBNAIL, onClick = null, name = draft.fileName) {
+            // Keyed by the content: another photo with the same name and size must not show this one.
+            if (bytes != null) BytesImage(bytes, "draft-${draft.base64.hashCode()}-${draft.sizeBytes}", ContentScale.Crop, Modifier.fillMaxSize())
+            else Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (onRemove != null) {
+            IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd).size(32.dp)) {
+                Icon(Icons.Default.Close, removeLabel(draft.fileName), Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+private val THUMBNAIL = 96.dp
+
+/** How long a message stays under the buttons in a dialog. */
+private const val NOTICE_MS = 6_000L
 
 private fun formatSize(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "${(bytes * 10 / (1024 * 1024)) / 10.0} MB"

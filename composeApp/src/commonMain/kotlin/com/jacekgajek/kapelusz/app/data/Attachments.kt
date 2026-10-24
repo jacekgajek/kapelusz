@@ -1,6 +1,10 @@
 package com.jacekgajek.kapelusz.app.data
 
+import com.jacekgajek.kapelusz.app.platform.ByteCache
+import com.jacekgajek.kapelusz.app.platform.FileCache
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Attachment
@@ -28,6 +32,9 @@ class Attachments(
     private val sync: SyncEngine,
     private val scope: CoroutineScope,
     private val dispatch: (Operation) -> Rejection?,
+    /** Downloads a file from a presigned URL (no app credentials: S3 refuses a second kind of authorisation). */
+    private val download: suspend (url: String) -> ByteArray = { error("No downloads here") },
+    private val cache: ByteCache = FileCache,
 ) {
     /**
      * Attaches a prepared file to [owner]: the attachment is added like any change, and the file waits on the device
@@ -74,6 +81,21 @@ class Attachments(
     fun remove(owner: AttachmentOwner, attachmentId: Id): Rejection? = dispatch(RemoveAttachment(owner, attachmentId))
 
     fun rename(owner: AttachmentOwner, attachmentId: Id, fileName: String): Rejection? = dispatch(RenameAttachment(owner, attachmentId, fileName))
+
+    /**
+     * The file of an attachment (ITERATION_5 §4.2): the local copy while it waits for its upload, else the one kept on
+     * the device, else downloaded once and kept (an attachment's file never changes). Null when it cannot be had now
+     * (offline, or not uploaded yet by whoever added it).
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    suspend fun bytes(attachmentId: Id): ByteArray? {
+        uploads.localFile(attachmentId)?.let { return runCatching { Base64.decode(it) }.getOrNull() }
+        cache.read(attachmentId)?.let { return it }
+        val url = url(attachmentId).getOrNull() ?: return null
+        val bytes = runSuspendCatching { download(url) }.getOrNull() ?: return null
+        runSuspendCatching { cache.write(attachmentId, bytes) }
+        return bytes
+    }
 
     /** A URL to open an attachment; fails with [ApiException] `attachment_not_uploaded` while its file is not on the server. */
     suspend fun url(attachmentId: Id): Result<String> {

@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.transfer_recorded
+import com.jacekgajek.kapelusz.app.generated.settled_all
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import kotlinx.coroutines.launch
 import com.jacekgajek.kapelusz.app.generated.copy_failed
@@ -42,6 +44,8 @@ import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -86,7 +90,7 @@ import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun TransfersSection(context: EventContext) {
+fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
     val event = context.event
     val settlement = context.settlement
     var handingOver by remember { mutableStateOf(false) }
@@ -94,14 +98,19 @@ fun TransfersSection(context: EventContext) {
 
     if (settlement.canSettle && settlement.suggestions.isNotEmpty()) {
         SectionTitle(stringResource(Res.string.to_settle))
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
-                settlement.suggestions.forEach { suggestion -> key(suggestion.from, suggestion.to) { SuggestionRow(context, suggestion) } }
+        settlement.suggestions.forEach { suggestion ->
+            // Keyed by the parties, card and all: an open "Part" dialog stays with its people when a sync reorders the
+            // list or a Settle takes a row away.
+            key(suggestion.from, suggestion.to) {
+                Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { SuggestionRow(context, suggestion) }
+                }
             }
         }
+        // One tap with Undo in the snackbar (ITERATION_5 §4.1), as Settle and Part are.
+        val settledAll = stringResource(Res.string.settled_all)
         if (context.can.settleAll(event)) Button(
-            onClick = { context.actions.run(SettleSuggestions(event.id)) },
+            onClick = { context.actions.runWithUndo(SettleSuggestions(event.id), settledAll) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         ) {
             Icon(Icons.Default.DoneAll, null)
@@ -115,9 +124,25 @@ fun TransfersSection(context: EventContext) {
             Text(stringResource(Res.string.hand_over), Modifier.padding(start = 8.dp))
         }
     }
+    // The settlement's three actions together: settle all, hand over, share.
+    shareSettlement?.let { ShareSettlementButton(it) }
 
+    // Done already: folded away, opened on demand (each visit starts folded).
+    var showRecorded by remember(event.id) { mutableStateOf(false) }
     if (event.transfers.isNotEmpty()) {
-        SectionTitle(stringResource(Res.string.recorded_transfers))
+        Row(
+            Modifier.fillMaxWidth().clickable { showRecorded = !showRecorded }.padding(top = 16.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(if (showRecorded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+            Text(
+                "${stringResource(Res.string.recorded_transfers)} (${event.transfers.size})",
+                Modifier.padding(start = 8.dp),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+    if (event.transfers.isNotEmpty() && showRecorded) {
         val fundLabel = stringResource(Res.string.band_fund)
         event.transfers.forEach { transfer ->
             Row(
@@ -160,6 +185,13 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val fundLabel = stringResource(Res.string.band_fund)
     val keepsForFund = suggestion.to == BAND_FUND && suggestion.from == band.treasurerMemberId
     var partial by remember { mutableStateOf(false) }
+    val lang = language
+    val from = partyName(band, context.event, suggestion.from, fundLabel)
+    val to = partyName(band, context.event, suggestion.to, fundLabel)
+    // Read without arguments, so its placeholders stay for the amount known only on tap (as in SettlementWords).
+    val recordedText = stringResource(Res.string.transfer_recorded)
+    // "Recorded: Ania → Bartek 250,00 zł", said with Undo.
+    fun recorded(amount: Money) = recordedText.replace("%1\$s", from).replace("%2\$s", to).replace("%3\$s", formatMoney(amount, context.currency, lang))
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
     // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -174,7 +206,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             if (context.can.recordTransfer(context.event, suggestion.from, suggestion.to)) {
                 if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                 FilledTonalButton(onClick = {
-                    context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount))
+                    context.actions.runWithUndo(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, suggestion.amount), recorded(suggestion.amount))
                 }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
             }
         }
@@ -185,7 +217,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             to = partyName(band, context.event, suggestion.to, fundLabel),
             suggested = suggestion.amount,
             currency = context.currency,
-            onConfirm = { context.actions.run(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, it)) },
+            onConfirm = { context.actions.runWithUndo(RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, it), recorded(it)) },
             onDismiss = { partial = false },
         )
     }
@@ -251,6 +283,8 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     // At most what the sender holds: a hand-over passes on money, it doesn't make any up.
     val held = settlement.line(from)?.balance ?: Money.ZERO
     val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= held }
+    // Read without arguments: its placeholders stay for the names and amount known on OK.
+    val recordedText = stringResource(Res.string.transfer_recorded)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -273,7 +307,11 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(enabled = parsed != null && from != to, onClick = {
-                if (context.actions.run(RecordTransfer(event.id, newId(), from, to, parsed!!, note.ifBlank { null }))) onDismiss()
+                // Recorded with Undo in the snackbar (ITERATION_5 §4.6), as Settle is.
+                val recorded = recordedText.replace("%1\$s", partyName(context.band, event, from, fundLabel))
+                    .replace("%2\$s", partyName(context.band, event, to, fundLabel)).replace("%3\$s", formatMoney(parsed!!, context.currency, lang))
+                onDismiss()
+                context.actions.runWithUndo(RecordTransfer(event.id, newId(), from, to, parsed, note.ifBlank { null }), recorded)
             }) { Text(stringResource(Res.string.hand_over)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

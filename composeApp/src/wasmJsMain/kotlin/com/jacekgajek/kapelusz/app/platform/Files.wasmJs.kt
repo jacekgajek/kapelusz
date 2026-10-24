@@ -22,12 +22,14 @@ private external interface PickedJs : JsAny {
 
 // Opens the browser's file chooser (phones offer the camera there too) and prepares the chosen file: a PDF as it is,
 // an image re-encoded through a canvas (orientation applied, longest edge 1600 px, JPEG 0.8), which drops EXIF/GPS.
-// Resolves to null when the user cancels. The file content stays base64 on the JS side of the boundary.
-private fun pickAndPrepare(): Promise<PickedJs?> = js(
+// Several files can be chosen; resolves to one result each, in order, or null when the user cancels. The file content
+// stays base64 on the JS side of the boundary.
+private fun pickAndPrepare(): Promise<JsArray<PickedJs>?> = js(
     """new Promise((resolve) => {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*,application/pdf';
+  input.multiple = true;
   input.style.display = 'none';
   document.body.appendChild(input);
   const done = (value) => { input.remove(); resolve(value); };
@@ -38,18 +40,15 @@ private fun pickAndPrepare(): Promise<PickedJs?> = js(
     reader.readAsDataURL(blob);
   });
   input.addEventListener('cancel', () => done(null));
-  input.addEventListener('change', async () => {
-    const file = input.files && input.files[0];
-    if (!file) { done(null); return; }
+  const prepare = async (file) => {
     try {
       if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
-        if (file.size > 10485760) { done({ error: 'too_large' }); return; }
-        done({ kind: 'PDF', name: file.name, size: file.size, base64: await toBase64(file) });
-        return;
+        if (file.size > 10485760) return { error: 'too_large' };
+        return { kind: 'PDF', name: file.name, size: file.size, base64: await toBase64(file) };
       }
-      if (!file.type.startsWith('image/')) { done({ error: 'unsupported' }); return; }
+      if (!file.type.startsWith('image/')) return { error: 'unsupported' };
       let bitmap;
-      try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { done({ error: 'unsupported' }); return; }
+      try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { return { error: 'unsupported' }; }
       const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(1, Math.round(bitmap.width * scale));
@@ -57,18 +56,37 @@ private fun pickAndPrepare(): Promise<PickedJs?> = js(
       canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
       const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', 0.8));
-      if (!blob) { done({ error: 'failed' }); return; }
-      done({ kind: 'IMAGE', name: file.name.replace(/\.[^.]*$/, '') + '.jpg', size: blob.size, base64: await toBase64(blob) });
+      if (!blob) return { error: 'failed' };
+      return { kind: 'IMAGE', name: file.name.replace(/\.[^.]*$/, '') + '.jpg', size: blob.size, base64: await toBase64(blob) };
     } catch (e) {
-      done({ error: 'failed' });
+      return { error: 'failed' };
     }
+  };
+  input.addEventListener('change', async () => {
+    const files = input.files ? Array.from(input.files) : [];
+    if (files.length === 0) { done(null); return; }
+    // One after another: a canvas per photo at once would need that much more memory.
+    const results = [];
+    for (const file of files) results.push(await prepare(file));
+    done(results);
   });
   input.click();
 })""",
 )
 
+private fun toResult(picked: PickedJs): PickResult = when (picked.error) {
+    null -> {
+        val kind = AttachmentKind.valueOf(picked.kind)
+        if (picked.size > kind.maxBytes) PickResult.TooLarge
+        else PickResult.Picked(PreparedFile(kind, picked.name, picked.size.toLong(), picked.base64))
+    }
+    "too_large" -> PickResult.TooLarge
+    "unsupported" -> PickResult.Unsupported
+    else -> PickResult.Failed
+}
+
 @Composable
-actual fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentPicker {
+actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
     val scope = rememberCoroutineScope()
     val callback = rememberUpdatedState(onResult)
     return remember {
@@ -76,20 +94,10 @@ actual fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentP
             override fun pickFile() {
                 // Undispatched: the chooser must open while the click is still being handled.
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                    val picked = runSuspendCatching { pickAndPrepare().await<PickedJs?>() }.getOrElse { null.also { callback.value(PickResult.Failed) } }
+                    val picked = runSuspendCatching { pickAndPrepare().await<JsArray<PickedJs>?>() }
+                        .getOrElse { null.also { callback.value(listOf(PickResult.Failed)) } }
                         ?: return@launch
-                    callback.value(
-                        when (picked.error) {
-                            null -> {
-                                val kind = AttachmentKind.valueOf(picked.kind)
-                                if (picked.size > kind.maxBytes) PickResult.TooLarge
-                                else PickResult.Picked(PreparedFile(kind, picked.name, picked.size.toLong(), picked.base64))
-                            }
-                            "too_large" -> PickResult.TooLarge
-                            "unsupported" -> PickResult.Unsupported
-                            else -> PickResult.Failed
-                        },
-                    )
+                    callback.value((0 until picked.length).mapNotNull { picked[it] }.map(::toResult))
                 }
             }
 

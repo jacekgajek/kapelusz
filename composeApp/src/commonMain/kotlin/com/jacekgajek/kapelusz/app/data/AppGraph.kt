@@ -16,6 +16,9 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.Rejection
 import io.ktor.client.HttpClient
+import io.ktor.http.isSuccess
+import io.ktor.client.statement.bodyAsBytes
+import io.ktor.client.request.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,7 +55,12 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     )
     val uploads = AttachmentUploads(store, api, bands)
     val sync = SyncEngine(api, bands, scope, uploads = uploads)
-    val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch)
+    val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch, download = { url ->
+        // A presigned link: nothing of the app's own (no token) goes with it.
+        val response = http.get(url)
+        check(response.status.isSuccess()) { "Download failed: ${response.status}" }
+        response.bodyAsBytes()
+    })
 
     private var loaded = false
 

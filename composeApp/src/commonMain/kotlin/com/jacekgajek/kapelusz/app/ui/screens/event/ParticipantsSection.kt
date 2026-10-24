@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,7 +14,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,23 +29,21 @@ import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_guest
-import com.jacekgajek.kapelusz.app.generated.adjust_shares
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.guest_name
-import com.jacekgajek.kapelusz.app.generated.hide_shares
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
-import com.jacekgajek.kapelusz.app.ui.components.removeLabel
-import com.jacekgajek.kapelusz.app.generated.share_weight_hint
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
+import androidx.compose.runtime.key
+import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
+import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.generated.participant_removed
 import com.jacekgajek.kapelusz.app.generated.guest_removed
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.onClick
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.Limits
@@ -71,37 +67,26 @@ fun ParticipantsSection(context: EventContext) {
     val event = context.event
     val canManage = context.can.manageParticipants(event)
     var addingGuest by remember { mutableStateOf(false) }
-    var showShares by remember { mutableStateOf(event.participants.any { it.weight != DEFAULT_WEIGHT || it.fixedShare != null }) }
     var editingWeight by remember { mutableStateOf<String?>(null) }
 
     SectionTitle(stringResource(Res.string.participants))
+    // One row each (ITERATION_5 §4.5): members in roster order, then guests; the share when not the default 100%.
+    val playing = band.members.filter { event.participant(it.id) != null }.map { it.id } + event.guests.map { it.id }
+    playing.forEach { partyId ->
+        val participant = event.participant(partyId) ?: return@forEach
+        key(partyId) { ParticipantRow(context, participant, canManage, onEdit = { editingWeight = partyId }) }
+    }
+    // Who could take part but does not: a tap adds them, with their default share.
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Viewers only watch (they take no part in events).
-        band.members.filter { (!it.archived && it.role != Role.VIEWER) || event.participant(it.id) != null }.forEach { member ->
-            val selected = event.participant(member.id) != null
+        band.members.filter { !it.archived && it.role != Role.VIEWER && event.participant(it.id) == null }.forEach { member ->
             FilterChip(
-                selected = selected,
+                selected = false,
                 enabled = canManage,
-                onClick = {
-                    context.actions.run(if (selected) RemoveParticipant(event.id, member.id) else AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed))
-                },
+                onClick = { context.actions.run(AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed)) },
                 label = { Text(member.name) },
                 // The member's Google photo, or their initials (ITERATION_2 §7.4).
                 leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
-            )
-        }
-        event.guests.forEach { guest ->
-            // Tapping the chip removes the guest at once, with Undo in the snackbar (ITERATION_5 §2); no cross,
-            // which would suggest only it removes them.
-            val remove = removeLabel(guest.name)
-            val removed = stringResource(Res.string.guest_removed, guest.name)
-            val removeGuest = { context.actions.runWithUndo(RemoveParticipant(event.id, guest.id), removed) }
-            InputChip(
-                selected = true,
-                onClick = { if (canManage) removeGuest() },
-                label = { Text(guest.name) },
-                // Read out as what tapping does: "Remove Kasia".
-                modifier = Modifier.semantics { if (canManage) onClick(label = remove) { removeGuest(); true } },
             )
         }
         if (canManage) AssistChip(
@@ -109,31 +94,6 @@ fun ParticipantsSection(context: EventContext) {
             label = { Text(stringResource(Res.string.add_guest)) },
             leadingIcon = { Icon(Icons.Default.Add, null) },
         )
-    }
-    TextButton(onClick = { showShares = !showShares }) {
-        Text(stringResource(if (showShares) Res.string.hide_shares else Res.string.adjust_shares))
-    }
-    if (showShares) {
-        Column {
-            event.participants.forEach { participant ->
-                Row(
-                    Modifier.fillMaxWidth().clickable(enabled = canManage) { editingWeight = participant.partyId }.padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(partyName(band, event, participant.partyId, ""), Modifier.weight(1f))
-                    val fixed = participant.fixedShare
-                    Text(
-                        if (fixed == null) {
-                            "${participant.weight}%"
-                        } else {
-                            "${formatMoney(fixed, context.currency, language)} · ${stringResource(Res.string.share_fixed)}"
-                        },
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                }
-            }
-            Text(stringResource(Res.string.share_weight_hint), style = MaterialTheme.typography.bodySmall)
-        }
     }
 
     if (addingGuest) {
@@ -147,6 +107,35 @@ fun ParticipantsSection(context: EventContext) {
             editingWeight = null
         } else {
             ShareDialog(context, participant, onDismiss = { editingWeight = null })
+        }
+    }
+}
+
+/** A participant: avatar, name, their share when not the default; edit and remove (with Undo) for who manages them. */
+@Composable
+private fun ParticipantRow(context: EventContext, participant: Participant, canManage: Boolean, onEdit: () -> Unit) {
+    val band = context.band
+    val event = context.event
+    val partyId = participant.partyId
+    val name = partyName(band, event, partyId, "")
+    val guest = event.guest(partyId) != null
+    val fixed = participant.fixedShare
+    val share = when {
+        fixed != null -> "${formatMoney(fixed, context.currency, language)} · ${stringResource(Res.string.share_fixed)}"
+        participant.weight != DEFAULT_WEIGHT -> "${participant.weight}%"
+        else -> null
+    }
+    val removed = stringResource(if (guest) Res.string.guest_removed else Res.string.participant_removed, name)
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Avatar(name, band.member(partyId)?.pictureUrl, decorative = true)
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(name)
+            share?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        if (canManage) {
+            EditButton(name, onEdit)
+            // At once, with Undo: it brings them back with their share (ITERATION_5 §4.5).
+            RemoveButton(name) { context.actions.runWithUndo(RemoveParticipant(event.id, partyId), removed) }
         }
     }
 }
