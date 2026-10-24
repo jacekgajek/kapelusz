@@ -39,11 +39,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -70,7 +68,9 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.EventTab
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.edit_details
+import com.jacekgajek.kapelusz.app.generated.add_times
+import com.jacekgajek.kapelusz.app.generated.add_place
+import com.jacekgajek.kapelusz.app.generated.when_where
 import com.jacekgajek.kapelusz.app.generated.event_files
 import com.jacekgajek.kapelusz.app.generated.event_not_found
 import com.jacekgajek.kapelusz.app.generated.problem_loss
@@ -173,7 +173,6 @@ fun EventScreen(
             BackTopBar(event?.name ?: "", onBack) {
                 if (event != null && settlement != null) {
                     val can = Can(state.band, state.userId)
-                    if (can.editEvent(event)) IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
                     // Also on archived events, which are otherwise read-only: restoring them is in it.
                     if (can.archiveEvents()) EventMenu(event, settlement, actions, onDeleted = onBack)
                 }
@@ -207,7 +206,7 @@ fun EventScreen(
                         if (artist) {
                             // Artists get no debt reminders, so nothing scrolls by section here.
                             if (tab == EventTab.GIG) {
-                                item("when") { WhenAndWhere(context) }
+                                item("when") { WhenAndWhere(context, onEdit = null) }
                                 item("details") { DetailsSection(context) }
                                 item("files") { FilesSection(context) }
                                 item("lineup") { ArtistLineup(context) }
@@ -222,7 +221,7 @@ fun EventScreen(
                         EventSection.on(tab).forEach { section ->
                             item(key = section.name) {
                                 when (section) {
-                                    EventSection.WHEN -> WhenAndWhere(context)
+                                    EventSection.WHEN -> WhenAndWhere(context, onEdit = { editing = true }.takeIf { context.can.editEvent(event) })
                                     EventSection.DETAILS -> DetailsSection(context)
                                     EventSection.FILES -> FilesSection(context)
                                     EventSection.PARTICIPANTS -> ParticipantsSection(context)
@@ -283,11 +282,18 @@ private fun EventTab.label() = when (this) {
     EventTab.SETTLEMENT -> Res.string.tab_settlement
 }
 
-/** The top of the gig page (ITERATION_5 §3): date and place with Navigate beside them, then the set times. */
+/**
+ * The top of the gig page: date and place with Navigate beside them, then the set times. Changed in place like the
+ * sections under it (ITERATION_5 §4.9): its ✎ opens the event's dialog (also its name); what is not set yet is offered.
+ */
 @Composable
-private fun WhenAndWhere(context: EventContext) {
+private fun WhenAndWhere(context: EventContext, onEdit: (() -> Unit)?) {
     val event = context.event
-    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        SectionTitle(stringResource(Res.string.when_where), Modifier.weight(1f))
+        if (onEdit != null) EditButton(onClick = onEdit)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 listOfNotNull(formatDate(event.date, language), event.location).joinToString(" · "),
@@ -305,7 +311,14 @@ private fun WhenAndWhere(context: EventContext) {
                 )
             }
         }
-        event.agendaLine()?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        val times = event.agendaLine()
+        times?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        if (onEdit != null && (event.location.isNullOrBlank() || times == null)) {
+            Row {
+                if (event.location.isNullOrBlank()) TextButton(onClick = onEdit) { Text(stringResource(Res.string.add_place)) }
+                if (times == null) TextButton(onClick = onEdit) { Text(stringResource(Res.string.add_times)) }
+            }
+        }
     }
 }
 
