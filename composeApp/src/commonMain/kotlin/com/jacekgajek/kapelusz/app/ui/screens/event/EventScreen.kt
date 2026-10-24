@@ -173,8 +173,9 @@ fun EventScreen(
             BackTopBar(event?.name ?: "", onBack) {
                 if (event != null && settlement != null) {
                     val can = Can(state.band, state.userId)
-                    // Also on archived events, which are otherwise read-only: restoring them is in it.
-                    if (can.archiveEvents()) EventMenu(event, settlement, actions, onDeleted = onBack)
+                    // For everyone (Copy link); archiving and deleting for who may. Also on archived events, which are
+                    // otherwise read-only: restoring them is in it.
+                    EventMenu(event, settlement, actions, manage = can.archiveEvents(), onDeleted = onBack)
                 }
             }
         },

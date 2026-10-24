@@ -627,4 +627,9 @@
     <string name="location_clear">Wyczyść miejsce</string>
     <string name="map_reading">Odczytuję link…</string>
     <string name="map_unreadable">Nie udało się odczytać linku. Spróbuj jeszcze raz albo wpisz miejsce.</string>
+    <string name="event_link_opening">Otwieram wydarzenie…</string>
+    <string name="event_link_no_access">Nie masz dostępu do tego wydarzenia. Poproś lidera zespołu o zaproszenie.</string>
+    <string name="event_link_copy">Kopiuj link</string>
+    <string name="event_link_copied">Skopiowano link</string>
+    <string name="event_link_offline">Nie udało się otworzyć wydarzenia: brak połączenia. Spróbuj ponownie, gdy będziesz online.</string>
 </resources>
