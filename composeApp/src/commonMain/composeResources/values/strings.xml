@@ -603,4 +603,17 @@
     <string name="h_stop_settle_together">%1$s stopped settling together with %2$s</string>
     <string name="h_pair_ended">%1$s; %2$s and %3$s no longer settle together</string>
     <string name="role_row">Role: %1$s</string>
+    <string name="blik_title">BLIK</string>
+    <string name="blik_pay_to">Send by BLIK to the phone number:</string>
+    <string name="blik_partner">%1$s (settles together)</string>
+    <string name="blik_copy">Copy the number of %1$s</string>
+    <string name="blik_copied">Copied</string>
+    <string name="blik_numbers">BLIK numbers</string>
+    <string name="blik_mine">Your BLIK number</string>
+    <string name="blik_mine_off">Not set</string>
+    <string name="blik_mine_hint">Bandmates who pay you see it next to the transfer, to send the money by BLIK. Only for this band.</string>
+    <string name="blik_phone">Phone number</string>
+    <string name="blik_invalid">Not a phone number (7 to 15 digits)</string>
+    <string name="blik_remove">Remove</string>
+    <string name="reject_invalid_phone">That's not a phone number.</string>
 </resources>

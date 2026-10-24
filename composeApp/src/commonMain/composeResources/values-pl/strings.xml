@@ -609,4 +609,17 @@
     <string name="h_stop_settle_together">Koniec wspólnego rozliczenia: %1$s i %2$s</string>
     <string name="h_pair_ended">%1$s; koniec wspólnego rozliczenia: %2$s i %3$s</string>
     <string name="role_row">Rola: %1$s</string>
+    <string name="blik_title">BLIK</string>
+    <string name="blik_pay_to">Wyślij BLIKIEM na numer telefonu:</string>
+    <string name="blik_partner">%1$s (wspólne rozliczanie)</string>
+    <string name="blik_copy">Skopiuj numer: %1$s</string>
+    <string name="blik_copied">Skopiowano</string>
+    <string name="blik_numbers">Numery BLIK</string>
+    <string name="blik_mine">Twój numer BLIK</string>
+    <string name="blik_mine_off">Nie ustawiono</string>
+    <string name="blik_mine_hint">Widzą go przy przelewie członkowie zespołu, którzy płacą Tobie, żeby wysłać pieniądze BLIKIEM. Tylko w tym zespole.</string>
+    <string name="blik_phone">Numer telefonu</string>
+    <string name="blik_invalid">To nie jest numer telefonu (od 7 do 15 cyfr)</string>
+    <string name="blik_remove">Usuń</string>
+    <string name="reject_invalid_phone">To nie jest numer telefonu.</string>
 </resources>

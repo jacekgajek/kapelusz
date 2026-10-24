@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.BlikButton
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.Arrangement
@@ -137,7 +139,13 @@ fun SettleScreen(
                             var partial by remember { mutableStateOf(false) }
                             // Names over the full width; the amount and the buttons below, so long names never squeeze them.
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                TransferParties(from, to)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    TransferParties(from, to, Modifier.weight(1f))
+                                    // Your own transfers: you may settle each (ITERATION_5 §8); none when the fund's holder keeps it.
+                                    val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
+                                        band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
+                                    if (!keepsForFund) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
+                                }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
                                     TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }

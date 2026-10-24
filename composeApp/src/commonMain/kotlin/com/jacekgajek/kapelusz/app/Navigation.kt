@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -219,6 +220,9 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     // Only from the list while it is on screen, so a double tap does not open the page twice.
                     onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) },
                     onBack = back,
+                    blikPhone = state.me?.blikPhone,
+                    onBlikPhone = state.me?.let { me -> { phone: String? -> graph.dispatch(SetBlikPhone(me.id, phone)); Unit } }
+                        ?.takeIf { state.me?.let { Can(state.band, state.userId).allowed(SetBlikPhone(it.id, null)) } == true },
                 )
             }
             composable<RosterRoute> { if (artist) BackToEvents(navController) else RosterScreen(graph, state, back) }

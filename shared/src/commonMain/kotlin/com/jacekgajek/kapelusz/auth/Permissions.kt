@@ -12,6 +12,7 @@ import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
+import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -83,7 +84,8 @@ object Permissions {
         val me = band.memberOfUser((actor as Actor.User).userId)?.takeIf { !it.archived }
             ?: return forbidden(RejectionReason.NOT_A_MEMBER, "You are not an active member of this band")
         if (op is LinkUser) return forbidden(RejectionReason.INVITE_ONLY, "Users are linked only by accepting an invite")
-        // Settling together is everyone's own decision (ITERATION_5 §7): nobody, admins included, decides it for others.
+        // Settling together is everyone's own decision (ITERATION_5 §7), and where one is paid their own (§8): nobody,
+        // admins included, decides it for others.
         settlesFor(op)?.let { if (it != me.id) return forbidden(RejectionReason.ROLE_REQUIRED, "Only for yourself") }
 
         val required = requiredRole(band, me, op)
@@ -120,6 +122,9 @@ object Permissions {
         // Only for oneself (checked above), from members up: artists don't settle together (ITERATION_5 §7.2).
         is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.MEMBER
 
+        // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8).
+        is SetBlikPhone -> Role.ARTIST
+
         // Artists too look after their own costs (ITERATION_4 §1.1); money held or moved stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
         is UpdateCost -> ownCost(band, me, op.costId)
@@ -140,6 +145,7 @@ object Permissions {
         is AcceptSettleTogether -> op.toMemberId
         is DeclineSettleTogether -> op.toMemberId
         is StopSettlingTogether -> op.memberId
+        is SetBlikPhone -> op.memberId
         else -> null
     }
 

@@ -215,6 +215,33 @@ class InviteAndHistoryTest {
     }
 
     @Test
+    fun aBlikNumberIsSavedButNotInTheHistory() {
+        setup()
+        now += 1
+        val pushed = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(
+            OpEnvelope("blik", "phone", 2, 0, com.jacekgajek.kapelusz.ops.SetBlikPhone("m-alice", "600 123 456")),
+            OpEnvelope("rename", "phone", 3, 0, RenameBand("New name")),
+        )))).parse(PushResponse.serializer())
+        assertEquals(listOf("blik", "rename"), pushed.accepted)
+        assertEquals("600123456", pushed.band.member("m-alice")!!.blikPhone)
+        val logged = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer())
+            .entries.flatMap { entry -> entry.ops.map { it.opId } }
+        assertEquals(true, "rename" in logged)
+        assertEquals(false, "blik" in logged, "who is paid where is not history (ITERATION_5 §8)")
+
+        // Nor in the members' snapshots of other changes.
+        now += 1
+        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(
+            OpEnvelope("rename-alice", "phone", 4, 0, com.jacekgajek.kapelusz.ops.RenameMember("m-alice", "Ala")),
+        )))).parse(PushResponse.serializer())
+        val change = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer())
+            .entries.first { entry -> entry.ops.any { it.opId == "rename-alice" } }.changes.getValue("rename-alice")
+        assertEquals("Ala", change.after.members.getValue("m-alice")!!.name)
+        assertEquals(null, change.after.members.getValue("m-alice")!!.blikPhone)
+        assertEquals(null, change.before.members.getValue("m-alice")!!.blikPhone)
+    }
+
+    @Test
     fun undoRestoresWhatTheLogRecordedNotWhatTheClientSays() {
         setup()
         fun push(vararg envelopes: OpEnvelope) = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())))

@@ -442,7 +442,12 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 
 ### V5-M3 — Settling together (§7)
 - [x] Grilled (§7)
-- [ ] Implement: pairs in the shared model and settlement, invitations, member dialog for everyone, events-list card
+- [x] Implement: pairs in the shared model and settlement, invitations, member dialog for everyone, events-list card (PRs #48, #49, #50)
+
+### V5-M4 — BLIK numbers (§8)
+
+- [x] Grill (2026-10-24)
+- [x] Implement: the number on the member, Settings row, BLIK icon and sheet on transfers, hand-over
 
 ## 6. Decision log
 
@@ -454,6 +459,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-23 | Removals should apply at once with an Undo snackbar rather than a confirmation dialog; done properly (a real `Undo`) in V5-M2; guest removal gets a stop-gap now. |
 | 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |
 | 2026-10-24 | Settling together (§7): pairs only, stored once per band and applied when settling; transfers always recorded between real people (no pair id); only settlement and its transfers change, everything else stays per person. |
+| 2026-10-24 | BLIK numbers (§8): one phone number per member and band, set only by its member; shown only to who settles the transfer, hidden in the app only (every device still gets the band's data). |
 | 2026-10-24 | Artists don't settle together after all: their payout with the pair's numbers was confusing ("still to receive" twice their share). Becoming an artist ends a pair. |
 
 ## 7. V5-M3 — Settling together (grilled 2026-10-24)
@@ -503,3 +509,21 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
   how many events not settled yet are split again).
 - An invitation waiting for you is a card on top of the events list until answered.
 
+## 8. V5-M4 — BLIK numbers (grilled 2026-10-24)
+
+Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is a tap away instead of asked for.
+
+- **What:** one BLIK phone number per member, per band (on `Member.blikPhone`). Any phone number: 7 to 15 digits
+  with an optional `+` (`00` read as `+`); spaces, dashes, dots and brackets dropped. A Polish one (9 digits, or +48
+  and 9) is shown `600 123 456` and copied without +48; any other as stored.
+- **Who sets it:** only the member, for themselves (`SetBlikPhone`), from artists up (artists are paid too; viewers
+  never). In Settings, in the band's part: "Your BLIK number", a dialog with Save, Remove and Cancel.
+- **Who sees it:** only who may settle that transfer, or record that hand-over: a phone icon beside the transfer on
+  an event's To settle and on the Settle screen opens a sheet with the number(s) and a copy button each; the copy-amount
+  button stays as it was. In "Hand over money" the chosen recipient's number shows under the dropdowns.
+- **Pair or fund as recipient:** the fund's holder for the fund; for a pair, both partners with a number, the one the
+  transfer is recorded to (owed more) first, the other marked "settles together".
+- **Not in:** Share settlement texts, the history (the server doesn't record the operation), undo (not undoable;
+  undoing other changes leaves it).
+- **Unlinking** the member's account removes the number (it was that person's); archiving keeps it.
+- **Hidden in the app only:** every device still receives the band's data with all numbers, as with names.

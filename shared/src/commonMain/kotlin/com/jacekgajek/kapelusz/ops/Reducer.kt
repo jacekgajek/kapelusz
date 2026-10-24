@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.domain.BandFund
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.Viewers
@@ -58,6 +59,11 @@ object Reducer {
             is LinkUser -> linkUser(band, op)
             is UnlinkUser -> unlinkUser(band, op)
             is SetTreasurer -> setTreasurer(band, op)
+            is SetBlikPhone -> {
+                val phone = op.phone?.let { BlikPhone.normalize(it) }
+                invalidIf(op.phone != null && phone == null, RejectionReason.INVALID_PHONE) { "Not a phone number" }
+                band.updateMember(op.memberId) { it.copy(blikPhone = phone) }
+            }
             is DisableBandFund -> {
                 conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
                 band.copy(treasurerMemberId = null)
@@ -344,8 +350,8 @@ object Reducer {
     private fun unlinkUser(band: Band, op: UnlinkUser): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Transfer ownership before unlinking the owner" }
-        // The photo was the user's: it goes with the account.
-        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null) }
+        // The photo and the BLIK number were the user's: they go with the account.
+        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null, blikPhone = null) }
     }
 
     private fun setTreasurer(band: Band, op: SetTreasurer): Band {
