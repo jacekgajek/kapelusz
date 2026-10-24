@@ -13,12 +13,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -60,6 +62,7 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.settle_together_title
 import com.jacekgajek.kapelusz.app.generated.role_row
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
@@ -202,7 +205,14 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
                         Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down) + ": " + member.name)
                     }
                 }
-                MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), moves = moves.takeIf { isAdmin })
+                MemberRow(
+                    member,
+                    invites?.firstOrNull { it.memberId == member.id },
+                    band.currency,
+                    onClick = open(member),
+                    moves = moves.takeIf { isAdmin },
+                    isMyPartner = me != null && member.id == me.settlesWith,
+                )
             }
             if (archived.isNotEmpty()) {
                 // Collapsed at first: only a count, so a long list of past players doesn't bury the band.
@@ -324,13 +334,29 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
 
 /** A roster row; [moves] are the admin's up/down buttons (only for active members). */
 @Composable
-private fun MemberRow(member: Member, invite: InviteInfo?, currency: String, onClick: (() -> Unit)?, moves: (@Composable () -> Unit)? = null) {
+private fun MemberRow(
+    member: Member,
+    invite: InviteInfo?,
+    currency: String,
+    onClick: (() -> Unit)?,
+    moves: (@Composable () -> Unit)? = null,
+    /** You settle together with them (ITERATION_5 §7): only your own partner is marked, nobody else's pair. */
+    isMyPartner: Boolean = false,
+) {
     ListItem(
         modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
         // Decorative: the name follows right after it (ITERATION_3 R13).
         leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
         headlineContent = {
-            Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
+                if (isMyPartner) Icon(
+                    Icons.Default.Group,
+                    stringResource(Res.string.settle_together_title),
+                    Modifier.padding(start = 6.dp).size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         },
         supportingContent = {
             Column {
