@@ -617,4 +617,6 @@
     <string name="blik_remove">Remove</string>
     <string name="reject_invalid_phone">That's not a phone number.</string>
     <string name="places_powered_by_google">Powered by Google</string>
+    <string name="settle_paid">Paid</string>
+    <string name="settle_received">Received</string>
 </resources>

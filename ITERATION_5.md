@@ -524,9 +524,14 @@ Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is 
   and 9) is shown `600 123 456` and copied without +48; any other as stored.
 - **Who sets it:** only the member, for themselves (`SetBlikPhone`), from artists up (artists are paid too; viewers
   never). In Settings, in the band's part: "Your BLIK number", a dialog with Save, Remove and Cancel.
-- **Who sees it:** only who may settle that transfer, or record that hand-over: a phone icon beside the transfer on
-  an event's To settle and on the Settle screen opens a sheet with the number(s) and a copy button each; the copy-amount
-  button stays as it was. In "Hand over money" the chosen recipient's number shows under the dropdowns.
+- **Who sees it:** only who pays that transfer (that member, either partner of a paying pair, or the fund's holder
+  for the fund), and may settle it: a phone icon beside the transfer on an event's To settle and on the Settle screen
+  opens a sheet with the number(s) and a copy button each; the copy-amount button stays as it was. In "Hand over
+  money" the chosen recipient's number shows under the dropdowns when you hand over your own money. Not to the
+  recipient, who read the icon as owing (changed 2026-10-24), nor to a lead recording for others.
+- **Settle says which way (2026-10-24):** the button on a suggestion (and in its Part dialog) is "Paid" for who pays
+  it, "Received" for who gets it, "Settle" for a lead recording others'; it records the same. Both sides keep it: the
+  receiver confirms cash in hand, and a forgetful payer doesn't leave it open.
 - **Pair or fund as recipient:** the fund's holder for the fund; for a pair, both partners with a number, the one the
   transfer is recorded to (owed more) first, the other marked "settles together".
 - **Not in:** Share settlement texts, the history (the server doesn't record the operation), undo (not undoable;

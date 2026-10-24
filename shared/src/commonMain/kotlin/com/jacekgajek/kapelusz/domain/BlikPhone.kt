@@ -48,6 +48,19 @@ object BlikPhone {
     fun copyText(stored: String): String = polish(stored) ?: stored
 
     /**
+     * The member [me] pays from [from]: they are that member, in that pair, or hold the band fund. Only payers see BLIK numbers
+     * (ITERATION_5 §8): beside a transfer the recipient settles, a phone icon read as "you pay".
+     */
+    fun pays(band: Band, settlement: Settlement?, me: Id?, from: Id): Boolean = onSide(band, settlement, me, from)
+
+    /** [me] is on [side] of a transfer: that member, in that pair, or the band fund's holder for the fund. */
+    fun onSide(band: Band, settlement: Settlement?, me: Id?, side: Id): Boolean {
+        if (me == null) return false
+        val people = if (side == BAND_FUND) listOfNotNull(band.treasurerMemberId) else settlement?.party(side)?.partyIds ?: listOf(side)
+        return me in people
+    }
+
+    /**
      * Who to send a suggested transfer to by BLIK, with a number given: the band fund's holder for the fund; for a pair,
      * the partner it is recorded to (owed more) first, then the other (ITERATION_5 §8). With [payer], the one that
      * person pays comes first (a paying pair's part may go to each partner).

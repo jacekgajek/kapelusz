@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.components.BlikButton
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
@@ -141,23 +142,23 @@ fun SettleScreen(
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     TransferParties(from, to, Modifier.weight(1f))
-                                    // Your own transfers: you may settle each (ITERATION_5 §8); none when the fund's holder keeps it.
+                                    // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
                                     val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
                                         band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
-                                    if (!keepsForFund) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
+                                    if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
                                     TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                                     FilledTonalButton(onClick = {
                                         actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))
-                                    }) { Text(stringResource(Res.string.settle)) }
+                                    }) { Text(stringResource(settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))) }
                                 }
                             }
                             if (partial) {
                                 PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
                                     actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it, together = true))
-                                }, onDismiss = { partial = false })
+                                }, onDismiss = { partial = false }, confirmLabel = settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))
                             }
                         } }
                     }
