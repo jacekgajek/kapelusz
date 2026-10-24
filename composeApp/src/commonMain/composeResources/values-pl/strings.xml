@@ -541,7 +541,6 @@
     <string name="calendar_add_on_computer">Aby zasubskrybować, otwórz calendar.google.com na komputerze, wybierz Inne kalendarze › Z adresu URL i wklej link.</string>
     <string name="agenda_sound_check">Próba dźwięku</string>
     <string name="map_paste">Wklej z Map</string>
-    <string name="map_linked">Połączone z miejscem w Mapach Google</string>
     <string name="map_no_link">Brak linku z Map Google do wklejenia. W Mapach Google użyj najpierw Udostępnij › Kopiuj link.</string>
     <string name="navigate">Nawiguj</string>
     <string name="place_title">Ustaw miejsce wydarzenia…</string>
@@ -626,4 +625,6 @@
     <string name="settle_paid">Zapłacono</string>
     <string name="settle_received">Otrzymano</string>
     <string name="location_clear">Wyczyść miejsce</string>
+    <string name="map_reading">Odczytuję link…</string>
+    <string name="map_unreadable">Nie udało się odczytać linku. Spróbuj jeszcze raz albo wpisz miejsce.</string>
 </resources>

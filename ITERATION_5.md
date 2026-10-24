@@ -452,7 +452,8 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 ### V5-M5 — Place suggestions in Location (§9)
 
 - [x] Implement: server endpoint calling Google Places API (New), suggestions under Location, Terraform variable for the key
-- [ ] Set up: Places API (New) enabled, key restricted to it, `kapelusz_google_places_api_key` applied, then a deploy
+- [x] Set up: Places API (New) and Geocoding API enabled, key restricted to them, `kapelusz_google_places_api_key` applied
+- [x] Implement §9.1: Location is the place itself (full address on pick, Maps links read by the server, no stored link)
 
 ## 6. Decision log
 
@@ -543,15 +544,34 @@ Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is 
 
 - **In the event dialogs** (new event, "When and where"): typing 3 or more characters in Location shows, after a
   ~500 ms pause, up to 5 places from Google under the field (name, and the address in grey), with "Powered by Google".
-  Picking one puts in the name and town ("Stodoła, Warszawa": the address part before the country, without postal
-  codes) and links the place's exact pin (a Google Maps link with its place id), as Paste from Maps does. Free text
-  still works; offline, or with place search off, the field is plain text. Paste from Maps and sharing from Maps stay.
+  Picking one puts in its name and full address (§9.1). Free text still works; offline, or with place search off, the
+  field is plain text.
 - **Through our server:** `GET /bands/{id}/places?q=…&lang=…`, for leads up of that band (who edit events); 3 to 100
   characters; the app's language. The server calls Places API (New) Autocomplete with only the fields shown. No key
   (`GOOGLE_PLACES_API_KEY` unset) or no answer: 503 `places_unavailable`, and the app shows no suggestions.
 - **The key:** restricted to Places API (New) in the Cloud console (an IP restriction does not fit Lambda), set through
-  the Terraform variable `kapelusz_google_places_api_key`; it takes effect with the next deploy (each publishes a
+  the Terraform variable `kapelusz_google_places_api_key`; Geocoding API is allowed on it too (§9.1). It takes effect with the next deploy (each publishes a
   Lambda version with the configuration of that moment).
-- **Nothing new in the band data:** the same location text and Maps link as before.
+- **The band data:** only the location text (§9.1 removed the stored Maps link).
 - **The field (2026-10-24):** one line of text that wraps when long (a full address shows whole; Enter adds no line),
-  with a clear button while it has text. Clearing keeps a linked pin (its own ✕ removes it).
+  with a clear button while it has text.
+
+### 9.1 Location is the place itself (2026-10-24)
+
+No separate Maps link any more: Location says where, and Navigate (also in reminders, the calendar feed and the
+shared info) opens Google Maps directions to that text, which takes an address or a pin's coordinates alike.
+
+- **A picked suggestion:** its name at once, then its name and full address from Place Details (same session as the
+  search, so the search itself is free): "Ołówek, Legnicka 36, 53-673 Wrocław" (no country; no name twice when an
+  address was picked). Typed over meanwhile: left as typed.
+- **Paste from Maps, and Share from the Maps app:** the server reads the link, `POST /bands/{id}/places/resolve`
+  (leads up). A short link (`maps.app.goo.gl`) is followed to the full one, only through Google's hosts (also past
+  the EU consent page); the full link gives the place's name and exact pin (`!3d…!4d…`, else the map's `@` centre).
+  - A named place: its name and the address at its pin (Geocoding API, in the app's language), e.g. "Klub Stodoła,
+    Stefana Batorego 10, 02-591 Warszawa"; no address there: the name and coordinates.
+  - A dropped pin: its coordinates, `52.229722, 21.012194` (6 decimals).
+  - A searched text (`?q=`): that text.
+  - Unreadable (offline, another kind of link): the name Maps shared, if any; else "Couldn't read the link".
+- **Removed:** `Event.mapUrl` and the operations' `mapUrl` (old data and old apps' operations still read: unknown
+  fields are ignored); the "Linked to the map" row. Existing events lose their stored pins; Navigate goes to their
+  location text.

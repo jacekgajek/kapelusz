@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
@@ -77,13 +78,13 @@ object CalendarFeed {
     private fun commonLines(band: Band, event: Event, times: List<AgendaTime>, webUrl: String): List<String> {
         val agenda = times.joinToString("\n") { listOf(label(it), hhmm(it.time!!)).filter(String::isNotBlank).joinToString(" ") }
         // The app's address, not the event's: an event link only resolves in the band that is open.
-        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, event.mapUrl, "${band.name} · $webUrl").joinToString("\n\n")
+        val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · $webUrl").joinToString("\n\n")
         return listOfNotNull(
             "SUMMARY:${text(event.name)}",
             event.location?.let { "LOCATION:${text(it)}" },
             "DESCRIPTION:${text(description)}",
-            // Calendar apps open the place from here (ITERATION_2 §4.4).
-            event.mapUrl?.let { "URL:$it" },
+            // Calendar apps open directions to the place from here (ITERATION_5 §9.1); the location also shows on their map.
+            Places.navigateUrl(event)?.let { "URL:$it" },
         )
     }
 

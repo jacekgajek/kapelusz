@@ -45,7 +45,7 @@ class CalendarTest {
                 participants = listOf(Participant("m-alice")),
                 agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0)), AgendaTime("e", label = "End", time = LocalTime(1, 30)))),
             CreateEvent("allday", "Rehearsal", LocalDate(2026, 10, 28), participants = listOf(Participant("m-alice"))),
-            CreateEvent("one", "Radio", LocalDate(2026, 10, 30), mapUrl = "https://www.google.com/maps/place/Klub+Stodo%C5%82a/@52.2117,21.0105,17z/data=!3m1!4b1!4m6!3m5!1s0x471ecd2a:0x6b8e!8m2!3d52.21!4d21.01", participants = listOf(Participant("m-alice")), agenda = listOf(AgendaTime("s", AgendaKind.CONCERT_START, time = LocalTime(23, 30)))),
+            CreateEvent("one", "Radio", LocalDate(2026, 10, 30), location = "Klub Stodoła, Batorego 10, 02-591 Warszawa", participants = listOf(Participant("m-alice")), agenda = listOf(AgendaTime("s", AgendaKind.CONCERT_START, time = LocalTime(23, 30)))),
             CreateEvent("bobs", "Bob's gig", LocalDate(2026, 10, 26), participants = listOf(Participant("m-bob"))),
             CreateEvent("old", "Long ago", LocalDate(2026, 6, 1), participants = listOf(Participant("m-alice"))),
         ).mapIndexed { i, op -> OpEnvelope("op$i", "phone", i + 1L, 1, op) }
@@ -66,8 +66,7 @@ class CalendarTest {
         assertTrue("DTSTART:20261025T170000" in ics && "DTEND:20261026T013000" in ics, "earliest to latest; 01:30 is the next day")
         assertTrue("DTSTART;VALUE=DATE:20261028" in ics && "DTEND;VALUE=DATE:20261029" in ics, "no time: all day")
         assertTrue("DTSTART:20261030T233000" in ics && "DTEND:20261031T003000" in ics, "one time: an hour")
-        assertTrue("URL:https://www.google.com/maps/place/Klub+Stodo%C5%82a/@52.2117,21.0105,17z/data=!3m1!4b1!4m6!3m5!1s0x471ecd2a:0x6b8e!8m2!3d52.21!4d21.01\r\n" in ics, "the Maps link, unescaped (a URI) and unfolded back whole")
-        assertTrue("https://www.google.com/maps/place/Klub+Stodo%C5%82a/@52.2117,21.0105,17z/data=!3m1!4b1!4m6!3m5!1s0x471ecd2a:0x6b8e!8m2!3d52.21!4d21.01" in ics.substringAfter("UID:one@kapelusz").substringAfter("DESCRIPTION:"), "the link in the description too")
+        assertTrue("URL:https://www.google.com/maps/dir/?api=1&destination=Klub%20Stodo%C5%82a%2C%20Batorego%2010%2C%2002-591%20Warszawa\r\n" in ics, "directions to the location, unescaped (a URI) and unfolded back whole")
         assertFalse("Bob's gig" in ics, "not mine")
         assertFalse("Long ago" in ics, "older than 3 months")
         assertTrue(response.body!!.split("\r\n").all { it.encodeToByteArray().size <= 75 }, "folded")

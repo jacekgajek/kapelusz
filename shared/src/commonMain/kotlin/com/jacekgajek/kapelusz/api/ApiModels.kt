@@ -209,3 +209,11 @@ data class PlaceSuggestion(val placeId: String, val name: String, val address: S
 
 @Serializable
 data class PlacesResponse(val places: List<PlaceSuggestion>)
+
+/** What Location becomes for a picked suggestion or a Google Maps link (ITERATION_5 §9.1). */
+@Serializable
+data class PlaceText(val text: String)
+
+/** A Google Maps link pasted or shared, for the server to read. */
+@Serializable
+data class MapLinkRequest(val url: String)

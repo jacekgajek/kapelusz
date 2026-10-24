@@ -241,7 +241,7 @@ fun EventScreen(
                 }
             }
         }
-        if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceSearch(graph, state.band, state.userId), onDismiss = { editing = false })
+        if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceLookup(graph, state.band, state.userId), onDismiss = { editing = false })
     }
 }
 

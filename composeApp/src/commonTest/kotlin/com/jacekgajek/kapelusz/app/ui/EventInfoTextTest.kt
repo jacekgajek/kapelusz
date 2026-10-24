@@ -15,7 +15,7 @@ class EventInfoTextTest {
     fun everythingTheEventHas() {
         val event = Event(
             "e", "Wynaturzenie", LocalDate(2026, 11, 7),
-            location = "Klub Pod Jaszczurami", mapUrl = "https://maps.app.goo.gl/abc", notes = "Setlista:\n1. Intro\n",
+            location = "Klub Pod Jaszczurami", notes = "Setlista:\n1. Intro\n",
         )
         val text = eventInfoText(event, listOf("Przyjazd 18:00", "Koncert 20:00"), listOf("Ania", "Bartek", "Kasia"), words, "pl")
         assertEquals(
@@ -24,7 +24,7 @@ class EventInfoTextTest {
 
             Data: 07.11.2026
             Miejsce: Klub Pod Jaszczurami
-            Mapa: https://maps.app.goo.gl/abc
+            Mapa: https://www.google.com/maps/dir/?api=1&destination=Klub%20Pod%20Jaszczurami
 
             Plan
             - Przyjazd 18:00

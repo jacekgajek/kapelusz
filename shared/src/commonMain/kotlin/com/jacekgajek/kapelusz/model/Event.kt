@@ -12,8 +12,6 @@ data class Event(
     val name: String,
     val date: LocalDate,
     val location: String? = null,
-    /** A Google Maps link to the place (ITERATION_2 §4.4); Navigate opens it. */
-    val mapUrl: String? = null,
     val notes: String? = null,
     val archived: Boolean = false,
     /** Ad-hoc people who exist only in this event. */
