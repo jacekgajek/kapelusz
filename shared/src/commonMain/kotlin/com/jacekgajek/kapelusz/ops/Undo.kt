@@ -124,12 +124,13 @@ internal object Undoing {
                 band.members,
                 before.members.mapValues { (id, member) ->
                     val current = band.member(id)
-                    // A pair the change ended comes back (e.g. undoing an archive); one it left alone stays as it is now.
-                    val touchedPair = member?.pair() != after.members[id]?.pair()
+                    // A pair or invitation the change ended comes back (e.g. undoing an archive); one it left alone stays
+                    // as it is now.
+                    val later = after.members[id]
                     member?.copy(
                         pictureUrl = current?.pictureUrl ?: member.pictureUrl,
-                        settlesWith = if (touchedPair || current == null) member.settlesWith else current.settlesWith,
-                        invitedToSettle = if (touchedPair || current == null) member.invitedToSettle else current.invitedToSettle,
+                        settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith,
+                        invitedToSettle = if (current == null || member.invitedToSettle != later?.invitedToSettle) member.invitedToSettle else current.invitedToSettle,
                     )
                 },
                 before.memberOrder,
@@ -197,8 +198,6 @@ private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTe
 
 /** A member as undo compares them: without the photo and the pair, which change on their own. */
 private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null)
-
-private fun Member.pair() = settlesWith to invitedToSettle
 
 private class Diff<T>(val before: Map<Id, T?>, val after: Map<Id, T?>, val order: List<Id>?)
 

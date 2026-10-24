@@ -30,6 +30,11 @@ data class Event(
     val attachments: List<Attachment> = emptyList(),
     /** Epoch millis of the last operation touching this event. */
     val updatedAt: Long = 0,
+    /**
+     * Pairs that settled this event together and have ended since (ITERATION_5 §7): here they stay one party, so the
+     * event stays settled. Each is the two member ids.
+     */
+    val settledTogether: List<List<Id>> = emptyList(),
 ) {
     fun participant(partyId: Id): Participant? = participants.firstOrNull { it.partyId == partyId }
     fun guest(id: Id): Guest? = guests.firstOrNull { it.id == id }

@@ -53,8 +53,23 @@ object SettleTogether {
             if (keepsPair == (member.settlesWith != null) && keepsInvite == (member.invitedToSettle != null)) member
             else member.copy(settlesWith = member.settlesWith.takeIf { keepsPair }, invitedToSettle = member.invitedToSettle.takeIf { keepsInvite })
         }
-        return if (members == band.members) band else band.copy(members = members)
+        if (members == band.members) return band
+        val ended = band.members.filter { it.settlesWith != null && members.first { m -> m.id == it.id }.settlesWith == null }
+        return ended.fold(band) { result, member -> keepSettled(result, member.id, member.settlesWith!!) }.copy(members = members)
     }
+
+    /**
+     * Before the pair of [a] and [b] ends: the events they settled together keep them together (ITERATION_5 §7), so ending
+     * a pair never reopens a settled event.
+     */
+    fun keepSettled(band: Band, a: Id, b: Id): Band = band.copy(
+        events = band.events.map { event ->
+            val pair = listOf(a, b).sorted()
+            if (pair in event.settledTogether || partners(band, event)[a] != b) return@map event
+            if (SettlementCalculator.settle(band, event).status != EventStatus.SETTLED) event
+            else event.copy(settledTogether = event.settledTogether + listOf(pair))
+        },
+    )
 
     /** Events not settled yet where [a] and [b] both play: ending their pair splits them up again there. */
     fun openEventsTogether(band: Band, a: Id, b: Id): Int = band.events.count { event ->
@@ -63,9 +78,17 @@ object SettleTogether {
     }
 
     /** The pairs settling together in [event]: both partners take part. Each member maps to the other. */
-    fun partners(band: Band, event: Event): Map<Id, Id> = band.members
-        .filter { member -> member.settlesWith != null && event.participant(member.id) != null && event.participant(member.settlesWith!!) != null }
-        .associate { it.id to it.settlesWith!! }
+    fun partners(band: Band, event: Event): Map<Id, Id> {
+        // A pair kept from before comes first: its members may be in another pair by now.
+        val kept = event.settledTogether
+            .filter { pair -> pair.all { event.participant(it) != null } }
+            .flatMap { (a, b) -> listOf(a to b, b to a) }.toMap()
+        val current = band.members
+            .filter { member -> member.settlesWith != null && event.participant(member.id) != null && event.participant(member.settlesWith!!) != null }
+            .filter { it.id !in kept && it.settlesWith !in kept }
+            .associate { it.id to it.settlesWith!! }
+        return kept + current
+    }
 
     /**
      * What recording [amount] from [from] to [to] (parties of a suggestion, either partner standing for a pair) records
@@ -87,14 +110,17 @@ object SettleTogether {
             senders.size == 1 -> listOf(from to amount.minor)
             to == BAND_FUND && treasurer in senders -> listOf(treasurer!! to amount.minor)
             else -> {
-                val byHolding = senders.sortedByDescending { line(it)?.balance?.minor ?: 0 }
+                // An artist holds no money (ITERATION_4 §1.1): what they got is not theirs to pass on.
+                fun holds(id: Id) = if (Artists.isArtist(band, id)) 0 else (line(id)?.balance?.minor ?: 0).coerceAtLeast(0)
+                val byHolding = senders.sortedByDescending { holds(it) }
                 var left = amount.minor
                 val parts = byHolding.map { id ->
-                    val part = minOf(left, (line(id)?.balance?.minor ?: 0).coerceAtLeast(0))
+                    val part = minOf(left, holds(id))
                     left -= part
                     id to part
                 }.toMutableList()
-                parts[0] = parts[0].first to parts[0].second + left
+                val payer = parts.indexOfFirst { !Artists.isArtist(band, it.first) }.coerceAtLeast(0)
+                parts[payer] = parts[payer].first to parts[payer].second + left
                 parts
             }
         }

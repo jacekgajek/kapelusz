@@ -80,7 +80,8 @@ object Reducer {
             }
             is StopSettlingTogether -> {
                 conflictIf(band.member(op.memberId)?.settlesWith != op.partnerId, RejectionReason.NOT_FOUND) { "${op.memberId} does not settle with ${op.partnerId}" }
-                band.updateMember(op.memberId) { it.copy(settlesWith = null) }.updateMember(op.partnerId) { it.copy(settlesWith = null) }
+                SettleTogether.keepSettled(band, op.memberId, op.partnerId)
+                    .updateMember(op.memberId) { it.copy(settlesWith = null) }.updateMember(op.partnerId) { it.copy(settlesWith = null) }
             }
 
             is CreateEvent -> createEvent(band, op, ctx)
@@ -538,15 +539,21 @@ object Reducer {
         val settlement = SettlementCalculator.settle(band, event)
         conflictIf(!settlement.canSettle, RejectionReason.CANNOT_SETTLE) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }
         val suggestions = op.partyId?.let { settlement.suggestionsFor(it) } ?: settlement.suggestions
-        // A pair's transfer is recorded between real people, maybe as two (ITERATION_5 §7).
-        val transfers = suggestions.flatMapIndexed { index, suggestion ->
-            SettleTogether.split(band, settlement, suggestion.from, suggestion.to, suggestion.amount).mapIndexed { part, it ->
+        // A pair's transfer is recorded between real people, maybe as two (ITERATION_5 §7), each split against what the
+        // ones before it left: who holds what, who is still owed.
+        var result = band
+        suggestions.forEachIndexed { index, suggestion ->
+            val now = result.event(event.id)!!
+            val parts = SettleTogether.split(result, SettlementCalculator.settle(result, now), suggestion.from, suggestion.to, suggestion.amount)
+            val transfers = parts.mapIndexed { part, it ->
                 Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId)
             }
+            // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
+            invalidIf(transfers.any { t -> now.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
+            validateArtistsPaid(result, now, parts)
+            result = result.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
         }
-        // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
-        invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
-        return band.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
+        return result
     }
 
     /** A suggestion's transfer, settled or in part, where a pair is either partner (ITERATION_5 §7). */
@@ -562,12 +569,20 @@ object Reducer {
             Transfer(if (index == 0) op.transferId else "${op.transferId}-$index", part.from, part.to, part.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId)
         }
         invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
-        // An artist is paid what they are owed, never more (ITERATION_4 §1.1); the split gives the rest to the partner.
-        parts.filter { Artists.isArtist(band, it.to) }.forEach { part ->
-            val owed = settlement.line(part.to)?.delta?.let { -it } ?: Money.ZERO
-            invalidIf(part.amount > owed, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist is owed" }
-        }
+        validateArtistsPaid(band, event, parts)
         return band.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
+    }
+
+    /** An artist is paid what they are owed, never more, and pays nothing (ITERATION_4 §1.1); the split sees to both. */
+    private fun validateArtistsPaid(band: Band, event: Event, parts: List<com.jacekgajek.kapelusz.domain.SuggestedTransfer>) {
+        val settlement = SettlementCalculator.settle(band, event)
+        parts.forEach { part ->
+            invalidIf(Artists.isArtist(band, part.from), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not pass money on" }
+            if (Artists.isArtist(band, part.to)) {
+                val owed = settlement.line(part.to)?.delta?.let { -it } ?: Money.ZERO
+                invalidIf(part.amount > owed, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist is owed" }
+            }
+        }
     }
 
     private fun validateTransferParty(band: Band, event: Event, partyId: Id) {

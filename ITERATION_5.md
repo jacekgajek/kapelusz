@@ -461,7 +461,8 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 - Pairs only; a member is in at most one pair or invitation at a time. Stored on the members (`settlesWith`, both
   naming each other; `invitedToSettle` on the inviter), so undo and history see it with the member.
 - Applied when an event is settled: in an event where both take part they are one party; where only one plays, they
-  settle alone. Settled events stay settled (two settled lines add up to a settled one).
+  settle alone. When a pair ends, the events it settled together keep it (`Event.settledTogether`), so they stay
+  settled; only events not settled yet are split again.
 - **Only Settlement and its transfers change.** What each collected, holds ("You hold"), spent, is refunded and earns
   stays their own, as do the fund, shares and participants.
 
@@ -481,11 +482,12 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 - A pair's transfer is recorded between real people (`RecordTransfer.together`, `SettleSuggestions`), against the
   state it is applied to:
   - paid by a pair: out of what each holds, the bigger holder first, so nobody's "You hold" goes below zero; one tap
-    may record two transfers (Undo takes back both);
+    may record two transfers (Undo takes back both); an artist never pays; Settle all splits each transfer against
+    what the ones before it left;
   - received by a pair: the one owed more gets it, an artist no more than they are owed (the rest to the partner);
   - between the band fund and the treasurer's pair: always the treasurer, who holds the fund (the pair is matched with
     the fund first, as the treasurer alone would be).
-- Either partner settles, confirms or settles part of the pair's transfers; the Settle tab shows them to both, and
+- Either partner settles, confirms or settles part of the pair's transfers, in events where both play; the Settle tab shows them to both, and
   debt reminders remind both. "You hold" stays one's own: only what the pair still has to pass on counts.
 - The shared settlement text names the pair in "Still to pay"; recorded transfers name the real people.
 

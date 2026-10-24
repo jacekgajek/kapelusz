@@ -264,4 +264,91 @@ class SettleTogetherTest {
         // Not as a plain transfer of Bob's: only a suggestion's, together.
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "x", "bob", "dave", pln("1")), carol).reason)
     }
+
+    @Test
+    fun settleAllSplitsEachTransferAgainstWhatTheOnesBeforeLeft() {
+        // Carol (an artist, weight 200) is owed 200, Bob 100; Alice and Dave collected 250 each.
+        val scenario = band()
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        scenario.pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+        scenario.apply(SetWeight("gig", "carol", 200))
+        scenario.apply(AddHolding("gig", "h1", "alice", pln("250"), DOOR))
+        scenario.apply(AddHolding("gig", "h2", "dave", pln("250"), DOOR))
+        scenario.apply(SettleSuggestions("gig"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+        // Alice's 150 goes to Carol (owed 200), Dave's to Bob, owed more by then: never more than the artist is owed.
+        assertEquals(pln("-50"), scenario.settle("gig").line("carol")!!.delta)
+        assertEquals(listOf("carol", "bob"), scenario.band.event("gig")!!.transfers.map { it.to })
+    }
+
+    @Test
+    fun settleAllNeverTakesMoreFromAPartnerThanTheyHold() {
+        // Bob holds 300, Carol 200; Alice and Dave are owed 250 each.
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+        scenario.apply(AddHolding("gig", "h1", "bob", pln("300"), DOOR))
+        scenario.apply(AddHolding("gig", "h2", "carol", pln("200"), DOOR))
+        scenario.apply(com.jacekgajek.kapelusz.ops.SetFixedShare("gig", "alice", pln("250")))
+        scenario.apply(com.jacekgajek.kapelusz.ops.SetFixedShare("gig", "dave", pln("250")))
+        scenario.apply(SettleSuggestions("gig"))
+        val settlement = scenario.settle("gig")
+        assertEquals(EventStatus.SETTLED, settlement.status)
+        assertEquals(pln("0"), settlement.line("bob")!!.balance)
+        assertEquals(pln("0"), settlement.line("carol")!!.balance)
+    }
+
+    @Test
+    fun endingAPairKeepsTheEventsItSettledSettled() {
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave").event("open", "Alice", "Bob", "Carol")
+        scenario.apply(AddHolding("gig", "h", "bob", pln("400"), DOOR))
+        scenario.apply(AddHolding("open", "h", "bob", pln("300"), DOOR))
+        scenario.apply(SettleSuggestions("gig"))
+        assertEquals(1, SettleTogether.openEventsTogether(scenario.band, "bob", "carol"))
+        scenario.apply(StopSettlingTogether("bob", "carol"), scenario.userFor("bob", Role.MEMBER))
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+        assertEquals(listOf(listOf("bob", "carol")), scenario.band.event("gig")!!.settledTogether)
+        assertEquals(listOf(SuggestedTransfer("bob", "alice", pln("100")), SuggestedTransfer("bob", "carol", pln("100"))), scenario.settle("open").suggestions)
+        // Also when the pair ends by itself.
+        val archived = band().pair().event("gig", "Alice", "Bob", "Carol")
+        archived.apply(AddHolding("gig", "h", "bob", pln("300"), DOOR))
+        archived.apply(SettleSuggestions("gig"))
+        archived.apply(SetMemberArchived("carol", true))
+        assertEquals(EventStatus.SETTLED, archived.settle("gig").status)
+    }
+
+    @Test
+    fun aPartnerActsOnlyWhereBothPlay() {
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Dave")
+        scenario.apply(AddHolding("gig", "h", "bob", pln("300"), DOOR))
+        val carol = scenario.userFor("carol", Role.MEMBER)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(SettleSuggestions("gig", "bob"), carol).reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "x", "bob", "dave", pln("50"), together = true), carol).reason)
+    }
+
+    @Test
+    fun anArtistInAPairNeverPaysOut() {
+        // Bob holds 300 and paid Carol 100 before she became an artist; the pair still has 50 to pass on.
+        val scenario = band().event("gig", "Alice", "Bob", "Carol")
+        scenario.apply(AddHolding("gig", "h", "bob", pln("300"), DOOR))
+        scenario.apply(RecordTransfer("gig", "t0", "bob", "carol", pln("100")))
+        scenario.apply(RecordTransfer("gig", "t1", "bob", "alice", pln("50")))
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        scenario.pair()
+        scenario.apply(SettleSuggestions("gig"))
+        assertTrue(scenario.band.event("gig")!!.transfers.none { it.from == "carol" })
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+    }
+
+    @Test
+    fun undoingAnEndKeepsAnInvitationSentSince() {
+        val scenario = band()
+        scenario.userFor("dave", Role.MEMBER)
+        scenario.pair()
+        val before = scenario.band
+        scenario.apply(SetMemberRole("carol", Role.VIEWER))
+        val change = BandChange.between(before, scenario.band)
+        scenario.apply(InviteToSettleTogether("bob", "dave"), scenario.userFor("bob", Role.MEMBER))
+        // Bringing the pair back would leave Bob both paired and inviting: refused rather than dropping the invitation.
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(Undo("op-role", SetMemberRole("carol", Role.VIEWER), change)).reason)
+        assertEquals("dave", scenario.band.member("bob")!!.invitedToSettle)
+    }
 }

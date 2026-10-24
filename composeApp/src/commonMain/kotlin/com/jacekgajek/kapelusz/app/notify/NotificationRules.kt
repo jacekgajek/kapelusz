@@ -134,7 +134,9 @@ object NotificationRules {
                 // Between the user and the band fund they hold no money changes hands: nothing to remind of.
                 val settlement = SettlementCalculator.settle(band, event)
                 // A pair settling together owes as one (ITERATION_5 §7): both partners are reminded.
-                val mine = (settlement.party(me.id)?.partyIds ?: listOf(me.id)) + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId == me.id })
+                val party = settlement.party(me.id)?.partyIds ?: listOf(me.id)
+                // The treasurer's pair keeps the fund's part: nobody in it pays the fund.
+                val mine = party + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId in party })
                 val owed = settlement.suggestions.filter { it.from in mine && it.to !in mine }.map {
                     Owed(it.to.takeIf { to -> to != BAND_FUND }?.let { to -> partyName(band, event, settlement, to, "", "%1\$s & %2\$s") }, it.amount, it.from == BAND_FUND)
                 }

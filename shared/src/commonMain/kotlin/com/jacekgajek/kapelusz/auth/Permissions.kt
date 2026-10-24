@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.auth
 
 import com.jacekgajek.kapelusz.domain.CostLedger
+import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
@@ -113,8 +114,8 @@ object Permissions {
         is RemoveHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
 
         // Either partner settles a pair's transfer (ITERATION_5 §7).
-        is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && me.settlesWith.let { it != null && (it == op.from || it == op.to) }))
-        is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == me.settlesWith))
+        is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && partnerIn(band, me, op.eventId).let { it != null && (it == op.from || it == op.to) }))
+        is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))
 
         // Only for oneself (checked above); artists answer an invitation but neither send one nor end a pair.
         is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether -> Role.MEMBER
@@ -128,6 +129,10 @@ object Permissions {
         is RemoveAttachment -> ownAttachments(band, me, op.owner)
         is RenameAttachment -> ownAttachments(band, me, op.owner)
     }
+
+    /** Whom [me] settles together with in this event: only where both take part (ITERATION_5 §7). */
+    private fun partnerIn(band: Band, me: Member, eventId: String): String? =
+        band.event(eventId)?.let { SettleTogether.partners(band, it)[me.id] }
 
     /** The member a settling-together operation is for: the only one who may perform it. */
     private fun settlesFor(op: Operation): String? = when (op) {
