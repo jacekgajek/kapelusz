@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.sync
 
+import com.jacekgajek.kapelusz.api.PlaceSuggestion
+import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PictureRequest
 import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
 import com.jacekgajek.kapelusz.api.AttachmentUploadResponse
@@ -125,6 +127,13 @@ class ApiClient(
 
     /** The band's file exactly as stored on the server, for admins (ITERATION_2 §7.1). */
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
+
+    /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */
+    suspend fun places(bandId: Id, query: String, language: String): List<PlaceSuggestion> =
+        parse(send(HttpMethod.Get, "/bands/$bandId/places") {
+            parameter("q", query)
+            parameter("lang", language)
+        }, PlacesResponse.serializer()).places
 
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
 

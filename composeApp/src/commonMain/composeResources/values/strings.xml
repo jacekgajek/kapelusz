@@ -616,4 +616,5 @@
     <string name="blik_invalid">Not a phone number (7 to 15 digits)</string>
     <string name="blik_remove">Remove</string>
     <string name="reject_invalid_phone">That's not a phone number.</string>
+    <string name="places_powered_by_google">Powered by Google</string>
 </resources>

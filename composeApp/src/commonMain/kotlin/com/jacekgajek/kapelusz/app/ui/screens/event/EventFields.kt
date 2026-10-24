@@ -1,5 +1,20 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.api.PlaceSuggestion
+import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.generated.places_powered_by_google
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -50,6 +65,17 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
+/** Asks for places matching what was typed in Location (ITERATION_5 §9); throws when it cannot (offline, not set up). */
+typealias PlaceSearch = suspend (query: String) -> List<PlaceSuggestion>
+
+/** Place search for the band's event dialogs, in the app's language; null for who cannot edit events. */
+@Composable
+fun rememberPlaceSearch(graph: AppGraph, band: Band, userId: String): PlaceSearch? {
+    val lang = language
+    val allowed = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) == true
+    return remember(graph, band.id, lang, allowed) { if (allowed) { query -> graph.api.places(band.id, query, lang) } else null }
+}
+
 /** What the create and edit dialogs edit about an event. */
 data class EventFieldsState(
     val name: String,
@@ -65,7 +91,7 @@ data class EventFieldsState(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
+fun EventFields(state: EventFieldsState, placeSearch: PlaceSearch?, onState: (EventFieldsState) -> Unit) {
     val paste = rememberPaste()
     val scope = rememberCoroutineScope()
     // The paste finishes later (the browser may ask for permission), so it must apply to the fields as they are then.
@@ -77,7 +103,7 @@ fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(state.name, { onState(state.copy(name = it)) }, label = { Text(stringResource(Res.string.event_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         DateField(state.date, { onState(state.copy(date = it)) }, stringResource(Res.string.event_date))
-        OutlinedTextField(state.location, { onState(state.copy(location = it)) }, label = { Text(stringResource(Res.string.event_location)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        LocationField(state, placeSearch, onState)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // No "Select on map": coming back from Google Maps with Share › Kapelusz opens the event picker, where an event
             // still being created is not. A link copied in Maps (Share › Copy link) is pasted here instead.
@@ -132,3 +158,63 @@ fun EventFields(state: EventFieldsState, onState: (EventFieldsState) -> Unit) {
         )
     }
 }
+
+/**
+ * Location, with Google's places for what is typed (ITERATION_5 §9): from 3 characters, after a short pause, up to 5
+ * under the field. Picking one puts in its name and town and links its exact pin; typing freely still works, and
+ * offline (or without place search on the server) the field is plain text.
+ */
+@Composable
+private fun LocationField(state: EventFieldsState, placeSearch: PlaceSearch?, onState: (EventFieldsState) -> Unit) {
+    // Only what the user types is searched: not the text the dialog opened with, nor a picked place.
+    var typed by remember { mutableStateOf<String?>(null) }
+    var suggestions by remember { mutableStateOf(emptyList<PlaceSuggestion>()) }
+    // A pin set otherwise (Paste from Maps, shared from Maps) ends the search: a pick would replace it.
+    LaunchedEffect(state.mapUrl) { typed = null }
+    LaunchedEffect(typed) {
+        val query = typed?.trim()
+        if (placeSearch == null || query == null || query.length < Places.MIN_QUERY) {
+            suggestions = emptyList()
+            return@LaunchedEffect
+        }
+        delay(SEARCH_PAUSE_MS)
+        suggestions = runSuspendCatching { placeSearch(query.take(Places.MAX_QUERY)) }.getOrDefault(emptyList())
+    }
+    OutlinedTextField(
+        state.location,
+        {
+            typed = it
+            onState(state.copy(location = it))
+        },
+        label = { Text(stringResource(Res.string.event_location)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (suggestions.isNotEmpty()) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
+            suggestions.forEach { place ->
+                Column(
+                    Modifier.fillMaxWidth().clickable {
+                        typed = null
+                        onState(state.copy(location = Places.label(place), mapUrl = Places.mapUrl(place)))
+                    }.padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Text(place.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    place.address?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            // Required by Google wherever its suggestions show without its map.
+            Text(
+                stringResource(Res.string.places_powered_by_google),
+                Modifier.align(Alignment.End).padding(horizontal = 12.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** How long typing pauses before places are asked for, so not every keystroke is a request. */
+private const val SEARCH_PAUSE_MS = 500L

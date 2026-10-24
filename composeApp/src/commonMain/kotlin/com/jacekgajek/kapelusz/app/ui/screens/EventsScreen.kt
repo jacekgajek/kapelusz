@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceSearch
+import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceSearch
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -206,6 +208,7 @@ fun EventsScreen(
             band,
             initialLocation = sharedPlace?.name.orEmpty(),
             initialMapUrl = sharedPlace?.url,
+            placeSearch = rememberPlaceSearch(graph, band, state.userId),
             onDismiss = { creating = false; graph.pendingNewEventPlace.value = null },
             onCreate = { fields ->
                 val eventId = newId()
@@ -289,7 +292,7 @@ private fun MyNumberText(number: MyNumber, currency: String) {
 }
 
 @Composable
-private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: String?, onDismiss: () -> Unit, onCreate: (EventFieldsState) -> Unit) {
+private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: String?, placeSearch: PlaceSearch?, onDismiss: () -> Unit, onCreate: (EventFieldsState) -> Unit) {
     var fields by remember {
         mutableStateOf(
             EventFieldsState(
@@ -311,7 +314,7 @@ private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: S
         title = { Text(stringResource(Res.string.new_event)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EventFields(fields) { fields = it }
+                EventFields(fields, placeSearch) { fields = it }
                 Text(stringResource(Res.string.new_event_lineup_hint), style = MaterialTheme.typography.bodySmall)
             }
         },

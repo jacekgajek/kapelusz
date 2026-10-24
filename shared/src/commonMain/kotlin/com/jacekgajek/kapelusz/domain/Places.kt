@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.domain
 
+import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.model.Event
 
 /** A place as shared from Google Maps: its name (if given) and its link. */
@@ -43,6 +44,29 @@ object Places {
         val name = text.removeRange(match.range).lines().map { it.trim() }.firstOrNull { it.isNotEmpty() }
         return SharedPlace(name, url)
     }
+
+    private val stateCode = Regex("[A-Z]{2,3}")
+
+    /** Fewest characters typed before places are suggested, and the most sent. */
+    const val MIN_QUERY = 3
+    const val MAX_QUERY = 100
+
+    /**
+     * What a picked suggestion puts in Location (ITERATION_5 §9): the name and its town, which is the part of the
+     * address before the country ("Stodoła, Warszawa"), or before a state code ("Nashville, TN, USA"), without postal
+     * codes; just the name when there is no such part.
+     */
+    fun label(place: PlaceSuggestion): String {
+        val parts = place.address?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty().dropLast(1)
+            .let { beforeCountry -> if (beforeCountry.size >= 2 && stateCode.matches(beforeCountry.last())) beforeCountry.dropLast(1) else beforeCountry }
+        val town = parts.lastOrNull()
+            ?.split(" ")?.filter { word -> word.none { it.isDigit() } }?.joinToString(" ")?.takeIf { it.isNotBlank() }
+        return if (town == null || place.name.contains(town)) place.name else "${place.name}, $town"
+    }
+
+    /** The Google Maps link to a picked place: the exact pin, as Navigate opens it. */
+    fun mapUrl(place: PlaceSuggestion): String =
+        "https://www.google.com/maps/search/?api=1&query=${encode(place.name)}&query_place_id=${encode(place.placeId)}"
 
     /** Where Navigate goes: the stored Maps link (the exact pin), otherwise directions to the location text. */
     fun navigateUrl(event: Event): String? =

@@ -449,6 +449,11 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 - [x] Grill (2026-10-24)
 - [x] Implement: the number on the member, Settings row, BLIK icon and sheet on transfers, hand-over
 
+### V5-M5 — Place suggestions in Location (§9)
+
+- [x] Implement: server endpoint calling Google Places API (New), suggestions under Location, Terraform variable for the key
+- [ ] Set up: Places API (New) enabled, key restricted to it, `kapelusz_google_places_api_key` applied, then a deploy
+
 ## 6. Decision log
 
 | Date | Decision |
@@ -460,6 +465,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-23 | V5-M2 undo works by holding a change back from syncing while its snackbar shows (withdraw on Undo), not by sending and undoing; money removals and deleting an event keep their dialogs; member chips unchanged. |
 | 2026-10-24 | Settling together (§7): pairs only, stored once per band and applied when settling; transfers always recorded between real people (no pair id); only settlement and its transfers change, everything else stays per person. |
 | 2026-10-24 | BLIK numbers (§8): one phone number per member and band, set only by its member; shown only to who settles the transfer, hidden in the app only (every device still gets the band's data). |
+| 2026-10-24 | Place suggestions (§9) go through our server: the Google key never ships in the app or the web page, and only leads (who edit events) use it. |
 | 2026-10-24 | Artists don't settle together after all: their payout with the pair's numbers was confusing ("still to receive" twice their share). Becoming an artist ends a pair. |
 
 ## 7. V5-M3 — Settling together (grilled 2026-10-24)
@@ -527,3 +533,18 @@ Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is 
   undoing other changes leaves it).
 - **Unlinking** the member's account removes the number (it was that person's); archiving keeps it.
 - **Hidden in the app only:** every device still receives the band's data with all numbers, as with names.
+
+## 9. V5-M5 — Place suggestions in Location (2026-10-24)
+
+- **In the event dialogs** (new event, "When and where"): typing 3 or more characters in Location shows, after a
+  ~500 ms pause, up to 5 places from Google under the field (name, and the address in grey), with "Powered by Google".
+  Picking one puts in the name and town ("Stodoła, Warszawa": the address part before the country, without postal
+  codes) and links the place's exact pin (a Google Maps link with its place id), as Paste from Maps does. Free text
+  still works; offline, or with place search off, the field is plain text. Paste from Maps and sharing from Maps stay.
+- **Through our server:** `GET /bands/{id}/places?q=…&lang=…`, for leads up of that band (who edit events); 3 to 100
+  characters; the app's language. The server calls Places API (New) Autocomplete with only the fields shown. No key
+  (`GOOGLE_PLACES_API_KEY` unset) or no answer: 503 `places_unavailable`, and the app shows no suggestions.
+- **The key:** restricted to Places API (New) in the Cloud console (an IP restriction does not fit Lambda), set through
+  the Terraform variable `kapelusz_google_places_api_key`; it takes effect with the next deploy (each publishes a
+  Lambda version with the configuration of that moment).
+- **Nothing new in the band data:** the same location text and Maps link as before.
