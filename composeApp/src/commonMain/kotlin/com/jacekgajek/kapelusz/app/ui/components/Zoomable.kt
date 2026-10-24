@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
@@ -28,6 +29,7 @@ class ZoomState {
 
     /** Zooms by [zoom] around [centroid] and moves by [pan], kept so the content still covers its box. */
     fun transform(zoom: Float, pan: Offset, centroid: Offset, size: IntSize) {
+        if (!zoom.isFinite() || !pan.isValid() || !centroid.isValid()) return
         val next = (scale * zoom).coerceIn(1f, MAX_SCALE)
         val center = Offset(size.width / 2f, size.height / 2f)
         // The point under the fingers stays under them.
@@ -72,8 +74,10 @@ fun Modifier.zoomable(state: ZoomState): Modifier = this
             do {
                 val event = awaitPointerEvent()
                 val fingers = event.changes.count { it.pressed }
-                if (fingers >= 2 || state.scale > 1f) {
-                    state.transform(event.calculateZoom(), event.calculatePan(), event.calculateCentroid(useCurrent = true), size)
+                // The lift has no finger down any more: no centre to zoom around (it would be NaN, and the picture gone).
+                val centroid = event.calculateCentroid(useCurrent = true)
+                if (fingers > 0 && centroid.isSpecified && (fingers >= 2 || state.scale > 1f)) {
+                    state.transform(event.calculateZoom(), event.calculatePan(), centroid, size)
                     event.changes.forEach { if (it.positionChanged()) it.consume() }
                 }
             } while (event.changes.any { it.pressed })
