@@ -89,12 +89,6 @@ internal fun rememberShareSettlement(band: Band, event: Event?, settlement: Sett
     }
 }
 
-/** The Share icon of the event's top bar. */
-@Composable
-internal fun ShareSettlementIcon(onShare: () -> Unit) {
-    IconButton(onClick = onShare) { Icon(Icons.Default.Share, stringResource(Res.string.share_settlement)) }
-}
-
 /** "Share settlement" under the Settlement panel, for everyone in the band. */
 @Composable
 internal fun ShareSettlementButton(onShare: () -> Unit) {

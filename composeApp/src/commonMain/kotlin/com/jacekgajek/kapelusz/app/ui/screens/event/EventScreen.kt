@@ -158,7 +158,6 @@ fun EventScreen(
     Scaffold(
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
-                if (!artist) shareSettlement?.let { ShareSettlementIcon(it) }
                 if (event != null && settlement != null) {
                     val can = Can(state.band, state.userId)
                     if (can.editEvent(event)) IconButton(onClick = { editing = true }) { Icon(Icons.Default.Edit, stringResource(Res.string.edit_details)) }
@@ -181,6 +180,7 @@ fun EventScreen(
             return@Scaffold
         }
         val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
+        val shareInfo = rememberShareInfo(state.band, event, snackbar)
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
                 Modifier.widthIn(max = 720.dp).fillMaxWidth(),
@@ -189,12 +189,13 @@ fun EventScreen(
             ) {
                 if (artist) {
                     // Artists get no debt reminders, so nothing scrolls by section here.
-                    item("header") { Header(context, status = false) }
                     stickyHeader("tabs") { EventTabs(tab, ::selectTab) }
                     if (tab == EventTab.GIG) {
+                        item("when") { WhenAndWhere(context) }
                         item("details") { DetailsSection(context) }
                         item("files") { FilesSection(context) }
                         item("lineup") { ArtistLineup(context) }
+                        item("share") { ShareInfoButton(shareInfo) }
                     } else {
                         item("payout") { ArtistPayout(context) }
                         item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
@@ -207,11 +208,13 @@ fun EventScreen(
                     if (section == EventSection.TABS) stickyHeader(key = section.name) { EventTabs(tab, ::selectTab) }
                     else item(key = section.name) {
                         when (section) {
-                            EventSection.HEADER -> Header(context)
                             EventSection.TABS -> Unit
+                            EventSection.WHEN -> WhenAndWhere(context)
                             EventSection.DETAILS -> DetailsSection(context)
                             EventSection.FILES -> FilesSection(context)
                             EventSection.PARTICIPANTS -> ParticipantsSection(context)
+                            EventSection.SHARE_INFO -> ShareInfoButton(shareInfo)
+                            EventSection.STATUS -> StatusChip(context.settlement.status, event.archived, Modifier.fillMaxWidth().padding(top = 8.dp))
                             EventSection.TOTALS -> Totals(context)
                             EventSection.PROBLEMS -> Problems(context)
                             EventSection.COLLECTED -> CollectedSection(context)
@@ -234,9 +237,9 @@ fun EventScreen(
  * each, so a reminder about an open debt finds [TO_SETTLE] by its index on the money page.
  */
 private enum class EventSection(val tab: EventTab?) {
-    HEADER(null), TABS(null),
-    DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG),
-    TOTALS(EventTab.MONEY), PROBLEMS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY), SUMMARY(EventTab.MONEY),
+    TABS(null),
+    WHEN(EventTab.GIG), DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG), SHARE_INFO(EventTab.GIG),
+    STATUS(EventTab.MONEY), TOTALS(EventTab.MONEY), PROBLEMS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY), SUMMARY(EventTab.MONEY),
     SHARE(EventTab.MONEY), TO_SETTLE(EventTab.MONEY), HISTORY(EventTab.MONEY),
     ;
 
@@ -258,29 +261,29 @@ private fun EventTabs(tab: EventTab, onTab: (EventTab) -> Unit) {
     }
 }
 
+/** The top of the gig page (ITERATION_5 §3): date and place with Navigate beside them, then the set times. */
 @Composable
-private fun Header(context: EventContext, status: Boolean = true) {
+private fun WhenAndWhere(context: EventContext) {
     val event = context.event
-    val s = context.settlement
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 listOfNotNull(formatDate(event.date, language), event.location).joinToString(" · "),
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            if (status) StatusChip(s.status, event.archived)
+            // Google Maps: the stored link (the exact pin), otherwise directions to the location text.
+            Places.navigateUrl(event)?.let { url ->
+                val uriHandler = LocalUriHandler.current
+                AssistChip(
+                    onClick = { uriHandler.openUri(url) },
+                    label = { Text(stringResource(Res.string.navigate)) },
+                    leadingIcon = { Icon(Icons.Default.Directions, null) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
         event.agendaLine()?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-        // Google Maps: the stored link (the exact pin), otherwise directions to the location text.
-        Places.navigateUrl(event)?.let { url ->
-            val uriHandler = LocalUriHandler.current
-            AssistChip(
-                onClick = { uriHandler.openUri(url) },
-                label = { Text(stringResource(Res.string.navigate)) },
-                leadingIcon = { Icon(Icons.Default.Directions, null) },
-            )
-        }
     }
 }
 
