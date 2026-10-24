@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.components.BlikButton
 import com.jacekgajek.kapelusz.app.ui.components.BlikNumberRow
 import com.jacekgajek.kapelusz.domain.BlikPhone
@@ -205,6 +206,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         val settles = context.can.settleSuggestion(context.event, suggestion.from, suggestion.to)
+        val label = settleLabel(band, settlement, context.me?.id, suggestion.from, suggestion.to)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
@@ -223,7 +225,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                 if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                 FilledTonalButton(onClick = {
                     context.actions.runWithUndo(settleOp(context, suggestion, suggestion.amount), recorded(suggestion.amount))
-                }) { Text(stringResource(if (keepsForFund) Res.string.confirm else Res.string.settle)) }
+                }) { Text(stringResource(if (keepsForFund) Res.string.confirm else label)) }
             }
         }
     }
@@ -235,6 +237,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             currency = context.currency,
             onConfirm = { context.actions.runWithUndo(settleOp(context, suggestion, it), recorded(it)) },
             onDismiss = { partial = false },
+            confirmLabel = settleLabel(band, settlement, context.me?.id, suggestion.from, suggestion.to),
         )
     }
 }

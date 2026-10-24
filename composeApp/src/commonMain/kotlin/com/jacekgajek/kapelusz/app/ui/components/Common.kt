@@ -1,5 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import org.jetbrains.compose.resources.StringResource
+import com.jacekgajek.kapelusz.domain.BlikPhone
+import com.jacekgajek.kapelusz.domain.Settlement
+import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.app.generated.settle_paid
+import com.jacekgajek.kapelusz.app.generated.settle_received
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -319,6 +326,8 @@ fun PartialSettleDialog(
     currency: String,
     onConfirm: (Money) -> Boolean,
     onDismiss: () -> Unit,
+    /** As on the suggestion's button: Paid, Received or Settle ([settleLabel]). */
+    confirmLabel: StringResource = Res.string.settle,
 ) {
     val lang = language
     // Empty and focused: the amount handed over is usually known, the suggestion stays in the hint below.
@@ -342,7 +351,7 @@ fun PartialSettleDialog(
         confirmButton = {
             // Refused (e.g. more than an artist is owed now): the dialog stays, with the amount (V5-M1 C4c).
             TextButton(enabled = parsed != null, onClick = { if (onConfirm(parsed!!)) onDismiss() }) {
-                Text(stringResource(Res.string.settle))
+                Text(stringResource(confirmLabel))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
@@ -385,4 +394,14 @@ fun VersionLabel(modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
     )
+}
+
+/**
+ * What settling a suggestion is called for [me]: "Paid" when they pay it, "Received" when they get it, "Settle" for a
+ * lead recording others'. It records the same; the word says which way the money went.
+ */
+fun settleLabel(band: Band, settlement: Settlement, me: Id?, from: Id, to: Id): StringResource = when {
+    BlikPhone.onSide(band, settlement, me, from) -> Res.string.settle_paid
+    BlikPhone.onSide(band, settlement, me, to) -> Res.string.settle_received
+    else -> Res.string.settle
 }

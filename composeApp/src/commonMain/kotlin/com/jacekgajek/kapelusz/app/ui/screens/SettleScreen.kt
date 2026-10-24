@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.components.BlikButton
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
@@ -151,13 +152,13 @@ fun SettleScreen(
                                     TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                                     FilledTonalButton(onClick = {
                                         actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))
-                                    }) { Text(stringResource(Res.string.settle)) }
+                                    }) { Text(stringResource(settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))) }
                                 }
                             }
                             if (partial) {
                                 PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
                                     actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it, together = true))
-                                }, onDismiss = { partial = false })
+                                }, onDismiss = { partial = false }, confirmLabel = settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))
                             }
                         } }
                     }
