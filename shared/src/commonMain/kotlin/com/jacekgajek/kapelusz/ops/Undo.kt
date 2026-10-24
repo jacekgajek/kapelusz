@@ -81,7 +81,7 @@ data class BandChange(val before: BandPart, val after: BandPart) {
  * together, which is each member's own decision (ITERATION_5 §7).
  */
 fun isUndoable(op: Operation): Boolean = when (op) {
-    is LinkUser, is UnlinkUser, is TransferOwnership,
+    is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone,
     is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
     -> false
     is Undo -> isUndoable(op.original)
@@ -129,6 +129,8 @@ internal object Undoing {
                     val later = after.members[id]
                     member?.copy(
                         pictureUrl = current?.pictureUrl ?: member.pictureUrl,
+                        // Only ever set by its own operation, which is not undoable (ITERATION_5 §8).
+                        blikPhone = if (current == null) member.blikPhone else current.blikPhone,
                         settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith,
                         invitedToSettle = if (current == null || member.invitedToSettle != later?.invitedToSettle) member.invitedToSettle else current.invitedToSettle,
                     )
@@ -197,7 +199,7 @@ internal object Undoing {
 private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate)
 
 /** A member as undo compares them: without the photo and the pair, which change on their own. */
-private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null)
+private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null, blikPhone = null)
 
 private class Diff<T>(val before: Map<Id, T?>, val after: Map<Id, T?>, val order: List<Id>?)
 

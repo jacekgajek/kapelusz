@@ -1,5 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.ui.components.BlikButton
+import com.jacekgajek.kapelusz.app.ui.components.BlikNumberRow
+import com.jacekgajek.kapelusz.domain.BlikPhone
+import com.jacekgajek.kapelusz.app.generated.blik_title
 import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.LocalTextStyle
@@ -200,7 +204,14 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
     // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
+        val settles = context.can.settleSuggestion(context.event, suggestion.from, suggestion.to)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) {
+                CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
+            }
+            // Only to who may settle it (ITERATION_5 §8); the fund's holder keeping it pays nobody.
+            if (settles && !keepsForFund) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
                 if (!keepsForFund) Row(verticalAlignment = Alignment.CenterVertically) {
@@ -208,7 +219,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                     MoneyText(suggestion.amount, context.currency, bold = true)
                 }
             }
-            if (context.can.settleSuggestion(context.event, suggestion.from, suggestion.to)) {
+            if (settles) {
                 if (!keepsForFund) TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                 FilledTonalButton(onClick = {
                     context.actions.runWithUndo(settleOp(context, suggestion, suggestion.amount), recorded(suggestion.amount))
@@ -305,6 +316,8 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 Dropdown(to, handOverRecipients(context, from), { to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)
                 }
+                // The recipient's BLIK number, if they gave one (ITERATION_5 §8); only recipients the user may record to are offered.
+                BlikPhone.recipient(context.band, to).firstOrNull()?.let { BlikNumberRow(stringResource(Res.string.blik_title), it) }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())

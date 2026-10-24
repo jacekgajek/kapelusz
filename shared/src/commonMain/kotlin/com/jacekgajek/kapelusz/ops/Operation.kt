@@ -74,6 +74,10 @@ data class LinkUser(val memberId: Id, val userId: String, val role: Role) : Oper
 @Serializable @SerialName("UnlinkUser")
 data class UnlinkUser(val memberId: Id) : Operation
 
+/** The member's own BLIK phone number (ITERATION_5 §8); null removes it. */
+@Serializable @SerialName("SetBlikPhone")
+data class SetBlikPhone(val memberId: Id, val phone: String?) : Operation
+
 @Serializable @SerialName("SetTreasurer")
 data class SetTreasurer(val memberId: Id) : Operation
 

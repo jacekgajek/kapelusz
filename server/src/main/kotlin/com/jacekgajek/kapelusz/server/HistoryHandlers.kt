@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.HistoryResponse
 import com.jacekgajek.kapelusz.model.Band
@@ -130,12 +131,14 @@ internal class HistoryHandlers(
 
     fun append(user: VerifiedUser, band: Band, bandId: String, ops: List<OpEnvelope>, changes: Map<String, BandChange>) {
         val now = clock()
-        val recorded = changes.filterKeys { id -> ops.any { it.opId == id } }
+        // Nor are numbers in the members' snapshots of other changes (undo keeps the current number anyway).
+        val recorded = changes.filterKeys { id -> ops.any { it.opId == id } }.mapValues { (_, change) -> change.withoutBlikPhones() }
         // A huge offline batch is logged without its changes (it cannot be undone), so history pages stay small.
         val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() <= MAX_LOGGED_CHANGES } ?: emptyMap()
         val memberId = band.memberOfUser(user.userId)?.id
         val name = "${monthOf(now)}/$now-${UUID.randomUUID()}.json"
-        val pushed = ops.mapIndexedNotNull { index, envelope ->
+        // A BLIK number is shown only to who settles with its member (ITERATION_5 §8): its changes are not history.
+        val pushed = ops.filter { it.op !is SetBlikPhone }.mapIndexedNotNull { index, envelope ->
             val part = HistoryEntry(user.userId, memberId, now, listOf(envelope), kept[envelope.opId]?.let { mapOf(envelope.opId to it) } ?: emptyMap())
             // A record over what the table takes keeps its operation without the change (that one cannot be undone);
             // an operation too large even alone is left out, rather than the whole push failing to be written.
@@ -170,4 +173,10 @@ internal class HistoryHandlers(
         /** A DynamoDB item is at most 400 KB, keys included. */
         const val MAX_RECORD_BYTES = 350_000
     }
+}
+
+/** [BandChange] without members' BLIK numbers (ITERATION_5 §8): the history keeps no record of who is paid where. */
+private fun BandChange.withoutBlikPhones(): BandChange {
+    fun BandPart.clean() = copy(members = members.mapValues { (_, member) -> member?.copy(blikPhone = null) })
+    return BandChange(before.clean(), after.clean())
 }

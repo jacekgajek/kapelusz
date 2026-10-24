@@ -54,6 +54,11 @@ data class Member(
     val settlesWith: Id? = null,
     /** Who they invited to settle together, while that member has not answered (ITERATION_5 §7). */
     val invitedToSettle: Id? = null,
+    /**
+     * The phone number bandmates send them money to with BLIK (ITERATION_5 §8), as stored by [BlikPhone.normalize]; set
+     * only by the member, kept out of the history and of undo, and gone with the linked account.
+     */
+    val blikPhone: String? = null,
 ) {
     /** A participant with this member's default share. */
     fun asParticipant(addedBy: Id? = null) = Participant(id, shareWeight, addedBy, shareFixed)

@@ -1,5 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens.settings
 
+import androidx.compose.material.icons.filled.PhoneAndroid
+import com.jacekgajek.kapelusz.app.generated.blik_mine
+import com.jacekgajek.kapelusz.app.generated.blik_mine_off
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -123,6 +127,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     /** No band fund and no whole-band calendar for artists (ITERATION_4 §1.1). */
     artist: Boolean = false,
+    /** Your BLIK number in this band (ITERATION_5 §8), as stored; [onBlikPhone] is null for whoever is never paid. */
+    blikPhone: String? = null,
+    onBlikPhone: ((String?) -> Unit)? = null,
 ) {
     val permission = rememberNotificationPermission()
     when (page) {
@@ -142,6 +149,7 @@ fun SettingsScreen(
         null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
             var choosingLanguage by remember { mutableStateOf(false) }
             var renaming by remember { mutableStateOf(false) }
+            var editingBlik by remember { mutableStateOf(false) }
             val languages = listOf(null to Res.string.language_system, "en" to Res.string.language_en, "pl" to Res.string.language_pl)
             // Grouped by whom they affect: the band's settings change things for everyone, the personal ones only for you.
             SectionHeader(stringResource(Res.string.settings_band), Modifier.padding(horizontal = 16.dp))
@@ -152,6 +160,11 @@ fun SettingsScreen(
                 treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off),
                 chevron = true,
             ) { onOpenPage(SettingsPage.FUND) }
+            if (onBlikPhone != null) {
+                SettingsItem(Icons.Default.PhoneAndroid, stringResource(Res.string.blik_mine), blikPhone?.let(BlikPhone::display) ?: stringResource(Res.string.blik_mine_off)) {
+                    editingBlik = true
+                }
+            }
             if (onAgendaTemplate != null) {
                 SettingsItem(Icons.Default.Schedule, stringResource(Res.string.agenda_template_title), agendaTemplate.map { it.displayLabel() }.joinToString(", "), chevron = true) {
                     onOpenPage(SettingsPage.AGENDA)
@@ -237,6 +250,7 @@ fun SettingsScreen(
                     confirmButton = { TextButton(onClick = { choosingLanguage = false }) { Text(stringResource(Res.string.cancel)) } },
                 )
             }
+            if (editingBlik && onBlikPhone != null) BlikPhoneDialog(blikPhone, onBlikPhone, onDismiss = { editingBlik = false })
             if (renaming && onRenameBand != null) {
                 TextInputDialog(stringResource(Res.string.band_name), stringResource(Res.string.band_name), bandName, onConfirm = { if (it != bandName) onRenameBand(it) }, onDismiss = { renaming = false })
             }
