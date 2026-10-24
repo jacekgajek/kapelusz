@@ -240,7 +240,7 @@ private enum class EventSection(val tab: EventTab?) {
     TABS(null),
     WHEN(EventTab.GIG), DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG), SHARE_INFO(EventTab.GIG),
     STATUS(EventTab.MONEY), TOTALS(EventTab.MONEY), PROBLEMS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY), SUMMARY(EventTab.MONEY),
-    SHARE(EventTab.MONEY), TO_SETTLE(EventTab.MONEY), HISTORY(EventTab.MONEY),
+    TO_SETTLE(EventTab.MONEY), SHARE(EventTab.MONEY), HISTORY(EventTab.MONEY),
     ;
 
     companion object {
