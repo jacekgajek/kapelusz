@@ -24,9 +24,10 @@ data class EventSummary(val event: Event, val settlement: Settlement, val myNumb
     val isMine: Boolean get() = myNumber != MyNumber.NotParticipating
 }
 
+/** As a party of the settlement: with a partner settling together, the pair's number (ITERATION_5 §7). */
 fun myNumber(event: Event, settlement: Settlement, me: Member?): MyNumber {
-    val line = me?.let { settlement.line(it.id) } ?: return MyNumber.NotParticipating
-    if (event.participant(line.partyId) == null) return MyNumber.NotParticipating
+    if (me == null || event.participant(me.id) == null) return MyNumber.NotParticipating
+    val line = settlement.party(me.id) ?: return MyNumber.NotParticipating
     return when {
         line.delta.isNegative -> MyNumber.Get(-line.delta)
         line.delta.isPositive -> MyNumber.HandOver(line.delta)
@@ -49,6 +50,16 @@ fun eventSummaries(band: Band, me: Member?, settings: AppSettings): List<EventSu
 fun partyName(band: Band, event: Event?, partyId: Id, fundLabel: String): String = when (partyId) {
     BAND_FUND -> band.treasurerMemberId?.let { band.member(it)?.name }?.let { "$fundLabel ($it)" } ?: fundLabel
     else -> band.member(partyId)?.name ?: event?.guest(partyId)?.name ?: partyId
+}
+
+/**
+ * Display name of a settlement party (ITERATION_5 §7): a pair settling together as both names, joined by [pairPattern]
+ * (`%1$s and %2$s`), in party order; anyone else as [partyName].
+ */
+fun partyName(band: Band, event: Event?, settlement: Settlement, partyId: Id, fundLabel: String, pairPattern: String): String {
+    val ids = settlement.party(partyId)?.partyIds ?: listOf(partyId)
+    if (ids.size == 1) return partyName(band, event, partyId, fundLabel)
+    return pairPattern.replace("%1\$s", partyName(band, event, ids[0], fundLabel)).replace("%2\$s", partyName(band, event, ids[1], fundLabel))
 }
 
 fun initials(name: String): String =

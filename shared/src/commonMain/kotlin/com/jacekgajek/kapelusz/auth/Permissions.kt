@@ -6,7 +6,12 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
 import com.jacekgajek.kapelusz.ops.AddAttachment
+import com.jacekgajek.kapelusz.ops.CancelSettleTogether
+import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
+import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
+import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddFundEntry
@@ -77,6 +82,8 @@ object Permissions {
         val me = band.memberOfUser((actor as Actor.User).userId)?.takeIf { !it.archived }
             ?: return forbidden(RejectionReason.NOT_A_MEMBER, "You are not an active member of this band")
         if (op is LinkUser) return forbidden(RejectionReason.INVITE_ONLY, "Users are linked only by accepting an invite")
+        // Settling together is everyone's own decision (ITERATION_5 §7): nobody, admins included, decides it for others.
+        settlesFor(op)?.let { if (it != me.id) return forbidden(RejectionReason.ROLE_REQUIRED, "Only for yourself") }
 
         val required = requiredRole(band, me, op)
         return if (me.role.atLeast(required)) null else forbidden(RejectionReason.ROLE_REQUIRED, "Requires role $required")
@@ -105,8 +112,13 @@ object Permissions {
         is UpdateHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
         is RemoveHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
 
-        is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to))
-        is SettleSuggestions -> ownIf(op.partyId != null && ownsParty(band, me, op.partyId))
+        // Either partner settles a pair's transfer (ITERATION_5 §7).
+        is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && me.settlesWith.let { it != null && (it == op.from || it == op.to) }))
+        is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == me.settlesWith))
+
+        // Only for oneself (checked above); artists answer an invitation but neither send one nor end a pair.
+        is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether -> Role.MEMBER
+        is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST
 
         // Artists too look after their own costs (ITERATION_4 §1.1); money held or moved stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
@@ -115,6 +127,16 @@ object Permissions {
         is AddAttachment -> ownAttachments(band, me, op.owner)
         is RemoveAttachment -> ownAttachments(band, me, op.owner)
         is RenameAttachment -> ownAttachments(band, me, op.owner)
+    }
+
+    /** The member a settling-together operation is for: the only one who may perform it. */
+    private fun settlesFor(op: Operation): String? = when (op) {
+        is InviteToSettleTogether -> op.fromMemberId
+        is CancelSettleTogether -> op.fromMemberId
+        is AcceptSettleTogether -> op.toMemberId
+        is DeclineSettleTogether -> op.toMemberId
+        is StopSettlingTogether -> op.memberId
+        else -> null
     }
 
     private fun reverseRole(op: Operation): Role = when (op) {

@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.selected
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.model.AgendaTime
+import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
@@ -141,6 +142,10 @@ fun EventsScreen(
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Until answered (ITERATION_5 §7): there are no pushes, and the roster is not where artists look.
+            if (state.me?.let { SettleTogether.inviterOf(band, it.id) } != null) {
+                item(key = "settle-together") { SettleTogetherInvitationCard(band, state.me, actions) }
+            }
             if (continueEvent != null) {
                 item {
                     EventCard(

@@ -577,4 +577,30 @@
     <string name="reject_limit_reached">The band has reached a limit for this (e.g. too many entries).</string>
     <string name="reject_storage_failed">Could not save it on this device (is the storage full?).</string>
     <string name="loading">Loading…</string>
+
+    <!-- Settling together (ITERATION_5 §7) -->
+    <string name="pair_names">%1$s and %2$s</string>
+    <string name="pair_breakdown">%1$s: payout %2$s · holds %3$s</string>
+    <string name="settle_together_title">Settle together</string>
+    <string name="settle_together_hint">On Settlement you\'re one party; everywhere else you stay separate.</string>
+    <string name="settle_together_invite">Settle together with me</string>
+    <string name="settle_together_waiting">Waiting for %1$s to answer.</string>
+    <string name="settle_together_cancel">Cancel invitation</string>
+    <string name="settle_together_invited">%1$s invites you to settle together.</string>
+    <string name="settle_together_accept">Accept</string>
+    <string name="settle_together_decline">Decline</string>
+    <string name="settle_together_with">Settles together with %1$s.</string>
+    <string name="settle_together_you_with">You settle together with %1$s.</string>
+    <string name="settle_together_pending_other">Has an invitation to settle together waiting.</string>
+    <string name="settle_together_stop">Stop settling together</string>
+    <string name="settle_together_stop_text">From now on you and %1$s settle separately, also in the events not settled yet (%2$s).</string>
+    <string name="settle_together_ends">This also ends settling together of %1$s and %2$s; events not settled yet: %3$s.</string>
+    <string name="reject_cannot_settle_together">They can\'t settle together now: one of you is already in a pair or has an invitation waiting.</string>
+    <string name="h_invite_settle_together">%1$s invited %2$s to settle together</string>
+    <string name="h_cancel_settle_together">%1$s withdrew the invitation to settle together sent to %2$s</string>
+    <string name="h_accept_settle_together">%1$s and %2$s settle together</string>
+    <string name="h_decline_settle_together">%1$s declined to settle together with %2$s</string>
+    <string name="h_stop_settle_together">%1$s stopped settling together with %2$s</string>
+    <string name="h_pair_ended">%1$s; %2$s and %3$s no longer settle together</string>
+    <string name="role_row">Role: %1$s</string>
 </resources>

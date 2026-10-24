@@ -60,6 +60,7 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.role_row
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -167,8 +168,11 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     // Leads set default shares (ITERATION_4 §2.3); admins also manage the rest of a member in their dialog.
     val canShare = can.setMemberShare()
     var sharing by remember { mutableStateOf<String?>(null) }
+    // Everyone else gets a smaller dialog: the default share for leads, settling together (ITERATION_5 §7) for all.
+    val me = state.me
     val open: (Member) -> (() -> Unit)? = { member ->
-        if (isAdmin) ({ selected = member.id }) else if (canShare && !member.archived) ({ sharing = member.id }) else null
+        val pair = me != null && hasSettleTogether(band, me, member)
+        if (isAdmin || (!member.archived && (canShare || pair))) ({ selected = member.id }) else null
     }
 
     Scaffold(
@@ -225,12 +229,29 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             onDismiss = { adding = false },
         )
     }
-    selected?.let { id -> band.member(id) }?.let { member ->
+    selected?.let { id -> band.member(id) }?.takeIf { !isAdmin }?.let { member ->
+        AlertDialog(
+            onDismissRequest = { selected = null },
+            title = { Text(member.name) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (canShare) Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(Res.string.member_share_line, shareText(member, band.currency)), Modifier.weight(1f))
+                        EditButton(onClick = { sharing = member.id })
+                    }
+                    if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
+                }
+            },
+            confirmButton = { TextButton(onClick = { selected = null }) { Text(stringResource(Res.string.close)) } },
+        )
+    }
+    selected?.let { id -> band.member(id) }?.takeIf { isAdmin }?.let { member ->
         MemberDialog(
             graph = graph,
             band = band,
             member = member,
             myUserId = state.userId,
+            me = me,
             invitesLoaded = invites != null,
             invitesFailed = invitesFailed,
             invite = invites?.firstOrNull { it.memberId == member.id },
@@ -334,6 +355,7 @@ private fun MemberDialog(
     band: Band,
     member: Member,
     myUserId: String,
+    me: Member?,
     invitesLoaded: Boolean,
     invitesFailed: Boolean,
     invite: InviteInfo?,
@@ -354,6 +376,9 @@ private fun MemberDialog(
     var confirmUnlink by remember { mutableStateOf(false) }
     var confirmOwner by remember { mutableStateOf(false) }
     var confirmOwnRole by remember { mutableStateOf<Role?>(null) }
+    var pickingRole by remember { mutableStateOf(false) }
+    var confirmRole by remember { mutableStateOf<Role?>(null) }
+    var confirmArchive by remember { mutableStateOf(false) }
     val isOwner = member.role == Role.OWNER
     val isMe = member.userId == myUserId
     // An invite created before the list has loaded would silently replace a code that may already have been shared.
@@ -380,13 +405,15 @@ private fun MemberDialog(
                     Text(stringResource(Res.string.member_share_line, shareText(member, band.currency)), Modifier.weight(1f))
                     if (onEditShare != null) EditButton(onClick = onEditShare)
                 }
-                // Without an account the role only takes effect when they join, which the invite's role decides.
+                // Without an account the role only takes effect when they join, which the invite's role decides. A linked
+                // member's role is changed rarely: one row, the choices behind it.
                 if (!isOwner && member.userId != null) {
-                    RolePicker(member.role, { role ->
-                        // Changing your own role can take away the rights you are using right now: ask first.
-                        if (isMe && role != member.role) confirmOwnRole = role else if (role != member.role) actions.run(SetMemberRole(member.id, role))
-                    }, stringResource(Res.string.role))
+                    Row(Modifier.fillMaxWidth().clickable { pickingRole = true }, verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(Res.string.role_row, member.role.label()), Modifier.weight(1f))
+                        EditButton(stringResource(Res.string.role), onClick = { pickingRole = true })
+                    }
                 }
+                if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
                 if (member.userId == null && !member.archived) {
                     HorizontalDivider()
                     val current = shownInvite
@@ -462,7 +489,11 @@ private fun MemberDialog(
                 }
                 // Not yourself: an archived member can do nothing in the band, so you could not undo it (V5-M1 C5).
                 if (!isOwner && !isMe) {
-                    OutlinedButton(onClick = { actions.run(SetMemberArchived(member.id, !member.archived)) }) {
+                    OutlinedButton(onClick = {
+                        // Archiving ends their settling together (ITERATION_5 §7): said first.
+                        if (!member.archived && member.settlesWith != null) confirmArchive = true
+                        else actions.run(SetMemberArchived(member.id, !member.archived))
+                    }) {
                         Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
                     }
                 }
@@ -475,16 +506,54 @@ private fun MemberDialog(
     if (confirmUnlink) {
         ConfirmDialog(
             title = stringResource(Res.string.unlink),
-            text = stringResource(Res.string.unlink_confirm, member.name),
+            text = listOfNotNull(stringResource(Res.string.unlink_confirm, member.name), pairEndsWarning(band, member)).joinToString("\n\n"),
             confirmLabel = stringResource(Res.string.unlink),
             onConfirm = { actions.run(UnlinkUser(member.id)) },
             onDismiss = { confirmUnlink = false },
         )
     }
+    if (pickingRole) {
+        AlertDialog(
+            onDismissRequest = { pickingRole = false },
+            title = { Text(member.name) },
+            text = {
+                RolePicker(member.role, { role ->
+                    pickingRole = false
+                    when {
+                        role == member.role -> {}
+                        // Changing your own role can take away the rights you are using right now: ask first.
+                        isMe -> confirmOwnRole = role
+                        // So does a change that ends their settling together (ITERATION_5 §7).
+                        pairEndsWarningNeeded(band, member, role) -> confirmRole = role
+                        else -> actions.run(SetMemberRole(member.id, role))
+                    }
+                }, stringResource(Res.string.role), Modifier.verticalScroll(rememberScrollState()))
+            },
+            confirmButton = { TextButton(onClick = { pickingRole = false }) { Text(stringResource(Res.string.cancel)) } },
+        )
+    }
+    confirmRole?.let { role ->
+        ConfirmDialog(
+            title = stringResource(Res.string.role_row, role.label()),
+            text = pairEndsWarning(band, member, role),
+            confirmLabel = stringResource(Res.string.save),
+            onConfirm = { actions.run(SetMemberRole(member.id, role)) },
+            onDismiss = { confirmRole = null },
+        )
+    }
+    if (confirmArchive) {
+        ConfirmDialog(
+            title = stringResource(Res.string.archive),
+            text = pairEndsWarning(band, member),
+            confirmLabel = stringResource(Res.string.archive),
+            onConfirm = { actions.run(SetMemberArchived(member.id, true)) },
+            onDismiss = { confirmArchive = false },
+        )
+    }
     confirmOwnRole?.let { role ->
         ConfirmDialog(
             title = stringResource(Res.string.change_own_role_title),
-            text = stringResource(Res.string.change_own_role_text, role.label()),
+            text = listOfNotNull(stringResource(Res.string.change_own_role_text, role.label()), pairEndsWarning(band, member, role)).joinToString("\n\n"),
             confirmLabel = stringResource(Res.string.change_own_role_confirm),
             onConfirm = { actions.run(SetMemberRole(member.id, role)) },
             onDismiss = { confirmOwnRole = null },
