@@ -56,4 +56,14 @@ class PdfZoomTest {
         assertEquals(0f, zoom.offsetY)
         assertEquals(3000f, list.position)
     }
+
+    @Test
+    fun aSidewaysSwipeIsThePagersOnlyAtTheSideAlreadyInView() {
+        val zoom = PdfZoom(FakeList(end = 3000f)::scroll)
+        zoom.transform(2f, Offset.Zero, Offset(500f, 0f), size)
+        assertEquals(false, zoom.atEdge(-10f, size))
+        zoom.transform(1f, Offset(10_000f, 0f), Offset(500f, 0f), size)
+        assertEquals(true, zoom.atEdge(10f, size), "the left side shows: a swipe right brings the previous attachment")
+        assertEquals(false, zoom.atEdge(-10f, size))
+    }
 }

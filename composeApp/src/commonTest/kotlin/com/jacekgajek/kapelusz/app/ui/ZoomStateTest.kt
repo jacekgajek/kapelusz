@@ -41,4 +41,15 @@ class ZoomStateTest {
         assertEquals(1f, zoom.scale)
         assertEquals(Offset.Zero, zoom.offset)
     }
+
+    @Test
+    fun aSidewaysSwipeIsThePagersOnlyAtTheSideAlreadyInView() {
+        val zoom = ZoomState()
+        zoom.transform(2f, Offset.Zero, Offset(500f, 1000f), size)
+        assertEquals(false, zoom.atEdge(-10f, size), "zoomed into the middle: a swipe moves the picture")
+        assertEquals(false, zoom.atEdge(10f, size))
+        zoom.transform(1f, Offset(-10_000f, 0f), Offset(500f, 1000f), size)
+        assertEquals(true, zoom.atEdge(-10f, size), "the right side shows: a swipe left brings the next attachment")
+        assertEquals(false, zoom.atEdge(10f, size), "a swipe right still moves the picture back")
+    }
 }
