@@ -10,23 +10,17 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.Image
-import androidx.compose.ui.input.pointer.positionChanged
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.unit.IntSize
+import com.jacekgajek.kapelusz.app.ui.components.EDGE_SLACK
+import com.jacekgajek.kapelusz.app.ui.components.ZoomTarget
+import com.jacekgajek.kapelusz.app.ui.components.zoomGestures
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.calculateZoom
-import androidx.compose.foundation.gestures.calculatePan
-import androidx.compose.foundation.gestures.calculateCentroid
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -200,27 +194,10 @@ actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit)
     LaunchedEffect(list) { snapshotFlow { list.firstVisibleItemIndex }.collect(onPage) }
     // The whole document zooms, as in a PDF reader: a pinch works wherever the fingers are, also across two pages.
     val zoom = remember(list) { PdfZoom { delta -> list.dispatchRawDelta(delta) } }
+    // Seen before the list (the initial pass): two fingers, or one while zoomed in, are this zoom's; one finger at
+    // the whole size is left to the list's scrolling and the pages' swiping.
     Box(
-        modifier.clipToBounds()
-            .pointerInput(zoom) {
-                detectTapGestures(onDoubleTap = { tap -> zoom.toggle(tap, size) })
-            }
-            .pointerInput(zoom) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    do {
-                        // Seen before the list: two fingers, or one while zoomed in, are this zoom's; one finger at
-                        // the whole size is left to the list's scrolling and the pages' swiping.
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        val fingers = event.changes.count { it.pressed }
-                        val centroid = event.calculateCentroid(useCurrent = true)
-                        if (fingers > 0 && centroid.isSpecified && (fingers >= 2 || zoom.scale > 1f)) {
-                            zoom.transform(event.calculateZoom().takeIf { it.isFinite() } ?: 1f, event.calculatePan(), centroid, size)
-                            event.changes.forEach { if (it.positionChanged()) it.consume() }
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
-            },
+        modifier.clipToBounds().zoomGestures(zoom, PointerEventPass.Initial),
     ) {
         LazyColumn(
             Modifier.fillMaxSize().graphicsLayer {
@@ -259,8 +236,8 @@ actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit)
  * the list cannot reach: zoomed in, the list ends while the bottom of the document is still below the screen (a
  * single page cannot scroll at all), so the view itself moves the rest of the way. Sideways is [offsetX].
  */
-internal class PdfZoom(private val scrollList: (Float) -> Float) {
-    var scale by mutableFloatStateOf(1f)
+internal class PdfZoom(private val scrollList: (Float) -> Float) : ZoomTarget {
+    override var scale by mutableFloatStateOf(1f)
         private set
     var offsetX by mutableFloatStateOf(0f)
         private set
@@ -286,7 +263,7 @@ internal class PdfZoom(private val scrollList: (Float) -> Float) {
     }
 
     /** Zooms by [zoom] around [centroid] (it stays under the fingers) and moves by [pan], in a view of [size]. */
-    fun transform(zoom: Float, pan: Offset, centroid: Offset, size: IntSize) {
+    override fun transform(zoom: Float, pan: Offset, centroid: Offset, size: IntSize) {
         val old = scale
         val next = (old * zoom).coerceIn(1f, MAX_PDF_SCALE)
         // The document point under the centroid stays there: the view's own move scales along, the list makes up the rest.
@@ -301,8 +278,13 @@ internal class PdfZoom(private val scrollList: (Float) -> Float) {
         offsetX = (offsetX + (centroid.x - size.width / 2f - offsetX) * (1 - next / old) + pan.x).coerceIn(-maxX, maxX)
     }
 
+    override fun atEdge(dx: Float, size: IntSize): Boolean {
+        val maxX = size.width * (scale - 1) / 2
+        return if (dx > 0) offsetX >= maxX - EDGE_SLACK else offsetX <= -maxX + EDGE_SLACK
+    }
+
     /** A double tap: in on [tap], or back to the whole width (at the same place in the document). */
-    fun toggle(tap: Offset, size: IntSize) {
+    override fun toggle(tap: Offset, size: IntSize) {
         if (scale > 1f) {
             // The part above the screen that the view (not the list) was hiding: given back to the list.
             scrollList(-offsetY / scale)

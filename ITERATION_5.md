@@ -395,7 +395,9 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
    money or event ("2 / 4 · name"); top bar: close, and on the right copy (the actual image; PNG on the web, where the
    browser allows), rename and remove for whoever may edit (remove with Undo where the snackbar can show). On Android a
    PDF opens in it too (pages rendered by the system, scrolling vertically, zoomable; copy copies the visible page) with
-   "Open in app" handing it to the phone's PDF reader; on the web PDFs open in the browser as before.
+   "Open in app" handing it to the phone's PDF reader; on the web PDFs open in the browser as before. Zoomed in, a
+   picture or PDF let go while moving glides on and slows down, and a sideways swipe that starts at the side already
+   in view goes to the next (or previous) attachment without zooming out first (added 2026-10-24).
 4. **Three pages: Gig | Money | Settlement.** Material tabs (text, underline; no checkmark, no borders), fixed at the
    top; swipe between pages; each keeps its scroll position. Money: status, totals, received money, refunds.
    Settlement: status, problems, who gets what, To settle, recorded transfers, Share settlement, history. The debt
