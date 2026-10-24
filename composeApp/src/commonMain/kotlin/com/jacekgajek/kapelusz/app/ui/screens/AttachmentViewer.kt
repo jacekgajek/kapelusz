@@ -66,6 +66,9 @@ import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 /** A file of an attachment, or why there is none: while loading, it is not there yet. */
@@ -79,26 +82,40 @@ private sealed interface Loaded {
 @Composable
 private fun rememberFile(graph: AppGraph, attachment: Attachment): Loaded {
     val loaded by produceState<Loaded>(Loaded.Loading, attachment.id) {
-        value = graph.attachments.bytes(attachment.id)?.let(Loaded::File) ?: Loaded.Unavailable
+        // Not there yet (a bandmate's upload still going, or offline): asked again now and then while shown.
+        while (true) {
+            val bytes = graph.attachments.bytes(attachment.id)
+            if (bytes != null) {
+                value = Loaded.File(bytes)
+                break
+            }
+            value = Loaded.Unavailable
+            delay(RETRY_MS)
+        }
     }
     return loaded
 }
 
+private const val RETRY_MS = 10_000L
+
 /** An image attachment as a square thumbnail (ITERATION_5 §4.2); the image icon while it loads or when it cannot. */
 @Composable
 fun AttachmentThumbnail(graph: AppGraph, attachment: Attachment, size: Dp, onClick: () -> Unit) {
+    val name = attachment.fileName ?: attachment.id
     when (val file = rememberFile(graph, attachment)) {
-        is Loaded.File -> ThumbnailBox(size, onClick) { BytesImage(file.bytes, attachment.id, ContentScale.Crop, Modifier.fillMaxSize()) }
-        else -> ThumbnailBox(size, onClick) { Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+        is Loaded.File -> ThumbnailBox(size, onClick, name) { BytesImage(file.bytes, attachment.id, ContentScale.Crop, Modifier.fillMaxSize()) }
+        else -> ThumbnailBox(size, onClick, name) { Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
 /** A square for a thumbnail, rounded and tappable. */
 @Composable
-fun ThumbnailBox(size: Dp, onClick: (() -> Unit)?, content: @Composable () -> Unit) {
+fun ThumbnailBox(size: Dp, onClick: (() -> Unit)?, name: String, content: @Composable () -> Unit) {
     Box(
         Modifier.size(size).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            // Read out by its file name, not as a bare "button".
+            .semantics { contentDescription = name },
         contentAlignment = Alignment.Center,
     ) { content() }
 }
@@ -125,7 +142,10 @@ fun AttachmentViewer(
     onOpenElsewhere: (Attachment) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (attachments.isEmpty()) return onDismiss()
+    if (attachments.isEmpty()) {
+        LaunchedEffect(Unit) { onDismiss() }
+        return
+    }
     val pager = rememberPagerState(start.coerceIn(0, attachments.lastIndex)) { attachments.size }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -147,7 +167,8 @@ fun AttachmentViewer(
                         is Loaded.File -> {
                             LaunchedEffect(file) { files[attachment.id] = file.bytes }
                             if (attachment.kind == AttachmentKind.PDF) {
-                                PdfPages(file.bytes, Modifier.fillMaxSize()) { pdfPages[attachment.id] = it }
+                                // Below the top bar, so the first page's top can be seen.
+                                PdfPages(file.bytes, Modifier.fillMaxSize().padding(top = 56.dp).statusBarsPadding()) { pdfPages[attachment.id] = it }
                             } else {
                                 BytesImage(file.bytes, attachment.id, ContentScale.Fit, Modifier.fillMaxSize().zoomable(remember { ZoomState() }))
                             }

@@ -378,7 +378,7 @@ private fun MemberDialog(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(Res.string.member_share_line, shareText(member, band.currency)), Modifier.weight(1f))
-                    if (onEditShare != null) EditButton(onEditShare)
+                    if (onEditShare != null) EditButton(onClick = onEditShare)
                 }
                 // Without an account the role only takes effect when they join, which the invite's role decides.
                 if (!isOwner && member.userId != null) {

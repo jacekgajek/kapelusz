@@ -357,8 +357,10 @@ fun Modifier.listWidth(): Modifier = wrapContentWidth(Alignment.CenterHorizontal
 
 /** Visible edit affordance at the end of a tappable row (touch screens show no hover highlight). */
 @Composable
-fun EditButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick) { Icon(Icons.Default.Edit, stringResource(Res.string.edit)) }
+fun EditButton(what: String? = null, onClick: () -> Unit) {
+    val edit = stringResource(Res.string.edit)
+    // Named after the item where there are several in a list, as RemoveButton is: "Edit: Anna".
+    IconButton(onClick = onClick) { Icon(Icons.Default.Edit, if (what.isNullOrBlank()) edit else "$edit: $what") }
 }
 
 /** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers (ITERATION_3 R13). */

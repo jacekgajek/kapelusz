@@ -151,7 +151,8 @@ fun EventScreen(
     val pagerState = rememberPagerState(initialPage = tabs.indexOf(stored).coerceAtLeast(0)) { tabs.size }
     val listStates = tabs.associateWith { rememberLazyListState() }
     LaunchedEffect(pagerState, tabs) {
-        snapshotFlow { pagerState.settledPage }.collect { page -> graph.settings.update { it.withEventTab(bandId, eventId, tabs[page]) } }
+        // getOrNull: a role changing to Artist meanwhile takes a page away before the pager catches up.
+        snapshotFlow { pagerState.settledPage }.collect { page -> tabs.getOrNull(page)?.let { tab -> graph.settings.update { it.withEventTab(bandId, eventId, tab) } } }
     }
     // Opened from a reminder about an open debt (ITERATION_3 §2.2): the settlement, straight at To settle.
     val toSettle by graph.pendingToSettle.collectAsState()
@@ -342,7 +343,7 @@ private fun TotalRow(label: String, amount: Money, currency: String, bold: Boole
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = if (bold) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
         MoneyText(amount, currency, bold = bold)
-        if (onEdit != null) EditButton(onEdit)
+        if (onEdit != null) EditButton(onClick = onEdit)
     }
 }
 

@@ -133,7 +133,7 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
             share?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         if (canManage) {
-            EditButton(onEdit)
+            EditButton(name, onEdit)
             // At once, with Undo: it brings them back with their share (ITERATION_5 §4.5).
             RemoveButton(name) { context.actions.runWithUndo(RemoveParticipant(event.id, partyId), removed) }
         }

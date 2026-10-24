@@ -35,11 +35,15 @@ import androidx.core.content.FileProvider
 import com.jacekgajek.kapelusz.app.ui.components.ZoomState
 import com.jacekgajek.kapelusz.app.ui.components.zoomable
 import kotlinx.coroutines.Dispatchers
+import androidx.compose.ui.draw.clipToBounds
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
-import java.io.Closeable
 import java.io.File
 
 actual object FileCache : ByteCache {
@@ -104,42 +108,66 @@ actual fun rememberCopyImage(): suspend (bytes: ByteArray, fileName: String) -> 
 
 actual val pdfInViewer: Boolean = true
 
-/** An open PDF; one page renders at a time ([PdfRenderer] is not thread-safe). */
-private class PdfDocument(file: File) : Closeable {
+/**
+ * An open PDF; one page renders at a time ([PdfRenderer] is not thread-safe). Closed through the same lock, after any
+ * page being rendered, and in a scope of its own: the screen that opened it may already be gone. Closed, it renders
+ * nothing (null) instead of failing.
+ */
+private class PdfDocument(file: File) {
     private val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     private val renderer = PdfRenderer(descriptor)
     private val lock = Mutex()
-    val pageCount: Int get() = renderer.pageCount
+    private var closed = false
+    val pageCount: Int = renderer.pageCount
 
     /** Page [index], [width] pixels wide, on white (PDFs assume paper). */
-    suspend fun render(index: Int, width: Int): Bitmap = lock.withLock {
-        withContext(Dispatchers.IO) {
-            renderer.openPage(index).use { page ->
-                val bitmap = Bitmap.createBitmap(width, width * page.height / page.width, Bitmap.Config.ARGB_8888)
-                bitmap.eraseColor(Color.WHITE)
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                bitmap
-            }
+    suspend fun render(index: Int, width: Int): Bitmap? = use { renderer ->
+        renderer.openPage(index).use { page ->
+            val bitmap = Bitmap.createBitmap(width, width * page.height / page.width, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(Color.WHITE)
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            bitmap
         }
     }
 
     /** Width ÷ height of page [index]. */
-    suspend fun ratio(index: Int): Float = lock.withLock {
-        withContext(Dispatchers.IO) { renderer.openPage(index).use { it.width.toFloat() / it.height } }
+    suspend fun ratio(index: Int): Float? = use { renderer -> renderer.openPage(index).use { it.width.toFloat() / it.height } }
+
+    private suspend fun <T> use(block: (PdfRenderer) -> T): T? = withContext(NonCancellable + Dispatchers.IO) {
+        lock.withLock { if (closed) null else runCatching { block(renderer) }.getOrNull() }
     }
 
-    override fun close() {
-        renderer.close()
-        descriptor.close()
+    fun close() {
+        closer.launch {
+            lock.withLock {
+                if (closed) return@withLock
+                closed = true
+                runCatching { renderer.close() }
+                runCatching { descriptor.close() }
+            }
+        }
     }
 
     companion object {
-        /** [bytes] as a file the renderer can read (it needs one), under the cache's pdf folder. */
-        fun open(context: Context, bytes: ByteArray): PdfDocument {
-            val dir = File(context.cacheDir, "pdf").apply { mkdirs() }
-            val file = File(dir, "${bytes.contentHashCode()}.pdf")
-            if (!file.isFile || file.length() != bytes.size.toLong()) file.writeBytes(bytes)
-            return PdfDocument(file)
+        private val closer = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        /** Copies kept for the renderer (it needs a file); the latest few, so the cache does not grow with every PDF. */
+        private const val KEPT = 3
+
+        /** [bytes] as a file the renderer can read, under the cache's pdf folder; written whole before it is used. */
+        suspend fun open(context: Context, bytes: ByteArray): PdfDocument? = withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = File(context.cacheDir, "pdf").apply { mkdirs() }
+                val file = File(dir, "${bytes.contentHashCode()}-${bytes.size}.pdf")
+                if (!file.isFile) {
+                    val part = File(dir, "${file.name}.${System.nanoTime()}.part")
+                    part.writeBytes(bytes)
+                    part.renameTo(file)
+                }
+                file.setLastModified(System.currentTimeMillis())
+                dir.listFiles()?.sortedByDescending { it.lastModified() }?.drop(KEPT)?.forEach { it.delete() }
+                PdfDocument(file)
+            }.getOrNull()
         }
     }
 }
@@ -150,18 +178,20 @@ private const val PAGE_WIDTH = 1400
 @Composable
 actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit) {
     val context = LocalContext.current
-    val document by produceState<PdfDocument?>(null, bytes) {
-        value = withContext(Dispatchers.IO) { runCatching { PdfDocument.open(context, bytes) }.getOrNull() }
-    }
+    val document by produceState<PdfDocument?>(null, bytes) { value = PdfDocument.open(context, bytes) }
     val opened = document ?: return Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
     DisposableEffect(opened) { onDispose { opened.close() } }
     val list = rememberLazyListState()
     LaunchedEffect(list) { snapshotFlow { list.firstVisibleItemIndex }.collect(onPage) }
     LazyColumn(modifier, state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(opened.pageCount) { index ->
-            val ratio by produceState(1f / 1.414f, opened, index) { value = opened.ratio(index) }
+            val ratio by produceState(1f / 1.414f, opened, index) { opened.ratio(index)?.let { value = it } }
             val page by produceState<Bitmap?>(null, opened, index) { value = opened.render(index, PAGE_WIDTH) }
-            Box(Modifier.fillMaxWidth().aspectRatio(ratio).background(androidx.compose.ui.graphics.Color.White), contentAlignment = Alignment.Center) {
+            // Clipped: a page zoomed in stays within its place instead of covering the pages around it.
+            Box(
+                Modifier.fillMaxWidth().aspectRatio(ratio).clipToBounds().background(androidx.compose.ui.graphics.Color.White),
+                contentAlignment = Alignment.Center,
+            ) {
                 val bitmap = page
                 if (bitmap == null) {
                     CircularProgressIndicator()
@@ -175,17 +205,18 @@ actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit)
 
 actual suspend fun pdfPagePng(bytes: ByteArray, page: Int): ByteArray? {
     val context = AndroidPlatform.context ?: return null
-    return runCatching {
-        PdfDocument.open(context, bytes).use { document ->
-            val bitmap = document.render(page.coerceIn(0, document.pageCount - 1), PAGE_WIDTH)
-            withContext(Dispatchers.IO) {
-                ByteArrayOutputStream().use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-                    out.toByteArray()
-                }
+    val document = PdfDocument.open(context, bytes) ?: return null
+    return try {
+        val bitmap = document.render(page.coerceIn(0, document.pageCount - 1), PAGE_WIDTH) ?: return null
+        withContext(Dispatchers.IO) {
+            ByteArrayOutputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                out.toByteArray()
             }
         }
-    }.getOrNull()
+    } finally {
+        document.close()
+    }
 }
 
 @Composable

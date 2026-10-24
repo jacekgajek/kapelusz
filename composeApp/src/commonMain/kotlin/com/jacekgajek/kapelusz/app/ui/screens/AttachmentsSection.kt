@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -244,8 +243,9 @@ private fun AttachmentRow(
 private fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?) {
     val bytes = remember(draft) { runCatching { Base64.decode(draft.base64) }.getOrNull() }
     Box {
-        ThumbnailBox(THUMBNAIL, onClick = null) {
-            if (bytes != null) BytesImage(bytes, draft.fileName + draft.sizeBytes, ContentScale.Crop, Modifier.fillMaxSize())
+        ThumbnailBox(THUMBNAIL, onClick = null, name = draft.fileName) {
+            // Keyed by the content: another photo with the same name and size must not show this one.
+            if (bytes != null) BytesImage(bytes, "draft-${draft.base64.hashCode()}-${draft.sizeBytes}", ContentScale.Crop, Modifier.fillMaxSize())
             else Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (onRemove != null) {
