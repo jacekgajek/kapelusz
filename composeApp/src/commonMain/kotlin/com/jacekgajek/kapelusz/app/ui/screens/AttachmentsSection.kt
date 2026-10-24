@@ -29,10 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.ops.RemoveAttachment
-import com.jacekgajek.kapelusz.app.generated.attachment_removed
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_file_name
@@ -41,6 +40,7 @@ import com.jacekgajek.kapelusz.app.generated.attachment_not_available
 import com.jacekgajek.kapelusz.app.generated.attachment_open_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_confirm
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_title
+import com.jacekgajek.kapelusz.app.generated.attachment_removed
 import com.jacekgajek.kapelusz.app.generated.attachment_rename
 import com.jacekgajek.kapelusz.app.generated.attachment_take_photo
 import com.jacekgajek.kapelusz.app.generated.attachment_too_large
@@ -49,12 +49,11 @@ import com.jacekgajek.kapelusz.app.generated.attachment_uploading
 import com.jacekgajek.kapelusz.app.generated.attachment_waiting_for_save
 import com.jacekgajek.kapelusz.app.generated.attachments
 import com.jacekgajek.kapelusz.app.generated.remove
-import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.platform.PickResult
-import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.platform.rememberAttachmentPicker
 import com.jacekgajek.kapelusz.app.platform.rememberUrlOpener
+import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
@@ -63,6 +62,7 @@ import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
+import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -71,7 +71,6 @@ import org.jetbrains.compose.resources.stringResource
  * Photos and PDFs of a cost, a collected entry or an event (ITERATION_4 §2.1). For a saved one ([owner] set) a picked
  * file is attached right away; for a new one the files wait in [drafts] until it is saved.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AttachmentsSection(
     graph: AppGraph,

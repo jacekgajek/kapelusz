@@ -94,10 +94,12 @@ fun TransfersSection(context: EventContext) {
 
     if (settlement.canSettle && settlement.suggestions.isNotEmpty()) {
         SectionTitle(stringResource(Res.string.to_settle))
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
-                settlement.suggestions.forEach { suggestion -> key(suggestion.from, suggestion.to) { SuggestionRow(context, suggestion) } }
+        settlement.suggestions.forEach { suggestion ->
+            Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
+                    key(suggestion.from, suggestion.to) { SuggestionRow(context, suggestion) }
+                }
             }
         }
         if (context.can.settleAll(event)) Button(

@@ -220,8 +220,8 @@ fun EventScreen(
                             EventSection.COLLECTED -> CollectedSection(context)
                             EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
                             EventSection.SUMMARY -> SummarySection(context)
-                            EventSection.SHARE -> shareSettlement?.let { ShareSettlementButton(it) }
                             EventSection.TO_SETTLE -> TransfersSection(context)
+                            EventSection.SHARE -> shareSettlement?.let { ShareSettlementButton(it) }
                             EventSection.HISTORY -> HistorySection(context, graph)
                         }
                     }
