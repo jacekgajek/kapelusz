@@ -113,6 +113,13 @@ class AttachmentUploads(
         save(user, _pending.value.filterNot { it.attachmentId in attachmentIds })
     }
 
+    /** The file of an attachment still waiting for its upload (base64), e.g. to show it before it is on the server. */
+    suspend fun localFile(attachmentId: Id): String? {
+        val user = userId ?: return null
+        if (_pending.value.none { it.attachmentId == attachmentId }) return null
+        return store.read(fileKey(user, attachmentId))
+    }
+
     /** The user removed the attachment before its file was uploaded. */
     suspend fun cancel(attachmentId: Id) {
         _pending.value.firstOrNull { it.attachmentId == attachmentId }?.let { drop(it) }

@@ -94,6 +94,10 @@
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
     <string name="guest_removed">Removed guest %1$s</string>
+    <string name="attachment_open_in_app">Open in app</string>
+    <string name="attachment_unavailable">This file can’t be shown now: it isn’t uploaded yet, or you’re offline.</string>
+    <string name="image_copy">Copy image</string>
+    <string name="image_copied">Image copied</string>
     <string name="participant_removed">Removed %1$s from the event</string>
     <string name="transfer_recorded">Recorded: %1$s → %2$s %3$s</string>
     <string name="settled_all">Settled everything</string>

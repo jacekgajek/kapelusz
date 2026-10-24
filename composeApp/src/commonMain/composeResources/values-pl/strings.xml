@@ -94,6 +94,10 @@
     <string name="delete">Usuń</string>
     <string name="remove">Usuń</string>
     <string name="guest_removed">Usunięto gościa %1$s</string>
+    <string name="attachment_open_in_app">Otwórz w aplikacji</string>
+    <string name="attachment_unavailable">Nie można teraz pokazać tego pliku: jeszcze nie został wysłany albo nie masz połączenia.</string>
+    <string name="image_copy">Kopiuj obraz</string>
+    <string name="image_copied">Skopiowano obraz</string>
     <string name="participant_removed">Usunięto %1$s z wydarzenia</string>
     <string name="transfer_recorded">Zapisano: %1$s → %2$s %3$s</string>
     <string name="settled_all">Rozliczono wszystko</string>

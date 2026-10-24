@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="photos" path="photos/" />
+    <!-- An image copied to the clipboard, and a PDF opened in a reader app (ITERATION_5 §4.3). -->
+    <cache-path name="clip" path="clip/" />
+    <cache-path name="open" path="open/" />
 </paths>

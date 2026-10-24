@@ -1,6 +1,16 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.compose.foundation.clickable
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.io.encoding.Base64
+import com.jacekgajek.kapelusz.app.ui.components.removeLabel
+import com.jacekgajek.kapelusz.app.platform.pdfInViewer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.key
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -105,36 +115,51 @@ fun AttachmentsSection(
         }
     }
     val count = attachments.size + drafts.size
+    var viewing by remember { mutableStateOf<Int?>(null) }
+    val removedText = stringResource(Res.string.attachment_removed)
+    // At once with Undo where the screen shows the snackbar, else asked first (in a dialog, which would hide it).
+    val remove = { attachment: Attachment ->
+        if (!undoRemoval) removing = attachment
+        else if (owner != null) actions.runWithUndo(RemoveAttachment(owner, attachment.id), removedText.replace("%1\$s", attachment.fileName ?: attachment.id))
+    }
+    val openInBrowser = { attachment: Attachment ->
+        open {
+            graph.attachments.url(attachment.id).getOrElse { error ->
+                val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
+                actions.say(if (notUploaded) notAvailable else openFailed)
+                null
+            }
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (title != null) Text(title, style = MaterialTheme.typography.labelLarge)
-        attachments.forEach { attachment ->
+        // Images as thumbnails, PDFs as rows (ITERATION_5 §4.2); tapping one opens the viewer on it, swiping through
+        // the rest. On the web the viewer has the images only: PDFs open in the browser, as before.
+        val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
+        val images = attachments.filter { it.kind == AttachmentKind.IMAGE }
+        val imageDrafts = drafts.filter { it.kind == AttachmentKind.IMAGE }
+        if (images.isNotEmpty() || imageDrafts.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                images.forEach { attachment ->
+                    key(attachment.id) { AttachmentThumbnail(graph, attachment, THUMBNAIL) { viewing = viewable.indexOf(attachment) } }
+                }
+                imageDrafts.forEach { draft -> key(draft) { DraftThumbnail(draft, onRemove = { onDrafts(drafts - draft) }.takeIf { editable }) } }
+            }
+        }
+        attachments.filter { it.kind == AttachmentKind.PDF }.forEach { attachment ->
             val uploading = pending.any { it.attachmentId == attachment.id }
-            val removed = stringResource(Res.string.attachment_removed, attachment.fileName ?: attachment.id)
             AttachmentRow(
                 attachment.kind,
                 attachment.fileName ?: attachment.id,
                 attachment.sizeBytes,
                 status = if (uploading) stringResource(Res.string.attachment_uploading) else null,
-                onOpen = {
-                    if (uploading) actions.say(notAvailable)
-                    else open {
-                        graph.attachments.url(attachment.id).getOrElse { error ->
-                            val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
-                            actions.say(if (notUploaded) notAvailable else openFailed)
-                            null
-                        }
-                    }
-                },
-                onRemove = {
-                    if (!undoRemoval) removing = attachment
-                    else if (owner != null) actions.runWithUndo(RemoveAttachment(owner, attachment.id), removed)
-                    Unit
-                }.takeIf { editable },
+                onOpen = { if (pdfInViewer) viewing = viewable.indexOf(attachment) else openInBrowser(attachment) },
+                onRemove = { remove(attachment) }.takeIf { editable },
                 onRename = { renaming = attachment }.takeIf { editable },
             )
         }
-        drafts.forEach { draft ->
+        drafts.filter { it.kind == AttachmentKind.PDF }.forEach { draft ->
             AttachmentRow(
                 draft.kind, draft.fileName, draft.sizeBytes,
                 status = stringResource(Res.string.attachment_waiting_for_save),
@@ -159,6 +184,16 @@ fun AttachmentsSection(
         }
     }
 
+    viewing?.let { start ->
+        val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
+        AttachmentViewer(
+            graph, viewable, start,
+            onRename = { attachment: Attachment -> renaming = attachment }.takeIf { editable },
+            onRemove = { attachment: Attachment -> remove(attachment) }.takeIf { editable },
+            onOpenElsewhere = openInBrowser,
+            onDismiss = { viewing = null },
+        )
+    }
     removing?.let { attachment ->
         ConfirmDialog(
             title = stringResource(Res.string.attachment_remove_title),
@@ -202,6 +237,26 @@ private fun AttachmentRow(
         if (onRemove != null) RemoveButton(name, onRemove)
     }
 }
+
+/** A photo picked for something not saved yet, from its local copy; the cross takes it off again. */
+@OptIn(ExperimentalEncodingApi::class)
+@Composable
+private fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?) {
+    val bytes = remember(draft) { runCatching { Base64.decode(draft.base64) }.getOrNull() }
+    Box {
+        ThumbnailBox(THUMBNAIL, onClick = null) {
+            if (bytes != null) BytesImage(bytes, draft.fileName + draft.sizeBytes, ContentScale.Crop, Modifier.fillMaxSize())
+            else Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (onRemove != null) {
+            IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd).size(32.dp)) {
+                Icon(Icons.Default.Close, removeLabel(draft.fileName), Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+private val THUMBNAIL = 96.dp
 
 private fun formatSize(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "${(bytes * 10 / (1024 * 1024)) / 10.0} MB"
