@@ -619,4 +619,5 @@
     <string name="places_powered_by_google">Powered by Google</string>
     <string name="settle_paid">Paid</string>
     <string name="settle_received">Received</string>
+    <string name="location_clear">Clear the location</string>
 </resources>
