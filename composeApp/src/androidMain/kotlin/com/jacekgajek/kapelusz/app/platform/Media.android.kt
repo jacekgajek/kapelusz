@@ -10,6 +10,21 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.Image
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,8 +47,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.jacekgajek.kapelusz.app.ui.components.ZoomState
-import com.jacekgajek.kapelusz.app.ui.components.zoomable
 import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.draw.clipToBounds
 import kotlinx.coroutines.launch
@@ -183,25 +196,80 @@ actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit)
     DisposableEffect(opened) { onDispose { opened.close() } }
     val list = rememberLazyListState()
     LaunchedEffect(list) { snapshotFlow { list.firstVisibleItemIndex }.collect(onPage) }
-    LazyColumn(modifier, state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(opened.pageCount) { index ->
-            val ratio by produceState(1f / 1.414f, opened, index) { opened.ratio(index)?.let { value = it } }
-            val page by produceState<Bitmap?>(null, opened, index) { value = opened.render(index, PAGE_WIDTH) }
-            // Clipped: a page zoomed in stays within its place instead of covering the pages around it.
-            Box(
-                Modifier.fillMaxWidth().aspectRatio(ratio).clipToBounds().background(androidx.compose.ui.graphics.Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                val bitmap = page
-                if (bitmap == null) {
-                    CircularProgressIndicator()
-                } else {
-                    Image(bitmap.asImageBitmap(), null, Modifier.fillMaxWidth().aspectRatio(ratio).zoomable(remember { ZoomState() }), contentScale = ContentScale.Fit)
+    // The whole document zooms, as in a PDF reader: a pinch works wherever the fingers are, also across two pages.
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    Box(
+        modifier.clipToBounds()
+            .pointerInput(list) {
+                detectTapGestures(onDoubleTap = { tap ->
+                    if (scale > 1f) {
+                        scale = 1f
+                        offsetX = 0f
+                    } else {
+                        // In on the tapped point: it stays where it was.
+                        list.dispatchRawDelta(tap.y * (1 - 1 / DOUBLE_TAP_SCALE))
+                        scale = DOUBLE_TAP_SCALE
+                        offsetX = ((size.width / 2f - tap.x) * (scale - 1)).coerceIn(-size.width * (scale - 1) / 2, size.width * (scale - 1) / 2)
+                    }
+                })
+            }
+            .pointerInput(list) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    do {
+                        // Seen before the list: two fingers, or one while zoomed in, are this zoom's; one finger at
+                        // the whole size is left to the list's scrolling and the pages' swiping.
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val fingers = event.changes.count { it.pressed }
+                        val centroid = event.calculateCentroid(useCurrent = true)
+                        if (fingers > 0 && centroid.isSpecified && (fingers >= 2 || scale > 1f)) {
+                            val zoom = event.calculateZoom().takeIf { it.isFinite() } ?: 1f
+                            val pan = event.calculatePan()
+                            val next = (scale * zoom).coerceIn(1f, MAX_PDF_SCALE)
+                            // Vertically the list scrolls (in unscaled pixels), keeping the point under the fingers.
+                            list.dispatchRawDelta(centroid.y * (1 / scale - 1 / next) - pan.y / next)
+                            val maxX = size.width * (next - 1) / 2
+                            offsetX = (offsetX + (centroid.x - size.width / 2f - offsetX) * (1 - next / scale) + pan.x).coerceIn(-maxX, maxX)
+                            scale = next
+                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            },
+    ) {
+        LazyColumn(
+            Modifier.fillMaxSize().graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offsetX
+                // From the top: the list's own scrolling moves through the document.
+                transformOrigin = TransformOrigin(0.5f, 0f)
+            },
+            state = list,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(opened.pageCount) { index ->
+                val ratio by produceState(1f / 1.414f, opened, index) { opened.ratio(index)?.let { value = it } }
+                val page by produceState<Bitmap?>(null, opened, index) { value = opened.render(index, PAGE_WIDTH) }
+                Box(
+                    Modifier.fillMaxWidth().aspectRatio(ratio).background(androidx.compose.ui.graphics.Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val bitmap = page
+                    if (bitmap == null) {
+                        CircularProgressIndicator()
+                    } else {
+                        Image(bitmap.asImageBitmap(), null, Modifier.fillMaxWidth().aspectRatio(ratio), contentScale = ContentScale.Fit)
+                    }
                 }
             }
         }
     }
 }
+
+private const val MAX_PDF_SCALE = 5f
+private const val DOUBLE_TAP_SCALE = 2.5f
 
 actual suspend fun pdfPagePng(bytes: ByteArray, page: Int): ByteArray? {
     val context = AndroidPlatform.context ?: return null
