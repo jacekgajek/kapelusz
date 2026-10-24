@@ -84,8 +84,10 @@ object SettleTogether {
         val kept = event.settledTogether
             .filter { pair -> pair.all { event.participant(it) != null } }
             .flatMap { (a, b) -> listOf(a to b, b to a) }.toMap()
+        // Only pairs that may still be (a stored pair with an artist from before §7.2 changed counts no more).
         val current = band.members
             .filter { member -> member.settlesWith != null && event.participant(member.id) != null && event.participant(member.settlesWith!!) != null }
+            .filter { member -> band.member(member.settlesWith!!)?.let { validPair(member, it) } == true }
             .filter { it.id !in kept && it.settlesWith !in kept }
             .associate { it.id to it.settlesWith!! }
         return kept + current

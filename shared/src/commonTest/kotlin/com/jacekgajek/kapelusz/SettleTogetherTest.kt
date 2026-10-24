@@ -325,4 +325,12 @@ class SettleTogetherTest {
         assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(Undo("op-role", SetMemberRole("carol", Role.VIEWER), change)).reason)
         assertEquals("dave", scenario.band.member("bob")!!.invitedToSettle)
     }
+
+    @Test
+    fun aStoredPairWithAnArtistNoLongerCounts() {
+        // As left by version 1.1.0, which let artists pair: no change has tidied it yet.
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol")
+        val stale = scenario.band.copy(members = scenario.band.members.map { if (it.id == "carol") it.copy(role = Role.ARTIST) else it })
+        assertTrue(com.jacekgajek.kapelusz.domain.SettlementCalculator.settle(stale, stale.event("gig")!!).partners.isEmpty())
+    }
 }
