@@ -44,6 +44,8 @@ import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -88,7 +90,7 @@ import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun TransfersSection(context: EventContext) {
+fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
     val event = context.event
     val settlement = context.settlement
     var handingOver by remember { mutableStateOf(false) }
@@ -122,9 +124,25 @@ fun TransfersSection(context: EventContext) {
             Text(stringResource(Res.string.hand_over), Modifier.padding(start = 8.dp))
         }
     }
+    // The settlement's three actions together: settle all, hand over, share.
+    shareSettlement?.let { ShareSettlementButton(it) }
 
+    // Done already: folded away, opened on demand (each visit starts folded).
+    var showRecorded by remember(event.id) { mutableStateOf(false) }
     if (event.transfers.isNotEmpty()) {
-        SectionTitle(stringResource(Res.string.recorded_transfers))
+        Row(
+            Modifier.fillMaxWidth().clickable { showRecorded = !showRecorded }.padding(top = 16.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(if (showRecorded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+            Text(
+                "${stringResource(Res.string.recorded_transfers)} (${event.transfers.size})",
+                Modifier.padding(start = 8.dp),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+    if (event.transfers.isNotEmpty() && showRecorded) {
         val fundLabel = stringResource(Res.string.band_fund)
         event.transfers.forEach { transfer ->
             Row(
@@ -265,6 +283,8 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     // At most what the sender holds: a hand-over passes on money, it doesn't make any up.
     val held = settlement.line(from)?.balance ?: Money.ZERO
     val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= held }
+    // Read without arguments: its placeholders stay for the names and amount known on OK.
+    val recordedText = stringResource(Res.string.transfer_recorded)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -287,7 +307,11 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(enabled = parsed != null && from != to, onClick = {
-                if (context.actions.run(RecordTransfer(event.id, newId(), from, to, parsed!!, note.ifBlank { null }))) onDismiss()
+                // Recorded with Undo in the snackbar (ITERATION_5 §4.6), as Settle is.
+                val recorded = recordedText.replace("%1\$s", partyName(context.band, event, from, fundLabel))
+                    .replace("%2\$s", partyName(context.band, event, to, fundLabel)).replace("%3\$s", formatMoney(parsed!!, context.currency, lang))
+                onDismiss()
+                context.actions.runWithUndo(RecordTransfer(event.id, newId(), from, to, parsed, note.ifBlank { null }), recorded)
             }) { Text(stringResource(Res.string.hand_over)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

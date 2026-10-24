@@ -13,9 +13,12 @@ sealed interface PickResult {
     data object Failed : PickResult
 }
 
-/** Opens the platform's pickers; results (not cancellations) arrive in the callback given to [rememberAttachmentPicker]. */
+/**
+ * Opens the platform's pickers; results (not cancellations) arrive in the callback given to [rememberAttachmentPicker],
+ * one per chosen file: several can be picked at once (ITERATION_5 §4.7), the camera takes one.
+ */
 interface AttachmentPicker {
-    /** Photos from the gallery or PDFs from files. */
+    /** Photos from the gallery or PDFs from files, one or several. */
     fun pickFile()
 
     /** Takes a photo with the camera; null where the file picker already offers the camera (the web). */
@@ -23,7 +26,7 @@ interface AttachmentPicker {
 }
 
 @Composable
-expect fun rememberAttachmentPicker(onResult: (PickResult) -> Unit): AttachmentPicker
+expect fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker
 
 /** PUTs the file to a presigned [url] with exactly the signed [headers]; returns the HTTP status. */
 expect suspend fun uploadFile(url: String, headers: Map<String, String>, base64: String): Int

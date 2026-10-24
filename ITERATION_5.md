@@ -404,6 +404,12 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
    100%, edit (the share dialog) and remove (at once, with Undo; a participant holding money still cannot be removed)
    for whoever manages participants. Members in roster order, then guests. Members not taking part stay tappable
    chips in one wrapping row, with "Add guest". Replaces "Adjust shares".
+6. **To settle, together:** Settle all, Hand over money and Share settlement one under another; Hand over records
+   with Undo (the dialog stays for who, to whom, how much); "Recorded transfers" folds, closed on each visit, with
+   their count.
+7. **Several files at once:** the file picker (Android, web) takes several; each becomes an attachment, as many as
+   there is room for ("Added 3 of 5 files: there is room for 5 here"); one too large or of another type is skipped and
+   said, the others still attached. The camera takes one.
 
 ## 5. Milestones and task checklist
 

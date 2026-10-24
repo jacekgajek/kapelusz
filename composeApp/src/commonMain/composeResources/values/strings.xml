@@ -94,6 +94,7 @@
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
     <string name="guest_removed">Removed guest %1$s</string>
+    <string name="attachment_limit_partial">Added %1$d of %2$d files: there is room for %3$d here.</string>
     <string name="attachment_open_in_app">Open in app</string>
     <string name="attachment_unavailable">This file can’t be shown now: it isn’t uploaded yet, or you’re offline.</string>
     <string name="image_copy">Copy image</string>

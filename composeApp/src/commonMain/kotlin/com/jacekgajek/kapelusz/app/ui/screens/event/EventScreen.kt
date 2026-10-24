@@ -233,8 +233,7 @@ fun EventScreen(
                                     EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
                                     EventSection.PROBLEMS -> Problems(context)
                                     EventSection.SUMMARY -> SummarySection(context)
-                                    EventSection.TO_SETTLE -> TransfersSection(context)
-                                    EventSection.SHARE -> shareSettlement?.let { ShareSettlementButton(it) }
+                                    EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement)
                                     EventSection.HISTORY -> HistorySection(context, graph)
                                 }
                             }
@@ -255,7 +254,7 @@ private enum class EventSection(vararg val tabs: EventTab) {
     WHEN(EventTab.GIG), DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG), SHARE_INFO(EventTab.GIG),
     STATUS(EventTab.MONEY, EventTab.SETTLEMENT),
     TOTALS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY),
-    PROBLEMS(EventTab.SETTLEMENT), SUMMARY(EventTab.SETTLEMENT), TO_SETTLE(EventTab.SETTLEMENT), SHARE(EventTab.SETTLEMENT), HISTORY(EventTab.SETTLEMENT),
+    PROBLEMS(EventTab.SETTLEMENT), SUMMARY(EventTab.SETTLEMENT), TO_SETTLE(EventTab.SETTLEMENT), HISTORY(EventTab.SETTLEMENT),
     ;
 
     companion object {

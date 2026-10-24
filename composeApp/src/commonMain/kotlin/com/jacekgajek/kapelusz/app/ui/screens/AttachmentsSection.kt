@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.attachment_limit_partial
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_file_name
@@ -105,15 +106,21 @@ fun AttachmentsSection(
     val failed = stringResource(Res.string.attachment_failed)
     val notAvailable = stringResource(Res.string.attachment_not_available)
     val openFailed = stringResource(Res.string.attachment_open_failed)
-    val picker = rememberAttachmentPicker { result ->
-        when (result) {
-            is PickResult.Picked -> if (owner == null) onDrafts(drafts + result.file) else scope.launch { actions.show(graph.attachments.attach(owner, result.file)) }
-            PickResult.TooLarge -> actions.say(tooLarge)
-            PickResult.Unsupported -> actions.say(unsupported)
-            PickResult.Failed -> actions.say(failed)
+    val partialText = stringResource(Res.string.attachment_limit_partial)
+    val count = attachments.size + drafts.size
+    val picker = rememberAttachmentPicker { results ->
+        // As many as there is room for, in the order chosen; the rest is said, not silently dropped.
+        val files = results.filterIsInstance<PickResult.Picked>().map { it.file }
+        val taken = files.take((max - count).coerceAtLeast(0))
+        if (owner == null) onDrafts(drafts + taken) else scope.launch { taken.forEach { actions.show(graph.attachments.attach(owner, it)) } }
+        val problem = results.firstOrNull { it !is PickResult.Picked }
+        when {
+            taken.size < files.size -> actions.say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))
+            problem == PickResult.TooLarge -> actions.say(tooLarge)
+            problem == PickResult.Unsupported -> actions.say(unsupported)
+            problem == PickResult.Failed -> actions.say(failed)
         }
     }
-    val count = attachments.size + drafts.size
     var viewing by remember { mutableStateOf<Int?>(null) }
     val removedText = stringResource(Res.string.attachment_removed)
     // At once with Undo where the screen shows the snackbar, else asked first (in a dialog, which would hide it).
