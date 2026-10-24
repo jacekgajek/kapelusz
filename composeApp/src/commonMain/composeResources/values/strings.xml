@@ -546,7 +546,7 @@
     <string name="raw_data_copied">Copied: the band data exactly as stored on the server.</string>
     <string name="raw_data_failed">Could not get the data. Are you online?</string>
     <string name="reject_not_undoable">This change cannot be undone.</string>
-    <string name="reject_changed_since">Changed since, can\'t undo.</string>
+    <string name="reject_changed_since">Changed since, can't undo.</string>
     <string name="undo_confirm">Undo “%1$s”?</string>
     <string name="h_undo">Undid: %1$s</string>
     <string name="agenda_template_reset">Reset to defaults</string>
@@ -582,7 +582,7 @@
     <string name="pair_names">%1$s and %2$s</string>
     <string name="pair_breakdown">%1$s: payout %2$s · holds %3$s</string>
     <string name="settle_together_title">Settle together</string>
-    <string name="settle_together_hint">On Settlement you\'re one party; everywhere else you stay separate.</string>
+    <string name="settle_together_hint">On Settlement you're one party; everywhere else you stay separate.</string>
     <string name="settle_together_invite">Settle together with me</string>
     <string name="settle_together_waiting">Waiting for %1$s to answer.</string>
     <string name="settle_together_cancel">Cancel invitation</string>
@@ -595,7 +595,7 @@
     <string name="settle_together_stop">Stop settling together</string>
     <string name="settle_together_stop_text">From now on you and %1$s settle separately, also in the events not settled yet (%2$s).</string>
     <string name="settle_together_ends">This also ends settling together of %1$s and %2$s; events not settled yet: %3$s.</string>
-    <string name="reject_cannot_settle_together">They can\'t settle together now: one of you is already in a pair or has an invitation waiting.</string>
+    <string name="reject_cannot_settle_together">They can't settle together now: one of you is already in a pair or has an invitation waiting.</string>
     <string name="h_invite_settle_together">%1$s invited %2$s to settle together</string>
     <string name="h_cancel_settle_together">%1$s withdrew the invitation to settle together sent to %2$s</string>
     <string name="h_accept_settle_together">%1$s and %2$s settle together</string>

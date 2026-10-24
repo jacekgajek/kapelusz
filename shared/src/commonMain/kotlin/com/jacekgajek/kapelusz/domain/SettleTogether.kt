@@ -40,9 +40,10 @@ object SettleTogether {
 
     /**
      * [band] without the pairs and invitations a change made impossible (§7): someone archived, unlinked, or made a
-     * viewer or an artist. Nothing else changes.
+     * viewer or an artist. Nothing else changes. A pair ending keeps the events it settled together as they were
+     * [before] the change, while it still counted.
      */
-    fun tidy(band: Band): Band {
+    fun tidy(band: Band, before: Band = band): Band {
         val byId = band.members.associateBy { it.id }
         val members = band.members.map { member ->
             val partner = member.settlesWith?.let { byId[it] }
@@ -56,21 +57,25 @@ object SettleTogether {
         }
         if (members == band.members) return band
         val ended = band.members.filter { it.settlesWith != null && members.first { m -> m.id == it.id }.settlesWith == null }
-        return ended.fold(band) { result, member -> keepSettled(result, member.id, member.settlesWith!!) }.copy(members = members)
+        return ended.fold(band) { result, member -> keepSettled(result, member.id, member.settlesWith!!, before) }.copy(members = members)
     }
 
     /**
      * Before the pair of [a] and [b] ends: the events they settled together keep them together (ITERATION_5 §7), so ending
      * a pair never reopens a settled event.
      */
-    fun keepSettled(band: Band, a: Id, b: Id): Band = band.copy(
-        events = band.events.map { event ->
-            val pair = listOf(a, b).sorted()
-            if (pair in event.settledTogether || partners(band, event)[a] != b) return@map event
-            if (SettlementCalculator.settle(band, event).status != EventStatus.SETTLED) event
-            else event.copy(settledTogether = event.settledTogether + listOf(pair))
-        },
-    )
+    fun keepSettled(band: Band, a: Id, b: Id, before: Band = band): Band {
+        val pair = listOf(a, b).sorted()
+        val settled = before.events
+            .filter { event -> partners(before, event)[a] == b && SettlementCalculator.settle(before, event).status == EventStatus.SETTLED }
+            .map { it.id }.toSet()
+        return band.copy(
+            events = band.events.map { event ->
+                if (event.id !in settled || pair in event.settledTogether) event
+                else event.copy(settledTogether = event.settledTogether + listOf(pair))
+            },
+        )
+    }
 
     /** Events not settled yet where [a] and [b] both play: ending their pair splits them up again there. */
     fun openEventsTogether(band: Band, a: Id, b: Id): Int = band.events.count { event ->
