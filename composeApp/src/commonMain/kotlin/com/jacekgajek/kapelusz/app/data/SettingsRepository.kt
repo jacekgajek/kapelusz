@@ -37,27 +37,28 @@ data class AppSettings(
     /** The one-time "remind you of money to pass on?" prompt was answered (V5-M1 D3). */
     val debtPromptDone: Boolean = false,
     /**
-     * Events (`band/event`) last left on the Money tab (ITERATION_4 §2.4); every other event opens on Gig. The most
-     * recent last, at most [MAX_MONEY_TAB_EVENTS].
+     * The page each event (`band/event`) was last left on, when not Gig (ITERATION_4 §2.4, ITERATION_5 §4.4); every
+     * other event opens on Gig. The most recent last, at most [MAX_EVENT_TABS].
      */
-    val moneyTabEvents: List<String> = emptyList(),
+    val eventTabs: Map<String, EventTab> = emptyMap(),
 ) {
-    fun eventTab(bandId: String, eventId: String): EventTab = if ("$bandId/$eventId" in moneyTabEvents) EventTab.MONEY else EventTab.GIG
+    fun eventTab(bandId: String, eventId: String): EventTab = eventTabs["$bandId/$eventId"] ?: EventTab.GIG
 
     fun withEventTab(bandId: String, eventId: String, tab: EventTab): AppSettings {
         val key = "$bandId/$eventId"
-        val others = moneyTabEvents - key
-        return copy(moneyTabEvents = if (tab == EventTab.MONEY) (others + key).takeLast(MAX_MONEY_TAB_EVENTS) else others)
+        val others = eventTabs - key
+        if (tab == EventTab.GIG) return copy(eventTabs = others)
+        return copy(eventTabs = (others.entries.map { it.key to it.value } + (key to tab)).takeLast(MAX_EVENT_TABS).toMap())
     }
 
     companion object {
-        const val MAX_MONEY_TAB_EVENTS = 200
+        const val MAX_EVENT_TABS = 200
     }
 }
 
-/** The event screen's two pages (ITERATION_4 §2.4): what the gig is, and its money. */
+/** The event screen's pages (ITERATION_5 §4.4): what the gig is, the money that came in and goes out, and who gets what. */
 @Serializable
-enum class EventTab { GIG, MONEY }
+enum class EventTab { GIG, MONEY, SETTLEMENT }
 
 class SettingsRepository(private val store: KeyValueStore, private val scope: CoroutineScope) {
     private val _settings = MutableStateFlow(AppSettings())

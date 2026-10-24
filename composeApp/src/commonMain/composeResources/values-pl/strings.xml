@@ -9,6 +9,7 @@
     <string name="tab_my_costs">Moje koszty</string>
     <string name="tab_gig">Koncert</string>
     <string name="tab_money">Pieniądze</string>
+    <string name="tab_settlement">Rozliczenie</string>
     <string name="refused_cost_title">Ten koszt został odrzucony</string>
     <string name="refused_cost_text">Co chcesz zrobić?</string>
     <string name="refused_cost_resubmit">Popraw i zgłoś ponownie</string>
@@ -93,6 +94,7 @@
     <string name="delete">Usuń</string>
     <string name="remove">Usuń</string>
     <string name="guest_removed">Usunięto gościa %1$s</string>
+    <string name="participant_removed">Usunięto %1$s z wydarzenia</string>
     <string name="transfer_recorded">Zapisano: %1$s → %2$s %3$s</string>
     <string name="settled_all">Rozliczono wszystko</string>
     <string name="amount_copied">Skopiowano %1$s</string>
@@ -120,8 +122,6 @@
     <string name="participants">Uczestnicy</string>
     <string name="add_guest">Gość</string>
     <string name="guest_name">Imię gościa</string>
-    <string name="adjust_shares">Dostosuj udziały</string>
-    <string name="hide_shares">Ukryj udziały</string>
     <string name="share_weight">Udział</string>
     <string name="share_weight_hint">100% to jeden zwykły udział, 150% to półtora, 0% oznacza udział w wydarzeniu bez części zysku.</string>
     <string name="collected_money">Otrzymane pieniądze</string>

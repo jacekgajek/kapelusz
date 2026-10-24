@@ -9,6 +9,7 @@
     <string name="tab_my_costs">My costs</string>
     <string name="tab_gig">Gig</string>
     <string name="tab_money">Money</string>
+    <string name="tab_settlement">Settlement</string>
     <string name="refused_cost_title">This cost was refused</string>
     <string name="refused_cost_text">What do you want to do?</string>
     <string name="refused_cost_resubmit">Edit and resubmit</string>
@@ -93,6 +94,7 @@
     <string name="delete">Delete</string>
     <string name="remove">Remove</string>
     <string name="guest_removed">Removed guest %1$s</string>
+    <string name="participant_removed">Removed %1$s from the event</string>
     <string name="transfer_recorded">Recorded: %1$s → %2$s %3$s</string>
     <string name="settled_all">Settled everything</string>
     <string name="amount_copied">Copied %1$s</string>
@@ -120,8 +122,6 @@
     <string name="participants">Participants</string>
     <string name="add_guest">Guest</string>
     <string name="guest_name">Guest name</string>
-    <string name="adjust_shares">Adjust shares</string>
-    <string name="hide_shares">Hide shares</string>
     <string name="share_weight">Share</string>
     <string name="share_weight_hint">100% is one normal share, 150% gets one and a half, 0% takes part without a share.</string>
     <string name="collected_money">Received money</string>
