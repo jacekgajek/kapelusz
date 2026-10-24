@@ -60,11 +60,11 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(Res.string.settle_together_title), style = MaterialTheme.typography.labelLarge)
         when {
-            // Your own pair, from your row or your partner's; artists can't end it.
+            // Your own pair, from your row or your partner's.
             partner != null && (member.id == me.id || partner.id == me.id) -> {
                 val other = if (member.id == me.id) partner else member
                 Text(stringResource(Res.string.settle_together_you_with, other.name))
-                if (me.role.atLeast(Role.MEMBER)) OutlinedButton(onClick = { stopping = other }) { Text(stringResource(Res.string.settle_together_stop)) }
+                OutlinedButton(onClick = { stopping = other }) { Text(stringResource(Res.string.settle_together_stop)) }
             }
             partner != null -> Text(stringResource(Res.string.settle_together_with, partner.name))
             // You invited them, or you're looking at yourself with an invitation sent.
@@ -131,11 +131,9 @@ private fun InvitationAnswer(from: Member, me: Member, actions: Actions) {
     }
 }
 
-/** A new [role] for [member] ends their pair: a viewer, or a second artist (ITERATION_5 §7). */
-fun pairEndsWarningNeeded(band: Band, member: Member, role: Role): Boolean {
-    val partner = member.settlesWith?.let { band.member(it) } ?: return false
-    return role == Role.VIEWER || (role == Role.ARTIST && partner.role == Role.ARTIST)
-}
+/** A new [role] for [member] ends their pair: a viewer or an artist (ITERATION_5 §7.2). */
+fun pairEndsWarningNeeded(member: Member, role: Role): Boolean =
+    member.settlesWith != null && (role == Role.VIEWER || role == Role.ARTIST)
 
 /**
  * The line a confirmation adds when archiving, unlinking or a new [role] (null: not a role change) ends [member]'s pair
@@ -144,6 +142,6 @@ fun pairEndsWarningNeeded(band: Band, member: Member, role: Role): Boolean {
 @Composable
 fun pairEndsWarning(band: Band, member: Member, role: Role? = null): String? {
     val partner = member.settlesWith?.let { band.member(it) } ?: return null
-    if (role != null && !pairEndsWarningNeeded(band, member, role)) return null
+    if (role != null && !pairEndsWarningNeeded(member, role)) return null
     return stringResource(Res.string.settle_together_ends, member.name, partner.name, SettleTogether.openEventsTogether(band, member.id, partner.id).toString())
 }

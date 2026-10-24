@@ -75,7 +75,7 @@ object Reducer {
                 band.dropInvite(op.fromMemberId, op.toMemberId)
                     .updateMember(op.fromMemberId) { it.copy(settlesWith = op.toMemberId) }
                     .updateMember(op.toMemberId) { it.copy(settlesWith = op.fromMemberId) }
-                    // Two artists can't be a pair: someone in it must be able to pass money on (§7).
+                    // Both still may settle together (§7.2).
                     .also { conflictIf(SettleTogether.tidy(it) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
             }
             is StopSettlingTogether -> {
@@ -253,7 +253,7 @@ object Reducer {
             RejectionReason.NO_TREASURER,
         ) { "Choose a treasurer before using the band fund" }
         // Archiving, unlinking or a role change can end a pair or an invitation (ITERATION_5 §7); an undo is checked instead.
-        val tidied = if (op is Undo) result else SettleTogether.tidy(result)
+        val tidied = if (op is Undo) result else SettleTogether.tidy(result, band)
         return op.eventId
             ?.takeIf { op !is DeleteEvent }
             ?.let { eventId -> tidied.updateEvent(eventId) { it.copy(updatedAt = ctx.timestamp) } }

@@ -117,9 +117,8 @@ object Permissions {
         is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && partnerIn(band, me, op.eventId).let { it != null && (it == op.from || it == op.to) }))
         is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))
 
-        // Only for oneself (checked above); artists answer an invitation but neither send one nor end a pair.
-        is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether -> Role.MEMBER
-        is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST
+        // Only for oneself (checked above), from members up: artists don't settle together (ITERATION_5 §7.2).
+        is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.MEMBER
 
         // Artists too look after their own costs (ITERATION_4 §1.1); money held or moved stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
