@@ -209,8 +209,8 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             Box(Modifier.weight(1f)) {
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
             }
-            // Only to who may settle it (ITERATION_5 §8); the fund's holder keeping it pays nobody.
-            if (settles && !keepsForFund) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))
+            // Only to who pays it (ITERATION_5 §8): the recipient would read the icon as owing; the fund's holder keeping it pays nobody.
+            if (settles && !keepsForFund && BlikPhone.pays(band, settlement, context.me?.id, suggestion.from)) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
@@ -316,8 +316,8 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 Dropdown(to, handOverRecipients(context, from), { to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)
                 }
-                // The recipient's BLIK number, if they gave one (ITERATION_5 §8); only recipients the user may record to are offered.
-                BlikPhone.recipient(context.band, to).firstOrNull()?.let { BlikNumberRow(stringResource(Res.string.blik_title), it) }
+                // The recipient's BLIK number, if they gave one, when the user hands over their own money (ITERATION_5 §8).
+                BlikPhone.recipient(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }?.let { BlikNumberRow(stringResource(Res.string.blik_title), it) }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())

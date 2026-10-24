@@ -77,4 +77,15 @@ class BlikPhoneTest {
         scenario.apply(UnlinkUser("bob"))
         assertNull(scenario.band.member("bob")!!.blikPhone)
     }
+
+    @Test
+    fun onlyThePayingSideSeesTheNumbers() {
+        val scenario = Scenario("Alice", "Bob", "Carol")
+        scenario.apply(com.jacekgajek.kapelusz.ops.SetTreasurer("alice"))
+        assertEquals(true, BlikPhone.pays(scenario.band, null, "bob", "bob"))
+        assertEquals(false, BlikPhone.pays(scenario.band, null, "carol", "bob"), "the recipient doesn't")
+        assertEquals(true, BlikPhone.pays(scenario.band, null, "alice", com.jacekgajek.kapelusz.model.BAND_FUND), "the fund's holder pays from it")
+        assertEquals(false, BlikPhone.pays(scenario.band, null, "bob", com.jacekgajek.kapelusz.model.BAND_FUND))
+        assertEquals(false, BlikPhone.pays(scenario.band, null, null, "bob"))
+    }
 }

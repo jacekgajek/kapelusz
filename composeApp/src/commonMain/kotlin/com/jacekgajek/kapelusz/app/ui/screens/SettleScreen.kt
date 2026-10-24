@@ -141,10 +141,10 @@ fun SettleScreen(
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     TransferParties(from, to, Modifier.weight(1f))
-                                    // Your own transfers: you may settle each (ITERATION_5 §8); none when the fund's holder keeps it.
+                                    // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
                                     val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
                                         band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
-                                    if (!keepsForFund) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
+                                    if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
