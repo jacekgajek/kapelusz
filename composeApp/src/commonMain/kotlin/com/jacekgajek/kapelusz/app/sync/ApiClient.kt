@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.sync
 
+import com.jacekgajek.kapelusz.api.PlaceText
+import com.jacekgajek.kapelusz.api.MapLinkRequest
+import io.ktor.http.encodeURLPathPart
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PictureRequest
@@ -129,11 +132,26 @@ class ApiClient(
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */
-    suspend fun places(bandId: Id, query: String, language: String): List<PlaceSuggestion> =
+    suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> =
         parse(send(HttpMethod.Get, "/bands/$bandId/places") {
             parameter("q", query)
             parameter("lang", language)
+            parameter("session", session)
         }, PlacesResponse.serializer()).places
+
+    /** What Location becomes for a picked place: its name and full address (ITERATION_5 §9.1), ending the [session]. */
+    suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String =
+        parse(send(HttpMethod.Get, "/bands/$bandId/places/${placeId.encodeURLPathPart()}") {
+            parameter("lang", language)
+            parameter("session", session)
+        }, PlaceText.serializer()).text
+
+    /** What Location becomes for a Google Maps link: the place and its address, or a pin's coordinates (ITERATION_5 §9.1). */
+    suspend fun resolveMapLink(bandId: Id, url: String, language: String): String =
+        parse(send(HttpMethod.Post, "/bands/$bandId/places/resolve") {
+            parameter("lang", language)
+            setBody(TextContent(KapeluszJson.encodeToString(MapLinkRequest.serializer(), MapLinkRequest(url)), ContentType.Application.Json))
+        }, PlaceText.serializer()).text
 
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
 

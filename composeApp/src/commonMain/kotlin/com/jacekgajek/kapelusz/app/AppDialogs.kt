@@ -1,5 +1,11 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.generated.map_reading
+import com.jacekgajek.kapelusz.app.generated.map_unreadable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -67,7 +73,8 @@ internal fun LostAccessDialog(graph: AppGraph) {
 
 /**
  * A place shared from Google Maps (Android, ITERATION_2 §4.4): "Set the location of…" one of the upcoming events the
- * user may edit (nearest first), or "New event at this place". The name fills an empty location; the link replaces.
+ * user may edit (nearest first), or "New event at this place". The location becomes what the server reads from the
+ * link (ITERATION_5 §9.1): the place's name and address, or the pin's coordinates; failing that, the name Maps shared.
  */
 @Composable
 internal fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEvent: (String) -> Unit, onNewEvent: () -> Unit) {
@@ -78,6 +85,10 @@ internal fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEv
     val events = band.events.filter { !it.archived && it.date >= today() && can.editEvent(it) }.sortedBy { it.date }
     val dismiss = { graph.pendingSharedPlace.value = null }
     var rejected by remember(shared) { mutableStateOf<RejectionReason?>(null) }
+    var reading by remember(shared) { mutableStateOf(false) }
+    var unreadable by remember(shared) { mutableStateOf(false) }
+    val places = rememberPlaceLookup(graph, band, state.userId)
+    val scope = rememberCoroutineScope()
     AlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(Res.string.place_title)) },
@@ -85,25 +96,30 @@ internal fun SharedPlaceDialog(graph: AppGraph, state: BandState.Ready, onOpenEv
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 shared.name?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
                 rejected?.let { Text(stringResource(it.labelRes()), color = MaterialTheme.colorScheme.error) }
+                if (reading) Text(stringResource(Res.string.map_reading), style = MaterialTheme.typography.bodySmall)
+                if (unreadable) Text(stringResource(Res.string.map_unreadable), color = MaterialTheme.colorScheme.error)
                 if (events.isEmpty() && !can.createEvent()) Text(stringResource(Res.string.place_nothing))
                 events.forEach { event ->
-                    TextButton(onClick = {
-                        val rejection = graph.dispatch(
-                            UpdateEvent(
-                                event.id,
-                                location = Change(shared.name).takeIf { event.location.isNullOrBlank() && shared.name != null },
-                                mapUrl = Change(shared.url),
-                            ),
-                        )
-                        rejected = rejection?.reason
-                        if (rejection == null) {
-                            dismiss()
-                            onOpenEvent(event.id)
+                    TextButton(enabled = !reading, onClick = {
+                        scope.launch {
+                            reading = true
+                            val text = places?.let { runSuspendCatching { it.resolve(shared.url) }.getOrNull() } ?: shared.name
+                            reading = false
+                            // Another place shared meanwhile: this one is no longer what the dialog offers.
+                            if (graph.pendingSharedPlace.value != shared) return@launch
+                            unreadable = text == null
+                            if (text == null) return@launch
+                            val rejection = graph.dispatch(UpdateEvent(event.id, location = Change(text)))
+                            rejected = rejection?.reason
+                            if (rejection == null) {
+                                dismiss()
+                                onOpenEvent(event.id)
+                            }
                         }
                     }) { Text("${event.name} · ${formatDate(event.date, language)}") }
                 }
                 if (can.createEvent()) {
-                    TextButton(onClick = {
+                    TextButton(enabled = !reading, onClick = {
                         graph.pendingNewEventPlace.value = shared
                         dismiss()
                         onNewEvent()

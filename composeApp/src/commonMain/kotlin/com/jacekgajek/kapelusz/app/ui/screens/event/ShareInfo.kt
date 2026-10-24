@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.domain.Places
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -50,7 +51,8 @@ fun eventInfoText(event: Event, plan: List<String>, lineup: List<String>, words:
         "${words.date}: $date",
         event.location?.takeIf { it.isNotBlank() }?.let { "${words.place}: ${it.trim()}" },
         // Only an exact pin: a search link made from a place name would be long and no better than the name.
-        event.mapUrl?.let { "${words.map}: $it" },
+        // Directions to the location, an address or a pin (ITERATION_5 §9.1).
+        Places.navigateUrl(event)?.let { "${words.map}: $it" },
     )
     return listOfNotNull(
         event.name,

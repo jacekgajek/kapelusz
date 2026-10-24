@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
+import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.ops.Limits
 import kotlinx.serialization.SerializationException
@@ -77,6 +78,9 @@ class Api(
             method == "GET" && bandPath && segments[2] == "log" -> history.history(user, segments[1], request.query["month"], request.query["before"], request.query["months"])
             method == "GET" && bandPath && segments[2] == "invites" -> invites.list(user, segments[1])
             method == "GET" && bandPath && segments[2] == "places" -> places.suggest(user, segments[1], request)
+            method == "POST" && segments.size == 4 && segments[0] == "bands" && segments[2] == "places" && segments[3] == "resolve" ->
+                places.resolve(user, segments[1], request, parse(request, MapLinkRequest.serializer()))
+            method == "GET" && segments.size == 4 && segments[0] == "bands" && segments[2] == "places" -> places.details(user, segments[1], segments[3], request)
             method == "POST" && bandPath && segments[2] == "invites" ->
                 invites.create(user, segments[1], parse(request, CreateInviteRequest.serializer()))
             method == "DELETE" && segments.size == 4 && segments[0] == "bands" && segments[2] == "invites" ->

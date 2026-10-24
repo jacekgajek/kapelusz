@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.generated.map_reading
+import com.jacekgajek.kapelusz.app.generated.map_unreadable
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,7 +56,6 @@ import com.jacekgajek.kapelusz.app.generated.agenda_label
 import com.jacekgajek.kapelusz.app.generated.event_date
 import com.jacekgajek.kapelusz.app.generated.event_location
 import com.jacekgajek.kapelusz.app.generated.event_name
-import com.jacekgajek.kapelusz.app.generated.map_linked
 import com.jacekgajek.kapelusz.app.generated.map_no_link
 import com.jacekgajek.kapelusz.app.generated.map_paste
 import com.jacekgajek.kapelusz.app.platform.rememberPaste
@@ -70,15 +71,32 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
-/** Asks for places matching what was typed in Location (ITERATION_5 §9); throws when it cannot (offline, not set up). */
-typealias PlaceSearch = suspend (query: String) -> List<PlaceSuggestion>
+/**
+ * Google's place services for Location (ITERATION_5 §9), through the server, in the app's language. Each call throws
+ * when it cannot (offline, not set up). A search and the details of the place picked from it are one Google session.
+ */
+class PlaceLookup(private val graph: AppGraph, private val bandId: String, private val language: String) {
+    private var session = newId()
 
-/** Place search for the band's event dialogs, in the app's language; null for who cannot edit events. */
+    suspend fun suggest(query: String): List<PlaceSuggestion> = graph.api.places(bandId, query, language, session)
+
+    /** The picked place's name and full address; a new search is a new session. */
+    suspend fun details(place: PlaceSuggestion): String = try {
+        graph.api.placeText(bandId, place.placeId, language, session)
+    } finally {
+        session = newId()
+    }
+
+    /** A Google Maps link read: the place and its address, or a pin's coordinates. */
+    suspend fun resolve(url: String): String = graph.api.resolveMapLink(bandId, url, language)
+}
+
+/** Place lookups for the band's event dialogs; null for who cannot edit events. */
 @Composable
-fun rememberPlaceSearch(graph: AppGraph, band: Band, userId: String): PlaceSearch? {
+fun rememberPlaceLookup(graph: AppGraph, band: Band, userId: String): PlaceLookup? {
     val lang = language
     val allowed = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) == true
-    return remember(graph, band.id, lang, allowed) { if (allowed) { query -> graph.api.places(band.id, query, lang) } else null }
+    return remember(graph, band.id, lang, allowed) { if (allowed) PlaceLookup(graph, band.id, lang) else null }
 }
 
 /** What the create and edit dialogs edit about an event. */
@@ -86,7 +104,6 @@ data class EventFieldsState(
     val name: String,
     val date: LocalDate,
     val location: String,
-    val mapUrl: String?,
     val agenda: List<AgendaTime>,
 )
 
@@ -96,38 +113,46 @@ data class EventFieldsState(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun EventFields(state: EventFieldsState, placeSearch: PlaceSearch?, onState: (EventFieldsState) -> Unit) {
+fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFieldsState) -> Unit) {
     val paste = rememberPaste()
     val scope = rememberCoroutineScope()
     // The paste finishes later (the browser may ask for permission), so it must apply to the fields as they are then.
     val current by rememberUpdatedState(state)
-    var noLinkInClipboard by remember(state.mapUrl, state.location) { mutableStateOf(false) }
+    // What the paste chip last did: nothing, reading a link, no link in the clipboard, or a link that couldn't be read.
+    var pasting by remember { mutableStateOf<Pasting?>(null) }
     var picking by remember { mutableStateOf<AgendaTime?>(null) }
     var addingCustom by remember { mutableStateOf(false) }
     val agenda = state.agenda
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(state.name, { onState(state.copy(name = it)) }, label = { Text(stringResource(Res.string.event_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         DateField(state.date, { onState(state.copy(date = it)) }, stringResource(Res.string.event_date))
-        LocationField(state, placeSearch, onState)
+        LocationField(state, places, onState)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // No "Select on map": coming back from Google Maps with Share › Kapelusz opens the event picker, where an event
             // still being created is not. A link copied in Maps (Share › Copy link) is pasted here instead.
             AssistChip(onClick = {
                 scope.launch {
                     val place = paste()?.let(Places::parse)
-                    if (place != null) onState(current.copy(location = current.location.ifBlank { place.name.orEmpty() }, mapUrl = place.url))
-                    noLinkInClipboard = place == null
+                    if (place == null) {
+                        pasting = Pasting.NoLink
+                        return@launch
+                    }
+                    // Read by the server (ITERATION_5 §9.1): the place's name and address, or the pin's coordinates.
+                    pasting = Pasting.Reading
+                    val before = current.location
+                    val text = places?.let { runSuspendCatching { it.resolve(place.url) }.getOrNull() }
+                    pasting = if (text == null && place.name == null) Pasting.Unreadable else null
+                    // Typed over meanwhile: left as typed.
+                    if (current.location == before) (text ?: place.name)?.let { onState(current.copy(location = it)) }
                 }
             }, label = { Text(stringResource(Res.string.map_paste)) }, leadingIcon = { Icon(Icons.Default.ContentPaste, null) })
         }
-        state.mapUrl?.let {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Place, null, tint = MaterialTheme.colorScheme.primary)
-                Text(stringResource(Res.string.map_linked), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                RemoveButton(stringResource(Res.string.map_linked)) { onState(state.copy(mapUrl = null)) }
-            }
+        when (pasting) {
+            Pasting.Reading -> Text(stringResource(Res.string.map_reading), style = MaterialTheme.typography.bodySmall)
+            Pasting.NoLink -> Text(stringResource(Res.string.map_no_link), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            Pasting.Unreadable -> Text(stringResource(Res.string.map_unreadable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            null -> {}
         }
-        if (noLinkInClipboard) Text(stringResource(Res.string.map_no_link), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         agenda.filter { it.time != null }.sortedBy { it.minutesOfEventDay }.forEach { item ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val label = item.displayLabel()
@@ -166,24 +191,24 @@ fun EventFields(state: EventFieldsState, placeSearch: PlaceSearch?, onState: (Ev
 
 /**
  * Location, with Google's places for what is typed (ITERATION_5 §9): from 3 characters, after a short pause, up to 5
- * under the field. Picking one puts in its name and town and links its exact pin; typing freely still works, and
- * offline (or without place search on the server) the field is plain text.
+ * under the field. Picking one puts in its name and full address; typing freely still works, and offline (or without
+ * place search on the server) the field is plain text.
  */
 @Composable
-private fun LocationField(state: EventFieldsState, placeSearch: PlaceSearch?, onState: (EventFieldsState) -> Unit) {
+private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState: (EventFieldsState) -> Unit) {
     // Only what the user types is searched: not the text the dialog opened with, nor a picked place.
     var typed by remember { mutableStateOf<String?>(null) }
     var suggestions by remember { mutableStateOf(emptyList<PlaceSuggestion>()) }
-    // A pin set otherwise (Paste from Maps, shared from Maps) ends the search: a pick would replace it.
-    LaunchedEffect(state.mapUrl) { typed = null }
+    val scope = rememberCoroutineScope()
+    val current by rememberUpdatedState(state)
     LaunchedEffect(typed) {
         val query = typed?.trim()
-        if (placeSearch == null || query == null || query.length < Places.MIN_QUERY) {
+        if (places == null || query == null || query.length < Places.MIN_QUERY) {
             suggestions = emptyList()
             return@LaunchedEffect
         }
         delay(SEARCH_PAUSE_MS)
-        suggestions = runSuspendCatching { placeSearch(query.take(Places.MAX_QUERY)) }.getOrDefault(emptyList())
+        suggestions = runSuspendCatching { places.suggest(query.take(Places.MAX_QUERY)) }.getOrDefault(emptyList())
     }
     // One line of text that wraps when long (a full address), so all of it shows; Enter adds no new line.
     OutlinedTextField(
@@ -211,7 +236,13 @@ private fun LocationField(state: EventFieldsState, placeSearch: PlaceSearch?, on
                 Column(
                     Modifier.fillMaxWidth().clickable {
                         typed = null
-                        onState(state.copy(location = Places.label(place), mapUrl = Places.mapUrl(place)))
+                        // The name and town at once; the full address when the server has it, unless edited meanwhile.
+                        val short = Places.label(place)
+                        onState(state.copy(location = short))
+                        if (places != null) scope.launch {
+                            val full = runSuspendCatching { places.details(place) }.getOrNull()
+                            if (full != null && current.location == short) onState(current.copy(location = full))
+                        }
                     }.padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     Text(place.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -233,3 +264,6 @@ private fun LocationField(state: EventFieldsState, placeSearch: PlaceSearch?, on
 
 /** How long typing pauses before places are asked for, so not every keystroke is a request. */
 private const val SEARCH_PAUSE_MS = 500L
+
+/** The paste chip's state. */
+private enum class Pasting { Reading, NoLink, Unreadable }

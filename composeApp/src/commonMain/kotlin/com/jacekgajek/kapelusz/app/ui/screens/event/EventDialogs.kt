@@ -70,7 +70,7 @@ import com.jacekgajek.kapelusz.ops.UpdateEvent
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun EditDetailsDialog(band: Band, event: Event, actions: Actions, placeSearch: PlaceSearch?, onDismiss: () -> Unit) {
+fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceLookup?, onDismiss: () -> Unit) {
     // Compared with the event as it was when the dialog opened: only what the user changed is sent (ITERATION_3 R8).
     val opened = remember { event }
     var fields by remember {
@@ -79,20 +79,15 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, placeSearch: P
                 name = event.name,
                 date = event.date,
                 location = event.location.orEmpty(),
-                mapUrl = event.mapUrl,
                 // Events from before agenda times get the band's template, all unset (ITERATION_2 §4.1).
                 agenda = event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) } },
             ),
         )
     }
-    // A place shared from Google Maps to this event while the dialog is open shows here instead of being undone on Save.
-    LaunchedEffect(event.mapUrl) {
-        if (event.mapUrl != null && fields.mapUrl != event.mapUrl) fields = fields.copy(location = fields.location.ifBlank { event.location.orEmpty() }, mapUrl = event.mapUrl)
-    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.edit_details)) },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) { EventFields(fields, placeSearch) { fields = it } } },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) { EventFields(fields, places) { fields = it } } },
         confirmButton = {
             TextButton(enabled = fields.name.isNotBlank(), onClick = {
                 val update = UpdateEvent(
@@ -100,10 +95,9 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, placeSearch: P
                     name = Change(fields.name).takeIf { fields.name.trim() != opened.name },
                     date = Change(fields.date).takeIf { fields.date != opened.date },
                     location = Change(fields.location.ifBlank { null }).takeIf { fields.location.trim() != opened.location.orEmpty() },
-                    mapUrl = Change(fields.mapUrl).takeIf { fields.mapUrl != opened.mapUrl },
                 )
                 var saved = true
-                if (listOf(update.name, update.date, update.location, update.mapUrl).any { it != null }) saved = actions.run(update)
+                if (listOf(update.name, update.date, update.location).any { it != null }) saved = actions.run(update)
                 val agenda = fields.agenda
                 if (agenda != opened.agenda && !(opened.agenda.isEmpty() && agenda.all { it.time == null })) saved = actions.run(SetEventAgenda(event.id, agenda)) && saved
                 // Refused (the snackbar says why): the dialog stays, with what the user typed.

@@ -1,7 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceSearch
-import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceSearch
+import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
+import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
+import com.jacekgajek.kapelusz.domain.SharedPlace
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -206,9 +208,8 @@ fun EventsScreen(
     if (creating) {
         NewEventDialog(
             band,
-            initialLocation = sharedPlace?.name.orEmpty(),
-            initialMapUrl = sharedPlace?.url,
-            placeSearch = rememberPlaceSearch(graph, band, state.userId),
+            sharedPlace = sharedPlace,
+            places = rememberPlaceLookup(graph, band, state.userId),
             onDismiss = { creating = false; graph.pendingNewEventPlace.value = null },
             onCreate = { fields ->
                 val eventId = newId()
@@ -217,7 +218,6 @@ fun EventsScreen(
                         eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
                         participants = lineupOfLastEvent(band, state.me?.id),
                         agenda = fields.agenda,
-                        mapUrl = fields.mapUrl,
                     ),
                 )
                 if (ok) onOpenEvent(eventId)
@@ -292,29 +292,34 @@ private fun MyNumberText(number: MyNumber, currency: String) {
 }
 
 @Composable
-private fun NewEventDialog(band: Band, initialLocation: String, initialMapUrl: String?, placeSearch: PlaceSearch?, onDismiss: () -> Unit, onCreate: (EventFieldsState) -> Unit) {
+private fun NewEventDialog(band: Band, sharedPlace: SharedPlace?, places: PlaceLookup?, onDismiss: () -> Unit, onCreate: (EventFieldsState) -> Unit) {
     var fields by remember {
         mutableStateOf(
             EventFieldsState(
                 name = "",
                 date = today(),
-                location = initialLocation,
-                mapUrl = initialMapUrl,
+                location = sharedPlace?.name.orEmpty(),
                 // The band's agenda template, to fill in now or later (ITERATION_2 §4.3).
                 agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
             ),
         )
     }
-    // A place shared from Google Maps while the dialog is already open.
-    LaunchedEffect(initialMapUrl) {
-        if (initialMapUrl != null && fields.mapUrl != initialMapUrl) fields = fields.copy(location = fields.location.ifBlank { initialLocation }, mapUrl = initialMapUrl)
+    // A place shared from Google Maps (also while the dialog is open): read by the server into its name and address
+    // (ITERATION_5 §9.1); until then, or if it can't be, the name Maps shared.
+    LaunchedEffect(sharedPlace) {
+        val shared = sharedPlace ?: return@LaunchedEffect
+        shared.name?.let { name -> fields = fields.copy(location = name) }
+        val before = fields.location
+        val text = places?.let { runSuspendCatching { it.resolve(shared.url) }.getOrNull() } ?: return@LaunchedEffect
+        // Typed over meanwhile: left as typed.
+        if (fields.location == before) fields = fields.copy(location = text)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.new_event)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EventFields(fields, placeSearch) { fields = it }
+                EventFields(fields, places) { fields = it }
                 Text(stringResource(Res.string.new_event_lineup_hint), style = MaterialTheme.typography.bodySmall)
             }
         },

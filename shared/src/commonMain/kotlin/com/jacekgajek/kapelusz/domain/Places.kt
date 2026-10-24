@@ -6,9 +6,15 @@ import com.jacekgajek.kapelusz.model.Event
 /** A place as shared from Google Maps: its name (if given) and its link. */
 data class SharedPlace(val name: String?, val url: String)
 
+/**
+ * What a Google Maps link points at ([Places.target]): a place's [name] (with its [pin] when the link has one), a
+ * dropped [pin] alone, or a searched [query] text. Coordinates as written in the link (latitude, longitude).
+ */
+data class MapTarget(val name: String?, val pin: Pair<String, String>?, val query: String?)
+
 /** Google Maps links (ITERATION_2 §4.4): reading what Maps shares, and the links Kapelusz opens. */
 object Places {
-    /** The longest link an event stores; longer full place links are rejected rather than cut. */
+    /** The longest Maps link read from a shared or pasted text; longer ones are not taken for links. */
     const val MAX_URL = 1000
 
     private val candidate = Regex("""https://\S+""")
@@ -20,7 +26,7 @@ object Places {
     fun isValidUrl(url: String): Boolean =
         url.startsWith("https://") && url.length <= MAX_URL && url.all { it in '!'..'~' && it != '"' && it != '<' && it != '>' && it != '\\' }
 
-    private fun isMapLink(url: String): Boolean {
+    fun isMapLink(url: String): Boolean {
         val rest = url.removePrefix("https://")
         val host = rest.takeWhile { it != '/' && it != '?' && it != '#' }
         val path = rest.drop(host.length)
@@ -64,13 +70,84 @@ object Places {
         return if (town == null || place.name.contains(town)) place.name else "${place.name}, $town"
     }
 
-    /** The Google Maps link to a picked place: the exact pin, as Navigate opens it. */
-    fun mapUrl(place: PlaceSuggestion): String =
-        "https://www.google.com/maps/search/?api=1&query=${encode(place.name)}&query_place_id=${encode(place.placeId)}"
+    /**
+     * Location for a place with its full [address] (ITERATION_5 §9.1): "Ołówek, Legnicka 36, 53-673 Wrocław", without
+     * the [country] at its end, and without the name twice when the address starts with it (a street address picked).
+     */
+    fun placeText(name: String, address: String?, country: String?): String {
+        val short = address?.trim()?.let { full -> country?.let { full.removeSuffix(it).trimEnd(',', ' ') } ?: full }?.takeIf { it.isNotBlank() }
+            ?: return name
+        return if (short.startsWith(name)) short else "$name, $short"
+    }
 
-    /** Where Navigate goes: the stored Maps link (the exact pin), otherwise directions to the location text. */
+    /** Where Navigate goes: directions to the location text, an address or a pin's coordinates. */
     fun navigateUrl(event: Event): String? =
-        event.mapUrl ?: event.location?.takeIf { it.isNotBlank() }?.let { "https://www.google.com/maps/dir/?api=1&destination=${encode(it)}" }
+        event.location?.takeIf { it.isNotBlank() }?.let { "https://www.google.com/maps/dir/?api=1&destination=${encode(it)}" }
+
+    private val decimalPin = Regex("""^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$""")
+    private val dataPin = Regex("""!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)""")
+    private val viewport = Regex("""^@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)""")
+
+    /**
+     * What a full Google Maps link (after its short link's redirects) points at (ITERATION_5 §9.1): a place's name with
+     * its exact pin (`!3d…!4d…`, else the map's centre `@…`), a dropped pin (its coordinates as the name, in degrees
+     * or decimal), or a searched text (`?q=`); null for anything else.
+     */
+    fun target(url: String): MapTarget? {
+        if (!isMapLink(url)) return null
+        val withoutFragment = url.substringBefore('#')
+        val path = withoutFragment.removePrefix("https://").substringAfter('/', "").substringBefore('?')
+        val params = withoutFragment.substringAfter('?', "").split('&').mapNotNull { pair ->
+            pair.split('=', limit = 2).takeIf { it.size == 2 }?.let { decode(it[0]) to decode(it[1]) }
+        }.toMap()
+        val segments = path.split('/').map(::decode)
+        val pin = dataPin.findAll(path).lastOrNull()?.let { it.groupValues[1] to it.groupValues[2] }
+            ?: segments.firstNotNullOfOrNull { viewport.find(it) }?.let { it.groupValues[1] to it.groupValues[2] }
+        fun after(kind: String) = segments.indexOf(kind).takeIf { it >= 0 }?.let { segments.getOrNull(it + 1) }?.takeIf { it.isNotBlank() && !it.startsWith("@") }
+        val named = after("place")
+        // A search is a text, not a place: the map's centre with it is only where the map was looking.
+        val searchedInPath = after("search")
+            // Directions: the destination is the last stop before the map's centre and data.
+            ?: segments.indexOf("dir").takeIf { it >= 0 }?.let { dir -> segments.drop(dir + 1).takeWhile { !it.startsWith("@") && !it.startsWith("data=") }.lastOrNull { it.isNotBlank() } }
+        val searched = searchedInPath ?: listOf("q", "query", "destination", "daddr", "ll").firstNotNullOfOrNull { params[it]?.takeIf { value -> value.isNotBlank() } }
+        val text = named ?: searched
+        decimalPin.find(text.orEmpty())?.let { return MapTarget(null, it.groupValues[1] to it.groupValues[2], null) }
+        // A dropped pin is named by its coordinates in degrees (52°13'47.0"N 21°00'43.9"E): the pin, without a name.
+        if (text != null && '°' in text) return pin?.let { MapTarget(null, it, null) }
+        return when {
+            named != null -> MapTarget(named, pin, null)
+            searched != null -> MapTarget(null, null, searched)
+            pin != null -> MapTarget(null, pin, null)
+            else -> null
+        }
+    }
+
+    /** `%xx` and `+` decoded (UTF-8); a malformed escape is kept as it is. */
+    private fun decode(value: String): String {
+        val bytes = mutableListOf<Byte>()
+        val plain = StringBuilder()
+        // Plain text is encoded in runs, so a character outside the BMP (a surrogate pair) stays whole.
+        fun flush() {
+            bytes += plain.toString().encodeToByteArray().toList()
+            plain.clear()
+        }
+        var i = 0
+        while (i < value.length) {
+            val c = value[i]
+            val escape = if (c == '%' && i + 2 < value.length) value.substring(i + 1, i + 3) else null
+            when {
+                escape != null && escape.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' } -> {
+                    flush()
+                    bytes += escape.toInt(16).toByte()
+                    i += 3
+                }
+                c == '+' -> { plain.append(' '); i++ }
+                else -> { plain.append(c); i++ }
+            }
+        }
+        flush()
+        return bytes.toByteArray().decodeToString()
+    }
 
     private fun encode(value: String): String = buildString {
         value.encodeToByteArray().forEach { byte ->
