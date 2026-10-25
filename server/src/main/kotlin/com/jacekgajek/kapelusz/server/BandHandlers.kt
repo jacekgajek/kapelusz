@@ -131,9 +131,9 @@ internal class BandHandlers(
         return HttpResponse(204)
     }
 
-    /** The band's file exactly as stored, for admins (ITERATION_2 §7.1): putting it back changes nothing. */
+    /** The band's file exactly as stored, for leaders (ITERATION_2 §7.1): putting it back changes nothing. */
     fun raw(user: VerifiedUser, bandId: String): HttpResponse {
-        bands.loadForAdmin(user, bandId, "Only band admins see the raw data")
+        bands.loadForLeader(user, bandId, "Only band leaders see the raw data")
         val blob = store.get(StorageKeys.band(bandId)) ?: throw bands.gone(user, bandId)
         return HttpResponse(200, blob.content, mapOf("content-type" to "application/json; charset=utf-8"))
     }

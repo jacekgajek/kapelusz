@@ -23,7 +23,14 @@ enum class Role {
      * §1.1). Below [MEMBER], which can do everything an artist can, but not "at least [VIEWER]" in what it sees: viewers
      * see everything.
      */
-    VIEWER, ARTIST, MEMBER, LEAD, ADMIN, OWNER;
+    VIEWER, ARTIST, MEMBER,
+
+    /**
+     * The band's leader ("Leader" in the app): runs the events and the money, and manages the members, roles and
+     * invites. Also had an Leader role above it until 2026-10-25 (ITERATION_5 §11): merged, as a band's leader is its leader.
+     */
+    LEAD,
+    OWNER;
 
     fun atLeast(other: Role) = ordinal >= other.ordinal
 }
@@ -108,7 +115,7 @@ data class Band(
 @Serializable
 data class RecordedRejection(val opId: Id, val rejection: Rejection)
 
-/** The agenda times new events get: Arrival, Sound check and Concert start unless the admins changed it. */
+/** The agenda times new events get: Arrival, Sound check and Concert start unless the leaders changed it. */
 val Band.effectiveAgendaTemplate: List<AgendaTemplateItem>
     get() = agendaTemplate ?: AgendaKind.entries.map { AgendaTemplateItem(it) }
 

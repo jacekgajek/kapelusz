@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.role_desc_admin
 import com.jacekgajek.kapelusz.app.generated.role_desc_artist
 import com.jacekgajek.kapelusz.app.generated.role_desc_lead
 import com.jacekgajek.kapelusz.app.generated.role_desc_member
@@ -30,17 +29,16 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Roles an admin can give, from the least to the most a role may change; ownership only changes by transfer. Viewer is
+ * Roles a leader can give, from the least to the most a role may change; ownership only changes by transfer. Viewer is
  * apart: it sees everything but changes nothing (ITERATION_4), so it is not a step below the others.
  */
-val ASSIGNABLE_ROLES = listOf(Role.ARTIST, Role.MEMBER, Role.LEAD, Role.ADMIN, Role.VIEWER)
+val ASSIGNABLE_ROLES = listOf(Role.ARTIST, Role.MEMBER, Role.LEAD, Role.VIEWER)
 
 private fun Role.description(): StringResource = when (this) {
     Role.VIEWER -> Res.string.role_desc_viewer
     Role.ARTIST -> Res.string.role_desc_artist
     Role.MEMBER -> Res.string.role_desc_member
-    Role.LEAD -> Res.string.role_desc_lead
-    Role.ADMIN, Role.OWNER -> Res.string.role_desc_admin
+    Role.LEAD, Role.OWNER -> Res.string.role_desc_lead
 }
 
 /** Radio buttons for a role, each with what it allows (§3 of the plan), and a note on ownership. */

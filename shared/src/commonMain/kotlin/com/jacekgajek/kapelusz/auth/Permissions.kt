@@ -85,7 +85,7 @@ object Permissions {
             ?: return forbidden(RejectionReason.NOT_A_MEMBER, "You are not an active member of this band")
         if (op is LinkUser) return forbidden(RejectionReason.INVITE_ONLY, "Users are linked only by accepting an invite")
         // Settling together is everyone's own decision (ITERATION_5 §7), and where one is paid their own (§8): nobody,
-        // admins included, decides it for others.
+        // leaders included, decides it for others.
         settlesFor(op)?.let { if (it != me.id) return forbidden(RejectionReason.ROLE_REQUIRED, "Only for yourself") }
 
         val required = requiredRole(band, me, op)
@@ -103,7 +103,7 @@ object Permissions {
 
         is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,
         is SetMemberRole, is UnlinkUser, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is PromoteGuest, is LinkUser,
-        -> Role.ADMIN
+        -> Role.LEAD
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
         is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,

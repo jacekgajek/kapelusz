@@ -34,7 +34,7 @@ import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import org.jetbrains.compose.resources.stringResource
 
-/** The band fund page: what it is, whether it is on and who holds it (admins change it). */
+/** The band fund page: what it is, whether it is on and who holds it (leaders change it). */
 @Composable
 internal fun FundSettings(
     treasurer: String?,

@@ -110,7 +110,7 @@ fun SettingsScreen(
     otherMembers: Int,
     autoUpdate: Boolean,
     onAutoUpdate: (Boolean) -> Unit,
-    /** The band's agenda template; [onAgendaTemplate] is null for non-admins. */
+    /** The band's agenda template; [onAgendaTemplate] is null for non-leaders. */
     agendaTemplate: List<AgendaTemplateItem>,
     /** The band stored its own template (even if it equals the defaults). */
     agendaTemplateStored: Boolean,
@@ -119,7 +119,7 @@ fun SettingsScreen(
     onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
     /** The calendar subscription (needs the server): get it, or change it. */
     calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
-    /** The band's raw file from the server, for the secret menu; null for non-admins. */
+    /** The band's raw file from the server, for the secret menu; null for non-leaders. */
     rawData: (suspend () -> String)?,
     /** The page shown: null for the main list. */
     page: SettingsPage?,
@@ -138,7 +138,7 @@ fun SettingsScreen(
         }
         SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
             if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
-            // No longer an admin (e.g. demoted meanwhile): nothing to edit here.
+            // No longer a leader (e.g. demoted meanwhile): nothing to edit here.
             else LaunchedEffect(Unit) { onBack() }
         }
         SettingsPage.NOTIFICATIONS -> SettingsPageScaffold(stringResource(notificationsTitle(permission)), onBack) {
@@ -223,7 +223,7 @@ fun SettingsScreen(
                     if (deleting) DeleteBandDialog(bandName, otherMembers, onDeleteBand, onDismiss = { deleting = false })
                 }
                 var secretMenu by remember { mutableStateOf(false) }
-                // A tap on the version opens the secret menu for admins (ITERATION_2 §7.1); for others it is just text.
+                // A tap on the version opens the secret menu for leaders (ITERATION_2 §7.1); for others it is just text.
                 VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(if (rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
                 if (secretMenu && rawData != null) SecretMenuDialog(rawData, onDismiss = { secretMenu = false })
             }

@@ -19,7 +19,7 @@ import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import java.security.SecureRandom
 
-/** Invite codes: admins create them for an unlinked member, and whoever has the code joins the band as that member. */
+/** Invite codes: leaders create them for an unlinked member, and whoever has the code joins the band as that member. */
 internal class InviteHandlers(
     private val store: BlobStore,
     private val clock: () -> Long,
@@ -28,13 +28,13 @@ internal class InviteHandlers(
     private val history: HistoryHandlers,
 ) {
     fun list(user: VerifiedUser, bandId: String): HttpResponse {
-        bands.loadForAdmin(user, bandId)
+        bands.loadForLeader(user, bandId)
         val active = loadCodes(bandId).mapNotNull { load(it)?.info }.filter { it.expiresAt > clock() }
         return ok(InvitesResponse.serializer(), InvitesResponse(active))
     }
 
     fun create(user: VerifiedUser, bandId: String, request: CreateInviteRequest): HttpResponse {
-        val (band, _) = bands.loadForAdmin(user, bandId)
+        val (band, _) = bands.loadForLeader(user, bandId)
         val member = band.member(request.memberId) ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No such member")
         badRequestIf(member.userId != null) { "This member is already linked to an account" }
         badRequestIf(member.archived) { "This member is archived" }
@@ -54,7 +54,7 @@ internal class InviteHandlers(
     }
 
     fun revoke(user: VerifiedUser, bandId: String, code: String): HttpResponse {
-        bands.loadForAdmin(user, bandId)
+        bands.loadForLeader(user, bandId)
         // Codes are stored upper-case, as preview and accept read them (V5-M1 A10d).
         val stored = code.uppercase()
         if (load(stored)?.info?.bandId == bandId) delete(bandId, stored)
@@ -80,10 +80,10 @@ internal class InviteHandlers(
                 finishJoin(user, band.id, invite.memberId)
                 return@retryOnConflict ok(BandStateResponse.serializer(), BandStateResponse(etag, band))
             }
-            // The invite only stands while its issuer is still an active admin and the member is still in the band.
+            // The invite only stands while its issuer is still an active leader and the member is still in the band.
             val issuer = band.memberOfUser(stored.createdBy)
             val member = band.member(invite.memberId)
-            if (issuer == null || issuer.archived || !issuer.role.atLeast(Role.ADMIN) || member == null || member.archived) {
+            if (issuer == null || issuer.archived || !issuer.role.atLeast(Role.LEAD) || member == null || member.archived) {
                 delete(band.id, invite.code)
                 throw notFound()
             }
@@ -113,7 +113,7 @@ internal class InviteHandlers(
 
     /**
      * Cancels all invites for a member. Called whenever the member's account link changes, so no leftover code (from a
-     * race or an interrupted request) can link someone after an admin unlinked them.
+     * race or an interrupted request) can link someone after a leader unlinked them.
      */
     fun revokeFor(bandId: String, memberId: String) {
         loadCodes(bandId).forEach { code ->

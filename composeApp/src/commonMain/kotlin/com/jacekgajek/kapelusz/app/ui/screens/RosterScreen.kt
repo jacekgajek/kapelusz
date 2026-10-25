@@ -144,7 +144,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
 
-/** The band roster. Admins manage it here (roles, invites, links); others see it read-only. */
+/** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
 @Composable
 fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     val band = state.band
@@ -168,7 +168,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
     // Archived members below, in a section of their own: bands that change players collect many of them.
     val (archived, active) = band.members.partition { it.archived }
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    // Leads set default shares (ITERATION_4 §2.3); admins also manage the rest of a member in their dialog.
+    // Leads set default shares (ITERATION_4 §2.3); leaders also manage the rest of a member in their dialog.
     val canShare = can.setMemberShare()
     var sharing by remember { mutableStateOf<String?>(null) }
     // Everyone else gets a smaller dialog: the default share for leads, settling together (ITERATION_5 §7) for all.
@@ -332,7 +332,7 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
     }
 }
 
-/** A roster row; [moves] are the admin's up/down buttons (only for active members). */
+/** A roster row; [moves] are the leader's up/down buttons (only for active members). */
 @Composable
 private fun MemberRow(
     member: Member,
@@ -510,7 +510,7 @@ private fun MemberDialog(
                 if (member.userId != null && !isOwner && !isMe) {
                     OutlinedButton(onClick = { confirmUnlink = true }) { Text(stringResource(Res.string.unlink)) }
                 }
-                if (can.transferOwnership() && member.userId != null && member.role == Role.ADMIN) {
+                if (can.transferOwnership() && member.userId != null && member.role == Role.LEAD) {
                     OutlinedButton(onClick = { confirmOwner = true }) { Text(stringResource(Res.string.make_owner)) }
                 }
                 // Not yourself: an archived member can do nothing in the band, so you could not undo it (V5-M1 C5).

@@ -145,7 +145,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
         }
     }
 
-    // The band fund tab appears once someone holds the fund (admins choose the holder in Settings).
+    // The band fund tab appears once someone holds the fund (leaders choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null
     // Artists get their events and their costs only (ITERATION_4 §1.1).
     val artist = state.band.isArtist(state.userId)
@@ -211,8 +211,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     appSettings = settings,
                     onAppSettings = { change -> graph.settings.update(change) },
                     artist = artist,
-                    // The secret menu (ITERATION_2 §7.1), for admins of the band.
-                    rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.ADMIN) == true },
+                    // The secret menu (ITERATION_2 §7.1), for the band's leaders.
+                    rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.LEAD) == true },
                     calendar = { change -> if (change == null) graph.api.calendar() else graph.api.changeCalendar(change) },
                     agendaTemplate = state.band.effectiveAgendaTemplate,
                     agendaTemplateStored = state.band.agendaTemplate != null,

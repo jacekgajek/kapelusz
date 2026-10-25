@@ -75,7 +75,6 @@
     <string name="role_artist">Artysta</string>
     <string name="role_member">Członek</string>
     <string name="role_lead">Lider</string>
-    <string name="role_admin">Administrator</string>
     <string name="role_owner">Właściciel</string>
     <string name="source_tickets_online">Bilety online</string>
     <string name="source_door">Bilety na miejscu</string>
@@ -225,7 +224,6 @@
     <string name="reject_cost_refused">Ten koszt został odrzucony.</string>
     <string name="reject_cost_partly_refunded">Część tego kosztu jest już zwrócona, więc nie można go odrzucić.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
-    <string name="reject_ownership_needs_admin">Własność można przekazać tylko administratorowi z kontem w aplikacji.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>
     <string name="reject_user_already_member">To konto już należy do zespołu.</string>
     <string name="reject_member_has_history">Ten członek ma koszty lub wydarzenia. Zamiast tego go zarchiwizuj.</string>
@@ -294,17 +292,17 @@
     <string name="unlink">Odłącz konto</string>
     <string name="unlink_confirm">%1$s straci dostęp do zespołu do czasu ponownego zaproszenia. Koszty i historia zostają.</string>
     <string name="make_owner">Przekaż własność</string>
-    <string name="make_owner_confirm">%1$s przejmie rolę właściciela; Ty pozostaniesz administratorem.</string>
+    <string name="make_owner_confirm">%1$s przejmie rolę właściciela; Ty pozostaniesz liderem.</string>
     <string name="invite_code">Kod zaproszenia</string>
     <string name="check_code">Sprawdź</string>
     <string name="join">Dołącz</string>
-    <string name="join_hint">Wpisz 6-znakowy kod, który przysłał Ci administrator zespołu.</string>
+    <string name="join_hint">Wpisz 6-znakowy kod, który przysłał Ci lider zespołu.</string>
     <string name="join_preview">Dołączysz do zespołu %1$s jako %2$s (%3$s).</string>
     <string name="join_invalid_code">Ten kod jest nieprawidłowy. Może zawierać literówkę, został już użyty, unieważniony lub wygasł.</string>
     <string name="join_too_many_attempts">Zbyt wiele błędnych kodów. Spróbuj ponownie za godzinę.</string>
     <string name="join_already_member">Już należysz do tego zespołu.</string>
-    <string name="join_holds_money">Tego zaproszenia nie da się jeszcze użyć: wciąż trzymasz pieniądze zespołu. Poproś administratora o rozliczenie.</string>
-    <string name="join_still_plays">Tego zaproszenia nie da się jeszcze użyć: wciąż grasz w nierozliczonych wydarzeniach lub prowadzisz kasę zespołową. Poproś administratora o rozliczenie.</string>
+    <string name="join_holds_money">Tego zaproszenia nie da się jeszcze użyć: wciąż trzymasz pieniądze zespołu. Poproś lidera zespołu o rozliczenie.</string>
+    <string name="join_still_plays">Tego zaproszenia nie da się jeszcze użyć: wciąż grasz w nierozliczonych wydarzeniach lub prowadzisz kasę zespołową. Poproś lidera zespołu o rozliczenie.</string>
     <string name="join_failed">Nie udało się dołączyć. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="h_rename_band">Zmieniono nazwę zespołu na %1$s</string>
     <string name="h_add_member">Dodano członka: %1$s</string>
@@ -374,15 +372,14 @@
     <string name="previous_month">Poprzedni miesiąc</string>
     <string name="next_month">Następny miesiąc</string>
     <string name="change_own_role_title">Zmienić własną rolę?</string>
-    <string name="change_own_role_text">Twoja rola zmieni się na: %1$s i możesz stracić dostęp do tego ekranu. Przywrócić ją może tylko inny administrator lub właściciel.</string>
+    <string name="change_own_role_text">Twoja rola zmieni się na: %1$s i możesz stracić dostęp do tego ekranu. Przywrócić ją może tylko inny lider lub właściciel.</string>
     <string name="change_own_role_confirm">Zmień moją rolę</string>
     <string name="load_more">Pokaż więcej</string>
     <string name="role_desc_viewer">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Niczego nie zmienia. Dla menedżera, księgowego lub każdego, kto sprawdza, ale nie gra.</string>
     <string name="role_desc_artist">Widzi tylko wydarzenia, w których gra (szczegóły i skład), swoje koszty i to, ile ma otrzymać. Dodaje własne koszty, które lider uwzględnia lub odrzuca. Nigdy nie trzyma pieniędzy.</string>
     <string name="role_desc_member">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Dodaje i edytuje własne koszty, zapisuje pieniądze otrzymane przez siebie na wydarzeniach, w których gra, i rozlicza przekazania, w których płaci lub otrzymuje pieniądze.</string>
-    <string name="role_desc_lead">To samo co członek, a do tego: tworzy i edytuje wydarzenia, uczestników, gości i udziały, decyduje o zwrotach kosztów i kasie zespołowej, poprawia koszty i otrzymane pieniądze innych oraz rozlicza całe wydarzenia.</string>
-    <string name="role_desc_admin">To samo co lider, a do tego: zarządza składem zespołu, rolami i zaproszeniami, odłącza konta w aplikacji i wybiera, kto trzyma kasę zespołową.</string>
-    <string name="role_owner_note">Właściciel ma wszystkie uprawnienia administratora i jako jedyny może przekazać własność innemu administratorowi.</string>
+    <string name="role_desc_lead">To samo co członek, a do tego: tworzy i edytuje wydarzenia, uczestników, gości i udziały, decyduje o zwrotach kosztów i kasie zespołowej, poprawia koszty i otrzymane pieniądze innych, rozlicza całe wydarzenia, zarządza składem zespołu, rolami i zaproszeniami, odłącza konta w aplikacji i wybiera, kto trzyma kasę zespołową.</string>
+    <string name="role_owner_note">Właściciel ma wszystkie uprawnienia lidera i jako jedyny może przekazać własność innemu liderowi lub usunąć zespół.</string>
     <string name="role_read_only">Tylko do odczytu</string>
     <string name="copy_link">Kopiuj link</string>
     <string name="link_copied">Skopiowano link</string>
@@ -632,4 +629,9 @@
     <string name="event_link_copy">Kopiuj link</string>
     <string name="event_link_copied">Skopiowano link</string>
     <string name="event_link_offline">Nie udało się otworzyć wydarzenia: brak połączenia. Spróbuj ponownie, gdy będziesz online.</string>
+    <string name="reject_ownership_needs_leader">Własność można przekazać tylko liderowi z kontem w aplikacji.</string>
+    <string name="band_hint_no_members">Twój zespół nie ma jeszcze członków. Dodaj ich w ⚙ → Członkowie zespołu.</string>
+    <string name="band_hint_no_app">Nikt inny z zespołu nie korzysta jeszcze z aplikacji. Zaproś ich: ⚙ → Członkowie zespołu → członek → Utwórz kod zaproszenia.</string>
+    <string name="band_hint_open_roster">Członkowie zespołu</string>
+    <string name="band_hint_hide">Ukryj</string>
 </resources>

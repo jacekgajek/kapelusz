@@ -39,7 +39,7 @@ import com.jacekgajek.kapelusz.model.AgendaTime
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The agenda times new events get (admins, ITERATION_2 §4.1): rename, reorder, add, remove. Built-in entries keep
+ * The agenda times new events get (leaders, ITERATION_2 §4.1): rename, reorder, add, remove. Built-in entries keep
  * following the user's language until renamed. Changes apply to events created from now on.
  */
 @Composable

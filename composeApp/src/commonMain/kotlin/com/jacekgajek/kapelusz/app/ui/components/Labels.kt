@@ -35,7 +35,7 @@ import com.jacekgajek.kapelusz.app.generated.reject_not_a_participant
 import com.jacekgajek.kapelusz.app.generated.reject_not_found
 import com.jacekgajek.kapelusz.app.generated.reject_not_refundable_here
 import com.jacekgajek.kapelusz.app.generated.reject_owner_role_fixed
-import com.jacekgajek.kapelusz.app.generated.reject_ownership_needs_admin
+import com.jacekgajek.kapelusz.app.generated.reject_ownership_needs_leader
 import com.jacekgajek.kapelusz.app.generated.reject_participant_has_money
 import com.jacekgajek.kapelusz.app.generated.reject_participant_has_refunds
 import com.jacekgajek.kapelusz.app.generated.reject_participant_has_transfers
@@ -53,7 +53,6 @@ import com.jacekgajek.kapelusz.app.generated.reject_treasurer_must_stay
 import com.jacekgajek.kapelusz.app.generated.reject_user_already_member
 import com.jacekgajek.kapelusz.app.generated.reject_viewer_not_participant
 import com.jacekgajek.kapelusz.app.generated.reject_viewer_still_plays
-import com.jacekgajek.kapelusz.app.generated.role_admin
 import com.jacekgajek.kapelusz.app.generated.role_artist
 import com.jacekgajek.kapelusz.app.generated.role_lead
 import com.jacekgajek.kapelusz.app.generated.role_member
@@ -106,7 +105,6 @@ fun Role.label(): String = stringResource(
         Role.ARTIST -> Res.string.role_artist
         Role.MEMBER -> Res.string.role_member
         Role.LEAD -> Res.string.role_lead
-        Role.ADMIN -> Res.string.role_admin
         Role.OWNER -> Res.string.role_owner
     },
 )
@@ -138,7 +136,7 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.COST_REFUSED -> Res.string.reject_cost_refused
     RejectionReason.COST_PARTLY_REFUNDED -> Res.string.reject_cost_partly_refunded
     RejectionReason.OWNER_ROLE_FIXED -> Res.string.reject_owner_role_fixed
-    RejectionReason.OWNERSHIP_NEEDS_ADMIN -> Res.string.reject_ownership_needs_admin
+    RejectionReason.OWNERSHIP_NEEDS_LEADER -> Res.string.reject_ownership_needs_leader
     RejectionReason.MEMBER_LINKED -> Res.string.reject_member_linked
     RejectionReason.USER_ALREADY_MEMBER -> Res.string.reject_user_already_member
     RejectionReason.MEMBER_HAS_HISTORY -> Res.string.reject_member_has_history

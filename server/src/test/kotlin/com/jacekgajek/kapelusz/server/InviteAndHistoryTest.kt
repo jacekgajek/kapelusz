@@ -170,10 +170,10 @@ class InviteAndHistoryTest {
         val first = invite().parse(InviteInfo.serializer()).code
         call("POST", "/invites/$first/accept", "bob")
         // A leftover code for Bob's member (e.g. from a race) ...
-        val leftover = InviteInfo("QQQQQQ", "band1", "m-bob", Role.ADMIN, now + 1000)
+        val leftover = InviteInfo("QQQQQQ", "band1", "m-bob", Role.LEAD, now + 1000)
         store.put(StorageKeys.invite(leftover.code), KapeluszJson.encodeToString(StoredInvite.serializer(), StoredInvite(leftover, "alice")))
         store.put(StorageKeys.bandInvites("band1"), KapeluszJson.encodeToString(InviteCodes.serializer(), InviteCodes(listOf(leftover.code))))
-        // ... is cancelled when the admin unlinks Bob, so nobody can use it to get back in.
+        // ... is cancelled when the leader unlinks Bob, so nobody can use it to get back in.
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op9", "phone", 9, 9, UnlinkUser("m-bob"))))))
         assertEquals(404, call("POST", "/invites/QQQQQQ/accept", "mallory").status)
     }
@@ -182,10 +182,10 @@ class InviteAndHistoryTest {
     fun invitesDieWithTheirIssuersAdminRoleAndWithArchivedMembers() {
         setup()
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op2", "phone", 2, 2, AddMember("m-carol", "Carol"))))))
-        // Carol becomes an admin and issues an invite for Bob, then loses the admin role.
+        // Carol becomes a leader and issues an invite for Bob, then loses the leader role.
         val carolCode = invite(memberId = "m-carol").parse(InviteInfo.serializer()).code
         call("POST", "/invites/$carolCode/accept", "carol")
-        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op3", "phone", 3, 3, SetMemberRole("m-carol", Role.ADMIN))))))
+        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op3", "phone", 3, 3, SetMemberRole("m-carol", Role.LEAD))))))
         val bobCode = invite(by = "carol").parse(InviteInfo.serializer()).code
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op4", "phone", 4, 4, SetMemberRole("m-carol", Role.MEMBER))))))
         assertEquals(404, call("POST", "/invites/$bobCode/accept", "bob").status)

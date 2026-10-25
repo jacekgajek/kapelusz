@@ -88,7 +88,7 @@ private fun ReminderChecks(checks: ReminderDiagnostics) {
     testAt?.let { Text(stringResource(Res.string.diag_test_set, it), style = MaterialTheme.typography.bodySmall) }
 }
 
-/** Tools for admins: copy the band's raw data, e.g. to look into a problem. */
+/** Tools for leaders: copy the band's raw data, e.g. to look into a problem. */
 @Composable
 internal fun SecretMenuDialog(rawData: suspend () -> String, onDismiss: () -> Unit) {
     val copy = rememberCopy()

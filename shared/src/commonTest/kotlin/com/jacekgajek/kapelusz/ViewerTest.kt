@@ -46,10 +46,10 @@ class ViewerTest {
         assertEquals(RejectionReason.VIEWER_STILL_PLAYS, scenario.rejected(SetMemberRole("carol", Role.VIEWER)).reason, "the fund holder")
     }
 
-    /** V5-M1 B3a: ownership never goes to an archived admin. */
+    /** V5-M1 B3a: ownership never goes to an archived leader. */
     @Test
     fun noArchivedOwner() {
-        val scenario = Scenario("Alice", "Bob").apply(LinkUser("bob", "user-bob", Role.ADMIN)).apply(SetMemberArchived("bob", true))
+        val scenario = Scenario("Alice", "Bob").apply(LinkUser("bob", "user-bob", Role.LEAD)).apply(SetMemberArchived("bob", true))
         assertEquals(RejectionReason.ARCHIVED_MEMBER, scenario.rejected(TransferOwnership("bob")).reason)
     }
 

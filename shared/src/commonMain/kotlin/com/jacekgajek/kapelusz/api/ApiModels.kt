@@ -165,7 +165,7 @@ data class AttachmentUrlResponse(val url: String)
 @Serializable
 data class CreateInviteRequest(val memberId: Id, val role: Role)
 
-/** An active invite code; only band admins see these. */
+/** An active invite code; only band leaders see these. */
 @Serializable
 data class InviteInfo(val code: String, val bandId: Id, val memberId: Id, val role: Role, val expiresAt: Long)
 

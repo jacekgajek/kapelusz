@@ -47,8 +47,9 @@ class CanTest {
 
         assertTrue(member.addCost())
         assertFalse(viewer.addCost())
-        assertFalse(lead.manageRoster())
-        assertTrue(Can(band, "u-owner").manageRoster())
+        assertTrue(lead.manageRoster(), "leaders manage the band's members (ITERATION_5 §11)")
+        assertFalse(member.manageRoster())
+        assertFalse(lead.transferOwnership())
         assertTrue(Can(band, "u-owner").transferOwnership())
     }
 
