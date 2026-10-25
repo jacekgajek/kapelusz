@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -327,9 +326,7 @@ private fun ExistingRow(icon: ImageVector, title: String, subtitle: String?, amo
     ) {
         // Dimmed when it has no room, but not why (under the name): that is the point of showing it.
         val dim = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)
-        Box(dim.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        IconCircle(icon, dim)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(title, dim, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val second = problem ?: subtitle?.takeIf { it.isNotEmpty() }

@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.FilterChipDefaults
+import com.jacekgajek.kapelusz.app.ui.components.icon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,7 +65,6 @@ import com.jacekgajek.kapelusz.app.generated.cost_not_found
 import com.jacekgajek.kapelusz.app.generated.paid_by
 import com.jacekgajek.kapelusz.app.generated.paid_by_name
 import com.jacekgajek.kapelusz.app.generated.save
-import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
@@ -79,7 +81,6 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
-import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
@@ -239,6 +240,8 @@ fun CostScreen(
                             selected = category == option,
                             onClick = { if (editable) category = if (category == option) null else option },
                             label = { Text(option.label()) },
+                            // Kept when selected (the chip's fill says so): the same icon as in the lists (ITERATION_6 §4).
+                            leadingIcon = { Icon(option.icon(), null, Modifier.size(FilterChipDefaults.IconSize)) },
                         )
                     }
                 }

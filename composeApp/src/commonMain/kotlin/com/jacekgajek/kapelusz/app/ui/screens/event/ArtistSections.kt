@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +43,6 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
-import com.jacekgajek.kapelusz.app.ui.screens.labelRes
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.Cost
@@ -107,6 +107,7 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
             Modifier.fillMaxWidth().clickable { if (status == CostStatus.REFUSED) asking = cost else onOpenCost(cost.id) }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            CostIcon(cost, Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost))
                 Text(formatDate(cost.date, language), style = MaterialTheme.typography.bodySmall)
