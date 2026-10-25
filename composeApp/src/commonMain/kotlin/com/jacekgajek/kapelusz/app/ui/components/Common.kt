@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.material.icons.filled.VisibilityOff
+import com.jacekgajek.kapelusz.app.generated.name_taken
 import org.jetbrains.compose.resources.StringResource
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.Settlement
@@ -211,6 +213,26 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
     }
 }
 
+/**
+ * In place of the avatar of someone who can't see the band (ITERATION_5 §12): a guest, or a member without an app
+ * account. Described for screen readers when [description] is given (when it can be tapped).
+ */
+@Composable
+fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) {
+    Box(
+        Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+            .clearAndSetSemantics { if (description != null) contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Default.VisibilityOff, null, Modifier.size(size * 0.6f), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A member's name is free: null, or why not (a member already has it; ITERATION_5 §12). */
+@Composable
+fun nameTakenError(band: Band, name: String, except: String? = null): String? =
+    band.memberNamed(name, except)?.takeIf { name.isNotBlank() }?.let { stringResource(Res.string.name_taken, it.name) }
+
 /** Decimal input for amounts; [onValid] receives the parsed amount or null when the text is not a valid amount. */
 @Composable
 fun MoneyField(
@@ -264,20 +286,36 @@ fun ConfirmDialog(title: String, text: String?, confirmLabel: String, onConfirm:
     )
 }
 
-/** Dialog with a single text field, e.g. for names. */
+/** Dialog with a single text field, e.g. for names; [error] says why a text can't be taken (e.g. a name in use). */
 @Composable
-fun TextInputDialog(title: String, label: String, initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+fun TextInputDialog(
+    title: String,
+    label: String,
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+    error: @Composable (String) -> String? = { null },
+) {
     var text by remember { mutableStateOf(initial) }
+    val problem = error(text)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column {
-                OutlinedTextField(text, { text = it }, label = { Text(label) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    text,
+                    { text = it },
+                    label = { Text(label) },
+                    singleLine = true,
+                    isError = problem != null,
+                    supportingText = problem?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
         confirmButton = {
-            TextButton(enabled = text.isNotBlank(), onClick = { onConfirm(text.trim()); onDismiss() }) {
+            TextButton(enabled = text.isNotBlank() && problem == null, onClick = { onConfirm(text.trim()); onDismiss() }) {
                 Text(stringResource(Res.string.ok))
             }
         },

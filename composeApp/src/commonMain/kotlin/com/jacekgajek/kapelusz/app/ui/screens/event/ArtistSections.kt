@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -59,7 +60,8 @@ fun ArtistLineup(context: EventContext) {
     event.participants.forEach { participant ->
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Avatar(name, context.band.member(participant.partyId)?.pictureUrl, decorative = true)
+            val member = context.band.member(participant.partyId)
+            if (member?.userId == null) NotInAppIcon() else Avatar(name, member.pictureUrl, decorative = true)
             Text(name)
         }
     }

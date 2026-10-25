@@ -460,6 +460,11 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 - [x] Grill (2026-10-24)
 - [x] Implement: `/e/<eventId>` in shared texts, the calendar and Copy link; opened on Android (App Link) and the web
 
+### V5-M8 — Invite from the event, unique names, guests apart (§12)
+
+- [x] Grill (2026-10-25)
+- [x] Implement
+
 ### Later
 
 - [x] Consider one "Leader" role instead of Admin and Lead: in practice a band's leader is its admin (2026-10-24; done
@@ -486,6 +491,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-24 | Event links (§10) carry only the event id: ids are unique across bands, so the app finds the band itself and the link reveals nothing about it. |
 | 2026-10-24 | Pull requests' CI runs the tests only; the optimised release builds (R8, wasm-opt, about 5 of 9 minutes) run on main after the merge, before the deploy, which waits for them. A failure only they show now breaks main instead of a pull request (was ITERATION_3 R11: before a merge). |
 | 2026-10-25 | Admin merged into Lead, shown as "Leader": a band's leader is its admin. No band had an Admin, so "ADMIN" is dropped, not mapped. |
+| 2026-10-25 | Member names are unique (ignoring case, archived members included); duplicates from before stay. A guest with a member's name is only warned about: a different person may share it. |
 | 2026-10-25 | The deploy is a job of CI, after the tests on main, and builds the signed release artefacts once (CI's "Build" step, a rehearsal of the same builds, is gone; so is the separate Deploy workflow). A failure only the release builds show fails the deploy before anything is uploaded. Version codes are CI's run numbers (higher than the Deploy workflow's, so they only went up). |
 
 ## 7. V5-M3 — Settling together (grilled 2026-10-24)
@@ -629,3 +635,18 @@ shared info) opens Google Maps directions to that text, which takes an address o
     members → a member → Create invite code." With "Hide", remembered for that band on this device: some bands are
     kept by one person.
   Both go once resolved.
+
+## 12. V5-M8 — Invite from the event, unique names, guests apart (grilled 2026-10-25)
+
+- **Not in the app:** a crossed eye ("visibility off") in place of the avatar for whoever can't see the band: guests,
+  and members without an app account, on an event's participants (the artists' lineup too) and on Band members.
+- **Tapping it (or the name), for leaders:** "Ola cannot see the band. Do you want to invite them?". For a guest (no note
+  about other events, where the same person stays a guest: it doesn't matter in practice), Invite promotes the guest (this event's share,
+  money and transfers move to the new member), waits until the server has it, then opens Band members at the new
+  member, where the role is chosen and the code created. A member without the app: straight to that.
+- **Unique member names,** ignoring letter case and surrounding spaces, archived members included: adding or renaming
+  a member, and promoting a guest, say so next to the name field ("Ola is already a band member. Choose another name,
+  e.g. with an initial."); the server refuses it too. Duplicates from before stay.
+- **A guest named like a member:** "Ola is a band member. Add them as a participant instead?" with that button; "Add as
+  guest anyway" still possible.
+- **Guests apart:** an event's participants list members, then under "Guests" ("Gościnnie") its guests.

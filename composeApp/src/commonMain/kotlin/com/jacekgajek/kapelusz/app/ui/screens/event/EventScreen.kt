@@ -121,6 +121,8 @@ class EventContext(
     val me: Member?,
     val actions: Actions,
     val can: Can,
+    /** Opens Band members at [memberId]'s dialog, to invite them (ITERATION_5 §12). */
+    val onInviteMember: (memberId: String) -> Unit = {},
 ) {
     val currency: String get() = band.currency
 }
@@ -133,6 +135,7 @@ fun EventScreen(
     onBack: () -> Unit,
     onAddCost: (eventId: String) -> Unit = {},
     onOpenCost: (costId: String) -> Unit = {},
+    onInviteMember: (memberId: String) -> Unit = {},
 ) {
     val snackbar = remember { SnackbarHostState() }
     val undos = remember { UndoStack() }
@@ -192,7 +195,7 @@ fun EventScreen(
             }
             return@Scaffold
         }
-        val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId))
+        val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId), onInviteMember)
         val shareInfo = rememberShareInfo(state.band, event, snackbar)
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
             EventTabs(tabs, pagerState)
