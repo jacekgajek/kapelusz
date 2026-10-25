@@ -221,11 +221,6 @@ object Reducer {
             is AddCost -> addCost(band, op, ctx)
             is UpdateCost -> updateCost(band, op, ctx)
             is DeleteCost -> deleteCost(band, op, ctx)
-            is RefuseCost -> {
-                val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
-                conflictIf(CostLedger.refunded(band, cost.id).isPositive, RejectionReason.COST_PARTLY_REFUNDED) { "Part of the cost is already refunded" }
-                band.updateCost(cost.id) { it.copy(refused = true) }
-            }
             is AddAttachment -> band.updateAttachments(op.owner) { attachments ->
                 val max = if (op.owner is AttachmentOwner.OfEvent) MAX_EVENT_ATTACHMENTS else MAX_ATTACHMENTS
                 invalidIf(attachments.size >= max, RejectionReason.TOO_MANY_ATTACHMENTS) { "At most $max attachments here" }
@@ -479,7 +474,6 @@ object Reducer {
             invalidIf(op.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "Refund cannot be negative" }
             if (op.amount.isZero) return@updateEvent event.copy(refunds = event.refunds.filterNot { it.costId == cost.id })
             invalidIf(!CostLedger.isRefundableAt(cost, event), RejectionReason.NOT_REFUNDABLE_HERE) { "Costs can only be refunded at events their owner takes part in" }
-            conflictIf(cost.refused, RejectionReason.COST_REFUSED) { "The cost was refused" }
             val max = CostLedger.maxRefundAt(band, cost, event)
             invalidIf(op.amount > max, RejectionReason.REFUND_TOO_LARGE) { "Refund ${op.amount} exceeds outstanding $max" }
             val refunds = if (event.refundOf(cost.id) != null) {
@@ -498,7 +492,6 @@ object Reducer {
         op.costId?.let { costId ->
             val cost = band.cost(costId).orNotFound { "Cost $costId" }
             invalidIf(!op.amount.isNegative, RejectionReason.INVALID_AMOUNT) { "A cost refund from the fund must be negative" }
-            conflictIf(cost.refused, RejectionReason.COST_REFUSED) { "The cost was refused" }
             invalidIf(-op.amount > CostLedger.outstanding(band, cost), RejectionReason.REFUND_TOO_LARGE) { "Refund exceeds the outstanding amount" }
         }
         return band.copy(fundEntries = band.fundEntries + FundEntry(op.entryId, op.date, op.description.validName("Description"), op.amount, op.costId))
@@ -612,8 +605,6 @@ object Reducer {
                 eventId = if (op.incurredForEventId != null) op.incurredForEventId.value else it.eventId,
                 category = if (op.category != null) op.category.value else it.category,
                 description = if (op.description != null) op.description.value.blankToNull() else it.description,
-                // Its owner resubmits a refused cost by editing it (ITERATION_4 §1.2); nobody else can.
-                refused = it.refused && !(op.resubmit && ctx.memberId == it.memberId),
             )
         }
         // A refund that covered the whole remainder at the cost's own event keeps covering it (not when the cost moves
@@ -670,13 +661,13 @@ object Reducer {
     /**
      * A cost a lead enters (theirs or anyone's) for an event is included there in full, while the event is still open
      * (ITERATION_3 R2): once money moved (transfers recorded) or it is archived, refunds are decided one by one. Costs
-     * others enter wait for a lead's Include or Refuse (ITERATION_4 §1.2).
+     * others enter wait for a lead's Refund here (ITERATION_4 §1.2).
      */
     private fun includeByLead(band: Band, eventId: Id, costId: Id, ctx: OpContext): Band {
         if (!isLead(band, ctx)) return band
         val event = band.event(eventId) ?: return band
         val cost = band.cost(costId) ?: return band
-        if (cost.refused || event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band
+        if (event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band
         val amount = CostLedger.outstanding(band, cost).takeIf { it.isPositive } ?: return band
         return band.updateEvent(eventId) { it.copy(refunds = it.refunds + Refund(cost.id, amount), updatedAt = ctx.timestamp) }
     }

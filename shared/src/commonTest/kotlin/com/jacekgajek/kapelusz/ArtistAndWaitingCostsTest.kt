@@ -19,7 +19,6 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.SetMemberRole
@@ -33,8 +32,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** ITERATION_4 §1.1 (artists) and §1.2 (costs wait for a lead: Include or Refuse). */
-class ArtistAndRefuseTest {
+/** ITERATION_4 §1.1 (artists) and §1.2 (costs wait for a lead's Refund here). */
+class ArtistAndWaitingCostsTest {
 
     private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
 
@@ -67,40 +66,6 @@ class ArtistAndRefuseTest {
         assertTrue(scenario.band.event("gig")!!.refunds.isEmpty())
         scenario.event("later", "Alice").apply(AddParticipant("later", "bob"))
         assertTrue(scenario.band.event("later")!!.refunds.isEmpty())
-    }
-
-    @Test
-    fun aRefusedCostWaitsNowhereUntilItsOwnerResubmitsIt() {
-        val scenario = gig()
-        val bob = scenario.userFor("bob", Role.MEMBER)
-        val alice = scenario.userFor("alice", Role.OWNER)
-        scenario.apply(SetTreasurer("alice"))
-        scenario.apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"), bob)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RefuseCost("c"), bob).reason, "only leads refuse")
-        scenario.apply(RefuseCost("c"), alice)
-
-        val event = scenario.band.event("gig")!!
-        assertTrue(CostLedger.pendingFromEarlier(scenario.band, event).isEmpty())
-        assertEquals(CostStatus.REFUSED, CostLedger.status(scenario.band, scenario.band.cost("c")!!))
-        assertEquals(Money.ZERO, CostStatuses(scenario.band).unpaid(scenario.band.cost("c")!!), "not expected back")
-        assertEquals(RejectionReason.COST_REFUSED, scenario.rejected(SetRefund("gig", "c", pln("40")), alice).reason)
-        assertEquals(RejectionReason.COST_REFUSED, scenario.rejected(AddFundEntry("f", DATE, "refund", pln("-40"), "c"), alice).reason)
-
-        // A lead's edit keeps it refused (even saying "resubmit"); the owner's resubmit brings it back.
-        scenario.apply(UpdateCost("c", description = Change("Strings"), resubmit = true), alice)
-        assertTrue(scenario.band.cost("c")!!.refused)
-        scenario.apply(UpdateCost("c", description = Change("Strings!")), bob)
-        assertTrue(scenario.band.cost("c")!!.refused, "an edit is not a resubmit")
-        scenario.apply(UpdateCost("c", resubmit = true), bob)
-        assertFalse(scenario.band.cost("c")!!.refused)
-        assertEquals(listOf("c"), CostLedger.pendingFromEarlier(scenario.band, scenario.band.event("gig")!!).map { it.id })
-    }
-
-    @Test
-    fun onlyACostWithNothingRefundedCanBeRefused() {
-        val scenario = gig()
-        scenario.apply(AddCost("c", "bob", pln("40"), DATE)).apply(SetRefund("gig", "c", pln("10")))
-        assertEquals(RejectionReason.COST_PARTLY_REFUNDED, scenario.rejected(RefuseCost("c")).reason)
     }
 
     @Test
@@ -152,19 +117,7 @@ class ArtistAndRefuseTest {
         val gig = scenario.band.event("gig")!!
         assertEquals(pln("30"), gig.refundOf("c")!!.amount, "the rest waits for a lead")
         assertEquals(listOf("c"), CostLedger.pendingFromEarlier(scenario.band, gig).map { it.id }, "in this event's Waiting list")
-        assertEquals(pln("400"), CostLedger.maxRefundAt(scenario.band, scenario.band.cost("c")!!, gig), "what Include sets")
-    }
-
-    @Test
-    fun undoCannotRefundARefusedCost() {
-        val scenario = gig()
-        scenario.apply(AddCost("c", "bob", pln("40"), DATE)).apply(SetRefund("gig", "c", pln("40")))
-        val removeRefund = SetRefund("gig", "c", pln("0"))
-        val beforeRemove = scenario.band
-        scenario.apply(removeRefund)
-        val undoRemove = Undo("u1", removeRefund, BandChange.between(beforeRemove, scenario.band))
-        scenario.apply(RefuseCost("c"))
-        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoRemove).reason)
+        assertEquals(pln("400"), CostLedger.maxRefundAt(scenario.band, scenario.band.cost("c")!!, gig), "what Refund here sets")
     }
 
     /** An artist who ends up owing (overpaid, or owing from before) is settled by a lead; they can't do it themselves. */
@@ -192,12 +145,5 @@ class ArtistAndRefuseTest {
         val photo = Attachment("a", AttachmentKind.IMAGE, sizeBytes = 100)
         scenario.apply(AddAttachment("own", photo), carol).apply(RemoveAttachment("own", "a"), carol)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddAttachment("bobs", photo), carol).reason)
-    }
-
-    @Test
-    fun aRefundFromTheFundCountsAgainstRefusing() {
-        val scenario = gig().apply(SetTreasurer("alice")).apply(AddCost("c", "bob", pln("40"), DATE))
-            .apply(AddFundEntry("f", DATE, "refund", pln("-10"), "c"))
-        assertEquals(RejectionReason.COST_PARTLY_REFUNDED, scenario.rejected(RefuseCost("c")).reason)
     }
 }

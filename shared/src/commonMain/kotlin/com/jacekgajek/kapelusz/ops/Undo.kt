@@ -173,8 +173,6 @@ internal object Undoing {
             if (CostLedger.outstanding(band, cost).isNegative) add("cost ${cost.id} refunded more than its amount")
         }
         band.fundEntries.forEach { entry -> entry.costId?.let { if (it !in costs) add("cost of fund entry ${entry.id}") } }
-        // ITERATION_4 §1.2: a refused cost is refunded nowhere.
-        band.costs.filter { it.refused && CostLedger.refunded(band, it.id).isPositive }.forEach { add("refused cost ${it.id} refunded") }
     }
 
     /**

@@ -91,8 +91,11 @@ form (a pencil says so); Back returns to the event. Above the amount: "How much 
 this event?"
 
 **Waiting costs** (the Money page) read as a choice to make, so "not now" became Refuse. Now: under "Waiting", "Not
-refunded yet. Refund one here, or leave it for a later event."; one button, Refund here (was Include); Edit and Refuse
-in the row's ⋮, Refuse confirmed ("It won't be refunded at any event. Bob can edit it and submit it again."), Undo kept.
+refunded yet. Refund one here, or leave it for a later event."; one button, Refund here (was Include); a pencil opens the cost's form.
+
+**Refuse is gone** (with the Refused status, resubmitting, and the refused-cost dialog in My costs and an artist's
+costs): whether a cost is paid back is talked over in person, not a formal step in the app. A cost no one should repay
+is deleted or edited by its owner or a lead; one left alone simply waits.
 
 ## 6. Milestones and task checklist
 
@@ -118,3 +121,4 @@ in the row's ⋮, Refuse confirmed ("It won't be refunded at any event. Bob can 
 - 2026-10-25: Link cards name the event although anyone with the link sees them: the name and date say little.
 - 2026-10-25: Invite cards stay generic (Q11 changed after review): a band's name would confirm guessed codes.
 - 2026-10-25: Guests can't become members any more (§5); duplicate member names stay refused: rows show only names.
+- 2026-10-25: Refusing costs removed (§5): a conversation, not a procedure; it also simplifies My costs.

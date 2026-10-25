@@ -118,7 +118,7 @@ fun CollectedSection(context: EventContext) {
             if (context.can.editHolding(event, holding)) EditButton { editing = holding }
         }
         // A fee the organiser still owes (ITERATION_4 §2.2): paid (whoever got it takes it over), or never paid (it goes).
-        // Laid out like Include / Refuse under a waiting cost.
+        // Laid out like Refund here under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 if (context.can.editHolding(event, holding)) TextButton(onClick = { welching = holding }) {

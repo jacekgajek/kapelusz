@@ -35,16 +35,13 @@ import com.jacekgajek.kapelusz.app.generated.refund_max
 import com.jacekgajek.kapelusz.app.generated.refund_of
 import com.jacekgajek.kapelusz.app.generated.refunds
 import com.jacekgajek.kapelusz.app.generated.refunds_empty
-import com.jacekgajek.kapelusz.app.generated.refuse
-import com.jacekgajek.kapelusz.app.generated.cost_refused
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.generated.refund_amount_here
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Tune
+import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import androidx.compose.runtime.key
-import com.jacekgajek.kapelusz.app.generated.refuse_cost_text
-import com.jacekgajek.kapelusz.app.generated.refuse_cost_title
 import com.jacekgajek.kapelusz.app.generated.refund_here
 import com.jacekgajek.kapelusz.app.generated.pending_hint
 import com.jacekgajek.kapelusz.app.generated.edit
@@ -73,12 +70,10 @@ import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.model.Role
 import androidx.compose.ui.graphics.Color
-import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.SetRefund
 import org.jetbrains.compose.resources.stringResource
 
@@ -91,12 +86,12 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     val canEdit = context.can.editRefunds(event)
     val pending = if (canEdit) CostLedger.pendingFromEarlier(band, event) else emptyList()
     // Someone who cannot include costs still sees their own waiting here, so a cost they just added does not seem
-    // lost (and is not added twice); a refused one too, to send again.
+    // lost (and is not added twice).
     val me = context.me
-    // Not on an archived event (nothing is refunded there any more), nor for viewers (they have no costs to send again).
+    // Not on an archived event (nothing is refunded there any more), nor for viewers (they have no costs).
     val mine = if (canEdit || me == null || me.role == Role.VIEWER || event.archived) emptyList() else {
-        // Also ones added for this event that cannot be refunded here (their owner does not take part), or refused.
-        val forThisEvent = band.costs.filter { it.eventId == event.id && (it.refused || CostLedger.outstanding(band, it).isPositive) }
+        // Also ones added for this event that cannot be refunded here (their owner does not take part).
+        val forThisEvent = band.costs.filter { it.eventId == event.id && CostLedger.outstanding(band, it).isPositive }
         (CostLedger.pendingFromEarlier(band, event) + forThisEvent).distinct().filter { it.memberId == me.id }
             .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
     }
@@ -131,16 +126,16 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     }
     if (pending.isNotEmpty()) {
         Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
-        // Leaving one is a choice too: it waits for a later event (Refuse is tucked away in the menu).
+        // Leaving one is a choice too: it waits for a later event.
         Text(stringResource(Res.string.pending_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        // Keyed: the menu and its Refuse dialog stay with their cost when the list changes meanwhile.
         pending.forEach { cost -> key(cost.id) {
             val outstanding = CostLedger.outstanding(band, cost)
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CostDescription(context, cost, Modifier.weight(1f))
                     MoneyText(outstanding, context.currency, Modifier.padding(start = 8.dp))
-                    PendingCostMenu(context, cost, outstanding, onOpenCost)
+                    // The cost itself, in its own form; Back comes to the event.
+                    EditButton(cost.description) { onOpenCost(cost.id) }
                 }
                 CostFiles(context, cost)
                 // Adds the rest to what this event already refunds of it, if anything.
@@ -160,49 +155,6 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     }
 
     editing?.let { cost -> RefundDialog(context, cost, onOpenCost, onDismiss = { editing = null }) }
-}
-
-/**
- * A waiting cost's ⋮: Edit (its form), and Refuse for good (ITERATION_4 §1.2; only a cost with nothing refunded yet),
- * confirmed first, as it is easily taken for "not now".
- */
-@Composable
-private fun PendingCostMenu(context: EventContext, cost: Cost, outstanding: Money, onOpenCost: (String) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    var confirmRefuse by remember { mutableStateOf(false) }
-    val band = context.band
-    val who = band.member(cost.memberId)?.name ?: "?"
-    val amount = formatMoney(cost.amount, context.currency, language)
-    val refusable = context.can.refuseCost() && outstanding == cost.amount
-    Box {
-        val more = stringResource(Res.string.more)
-        IconButton(onClick = { open = true }) { Icon(Icons.Default.MoreVert, cost.description?.takeIf { it.isNotBlank() }?.let { "$more: $it" } ?: more) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.edit)) },
-                leadingIcon = { Icon(Icons.Default.Edit, null) },
-                onClick = { open = false; onOpenCost(cost.id) },
-            )
-            if (refusable) DropdownMenuItem(
-                text = { Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error) },
-                leadingIcon = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
-                onClick = { open = false; confirmRefuse = true },
-            )
-        }
-    }
-    // Refunded meanwhile (or refused by someone else): no longer to refuse.
-    if (confirmRefuse && !refusable) LaunchedEffect(Unit) { confirmRefuse = false }
-    if (confirmRefuse && refusable) {
-        // With Undo in the snackbar too (ITERATION_5 §2): it sends the cost back, it takes no money.
-        val refused = stringResource(Res.string.cost_refused, who, amount)
-        ConfirmDialog(
-            title = stringResource(Res.string.refuse_cost_title, who, amount),
-            text = stringResource(Res.string.refuse_cost_text, who),
-            confirmLabel = stringResource(Res.string.refuse),
-            onConfirm = { context.actions.runWithUndo(RefuseCost(cost.id), refused) },
-            onDismiss = { confirmRefuse = false },
-        )
-    }
 }
 
 @Composable
@@ -274,33 +226,26 @@ private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (Strin
     )
 }
 
-/** The viewer's own costs that wait for a lead to include them here, or were refused; read only, opened on tap. */
+/** The viewer's own costs that wait for a lead to refund them here; read only, opened on tap. */
 @Composable
 private fun MyWaitingCosts(context: EventContext, costs: List<Cost>, onOpenCost: (String) -> Unit) {
     val band = context.band
     val statuses = remember(band) { CostStatuses(band) }
-    var asking by remember { mutableStateOf<Cost?>(null) }
     Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
     costs.forEach { cost ->
         val status = statuses.status(cost)
-        val refused = status == CostStatus.REFUSED
         Row(
-            Modifier.fillMaxWidth().clickable { if (refused) asking = cost else onOpenCost(cost.id) }.padding(vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable { onOpenCost(cost.id) }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CostDescription(context, cost, Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
-                MoneyText(if (refused) cost.amount else CostLedger.outstanding(band, cost), context.currency)
-                Text(
-                    costStatusText(band, cost, status),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (refused) MaterialTheme.colorScheme.error else Color.Unspecified,
-                )
+                MoneyText(CostLedger.outstanding(band, cost), context.currency)
+                Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
             }
         }
         CostFiles(context, cost)
     }
-    asking?.let { cost -> RefusedCostDialog(cost, context.actions, onEdit = { onOpenCost(cost.id) }, onDismiss = { asking = null }) }
 }
 
 /**

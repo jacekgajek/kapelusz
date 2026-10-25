@@ -53,7 +53,6 @@ import com.jacekgajek.kapelusz.app.generated.cost_approved_part
 import com.jacekgajek.kapelusz.app.generated.cost_status_partly
 import com.jacekgajek.kapelusz.app.generated.cost_status_pending
 import com.jacekgajek.kapelusz.app.generated.cost_status_refunded
-import com.jacekgajek.kapelusz.app.generated.cost_status_refused
 import com.jacekgajek.kapelusz.app.generated.costs_empty
 import com.jacekgajek.kapelusz.app.generated.costs_none
 import com.jacekgajek.kapelusz.app.generated.costs_none_everyone
@@ -66,10 +65,6 @@ import com.jacekgajek.kapelusz.app.generated.filter_all_members
 import com.jacekgajek.kapelusz.app.generated.filter_mine
 import com.jacekgajek.kapelusz.app.generated.filter_pending
 import com.jacekgajek.kapelusz.app.generated.filter_refunded
-import com.jacekgajek.kapelusz.app.generated.refused_cost_nothing
-import com.jacekgajek.kapelusz.app.generated.refused_cost_resubmit
-import com.jacekgajek.kapelusz.app.generated.refused_cost_text
-import com.jacekgajek.kapelusz.app.generated.refused_cost_title
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
@@ -94,7 +89,6 @@ import org.jetbrains.compose.resources.stringResource
 fun CostStatus.labelRes(): StringResource = when (this) {
     // Not included anywhere yet, or included in an event not settled yet: either way the owner waits (ITERATION_4 §1.2).
     CostStatus.PENDING, CostStatus.REFUND_PLANNED -> Res.string.cost_status_pending
-    CostStatus.REFUSED -> Res.string.cost_status_refused
     CostStatus.PARTLY_REFUNDED -> Res.string.cost_status_partly
     CostStatus.REFUNDED -> Res.string.cost_status_refunded
 }
@@ -144,8 +138,6 @@ fun MyCostsScreen(
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
     val can = Can(band, state.userId)
-    var asking by remember { mutableStateOf<Cost?>(null) }
-    var deleting by remember { mutableStateOf<Cost?>(null) }
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
     // A viewer sees everything, costs included, and has none of their own to switch to.
@@ -211,8 +203,7 @@ fun MyCostsScreen(
             }
             items(shown, key = { it.id }) { cost ->
                 val status = statuses.status(cost)
-                val ownRefused = status == CostStatus.REFUSED && cost.memberId == state.me?.id
-                Card(onClick = { if (ownRefused) asking = cost else onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
+                Card(onClick = { onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         CostIcon(cost, Modifier.padding(end = 12.dp))
                         Column(Modifier.weight(1f)) {
@@ -228,49 +219,11 @@ fun MyCostsScreen(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             MoneyText(cost.amount, band.currency, bold = true)
-                            Text(
-                                costStatusText(band, cost, status),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
-                            )
-                        }
-                        // A refused cost goes from the list (ITERATION_4 §1.2), once confirmed: artists have no History to undo it.
-                        if (ownRefused && can.allowed(DeleteCost(cost.id))) {
-                            IconButton(onClick = { deleting = cost }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
+                            Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
         }
     }
-    asking?.let { cost -> RefusedCostDialog(cost, actions, onEdit = { onOpenCost(cost.id) }, onDismiss = { asking = null }) }
-    deleting?.let { cost ->
-        ConfirmDialog(
-            title = stringResource(Res.string.delete_cost_title),
-            text = cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost),
-            confirmLabel = stringResource(Res.string.delete),
-            onConfirm = { actions.run(DeleteCost(cost.id)) },
-            onDismiss = { deleting = null },
-        )
-    }
-}
-
-/**
- * The owner opening a refused cost is asked first (ITERATION_4 §1.2): edit it (saving resubmits it to the leads), delete
- * it, or leave it.
- */
-@Composable
-fun RefusedCostDialog(cost: Cost, actions: Actions, onEdit: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.refused_cost_title)) },
-        text = { Text(stringResource(Res.string.refused_cost_text)) },
-        confirmButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                TextButton(onClick = { onDismiss(); onEdit() }) { Text(stringResource(Res.string.refused_cost_resubmit)) }
-                TextButton(onClick = { onDismiss(); actions.run(DeleteCost(cost.id)) }) { Text(stringResource(Res.string.delete)) }
-                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.refused_cost_nothing)) }
-            }
-        },
-    )
 }

@@ -10,10 +10,6 @@
     <string name="tab_gig">Gig</string>
     <string name="tab_money">Money</string>
     <string name="tab_settlement">Settlement</string>
-    <string name="refused_cost_title">This cost was refused</string>
-    <string name="refused_cost_text">What do you want to do?</string>
-    <string name="refused_cost_resubmit">Edit and resubmit</string>
-    <string name="refused_cost_nothing">Nothing</string>
     <string name="artist_payout">Your payout</string>
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
@@ -108,7 +104,6 @@
     <string name="copy_failed">Could not copy.</string>
     <string name="undo_too_late">Already sent; undo it from the history.</string>
     <string name="attachment_removed">Removed %1$s</string>
-    <string name="cost_refused">Refused %1$s’s cost of %2$s</string>
     <string name="more">More</string>
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>
@@ -145,9 +140,6 @@
     <string name="pending_from_earlier">Waiting</string>
     <string name="refund_here">Refund here</string>
     <string name="pending_hint">Not refunded yet. Refund them here, or leave them for a later event.</string>
-    <string name="refuse_cost_title">Refuse %1$s’s cost of %2$s?</string>
-    <string name="refuse_cost_text">It won’t be refunded at any event. %1$s can edit it and submit it again.</string>
-    <string name="refuse">Refuse</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>
@@ -175,7 +167,6 @@
     <string name="edit_cost">Cost</string>
     <string name="filter_all">All</string>
     <string name="cost_status_pending">Waiting</string>
-    <string name="cost_status_refused">Refused</string>
     <string name="cost_approved_part">approved %1$s</string>
     <string name="cost_status_partly">Partly refunded</string>
     <string name="cost_status_refunded">Refunded</string>
@@ -227,8 +218,6 @@
     <string name="reject_viewer_not_participant">Viewers take no part in events.</string>
     <string name="reject_viewer_still_plays">They still play in events not settled yet, or hold the band fund: settle those events or hand over the fund first.</string>
     <string name="reject_holds_money">They still hold money: settle their events or hand over the band fund first.</string>
-    <string name="reject_cost_refused">This cost was refused.</string>
-    <string name="reject_cost_partly_refunded">Part of this cost is already refunded, so it can’t be refused.</string>
     <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
     <string name="reject_user_already_member">This account is already in the band.</string>
@@ -363,9 +352,6 @@
     <string name="h_add_cost">Added a cost of %1$s for %2$s</string>
     <string name="h_edit_cost">Edited a cost</string>
     <string name="h_delete_cost">Deleted a cost</string>
-    <string name="h_refuse_cost">Refused a cost</string>
-    <string name="h_resubmit_cost">Resubmitted a refused cost</string>
-    <string name="h_refuse_cost_of">Refused a cost of %1$s for %2$s</string>
     <string name="h_add_attachment">Added a file</string>
     <string name="h_remove_attachment">Removed a file</string>
     <string name="h_rename_attachment">Renamed a file to %1$s</string>

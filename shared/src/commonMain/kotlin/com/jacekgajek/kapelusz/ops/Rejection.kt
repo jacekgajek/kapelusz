@@ -36,10 +36,6 @@ enum class RejectionReason {
     VIEWER_STILL_PLAYS,
     /** Someone holding money in an unsettled event, or the band fund, cannot become an artist. */
     HOLDS_MONEY,
-    /** A refused cost is not refunded until its owner resubmits it (ITERATION_4 §1.2). */
-    COST_REFUSED,
-    /** Only a cost with nothing refunded yet can be refused. */
-    COST_PARTLY_REFUNDED,
     OWNER_ROLE_FIXED,
     OWNERSHIP_NEEDS_LEADER,
     NAME_TAKEN,

@@ -10,10 +10,6 @@
     <string name="tab_gig">Koncert</string>
     <string name="tab_money">Pieniądze</string>
     <string name="tab_settlement">Rozliczenie</string>
-    <string name="refused_cost_title">Ten koszt został odrzucony</string>
-    <string name="refused_cost_text">Co chcesz zrobić?</string>
-    <string name="refused_cost_resubmit">Popraw i zgłoś ponownie</string>
-    <string name="refused_cost_nothing">Nic</string>
     <string name="artist_payout">Twoja wypłata</string>
     <string name="artist_to_receive">Do otrzymania</string>
     <string name="artist_received">Otrzymano dotąd</string>
@@ -108,7 +104,6 @@
     <string name="copy_failed">Nie udało się skopiować.</string>
     <string name="undo_too_late">Już wysłane; cofnij to w historii.</string>
     <string name="attachment_removed">Usunięto %1$s</string>
-    <string name="cost_refused">Odrzucono koszt: %1$s, %2$s</string>
     <string name="more">Więcej</string>
     <string name="amount">Kwota</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>
@@ -145,9 +140,6 @@
     <string name="pending_from_earlier">Oczekujące</string>
     <string name="refund_here">Zwróć tutaj</string>
     <string name="pending_hint">Jeszcze niezwrócone. Zwróć tutaj albo zostaw na później.</string>
-    <string name="refuse_cost_title">Odrzucić koszt %2$s (%1$s)?</string>
-    <string name="refuse_cost_text">Nie zostanie zwrócony na żadnym wydarzeniu. %1$s może go poprawić i zgłosić ponownie.</string>
-    <string name="refuse">Odrzuć</string>
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
     <string name="summary">Rozliczenie</string>
@@ -175,7 +167,6 @@
     <string name="edit_cost">Koszt</string>
     <string name="filter_all">Wszystkie</string>
     <string name="cost_status_pending">Oczekuje</string>
-    <string name="cost_status_refused">Odrzucony</string>
     <string name="cost_approved_part">zatwierdzono %1$s</string>
     <string name="cost_status_partly">Częściowo zwrócony</string>
     <string name="cost_status_refunded">Zwrócony</string>
@@ -227,8 +218,6 @@
     <string name="reject_viewer_not_participant">Obserwatorzy nie biorą udziału w wydarzeniach.</string>
     <string name="reject_viewer_still_plays">Ta osoba wciąż gra w nierozliczonych wydarzeniach lub prowadzi kasę zespołową: najpierw je rozlicz albo przekaż kasę.</string>
     <string name="reject_holds_money">Ta osoba wciąż trzyma pieniądze: najpierw rozlicz jej wydarzenia lub przekaż kasę zespołową.</string>
-    <string name="reject_cost_refused">Ten koszt został odrzucony.</string>
-    <string name="reject_cost_partly_refunded">Część tego kosztu jest już zwrócona, więc nie można go odrzucić.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>
     <string name="reject_user_already_member">To konto już należy do zespołu.</string>
@@ -363,9 +352,6 @@
     <string name="h_add_cost">Dodano koszt %1$s dla: %2$s</string>
     <string name="h_edit_cost">Edytowano koszt</string>
     <string name="h_delete_cost">Usunięto koszt</string>
-    <string name="h_refuse_cost">Odrzucono koszt</string>
-    <string name="h_resubmit_cost">Ponownie zgłoszono odrzucony koszt</string>
-    <string name="h_refuse_cost_of">Odrzucono koszt %1$s dla: %2$s</string>
     <string name="h_add_attachment">Dodano plik</string>
     <string name="h_remove_attachment">Usunięto plik</string>
     <string name="h_rename_attachment">Zmieniono nazwę pliku na %1$s</string>

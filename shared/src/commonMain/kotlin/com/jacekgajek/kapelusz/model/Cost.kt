@@ -50,8 +50,6 @@ data class Cost(
     val description: String? = null,
     val attachments: List<Attachment> = emptyList(),
     val createdAt: Long = 0,
-    /** A lead refused to refund it (ITERATION_4 §1.2): no event or the fund repays it until its owner resubmits it. */
-    val refused: Boolean = false,
 )
 
 @Serializable
