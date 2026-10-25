@@ -300,8 +300,11 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 /** An operation held back from syncing while its Undo snackbar shows. */
 data class HeldOp(val bandId: Id, val opId: Id)
 
-/** Files shared to Kapelusz: those ready to attach, and what could not be used ([PickResult] other than Picked). */
-class SharedFiles(val files: List<PreparedFile>, val skipped: List<PickResult>)
+/**
+ * Files shared to Kapelusz: those ready to attach, what could not be used ([PickResult] other than Picked), and how many
+ * more were shared than any target takes ([tooMany], not read).
+ */
+class SharedFiles(val files: List<PreparedFile>, val skipped: List<PickResult>, val tooMany: Int = 0)
 
 /** Shared [files] for a new cost ([toCost]) or a new collected entry of [eventId]. */
 class SharedHandover(val eventId: String, val toCost: Boolean, val files: List<PreparedFile>)

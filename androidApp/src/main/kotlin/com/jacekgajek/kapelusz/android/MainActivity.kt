@@ -9,6 +9,7 @@ import com.jacekgajek.kapelusz.app.data.SharedFiles
 import com.jacekgajek.kapelusz.app.platform.PickResult
 import com.jacekgajek.kapelusz.app.platform.prepareShared
 import kotlinx.coroutines.launch
+import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -70,9 +71,16 @@ class MainActivity : ComponentActivity() {
             else -> return
         }
         if (uris.isEmpty()) return
+        // Files handed to a form earlier but never taken: not to turn up there later.
+        graph.sharedHandover.value = null
         lifecycleScope.launch {
-            val results = prepareShared(applicationContext, uris)
-            graph.sharedFiles.value = SharedFiles(results.filterIsInstance<PickResult.Picked>().map { it.file }, results.filter { it !is PickResult.Picked })
+            // No target takes more: the rest is said, not read (each could be large).
+            val results = prepareShared(applicationContext, uris.take(MAX_EVENT_ATTACHMENTS), intent.type)
+            graph.sharedFiles.value = SharedFiles(
+                results.filterIsInstance<PickResult.Picked>().map { it.file },
+                results.filter { it !is PickResult.Picked },
+                tooMany = (uris.size - MAX_EVENT_ATTACHMENTS).coerceAtLeast(0),
+            )
         }
     }
 

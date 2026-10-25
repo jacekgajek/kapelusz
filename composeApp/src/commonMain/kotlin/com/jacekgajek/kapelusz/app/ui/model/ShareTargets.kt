@@ -37,7 +37,11 @@ object ShareTargets {
      */
     fun events(bands: List<Band>, userId: String, today: LocalDate): List<ShareEvent> {
         val all = bands.flatMap { band ->
-            band.events.filter { !it.archived && targets(band, userId, it).isNotEmpty() }.map { ShareEvent(band, it, it.date > today) }
+            // Artists see only the events they play (ITERATION_4 §1.1), even with an own cost in another.
+            val me = band.memberOfUser(userId)?.id
+            val artist = band.isArtist(userId)
+            band.events.filter { event -> !event.archived && (!artist || me != null && event.participant(me) != null) && targets(band, userId, event).isNotEmpty() }
+                .map { ShareEvent(band, it, it.date > today) }
         }
         val (upcoming, past) = all.partition { it.upcoming }
         return past.sortedWith(compareByDescending<ShareEvent> { it.event.date }.thenByDescending { it.event.updatedAt }) +

@@ -28,6 +28,16 @@ class PlacesTest {
     }
 
     @Test
+    fun aPinIsWrittenWithSixDecimalsAndReadBack() {
+        assertEquals("51.109120, 17.032570", Places.pinText(51.10912, 17.03257))
+        assertEquals("-0.000001, -179.500000", Places.pinText(-0.0000014, -179.5))
+        assertEquals("Leśniczówka, 51.000000, 17.000000", Places.pinText(51.0, 17.0, "Leśniczówka"))
+        assertEquals(51.10912 to 17.03257, Places.pinIn("Leśniczówka, 51.109120, 17.032570"))
+        assertNull(Places.pinIn("Ołówek, Legnicka 36, 53-673 Wrocław"))
+        assertNull(Places.pinIn("95.0, 17.0"), "not on Earth")
+    }
+
+    @Test
     fun navigateGoesToTheLocationText() {
         val base = Event("e", "Gig", DATE, location = "Klub Stodoła, Warszawa")
         assertEquals("https://www.google.com/maps/dir/?api=1&destination=Klub%20Stodo%C5%82a%2C%20Warszawa", Places.navigateUrl(base))

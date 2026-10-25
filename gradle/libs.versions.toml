@@ -21,6 +21,7 @@ slf4j = "2.0.20"
 androidx-credentials = "1.6.0"
 googleid = "1.2.1"
 material-icons = "1.7.3"
+maps-compose = "8.3.0"
 android-compileSdk = "36"
 android-targetSdk = "36"
 android-minSdk = "26"
@@ -57,6 +58,7 @@ slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
 androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
 [plugins]

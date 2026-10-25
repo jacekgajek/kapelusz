@@ -20,7 +20,6 @@ import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpResponse.BodyHandlers
 import java.time.Duration
-import java.util.Locale
 
 /** A place's address as Google gives it: the [name] (for a place), the full [address], and its [country] to leave out. */
 data class PlaceAddress(val name: String?, val address: String?, val country: String?)
@@ -217,8 +216,7 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
     private fun HttpRequest.session() = query["session"]?.takeIf { token.matches(it) }
 
     /** A pin as Location shows it: 6 decimals (about 10 cm), Navigate's destination as it is. */
-    private fun coordinates(pin: Pair<String, String>): String =
-        String.format(Locale.ROOT, "%.6f, %.6f", pin.first.toDouble(), pin.second.toDouble())
+    private fun coordinates(pin: Pair<String, String>): String = Places.pinText(pin.first.toDouble(), pin.second.toDouble())
 
     private companion object {
         const val MAX_LINK = 4000

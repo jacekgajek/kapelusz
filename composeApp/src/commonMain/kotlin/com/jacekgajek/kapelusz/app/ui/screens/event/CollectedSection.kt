@@ -1,5 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.currentStateAsState
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
@@ -168,8 +172,10 @@ fun CollectedSection(context: EventContext) {
     // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): its dialog, with them.
     var sharedDrafts by remember { mutableStateOf(listOf<PreparedFile>()) }
     val handover by context.graph.sharedHandover.collectAsState()
-    LaunchedEffect(handover) {
-        if (handover?.let { it.eventId == event.id && !it.toCost } != true) return@LaunchedEffect
+    // Only on the screen in front: one on its way out (the same event opened again) would take them along.
+    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
+    LaunchedEffect(handover, resumed) {
+        if (handover?.let { it.eventId == event.id && !it.toCost } != true || !resumed) return@LaunchedEffect
         sharedDrafts = context.graph.takeSharedFiles(event.id, toCost = false)
         adding = true
     }
@@ -205,6 +211,11 @@ private fun HoldingDialog(
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
     // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
     var drafts by remember { mutableStateOf(initialDrafts) }
+    // Shared while this dialog was already open: added to what it has.
+    LaunchedEffect(initialDrafts) {
+        val missing = initialDrafts.filter { it !in drafts }
+        if (missing.isNotEmpty()) drafts = (drafts + missing).take(MAX_ATTACHMENTS)
+    }
     var confirmDelete by remember { mutableStateOf(false) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // The entry as it is now (a file added in the dialog shows at once).

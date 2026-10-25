@@ -30,8 +30,8 @@ Features that don't add screens or settings, but act on what is already there.
 
 - **What:** event links (`/e/EVENT_ID`) and invite links (`/join/CODE`) shown as cards in WhatsApp, Messenger and
   Slack, via `og:` tags in the page the link reader fetches. Still plain links; only what the recipient sees changes.
-- **Event card:** the event's name; description the date, and the time if it has one (`14.11.2026, 20:00`), language
-  free; nothing else from the event. Anyone with the link sees it.
+- **Event card:** the event's name; description its date only (`14.11.2026`), language free; nothing else from the
+  event. Anyone with the link sees it.
 - **Invite card:** the band's name, no description.
 - **Every card:** `og:site_name` "Kapelusz" and the app icon (square, 512 px: a small thumbnail, not a banner).
   Unknown, deleted, expired or used: the generic card ("Kapelusz"). The home page has the generic tags.
@@ -40,22 +40,38 @@ Features that don't add screens or settings, but act on what is already there.
   Applied in Terraform once the API answers those paths with 404 (CloudFront then shows the plain page; it can't for
   401): done in V6-M1.
 
-## 3. Milestones and task checklist
+## 3. Location: a place picked on a map, and the cursor (2026-10-25, in V6-M1)
+
+- **Pin button** in Location (Android only; Compose for the web has no map, and a JS map over the page isn't worth it):
+  a full-screen Google map. A tap puts the pin; a place on the map (a shop, a forester's lodge) gives its name too. A
+  layers button switches to satellite with roads and names, to find a clearing in a forest. "Use this place" puts the
+  coordinates in Location, as for a dropped pin pasted from Maps (ITERATION_5 §9.1): `51.109120, 17.032570`, or
+  `Leśniczówka, 51.109120, 17.032570`. Navigate takes them as they are.
+- **Opens** at the pin Location ends with, else over Poland. No "my location" (it would ask for a permission).
+- **Key:** a Google Maps key for Android (Maps SDK for Android only), restricted to the package and the release and
+  debug certificates' SHA-1, in the GitHub variable `GOOGLE_MAPS_ANDROID_KEY`. Without one (local builds), no button.
+- **Fix:** a place picked from the suggestions, its full address, or a pasted link left the cursor where the typing
+  stopped; it goes to the end.
+
+## 4. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
 - [ ] Share entries for images and PDFs; the text one removed with the Maps place dialog
 - [ ] "Attach to…": events, then targets; handing files to the forms; attaching with Undo
 - [ ] API: `/e/` and `/join/` not found without signing in (for §2's CloudFront change)
+- [ ] Location: picked on a map (§3), the cursor at the end after a lookup
 
 ### V6-M2 — Link cards (§2)
 
 - [ ] Event pointers, rendering `index.html` with the tags, the icon
 - [ ] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
 
-## 4. Decision log
+## 5. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
 - 2026-10-25: Shared text dropped rather than kept with a use for any text: none worth having.
+- 2026-10-25: The map picker uses Google Maps on Android only: free, drawn by Play services (no big library), the
+  same map data as the rest; OpenStreetMap would add ~10 MB and has weaker data in Poland.
 - 2026-10-25: Link cards name the event although anyone with the link sees them: the name and date say little.

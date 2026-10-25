@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.currentStateAsState
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.generated.share_attach_failed
 import com.jacekgajek.kapelusz.app.generated.share_attached
@@ -181,20 +184,27 @@ fun EventScreen(
         // Last: clearing it restarts this effect, which would cancel the scroll above.
         graph.pendingToSettle.value = null
     }
-    // Files shared to Kapelusz (ITERATION_6 §1): the section they went to, or on to the new cost that takes them.
+    // Files shared to Kapelusz (ITERATION_6 §1): the section they went to, or on to the new cost that takes them. Only
+    // by the screen in front: one on its way out (the same event opened again) would take them along.
+    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
     val sharedSection by graph.pendingEventSection.collectAsState()
-    LaunchedEffect(sharedSection, event != null) {
+    LaunchedEffect(sharedSection, event != null, resumed) {
         val (sectionEvent, name) = sharedSection ?: return@LaunchedEffect
-        if (sectionEvent != eventId || event == null) return@LaunchedEffect
-        if (!artist) EventSection.entries.firstOrNull { it.name == name }?.let { scrollTo(it) }
+        if (sectionEvent != eventId || !resumed) return@LaunchedEffect
+        if (event != null && !artist) EventSection.entries.firstOrNull { it.name == name }?.let { scrollTo(it) }
         graph.pendingEventSection.value = null
     }
     val handover by graph.sharedHandover.collectAsState()
-    LaunchedEffect(handover, event != null) {
-        if (event != null && handover?.let { it.eventId == eventId && it.toCost } == true) onAddCost(eventId)
+    LaunchedEffect(handover, event != null, resumed) {
+        if (handover?.eventId != eventId || !resumed) return@LaunchedEffect
+        when {
+            // Gone meanwhile (or hidden from an artist): the files must not turn up there later.
+            event == null -> graph.sharedHandover.value = null
+            handover?.toCost == true -> onAddCost(eventId)
+        }
     }
     // Taken over from the graph first: clearing it there must not cancel the snackbar showing here.
-    val attachedHere = graph.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId && it.bandId == state.band.id }
+    val attachedHere = graph.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId && it.bandId == state.band.id && resumed }
     var attached by remember { mutableStateOf<SharedAttached?>(null) }
     LaunchedEffect(attachedHere) {
         if (attachedHere == null) return@LaunchedEffect

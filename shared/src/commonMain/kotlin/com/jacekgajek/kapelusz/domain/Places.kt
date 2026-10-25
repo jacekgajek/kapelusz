@@ -80,6 +80,31 @@ object Places {
         return if (short.startsWith(name)) short else "$name, $short"
     }
 
+    /**
+     * A pin as Location shows it, also Navigate's destination as it is: 6 decimals (about 10 cm), "51.109120, 17.032570";
+     * with a [name] (a place tapped on the map) before it.
+     */
+    fun pinText(latitude: Double, longitude: Double, name: String? = null): String {
+        fun format(value: Double): String {
+            val micro = kotlin.math.round(value * 1_000_000).toLong()
+            val whole = kotlin.math.abs(micro) / 1_000_000
+            val fraction = (kotlin.math.abs(micro) % 1_000_000).toString().padStart(6, '0')
+            return "${if (micro < 0) "-" else ""}$whole.$fraction"
+        }
+        val pin = "${format(latitude)}, ${format(longitude)}"
+        return name?.takeIf { it.isNotBlank() }?.let { "$it, $pin" } ?: pin
+    }
+
+    private val trailingPin = Regex("""(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$""")
+
+    /** The pin a location ends with (as [pinText] writes it), e.g. to open the map there; null if it ends otherwise. */
+    fun pinIn(location: String?): Pair<Double, Double>? {
+        val match = trailingPin.find(location ?: return null) ?: return null
+        val latitude = match.groupValues[1].toDouble()
+        val longitude = match.groupValues[2].toDouble()
+        return (latitude to longitude).takeIf { latitude in -90.0..90.0 && longitude in -180.0..180.0 }
+    }
+
     /** Where Navigate goes: directions to the location text, an address or a pin's coordinates. */
     fun navigateUrl(event: Event): String? =
         event.location?.takeIf { it.isNotBlank() }?.let { "https://www.google.com/maps/dir/?api=1&destination=${encode(it)}" }

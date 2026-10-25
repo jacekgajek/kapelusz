@@ -640,6 +640,10 @@
     <string name="share_upcoming">Upcoming</string>
     <string name="share_no_events">There is no event you can attach files to.</string>
     <string name="share_nothing_usable">None of these files can be attached.</string>
+    <plurals name="share_skipped_too_many">
+        <item quantity="one">%1$d file left out: up to 10 at a time</item>
+        <item quantity="other">%1$d files left out: up to 10 at a time</item>
+    </plurals>
     <plurals name="share_skipped_too_large">
         <item quantity="one">%1$d file left out: too large</item>
         <item quantity="other">%1$d files left out: too large</item>
@@ -667,4 +671,8 @@
         <item quantity="other">%1$d files attached</item>
     </plurals>
     <string name="share_attach_failed">Some files could not be attached.</string>
+    <string name="location_pick_map">Pick on the map</string>
+    <string name="map_pick_hint">Tap where it is</string>
+    <string name="map_pick_use">Use this place</string>
+    <string name="map_satellite">Satellite</string>
 </resources>

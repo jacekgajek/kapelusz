@@ -53,6 +53,7 @@ import com.jacekgajek.kapelusz.app.generated.share_nothing_usable
 import com.jacekgajek.kapelusz.app.generated.share_room
 import com.jacekgajek.kapelusz.app.generated.share_skipped_failed
 import com.jacekgajek.kapelusz.app.generated.share_skipped_too_large
+import com.jacekgajek.kapelusz.app.generated.share_skipped_too_many
 import com.jacekgajek.kapelusz.app.generated.share_skipped_unsupported
 import com.jacekgajek.kapelusz.app.generated.share_title
 import com.jacekgajek.kapelusz.app.generated.share_upcoming
@@ -85,12 +86,14 @@ internal fun SharedFilesDialog(graph: AppGraph, state: BandState.Ready) {
     var busy by remember(shared) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val dismiss = { if (graph.sharedFiles.value === shared) graph.sharedFiles.value = null }
+    // Not while attaching: closing would cancel it halfway (some files attached, the event not opened).
+    val dismissUnlessBusy = { if (!busy) dismiss() }
     // Every band on the device; recomputed as the open band changes (the others change only in the background).
     val events = remember(shared, state.band) { ShareTargets.events(graph.bands.allBands(), state.userId, today()) }
     val severalBands = events.map { it.band.id }.distinct().size > 1
     val event = chosen
     AlertDialog(
-        onDismissRequest = dismiss,
+        onDismissRequest = dismissUnlessBusy,
         title = { Text(event?.event?.name ?: stringResource(Res.string.share_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -139,6 +142,9 @@ private fun SharedFilesPreview(shared: SharedFiles) {
     ).forEach { (result, text) ->
         val count = shared.skipped.count { it == result }
         if (count > 0) Text(pluralStringResource(text, count, count), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    }
+    if (shared.tooMany > 0) {
+        Text(pluralStringResource(Res.plurals.share_skipped_too_many, shared.tooMany, shared.tooMany), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }
     HorizontalDivider(Modifier.padding(vertical = 4.dp))
 }

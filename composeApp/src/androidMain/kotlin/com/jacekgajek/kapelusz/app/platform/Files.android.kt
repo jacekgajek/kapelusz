@@ -82,16 +82,31 @@ actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): Attac
     }
 }
 
-/** Files shared to Kapelusz (ITERATION_6 §1), prepared like picked ones, one after another. */
-suspend fun prepareShared(context: Context, uris: List<Uri>): List<PickResult> = uris.map { prepare(context, it) }
+/**
+ * Files shared to Kapelusz (ITERATION_6 §1), prepared like picked ones, one after another. Only content URIs (no
+ * `file://` paths into the app's own files); [sharedType] is the share's type, for providers that don't tell one.
+ */
+suspend fun prepareShared(context: Context, uris: List<Uri>, sharedType: String?): List<PickResult> =
+    uris.map { uri -> if (uri.scheme == "content") prepare(context, uri, fallbackType = sharedType) else PickResult.Failed }
 
-private suspend fun prepare(context: Context, uri: Uri, photo: Boolean = false): PickResult = withContext(Dispatchers.IO) {
+/** Largest file read at all: photos are shrunk after reading, but not from any size. */
+private const val MAX_READ_BYTES = 40L * 1024 * 1024
+
+private suspend fun prepare(context: Context, uri: Uri, photo: Boolean = false, fallbackType: String? = null): PickResult = withContext(Dispatchers.IO) {
     try {
         val resolver = context.contentResolver
-        val type = if (photo) "image/jpeg" else resolver.getType(uri).orEmpty()
-        val name = if (photo) null else resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) cursor.getString(0) else null
+        val type = if (photo) "image/jpeg" else resolver.getType(uri)?.takeIf { it != "application/octet-stream" }
+            ?: fallbackType?.takeIf { !it.contains('*') }.orEmpty()
+        var name: String? = null
+        var size: Long? = null
+        if (!photo) resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                name = cursor.getString(0)
+                size = if (cursor.isNull(1)) null else cursor.getLong(1)
+            }
         }
+        val limit = if (type == "application/pdf") AttachmentKind.PDF.maxBytes else MAX_READ_BYTES
+        if ((size ?: 0) > limit) return@withContext PickResult.TooLarge
         val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return@withContext PickResult.Failed
         when {
             type == "application/pdf" -> {

@@ -646,6 +646,12 @@
     <string name="share_upcoming">Nadchodzące</string>
     <string name="share_no_events">Nie ma wydarzenia, do którego możesz dołączyć pliki.</string>
     <string name="share_nothing_usable">Żadnego z tych plików nie można dołączyć.</string>
+    <plurals name="share_skipped_too_many">
+        <item quantity="one">Pominięto %1$d plik: najwyżej 10 naraz</item>
+        <item quantity="few">Pominięto %1$d pliki: najwyżej 10 naraz</item>
+        <item quantity="many">Pominięto %1$d plików: najwyżej 10 naraz</item>
+        <item quantity="other">Pominięto %1$d pliku: najwyżej 10 naraz</item>
+    </plurals>
     <plurals name="share_skipped_too_large">
         <item quantity="one">Pominięto %1$d plik: za duży</item>
         <item quantity="few">Pominięto %1$d pliki: za duże</item>
@@ -683,4 +689,8 @@
         <item quantity="other">Dołączono %1$d pliku</item>
     </plurals>
     <string name="share_attach_failed">Nie udało się dołączyć części plików.</string>
+    <string name="location_pick_map">Wybierz na mapie</string>
+    <string name="map_pick_hint">Dotknij miejsca na mapie</string>
+    <string name="map_pick_use">Wybierz to miejsce</string>
+    <string name="map_satellite">Satelita</string>
 </resources>
