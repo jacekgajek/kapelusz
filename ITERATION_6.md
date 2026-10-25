@@ -19,9 +19,9 @@ Features that don't add screens or settings, but act on what is already there.
   - Not signed in: after signing in. No such event: "There is no event you can attach files to."
 - **Then, in that event:** the shared files (photos as thumbnails, PDFs by name) and:
   - **New cost** / **New received money:** the form opens with the files attached, waiting for Save.
-  - **The event's files** (leaders), then under "Or add to" the event's **costs** (not those paid back in full) and
-    **received money** the user may attach files to: attached at once; the event opens at that section, with Undo
-    in the snackbar.
+  - **The event's files** (leaders), then under "Add to a cost" the event's **costs** (not those paid back in full) and
+    under "Add to received money" its **received money** the user may attach files to: attached at once; the event
+    opens at that section, with Undo in the snackbar (which closes by itself, or with its cross).
 - **Limits:** files that can't be used (a PDF over 10 MB, not a photo or PDF, unreadable) are listed as left out, with
   the reason. A target without room for all the files (5 per cost or received money, 10 on the event) is shown
   disabled with "Room for N more"; nothing is dropped silently.

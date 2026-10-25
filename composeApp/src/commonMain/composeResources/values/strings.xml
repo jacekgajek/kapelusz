@@ -659,7 +659,8 @@
     <string name="share_new_cost">New cost</string>
     <string name="share_new_collected">New received money</string>
     <string name="share_event_files">The event's files</string>
-    <string name="share_existing">Or add to</string>
+    <string name="share_existing_costs">Add to a cost</string>
+    <string name="share_existing_collected">Add to received money</string>
     <string name="share_cost">Cost</string>
     <plurals name="share_room">
         <item quantity="one">Room for %1$d more</item>
