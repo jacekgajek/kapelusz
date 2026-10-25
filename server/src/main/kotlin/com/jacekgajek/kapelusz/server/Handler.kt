@@ -54,8 +54,9 @@ class Handler : RequestStreamHandler {
         var status = "-"
         try {
             val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
-            // Calendar feed paths and invite codes are secrets: never log them.
+            // Calendar feed paths and invite codes (also in join links) are secrets: never log them.
             val path = event.rawPath.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
+                .replace(Regex("^/join/.*"), "/join/…")
             line = "${event.requestContext.http.method} $path"
             val response = handle(event, path)
             status = response.status.toString()
@@ -113,6 +114,7 @@ class Handler : RequestStreamHandler {
         private val api = Api(
             store, history, verifier, minAppVersion = Api.MIN_APP_VERSION,
             placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
+            webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it) },
         )
 
         init {
