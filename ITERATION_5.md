@@ -638,6 +638,8 @@ shared info) opens Google Maps directions to that text, which takes an address o
 
 ## 12. V5-M8 — Invite from the event, unique names, guests apart (grilled 2026-10-25)
 
+> Superseded in part by ITERATION_6 §5: guests are a handshake with no tap, and are never promoted.
+
 - **Not in the app:** a crossed eye ("visibility off") in place of the avatar for whoever can't see the band: guests,
   and members without an app account, on an event's participants (the artists' lineup too) and on Band members.
 - **Tapping it (or the name), for leaders:** "Ola cannot see the band. Do you want to invite them?". For a guest (no note

@@ -183,7 +183,11 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     BackToEvents(navController)
                     return@composable
                 }
-                CostScreen(graph, state, route.costId, back, forEventId = route.forEventId, onAddedForOther = {
+                CostScreen(graph, state, route.costId, back, forEventId = route.forEventId, onOpenEvent = { eventId ->
+                    // At its Money page, where the refund is.
+                    graph.pendingEventSection.value = eventId to "REFUNDS"
+                    navController.navigate(EventRoute(eventId))
+                }, onAddedForOther = {
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
                 })

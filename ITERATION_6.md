@@ -82,6 +82,9 @@ Features that don't add screens or settings, but act on what is already there.
   Add guest, adds them to the event with their usual share). Add guest can still add a guest by that name; Add member
   needs another name.
 
+**Cost → event:** in a cost's form, each "to be refunded at / refunded at" event line opens that event at its Money
+page (the refunds).
+
 ## 6. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)

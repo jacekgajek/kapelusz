@@ -1,6 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import com.jacekgajek.kapelusz.app.generated.open_event
 import androidx.compose.material3.FilterChipDefaults
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import androidx.compose.foundation.layout.Arrangement
@@ -105,6 +108,8 @@ fun CostScreen(
     onAddedForOther: () -> Unit = {},
     /** A new cost "incurred for" this event, from the event's Cost refunds (ITERATION_2 §7). */
     forEventId: String? = null,
+    /** An event the cost is refunded at, opened at its Money page. */
+    onOpenEvent: (String) -> Unit = {},
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
@@ -205,7 +210,7 @@ fun CostScreen(
                 Modifier.widthIn(max = 600.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (existing != null) RefundInfo(state, existing)
+                if (existing != null) RefundInfo(state, existing, onOpenEvent)
                 when {
                     existing == null && payers.size > 1 -> Dropdown(paidBy, payers.map { it.id }, { paidBy = it }, stringResource(Res.string.paid_by)) { id ->
                         id?.let { band.member(it)?.name }.orEmpty()
@@ -276,9 +281,9 @@ fun CostScreen(
     }
 }
 
-/** Status of the cost and where it was refunded. */
+/** Status of the cost and where it was refunded; a tap on an event opens it. */
 @Composable
-private fun RefundInfo(state: BandState.Ready, cost: Cost) {
+private fun RefundInfo(state: BandState.Ready, cost: Cost, onOpenEvent: (String) -> Unit) {
     val band = state.band
     val lang = language
     val statuses = remember(band) { CostStatuses(band) }
@@ -294,14 +299,21 @@ private fun RefundInfo(state: BandState.Ready, cost: Cost) {
                 )
             }
             refundedAt.forEach { (event, amount, paid) ->
-                Text(
-                    stringResource(
-                        if (paid) Res.string.cost_refunded_at else Res.string.cost_planned_at,
-                        formatMoney(amount, band.currency, lang),
-                        event.name,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(Res.string.open_event)) { onOpenEvent(event.id) }.padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(
+                            if (paid) Res.string.cost_refunded_at else Res.string.cost_planned_at,
+                            formatMoney(amount, band.currency, lang),
+                            event.name,
+                        ),
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
             }
             fundRefund.forEach {
                 Text(stringResource(Res.string.cost_refunded_fund, formatMoney(-it.amount, band.currency, lang)), style = MaterialTheme.typography.bodySmall)

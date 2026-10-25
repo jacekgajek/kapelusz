@@ -198,7 +198,8 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
                 val former = context.band.formerMemberNamed(name)
                 // Or someone who used to be in the band: welcomed back, and into this event.
                 if (former != null) FormerMember(former, context.actions) {
-                    if (context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed))
+                    // Viewers only watch: restored, but not in the event.
+                    if (former.role != Role.VIEWER && context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed))
                     onDismiss()
                 }
                 context.band.memberNamed(name)?.takeIf { name.isNotBlank() && !it.archived }?.let { member ->

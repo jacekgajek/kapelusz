@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.ui.screens.event
 
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,7 +62,7 @@ fun ArtistLineup(context: EventContext) {
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val member = context.band.member(participant.partyId)
-            if (member?.userId == null) NotInAppIcon() else Avatar(name, member.pictureUrl, decorative = true)
+            if (event.guest(participant.partyId) != null) GuestIcon() else if (member?.userId == null) NotInAppIcon() else Avatar(name, member.pictureUrl, decorative = true)
             Text(name)
         }
     }
