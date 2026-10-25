@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.ui.components.icon
-import com.jacekgajek.kapelusz.app.ui.components.IconCircle
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
@@ -215,7 +214,7 @@ fun MyCostsScreen(
                 val ownRefused = status == CostStatus.REFUSED && cost.memberId == state.me?.id
                 Card(onClick = { if (ownRefused) asking = cost else onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconCircle(cost.category.icon(), Modifier.padding(end = 12.dp))
+                        CostIcon(cost, Modifier.padding(end = 12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost), style = MaterialTheme.typography.titleSmall)
                             Text(

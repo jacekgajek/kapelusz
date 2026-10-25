@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.ui.components.icon
-import com.jacekgajek.kapelusz.app.ui.components.IconCircle
+import androidx.compose.foundation.layout.Box
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.generated.add_cost
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.Icons
@@ -95,7 +95,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CostDescription(context, cost, Modifier.weight(1f))
-            Column(horizontalAlignment = Alignment.End) {
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
                 MoneyText(refund.amount, context.currency)
                 if (refund.amount != cost.amount) {
                     Text(
@@ -150,7 +150,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
 private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifier) {
     // The category's icon over both lines (ITERATION_6 §4).
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        IconCircle(cost.category.icon(), Modifier.padding(end = 12.dp))
+        CostIcon(cost, Modifier.padding(end = 12.dp))
         Column {
             Text(context.band.member(cost.memberId)?.name.orEmpty())
             Text(
@@ -239,8 +239,11 @@ private fun MyWaitingCosts(context: EventContext, costs: List<Cost>, onOpenCost:
 @Composable
 private fun CostFiles(context: EventContext, cost: Cost) {
     if (cost.attachments.isEmpty()) return
-    AttachmentsSection(
-        context.graph, AttachmentOwner.OfCost(cost.id), cost.attachments,
-        drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
-    )
+    // Under the text, past the category icon.
+    Box(Modifier.padding(start = 52.dp)) {
+        AttachmentsSection(
+            context.graph, AttachmentOwner.OfCost(cost.id), cost.attachments,
+            drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
+        )
+    }
 }

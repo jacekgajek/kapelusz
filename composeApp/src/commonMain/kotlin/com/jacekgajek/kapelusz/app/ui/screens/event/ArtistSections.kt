@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.ui.components.icon
-import com.jacekgajek.kapelusz.app.ui.components.IconCircle
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -108,7 +107,7 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
             Modifier.fillMaxWidth().clickable { if (status == CostStatus.REFUSED) asking = cost else onOpenCost(cost.id) }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconCircle(cost.category.icon(), Modifier.padding(end = 12.dp))
+            CostIcon(cost, Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost))
                 Text(formatDate(cost.date, language), style = MaterialTheme.typography.bodySmall)

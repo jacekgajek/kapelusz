@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import com.jacekgajek.kapelusz.model.Cost
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
@@ -118,9 +119,9 @@ fun CostCategory.label(): String = stringResource(
 
 /** An icon in a tinted circle, as tall as a two-line row: a cost's category, received money (ITERATION_6 §1). */
 @Composable
-fun IconCircle(icon: ImageVector, modifier: Modifier = Modifier) {
+fun IconCircle(icon: ImageVector, modifier: Modifier = Modifier, contentDescription: String? = null) {
     Box(modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, contentDescription, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -132,6 +133,11 @@ fun CostCategory?.icon(): ImageVector = when (this) {
     CostCategory.FOOD -> Icons.Default.Restaurant
     CostCategory.OTHER, null -> Icons.AutoMirrored.Filled.ReceiptLong
 }
+
+/** A cost's category icon on its row; read out as the category where the row's text (a description) doesn't name it. */
+@Composable
+fun CostIcon(cost: Cost, modifier: Modifier = Modifier) =
+    IconCircle(cost.category.icon(), modifier, cost.category?.takeIf { cost.description != null }?.label())
 
 @Composable
 fun Role.label(): String = stringResource(
