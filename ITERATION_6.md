@@ -33,9 +33,9 @@ Features that don't add screens or settings, but act on what is already there.
   event. Anyone with the link sees it.
 - **Invite links** (`/join/CODE`) get the generic card: one naming the band would let anyone check, without signing
   in and past the app's limit of 10 guesses an hour, whether a code is valid (review, 2026-10-25).
-- **Every card:** `og:site_name` "Kapelusz" and the app icon (square, 512 px, the opaque one: a small thumbnail, not a
-  banner). Unknown, deleted, expired or used: the generic card ("Kapelusz · Pass the Hat"), which `index.html` has
-  itself (the home page too).
+- **Every card:** `og:site_name` "Kapelusz", no image (2026-10-25: WhatsApp showed the 512 px icon over a third of
+  the screen). Unknown or deleted: the generic card ("Kapelusz · Pass the Hat"), which `index.html` has itself (the
+  home page too).
 - **How:** CloudFront sends `/e/*` to the API (5 minutes' cache, 1 minute for a generic card), which returns the web app's
   `index.html` (read from its bucket, kept a minute) with the card's title and description in place of the generic
   ones. Without the page, a 404: CloudFront then shows the plain page (it can't for a 401, so V6-M1 made the API answer
