@@ -43,6 +43,9 @@ import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.generated.refund_amount_here
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Tune
+import com.jacekgajek.kapelusz.app.generated.open_cost
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -149,7 +152,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
         Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
     }
 
-    editing?.let { cost -> RefundDialog(context, cost, onDismiss = { editing = null }) }
+    editing?.let { cost -> RefundDialog(context, cost, onOpenCost, onDismiss = { editing = null }) }
 }
 
 @Composable
@@ -171,7 +174,7 @@ private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifie
 }
 
 @Composable
-private fun RefundDialog(context: EventContext, opened: Cost, onDismiss: () -> Unit) {
+private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (String) -> Unit, onDismiss: () -> Unit) {
     val event = context.event
     // As it is now: its amount may have changed meanwhile, or it may be gone (V5-M1 C4d).
     val cost = context.band.cost(opened.id)
@@ -188,7 +191,17 @@ private fun RefundDialog(context: EventContext, opened: Cost, onDismiss: () -> U
         title = { Text(stringResource(Res.string.refunds)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CostDescription(context, cost, Modifier)
+                // The cost itself, in its own form; Back comes to the event.
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(Res.string.open_cost)) {
+                        onDismiss()
+                        onOpenCost(cost.id)
+                    }.padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CostDescription(context, cost, Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.refund_max, formatMoney(max, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
             }

@@ -86,7 +86,8 @@ Features that don't add screens or settings, but act on what is already there.
 page (the refunds).
 
 **Refund amount button:** on the Money page's cost rows, the button that sets how much of the cost is refunded in this
-event is sliders (Tune), not the pencil: it doesn't edit the cost. Read out as "Amount refunded here".
+event is sliders (Tune), not the pencil: it doesn't edit the cost. Read out as "Amount refunded here". In its dialog, a tap on the cost (icon, who, what, date) opens the cost's
+form; Back returns to the event.
 
 ## 6. Milestones and task checklist
 

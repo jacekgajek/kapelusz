@@ -191,6 +191,7 @@
     <string name="events_to_settle">Wydarzenia do rozliczenia</string>
     <string name="nothing_to_settle">Nie ma nic do rozliczenia.</string>
     <string name="open_event">Otwórz</string>
+    <string name="open_cost">Otwórz koszt</string>
     <string name="you_hold">Masz %1$s do przekazania: %2$s</string>
     <string name="cost_planned_at">%1$s do zwrotu w: %2$s (jeszcze nierozliczone)</string>
     <string name="settle_part">Część</string>
