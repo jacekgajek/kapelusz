@@ -31,6 +31,11 @@ fun formatDate(date: LocalDate, language: String): String {
     }
 }
 
+private val PL_MONTHS = listOf("sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru")
+
+/** A month in three letters, as on a calendar page: `Nov` / `lis`. */
+fun formatMonthShort(date: LocalDate, language: String): String = (if (language == "pl") PL_MONTHS else EN_MONTHS)[date.month.ordinal]
+
 private val EN_MONTH_NAMES = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
 private val PL_MONTH_NAMES = listOf("styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec", "lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień")
 

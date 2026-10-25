@@ -1,5 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Speaker
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.Icons
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.jacekgajek.kapelusz.app.generated.reject_name_taken
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -98,6 +105,15 @@ fun CostCategory.label(): String = stringResource(
         CostCategory.OTHER -> Res.string.category_other
     },
 )
+
+/** A cost's category as an icon (ITERATION_6 §1); a cost without one: a receipt, like Other. */
+fun CostCategory?.icon(): ImageVector = when (this) {
+    CostCategory.TRAVEL -> Icons.Default.DirectionsCar
+    CostCategory.ACCOMMODATION -> Icons.Default.Hotel
+    CostCategory.EQUIPMENT -> Icons.Default.Speaker
+    CostCategory.FOOD -> Icons.Default.Restaurant
+    CostCategory.OTHER, null -> Icons.AutoMirrored.Filled.ReceiptLong
+}
 
 @Composable
 fun Role.label(): String = stringResource(
