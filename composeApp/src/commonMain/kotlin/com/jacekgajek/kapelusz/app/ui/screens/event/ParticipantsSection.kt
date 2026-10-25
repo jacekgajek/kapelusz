@@ -1,25 +1,19 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import kotlinx.coroutines.CoroutineScope
-import androidx.compose.runtime.LaunchedEffect
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.generated.not_in_app_failed
-import com.jacekgajek.kapelusz.app.generated.not_in_app_offline
 import com.jacekgajek.kapelusz.app.generated.participants_guests
+import com.jacekgajek.kapelusz.app.generated.not_in_app_text
+import androidx.compose.runtime.LaunchedEffect
 import com.jacekgajek.kapelusz.app.generated.guest_is_member
 import com.jacekgajek.kapelusz.app.generated.guest_add_member_instead
 import com.jacekgajek.kapelusz.app.generated.guest_add_anyway
-import com.jacekgajek.kapelusz.app.generated.not_in_app_text
-import com.jacekgajek.kapelusz.app.generated.member_name
-import com.jacekgajek.kapelusz.app.generated.not_in_app_saving
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
-import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
-import com.jacekgajek.kapelusz.ops.PromoteGuest
+import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
+import com.jacekgajek.kapelusz.app.ui.components.FormerMember
+import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
+import com.jacekgajek.kapelusz.app.generated.guest_add_as_guest
+import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import androidx.compose.foundation.clickable
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.app.data.awaitPushed
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -89,9 +83,7 @@ fun ParticipantsSection(context: EventContext) {
     var addingGuest by remember { mutableStateOf(false) }
     var editingWeight by remember { mutableStateOf<String?>(null) }
     var inviting by remember { mutableStateOf<String?>(null) }
-    // Outlives the invite dialog: promoting a guest closes it (the guest is gone), and the wait for the save goes on.
-    val scope = rememberCoroutineScope()
-    // Who may make a guest a member and invite people (ITERATION_5 §12).
+    // Who may invite members without the app (ITERATION_5 §12).
     val canInvite = context.can.manageRoster()
 
     SectionTitle(stringResource(Res.string.participants))
@@ -140,7 +132,7 @@ fun ParticipantsSection(context: EventContext) {
             context.actions.run(AddGuest(event.id, newId(), name, weight, fixedShare))
         }
     }
-    inviting?.let { partyId -> InviteThemDialog(context, partyId, scope, onDismiss = { inviting = null }) }
+    inviting?.let { partyId -> InviteThemDialog(context, partyId, onDismiss = { inviting = null }) }
     editingWeight?.let { partyId ->
         val participant = event.participant(partyId)
         if (participant == null) {
@@ -166,8 +158,9 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
         else -> null
     }
     val removed = stringResource(if (guest) Res.string.guest_removed else Res.string.participant_removed, name)
-    // A guest or a member without the app can't see the band: the crossed eye, and (leaders) a tap to invite them (§12).
-    val notInApp = guest || band.member(partyId)?.userId == null
+    // A member without the app can't see the band: the crossed eye, and (leaders) a tap to invite them (§12). A guest
+    // can't either, but is only ever a guest: the handshake, and no tap.
+    val notInApp = !guest && band.member(partyId)?.userId == null
     val invite = onInvite?.takeIf { notInApp }
     val inviteLabel = stringResource(Res.string.not_in_app_invite)
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -175,7 +168,7 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
             Modifier.weight(1f).let { if (invite != null) it.clickable(onClickLabel = inviteLabel, onClick = invite) else it },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-        if (notInApp) NotInAppIcon() else Avatar(name, band.member(partyId)?.pictureUrl, decorative = true)
+        if (guest) GuestIcon() else if (notInApp) NotInAppIcon() else Avatar(name, band.member(partyId)?.pictureUrl, decorative = true)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(name)
             share?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -202,6 +195,13 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it.take(Limits.MAX_NAME) }, label = { Text(stringResource(Res.string.guest_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 // Probably the member, typed as a guest (ITERATION_5 §12): offered as a participant; a guest still possible.
+                val former = context.band.formerMemberNamed(name)
+                // Or someone who used to be in the band: welcomed back, and into this event.
+                if (former != null) FormerMember(former, context.actions) {
+                    // Viewers only watch: restored, but not in the event.
+                    if (former.role != Role.VIEWER && context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed))
+                    onDismiss()
+                }
                 context.band.memberNamed(name)?.takeIf { name.isNotBlank() && !it.archived }?.let { member ->
                     Text(stringResource(Res.string.guest_is_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     if (context.event.participant(member.id) == null) TextButton(onClick = {
@@ -220,7 +220,14 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
             TextButton(
                 enabled = name.isNotBlank() && editor.valid,
                 onClick = { if (onAdd(name.trim(), editor.weight, editor.parsedAmount.takeIf { editor.fixed })) onDismiss() },
-            ) { Text(stringResource(if (context.band.memberNamed(name)?.takeIf { name.isNotBlank() && !it.archived } != null) Res.string.guest_add_anyway else Res.string.ok)) }
+            ) {
+                val member = context.band.memberNamed(name)?.takeIf { name.isNotBlank() }
+                Text(stringResource(when {
+                    member == null -> Res.string.ok
+                    member.archived -> Res.string.guest_add_as_guest
+                    else -> Res.string.guest_add_anyway
+                }))
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
@@ -273,70 +280,21 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
     )
 }
 
-/**
- * Someone who can't see the band (ITERATION_5 §12), tapped by a leader: "Ola cannot see the band. Invite her?". A guest
- * becomes a band member first (in this event only, under a free name), saved to the server, then Band members opens at
- * them to create the invite; a member without the app goes there straight away.
- */
+/** A member without the app (ITERATION_5 §12), tapped by a leader: "Ola cannot see the band. Invite her?". */
 @Composable
-private fun InviteThemDialog(context: EventContext, partyId: String, scope: CoroutineScope, onDismiss: () -> Unit) {
-    val event = context.event
-    // As when tapped: once promoted, the guest is no longer in the event.
-    val guest = remember(partyId) { event.guest(partyId) }
-    val member = remember(partyId) { context.band.member(partyId) }
-    val shownName = guest?.name ?: member?.name
-    if (shownName == null) {
+private fun InviteThemDialog(context: EventContext, memberId: String, onDismiss: () -> Unit) {
+    val member = context.band.member(memberId)
+    if (member == null) {
         LaunchedEffect(Unit) { onDismiss() }
         return
     }
-    var name by remember { mutableStateOf(shownName) }
-    val saving = stringResource(Res.string.not_in_app_saving)
-    val failed = stringResource(Res.string.not_in_app_failed)
-    val offline = stringResource(Res.string.not_in_app_offline)
-    val taken = if (guest != null) nameTakenError(context.band, name) else null
     AlertDialog(
         onDismissRequest = onDismiss,
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.not_in_app_text, shownName))
-                if (guest != null) {
-                    // The guest's name is a member's already: a free one is needed for the new member.
-                    if (taken != null || name != shownName) OutlinedTextField(
-                        name,
-                        { name = it.take(Limits.MAX_NAME) },
-                        label = { Text(stringResource(Res.string.member_name)) },
-                        singleLine = true,
-                        isError = taken != null,
-                        supportingText = taken?.let { { Text(it) } },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        },
+        text = { Text(stringResource(Res.string.not_in_app_text, member.name)) },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank() && taken == null, onClick = {
-                if (guest == null) {
-                    onDismiss()
-                    context.onInviteMember(partyId)
-                    return@TextButton
-                }
-                val memberId = newId()
-                if (!context.actions.run(PromoteGuest(event.id, guest.id, memberId, name.trim()))) return@TextButton
+            TextButton(onClick = {
                 onDismiss()
-                context.actions.say(saving)
-                scope.launch {
-                    // The server must have the new member before an invite to it can be created.
-                    val sent = context.graph.awaitPushed(context.band.id)
-                    when {
-                        // Refused by the server meanwhile (dropped from the queue): the guest is back.
-                        (context.graph.bands.state.value as? BandState.Ready)?.band?.member(memberId) == null -> context.actions.say(failed)
-                        else -> {
-                            // Offline: a member on this phone; the invite waits for a connection.
-                            if (!sent) context.actions.say(offline)
-                            context.onInviteMember(memberId)
-                        }
-                    }
-                }
+                context.onInviteMember(memberId)
             }) { Text(stringResource(Res.string.not_in_app_invite)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

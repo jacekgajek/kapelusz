@@ -2,8 +2,6 @@ package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.data.AppGraph
-import com.jacekgajek.kapelusz.app.ui.components.Actions
-import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,13 +17,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -34,7 +29,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,7 +37,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
@@ -53,30 +46,22 @@ import com.jacekgajek.kapelusz.app.generated.cost_approved_part
 import com.jacekgajek.kapelusz.app.generated.cost_status_partly
 import com.jacekgajek.kapelusz.app.generated.cost_status_pending
 import com.jacekgajek.kapelusz.app.generated.cost_status_refunded
-import com.jacekgajek.kapelusz.app.generated.cost_status_refused
 import com.jacekgajek.kapelusz.app.generated.costs_empty
 import com.jacekgajek.kapelusz.app.generated.costs_none
 import com.jacekgajek.kapelusz.app.generated.costs_none_everyone
 import com.jacekgajek.kapelusz.app.generated.costs_outstanding_total
 import com.jacekgajek.kapelusz.app.generated.costs_outstanding_total_everyone
-import com.jacekgajek.kapelusz.app.generated.delete
-import com.jacekgajek.kapelusz.app.generated.delete_cost_title
 import com.jacekgajek.kapelusz.app.generated.filter_all
 import com.jacekgajek.kapelusz.app.generated.filter_all_members
 import com.jacekgajek.kapelusz.app.generated.filter_mine
 import com.jacekgajek.kapelusz.app.generated.filter_pending
 import com.jacekgajek.kapelusz.app.generated.filter_refunded
-import com.jacekgajek.kapelusz.app.generated.refused_cost_nothing
-import com.jacekgajek.kapelusz.app.generated.refused_cost_resubmit
-import com.jacekgajek.kapelusz.app.generated.refused_cost_text
-import com.jacekgajek.kapelusz.app.generated.refused_cost_title
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -87,14 +72,12 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
-import com.jacekgajek.kapelusz.ops.DeleteCost
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 fun CostStatus.labelRes(): StringResource = when (this) {
     // Not included anywhere yet, or included in an event not settled yet: either way the owner waits (ITERATION_4 §1.2).
     CostStatus.PENDING, CostStatus.REFUND_PLANNED -> Res.string.cost_status_pending
-    CostStatus.REFUSED -> Res.string.cost_status_refused
     CostStatus.PARTLY_REFUNDED -> Res.string.cost_status_partly
     CostStatus.REFUNDED -> Res.string.cost_status_refunded
 }
@@ -142,10 +125,7 @@ fun MyCostsScreen(
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
     val can = Can(band, state.userId)
-    var asking by remember { mutableStateOf<Cost?>(null) }
-    var deleting by remember { mutableStateOf<Cost?>(null) }
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
     // A viewer sees everything, costs included, and has none of their own to switch to.
@@ -211,8 +191,7 @@ fun MyCostsScreen(
             }
             items(shown, key = { it.id }) { cost ->
                 val status = statuses.status(cost)
-                val ownRefused = status == CostStatus.REFUSED && cost.memberId == state.me?.id
-                Card(onClick = { if (ownRefused) asking = cost else onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
+                Card(onClick = { onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         CostIcon(cost, Modifier.padding(end = 12.dp))
                         Column(Modifier.weight(1f)) {
@@ -228,49 +207,11 @@ fun MyCostsScreen(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             MoneyText(cost.amount, band.currency, bold = true)
-                            Text(
-                                costStatusText(band, cost, status),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
-                            )
-                        }
-                        // A refused cost goes from the list (ITERATION_4 §1.2), once confirmed: artists have no History to undo it.
-                        if (ownRefused && can.allowed(DeleteCost(cost.id))) {
-                            IconButton(onClick = { deleting = cost }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
+                            Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
         }
     }
-    asking?.let { cost -> RefusedCostDialog(cost, actions, onEdit = { onOpenCost(cost.id) }, onDismiss = { asking = null }) }
-    deleting?.let { cost ->
-        ConfirmDialog(
-            title = stringResource(Res.string.delete_cost_title),
-            text = cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost),
-            confirmLabel = stringResource(Res.string.delete),
-            onConfirm = { actions.run(DeleteCost(cost.id)) },
-            onDismiss = { deleting = null },
-        )
-    }
-}
-
-/**
- * The owner opening a refused cost is asked first (ITERATION_4 §1.2): edit it (saving resubmits it to the leads), delete
- * it, or leave it.
- */
-@Composable
-fun RefusedCostDialog(cost: Cost, actions: Actions, onEdit: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.refused_cost_title)) },
-        text = { Text(stringResource(Res.string.refused_cost_text)) },
-        confirmButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                TextButton(onClick = { onDismiss(); onEdit() }) { Text(stringResource(Res.string.refused_cost_resubmit)) }
-                TextButton(onClick = { onDismiss(); actions.run(DeleteCost(cost.id)) }) { Text(stringResource(Res.string.delete)) }
-                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.refused_cost_nothing)) }
-            }
-        },
-    )
 }

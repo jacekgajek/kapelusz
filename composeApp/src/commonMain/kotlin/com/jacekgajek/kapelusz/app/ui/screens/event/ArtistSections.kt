@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.ui.screens.event
 
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,13 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
@@ -41,11 +38,8 @@ import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
-import com.jacekgajek.kapelusz.app.ui.screens.RefusedCostDialog
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
-import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
-import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
 import org.jetbrains.compose.resources.stringResource
 
@@ -61,7 +55,7 @@ fun ArtistLineup(context: EventContext) {
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val member = context.band.member(participant.partyId)
-            if (member?.userId == null) NotInAppIcon() else Avatar(name, member.pictureUrl, decorative = true)
+            if (event.guest(participant.partyId) != null) GuestIcon() else if (member?.userId == null) NotInAppIcon() else Avatar(name, member.pictureUrl, decorative = true)
             Text(name)
         }
     }
@@ -99,12 +93,11 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
     val me = context.me ?: return
     val costs = band.costs.filter { it.memberId == me.id && it.eventId == context.event.id }.sortedByDescending { it.date }
     val statuses = remember(band) { CostStatuses(band) }
-    var asking by remember { mutableStateOf<Cost?>(null) }
     SectionTitle(stringResource(Res.string.artist_my_costs))
     costs.forEach { cost ->
         val status = statuses.status(cost)
         Row(
-            Modifier.fillMaxWidth().clickable { if (status == CostStatus.REFUSED) asking = cost else onOpenCost(cost.id) }.padding(vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable { onOpenCost(cost.id) }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CostIcon(cost, Modifier.padding(end = 12.dp))
@@ -114,11 +107,7 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
             }
             Column(horizontalAlignment = Alignment.End) {
                 MoneyText(cost.amount, context.currency)
-                Text(
-                    costStatusText(band, cost, status),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (status == CostStatus.REFUSED) MaterialTheme.colorScheme.error else Color.Unspecified,
-                )
+                Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -126,5 +115,4 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
         Icon(Icons.Default.Add, null)
         Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
     }
-    asking?.let { cost -> RefusedCostDialog(cost, context.actions, onEdit = { onOpenCost(cost.id) }, onDismiss = { asking = null }) }
 }

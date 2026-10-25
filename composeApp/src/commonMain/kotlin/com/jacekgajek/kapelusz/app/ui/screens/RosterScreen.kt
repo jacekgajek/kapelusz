@@ -2,6 +2,8 @@ package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
+import com.jacekgajek.kapelusz.app.ui.components.FormerMember
+import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
@@ -240,7 +242,10 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
             "",
             onConfirm = { actions.run(AddMember(newId(), it)) },
             onDismiss = { adding = false },
-            error = { nameTakenError(band, it) },
+            // Someone who used to be in the band is offered back instead (their name stays theirs).
+            error = { name -> nameTakenError(band, name).takeIf { band.formerMemberNamed(name) == null } },
+            allowed = { band.formerMemberNamed(it) == null },
+            below = { name -> band.formerMemberNamed(name)?.let { FormerMember(it, actions) { adding = false } } },
         )
     }
     selected?.let { id -> band.member(id) }?.takeIf { !isAdmin }?.let { member ->

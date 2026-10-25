@@ -207,7 +207,7 @@ private fun FundEntryDialog(
     var description by remember { mutableStateOf(initial?.description.orEmpty()) }
     var date by remember { mutableStateOf(initial?.date ?: today()) }
     // Refunding a cost is only offered for new entries; the link cannot be changed later.
-    val pendingCosts = band.costs.filter { !it.refused && CostLedger.outstanding(band, it).isPositive }
+    val pendingCosts = band.costs.filter { CostLedger.outstanding(band, it).isPositive }
     var costId by remember { mutableStateOf(initial?.costId) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     val signed = parsed?.let { if (incoming) it else -it }

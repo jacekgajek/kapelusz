@@ -10,10 +10,6 @@
     <string name="tab_gig">Koncert</string>
     <string name="tab_money">Pieniądze</string>
     <string name="tab_settlement">Rozliczenie</string>
-    <string name="refused_cost_title">Ten koszt został odrzucony</string>
-    <string name="refused_cost_text">Co chcesz zrobić?</string>
-    <string name="refused_cost_resubmit">Popraw i zgłoś ponownie</string>
-    <string name="refused_cost_nothing">Nic</string>
     <string name="artist_payout">Twoja wypłata</string>
     <string name="artist_to_receive">Do otrzymania</string>
     <string name="artist_received">Otrzymano dotąd</string>
@@ -108,7 +104,6 @@
     <string name="copy_failed">Nie udało się skopiować.</string>
     <string name="undo_too_late">Już wysłane; cofnij to w historii.</string>
     <string name="attachment_removed">Usunięto %1$s</string>
-    <string name="cost_refused">Odrzucono koszt: %1$s, %2$s</string>
     <string name="more">Więcej</string>
     <string name="amount">Kwota</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>
@@ -139,10 +134,12 @@
     <string name="refunds">Zwroty kosztów</string>
     <string name="refunds_empty">Brak kosztów do zwrotu.</string>
     <string name="refund_of">z %1$s</string>
+    <string name="refund_amount_here">Ile zwrócić tutaj</string>
+    <string name="refund_how_much">Ile z tego kosztu zwrócić na tym wydarzeniu?</string>
     <string name="refund_max">Maksymalnie %1$s. Ustaw 0 lub wybierz Odłóż, aby zwrócić później.</string>
     <string name="pending_from_earlier">Oczekujące</string>
-    <string name="include">Uwzględnij</string>
-    <string name="refuse">Odrzuć</string>
+    <string name="refund_here">Zwróć tutaj</string>
+    <string name="pending_hint">Jeszcze niezwrócone. Zwróć tutaj albo zostaw na później.</string>
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
     <string name="summary">Rozliczenie</string>
@@ -170,7 +167,6 @@
     <string name="edit_cost">Koszt</string>
     <string name="filter_all">Wszystkie</string>
     <string name="cost_status_pending">Oczekuje</string>
-    <string name="cost_status_refused">Odrzucony</string>
     <string name="cost_approved_part">zatwierdzono %1$s</string>
     <string name="cost_status_partly">Częściowo zwrócony</string>
     <string name="cost_status_refunded">Zwrócony</string>
@@ -190,6 +186,7 @@
     <string name="events_to_settle">Wydarzenia do rozliczenia</string>
     <string name="nothing_to_settle">Nie ma nic do rozliczenia.</string>
     <string name="open_event">Otwórz</string>
+    <string name="open_cost">Otwórz koszt</string>
     <string name="you_hold">Masz %1$s do przekazania: %2$s</string>
     <string name="cost_planned_at">%1$s do zwrotu w: %2$s (jeszcze nierozliczone)</string>
     <string name="settle_part">Część</string>
@@ -221,8 +218,6 @@
     <string name="reject_viewer_not_participant">Obserwatorzy nie biorą udziału w wydarzeniach.</string>
     <string name="reject_viewer_still_plays">Ta osoba wciąż gra w nierozliczonych wydarzeniach lub prowadzi kasę zespołową: najpierw je rozlicz albo przekaż kasę.</string>
     <string name="reject_holds_money">Ta osoba wciąż trzyma pieniądze: najpierw rozlicz jej wydarzenia lub przekaż kasę zespołową.</string>
-    <string name="reject_cost_refused">Ten koszt został odrzucony.</string>
-    <string name="reject_cost_partly_refunded">Część tego kosztu jest już zwrócona, więc nie można go odrzucić.</string>
     <string name="reject_owner_role_fixed">Rolę właściciela można zmienić tylko przez przekazanie własności.</string>
     <string name="reject_member_linked">Ten członek jest powiązany z kontem w aplikacji.</string>
     <string name="reject_user_already_member">To konto już należy do zespołu.</string>
@@ -324,7 +319,6 @@
     <string name="h_add_participant">Dodano %1$s do: %2$s</string>
     <string name="h_add_guest">Dodano gościa %1$s do: %2$s</string>
     <string name="h_rename_guest">Zmieniono imię gościa na %1$s w: %2$s</string>
-    <string name="h_promote_guest">Gość %1$s dołącza do składu zespołu</string>
     <string name="h_set_weight">Ustawiono udział %1$s na %2$s w: %3$s</string>
     <string name="h_remove_participant">Usunięto %1$s z: %2$s</string>
     <string name="h_add_holding">Zapisano %1$s otrzymane przez %2$s w: %3$s</string>
@@ -358,9 +352,6 @@
     <string name="h_add_cost">Dodano koszt %1$s dla: %2$s</string>
     <string name="h_edit_cost">Edytowano koszt</string>
     <string name="h_delete_cost">Usunięto koszt</string>
-    <string name="h_refuse_cost">Odrzucono koszt</string>
-    <string name="h_resubmit_cost">Ponownie zgłoszono odrzucony koszt</string>
-    <string name="h_refuse_cost_of">Odrzucono koszt %1$s dla: %2$s</string>
     <string name="h_add_attachment">Dodano plik</string>
     <string name="h_remove_attachment">Usunięto plik</string>
     <string name="h_rename_attachment">Zmieniono nazwę pliku na %1$s</string>
@@ -637,11 +628,12 @@
     <string name="guest_is_member">%1$s to członek zespołu. Dodać jako uczestnika?</string>
     <string name="guest_add_member_instead">Dodaj: %1$s</string>
     <string name="guest_add_anyway">Dodaj mimo to jako gościa</string>
+    <string name="former_member">%1$s jest wśród dawnych członków zespołu.</string>
+    <string name="former_member_restore">Przywróć do zespołu</string>
+    <string name="former_member_restored">Witaj ponownie, %1$s!</string>
+    <string name="guest_add_as_guest">Dodaj jako gościa</string>
     <string name="not_in_app_text">%1$s nie widzi zespołu. Chcesz wysłać zaproszenie?</string>
-    <string name="not_in_app_saving">Zapisuję…</string>
     <string name="not_in_app_invite">Zaproś</string>
-    <string name="not_in_app_failed">Nie udało się dodać do zespołu; pozostaje gościem.</string>
-    <string name="not_in_app_offline">Zapisano na tym telefonie. Utwórz zaproszenie, gdy będziesz online.</string>
     <string name="share_title">Dołącz do…</string>
     <string name="share_upcoming">Nadchodzące</string>
     <string name="share_no_events">Nie ma wydarzenia, do którego możesz dołączyć pliki.</string>

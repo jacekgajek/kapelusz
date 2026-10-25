@@ -10,10 +10,6 @@
     <string name="tab_gig">Gig</string>
     <string name="tab_money">Money</string>
     <string name="tab_settlement">Settlement</string>
-    <string name="refused_cost_title">This cost was refused</string>
-    <string name="refused_cost_text">What do you want to do?</string>
-    <string name="refused_cost_resubmit">Edit and resubmit</string>
-    <string name="refused_cost_nothing">Nothing</string>
     <string name="artist_payout">Your payout</string>
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
@@ -108,7 +104,6 @@
     <string name="copy_failed">Could not copy.</string>
     <string name="undo_too_late">Already sent; undo it from the history.</string>
     <string name="attachment_removed">Removed %1$s</string>
-    <string name="cost_refused">Refused %1$s’s cost of %2$s</string>
     <string name="more">More</string>
     <string name="amount">Amount</string>
     <string name="note_optional">Note (optional)</string>
@@ -139,10 +134,12 @@
     <string name="refunds">Cost refunds</string>
     <string name="refunds_empty">No costs to refund.</string>
     <string name="refund_of">of %1$s</string>
+    <string name="refund_amount_here">Amount refunded here</string>
+    <string name="refund_how_much">How much of this cost should be refunded at this event?</string>
     <string name="refund_max">At most %1$s. Set 0 or use Defer to refund it later.</string>
     <string name="pending_from_earlier">Waiting</string>
-    <string name="include">Include</string>
-    <string name="refuse">Refuse</string>
+    <string name="refund_here">Refund here</string>
+    <string name="pending_hint">Not refunded yet. Refund them here, or leave them for a later event.</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>
@@ -170,7 +167,6 @@
     <string name="edit_cost">Cost</string>
     <string name="filter_all">All</string>
     <string name="cost_status_pending">Waiting</string>
-    <string name="cost_status_refused">Refused</string>
     <string name="cost_approved_part">approved %1$s</string>
     <string name="cost_status_partly">Partly refunded</string>
     <string name="cost_status_refunded">Refunded</string>
@@ -190,6 +186,7 @@
     <string name="events_to_settle">Events to settle</string>
     <string name="nothing_to_settle">Nothing to settle.</string>
     <string name="open_event">Open</string>
+    <string name="open_cost">Open the cost</string>
     <string name="you_hold">You hold %1$s to hand over at %2$s</string>
     <string name="cost_planned_at">%1$s to be refunded at %2$s (not settled yet)</string>
     <string name="settle_part">Part</string>
@@ -221,8 +218,6 @@
     <string name="reject_viewer_not_participant">Viewers take no part in events.</string>
     <string name="reject_viewer_still_plays">They still play in events not settled yet, or hold the band fund: settle those events or hand over the fund first.</string>
     <string name="reject_holds_money">They still hold money: settle their events or hand over the band fund first.</string>
-    <string name="reject_cost_refused">This cost was refused.</string>
-    <string name="reject_cost_partly_refunded">Part of this cost is already refunded, so it can’t be refused.</string>
     <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
     <string name="reject_user_already_member">This account is already in the band.</string>
@@ -324,7 +319,6 @@
     <string name="h_add_participant">Added %1$s to %2$s</string>
     <string name="h_add_guest">Added guest %1$s to %2$s</string>
     <string name="h_rename_guest">Renamed a guest to %1$s in %2$s</string>
-    <string name="h_promote_guest">Added guest %1$s to the band</string>
     <string name="h_set_weight">Set the share of %1$s to %2$s in %3$s</string>
     <string name="h_remove_participant">Removed %1$s from %2$s</string>
     <string name="h_add_holding">Recorded %1$s received by %2$s at %3$s</string>
@@ -358,9 +352,6 @@
     <string name="h_add_cost">Added a cost of %1$s for %2$s</string>
     <string name="h_edit_cost">Edited a cost</string>
     <string name="h_delete_cost">Deleted a cost</string>
-    <string name="h_refuse_cost">Refused a cost</string>
-    <string name="h_resubmit_cost">Resubmitted a refused cost</string>
-    <string name="h_refuse_cost_of">Refused a cost of %1$s for %2$s</string>
     <string name="h_add_attachment">Added a file</string>
     <string name="h_remove_attachment">Removed a file</string>
     <string name="h_rename_attachment">Renamed a file to %1$s</string>
@@ -631,11 +622,12 @@
     <string name="guest_is_member">%1$s is a band member. Add them as a participant instead?</string>
     <string name="guest_add_member_instead">Add %1$s</string>
     <string name="guest_add_anyway">Add as guest anyway</string>
+    <string name="former_member">%1$s used to be in the band.</string>
+    <string name="former_member_restore">Welcome back</string>
+    <string name="former_member_restored">Welcome back, %1$s!</string>
+    <string name="guest_add_as_guest">Add as a guest</string>
     <string name="not_in_app_text">%1$s cannot see the band. Do you want to invite them?</string>
-    <string name="not_in_app_saving">Saving…</string>
     <string name="not_in_app_invite">Invite</string>
-    <string name="not_in_app_failed">Couldn't make them a band member; they stay a guest.</string>
-    <string name="not_in_app_offline">Saved on this phone. Create the invite once you're online.</string>
     <string name="share_title">Attach to…</string>
     <string name="share_upcoming">Upcoming</string>
     <string name="share_no_events">There is no event you can attach files to.</string>

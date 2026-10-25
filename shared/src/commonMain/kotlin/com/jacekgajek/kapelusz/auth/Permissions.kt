@@ -28,10 +28,8 @@ import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.PromoteGuest
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
@@ -102,12 +100,12 @@ object Permissions {
         is TransferOwnership -> Role.OWNER
 
         is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,
-        is SetMemberRole, is UnlinkUser, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is PromoteGuest, is LinkUser,
+        is SetMemberRole, is UnlinkUser, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is LinkUser,
         -> Role.LEAD
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
         is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,
-        is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer, is RefuseCost, is ReceiveAwaited,
+        is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer, is ReceiveAwaited,
         is SetMemberShare,
         -> Role.LEAD
 

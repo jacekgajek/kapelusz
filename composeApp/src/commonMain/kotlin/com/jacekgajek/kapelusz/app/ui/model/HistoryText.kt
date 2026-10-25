@@ -35,11 +35,8 @@ import com.jacekgajek.kapelusz.app.generated.h_edit_fund_entry
 import com.jacekgajek.kapelusz.app.generated.h_edit_holding
 import com.jacekgajek.kapelusz.app.generated.h_link_user
 import com.jacekgajek.kapelusz.app.generated.h_move_member
-import com.jacekgajek.kapelusz.app.generated.h_promote_guest
 import com.jacekgajek.kapelusz.app.generated.h_receive_awaited
 import com.jacekgajek.kapelusz.app.generated.h_record_transfer
-import com.jacekgajek.kapelusz.app.generated.h_refuse_cost
-import com.jacekgajek.kapelusz.app.generated.h_refuse_cost_of
 import com.jacekgajek.kapelusz.app.generated.h_remove_attachment
 import com.jacekgajek.kapelusz.app.generated.h_remove_fund_entry
 import com.jacekgajek.kapelusz.app.generated.h_remove_holding
@@ -51,7 +48,6 @@ import com.jacekgajek.kapelusz.app.generated.h_rename_guest
 import com.jacekgajek.kapelusz.app.generated.h_rename_member
 import com.jacekgajek.kapelusz.app.generated.h_restore_event
 import com.jacekgajek.kapelusz.app.generated.h_restore_member
-import com.jacekgajek.kapelusz.app.generated.h_resubmit_cost
 import com.jacekgajek.kapelusz.app.generated.h_set_fund_amount
 import com.jacekgajek.kapelusz.app.generated.h_set_member_share
 import com.jacekgajek.kapelusz.app.generated.h_set_refund
@@ -94,10 +90,8 @@ import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.PromoteGuest
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.ops.RefuseCost
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding
@@ -177,7 +171,6 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
         is AddParticipant -> stringResource(Res.string.h_add_participant, member(op.memberId), event(op.eventId))
         is AddGuest -> stringResource(Res.string.h_add_guest, op.name, event(op.eventId))
         is RenameGuest -> stringResource(Res.string.h_rename_guest, op.name, event(op.eventId))
-        is PromoteGuest -> stringResource(Res.string.h_promote_guest, member(op.memberId))
         is SetWeight -> stringResource(Res.string.h_set_weight, party(op.eventId, op.partyId), "${op.weight}%", event(op.eventId))
         is SetFixedShare -> op.amount?.let { amount ->
             stringResource(Res.string.h_set_fixed_share, party(op.eventId, op.partyId), money(amount), event(op.eventId))
@@ -218,11 +211,9 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
             if (isRedo(op)) stringResource(Res.string.h_redo, change) else stringResource(Res.string.h_undo, change)
         }
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
-        is UpdateCost -> if (op.resubmit) stringResource(Res.string.h_resubmit_cost) else stringResource(Res.string.h_edit_cost)
+        is UpdateCost -> stringResource(Res.string.h_edit_cost)
         is DeleteCost -> stringResource(Res.string.h_delete_cost)
         is SetMemberShare -> stringResource(Res.string.h_set_member_share, member(op.memberId), op.fixedShare?.let(::money) ?: "${op.weight}%")
-        is RefuseCost -> band.cost(op.costId)?.let { stringResource(Res.string.h_refuse_cost_of, money(it.amount), member(it.memberId)) }
-            ?: stringResource(Res.string.h_refuse_cost)
         is AddAttachment -> stringResource(Res.string.h_add_attachment)
         is RemoveAttachment -> stringResource(Res.string.h_remove_attachment)
         is RenameAttachment -> stringResource(Res.string.h_rename_attachment, op.fileName)

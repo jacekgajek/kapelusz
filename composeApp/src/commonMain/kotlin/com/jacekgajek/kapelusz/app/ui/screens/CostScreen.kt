@@ -1,6 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import com.jacekgajek.kapelusz.app.generated.open_event
 import androidx.compose.material3.FilterChipDefaults
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +38,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
+import kotlinx.datetime.LocalDate
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,6 +110,8 @@ fun CostScreen(
     onAddedForOther: () -> Unit = {},
     /** A new cost "incurred for" this event, from the event's Cost refunds (ITERATION_2 §7). */
     forEventId: String? = null,
+    /** An event the cost is refunded at, opened at its Money page. */
+    onOpenEvent: (String) -> Unit = {},
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
@@ -123,10 +130,11 @@ fun CostScreen(
     // Opened from an event: the new cost is for that event (fixed; My costs books it elsewhere), so only its
     // participants can have paid it.
     val forEvent = forEventId?.takeIf { existing == null }?.let { band.event(it) }
-    var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
-    var date by remember { mutableStateOf(existing?.date ?: today()) }
-    var eventId by remember { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
-    var category by remember { mutableStateOf(existing?.category) }
+    // All of the form survives a trip to an event and back (a refund's event line opens it), as the typed text does.
+    var paidBy by rememberSaveable { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
+    var date by rememberSaveable(stateSaver = DateSaver) { mutableStateOf(existing?.date ?: today()) }
+    var eventId by rememberSaveable { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
+    var category by rememberSaveable { mutableStateOf(existing?.category) }
     var description by rememberSaveable { mutableStateOf(existing?.description.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
@@ -162,8 +170,6 @@ fun CostScreen(
                     incurredForEventId = Change(eventId).takeIf { eventId != (opened ?: existing).eventId },
                     category = Change(category).takeIf { category != (opened ?: existing).category },
                     description = Change(description.ifBlank { null }).takeIf { description.trim() != (opened ?: existing).description.orEmpty() },
-                    // Saving their own refused cost sends it to the leads again (ITERATION_4 §1.2).
-                    resubmit = existing.refused && existing.memberId == state.me?.id,
                 ),
             )
         }
@@ -205,7 +211,7 @@ fun CostScreen(
                 Modifier.widthIn(max = 600.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (existing != null) RefundInfo(state, existing)
+                if (existing != null) RefundInfo(state, existing, onOpenEvent)
                 when {
                     existing == null && payers.size > 1 -> Dropdown(paidBy, payers.map { it.id }, { paidBy = it }, stringResource(Res.string.paid_by)) { id ->
                         id?.let { band.member(it)?.name }.orEmpty()
@@ -276,9 +282,9 @@ fun CostScreen(
     }
 }
 
-/** Status of the cost and where it was refunded. */
+/** Status of the cost and where it was refunded; a tap on an event opens it. */
 @Composable
-private fun RefundInfo(state: BandState.Ready, cost: Cost) {
+private fun RefundInfo(state: BandState.Ready, cost: Cost, onOpenEvent: (String) -> Unit) {
     val band = state.band
     val lang = language
     val statuses = remember(band) { CostStatuses(band) }
@@ -294,14 +300,21 @@ private fun RefundInfo(state: BandState.Ready, cost: Cost) {
                 )
             }
             refundedAt.forEach { (event, amount, paid) ->
-                Text(
-                    stringResource(
-                        if (paid) Res.string.cost_refunded_at else Res.string.cost_planned_at,
-                        formatMoney(amount, band.currency, lang),
-                        event.name,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(Res.string.open_event)) { onOpenEvent(event.id) }.padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(
+                            if (paid) Res.string.cost_refunded_at else Res.string.cost_planned_at,
+                            formatMoney(amount, band.currency, lang),
+                            event.name,
+                        ),
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
             }
             fundRefund.forEach {
                 Text(stringResource(Res.string.cost_refunded_fund, formatMoney(-it.amount, band.currency, lang)), style = MaterialTheme.typography.bodySmall)
@@ -309,3 +322,5 @@ private fun RefundInfo(state: BandState.Ready, cost: Cost) {
         }
     }
 }
+
+private val DateSaver = Saver<LocalDate, String>({ it.toString() }, { LocalDate.parse(it) })

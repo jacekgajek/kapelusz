@@ -158,13 +158,6 @@ data class AddGuest(override val eventId: Id, val guestId: Id, val name: String,
 @Serializable @SerialName("RenameGuest")
 data class RenameGuest(override val eventId: Id, val guestId: Id, val name: String) : Operation
 
-/**
- * Turns a guest into a new roster member, re-pointing all the guest's entries in this event; called [name] when given
- * (the guest's name may be a member's already, ITERATION_5 §12).
- */
-@Serializable @SerialName("PromoteGuest")
-data class PromoteGuest(override val eventId: Id, val guestId: Id, val memberId: Id, val name: String? = null) : Operation
-
 @Serializable @SerialName("SetWeight")
 data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int) : Operation
 
@@ -288,16 +281,10 @@ data class UpdateCost(
     val incurredForEventId: Change<Id?>? = null,
     val category: Change<CostCategory?>? = null,
     val description: Change<String?>? = null,
-    /** Its owner sends a refused cost to the leads again (ITERATION_4 §1.2), with or without other changes. */
-    val resubmit: Boolean = false,
 ) : Operation
 
 @Serializable @SerialName("DeleteCost")
 data class DeleteCost(val costId: Id) : Operation
-
-/** A lead refuses to refund a waiting cost (ITERATION_4 §1.2). Its owner resubmits it by editing it ([UpdateCost]). */
-@Serializable @SerialName("RefuseCost")
-data class RefuseCost(val costId: Id) : Operation
 
 /** Attaches a file to a cost, a collected entry or an event ([owner], ITERATION_4 §2.1). */
 @Serializable @SerialName("AddAttachment")

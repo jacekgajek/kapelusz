@@ -192,7 +192,11 @@ fun EventScreen(
     LaunchedEffect(sharedSection, event != null, resumed) {
         val (sectionEvent, name) = sharedSection ?: return@LaunchedEffect
         if (sectionEvent != eventId || !resumed) return@LaunchedEffect
-        if (event != null && !artist) EventSection.entries.firstOrNull { it.name == name }?.let { scrollTo(it) }
+        val section = EventSection.entries.firstOrNull { it.name == name }
+        // Artists' pages have other sections: just the page (e.g. Money, from a cost's form).
+        if (event != null && section != null) {
+            if (!artist) scrollTo(section) else section.tabs.firstOrNull { it in tabs }?.let { pagerState.scrollToPage(tabs.indexOf(it)) }
+        }
         graph.pendingEventSection.value = null
     }
     val handover by graph.sharedHandover.collectAsState()

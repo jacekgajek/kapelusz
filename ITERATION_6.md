@@ -72,7 +72,32 @@ Features that don't add screens or settings, but act on what is already there.
 - The cost form's category chips: a small icon before the name, kept when selected (the chip's fill says it is).
 - Not on band fund entries: there a cost is part of the entry's text, not a row.
 
-## 5. Milestones and task checklist
+## 5. Guests stay guests; former members are welcomed back (2026-10-25)
+
+- A guest is a handshake in place of an avatar, and a tap on one does nothing: making a guest a band member (with a
+  free name when theirs is a former member's) was more confusion than help. `PromoteGuest` is gone.
+- Members without the app keep the crossed eye and the tap that invites them.
+- Names stay unique among members, archived ones too (ITERATION_5 §12). A name of someone who used to be in the band,
+  typed in Add member or Add guest: "Bob used to be in the band." with Welcome back, which restores them (and, from
+  Add guest, adds them to the event with their usual share). Add guest can still add a guest by that name; Add member
+  needs another name.
+
+**Cost → event:** in a cost's form, each "to be refunded at / refunded at" event line opens that event at its Money
+page (the refunds).
+
+**Refund amount button:** on the Money page's cost rows, the button that sets how much of the cost is refunded in this
+event is sliders (Tune), not the pencil: it doesn't edit the cost. Read out as "Amount refunded here". In its dialog, a tap on the cost (icon, who, what, date) opens the cost's
+form (a pencil says so); Back returns to the event. Above the amount: "How much of this cost should be refunded at
+this event?"
+
+**Waiting costs** (the Money page) read as a choice to make. Now: under "Waiting", "Not
+refunded yet. Refund one here, or leave it for a later event."; one button, Refund here (was Include); a pencil opens the cost's form.
+
+**Refuse is gone** (with the Refused status, resubmitting, and the refused-cost dialog in My costs and an artist's
+costs): whether a cost is paid back is talked over in person, not a formal step in the app. A cost no one should repay
+is deleted or edited by its owner or a lead; one left alone simply waits.
+
+## 6. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -86,7 +111,7 @@ Features that don't add screens or settings, but act on what is already there.
 - [x] Event pointers, rendering `index.html` with the tags, the icon
 - [ ] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
 
-## 6. Decision log
+## 7. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
@@ -95,3 +120,5 @@ Features that don't add screens or settings, but act on what is already there.
   same map data as the rest; OpenStreetMap would add ~10 MB and has weaker data in Poland.
 - 2026-10-25: Link cards name the event although anyone with the link sees them: the name and date say little.
 - 2026-10-25: Invite cards stay generic (Q11 changed after review): a band's name would confirm guessed codes.
+- 2026-10-25: Guests can't become members any more (§5); duplicate member names stay refused: rows show only names.
+- 2026-10-25: Refusing costs removed (§5): a conversation, not a procedure; it also simplifies My costs.

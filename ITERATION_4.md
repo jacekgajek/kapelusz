@@ -48,6 +48,9 @@ concerns them.
 
 ### 1.2 Costs wait for a lead: Include or Refuse
 
+> Refuse (and resubmitting a refused cost) removed in ITERATION_6 §5: settled in person, not in the app. Include is
+> now Refund here.
+
 Today a member's cost for an event they play is included in its refunds automatically while the event has no
 transfers; only costs from elsewhere, or added after money moved, wait in "Pending from earlier" for a lead's Include.
 

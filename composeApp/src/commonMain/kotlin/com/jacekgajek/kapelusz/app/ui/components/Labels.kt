@@ -34,9 +34,7 @@ import com.jacekgajek.kapelusz.app.generated.reject_archived_member
 import com.jacekgajek.kapelusz.app.generated.reject_artist_holds_no_money
 import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle
 import com.jacekgajek.kapelusz.app.generated.reject_cost_below_refunded
-import com.jacekgajek.kapelusz.app.generated.reject_cost_partly_refunded
 import com.jacekgajek.kapelusz.app.generated.reject_cost_refunded_from_fund
-import com.jacekgajek.kapelusz.app.generated.reject_cost_refused
 import com.jacekgajek.kapelusz.app.generated.reject_duplicate_id
 import com.jacekgajek.kapelusz.app.generated.reject_empty_name
 import com.jacekgajek.kapelusz.app.generated.reject_event_has_transfers
@@ -174,8 +172,6 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.VIEWER_NOT_PARTICIPANT -> Res.string.reject_viewer_not_participant
     RejectionReason.VIEWER_STILL_PLAYS -> Res.string.reject_viewer_still_plays
     RejectionReason.HOLDS_MONEY -> Res.string.reject_holds_money
-    RejectionReason.COST_REFUSED -> Res.string.reject_cost_refused
-    RejectionReason.COST_PARTLY_REFUNDED -> Res.string.reject_cost_partly_refunded
     RejectionReason.OWNER_ROLE_FIXED -> Res.string.reject_owner_role_fixed
     RejectionReason.OWNERSHIP_NEEDS_LEADER -> Res.string.reject_ownership_needs_leader
     RejectionReason.NAME_TAKEN -> Res.string.reject_name_taken
