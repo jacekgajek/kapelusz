@@ -136,11 +136,11 @@ class ReducerTest {
     @Test
     fun ownershipTransfer() {
         val scenario = gig()
-        scenario.userFor("bob", Role.ADMIN)
+        scenario.userFor("bob", Role.LEAD)
         assertEquals(RejectionCode.INVALID, scenario.rejected(SetMemberRole("alice", Role.LEAD)).code)
         scenario.apply(TransferOwnership("bob"))
         assertEquals(Role.OWNER, scenario.band.member("bob")!!.role)
-        assertEquals(Role.ADMIN, scenario.band.member("alice")!!.role)
+        assertEquals(Role.LEAD, scenario.band.member("alice")!!.role)
     }
 
     @Test

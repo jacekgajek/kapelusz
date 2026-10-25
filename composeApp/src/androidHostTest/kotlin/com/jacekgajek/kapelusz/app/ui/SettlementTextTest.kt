@@ -71,7 +71,7 @@ class SettlementTextTest {
     // Bob collected 1 200; Alice holds the band fund and gets 150 back for a cost; 100 goes to the fund.
     private val gig = Band.create("b", "Band", "PLN", "alice", "Alice", "u-alice")
         .let { (Engine.apply(it, Actor.System, AddMember("bob", "Bob"), "m", 1) as ApplyResult.Applied).band }
-        .let { (Engine.apply(it, Actor.System, LinkUser("bob", "u-bob", Role.ADMIN), "l", 1) as ApplyResult.Applied).band }
+        .let { (Engine.apply(it, Actor.System, LinkUser("bob", "u-bob", Role.LEAD), "l", 1) as ApplyResult.Applied).band }
         .apply(
             SetTreasurer("alice"),
             CreateEvent("gig", "Club gig", LocalDate(2026, 9, 12), participants = listOf(Participant("alice"), Participant("bob"))),
@@ -172,7 +172,7 @@ class SettlementTextTest {
     fun moneyFromTheBandFundAndNoRefunds() {
         val band = Band.create("b", "Band", "PLN", "alice", "Alice", "u-alice")
             .let { (Engine.apply(it, Actor.System, AddMember("bob", "Bob"), "m", 1) as ApplyResult.Applied).band }
-            .let { (Engine.apply(it, Actor.System, LinkUser("bob", "u-bob", Role.ADMIN), "l", 1) as ApplyResult.Applied).band }
+            .let { (Engine.apply(it, Actor.System, LinkUser("bob", "u-bob", Role.LEAD), "l", 1) as ApplyResult.Applied).band }
             .apply(
                 SetTreasurer("alice"),
                 CreateEvent("gig", "Wedding", LocalDate(2026, 9, 12), participants = listOf(Participant("alice"), Participant("bob"))),

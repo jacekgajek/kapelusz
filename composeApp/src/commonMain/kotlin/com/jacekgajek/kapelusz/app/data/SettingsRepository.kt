@@ -41,6 +41,8 @@ data class AppSettings(
      * other event opens on Gig. The most recent last, at most [MAX_EVENT_TABS].
      */
     val eventTabs: Map<String, EventTab> = emptyMap(),
+    /** Bands (ids) whose "no one else uses the app" hint was hidden on this device (ITERATION_5 §11). */
+    val hiddenNoAppHints: Set<String> = emptySet(),
 ) {
     fun eventTab(bandId: String, eventId: String): EventTab = eventTabs["$bandId/$eventId"] ?: EventTab.GIG
 

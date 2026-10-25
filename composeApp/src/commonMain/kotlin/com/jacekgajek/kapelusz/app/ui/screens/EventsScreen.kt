@@ -146,6 +146,12 @@ fun EventsScreen(
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // What the band still lacks, for its leaders (ITERATION_5 §11): until it's there, or (no one in the app) hidden.
+            bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
+                item(key = "band-hint") {
+                    BandHintCard(hint, onRoster, onHide = { graph.settings.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
+                }
+            }
             // Until answered (ITERATION_5 §7): there are no pushes, and the roster is not where artists look.
             if (state.me?.let { SettleTogether.inviterOf(band, it.id) } != null) {
                 item(key = "settle-together") { SettleTogetherInvitationCard(band, state.me, actions) }

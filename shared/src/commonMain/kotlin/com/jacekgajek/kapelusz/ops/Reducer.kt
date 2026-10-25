@@ -359,7 +359,7 @@ object Reducer {
 
     private fun transferOwnership(band: Band, op: TransferOwnership): Band {
         val target = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
-        invalidIf(target.userId == null || target.role != Role.ADMIN, RejectionReason.OWNERSHIP_NEEDS_ADMIN) { "Ownership can only go to a linked admin" }
+        invalidIf(target.userId == null || target.role != Role.LEAD, RejectionReason.OWNERSHIP_NEEDS_LEADER) { "Ownership can only go to a linked leader" }
         // An archived owner could do nothing at all, the band included (V5-M1 B3a).
         invalidIf(target.archived, RejectionReason.ARCHIVED_MEMBER) { "Ownership cannot go to an archived member" }
         val currentOwner = band.owner
@@ -367,7 +367,8 @@ object Reducer {
             members = band.members.map {
                 when (it.id) {
                     target.id -> it.copy(role = Role.OWNER)
-                    currentOwner?.id -> it.copy(role = Role.ADMIN)
+                    // The previous owner keeps every right but ownership (ITERATION_5 §11).
+                    currentOwner?.id -> it.copy(role = Role.LEAD)
                     else -> it
                 }
             },

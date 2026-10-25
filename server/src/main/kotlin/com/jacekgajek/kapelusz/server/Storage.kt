@@ -54,7 +54,7 @@ data class UserRecord(
 @Serializable
 data class JoinAttempts(val windowStart: Long, val failures: Int)
 
-/** Active invite codes of a band, stored as `bands/{id}/invites.json` (codes are only visible to admins). */
+/** Active invite codes of a band, stored as `bands/{id}/invites.json` (codes are only visible to leaders). */
 @Serializable
 data class InviteCodes(val codes: List<String>)
 

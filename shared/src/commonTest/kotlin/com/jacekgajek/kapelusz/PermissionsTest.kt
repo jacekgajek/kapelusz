@@ -34,7 +34,7 @@ class PermissionsTest {
         .apply(AddHolding("gig", "h-other", "other", "100".let(::pln), DOOR))
 
     private val owner = Actor.User("user-owner")
-    private val admin = scenario.userFor("admin", Role.ADMIN)
+    private val admin = scenario.userFor("admin", Role.LEAD)
     private val lead = scenario.userFor("lead", Role.LEAD)
     private val member = scenario.userFor("member", Role.MEMBER)
     private val viewer = scenario.userFor("viewer", Role.VIEWER)
@@ -80,16 +80,18 @@ class PermissionsTest {
     }
 
     @Test
-    fun leadRunsEventsButNotRoster() {
+    fun leaderRunsEventsAndTheRoster() {
+        // One role since the Leader role was merged into it (ITERATION_5 §11).
         assertTrue(allowed(lead, CreateEvent("e2", "e2", DATE)))
         assertTrue(allowed(lead, SettleSuggestions("gig")))
         assertTrue(allowed(lead, AddHolding("gig", "h", "other", pln("1"), DOOR)))
-        assertFalse(allowed(lead, AddMember("x", "X")))
-        assertFalse(allowed(lead, SetMemberRole("member", Role.LEAD)))
+        assertTrue(allowed(lead, AddMember("x", "X")))
+        assertTrue(allowed(lead, SetMemberRole("member", Role.LEAD)))
+        assertFalse(allowed(member, AddMember("x", "X")))
     }
 
     @Test
-    fun adminManagesRosterButOnlyOwnerTransfersOwnership() {
+    fun leadersManageTheRosterButOnlyTheOwnerTransfersOwnership() {
         assertTrue(allowed(admin, AddMember("x", "X")))
         assertTrue(allowed(admin, SetMemberRole("member", Role.LEAD)))
         assertFalse(allowed(admin, TransferOwnership("admin")))

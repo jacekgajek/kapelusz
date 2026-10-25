@@ -20,10 +20,10 @@ internal class BandAccess(private val store: BlobStore) {
         return loaded
     }
 
-    fun loadForAdmin(user: VerifiedUser, bandId: String, forbidden: String = "Only band admins manage invites"): Pair<Band, String> {
+    fun loadForLeader(user: VerifiedUser, bandId: String, forbidden: String = "Only band leaders manage invites"): Pair<Band, String> {
         val loaded = loadForMember(user, bandId)
         val me = loaded.first.memberOfUser(user.userId)!!
-        if (!me.role.atLeast(Role.ADMIN)) throw ApiError(403, ApiErrors.FORBIDDEN, forbidden)
+        if (!me.role.atLeast(Role.LEAD)) throw ApiError(403, ApiErrors.FORBIDDEN, forbidden)
         return loaded
     }
 

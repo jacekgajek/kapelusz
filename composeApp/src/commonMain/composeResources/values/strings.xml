@@ -18,7 +18,7 @@
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
     <string name="artist_still_to_receive">Still to receive</string>
-    <string name="artist_to_hand_back">To hand back (a lead settles it)</string>
+    <string name="artist_to_hand_back">To hand back (a leader settles it)</string>
     <string name="artist_my_costs">Your costs for this event</string>
     <string name="tab_settle">Settle</string>
     <string name="language">Language</string>
@@ -46,7 +46,7 @@
     <string name="event_location">Location (optional)</string>
     <string name="events_empty">No events yet. Create the first one!</string>
     <string name="events_empty_cannot_create">No events yet.</string>
-    <string name="events_empty_artist">No events yet. A lead adds you to the events you play.</string>
+    <string name="events_empty_artist">No events yet. A leader adds you to the events you play.</string>
     <string name="continue_event">Continue: %1$s · %2$s</string>
     <string name="filter_only_mine">Only my events</string>
     <string name="filter_show_archived">Show archived</string>
@@ -74,8 +74,7 @@
     <string name="role_viewer">Viewer</string>
     <string name="role_artist">Artist</string>
     <string name="role_member">Member</string>
-    <string name="role_lead">Lead</string>
-    <string name="role_admin">Admin</string>
+    <string name="role_lead">Leader</string>
     <string name="role_owner">Owner</string>
     <string name="source_tickets_online">Tickets online</string>
     <string name="source_door">Door</string>
@@ -182,7 +181,7 @@
     <string name="cost_event">Incurred for event</string>
     <string name="cost_no_event">No specific event</string>
     <string name="description_optional">Description (optional)</string>
-    <string name="cost_locked">This cost was refunded in an event that is already being settled. Only a lead can change it now.</string>
+    <string name="cost_locked">This cost was refunded in an event that is already being settled. Only a leader can change it now.</string>
     <string name="cost_refunded_at">%1$s refunded at %2$s</string>
     <string name="cost_refunded_fund">%1$s refunded from the band fund</string>
     <string name="delete_cost_title">Delete cost?</string>
@@ -225,7 +224,6 @@
     <string name="reject_cost_refused">This cost was refused.</string>
     <string name="reject_cost_partly_refunded">Part of this cost is already refunded, so it can’t be refused.</string>
     <string name="reject_owner_role_fixed">The owner's role can only change by transferring ownership.</string>
-    <string name="reject_ownership_needs_admin">Ownership can only go to an admin with an app account.</string>
     <string name="reject_member_linked">This member is linked to an app account.</string>
     <string name="reject_user_already_member">This account is already in the band.</string>
     <string name="reject_member_has_history">This member has costs or events. Archive them instead.</string>
@@ -294,17 +292,17 @@
     <string name="unlink">Unlink app account</string>
     <string name="unlink_confirm">%1$s will lose access to the band until invited again. Their costs and history stay.</string>
     <string name="make_owner">Make owner</string>
-    <string name="make_owner_confirm">%1$s becomes the owner; you stay an admin.</string>
+    <string name="make_owner_confirm">%1$s becomes the owner; you stay a leader.</string>
     <string name="invite_code">Invite code</string>
     <string name="check_code">Check</string>
     <string name="join">Join</string>
-    <string name="join_hint">Enter the 6-character code your band's admin sent you.</string>
+    <string name="join_hint">Enter the 6-character code your band leader sent you.</string>
     <string name="join_preview">You will join %1$s as %2$s (%3$s).</string>
     <string name="join_invalid_code">This code is not valid. It may be mistyped, used already, revoked or expired.</string>
     <string name="join_too_many_attempts">Too many wrong codes. Try again in an hour.</string>
     <string name="join_already_member">You are already a member of this band.</string>
-    <string name="join_holds_money">This invite can’t be used yet: you still hold band money. Ask an admin to settle it first.</string>
-    <string name="join_still_plays">This invite can’t be used yet: you still play in events not settled yet, or hold the band fund. Ask an admin to settle them first.</string>
+    <string name="join_holds_money">This invite can’t be used yet: you still hold band money. Ask your band leader to settle it first.</string>
+    <string name="join_still_plays">This invite can’t be used yet: you still play in events not settled yet, or hold the band fund. Ask your band leader to settle them first.</string>
     <string name="join_failed">Could not join. Check your connection and try again.</string>
     <string name="h_rename_band">Renamed the band to %1$s</string>
     <string name="h_add_member">Added member %1$s</string>
@@ -374,15 +372,14 @@
     <string name="previous_month">Previous month</string>
     <string name="next_month">Next month</string>
     <string name="change_own_role_title">Change your own role?</string>
-    <string name="change_own_role_text">You will become %1$s and may lose access to this screen. Only another admin or the owner can give the role back.</string>
+    <string name="change_own_role_text">You will become %1$s and may lose access to this screen. Only another leader or the owner can give the role back.</string>
     <string name="change_own_role_confirm">Change my role</string>
     <string name="load_more">Load more</string>
     <string name="role_desc_viewer">Sees everything: events, settlements, the band fund and the history. Changes nothing. For a manager, an accountant or anyone who checks but doesn’t play.</string>
-    <string name="role_desc_artist">Sees only the events they play (details and who plays), their own costs and what they receive. Adds their own costs, which a lead includes or refuses. Never holds money.</string>
+    <string name="role_desc_artist">Sees only the events they play (details and who plays), their own costs and what they receive. Adds their own costs, which a leader includes or refuses. Never holds money.</string>
     <string name="role_desc_member">Sees everything: events, settlements, the band fund and the history. Adds and edits their own costs, records money they received at events they play, and settles transfers in which they pay or receive money.</string>
-    <string name="role_desc_lead">Everything a member can, plus: creates and edits events, participants, guests and shares, decides on cost refunds and the band fund, corrects anyone's costs and received money, and settles whole events.</string>
-    <string name="role_desc_admin">Everything a lead can, plus: manages band members, roles and invites, unlinks app accounts, and chooses who holds the band fund.</string>
-    <string name="role_owner_note">The owner has all admin rights and is the only one who can hand ownership over to another admin.</string>
+    <string name="role_desc_lead">Everything a member can, plus: creates and edits events, participants, guests and shares, decides on cost refunds and the band fund, corrects anyone's costs and received money, settles whole events, manages band members, roles and invites, unlinks app accounts, and chooses who holds the band fund.</string>
+    <string name="role_owner_note">The owner has all leader rights and is the only one who can hand ownership over to another leader, or delete the band.</string>
     <string name="role_read_only">Read-only</string>
     <string name="copy_link">Copy link</string>
     <string name="link_copied">Link copied</string>
@@ -626,4 +623,9 @@
     <string name="event_link_copy">Copy link</string>
     <string name="event_link_copied">Link copied</string>
     <string name="event_link_offline">Couldn't open the event: no connection. Try again when you're online.</string>
+    <string name="reject_ownership_needs_leader">Ownership can only go to a leader with an app account.</string>
+    <string name="band_hint_no_members">Your band has no members yet. Add them in ⚙ → Band members.</string>
+    <string name="band_hint_no_app">No one else in your band uses the app yet. Invite them: ⚙ → Band members → a member → Create invite code.</string>
+    <string name="band_hint_open_roster">Band members</string>
+    <string name="band_hint_hide">Hide</string>
 </resources>

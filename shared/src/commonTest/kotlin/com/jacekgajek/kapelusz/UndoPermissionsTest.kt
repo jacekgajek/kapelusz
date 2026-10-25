@@ -85,7 +85,7 @@ class UndoPermissionsTest {
     fun viewersUndoNothing() {
         val undoRename = recorded(RenameBand("New name"))
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(undoRename, viewer).reason)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(undoRename, lead).reason, "renaming the band is for admins")
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(undoRename, member).reason, "renaming the band is for leaders")
         assertNull(Permissions.check(scenario.band, scenario.userFor("owner", Role.OWNER), undoRename))
     }
 

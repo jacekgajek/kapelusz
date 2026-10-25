@@ -128,7 +128,7 @@ class ApiClient(
         if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
     }
 
-    /** The band's file exactly as stored on the server, for admins (ITERATION_2 §7.1). */
+    /** The band's file exactly as stored on the server, for leaders (ITERATION_2 §7.1). */
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */

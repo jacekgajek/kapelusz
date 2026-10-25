@@ -41,7 +41,7 @@ enum class RejectionReason {
     /** Only a cost with nothing refunded yet can be refused. */
     COST_PARTLY_REFUNDED,
     OWNER_ROLE_FIXED,
-    OWNERSHIP_NEEDS_ADMIN,
+    OWNERSHIP_NEEDS_LEADER,
     MEMBER_LINKED,
     USER_ALREADY_MEMBER,
     MEMBER_HAS_HISTORY,

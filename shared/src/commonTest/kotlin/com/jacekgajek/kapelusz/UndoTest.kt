@@ -91,7 +91,7 @@ class UndoTest {
     @Test
     fun membershipAndOwnershipCannotBeUndone() {
         val scenario = Scenario("Alice", "Bob")
-        scenario.apply(LinkUser("bob", "user-bob", Role.ADMIN))
+        scenario.apply(LinkUser("bob", "user-bob", Role.LEAD))
         val undoTransfer = scenario.recorded(TransferOwnership("bob"))
         assertEquals(RejectionReason.NOT_UNDOABLE, scenario.rejected(undoTransfer).reason)
         assertEquals(RejectionReason.NOT_UNDOABLE, scenario.rejected(Undo("x", RenameBand("x"), BandChange(BandPart(), BandPart()))).reason, "nothing recorded")

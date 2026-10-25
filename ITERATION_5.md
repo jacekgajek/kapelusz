@@ -462,7 +462,13 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 
 ### Later
 
-- [ ] Consider one "Leader" role instead of Admin and Lead: in practice a band's leader is its admin (2026-10-24)
+- [x] Consider one "Leader" role instead of Admin and Lead: in practice a band's leader is its admin (2026-10-24; done
+  in V5-M7, §11)
+
+### V5-M7 — One Leader role, ownership to leaders, band hints (§11)
+
+- [x] Grill (2026-10-25)
+- [x] Implement
 
 ## 6. Decision log
 
@@ -479,6 +485,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
 | 2026-10-24 | Place suggestions (§9) go through our server: the Google key never ships in the app or the web page, and only leads (who edit events) use it. |
 | 2026-10-24 | Event links (§10) carry only the event id: ids are unique across bands, so the app finds the band itself and the link reveals nothing about it. |
 | 2026-10-24 | Pull requests' CI runs the tests only; the optimised release builds (R8, wasm-opt, about 5 of 9 minutes) run on main after the merge, before the deploy, which waits for them. A failure only they show now breaks main instead of a pull request (was ITERATION_3 R11: before a merge). |
+| 2026-10-25 | Admin merged into Lead, shown as "Leader": a band's leader is its admin. No band had an Admin, so "ADMIN" is dropped, not mapped. |
 | 2026-10-25 | The deploy is a job of CI, after the tests on main, and builds the signed release artefacts once (CI's "Build" step, a rehearsal of the same builds, is gone; so is the separate Deploy workflow). A failure only the release builds show fails the deploy before anything is uploaded. Version codes are CI's run numbers (higher than the Deploy workflow's, so they only went up). |
 
 ## 7. V5-M3 — Settling together (grilled 2026-10-24)
@@ -605,3 +612,20 @@ shared info) opens Google Maps directions to that text, which takes an address o
   - not in the user's bands, an artist's gig they don't play, or deleted (not told apart): "You don't have access to
     this event. Ask your band leader to invite you." ("band leader": what bands call their admin);
   - the address goes back to the app's start, so a reload doesn't open it again (as join links).
+
+## 11. V5-M7 — One Leader role, ownership to leaders, band hints (grilled 2026-10-25)
+
+- **Leader:** the Admin role is gone; Lead, shown as "Leader" ("Lider"), has every right Admin had: members, roles and
+  invites, unlinking accounts, who holds the band fund, the agenda template, the secret menu. Leaders manage everyone
+  but the owner, other leaders too. Roles to give: Viewer, Artist, Member, Leader. Texts that said "admin" or "a lead"
+  say "leader" / "your band leader".
+- **Ownership:** the owner hands it to a leader with an app account (from the member's dialog); the previous owner
+  becomes a leader. Only the owner hands ownership over and deletes the band.
+- **Hints on the events list,** for the owner and leaders, as cards like an invitation to settle together, with a
+  "Band members" button:
+  - nobody else on the roster (archived members don't count): "Your band has no members yet. Add them in ⚙ → Band
+    members." Not hidden: there is no one to play or settle with;
+  - others on the roster, none of them in the app: "No one else in your band uses the app yet. Invite them: ⚙ → Band
+    members → a member → Create invite code." With "Hide", remembered for that band on this device: some bands are
+    kept by one person.
+  Both go once resolved.

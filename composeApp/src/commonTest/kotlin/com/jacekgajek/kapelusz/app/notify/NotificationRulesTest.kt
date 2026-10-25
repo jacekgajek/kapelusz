@@ -40,7 +40,7 @@ class NotificationRulesTest {
     }
 
     private val base = Band.create("b", "Band", "PLN", "alice", "Alice", "u-alice")
-        .apply("system", AddMember("bob", "Bob"), LinkUser("bob", "u-bob", Role.ADMIN))
+        .apply("system", AddMember("bob", "Bob"), LinkUser("bob", "u-bob", Role.LEAD))
     private val now = LocalDateTime(2026, 10, 21, 12, 0)
 
     @Test

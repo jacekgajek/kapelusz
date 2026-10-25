@@ -37,7 +37,7 @@ class DeleteBandTest {
         ).mapIndexed { i, op -> OpEnvelope("op$i", "phone", i + 1L, 1, op) }
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
         store.files += "bands/band1/attachments/a1.jpg"
-        fun invite(member: String) = KapeluszJson.decodeFromString(InviteInfo.serializer(), call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(member, Role.ADMIN))).body!!)
+        fun invite(member: String) = KapeluszJson.decodeFromString(InviteInfo.serializer(), call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(member, Role.LEAD))).body!!)
         assertEquals(200, call("POST", "/invites/${invite("m-bob").code}/accept", "bob").status)
         return invite("m-carol").code
     }

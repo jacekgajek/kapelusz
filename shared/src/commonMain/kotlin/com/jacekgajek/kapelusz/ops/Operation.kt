@@ -37,7 +37,7 @@ sealed interface Operation {
     val eventId: Id? get() = null
 }
 
-// ---- Band & roster (admin) ----
+// ---- Band & roster (leader) ----
 
 @Serializable @SerialName("RenameBand")
 data class RenameBand(val name: String) : Operation
@@ -129,7 +129,7 @@ data class CreateEvent(
 @Serializable @SerialName("SetEventAgenda")
 data class SetEventAgenda(override val eventId: Id, val agenda: List<AgendaTime>) : Operation
 
-/** The agenda times new events get (admin+); existing events keep theirs. */
+/** The agenda times new events get (leader+); existing events keep theirs. */
 @Serializable @SerialName("SetAgendaTemplate")
 data class SetAgendaTemplate(val items: List<AgendaTemplateItem>) : Operation
 

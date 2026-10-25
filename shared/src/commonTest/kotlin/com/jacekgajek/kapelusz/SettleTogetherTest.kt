@@ -134,7 +134,7 @@ class SettleTogetherTest {
     fun rolesFromMemberUpKeepThePairAnArtistEndsIt() {
         val scenario = band().pair()
         scenario.apply(SetMemberRole("bob", Role.LEAD))
-        scenario.apply(SetMemberRole("bob", Role.ADMIN))
+        scenario.apply(SetMemberRole("bob", Role.LEAD))
         scenario.apply(SetMemberRole("carol", Role.LEAD))
         assertEquals("carol", scenario.partner("bob"))
         scenario.apply(SetMemberRole("carol", Role.ARTIST))
