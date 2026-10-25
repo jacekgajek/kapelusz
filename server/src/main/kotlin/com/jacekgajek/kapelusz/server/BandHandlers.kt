@@ -27,6 +27,7 @@ internal class BandHandlers(
     private val history: HistoryHandlers,
     private val invites: InviteHandlers,
     private val attachments: AttachmentHandlers,
+    private val linkPages: LinkPages,
 ) {
     fun create(user: VerifiedUser, request: CreateBandRequest): HttpResponse {
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
@@ -101,6 +102,8 @@ internal class BandHandlers(
                 envelopes.filter { it.opId in result.accepted }.map { it.op }
                     .mapNotNull { (it as? UnlinkUser)?.memberId }
                     .forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
+                // New events (also one brought back by an undo): where their links find them.
+                linkPages.pointTo(bandId, result.band.events.map { it.id } - band.events.map { it.id }.toSet())
                 // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
                 runCatching { attachments.deleteRemoved(bandId, band, result.band) }
                     .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }

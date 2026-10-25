@@ -6,6 +6,15 @@
     <!-- Resolve the script, wasm and resources from the site root, also on deep links like /join/ABC123. -->
     <base href="/">
     <title>Pass the Hat</title>
+    <!-- The card link readers (WhatsApp, Messenger, Slack) show for a shared link (ITERATION_6 §2); for event and join
+         links the API puts the event's or band's name in og:title (and the event's date in an og:description). -->
+    <meta property="og:site_name" content="Kapelusz">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Kapelusz · Pass the Hat">
+    <meta property="og:image" content="https://kapelusz.jacekgajek.com/icon-maskable-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta name="twitter:card" content="summary">
     <!-- Installable (ITERATION_3 §2.3): "Add to Home Screen" opens the app in its own window. -->
     <link rel="manifest" id="kapelusz-manifest" href="manifest.json">
     <meta name="theme-color" content="#F5CB5C">

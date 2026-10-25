@@ -33,12 +33,15 @@ Features that don't add screens or settings, but act on what is already there.
 - **Event card:** the event's name; description its date only (`14.11.2026`), language free; nothing else from the
   event. Anyone with the link sees it.
 - **Invite card:** the band's name, no description.
-- **Every card:** `og:site_name` "Kapelusz" and the app icon (square, 512 px: a small thumbnail, not a banner).
-  Unknown, deleted, expired or used: the generic card ("Kapelusz"). The home page has the generic tags.
+- **Every card:** `og:site_name` "Kapelusz" and the app icon (square, 512 px, the opaque one: a small thumbnail, not a
+  banner). Unknown, deleted, expired or used: the generic card ("Kapelusz · Pass the Hat"), which `index.html` has
+  itself (the home page too).
 - **How:** CloudFront sends `/e/*` and `/join/*` to the API (5 minutes' cache), which returns the web app's
-  `index.html` with the tags. The event is found through a small pointer (event id → band) kept by the server.
-  Applied in Terraform once the API answers those paths with 404 (CloudFront then shows the plain page; it can't for
-  401): done in V6-M1.
+  `index.html` (read from its bucket, kept a minute) with the card's title and description in place of the generic
+  ones. Without the page, a 404: CloudFront then shows the plain page (it can't for a 401, so V6-M1 made the API answer
+  those paths before signing in).
+- **Finding the event:** a pointer `events/{eventId}.json` → band, written when a push creates an event (or an undo
+  brings one back). Events from before have none and get the generic card.
 
 ## 3. Location: a place picked on a map, and the cursor (2026-10-25, in V6-M1)
 
@@ -64,7 +67,7 @@ Features that don't add screens or settings, but act on what is already there.
 
 ### V6-M2 — Link cards (§2)
 
-- [ ] Event pointers, rendering `index.html` with the tags, the icon
+- [x] Event pointers, rendering `index.html` with the tags, the icon
 - [ ] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
 
 ## 5. Decision log

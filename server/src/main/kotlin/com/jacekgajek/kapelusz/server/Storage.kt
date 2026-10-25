@@ -26,6 +26,9 @@ object StorageKeys {
     fun calendarSecret(secret: String) = "calendar/$secret.json"
     fun invite(code: String) = "invites/$code.json"
 
+    /** Which band an event is in ([EventPointer]), for its link's card (ITERATION_6 §2). */
+    fun eventPointer(eventId: String) = "events/${safe(eventId)}.json"
+
     /** The key that signs session tokens (see [SessionTokens]). */
     const val SESSION_KEY = "server/session-key.json"
 

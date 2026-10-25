@@ -26,6 +26,8 @@ class Api(
     maxBandBytes: Int = MAX_BAND_BYTES,
     /** Place suggestions for Location (ITERATION_5 §9); null where no Google key is set up. */
     placeSearch: PlaceSearch? = null,
+    /** The web app's page, for link cards (ITERATION_6 §2); null where it can't be read. */
+    webIndex: WebIndex? = null,
 ) {
     private val revocations = SessionRevocations(store, clock)
     private val bands = BandAccess(store)
@@ -35,7 +37,8 @@ class Api(
     private val invites = InviteHandlers(store, clock, bands, users, history)
     private val calendar = CalendarHandlers(store, clock, bands, users)
     private val places = PlacesHandlers(bands, placeSearch)
-    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments)
+    private val linkPages = LinkPages(store, webIndex, clock, bands)
+    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages)
 
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -54,9 +57,15 @@ class Api(
         if ((request.method == "GET" || request.method == "HEAD") && calendarFeed != null) {
             return calendar.feed(calendarFeed.groupValues[1]).let { if (request.method == "HEAD") it.copy(body = null) else it }
         }
-        // Event and join links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in: not
-        // found here, so CloudFront answers with the web app's own page.
-        if (request.path.startsWith("/e/") || request.path.startsWith("/join/")) throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
+        // Event and join links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in: the
+        // web app's page with the link's card. A 404 lets CloudFront answer with the plain page.
+        if (request.path.startsWith("/e/") || request.path.startsWith("/join/")) {
+            if (request.method != "GET" && request.method != "HEAD") throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
+            val page = Regex("^/e/([A-Za-z0-9_-]{1,64})/?$").find(request.path)?.let { linkPages.event(it.groupValues[1]) }
+                ?: Regex("^/join/([A-Za-z0-9]{6})/?$").find(request.path)?.let { linkPages.join(it.groupValues[1].uppercase()) }
+                ?: throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
+            return if (request.method == "HEAD") page.copy(body = null) else page
+        }
         if (!appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER])) {
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of the app is too old; update it")
         }
