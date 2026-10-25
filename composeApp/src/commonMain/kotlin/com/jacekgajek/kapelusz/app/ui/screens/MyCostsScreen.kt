@@ -2,8 +2,6 @@ package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.data.AppGraph
-import com.jacekgajek.kapelusz.app.ui.components.Actions
-import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,13 +17,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -34,7 +29,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,7 +37,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
@@ -58,8 +51,6 @@ import com.jacekgajek.kapelusz.app.generated.costs_none
 import com.jacekgajek.kapelusz.app.generated.costs_none_everyone
 import com.jacekgajek.kapelusz.app.generated.costs_outstanding_total
 import com.jacekgajek.kapelusz.app.generated.costs_outstanding_total_everyone
-import com.jacekgajek.kapelusz.app.generated.delete
-import com.jacekgajek.kapelusz.app.generated.delete_cost_title
 import com.jacekgajek.kapelusz.app.generated.filter_all
 import com.jacekgajek.kapelusz.app.generated.filter_all_members
 import com.jacekgajek.kapelusz.app.generated.filter_mine
@@ -71,7 +62,6 @@ import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -82,7 +72,6 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
-import com.jacekgajek.kapelusz.ops.DeleteCost
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -136,7 +125,6 @@ fun MyCostsScreen(
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
     val can = Can(band, state.userId)
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true

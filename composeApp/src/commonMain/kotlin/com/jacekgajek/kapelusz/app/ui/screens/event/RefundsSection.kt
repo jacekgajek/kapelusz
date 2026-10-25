@@ -41,16 +41,8 @@ import com.jacekgajek.kapelusz.app.generated.refund_amount_here
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Tune
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
-import androidx.compose.runtime.key
 import com.jacekgajek.kapelusz.app.generated.refund_here
 import com.jacekgajek.kapelusz.app.generated.pending_hint
-import com.jacekgajek.kapelusz.app.generated.edit
-import com.jacekgajek.kapelusz.app.generated.more
-import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Edit
 import com.jacekgajek.kapelusz.app.generated.refund_how_much
 import com.jacekgajek.kapelusz.app.generated.open_cost
@@ -69,10 +61,8 @@ import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.model.Role
-import androidx.compose.ui.graphics.Color
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.domain.CostStatuses
-import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.SetRefund
 import org.jetbrains.compose.resources.stringResource
@@ -128,7 +118,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
         Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
         // Leaving one is a choice too: it waits for a later event.
         Text(stringResource(Res.string.pending_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        pending.forEach { cost -> key(cost.id) {
+        pending.forEach { cost ->
             val outstanding = CostLedger.outstanding(band, cost)
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -144,7 +134,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
                     modifier = Modifier.align(Alignment.End),
                 ) { Text(stringResource(Res.string.refund_here)) }
             }
-        } }
+        }
     }
 
     // A cost for this event, its refund included here (ITERATION_2 §7).

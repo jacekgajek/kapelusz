@@ -2,19 +2,15 @@ package com.jacekgajek.kapelusz
 
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatus
-import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
-import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
-import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddParticipant
-import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
@@ -25,11 +21,9 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
-import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** ITERATION_4 §1.1 (artists) and §1.2 (costs wait for a lead's Refund here). */

@@ -17,13 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
@@ -43,9 +39,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
-import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.CostStatuses
-import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
 import org.jetbrains.compose.resources.stringResource
 
