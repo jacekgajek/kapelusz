@@ -22,6 +22,11 @@ Features that don't add screens or settings, but act on what is already there.
   - **The event's files** (leaders), then under "Add to a cost" the event's **costs** (not those paid back in full) and
     under "Add to received money" its **received money** the user may attach files to: attached at once; the event
     opens at that section, with Undo in the snackbar (which closes by itself, or with its cross).
+- **Look** (2026-10-25, after trying it): a bottom sheet. On top the event (or "Attach to…"), with Back, and the files
+  as small squares on the right. Events with a date block (day, month under it) and their location; new entries as
+  three tonal tiles side by side (icon over the name); existing costs and received money as rows like on the Money
+  page: an icon (a cost's category: car, bed, speaker, cutlery, receipt; money: banknotes), the name, the payer or
+  source under it, the amount, and a clip. Headings in the primary colour.
 - **Limits:** files that can't be used (a PDF over 10 MB, not a photo or PDF, unreadable) are listed as left out, with
   the reason. A target without room for all the files (5 per cost or received money, 10 on the event) is shown
   disabled with "Room for N more"; nothing is dropped silently.
