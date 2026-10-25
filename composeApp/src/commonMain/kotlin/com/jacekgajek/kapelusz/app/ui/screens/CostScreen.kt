@@ -38,6 +38,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
+import kotlinx.datetime.LocalDate
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -128,10 +130,11 @@ fun CostScreen(
     // Opened from an event: the new cost is for that event (fixed; My costs books it elsewhere), so only its
     // participants can have paid it.
     val forEvent = forEventId?.takeIf { existing == null }?.let { band.event(it) }
-    var paidBy by remember { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
-    var date by remember { mutableStateOf(existing?.date ?: today()) }
-    var eventId by remember { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
-    var category by remember { mutableStateOf(existing?.category) }
+    // All of the form survives a trip to an event and back (a refund's event line opens it), as the typed text does.
+    var paidBy by rememberSaveable { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
+    var date by rememberSaveable(stateSaver = DateSaver) { mutableStateOf(existing?.date ?: today()) }
+    var eventId by rememberSaveable { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
+    var category by rememberSaveable { mutableStateOf(existing?.category) }
     var description by rememberSaveable { mutableStateOf(existing?.description.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
@@ -321,3 +324,5 @@ private fun RefundInfo(state: BandState.Ready, cost: Cost, onOpenEvent: (String)
         }
     }
 }
+
+private val DateSaver = Saver<LocalDate, String>({ it.toString() }, { LocalDate.parse(it) })

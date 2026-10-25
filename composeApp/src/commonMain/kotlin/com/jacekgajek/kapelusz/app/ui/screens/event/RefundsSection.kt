@@ -42,6 +42,7 @@ import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.generated.refund_amount_here
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.runtime.key
 import com.jacekgajek.kapelusz.app.generated.refuse_cost_text
 import com.jacekgajek.kapelusz.app.generated.refuse_cost_title
 import com.jacekgajek.kapelusz.app.generated.refund_here
@@ -132,7 +133,8 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
         Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
         // Leaving one is a choice too: it waits for a later event (Refuse is tucked away in the menu).
         Text(stringResource(Res.string.pending_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        pending.forEach { cost ->
+        // Keyed: the menu and its Refuse dialog stay with their cost when the list changes meanwhile.
+        pending.forEach { cost -> key(cost.id) {
             val outstanding = CostLedger.outstanding(band, cost)
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -147,7 +149,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
                     modifier = Modifier.align(Alignment.End),
                 ) { Text(stringResource(Res.string.refund_here)) }
             }
-        }
+        } }
     }
 
     // A cost for this event, its refund included here (ITERATION_2 §7).
@@ -171,22 +173,26 @@ private fun PendingCostMenu(context: EventContext, cost: Cost, outstanding: Mone
     val band = context.band
     val who = band.member(cost.memberId)?.name ?: "?"
     val amount = formatMoney(cost.amount, context.currency, language)
+    val refusable = context.can.refuseCost() && outstanding == cost.amount
     Box {
-        IconButton(onClick = { open = true }) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more)) }
+        val more = stringResource(Res.string.more)
+        IconButton(onClick = { open = true }) { Icon(Icons.Default.MoreVert, cost.description?.takeIf { it.isNotBlank() }?.let { "$more: $it" } ?: more) }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.edit)) },
                 leadingIcon = { Icon(Icons.Default.Edit, null) },
                 onClick = { open = false; onOpenCost(cost.id) },
             )
-            if (context.can.refuseCost() && outstanding == cost.amount) DropdownMenuItem(
+            if (refusable) DropdownMenuItem(
                 text = { Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error) },
                 leadingIcon = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
                 onClick = { open = false; confirmRefuse = true },
             )
         }
     }
-    if (confirmRefuse) {
+    // Refunded meanwhile (or refused by someone else): no longer to refuse.
+    if (confirmRefuse && !refusable) LaunchedEffect(Unit) { confirmRefuse = false }
+    if (confirmRefuse && refusable) {
         // With Undo in the snackbar too (ITERATION_5 §2): it sends the cost back, it takes no money.
         val refused = stringResource(Res.string.cost_refused, who, amount)
         ConfirmDialog(

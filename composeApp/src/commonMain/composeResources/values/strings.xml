@@ -144,8 +144,8 @@
     <string name="refund_max">At most %1$s. Set 0 or use Defer to refund it later.</string>
     <string name="pending_from_earlier">Waiting</string>
     <string name="refund_here">Refund here</string>
-    <string name="pending_hint">Not refunded yet. Refund one here, or leave it for a later event.</string>
-    <string name="refuse_cost_title">Refuse %1$s’s %2$s?</string>
+    <string name="pending_hint">Not refunded yet. Refund them here, or leave them for a later event.</string>
+    <string name="refuse_cost_title">Refuse %1$s’s cost of %2$s?</string>
     <string name="refuse_cost_text">It won’t be refunded at any event. %1$s can edit it and submit it again.</string>
     <string name="refuse">Refuse</string>
     <string name="defer">Defer</string>
