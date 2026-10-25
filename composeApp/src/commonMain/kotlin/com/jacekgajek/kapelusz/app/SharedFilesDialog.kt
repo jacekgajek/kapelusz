@@ -44,7 +44,8 @@ import com.jacekgajek.kapelusz.app.generated.close
 import com.jacekgajek.kapelusz.app.generated.organiser
 import com.jacekgajek.kapelusz.app.generated.share_cost
 import com.jacekgajek.kapelusz.app.generated.share_event_files
-import com.jacekgajek.kapelusz.app.generated.share_existing
+import com.jacekgajek.kapelusz.app.generated.share_existing_collected
+import com.jacekgajek.kapelusz.app.generated.share_existing_costs
 import com.jacekgajek.kapelusz.app.generated.share_full
 import com.jacekgajek.kapelusz.app.generated.share_new_collected
 import com.jacekgajek.kapelusz.app.generated.share_new_cost
@@ -170,9 +171,16 @@ private fun TargetChoices(chosen: ShareEvent, userId: String, shared: SharedFile
     val organiser = stringResource(Res.string.organiser)
     val costLabel = stringResource(Res.string.share_cost)
     targets.forEachIndexed { index, target ->
-        val existing = target is ShareTarget.ExistingCost || target is ShareTarget.ExistingCollected
-        val previousExisting = targets.getOrNull(index - 1).let { it is ShareTarget.ExistingCost || it is ShareTarget.ExistingCollected }
-        if (existing && !previousExisting) Text(stringResource(Res.string.share_existing), Modifier.padding(top = 8.dp), style = MaterialTheme.typography.labelLarge)
+        // Existing costs and received money under their own headings: "Bob · 100 zł" could be either.
+        val heading = when (target) {
+            is ShareTarget.ExistingCost -> Res.string.share_existing_costs
+            is ShareTarget.ExistingCollected -> Res.string.share_existing_collected
+            else -> null
+        }
+        val previous = targets.getOrNull(index - 1)
+        if (heading != null && (previous == null || previous::class != target::class)) {
+            Text(stringResource(heading), Modifier.padding(top = 8.dp), style = MaterialTheme.typography.labelLarge)
+        }
         val title = when (target) {
             is ShareTarget.NewCost -> stringResource(Res.string.share_new_cost)
             is ShareTarget.NewCollected -> stringResource(Res.string.share_new_collected)

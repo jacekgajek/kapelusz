@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.material3.SnackbarDuration
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -220,7 +221,8 @@ fun EventScreen(
             snackbar.showSnackbar(attachFailed)
         } else {
             val message = if (done.failed > 0) "$attachedText. $attachFailed" else attachedText.orEmpty()
-            val undone = snackbar.showSnackbar(message, undoLabel) == SnackbarResult.ActionPerformed
+            // With an action a snackbar stays until tapped by default: a while, with a cross to close it sooner.
+            val undone = snackbar.showSnackbar(message, undoLabel, withDismissAction = true, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed
             if (undone && graph.bands.currentBandId == done.bandId) done.attachmentIds.forEach { graph.attachments.remove(done.owner, it) }
         }
         attached = null
