@@ -136,7 +136,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     LaunchedEffect(state.me?.pictureUrl) { graph.sendPictureIfMissing(state.me) }
     SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
     val toSettings = { navController.navigate(SettingsRoute()) }
-    val toRoster = { navController.navigate(RosterRoute) }
+    val toRoster = { navController.navigate(RosterRoute()) }
     // Only from a screen that is fully shown, and never past the first one: a second quick tap during the fade-out
     // would pop the list too and leave a blank screen.
     val back: () -> Unit = {
@@ -169,7 +169,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             composable<FundRoute> {
                 if (artist) BackToEvents(navController) else BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) })
             }
-            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }, onOpenCost = { navController.navigate(CostRoute(it)) }) }
+            composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }, onOpenCost = { navController.navigate(CostRoute(it)) }, onInviteMember = { navController.navigate(RosterRoute(it)) }) }
             composable<CostRoute> { entry ->
                 val route = entry.toRoute<CostRoute>()
                 // Artists open only their own costs (e.g. not from a web address someone shared).
@@ -228,7 +228,9 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                         ?.takeIf { state.me?.let { Can(state.band, state.userId).allowed(SetBlikPhone(it.id, null)) } == true },
                 )
             }
-            composable<RosterRoute> { if (artist) BackToEvents(navController) else RosterScreen(graph, state, back) }
+            composable<RosterRoute> { entry ->
+                if (artist) BackToEvents(navController) else RosterScreen(graph, state, back, openMember = entry.toRoute<RosterRoute>().memberId)
+            }
             composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph, state, back) }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->

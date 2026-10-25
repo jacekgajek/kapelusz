@@ -95,6 +95,13 @@ data class Band(
 ) {
     fun member(id: Id): Member? = members.firstOrNull { it.id == id }
     fun memberOfUser(userId: String): Member? = members.firstOrNull { it.userId == userId }
+
+    /**
+     * The member (archived ones too) already called [name], ignoring letter case and surrounding spaces, other than
+     * [except]: member names are unique (ITERATION_5 §12).
+     */
+    fun memberNamed(name: String, except: Id? = null): Member? =
+        members.firstOrNull { it.id != except && it.name.trim().equals(name.trim(), ignoreCase = true) }
     fun event(id: Id): Event? = events.firstOrNull { it.id == id }
     fun cost(id: Id): Cost? = costs.firstOrNull { it.id == id }
     val owner: Member? get() = members.firstOrNull { it.role == Role.OWNER }

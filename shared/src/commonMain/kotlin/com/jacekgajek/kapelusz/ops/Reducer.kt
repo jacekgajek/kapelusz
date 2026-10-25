@@ -50,7 +50,11 @@ object Reducer {
         val result = when (op) {
             is RenameBand -> band.copy(name = op.name.validName("Band name"))
             is AddMember -> addMember(band, op)
-            is RenameMember -> band.updateMember(op.memberId) { it.copy(name = op.name.validName("Member name")) }
+            is RenameMember -> {
+                val name = op.name.validName("Member name")
+                band.validFreeName(name, except = op.memberId)
+                band.updateMember(op.memberId) { it.copy(name = name) }
+            }
             is MoveMember -> moveMember(band, op)
             is SetMemberArchived -> setMemberArchived(band, op)
             is DeleteMember -> deleteMember(band, op)
@@ -270,7 +274,14 @@ object Reducer {
 
     private fun addMember(band: Band, op: AddMember): Band {
         invalidIf(band.member(op.memberId) != null, RejectionReason.DUPLICATE_ID) { "Member ${op.memberId} already exists" }
-        return band.copy(members = band.members + Member(op.memberId, op.name.validName("Member name")))
+        val name = op.name.validName("Member name")
+        band.validFreeName(name)
+        return band.copy(members = band.members + Member(op.memberId, name))
+    }
+
+    /** Member names are unique, ignoring case, archived members included (ITERATION_5 §12). */
+    private fun Band.validFreeName(name: String, except: Id? = null) {
+        conflictIf(memberNamed(name, except) != null, RejectionReason.NAME_TAKEN) { "A member is already called $name" }
     }
 
     private fun moveMember(band: Band, op: MoveMember): Band {
@@ -454,6 +465,8 @@ object Reducer {
         val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
         val guest = event.guest(op.guestId).orNotFound { "Guest ${op.guestId}" }
         invalidIf(band.member(op.memberId) != null, RejectionReason.DUPLICATE_ID) { "Member ${op.memberId} already exists" }
+        val name = (op.name ?: guest.name).validName("Member name")
+        band.validFreeName(name)
         fun Id.repoint() = if (this == guest.id) op.memberId else this
         val promoted = event.copy(
             guests = event.guests.filterNot { it.id == guest.id },
@@ -462,7 +475,7 @@ object Reducer {
             transfers = event.transfers.map { it.copy(from = it.from.repoint(), to = it.to.repoint()) },
         )
         return band.copy(
-            members = band.members + Member(op.memberId, guest.name),
+            members = band.members + Member(op.memberId, name),
             events = band.events.map { if (it.id == event.id) promoted else it },
         )
     }

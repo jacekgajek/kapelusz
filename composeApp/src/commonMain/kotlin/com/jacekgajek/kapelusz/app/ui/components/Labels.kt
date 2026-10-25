@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import com.jacekgajek.kapelusz.app.generated.reject_name_taken
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_phone
@@ -137,6 +138,7 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.COST_PARTLY_REFUNDED -> Res.string.reject_cost_partly_refunded
     RejectionReason.OWNER_ROLE_FIXED -> Res.string.reject_owner_role_fixed
     RejectionReason.OWNERSHIP_NEEDS_LEADER -> Res.string.reject_ownership_needs_leader
+    RejectionReason.NAME_TAKEN -> Res.string.reject_name_taken
     RejectionReason.MEMBER_LINKED -> Res.string.reject_member_linked
     RejectionReason.USER_ALREADY_MEMBER -> Res.string.reject_user_already_member
     RejectionReason.MEMBER_HAS_HISTORY -> Res.string.reject_member_has_history

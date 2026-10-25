@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
@@ -146,14 +148,15 @@ import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
 @Composable
-fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
+fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(graph, snackbar)
     val can = Can(band, state.userId)
     val isAdmin = can.manageRoster()
     var adding by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<String?>(null) }
+    // Opened at a member from elsewhere (an event's "invite them", ITERATION_5 §12).
+    var selected by remember { mutableStateOf(openMember) }
     var invites by remember { mutableStateOf<List<InviteInfo>?>(null) }
     var invitesFailed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -237,6 +240,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             "",
             onConfirm = { actions.run(AddMember(newId(), it)) },
             onDismiss = { adding = false },
+            error = { nameTakenError(band, it) },
         )
     }
     selected?.let { id -> band.member(id) }?.takeIf { !isAdmin }?.let { member ->
@@ -346,7 +350,8 @@ private fun MemberRow(
     ListItem(
         modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
         // Decorative: the name follows right after it (ITERATION_3 R13).
-        leadingContent = { Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
+        // Without an app account: can't see the band (ITERATION_5 §12).
+        leadingContent = { if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
@@ -422,8 +427,17 @@ private fun MemberDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.member_name)) }, singleLine = true, modifier = Modifier.weight(1f))
-                    TextButton(enabled = name.isNotBlank() && name.trim() != member.name, onClick = { actions.run(RenameMember(member.id, name)) }) {
+                    val taken = nameTakenError(band, name, except = member.id)
+                    OutlinedTextField(
+                        name,
+                        { name = it },
+                        label = { Text(stringResource(Res.string.member_name)) },
+                        singleLine = true,
+                        isError = taken != null,
+                        supportingText = taken?.let { { Text(it) } },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(enabled = name.isNotBlank() && name.trim() != member.name && taken == null, onClick = { actions.run(RenameMember(member.id, name)) }) {
                         Text(stringResource(Res.string.save))
                     }
                 }

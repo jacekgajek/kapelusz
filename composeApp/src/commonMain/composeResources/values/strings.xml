@@ -628,4 +628,15 @@
     <string name="band_hint_no_app">No one else in your band uses the app yet. Invite them: ⚙ → Band members → a member → Create invite code.</string>
     <string name="band_hint_open_roster">Band members</string>
     <string name="band_hint_hide">Hide</string>
+    <string name="reject_name_taken">A band member already has this name.</string>
+    <string name="name_taken">%1$s is already a band member. Choose another name, e.g. with an initial.</string>
+    <string name="participants_guests">Guests</string>
+    <string name="guest_is_member">%1$s is a band member. Add them as a participant instead?</string>
+    <string name="guest_add_member_instead">Add %1$s</string>
+    <string name="guest_add_anyway">Add as guest anyway</string>
+    <string name="not_in_app_text">%1$s cannot see the band. Do you want to invite them?</string>
+    <string name="not_in_app_saving">Saving…</string>
+    <string name="not_in_app_invite">Invite</string>
+    <string name="not_in_app_failed">Couldn't make them a band member; they stay a guest.</string>
+    <string name="not_in_app_offline">Saved on this phone. Create the invite once you're online.</string>
 </resources>

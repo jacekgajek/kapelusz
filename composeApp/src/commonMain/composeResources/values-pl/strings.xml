@@ -634,4 +634,15 @@
     <string name="band_hint_no_app">Nikt inny z zespołu nie korzysta jeszcze z aplikacji. Zaproś ich: ⚙ → Członkowie zespołu → członek → Utwórz kod zaproszenia.</string>
     <string name="band_hint_open_roster">Członkowie zespołu</string>
     <string name="band_hint_hide">Ukryj</string>
+    <string name="reject_name_taken">Członek zespołu o tym imieniu już istnieje.</string>
+    <string name="name_taken">%1$s to już członek zespołu. Wybierz inne imię, np. z inicjałem.</string>
+    <string name="participants_guests">Gościnnie</string>
+    <string name="guest_is_member">%1$s to członek zespołu. Dodać jako uczestnika?</string>
+    <string name="guest_add_member_instead">Dodaj: %1$s</string>
+    <string name="guest_add_anyway">Dodaj mimo to jako gościa</string>
+    <string name="not_in_app_text">%1$s nie widzi zespołu. Chcesz wysłać zaproszenie?</string>
+    <string name="not_in_app_saving">Zapisuję…</string>
+    <string name="not_in_app_invite">Zaproś</string>
+    <string name="not_in_app_failed">Nie udało się dodać do zespołu; pozostaje gościem.</string>
+    <string name="not_in_app_offline">Zapisano na tym telefonie. Utwórz zaproszenie, gdy będziesz online.</string>
 </resources>
