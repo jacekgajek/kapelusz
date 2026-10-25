@@ -41,6 +41,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.key
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -102,7 +105,7 @@ import org.jetbrains.compose.resources.stringResource
  * or an existing entry (attached at once, Undo on the event). A target without room for all the files is shown, but
  * dimmed, with why.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 internal fun SharedFilesDialog(graph: AppGraph, state: BandState.Ready) {
     val shared = graph.sharedFiles.collectAsState().value ?: return
@@ -112,12 +115,15 @@ internal fun SharedFilesDialog(graph: AppGraph, state: BandState.Ready) {
     val scope = rememberCoroutineScope()
     val dismiss = { if (graph.sharedFiles.value === shared) graph.sharedFiles.value = null }
     // Not while attaching: closing would cancel it halfway (some files attached, the event not opened).
-    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || !busy })
+    // A sheet of its own per share: one shared while the last was closing would otherwise stay hidden.
+    val sheet = key(shared) { rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || !busy }) }
     // Every band on the device; recomputed as the open band changes (the others change only in the background).
     val events = remember(shared, state.band) { ShareTargets.events(graph.bands.allBands(), state.userId, today()) }
     val severalBands = events.map { it.band.id }.distinct().size > 1
     val event = chosen
     ModalBottomSheet(onDismissRequest = { if (!busy) dismiss() }, sheetState = sheet) {
+        // Back from an event to the events, like the arrow; from the events it closes the sheet.
+        BackHandler(enabled = event != null && !busy) { chosen = null }
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             SheetHeader(shared, event, severalBands, onBack = { chosen = null }.takeIf { event != null && !busy })
             Skipped(shared)
@@ -220,7 +226,7 @@ private fun EventChoices(events: List<ShareEvent>, severalBands: Boolean, onChoo
     }
 }
 
-/** The date as a calendar page: the day, the month under it. */
+/** The date as a calendar page: the day, the month under it, and the year when not this one. */
 @Composable
 private fun DateBlock(date: LocalDate) {
     Column(
@@ -229,6 +235,8 @@ private fun DateBlock(date: LocalDate) {
     ) {
         Text(date.day.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
         Text(formatMonthShort(date, language), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        // Past years' events would look like this year's.
+        if (date.year != today().year) Text(date.year.toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
 
@@ -295,14 +303,16 @@ private fun NewTile(icon: ImageVector, label: String, problem: String?, enabled:
     Surface(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Column(Modifier.padding(horizontal = 8.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, null, Modifier.size(28.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+            // Dimmed when it has no room, but not why (below): that is the point of showing it.
+            val dim = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)
+            Icon(icon, null, dim.size(28.dp))
+            Text(label, dim, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
             if (problem != null) Text(problem, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
         }
     }
@@ -312,15 +322,16 @@ private fun NewTile(icon: ImageVector, label: String, problem: String?, enabled:
 @Composable
 private fun ExistingRow(icon: ImageVector, title: String, subtitle: String?, amount: String, problem: String?, enabled: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick)
-            .alpha(if (enabled) 1f else DISABLED_ALPHA).padding(vertical = 8.dp, horizontal = 4.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick).padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+        // Dimmed when it has no room, but not why (under the name): that is the point of showing it.
+        val dim = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)
+        Box(dim.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, dim, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val second = problem ?: subtitle?.takeIf { it.isNotEmpty() }
             if (second != null) {
                 Text(
@@ -332,8 +343,8 @@ private fun ExistingRow(icon: ImageVector, title: String, subtitle: String?, amo
                 )
             }
         }
-        Text(amount, style = MaterialTheme.typography.bodyLarge)
-        Icon(Icons.Default.AttachFile, null, Modifier.padding(start = 8.dp).size(20.dp), tint = MaterialTheme.colorScheme.primary)
+        Text(amount, dim, style = MaterialTheme.typography.bodyLarge)
+        Icon(Icons.Default.AttachFile, null, dim.padding(start = 8.dp).size(20.dp), tint = MaterialTheme.colorScheme.primary)
     }
 }
 
