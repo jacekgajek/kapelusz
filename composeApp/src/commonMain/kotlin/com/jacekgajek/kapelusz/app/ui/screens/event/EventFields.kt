@@ -224,10 +224,12 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
         field,
         {
             val text = it.text.replace("\n", " ")
+            // Against the field, not the last composition's state: two edits can come before it is composed again.
+            val changed = text != field.text
             field = it.copy(text = text)
-            if (text != state.location) {
+            if (changed) {
                 typed = text
-                onState(state.copy(location = text))
+                onState(current.copy(location = text))
             }
         },
         label = { Text(stringResource(Res.string.event_location)) },

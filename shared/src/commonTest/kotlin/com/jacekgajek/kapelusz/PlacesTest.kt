@@ -35,6 +35,8 @@ class PlacesTest {
         assertEquals(51.10912 to 17.03257, Places.pinIn("Leśniczówka, 51.109120, 17.032570"))
         assertNull(Places.pinIn("Ołówek, Legnicka 36, 53-673 Wrocław"))
         assertNull(Places.pinIn("95.0, 17.0"), "not on Earth")
+        assertNull(Places.pinIn("Hala 123.45, 17.5"), "not part of a longer number")
+        assertEquals("Leśniczówka Nowa, 51.000000, 17.000000", Places.pinText(51.0, 17.0, "Leśniczówka\nNowa "))
     }
 
     @Test

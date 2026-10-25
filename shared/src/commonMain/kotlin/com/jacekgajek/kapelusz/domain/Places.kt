@@ -92,10 +92,11 @@ object Places {
             return "${if (micro < 0) "-" else ""}$whole.$fraction"
         }
         val pin = "${format(latitude)}, ${format(longitude)}"
-        return name?.takeIf { it.isNotBlank() }?.let { "$it, $pin" } ?: pin
+        // One line, as Location is (a name on the map can have several).
+        return name?.replace(Regex("\\s+"), " ")?.trim()?.takeIf { it.isNotEmpty() }?.let { "$it, $pin" } ?: pin
     }
 
-    private val trailingPin = Regex("""(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$""")
+    private val trailingPin = Regex("""(?<![\d.\-])(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$""")
 
     /** The pin a location ends with (as [pinText] writes it), e.g. to open the map there; null if it ends otherwise. */
     fun pinIn(location: String?): Pair<Double, Double>? {

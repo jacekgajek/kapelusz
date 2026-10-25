@@ -57,10 +57,10 @@ Features that don't add screens or settings, but act on what is already there.
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
-- [ ] Share entries for images and PDFs; the text one removed with the Maps place dialog
-- [ ] "Attach to…": events, then targets; handing files to the forms; attaching with Undo
-- [ ] API: `/e/` and `/join/` not found without signing in (for §2's CloudFront change)
-- [ ] Location: picked on a map (§3), the cursor at the end after a lookup
+- [x] Share entries for images and PDFs; the text one removed with the Maps place dialog
+- [x] "Attach to…": events, then targets; handing files to the forms; attaching with Undo
+- [x] API: `/e/` and `/join/` not found without signing in (for §2's CloudFront change)
+- [x] Location: picked on a map (§3), the cursor at the end after a lookup
 
 ### V6-M2 — Link cards (§2)
 

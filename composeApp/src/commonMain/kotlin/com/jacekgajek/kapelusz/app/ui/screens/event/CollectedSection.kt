@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
+import androidx.compose.runtime.key
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -177,6 +177,8 @@ fun CollectedSection(context: EventContext) {
     LaunchedEffect(handover, resumed) {
         if (handover?.let { it.eventId == event.id && !it.toCost } != true || !resumed) return@LaunchedEffect
         sharedDrafts = context.graph.takeSharedFiles(event.id, toCost = false)
+        // One dialog at a time: the new entry's.
+        editing = null
         adding = true
     }
     if (adding) {
@@ -184,7 +186,8 @@ fun CollectedSection(context: EventContext) {
         val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull()
         val close = { adding = false; sharedDrafts = emptyList() }
         if (defaultParty == null) LaunchedEffect(Unit) { close() }
-        else HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts)
+        // Files shared while it was open already: it starts again with them, rather than taking only what still fits.
+        else key(sharedDrafts) { HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts) }
     }
     editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, allowedParties, onDismiss = { editing = null }) }
 }
@@ -211,11 +214,6 @@ private fun HoldingDialog(
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
     // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
     var drafts by remember { mutableStateOf(initialDrafts) }
-    // Shared while this dialog was already open: added to what it has.
-    LaunchedEffect(initialDrafts) {
-        val missing = initialDrafts.filter { it !in drafts }
-        if (missing.isNotEmpty()) drafts = (drafts + missing).take(MAX_ATTACHMENTS)
-    }
     var confirmDelete by remember { mutableStateOf(false) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // The entry as it is now (a file added in the dialog shows at once).
