@@ -18,6 +18,9 @@ android {
         // CI passes an increasing number (its run number); Android only installs updates with a higher one.
         versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orNull?.toInt() ?: 1
         versionName = providers.gradleProperty("kapelusz.versionName").get()
+        // Google Maps for picking a place (ITERATION_6 §3); restricted to this app's package and signing certificates.
+        manifestPlaceholders["googleMapsKey"] = providers.environmentVariable("KAPELUSZ_GOOGLE_MAPS_ANDROID_KEY").filter { it.isNotBlank() }
+            .orElse(providers.gradleProperty("kapelusz.googleMapsAndroidKey")).orElse("").get()
     }
 
     // Release signing comes from the environment (CI secrets); without it the release build is unsigned.

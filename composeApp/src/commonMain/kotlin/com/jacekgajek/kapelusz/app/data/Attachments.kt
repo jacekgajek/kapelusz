@@ -38,11 +38,11 @@ class Attachments(
 ) {
     /**
      * Attaches a prepared file to [owner]: the attachment is added like any change, and the file waits on the device
-     * until the sync has uploaded it.
+     * until the sync has uploaded it. [attachmentId] lets the caller take it off again.
      */
-    suspend fun attach(owner: AttachmentOwner, file: PreparedFile): Rejection? {
+    suspend fun attach(owner: AttachmentOwner, file: PreparedFile, attachmentId: Id = newId()): Rejection? {
         val bandId = bands.currentBandId ?: return null
-        val attachment = Attachment(newId(), file.kind, file.fileName, file.sizeBytes)
+        val attachment = Attachment(attachmentId, file.kind, file.fileName, file.sizeBytes)
         // The file first, then the attachment (ITERATION_3 R4).
         try {
             try {

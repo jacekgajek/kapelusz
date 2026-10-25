@@ -25,6 +25,8 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     val apiUrl = setting("KAPELUSZ_API_URL", "kapelusz.apiUrl")
     val webClientId = setting("KAPELUSZ_GOOGLE_WEB_CLIENT_ID", "kapelusz.googleWebClientId")
     val webUrl = setting("KAPELUSZ_WEB_URL", "kapelusz.webUrl")
+    // Without a key (local builds, unless set) there is no map to pick a place on.
+    val mapsKey = setting("KAPELUSZ_GOOGLE_MAPS_ANDROID_KEY", "kapelusz.googleMapsAndroidKey").orElse("")
     val versionName = providers.gradleProperty("kapelusz.versionName")
     // CI passes its run number; local builds are "dev".
     val versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orElse("0")
@@ -33,6 +35,7 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     inputs.property("apiUrl", apiUrl)
     inputs.property("webUrl", webUrl)
     inputs.property("webClientId", webClientId)
+    inputs.property("hasMapsKey", mapsKey.map { it.isNotBlank() })
     val output = layout.buildDirectory.dir("generated/appConfig/kotlin")
     outputs.dir(output)
     doLast {
@@ -49,6 +52,9 @@ val generateAppConfig = tasks.register("generateAppConfig") {
             |    const val WEB_URL = "${webUrl.get().trimEnd('/')}"
             |    const val VERSION_NAME = "${versionName.get()}"
             |    const val VERSION_CODE = ${versionCode.get().toInt()}
+            |
+            |    /** Whether the Android app has a Google Maps key (ITERATION_6 §3), so a place can be picked on a map. */
+            |    const val HAS_MAPS_KEY = ${mapsKey.get().isNotBlank()}
             |
             |    /** Shown in a corner of the app, e.g. "0.5.0 (7)"; local builds say "dev". */
             |    val VERSION_LABEL: String get() = if (VERSION_CODE > 0) "${'$'}VERSION_NAME (${'$'}VERSION_CODE)" else "${'$'}VERSION_NAME (dev)"
@@ -121,6 +127,8 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services)
             implementation(libs.googleid)
+            // Picking a place on a map for Location (ITERATION_6 §3).
+            implementation(libs.maps.compose)
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)

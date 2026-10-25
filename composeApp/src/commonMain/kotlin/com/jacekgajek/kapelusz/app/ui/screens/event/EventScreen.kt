@@ -1,5 +1,14 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.currentStateAsState
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.jacekgajek.kapelusz.app.data.SharedAttached
+import com.jacekgajek.kapelusz.app.generated.share_attach_failed
+import com.jacekgajek.kapelusz.app.generated.share_attached
+import com.jacekgajek.kapelusz.app.generated.undo
+import org.jetbrains.compose.resources.pluralStringResource
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -157,18 +166,64 @@ fun EventScreen(
         // getOrNull: a role changing to Artist meanwhile takes a page away before the pager catches up.
         snapshotFlow { pagerState.settledPage }.collect { page -> tabs.getOrNull(page)?.let { tab -> graph.settings.update { it.withEventTab(bandId, eventId, tab) } } }
     }
+    // The page and place of one section; not for artists, whose pages have other sections.
+    suspend fun scrollTo(section: EventSection) {
+        val tab = section.tabs.first()
+        pagerState.scrollToPage(tabs.indexOf(tab))
+        // Once the page is laid out (every section is one item, shown or not).
+        val sections = EventSection.on(tab)
+        val list = listStates.getValue(tab)
+        snapshotFlow { list.layoutInfo.totalItemsCount }.first { it == sections.size }
+        list.scrollToItem(sections.indexOf(section))
+    }
     // Opened from a reminder about an open debt (ITERATION_3 §2.2): the settlement, straight at To settle.
     val toSettle by graph.pendingToSettle.collectAsState()
     LaunchedEffect(toSettle, event != null) {
         if (toSettle != eventId || event == null || artist) return@LaunchedEffect
-        pagerState.scrollToPage(tabs.indexOf(EventTab.SETTLEMENT))
-        // Once the page is laid out (every section is one item, shown or not).
-        val sections = EventSection.on(EventTab.SETTLEMENT)
-        val list = listStates.getValue(EventTab.SETTLEMENT)
-        snapshotFlow { list.layoutInfo.totalItemsCount }.first { it == sections.size }
-        list.scrollToItem(sections.indexOf(EventSection.TO_SETTLE))
+        scrollTo(EventSection.TO_SETTLE)
         // Last: clearing it restarts this effect, which would cancel the scroll above.
         graph.pendingToSettle.value = null
+    }
+    // Files shared to Kapelusz (ITERATION_6 §1): the section they went to, or on to the new cost that takes them. Only
+    // by the screen in front: one on its way out (the same event opened again) would take them along.
+    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
+    val sharedSection by graph.pendingEventSection.collectAsState()
+    LaunchedEffect(sharedSection, event != null, resumed) {
+        val (sectionEvent, name) = sharedSection ?: return@LaunchedEffect
+        if (sectionEvent != eventId || !resumed) return@LaunchedEffect
+        if (event != null && !artist) EventSection.entries.firstOrNull { it.name == name }?.let { scrollTo(it) }
+        graph.pendingEventSection.value = null
+    }
+    val handover by graph.sharedHandover.collectAsState()
+    LaunchedEffect(handover, event != null, resumed) {
+        if (handover?.eventId != eventId || !resumed) return@LaunchedEffect
+        when {
+            // Gone meanwhile (or hidden from an artist): the files must not turn up there later.
+            event == null -> graph.sharedHandover.value = null
+            handover?.toCost == true -> onAddCost(eventId)
+        }
+    }
+    // Taken over from the graph first: clearing it there must not cancel the snackbar showing here.
+    val attachedHere = graph.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId && it.bandId == state.band.id && resumed }
+    var attached by remember { mutableStateOf<SharedAttached?>(null) }
+    LaunchedEffect(attachedHere) {
+        if (attachedHere == null) return@LaunchedEffect
+        attached = attachedHere
+        graph.sharedAttached.value = null
+    }
+    val attachedText = attached?.let { pluralStringResource(Res.plurals.share_attached, it.attachmentIds.size, it.attachmentIds.size) }
+    val attachFailed = stringResource(Res.string.share_attach_failed)
+    val undoLabel = stringResource(Res.string.undo)
+    LaunchedEffect(attached) {
+        val done = attached ?: return@LaunchedEffect
+        if (done.attachmentIds.isEmpty()) {
+            snackbar.showSnackbar(attachFailed)
+        } else {
+            val message = if (done.failed > 0) "$attachedText. $attachFailed" else attachedText.orEmpty()
+            val undone = snackbar.showSnackbar(message, undoLabel) == SnackbarResult.ActionPerformed
+            if (undone && graph.bands.currentBandId == done.bandId) done.attachmentIds.forEach { graph.attachments.remove(done.owner, it) }
+        }
+        attached = null
     }
 
     Scaffold(

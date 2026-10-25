@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.domain
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.model.Event
 
-/** A place as shared from Google Maps: its name (if given) and its link. */
+/** A place as copied from Google Maps: its name (if given) and its link. */
 data class SharedPlace(val name: String?, val url: String)
 
 /**
@@ -12,7 +12,7 @@ data class SharedPlace(val name: String?, val url: String)
  */
 data class MapTarget(val name: String?, val pin: Pair<String, String>?, val query: String?)
 
-/** Google Maps links (ITERATION_2 §4.4): reading what Maps shares, and the links Kapelusz opens. */
+/** Google Maps links (ITERATION_2 §4.4): reading a link copied in Maps, and the links Kapelusz opens. */
 object Places {
     /** The longest Maps link read from a shared or pasted text; longer ones are not taken for links. */
     const val MAX_URL = 1000
@@ -40,7 +40,7 @@ object Places {
     }
 
     /**
-     * The place in a text shared or copied from Google Maps, e.g. "Klub Stodoła\nhttps://maps.app.goo.gl/abc", or
+     * The place in a text copied from Google Maps (Share › Copy link), e.g. "Klub Stodoła\nhttps://maps.app.goo.gl/abc", or
      * null without a Maps link. The name is whatever text surrounds the link (first line).
      */
     fun parse(text: String): SharedPlace? {
@@ -78,6 +78,32 @@ object Places {
         val short = address?.trim()?.let { full -> country?.let { full.removeSuffix(it).trimEnd(',', ' ') } ?: full }?.takeIf { it.isNotBlank() }
             ?: return name
         return if (short.startsWith(name)) short else "$name, $short"
+    }
+
+    /**
+     * A pin as Location shows it, also Navigate's destination as it is: 6 decimals (about 10 cm), "51.109120, 17.032570";
+     * with a [name] (a place tapped on the map) before it.
+     */
+    fun pinText(latitude: Double, longitude: Double, name: String? = null): String {
+        fun format(value: Double): String {
+            val micro = kotlin.math.round(value * 1_000_000).toLong()
+            val whole = kotlin.math.abs(micro) / 1_000_000
+            val fraction = (kotlin.math.abs(micro) % 1_000_000).toString().padStart(6, '0')
+            return "${if (micro < 0) "-" else ""}$whole.$fraction"
+        }
+        val pin = "${format(latitude)}, ${format(longitude)}"
+        // One line, as Location is (a name on the map can have several).
+        return name?.replace(Regex("\\s+"), " ")?.trim()?.takeIf { it.isNotEmpty() }?.let { "$it, $pin" } ?: pin
+    }
+
+    private val trailingPin = Regex("""(?<![\d.\-])(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$""")
+
+    /** The pin a location ends with (as [pinText] writes it), e.g. to open the map there; null if it ends otherwise. */
+    fun pinIn(location: String?): Pair<Double, Double>? {
+        val match = trailingPin.find(location ?: return null) ?: return null
+        val latitude = match.groupValues[1].toDouble()
+        val longitude = match.groupValues[2].toDouble()
+        return (latitude to longitude).takeIf { latitude in -90.0..90.0 && longitude in -180.0..180.0 }
     }
 
     /** Where Navigate goes: directions to the location text, an address or a pin's coordinates. */

@@ -32,11 +32,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- A place shared from Google Maps: set it as an event's location (ITERATION_2 §4.4). -->
+            <!-- Photos and PDFs shared to Kapelusz: attached to a cost, received money or an event (ITERATION_6 §1). -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
             </intent-filter>
             <!-- Join links (/join/CODE) and event links (/e/EVENT_ID) open the app; verified via assetlinks.json. -->
             <intent-filter android:autoVerify="true">
@@ -47,6 +49,10 @@
                 <data android:scheme="https" android:host="kapelusz.jacekgajek.com" android:pathPrefix="/e/" />
             </intent-filter>
         </activity>
+        <!-- Google Maps, for picking a place on a map (ITERATION_6 §3). -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${googleMapsKey}" />
         <receiver
             android:name="com.jacekgajek.kapelusz.app.updates.InstallResultReceiver"
             android:exported="false" />

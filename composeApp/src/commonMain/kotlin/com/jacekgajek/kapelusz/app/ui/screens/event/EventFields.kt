@@ -1,5 +1,10 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.generated.location_pick_map
+import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
+import com.jacekgajek.kapelusz.app.platform.MapPickerDialog
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import com.jacekgajek.kapelusz.app.generated.map_reading
 import com.jacekgajek.kapelusz.app.generated.map_unreadable
 import androidx.compose.material.icons.filled.Clear
@@ -128,8 +133,7 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
         DateField(state.date, { onState(state.copy(date = it)) }, stringResource(Res.string.event_date))
         LocationField(state, places, onState)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // No "Select on map": coming back from Google Maps with Share › Kapelusz opens the event picker, where an event
-            // still being created is not. A link copied in Maps (Share › Copy link) is pasted here instead.
+            // A link copied in Maps (Share › Copy link) is pasted here (ITERATION_6 §1: Kapelusz takes no shared text).
             AssistChip(onClick = {
                 scope.launch {
                     val place = paste()?.let(Places::parse)
@@ -199,6 +203,7 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
     // Only what the user types is searched: not the text the dialog opened with, nor a picked place.
     var typed by remember { mutableStateOf<String?>(null) }
     var suggestions by remember { mutableStateOf(emptyList<PlaceSuggestion>()) }
+    var picking by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val current by rememberUpdatedState(state)
     LaunchedEffect(typed) {
@@ -210,26 +215,50 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
         delay(SEARCH_PAUSE_MS)
         suggestions = runSuspendCatching { places.suggest(query.take(Places.MAX_QUERY)) }.getOrDefault(emptyList())
     }
+    // Set from elsewhere (a picked place, then its full address; a pasted link): the cursor goes to its end, not where
+    // the typing stopped.
+    var field by remember { mutableStateOf(TextFieldValue(state.location, TextRange(state.location.length))) }
+    if (field.text != state.location) field = TextFieldValue(state.location, TextRange(state.location.length))
     // One line of text that wraps when long (a full address), so all of it shows; Enter adds no new line.
     OutlinedTextField(
-        state.location,
+        field,
         {
-            val text = it.replace("\n", " ")
-            typed = text
-            onState(state.copy(location = text))
+            val text = it.text.replace("\n", " ")
+            // Against the field, not the last composition's state: two edits can come before it is composed again.
+            val changed = text != field.text
+            field = it.copy(text = text)
+            if (changed) {
+                typed = text
+                onState(current.copy(location = text))
+            }
         },
         label = { Text(stringResource(Res.string.event_location)) },
-        trailingIcon = if (state.location.isNotEmpty()) {
+        trailingIcon = if (state.location.isNotEmpty() || mapPickerAvailable) {
             {
-                IconButton(onClick = {
-                    typed = null
-                    onState(state.copy(location = ""))
-                }) { Icon(Icons.Default.Clear, stringResource(Res.string.location_clear)) }
+                Row {
+                    // Any spot, also one without an address (ITERATION_6 §3).
+                    if (mapPickerAvailable) IconButton(onClick = { picking = true }) { Icon(Icons.Default.Place, stringResource(Res.string.location_pick_map)) }
+                    if (state.location.isNotEmpty()) IconButton(onClick = {
+                        typed = null
+                        onState(state.copy(location = ""))
+                    }) { Icon(Icons.Default.Clear, stringResource(Res.string.location_clear)) }
+                }
             }
         } else null,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         modifier = Modifier.fillMaxWidth(),
     )
+    if (picking) {
+        MapPickerDialog(
+            start = Places.pinIn(state.location),
+            onPick = { latitude, longitude, name ->
+                picking = false
+                typed = null
+                onState(current.copy(location = Places.pinText(latitude, longitude, name)))
+            },
+            onDismiss = { picking = false },
+        )
+    }
     if (suggestions.isNotEmpty()) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
             suggestions.forEach { place ->
