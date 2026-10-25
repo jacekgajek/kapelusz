@@ -7,6 +7,7 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import java.util.Locale
+import java.util.concurrent.Executors
 
 /** The web app's `index.html`, which link pages are made of. */
 fun interface WebIndex {
@@ -14,7 +15,7 @@ fun interface WebIndex {
     fun html(): String?
 }
 
-/** `index.html` from the web app's bucket, kept for a minute: a deploy changes it. */
+/** `index.html` from the web app's bucket, kept for a few seconds: a deploy changes it. */
 class S3WebIndex(private val bucket: String, private val s3: S3Client = S3BlobStore.defaultClient(), private val clock: () -> Long = System::currentTimeMillis) : WebIndex {
     @Volatile private var cached: Pair<Long, String>? = null
 
@@ -34,7 +35,7 @@ class S3WebIndex(private val bucket: String, private val s3: S3Client = S3BlobSt
     }
 
     private companion object {
-        const val KEEP_MS = 60_000L
+        const val KEEP_MS = 15_000L
     }
 }
 
@@ -43,16 +44,16 @@ class S3WebIndex(private val bucket: String, private val s3: S3Client = S3BlobSt
 data class EventPointer(val bandId: String)
 
 /**
- * Event and join links as web pages (ITERATION_6 §2): the web app's page, with a card for link readers (WhatsApp,
- * Messenger, Slack) in its `og:` tags. An event: its name and date; an invite: its band's name; anything else (unknown,
- * deleted, expired) keeps the page's own, generic tags. Nothing else about the band is given away: anyone with a
- * link sees the card.
+ * Event links as web pages (ITERATION_6 §2): the web app's page, with a card for link readers (WhatsApp, Messenger,
+ * Slack) in its `og:` tags: the event's name and date; an unknown or deleted one keeps the page's own, generic tags.
+ * Nothing else about the band is given away: anyone with a link sees the card. Join links keep the generic card: one
+ * naming the band would tell anyone, unsigned and without the app's limit on guesses, whether a code is valid.
  */
 internal class LinkPages(private val store: BlobStore, private val index: WebIndex?, private val clock: () -> Long, private val bands: BandAccess) {
 
     fun event(eventId: String): HttpResponse {
         val card = runCatching {
-            val bandId = store.get(StorageKeys.eventPointer(eventId))?.let { decode(EventPointer.serializer(), it.content).bandId }
+            val bandId = pointer(eventId)
             val event = bandId?.let { bands.load(it)?.first?.event(eventId) }
             // Numbers only: link readers don't say the reader's language (ITERATION_6 §2).
             event?.let { Card(it.name, String.format(Locale.ROOT, "%02d.%02d.%04d", it.date.day, it.date.month.number, it.date.year)) }
@@ -60,45 +61,72 @@ internal class LinkPages(private val store: BlobStore, private val index: WebInd
         return page(card)
     }
 
-    fun join(code: String): HttpResponse {
-        val card = runCatching {
-            val invite = store.get(StorageKeys.invite(code))?.let { decode(StoredInvite.serializer(), it.content).info }
-                ?.takeIf { it.expiresAt > clock() }
-            val band = invite?.let { bands.load(it.bandId)?.first }
-            band?.takeIf { it.member(invite.memberId)?.archived == false }?.let { Card(it.name, null) }
-        }.getOrNull()
-        return page(card)
+    /**
+     * Records where events a push created are, so their links find them; in parallel, as a push can create hundreds.
+     * The first band to have an event id keeps it: another band giving an event the same id (anyone who saw the link
+     * could) must not take over its card. Unless that band no longer has the event.
+     */
+    fun pointTo(bandId: String, eventIds: Collection<String>) = inParallel(eventIds) { eventId ->
+        val key = StorageKeys.eventPointer(eventId)
+        val content = encode(EventPointer.serializer(), EventPointer(bandId))
+        try {
+            store.put(key, content, ifNoneMatch = true)
+        } catch (e: PreconditionFailed) {
+            val existing = store.get(key) ?: return@inParallel
+            val owner = decode(EventPointer.serializer(), existing.content).bandId
+            if (owner != bandId && bands.load(owner)?.first?.event(eventId) == null) {
+                runCatching { store.put(key, content, ifMatch = existing.etag) }
+            }
+        }
     }
 
-    /** Records where events created by a push are, so their links find them. */
-    fun pointTo(bandId: String, eventIds: Collection<String>) = eventIds.forEach { eventId ->
-        runCatching { store.put(StorageKeys.eventPointer(eventId), encode(EventPointer.serializer(), EventPointer(bandId))) }
-            .onFailure { System.err.println("Could not record event $eventId of band $bandId: $it") }
+    /** Takes away the pointers of [eventIds] (deleted, or their band deleted) where they still point to [bandId]. */
+    fun forget(bandId: String, eventIds: Collection<String>) = inParallel(eventIds) { eventId ->
+        if (pointer(eventId) == bandId) store.delete(StorageKeys.eventPointer(eventId))
+    }
+
+    private fun pointer(eventId: String): String? = store.get(StorageKeys.eventPointer(eventId))?.let { decode(EventPointer.serializer(), it.content).bandId }
+
+    private fun inParallel(eventIds: Collection<String>, write: (String) -> Unit) {
+        if (eventIds.isEmpty()) return
+        eventIds.map { eventId ->
+            writers.submit {
+                runCatching { write(eventId) }.onFailure { System.err.println("Could not update the pointer of event $eventId: $it") }
+            }
+        }.forEach { it.get() }
     }
 
     private class Card(val title: String, val description: String?)
 
     private fun page(card: Card?): HttpResponse {
         val html = index?.html() ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No page")
-        return HttpResponse(200, if (card == null) html else withCard(html, card), mapOf("content-type" to "text/html; charset=utf-8", "cache-control" to "public, max-age=300"))
+        // Briefly without a card: the event may be on its way (a push not sent yet), or the card's text may change.
+        val cache = if (card == null) "public, max-age=60" else "public, max-age=300"
+        return HttpResponse(200, if (card == null) html else withCard(html, card.title, card.description), mapOf("content-type" to "text/html; charset=utf-8", "cache-control" to cache))
     }
 
     companion object {
-        private val title = Regex("""<meta property="og:title" content="[^"]*">""")
+        private val writers by lazy { Executors.newFixedThreadPool(8) { task -> Thread(task, "event-pointers").apply { isDaemon = true } } }
+
+        private val title = Regex("""\s*<meta property="og:title" content="[^"]*">""")
         private val description = Regex("""\s*<meta property="og:description" content="[^"]*">""")
 
-        /** The page's generic `og:title` (and `og:description`) replaced by the card's. */
+        /**
+         * The page with the card's `og:title` (and `og:description`) in place of its generic ones; put before `</head>`
+         * when the page has none (its tags written differently, say), so cards don't quietly disappear.
+         */
         internal fun withCard(html: String, title: String, description: String?): String {
-            val titled = html.replace(this.title, Regex.escapeReplacement("""<meta property="og:title" content="${escape(title)}">"""))
-            val withoutDescription = titled.replace(this.description, "")
-            if (description == null) return withoutDescription
-            return withoutDescription.replace(
-                this.title,
-                Regex.escapeReplacement("""<meta property="og:title" content="${escape(title)}">""" + "\n    " + """<meta property="og:description" content="${escape(description)}">"""),
-            )
+            val tags = buildString {
+                append("\n    <meta property=\"og:title\" content=\"${escape(title)}\">")
+                if (description != null) append("\n    <meta property=\"og:description\" content=\"${escape(description)}\">")
+            }
+            val without = html.replace(this.description, "")
+            val match = this.title.find(without)
+            if (match != null) return without.replaceRange(match.range, tags)
+            System.err.println("The web app's page has no og:title: the card goes before </head>")
+            val head = without.indexOf("</head>")
+            return if (head < 0) without else without.substring(0, head) + tags.trimStart() + "\n" + without.substring(head)
         }
-
-        private fun withCard(html: String, card: Card) = withCard(html, card.title, card.description)
 
         private fun escape(text: String) = text.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;").replace(">", "&gt;")
     }

@@ -54,8 +54,9 @@ class Handler : RequestStreamHandler {
         var status = "-"
         try {
             val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
-            // Calendar feed paths and invite codes are secrets: never log them.
+            // Calendar feed paths and invite codes (also in join links) are secrets: never log them.
             val path = event.rawPath.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
+                .replace(Regex("^/join/.*"), "/join/…")
             line = "${event.requestContext.http.method} $path"
             val response = handle(event, path)
             status = response.status.toString()

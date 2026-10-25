@@ -57,12 +57,11 @@ class Api(
         if ((request.method == "GET" || request.method == "HEAD") && calendarFeed != null) {
             return calendar.feed(calendarFeed.groupValues[1]).let { if (request.method == "HEAD") it.copy(body = null) else it }
         }
-        // Event and join links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in: the
-        // web app's page with the link's card. A 404 lets CloudFront answer with the plain page.
-        if (request.path.startsWith("/e/") || request.path.startsWith("/join/")) {
+        // Event links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in: the web app's
+        // page with the event's card. A 404 lets CloudFront answer with the plain page.
+        if (request.path.startsWith("/e/")) {
             if (request.method != "GET" && request.method != "HEAD") throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
             val page = Regex("^/e/([A-Za-z0-9_-]{1,64})/?$").find(request.path)?.let { linkPages.event(it.groupValues[1]) }
-                ?: Regex("^/join/([A-Za-z0-9]{6})/?$").find(request.path)?.let { linkPages.join(it.groupValues[1].uppercase()) }
                 ?: throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
             return if (request.method == "HEAD") page.copy(body = null) else page
         }

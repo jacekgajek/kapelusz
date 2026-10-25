@@ -28,20 +28,23 @@ Features that don't add screens or settings, but act on what is already there.
 
 ## 2. V6-M2 — Link cards (grilled 2026-10-25)
 
-- **What:** event links (`/e/EVENT_ID`) and invite links (`/join/CODE`) shown as cards in WhatsApp, Messenger and
-  Slack, via `og:` tags in the page the link reader fetches. Still plain links; only what the recipient sees changes.
+- **What:** event links (`/e/EVENT_ID`) shown as cards in WhatsApp, Messenger and Slack, via `og:` tags in the page the link reader fetches. Still plain links; only what the recipient sees changes.
 - **Event card:** the event's name; description its date only (`14.11.2026`), language free; nothing else from the
   event. Anyone with the link sees it.
-- **Invite card:** the band's name, no description.
+- **Invite links** (`/join/CODE`) get the generic card: one naming the band would let anyone check, without signing
+  in and past the app's limit of 10 guesses an hour, whether a code is valid (review, 2026-10-25).
 - **Every card:** `og:site_name` "Kapelusz" and the app icon (square, 512 px, the opaque one: a small thumbnail, not a
   banner). Unknown, deleted, expired or used: the generic card ("Kapelusz · Pass the Hat"), which `index.html` has
   itself (the home page too).
-- **How:** CloudFront sends `/e/*` and `/join/*` to the API (5 minutes' cache), which returns the web app's
+- **How:** CloudFront sends `/e/*` to the API (5 minutes' cache, 1 minute for a generic card), which returns the web app's
   `index.html` (read from its bucket, kept a minute) with the card's title and description in place of the generic
   ones. Without the page, a 404: CloudFront then shows the plain page (it can't for a 401, so V6-M1 made the API answer
   those paths before signing in).
 - **Finding the event:** a pointer `events/{eventId}.json` → band, written when a push creates an event (or an undo
-  brings one back). Events from before have none and get the generic card.
+  brings one back), removed with the event or its band. The first band keeps an id: another band creating an event
+  with the same id (anyone who saw the link could) doesn't take over its card. Events from before have no pointer and
+  get the generic card.
+- **API errors** (500, 502–504) at CloudFront also give the plain page, cached briefly.
 
 ## 3. Location: a place picked on a map, and the cursor (2026-10-25, in V6-M1)
 
@@ -78,3 +81,4 @@ Features that don't add screens or settings, but act on what is already there.
 - 2026-10-25: The map picker uses Google Maps on Android only: free, drawn by Play services (no big library), the
   same map data as the rest; OpenStreetMap would add ~10 MB and has weaker data in Poland.
 - 2026-10-25: Link cards name the event although anyone with the link sees them: the name and date say little.
+- 2026-10-25: Invite cards stay generic (Q11 changed after review): a band's name would confirm guessed codes.

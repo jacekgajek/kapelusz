@@ -63,10 +63,9 @@ class ApiTest {
     }
 
     @Test
-    fun linkPagesAreNotFoundWithoutSignIn() {
+    fun eventLinksAreNotFoundWithoutTheWebPage() {
         // CloudFront then shows the web app's page (ITERATION_6 §2), which it cannot do for a 401.
         assertEquals(404, call("GET", "/e/0199aaaa-bbbb-7ccc-8ddd-eeeeffff0000", user = null).status)
-        assertEquals(404, call("GET", "/join/ABC123", user = null).status)
     }
 
     @Test

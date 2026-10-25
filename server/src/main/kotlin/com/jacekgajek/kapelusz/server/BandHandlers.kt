@@ -102,8 +102,11 @@ internal class BandHandlers(
                 envelopes.filter { it.opId in result.accepted }.map { it.op }
                     .mapNotNull { (it as? UnlinkUser)?.memberId }
                     .forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
-                // New events (also one brought back by an undo): where their links find them.
-                linkPages.pointTo(bandId, result.band.events.map { it.id } - band.events.map { it.id }.toSet())
+                // New events (also one brought back by an undo): where their links find them; deleted ones: not anymore.
+                val before = band.events.map { it.id }.toSet()
+                val after = result.band.events.map { it.id }.toSet()
+                linkPages.pointTo(bandId, after - before)
+                linkPages.forget(bandId, before - after)
                 // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
                 runCatching { attachments.deleteRemoved(bandId, band, result.band) }
                     .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
@@ -130,6 +133,7 @@ internal class BandHandlers(
         userIds.forEach { runCatching { users.removeBandFromUser(it, bandId) } }
         invites.loadCodes(bandId).forEach { code -> runCatching { store.delete(StorageKeys.invite(code)) } }
         store.deleteAll(store.list(StorageKeys.bandPrefix(bandId)).filter { it != StorageKeys.deleted(bandId) })
+        runCatching { linkPages.forget(bandId, band.events.map { it.id }) }
         runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
         return HttpResponse(204)
     }

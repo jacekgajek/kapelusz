@@ -1,12 +1,8 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.api.CreateInviteRequest
-import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.model.KapeluszJson
-import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.OpEnvelope
@@ -14,7 +10,6 @@ import com.jacekgajek.kapelusz.ops.Operation
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -45,7 +40,7 @@ class LinkPagesTest {
 
     private fun setup() {
         call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
-        push(AddMember("m-bob", "Bob"), CreateEvent("ev1", "Wesele \"Kowalskich\" <3", LocalDate(2026, 11, 14)))
+        push(CreateEvent("ev1", "Wesele \"Kowalskich\" <3", LocalDate(2026, 11, 14)))
     }
 
     private fun HttpResponse.title() = Regex("""og:title" content="([^"]*)"""").find(body.orEmpty())?.groupValues?.get(1)
@@ -75,24 +70,44 @@ class LinkPagesTest {
     }
 
     @Test
+    fun anotherBandCannotTakeOverAnEventsCard() {
+        setup()
+        call("POST", "/bands", "mallory", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band2", "Spoof", "PLN", "m-mallory", "Mallory")))
+        val spoof = call(
+            "POST", "/bands/band2/ops", "mallory",
+            KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("x1", "phone", 1, 1, CreateEvent("ev1", "Cancelled, refunds at evil.example", LocalDate(2026, 1, 1)))))),
+        )
+        assertEquals(200, spoof.status, spoof.body)
+        assertEquals("Wesele &quot;Kowalskich&quot; &lt;3", call("GET", "/e/ev1").title())
+    }
+
+    @Test
+    fun aDeletedEventsPointerGoes() {
+        setup()
+        push(DeleteEvent("ev1"))
+        assertNull(store.get(StorageKeys.eventPointer("ev1")))
+    }
+
+    @Test
+    fun theRealPageGetsTheCard() {
+        val real = java.io.File("../composeApp/src/wasmJsMain/resources/index.html").readText()
+        val html = LinkPages.withCard(real, "Gig", "14.11.2026")
+        assertTrue("""<meta property="og:title" content="Gig">""" in html)
+        assertTrue("""<meta property="og:description" content="14.11.2026">""" in html)
+        assertEquals(1, Regex("property=\"og:title\"").findAll(html).count())
+        assertTrue("og:image" in html)
+    }
+
+    @Test
+    fun aPageWithoutTheTagsStillGetsTheCard() {
+        val html = LinkPages.withCard("<html><head><title>x</title></head></html>", "Gig", null)
+        assertTrue("""<meta property="og:title" content="Gig">""" in html && html.indexOf("og:title") < html.indexOf("</head>"))
+    }
+
+    @Test
     fun withoutThePageCloudFrontShowsThePlainOne() {
         setup()
         index = null
         assertEquals(404, call("GET", "/e/ev1").status)
-    }
-
-    @Test
-    fun anInviteLinkShowsTheBandsName() {
-        setup()
-        val invite = call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest("m-bob", Role.MEMBER)))
-        val code = KapeluszJson.decodeFromString(InviteInfo.serializer(), invite.body!!).code
-        val response = call("GET", "/join/${code.lowercase()}")
-        assertEquals("Night Owls", response.title())
-        assertNull(response.description())
-        assertFalse("Bob" in response.body.orEmpty(), "nothing about whom it is for")
-
-        now += 30L * 24 * 60 * 60 * 1000
-        assertEquals("Kapelusz · Pass the Hat", call("GET", "/join/$code").title(), "expired")
-        assertEquals("Kapelusz · Pass the Hat", call("GET", "/join/ZZZZZZ").title())
     }
 }
