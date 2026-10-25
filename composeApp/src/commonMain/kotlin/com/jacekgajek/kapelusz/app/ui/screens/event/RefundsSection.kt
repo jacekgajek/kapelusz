@@ -40,7 +40,9 @@ import com.jacekgajek.kapelusz.app.generated.refuse
 import com.jacekgajek.kapelusz.app.generated.cost_refused
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
-import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.generated.refund_amount_here
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Tune
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -104,7 +106,11 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
                     )
                 }
             }
-            if (canEdit) EditButton { editing = cost }
+            // Changes how much of the cost is refunded here, not the cost itself: not the pencil.
+            if (canEdit) {
+                val label = stringResource(Res.string.refund_amount_here)
+                IconButton(onClick = { editing = cost }) { Icon(Icons.Default.Tune, cost.description?.takeIf { it.isNotBlank() }?.let { "$label: $it" } ?: label) }
+            }
         }
         CostFiles(context, cost)
     }

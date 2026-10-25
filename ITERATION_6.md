@@ -85,6 +85,9 @@ Features that don't add screens or settings, but act on what is already there.
 **Cost → event:** in a cost's form, each "to be refunded at / refunded at" event line opens that event at its Money
 page (the refunds).
 
+**Refund amount button:** on the Money page's cost rows, the button that sets how much of the cost is refunded in this
+event is sliders (Tune), not the pencil: it doesn't edit the cost. Read out as "Amount refunded here".
+
 ## 6. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)

@@ -139,6 +139,7 @@
     <string name="refunds">Zwroty kosztów</string>
     <string name="refunds_empty">Brak kosztów do zwrotu.</string>
     <string name="refund_of">z %1$s</string>
+    <string name="refund_amount_here">Kwota zwrotu tutaj</string>
     <string name="refund_max">Maksymalnie %1$s. Ustaw 0 lub wybierz Odłóż, aby zwrócić później.</string>
     <string name="pending_from_earlier">Oczekujące</string>
     <string name="include">Uwzględnij</string>
