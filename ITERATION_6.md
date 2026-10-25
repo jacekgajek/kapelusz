@@ -90,6 +90,10 @@ event is sliders (Tune), not the pencil: it doesn't edit the cost. Read out as "
 form (a pencil says so); Back returns to the event. Above the amount: "How much of this cost should be refunded at
 this event?"
 
+**Waiting costs** (the Money page) read as a choice to make, so "not now" became Refuse. Now: under "Waiting", "Not
+refunded yet. Refund one here, or leave it for a later event."; one button, Refund here (was Include); Edit and Refuse
+in the row's ⋮, Refuse confirmed ("It won't be refunded at any event. Bob can edit it and submit it again."), Undo kept.
+
 ## 6. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)

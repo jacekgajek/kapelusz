@@ -30,7 +30,6 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.defer
-import com.jacekgajek.kapelusz.app.generated.include
 import com.jacekgajek.kapelusz.app.generated.pending_from_earlier
 import com.jacekgajek.kapelusz.app.generated.refund_max
 import com.jacekgajek.kapelusz.app.generated.refund_of
@@ -43,6 +42,17 @@ import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.generated.refund_amount_here
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Tune
+import com.jacekgajek.kapelusz.app.generated.refuse_cost_text
+import com.jacekgajek.kapelusz.app.generated.refuse_cost_title
+import com.jacekgajek.kapelusz.app.generated.refund_here
+import com.jacekgajek.kapelusz.app.generated.pending_hint
+import com.jacekgajek.kapelusz.app.generated.edit
+import com.jacekgajek.kapelusz.app.generated.more
+import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Edit
 import com.jacekgajek.kapelusz.app.generated.refund_how_much
 import com.jacekgajek.kapelusz.app.generated.open_cost
@@ -120,28 +130,22 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     }
     if (pending.isNotEmpty()) {
         Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+        // Leaving one is a choice too: it waits for a later event (Refuse is tucked away in the menu).
+        Text(stringResource(Res.string.pending_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         pending.forEach { cost ->
             val outstanding = CostLedger.outstanding(band, cost)
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CostDescription(context, cost, Modifier.weight(1f))
                     MoneyText(outstanding, context.currency, Modifier.padding(start = 8.dp))
+                    PendingCostMenu(context, cost, outstanding, onOpenCost)
                 }
                 CostFiles(context, cost)
-                // Include it here, or refuse it for good (ITERATION_4 §1.2): only a cost with nothing refunded yet.
-                Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (context.can.refuseCost() && outstanding == cost.amount) {
-                        // One tap, with Undo in the snackbar (ITERATION_5 §2): it sends the cost back, it takes no money.
-                        val refused = stringResource(Res.string.cost_refused, band.member(cost.memberId)?.name ?: "?", formatMoney(cost.amount, context.currency, language))
-                        TextButton(onClick = { context.actions.runWithUndo(RefuseCost(cost.id), refused) }) {
-                            Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                    // Adds the rest to what this event already refunds of it, if anything.
-                    OutlinedButton(onClick = { context.actions.run(SetRefund(event.id, cost.id, CostLedger.maxRefundAt(band, cost, event))) }) {
-                        Text(stringResource(Res.string.include))
-                    }
-                }
+                // Adds the rest to what this event already refunds of it, if anything.
+                OutlinedButton(
+                    onClick = { context.actions.run(SetRefund(event.id, cost.id, CostLedger.maxRefundAt(band, cost, event))) },
+                    modifier = Modifier.align(Alignment.End),
+                ) { Text(stringResource(Res.string.refund_here)) }
             }
         }
     }
@@ -154,6 +158,45 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     }
 
     editing?.let { cost -> RefundDialog(context, cost, onOpenCost, onDismiss = { editing = null }) }
+}
+
+/**
+ * A waiting cost's ⋮: Edit (its form), and Refuse for good (ITERATION_4 §1.2; only a cost with nothing refunded yet),
+ * confirmed first, as it is easily taken for "not now".
+ */
+@Composable
+private fun PendingCostMenu(context: EventContext, cost: Cost, outstanding: Money, onOpenCost: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    var confirmRefuse by remember { mutableStateOf(false) }
+    val band = context.band
+    val who = band.member(cost.memberId)?.name ?: "?"
+    val amount = formatMoney(cost.amount, context.currency, language)
+    Box {
+        IconButton(onClick = { open = true }) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more)) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.edit)) },
+                leadingIcon = { Icon(Icons.Default.Edit, null) },
+                onClick = { open = false; onOpenCost(cost.id) },
+            )
+            if (context.can.refuseCost() && outstanding == cost.amount) DropdownMenuItem(
+                text = { Text(stringResource(Res.string.refuse), color = MaterialTheme.colorScheme.error) },
+                leadingIcon = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
+                onClick = { open = false; confirmRefuse = true },
+            )
+        }
+    }
+    if (confirmRefuse) {
+        // With Undo in the snackbar too (ITERATION_5 §2): it sends the cost back, it takes no money.
+        val refused = stringResource(Res.string.cost_refused, who, amount)
+        ConfirmDialog(
+            title = stringResource(Res.string.refuse_cost_title, who, amount),
+            text = stringResource(Res.string.refuse_cost_text, who),
+            confirmLabel = stringResource(Res.string.refuse),
+            onConfirm = { context.actions.runWithUndo(RefuseCost(cost.id), refused) },
+            onDismiss = { confirmRefuse = false },
+        )
+    }
 }
 
 @Composable

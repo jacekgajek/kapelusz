@@ -143,7 +143,10 @@
     <string name="refund_how_much">How much of this cost should be refunded at this event?</string>
     <string name="refund_max">At most %1$s. Set 0 or use Defer to refund it later.</string>
     <string name="pending_from_earlier">Waiting</string>
-    <string name="include">Include</string>
+    <string name="refund_here">Refund here</string>
+    <string name="pending_hint">Not refunded yet. Refund one here, or leave it for a later event.</string>
+    <string name="refuse_cost_title">Refuse %1$s’s %2$s?</string>
+    <string name="refuse_cost_text">It won’t be refunded at any event. %1$s can edit it and submit it again.</string>
     <string name="refuse">Refuse</string>
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>

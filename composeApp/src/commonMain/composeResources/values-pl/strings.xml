@@ -143,7 +143,10 @@
     <string name="refund_how_much">Ile z tego kosztu zwrócić na tym wydarzeniu?</string>
     <string name="refund_max">Maksymalnie %1$s. Ustaw 0 lub wybierz Odłóż, aby zwrócić później.</string>
     <string name="pending_from_earlier">Oczekujące</string>
-    <string name="include">Uwzględnij</string>
+    <string name="refund_here">Zwróć tutaj</string>
+    <string name="pending_hint">Jeszcze niezwrócone. Zwróć tutaj albo zostaw na kolejne wydarzenie.</string>
+    <string name="refuse_cost_title">Odrzucić koszt: %1$s, %2$s?</string>
+    <string name="refuse_cost_text">Nie zostanie zwrócony na żadnym wydarzeniu. %1$s może go poprawić i zgłosić ponownie.</string>
     <string name="refuse">Odrzuć</string>
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
