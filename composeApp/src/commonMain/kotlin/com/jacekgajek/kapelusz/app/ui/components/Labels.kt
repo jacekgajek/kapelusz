@@ -1,5 +1,15 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material.icons.filled.Hotel
@@ -105,6 +115,14 @@ fun CostCategory.label(): String = stringResource(
         CostCategory.OTHER -> Res.string.category_other
     },
 )
+
+/** An icon in a tinted circle, as tall as a two-line row: a cost's category, received money (ITERATION_6 §1). */
+@Composable
+fun IconCircle(icon: ImageVector, modifier: Modifier = Modifier) {
+    Box(modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
 
 /** A cost's category as an icon (ITERATION_6 §1); a cost without one: a receipt, like Other. */
 fun CostCategory?.icon(): ImageVector = when (this) {

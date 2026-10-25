@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.ui.components.icon
+import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.generated.add_cost
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.Icons
@@ -146,15 +148,19 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
 
 @Composable
 private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifier) {
-    Column(modifier) {
-        Text(context.band.member(cost.memberId)?.name.orEmpty())
-        Text(
-            listOfNotNull(
-                cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost),
-                formatDate(cost.date, language),
-            ).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
-        )
+    // The category's icon over both lines (ITERATION_6 §4).
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        IconCircle(cost.category.icon(), Modifier.padding(end = 12.dp))
+        Column {
+            Text(context.band.member(cost.memberId)?.name.orEmpty())
+            Text(
+                listOfNotNull(
+                    cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost),
+                    formatDate(cost.date, language),
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }
 

@@ -64,7 +64,15 @@ Features that don't add screens or settings, but act on what is already there.
 - **Fix:** a place picked from the suggestions, its full address, or a pasted link left the cursor where the typing
   stopped; it goes to the end.
 
-## 4. Milestones and task checklist
+## 4. Cost category icons everywhere (grilled 2026-10-25)
+
+- The category's icon (§1: car, bed, speaker, cutlery, receipt) in a 40 dp tinted circle, as tall as the row's two
+  lines, on every cost row: My costs; the event's Money page (refunds, waiting costs, the refund dialog's header); an
+  artist's own costs in the event.
+- The cost form's category chips: a small icon before the name, kept when selected (the chip's fill says it is).
+- Not on band fund entries: there a cost is part of the entry's text, not a row.
+
+## 5. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -78,7 +86,7 @@ Features that don't add screens or settings, but act on what is already there.
 - [x] Event pointers, rendering `index.html` with the tags, the icon
 - [ ] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
 
-## 5. Decision log
+## 6. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
