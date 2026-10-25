@@ -82,6 +82,9 @@ actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): Attac
     }
 }
 
+/** Files shared to Kapelusz (ITERATION_6 §1), prepared like picked ones, one after another. */
+suspend fun prepareShared(context: Context, uris: List<Uri>): List<PickResult> = uris.map { prepare(context, it) }
+
 private suspend fun prepare(context: Context, uri: Uri, photo: Boolean = false): PickResult = withContext(Dispatchers.IO) {
     try {
         val resolver = context.contentResolver

@@ -128,8 +128,7 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
         DateField(state.date, { onState(state.copy(date = it)) }, stringResource(Res.string.event_date))
         LocationField(state, places, onState)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // No "Select on map": coming back from Google Maps with Share › Kapelusz opens the event picker, where an event
-            // still being created is not. A link copied in Maps (Share › Copy link) is pasted here instead.
+            // A link copied in Maps (Share › Copy link) is pasted here (ITERATION_6 §1: Kapelusz takes no shared text).
             AssistChip(onClick = {
                 scope.launch {
                     val place = paste()?.let(Places::parse)

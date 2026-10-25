@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -164,17 +165,33 @@ fun CollectedSection(context: EventContext) {
         else ReceiveDialog(context, current, receiveParties, onDismiss = { receiving = null })
     }
 
+    // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): its dialog, with them.
+    var sharedDrafts by remember { mutableStateOf(listOf<PreparedFile>()) }
+    val handover by context.graph.sharedHandover.collectAsState()
+    LaunchedEffect(handover) {
+        if (handover?.let { it.eventId == event.id && !it.toCost } != true) return@LaunchedEffect
+        sharedDrafts = context.graph.takeSharedFiles(event.id, toCost = false)
+        adding = true
+    }
     if (adding) {
         // A sync may have taken away whom the user can record for (removed from the event, a role changed): close.
         val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull()
-        if (defaultParty == null) LaunchedEffect(Unit) { adding = false }
-        else HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = { adding = false })
+        val close = { adding = false; sharedDrafts = emptyList() }
+        if (defaultParty == null) LaunchedEffect(Unit) { close() }
+        else HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts)
     }
     editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, allowedParties, onDismiss = { editing = null }) }
 }
 
 @Composable
-private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty: String, parties: List<String>, onDismiss: () -> Unit) {
+private fun HoldingDialog(
+    context: EventContext,
+    initial: Holding?,
+    defaultParty: String,
+    parties: List<String>,
+    onDismiss: () -> Unit,
+    initialDrafts: List<PreparedFile> = emptyList(),
+) {
     val event = context.event
     // Gone meanwhile (removed, or an awaited fee received on another phone): nothing left to edit (V5-M1 C4d).
     if (initial != null && event.holdings.none { it.id == initial.id }) {
@@ -187,7 +204,7 @@ private fun HoldingDialog(context: EventContext, initial: Holding?, defaultParty
     var source by remember { mutableStateOf(initial?.source ?: if (defaultParty == ORGANISER) IncomeSource.CONTRACT else IncomeSource.DOOR) }
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
     // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
-    var drafts by remember { mutableStateOf(listOf<PreparedFile>()) }
+    var drafts by remember { mutableStateOf(initialDrafts) }
     var confirmDelete by remember { mutableStateOf(false) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // The entry as it is now (a file added in the dialog shows at once).

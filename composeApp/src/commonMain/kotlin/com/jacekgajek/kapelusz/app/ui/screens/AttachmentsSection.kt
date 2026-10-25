@@ -39,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.data.AppGraph
@@ -260,10 +261,10 @@ private fun AttachmentRow(
 /** A photo picked for something not saved yet, from its local copy; the cross takes it off again. */
 @OptIn(ExperimentalEncodingApi::class)
 @Composable
-private fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?) {
+internal fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?, size: Dp = THUMBNAIL) {
     val bytes = remember(draft) { runCatching { Base64.decode(draft.base64) }.getOrNull() }
     Box {
-        ThumbnailBox(THUMBNAIL, onClick = null, name = draft.fileName) {
+        ThumbnailBox(size, onClick = null, name = draft.fileName) {
             // Keyed by the content: another photo with the same name and size must not show this one.
             if (bytes != null) BytesImage(bytes, "draft-${draft.base64.hashCode()}-${draft.sizeBytes}", ContentScale.Crop, Modifier.fillMaxSize())
             else Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)

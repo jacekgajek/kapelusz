@@ -2,6 +2,13 @@ package com.jacekgajek.kapelusz.android
 
 import com.jacekgajek.kapelusz.domain.EventLinks
 import android.content.Intent
+import android.net.Uri
+import androidx.core.content.IntentCompat
+import androidx.lifecycle.lifecycleScope
+import com.jacekgajek.kapelusz.app.data.SharedFiles
+import com.jacekgajek.kapelusz.app.platform.PickResult
+import com.jacekgajek.kapelusz.app.platform.prepareShared
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,7 +24,6 @@ import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.updates.UpdateWorker
 import com.jacekgajek.kapelusz.app.notify.BackgroundSyncWorker
 import com.jacekgajek.kapelusz.app.notify.Notifier
-import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.app.updates.Updater
 import java.lang.ref.WeakReference
 
@@ -50,16 +56,24 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         takeJoinCode(intent)
         takeEventToOpen(intent)
-        takeSharedPlace(intent)
+        takeSharedFiles(intent)
     }
 
-    /** Google Maps shared a place to Kapelusz: offer to set it as an event's location. */
-    private fun takeSharedPlace(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_SEND) return
-        // A CharSequence: some apps share styled text, which getStringExtra would drop.
-        val place = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.let(Places::parse) ?: return
-        val subject = intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)?.toString()?.trim()?.ifEmpty { null }
-        graph.pendingSharedPlace.value = if (place.name == null && subject != null) place.copy(name = subject) else place
+    /**
+     * Photos or PDFs shared to Kapelusz (ITERATION_6 §1): prepared (photos shrunk) while the permission to read them
+     * lasts, then offered for "Attach to…".
+     */
+    private fun takeSharedFiles(intent: Intent?) {
+        val uris = when (intent?.action) {
+            Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
+            Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+            else -> return
+        }
+        if (uris.isEmpty()) return
+        lifecycleScope.launch {
+            val results = prepareShared(applicationContext, uris)
+            graph.sharedFiles.value = SharedFiles(results.filterIsInstance<PickResult.Picked>().map { it.file }, results.filter { it !is PickResult.Picked })
+        }
     }
 
     /** A tapped reminder or transfer notification: open its gig (a debt reminder: at To settle, ITERATION_3 §2.2). */
@@ -89,7 +103,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null && !fromRecents) {
             takeJoinCode(intent)
             takeEventToOpen(intent)
-            takeSharedPlace(intent)
+            takeSharedFiles(intent)
         }
         setContent {
             var loaded by remember { mutableStateOf(false) }

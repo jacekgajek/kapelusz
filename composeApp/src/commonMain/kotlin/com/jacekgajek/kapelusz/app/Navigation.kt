@@ -134,7 +134,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     ReminderPrompt(graph, settings)
     DebtReminderPrompt(graph, settings)
     LaunchedEffect(state.me?.pictureUrl) { graph.sendPictureIfMissing(state.me) }
-    SharedPlaceDialog(graph, state, onOpenEvent = { navController.navigate(EventRoute(it)) }, onNewEvent = { navController.resetTo(EventsRoute) })
+    SharedFilesDialog(graph, state)
     val toSettings = { navController.navigate(SettingsRoute()) }
     val toRoster = { navController.navigate(RosterRoute()) }
     // Only from a screen that is fully shown, and never past the first one: a second quick tap during the fade-out

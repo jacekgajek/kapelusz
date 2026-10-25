@@ -534,9 +534,6 @@
     <string name="map_paste">Paste from Maps</string>
     <string name="map_no_link">No Google Maps link to paste. In Google Maps, use Share › Copy link first.</string>
     <string name="navigate">Navigate</string>
-    <string name="place_title">Set the location of…</string>
-    <string name="place_nothing">There is no upcoming event you can change, and you cannot create events in this band.</string>
-    <string name="place_new_event">+ New event at this place</string>
     <string name="secret_menu">Secret menu</string>
     <string name="copy_raw_data">Copy raw JSON data</string>
     <string name="raw_data_copied">Copied: the band data exactly as stored on the server.</string>
@@ -639,4 +636,35 @@
     <string name="not_in_app_invite">Invite</string>
     <string name="not_in_app_failed">Couldn't make them a band member; they stay a guest.</string>
     <string name="not_in_app_offline">Saved on this phone. Create the invite once you're online.</string>
+    <string name="share_title">Attach to…</string>
+    <string name="share_upcoming">Upcoming</string>
+    <string name="share_no_events">There is no event you can attach files to.</string>
+    <string name="share_nothing_usable">None of these files can be attached.</string>
+    <plurals name="share_skipped_too_large">
+        <item quantity="one">%1$d file left out: too large</item>
+        <item quantity="other">%1$d files left out: too large</item>
+    </plurals>
+    <plurals name="share_skipped_unsupported">
+        <item quantity="one">%1$d file left out: not a photo or PDF</item>
+        <item quantity="other">%1$d files left out: not photos or PDFs</item>
+    </plurals>
+    <plurals name="share_skipped_failed">
+        <item quantity="one">%1$d file left out: could not be read</item>
+        <item quantity="other">%1$d files left out: could not be read</item>
+    </plurals>
+    <string name="share_new_cost">New cost</string>
+    <string name="share_new_collected">New received money</string>
+    <string name="share_event_files">The event's files</string>
+    <string name="share_existing">Or add to</string>
+    <string name="share_cost">Cost</string>
+    <plurals name="share_room">
+        <item quantity="one">Room for %1$d more</item>
+        <item quantity="other">Room for %1$d more</item>
+    </plurals>
+    <string name="share_full">No room for more files</string>
+    <plurals name="share_attached">
+        <item quantity="one">%1$d file attached</item>
+        <item quantity="other">%1$d files attached</item>
+    </plurals>
+    <string name="share_attach_failed">Some files could not be attached.</string>
 </resources>

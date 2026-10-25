@@ -54,6 +54,9 @@ class Api(
         if ((request.method == "GET" || request.method == "HEAD") && calendarFeed != null) {
             return calendar.feed(calendarFeed.groupValues[1]).let { if (request.method == "HEAD") it.copy(body = null) else it }
         }
+        // Event and join links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in: not
+        // found here, so CloudFront answers with the web app's own page.
+        if (request.path.startsWith("/e/") || request.path.startsWith("/join/")) throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
         if (!appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER])) {
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of the app is too old; update it")
         }

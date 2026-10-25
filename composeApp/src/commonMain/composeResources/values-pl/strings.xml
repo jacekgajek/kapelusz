@@ -540,9 +540,6 @@
     <string name="map_paste">Wklej z Map</string>
     <string name="map_no_link">Brak linku z Map Google do wklejenia. W Mapach Google użyj najpierw Udostępnij › Kopiuj link.</string>
     <string name="navigate">Nawiguj</string>
-    <string name="place_title">Ustaw miejsce wydarzenia…</string>
-    <string name="place_nothing">Nie ma nadchodzącego wydarzenia, które możesz zmienić, a w tym zespole nie możesz tworzyć wydarzeń.</string>
-    <string name="place_new_event">+ Nowe wydarzenie w tym miejscu</string>
     <string name="secret_menu">Tajne menu</string>
     <string name="copy_raw_data">Kopiuj surowe dane JSON</string>
     <string name="raw_data_copied">Skopiowano: dane zespołu dokładnie tak, jak są zapisane na serwerze.</string>
@@ -645,4 +642,45 @@
     <string name="not_in_app_invite">Zaproś</string>
     <string name="not_in_app_failed">Nie udało się dodać do zespołu; pozostaje gościem.</string>
     <string name="not_in_app_offline">Zapisano na tym telefonie. Utwórz zaproszenie, gdy będziesz online.</string>
+    <string name="share_title">Dołącz do…</string>
+    <string name="share_upcoming">Nadchodzące</string>
+    <string name="share_no_events">Nie ma wydarzenia, do którego możesz dołączyć pliki.</string>
+    <string name="share_nothing_usable">Żadnego z tych plików nie można dołączyć.</string>
+    <plurals name="share_skipped_too_large">
+        <item quantity="one">Pominięto %1$d plik: za duży</item>
+        <item quantity="few">Pominięto %1$d pliki: za duże</item>
+        <item quantity="many">Pominięto %1$d plików: za duże</item>
+        <item quantity="other">Pominięto %1$d pliku: za duże</item>
+    </plurals>
+    <plurals name="share_skipped_unsupported">
+        <item quantity="one">Pominięto %1$d plik: to nie zdjęcie ani PDF</item>
+        <item quantity="few">Pominięto %1$d pliki: to nie zdjęcia ani PDF-y</item>
+        <item quantity="many">Pominięto %1$d plików: to nie zdjęcia ani PDF-y</item>
+        <item quantity="other">Pominięto %1$d pliku: to nie zdjęcia ani PDF-y</item>
+    </plurals>
+    <plurals name="share_skipped_failed">
+        <item quantity="one">Pominięto %1$d plik: nie da się go odczytać</item>
+        <item quantity="few">Pominięto %1$d pliki: nie da się ich odczytać</item>
+        <item quantity="many">Pominięto %1$d plików: nie da się ich odczytać</item>
+        <item quantity="other">Pominięto %1$d pliku: nie da się ich odczytać</item>
+    </plurals>
+    <string name="share_new_cost">Nowy koszt</string>
+    <string name="share_new_collected">Nowe otrzymane pieniądze</string>
+    <string name="share_event_files">Pliki wydarzenia</string>
+    <string name="share_existing">Albo dodaj do</string>
+    <string name="share_cost">Koszt</string>
+    <plurals name="share_room">
+        <item quantity="one">Miejsce na jeszcze %1$d plik</item>
+        <item quantity="few">Miejsce na jeszcze %1$d pliki</item>
+        <item quantity="many">Miejsce na jeszcze %1$d plików</item>
+        <item quantity="other">Miejsce na jeszcze %1$d pliku</item>
+    </plurals>
+    <string name="share_full">Nie ma miejsca na więcej plików</string>
+    <plurals name="share_attached">
+        <item quantity="one">Dołączono %1$d plik</item>
+        <item quantity="few">Dołączono %1$d pliki</item>
+        <item quantity="many">Dołączono %1$d plików</item>
+        <item quantity="other">Dołączono %1$d pliku</item>
+    </plurals>
+    <string name="share_attach_failed">Nie udało się dołączyć części plików.</string>
 </resources>

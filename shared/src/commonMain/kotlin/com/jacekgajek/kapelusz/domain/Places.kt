@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.domain
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.model.Event
 
-/** A place as shared from Google Maps: its name (if given) and its link. */
+/** A place as copied from Google Maps: its name (if given) and its link. */
 data class SharedPlace(val name: String?, val url: String)
 
 /**
@@ -12,7 +12,7 @@ data class SharedPlace(val name: String?, val url: String)
  */
 data class MapTarget(val name: String?, val pin: Pair<String, String>?, val query: String?)
 
-/** Google Maps links (ITERATION_2 §4.4): reading what Maps shares, and the links Kapelusz opens. */
+/** Google Maps links (ITERATION_2 §4.4): reading a link copied in Maps, and the links Kapelusz opens. */
 object Places {
     /** The longest Maps link read from a shared or pasted text; longer ones are not taken for links. */
     const val MAX_URL = 1000
@@ -40,7 +40,7 @@ object Places {
     }
 
     /**
-     * The place in a text shared or copied from Google Maps, e.g. "Klub Stodoła\nhttps://maps.app.goo.gl/abc", or
+     * The place in a text copied from Google Maps (Share › Copy link), e.g. "Klub Stodoła\nhttps://maps.app.goo.gl/abc", or
      * null without a Maps link. The name is whatever text surrounds the link (first line).
      */
     fun parse(text: String): SharedPlace? {

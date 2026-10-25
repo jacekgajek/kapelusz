@@ -11,7 +11,9 @@ import com.jacekgajek.kapelusz.app.auth.Session
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.domain.SharedPlace
+import com.jacekgajek.kapelusz.app.platform.PickResult
+import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.Rejection
@@ -110,11 +112,24 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
     var afterSignOut: () -> Unit = {}
 
-    /** A place shared from Google Maps, waiting for "Set the location of…" (Android, ITERATION_2 §4.4). */
-    val pendingSharedPlace = MutableStateFlow<SharedPlace?>(null)
+    /** Photos or PDFs shared to Kapelusz (Android, ITERATION_6 §1), waiting for "Attach to…". */
+    val sharedFiles = MutableStateFlow<SharedFiles?>(null)
 
-    /** The user chose "New event at this place": the create dialog opens with it. */
-    val pendingNewEventPlace = MutableStateFlow<SharedPlace?>(null)
+    /** Shared files on their way to a new cost or collected entry, which takes them as its files to attach. */
+    val sharedHandover = MutableStateFlow<SharedHandover?>(null)
+
+    /** Shared files just attached to something saved: the event's snackbar offers to take them off again. */
+    val sharedAttached = MutableStateFlow<SharedAttached?>(null)
+
+    /** The shared files handed to a new cost ([toCost]) or collected entry of [eventId], once; empty if none. */
+    fun takeSharedFiles(eventId: String, toCost: Boolean): List<PreparedFile> {
+        val handover = sharedHandover.value?.takeIf { it.eventId == eventId && it.toCost == toCost } ?: return emptyList()
+        sharedHandover.value = null
+        return handover.files
+    }
+
+    /** An event to show at one of its sections once open (event id, section), e.g. where shared files were attached. */
+    val pendingEventSection = MutableStateFlow<Pair<String, String>?>(null)
 
     /** An event link's event id (ITERATION_5 §10), opened once the user is signed in and their bands are known. */
     val pendingEventLink = MutableStateFlow<String?>(null)
@@ -284,3 +299,15 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
 
 /** An operation held back from syncing while its Undo snackbar shows. */
 data class HeldOp(val bandId: Id, val opId: Id)
+
+/** Files shared to Kapelusz: those ready to attach, and what could not be used ([PickResult] other than Picked). */
+class SharedFiles(val files: List<PreparedFile>, val skipped: List<PickResult>)
+
+/** Shared [files] for a new cost ([toCost]) or a new collected entry of [eventId]. */
+class SharedHandover(val eventId: String, val toCost: Boolean, val files: List<PreparedFile>)
+
+/**
+ * Attachments [attachmentIds] just added to [owner] from shared files, in event [eventId] of band [bandId]; [failed] of
+ * the files could not be attached.
+ */
+data class SharedAttached(val bandId: String, val eventId: String, val owner: AttachmentOwner, val attachmentIds: List<String>, val failed: Int)
