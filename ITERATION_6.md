@@ -49,7 +49,7 @@ Features that don't add screens or settings, but act on what is already there.
   `Leśniczówka, 51.109120, 17.032570`. Navigate takes them as they are.
 - **Opens** at the pin Location ends with, else over Poland. No "my location" (it would ask for a permission).
 - **Key:** a Google Maps key for Android (Maps SDK for Android only), restricted to the package and the release and
-  debug certificates' SHA-1, in the GitHub variable `GOOGLE_MAPS_ANDROID_KEY`. Without one (local builds), no button.
+  debug certificates' SHA-1, in the GitHub secret `GOOGLE_MAPS_ANDROID_KEY`. Without one (local builds), no button.
 - **Fix:** a place picked from the suggestions, its full address, or a pasted link left the cursor where the typing
   stopped; it goes to the end.
 
