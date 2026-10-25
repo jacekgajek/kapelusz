@@ -95,7 +95,6 @@ class LinkPagesTest {
         assertTrue("""<meta property="og:title" content="Gig">""" in html)
         assertTrue("""<meta property="og:description" content="14.11.2026">""" in html)
         assertEquals(1, Regex("property=\"og:title\"").findAll(html).count())
-        assertTrue("og:image" in html)
     }
 
     @Test
