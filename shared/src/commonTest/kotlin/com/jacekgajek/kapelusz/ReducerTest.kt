@@ -18,7 +18,6 @@ import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.OpEnvelope
-import com.jacekgajek.kapelusz.ops.PromoteGuest
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
@@ -110,19 +109,6 @@ class ReducerTest {
     @Test
     fun fundRequiresTreasurer() {
         assertEquals(RejectionCode.INVALID, gig().rejected(SetFundAmount("gig", pln("10"))).code)
-    }
-
-    @Test
-    fun promotedGuestKeepsEntries() {
-        val scenario = gig()
-            .apply(AddGuest("gig", "g", "Guest", 0))
-            .apply(AddHolding("gig", "h", "g", pln("100"), DOOR))
-            .apply(PromoteGuest("gig", "g", "new-member"))
-        val event = scenario.band.event("gig")!!
-        assertTrue(event.guests.isEmpty())
-        assertEquals("new-member", event.holdings.single().partyId)
-        assertEquals(0, event.participant("new-member")!!.weight)
-        assertEquals("Guest", scenario.band.member("new-member")!!.name)
     }
 
     @Test

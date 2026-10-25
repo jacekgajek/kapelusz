@@ -125,7 +125,6 @@ object Reducer {
                 event.guest(op.guestId).orNotFound { "Guest ${op.guestId}" }
                 event.copy(guests = event.guests.map { if (it.id == op.guestId) it.copy(name = op.name.validName("Guest name")) else it })
             }
-            is PromoteGuest -> promoteGuest(band, op)
             is SetWeight -> band.updateEvent(op.eventId) { event ->
                 event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
                 validateWeight(op.weight)
@@ -458,25 +457,6 @@ object Reducer {
         event.copy(
             guests = event.guests + Guest(op.guestId, op.name.validName("Guest name")),
             participants = event.participants + Participant(op.guestId, op.weight, fixedShare = op.fixedShare),
-        )
-    }
-
-    private fun promoteGuest(band: Band, op: PromoteGuest): Band {
-        val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
-        val guest = event.guest(op.guestId).orNotFound { "Guest ${op.guestId}" }
-        invalidIf(band.member(op.memberId) != null, RejectionReason.DUPLICATE_ID) { "Member ${op.memberId} already exists" }
-        val name = (op.name ?: guest.name).validName("Member name")
-        band.validFreeName(name)
-        fun Id.repoint() = if (this == guest.id) op.memberId else this
-        val promoted = event.copy(
-            guests = event.guests.filterNot { it.id == guest.id },
-            participants = event.participants.map { it.copy(partyId = it.partyId.repoint()) },
-            holdings = event.holdings.map { it.copy(partyId = it.partyId.repoint()) },
-            transfers = event.transfers.map { it.copy(from = it.from.repoint(), to = it.to.repoint()) },
-        )
-        return band.copy(
-            members = band.members + Member(op.memberId, name),
-            events = band.events.map { if (it.id == event.id) promoted else it },
         )
     }
 

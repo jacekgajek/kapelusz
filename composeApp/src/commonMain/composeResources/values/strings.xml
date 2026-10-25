@@ -324,7 +324,6 @@
     <string name="h_add_participant">Added %1$s to %2$s</string>
     <string name="h_add_guest">Added guest %1$s to %2$s</string>
     <string name="h_rename_guest">Renamed a guest to %1$s in %2$s</string>
-    <string name="h_promote_guest">Added guest %1$s to the band</string>
     <string name="h_set_weight">Set the share of %1$s to %2$s in %3$s</string>
     <string name="h_remove_participant">Removed %1$s from %2$s</string>
     <string name="h_add_holding">Recorded %1$s received by %2$s at %3$s</string>
@@ -631,11 +630,12 @@
     <string name="guest_is_member">%1$s is a band member. Add them as a participant instead?</string>
     <string name="guest_add_member_instead">Add %1$s</string>
     <string name="guest_add_anyway">Add as guest anyway</string>
+    <string name="former_member">%1$s used to be in the band.</string>
+    <string name="former_member_restore">Welcome back</string>
+    <string name="former_member_restored">Welcome back, %1$s!</string>
+    <string name="guest_add_as_guest">Add as a guest</string>
     <string name="not_in_app_text">%1$s cannot see the band. Do you want to invite them?</string>
-    <string name="not_in_app_saving">Saving…</string>
     <string name="not_in_app_invite">Invite</string>
-    <string name="not_in_app_failed">Couldn't make them a band member; they stay a guest.</string>
-    <string name="not_in_app_offline">Saved on this phone. Create the invite once you're online.</string>
     <string name="share_title">Attach to…</string>
     <string name="share_upcoming">Upcoming</string>
     <string name="share_no_events">There is no event you can attach files to.</string>

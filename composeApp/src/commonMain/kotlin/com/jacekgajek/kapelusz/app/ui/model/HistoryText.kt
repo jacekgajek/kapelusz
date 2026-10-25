@@ -35,7 +35,6 @@ import com.jacekgajek.kapelusz.app.generated.h_edit_fund_entry
 import com.jacekgajek.kapelusz.app.generated.h_edit_holding
 import com.jacekgajek.kapelusz.app.generated.h_link_user
 import com.jacekgajek.kapelusz.app.generated.h_move_member
-import com.jacekgajek.kapelusz.app.generated.h_promote_guest
 import com.jacekgajek.kapelusz.app.generated.h_receive_awaited
 import com.jacekgajek.kapelusz.app.generated.h_record_transfer
 import com.jacekgajek.kapelusz.app.generated.h_refuse_cost
@@ -94,7 +93,6 @@ import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.PromoteGuest
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RefuseCost
@@ -177,7 +175,6 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
         is AddParticipant -> stringResource(Res.string.h_add_participant, member(op.memberId), event(op.eventId))
         is AddGuest -> stringResource(Res.string.h_add_guest, op.name, event(op.eventId))
         is RenameGuest -> stringResource(Res.string.h_rename_guest, op.name, event(op.eventId))
-        is PromoteGuest -> stringResource(Res.string.h_promote_guest, member(op.memberId))
         is SetWeight -> stringResource(Res.string.h_set_weight, party(op.eventId, op.partyId), "${op.weight}%", event(op.eventId))
         is SetFixedShare -> op.amount?.let { amount ->
             stringResource(Res.string.h_set_fixed_share, party(op.eventId, op.partyId), money(amount), event(op.eventId))

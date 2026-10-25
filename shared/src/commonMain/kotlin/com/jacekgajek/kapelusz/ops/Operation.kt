@@ -158,13 +158,6 @@ data class AddGuest(override val eventId: Id, val guestId: Id, val name: String,
 @Serializable @SerialName("RenameGuest")
 data class RenameGuest(override val eventId: Id, val guestId: Id, val name: String) : Operation
 
-/**
- * Turns a guest into a new roster member, re-pointing all the guest's entries in this event; called [name] when given
- * (the guest's name may be a member's already, ITERATION_5 §12).
- */
-@Serializable @SerialName("PromoteGuest")
-data class PromoteGuest(override val eventId: Id, val guestId: Id, val memberId: Id, val name: String? = null) : Operation
-
 @Serializable @SerialName("SetWeight")
 data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int) : Operation
 

@@ -19,7 +19,7 @@ UI languages: **Polish and English**, following the device language with a manua
 | **User** | A Google account signed in to the app. Identified by Google `sub`. |
 | **Band** | A group with its own roster, events, costs and band fund. A user may belong to several bands. |
 | **Member** | An entry on a band's roster (e.g. "Alice"). Linked to **at most one** user. Within a band, user ↔ member is 1:1. Unlinked members are allowed: a lead enters their data for them. |
-| **Guest** | An ad-hoc person who exists inside one event only (e.g. "Helper 2"). Has no login. Can be promoted to the roster. |
+| **Guest** | An ad-hoc person who exists inside one event only (e.g. "Helper 2"). Has no login. |
 | **Participant** | A member or guest taking part in an event. Has a **share weight**. |
 | **Holding** | Money a participant **collected** for an event (hat, door, ticket service…). |
 | **Cost** | Money a member spent on behalf of the band. It belongs to the **member**, not to an event. |

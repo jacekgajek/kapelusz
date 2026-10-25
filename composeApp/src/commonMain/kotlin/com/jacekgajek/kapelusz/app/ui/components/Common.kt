@@ -1,6 +1,13 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.jacekgajek.kapelusz.app.generated.former_member
+import com.jacekgajek.kapelusz.app.generated.former_member_restore
+import com.jacekgajek.kapelusz.app.generated.former_member_restored
+import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.app.generated.name_taken
 import org.jetbrains.compose.resources.StringResource
 import com.jacekgajek.kapelusz.domain.BlikPhone
@@ -214,17 +221,45 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
 }
 
 /**
- * In place of the avatar of someone who can't see the band (ITERATION_5 §12): a guest, or a member without an app
- * account. Described for screen readers when [description] is given (when it can be tapped).
+ * In place of the avatar of a member without an app account, who can't see the band (ITERATION_5 §12). Described for
+ * screen readers when [description] is given (when it can be tapped).
  */
 @Composable
-fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) {
+fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) = AvatarIcon(Icons.Default.VisibilityOff, size, description)
+
+/** In place of a guest's avatar: someone playing this one event with the band. */
+@Composable
+fun GuestIcon(size: Dp = 28.dp) = AvatarIcon(Icons.Default.Handshake, size, null)
+
+@Composable
+private fun AvatarIcon(icon: ImageVector, size: Dp, description: String?) {
     Box(
         Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
             .clearAndSetSemantics { if (description != null) contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Default.VisibilityOff, null, Modifier.size(size * 0.6f), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, null, Modifier.size(size * 0.6f), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** The archived member called [name], when it is someone who used to be in the band. */
+fun Band.formerMemberNamed(name: String): Member? = memberNamed(name)?.takeIf { name.isNotBlank() && it.archived }
+
+/**
+ * Under a name field, for a name of someone who used to be in the band (archived names stay taken): "Bob used to be in
+ * the band", and Welcome back, which restores them; then [onRestored].
+ */
+@Composable
+fun FormerMember(member: Member, actions: Actions, onRestored: () -> Unit) {
+    val welcome = stringResource(Res.string.former_member_restored, member.name)
+    Column {
+        Text(stringResource(Res.string.former_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = {
+            if (actions.run(SetMemberArchived(member.id, false))) {
+                onRestored()
+                actions.say(welcome)
+            }
+        }) { Text(stringResource(Res.string.former_member_restore)) }
     }
 }
 
@@ -295,6 +330,10 @@ fun TextInputDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
     error: @Composable (String) -> String? = { null },
+    /** Whether OK is possible besides [error]: e.g. not while [below] offers something else. */
+    allowed: (String) -> Boolean = { true },
+    /** Under the field. */
+    below: @Composable (String) -> Unit = {},
 ) {
     var text by remember { mutableStateOf(initial) }
     val problem = error(text)
@@ -312,10 +351,11 @@ fun TextInputDialog(
                     supportingText = problem?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                below(text)
             }
         },
         confirmButton = {
-            TextButton(enabled = text.isNotBlank() && problem == null, onClick = { onConfirm(text.trim()); onDismiss() }) {
+            TextButton(enabled = text.isNotBlank() && problem == null && allowed(text), onClick = { onConfirm(text.trim()); onDismiss() }) {
                 Text(stringResource(Res.string.ok))
             }
         },
