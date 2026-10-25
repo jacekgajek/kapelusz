@@ -43,10 +43,10 @@ import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.generated.refund_amount_here
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Edit
 import com.jacekgajek.kapelusz.app.generated.refund_how_much
 import com.jacekgajek.kapelusz.app.generated.open_cost
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -201,7 +201,7 @@ private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (Strin
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CostDescription(context, cost, Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Edit, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 }
                 // The cost's own amount is in its form: this is only the part refunded here.
                 Text(stringResource(Res.string.refund_how_much), style = MaterialTheme.typography.bodyMedium)

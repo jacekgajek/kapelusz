@@ -140,7 +140,7 @@
     <string name="refunds_empty">No costs to refund.</string>
     <string name="refund_of">of %1$s</string>
     <string name="refund_amount_here">Amount refunded here</string>
-    <string name="refund_how_much">How much of this cost should be refunded at this event? The cost itself stays as it is.</string>
+    <string name="refund_how_much">How much of this cost should be refunded at this event?</string>
     <string name="refund_max">At most %1$s. Set 0 or use Defer to refund it later.</string>
     <string name="pending_from_earlier">Waiting</string>
     <string name="include">Include</string>
