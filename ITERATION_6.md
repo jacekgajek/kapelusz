@@ -250,7 +250,7 @@ confusing): a household where one is a hired artist, or both are, wants one mone
   kept part as received (the artist is even when the partner keeps it all), never the pair's number. The summary is
   unchanged: it counts earnings, not who holds them.
 - **Roster for artists:** the cog menu's Members opens for them too, names and avatars only: no roles, shares or
-  invites. A tap opens only settling together, as for members. Their hint: "The other person may keep or receive
+  invites, and no archived members. A tap opens only settling together, as for members. Their hint: "The other person may keep or receive
   what you're owed; you still see only your own money."
 - **Role changes:** moving between artist, member and leader keeps a pair (and an invitation); only becoming a viewer,
   being archived or unlinked ends it, so only those warn about it.

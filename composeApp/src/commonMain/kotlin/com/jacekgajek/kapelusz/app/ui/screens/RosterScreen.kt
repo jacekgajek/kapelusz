@@ -224,7 +224,8 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
                     namesOnly = namesOnly,
                 )
             }
-            if (archived.isNotEmpty()) {
+            // Not for artists: they only need those they could settle together with (ITERATION_6 §11).
+            if (archived.isNotEmpty() && !namesOnly) {
                 // Collapsed at first: only a count, so a long list of past players doesn't bury the band.
                 item(key = "archived-title") {
                     ListItem(
@@ -253,7 +254,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
             below = { name -> band.formerMemberNamed(name)?.let { FormerMember(it, actions) { adding = false } } },
         )
     }
-    selected?.let { id -> band.member(id) }?.takeIf { !isAdmin }?.let { member ->
+    selected?.let { id -> band.member(id) }?.takeIf { !isAdmin && !it.archived }?.let { member ->
         AlertDialog(
             onDismissRequest = { selected = null },
             title = { Text(member.name) },
