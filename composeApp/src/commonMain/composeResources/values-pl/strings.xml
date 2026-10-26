@@ -389,6 +389,8 @@
     <string name="summary_unsettled">Jeszcze nierozliczone, więc pominięte: %1$s.</string>
     <string name="summary_and_more">i jeszcze %1$d</string>
     <string name="summary_empty">W tym okresie nic nie zostało rozliczone.</string>
+    <string name="section_expanded">rozwinięte</string>
+    <string name="section_collapsed">zwinięte</string>
     <string name="history">Historia</string>
     <string name="history_empty">Brak zmian.</string>
     <string name="history_unavailable">Historia wymaga połączenia z serwerem.</string>
