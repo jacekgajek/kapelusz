@@ -26,6 +26,9 @@ import com.jacekgajek.kapelusz.app.generated.search_events
 import com.jacekgajek.kapelusz.app.generated.search_no_results
 import com.jacekgajek.kapelusz.app.generated.search_placeholder
 import com.jacekgajek.kapelusz.app.ui.model.EventSearch
+import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.jacekgajek.kapelusz.app.ui.model.searchWords
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -162,13 +165,15 @@ fun EventsScreen(
             return@LaunchedEffect
         }
         val me = state.me
-        search = withContext(Dispatchers.Default) {
-            EventSearch(eventSummaries(band, me, AppSettings(onlyMyEvents = artist, showArchived = true)))
-        }
+        search = withContext(Dispatchers.Default) { EventSearch(searchableSummaries(band, me, artist)) }
     }
     val words = remember(query) { searchWords(query) }
-    // Until something is typed, the list as it was, filters included.
-    val results = if (searching && words.isNotEmpty()) search?.find(words) else summaries
+    // Until something is typed, the list as it was, filters included. Results of a search being built again leave out
+    // events deleted meanwhile.
+    val found = remember(search, words) { search?.find(words) }
+    val results = if (searching && words.isNotEmpty()) found?.filter { band.event(it.event.id) != null } else summaries
+    // The keyboard only when the search icon is tapped, not each time the row comes back (scrolling, coming back).
+    var focusSearch by remember { mutableStateOf(false) }
     fun closeSearch() {
         searching = false
         query = ""
@@ -228,9 +233,16 @@ fun EventsScreen(
             }
             item(key = "filters") {
                 if (searching) {
-                    SearchField(query, building = search == null && words.isNotEmpty(), onQuery = { query = it }, onClose = ::closeSearch)
+                    SearchField(
+                        query,
+                        building = search == null && words.isNotEmpty(),
+                        focus = focusSearch,
+                        onFocused = { focusSearch = false },
+                        onQuery = { query = it },
+                        onClose = ::closeSearch,
+                    )
                 } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { searching = true }) {
+                    IconButton(onClick = { searching = true; focusSearch = true }) {
                         Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.search_events))
                     }
                     // Artists only ever see their own events: no "only mine" to switch.
@@ -289,13 +301,19 @@ fun EventsScreen(
 
 /** The search box in place of the filters: a spinner while the search is being prepared, the X clears and closes. */
 @Composable
-private fun SearchField(query: String, building: Boolean, onQuery: (String) -> Unit, onClose: () -> Unit) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+private fun SearchField(query: String, building: Boolean, focus: Boolean, onFocused: () -> Unit, onQuery: (String) -> Unit, onClose: () -> Unit) {
+    val requester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(focus) {
+        if (focus) {
+            requester.requestFocus()
+            onFocused()
+        }
+    }
     OutlinedTextField(
         value = query,
         onValueChange = onQuery,
-        modifier = Modifier.fillMaxWidth().focusRequester(focus).onPreviewKeyEvent {
+        modifier = Modifier.fillMaxWidth().focusRequester(requester).onPreviewKeyEvent {
             // Esc on the web, as Back elsewhere.
             if (it.key == Key.Escape && it.type == KeyEventType.KeyDown) onClose()
             it.key == Key.Escape
@@ -309,6 +327,8 @@ private fun SearchField(query: String, building: Boolean, onQuery: (String) -> U
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        // Results show as you type: the key just puts the keyboard away, to look through them.
+        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
     )
 }
 

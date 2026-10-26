@@ -5,6 +5,10 @@ import com.jacekgajek.kapelusz.app.ui.model.EventSearch
 import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
 import com.jacekgajek.kapelusz.app.ui.model.foldForSearch
 import com.jacekgajek.kapelusz.app.ui.model.searchWords
+import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
+import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.ops.AddMember
+import kotlinx.coroutines.test.runTest
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.ops.ApplyResult
@@ -37,12 +41,14 @@ class EventSearchTest {
     fun foldsCaseAndDiacritics() {
         assertEquals("zazolc gesla jazn lodz", foldForSearch("ZAŻÓŁĆ gęślą jaźń Łódź"))
         assertEquals("creme bruhe strasse", foldForSearch("Crème Brühe Straße"))
+        assertEquals("lodz", foldForSearch("L\u006F\u0301dz"), "combining marks, as pasted from a Mac")
     }
 
     @Test
     fun blankQueryHasNoWords() {
         assertEquals(emptyList(), searchWords("   "))
         assertEquals(listOf("wesele", "krakow"), searchWords("  Wesele \tKraków "))
+        assertEquals(listOf("wesele", "ani"), searchWords("wesele\u00A0ani"), "a non-breaking space separates words")
     }
 
     @Test
@@ -57,6 +63,26 @@ class EventSearchTest {
         assertEquals(listOf("wedding"), find("krakow wesele"))
         assertEquals(listOf("wedding"), find("ani dwór"))
         assertEquals(emptyList(), find("wesele warszawa"))
+    }
+
+    @Test
+    fun aWordDoesNotSpanNameAndLocation() {
+        assertEquals(emptyList(), find("anidwór"))
+        assertEquals(emptyList(), find("ani dwór kraków warszawa"))
+    }
+
+    @Test
+    fun searchesEveryEventButArtistsOnlyTheirs() = runTest {
+        val withBob = band.apply(
+            AddMember("bob", "Bob"),
+            CreateEvent("bobs", "Bob's gig", LocalDate(2026, 3, 1), participants = listOf(Participant("bob"))),
+        )
+        assertEquals(
+            listOf("wedding", "club", "bobs", "noplace", "lodz"),
+            searchableSummaries(withBob, withBob.member("me"), artist = false).map { it.event.id },
+            "archived and other people's events too",
+        )
+        assertEquals(listOf("bobs"), searchableSummaries(withBob, withBob.member("bob"), artist = true).map { it.event.id })
     }
 
     @Test
