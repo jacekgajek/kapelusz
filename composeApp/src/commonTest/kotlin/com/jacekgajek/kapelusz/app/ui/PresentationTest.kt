@@ -18,6 +18,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.ApplyResult
@@ -84,6 +85,32 @@ class PresentationTest {
             eventSummaries(band, alice, AppSettings(showArchived = true)).map { it.event.id },
         )
         assertEquals(MyNumber.HandOver(Money(5000)), eventSummaries(band, band.member("bob"), AppSettings()).first().myNumber)
+    }
+
+    @Test
+    fun aPairedArtistSeesOnlyTheirOwnNumber() {
+        // ITERATION_6 §11: Carol, an artist, settles together with Bob. Three shares of 100.
+        fun band(holder: String) = Band.create("b", "Band", "PLN", "alice", "Alice", "u").apply(
+            AddMember("bob", "Bob"),
+            AddMember("carol", "Carol"),
+            CreateEvent("gig", "Gig", LocalDate(2026, 9, 13), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol"))),
+            AddHolding("gig", "h", holder, Money(30000), IncomeSource.DOOR),
+        ).let { band ->
+            band.copy(members = band.members.map {
+                when (it.id) {
+                    "bob" -> it.copy(userId = "ub", settlesWith = "carol")
+                    "carol" -> it.copy(userId = "uc", role = Role.ARTIST, settlesWith = "bob")
+                    else -> it
+                }
+            })
+        }
+        fun number(band: Band, id: String) = eventSummaries(band, band.member(id), AppSettings()).single().myNumber
+
+        val bobHolds = band("bob")
+        assertEquals(MyNumber.Even, number(bobHolds, "carol"), "Bob keeps her 100")
+        assertEquals(MyNumber.HandOver(Money(10000)), number(bobHolds, "bob"), "the pair's number: Alice's 100")
+        val aliceHolds = band("alice")
+        assertEquals(MyNumber.Get(Money(10000)), number(aliceHolds, "carol"), "her own 100, not the pair's 200")
     }
 
     @Test

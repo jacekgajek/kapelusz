@@ -30,7 +30,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** ITERATION_5 §7: two members settling together. */
+/** ITERATION_5 §7: two members settling together; artists too (ITERATION_6 §11). */
 class SettleTogetherTest {
 
     /** Alice owns the band; Bob and Carol are members with accounts, Dave has none. */
@@ -103,13 +103,49 @@ class SettleTogetherTest {
     }
 
     @Test
-    fun artistsDoNotSettleTogether() {
+    fun artistsSettleTogetherViewersDoNot() {
+        // ITERATION_6 §11: artists invite and answer too.
         val scenario = band()
-        val bob = scenario.userFor("bob", Role.MEMBER)
         scenario.apply(SetMemberRole("carol", Role.ARTIST))
-        val carol = scenario.userFor("carol", Role.ARTIST)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(InviteToSettleTogether("carol", "bob"), carol).reason)
-        assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, scenario.rejected(InviteToSettleTogether("bob", "carol"), bob).reason)
+        scenario.apply(InviteToSettleTogether("carol", "bob"), scenario.userFor("carol", Role.ARTIST))
+        scenario.apply(AcceptSettleTogether("carol", "bob"), scenario.userFor("bob", Role.MEMBER))
+        assertEquals("bob", scenario.partner("carol"))
+
+        val viewers = band()
+        viewers.apply(SetMemberRole("carol", Role.VIEWER))
+        assertEquals(RejectionReason.ROLE_REQUIRED, viewers.rejected(InviteToSettleTogether("carol", "bob"), viewers.userFor("carol", Role.VIEWER)).reason)
+        assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, viewers.rejected(InviteToSettleTogether("bob", "carol"), viewers.userFor("bob", Role.MEMBER)).reason)
+    }
+
+    @Test
+    fun aPartnerKeepsAnArtistsShare() {
+        // Bob collected 300; Alice, Bob and Carol (an artist, paired with Bob) get 100 each.
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol")
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        scenario.apply(AddHolding("gig", "h", "bob", pln("300"), DOOR))
+        val settlement = scenario.settle("gig")
+        assertEquals(listOf(SuggestedTransfer("bob", "alice", pln("100"))), settlement.suggestions, "Bob keeps Carol's 100")
+        assertEquals(pln("100"), SettleTogether.keptByPartner(settlement, "carol"))
+        assertEquals(pln("0"), SettleTogether.keptByPartner(settlement, "bob"))
+        scenario.apply(SettleSuggestions("gig"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+        assertEquals(pln("100"), SettleTogether.keptByPartner(scenario.settle("gig"), "carol"))
+    }
+
+    @Test
+    fun twoArtistsArePaidAsOne() {
+        // Alice collected 300; Bob and Carol, both artists and paired, are owed 100 each.
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol")
+        scenario.apply(SetMemberRole("bob", Role.ARTIST))
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        assertEquals("carol", scenario.partner("bob"), "the pair stays when both become artists")
+        scenario.apply(AddHolding("gig", "h", "alice", pln("300"), DOOR))
+        val suggestion = scenario.settle("gig").suggestions.single()
+        assertEquals(pln("200"), suggestion.amount, "one transfer for the pair")
+        scenario.apply(RecordTransfer("gig", "t", suggestion.from, suggestion.to, suggestion.amount, together = true))
+        // Stored between real people, each artist up to what they are owed.
+        assertEquals(listOf("bob" to pln("100"), "carol" to pln("100")), scenario.band.event("gig")!!.transfers.map { it.to to it.amount }.sortedBy { it.first })
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
     }
 
     @Test
@@ -131,23 +167,22 @@ class SettleTogetherTest {
     }
 
     @Test
-    fun rolesFromMemberUpKeepThePairAnArtistEndsIt() {
+    fun rolesFromArtistUpKeepThePair() {
         val scenario = band().pair()
         scenario.apply(SetMemberRole("bob", Role.LEAD))
-        scenario.apply(SetMemberRole("bob", Role.LEAD))
-        scenario.apply(SetMemberRole("carol", Role.LEAD))
-        assertEquals("carol", scenario.partner("bob"))
         scenario.apply(SetMemberRole("carol", Role.ARTIST))
-        assertNull(scenario.partner("bob"))
-        assertNull(scenario.partner("carol"))
+        assertEquals("carol", scenario.partner("bob"))
+        assertEquals("bob", scenario.partner("carol"))
+        scenario.apply(SetMemberRole("carol", Role.MEMBER))
+        assertEquals("bob", scenario.partner("carol"))
     }
 
     @Test
-    fun anInvitationEndsWithTheInviteeBecomingAnArtist() {
+    fun anInvitationStaysWithTheInviteeBecomingAnArtist() {
         val scenario = band()
         scenario.apply(InviteToSettleTogether("bob", "carol"), scenario.userFor("bob", Role.MEMBER))
         scenario.apply(SetMemberRole("carol", Role.ARTIST))
-        assertNull(scenario.band.member("bob")!!.invitedToSettle)
+        assertEquals("carol", scenario.band.member("bob")!!.invitedToSettle)
     }
 
     @Test
@@ -327,10 +362,10 @@ class SettleTogetherTest {
     }
 
     @Test
-    fun aStoredPairWithAnArtistNoLongerCounts() {
-        // As left by version 1.1.0, which let artists pair: no change has tidied it yet.
+    fun aStoredPairWithAViewerNoLongerCounts() {
+        // No change has tidied it yet.
         val scenario = band().pair().event("gig", "Alice", "Bob", "Carol")
-        val stale = scenario.band.copy(members = scenario.band.members.map { if (it.id == "carol") it.copy(role = Role.ARTIST) else it })
+        val stale = scenario.band.copy(members = scenario.band.members.map { if (it.id == "carol") it.copy(role = Role.VIEWER) else it })
         assertTrue(com.jacekgajek.kapelusz.domain.SettlementCalculator.settle(stale, stale.event("gig")!!).partners.isEmpty())
     }
 }

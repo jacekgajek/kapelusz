@@ -23,9 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
+import com.jacekgajek.kapelusz.app.generated.artist_kept_by_partner
 import com.jacekgajek.kapelusz.app.generated.artist_my_costs
 import com.jacekgajek.kapelusz.app.generated.artist_payout
 import com.jacekgajek.kapelusz.app.generated.artist_received
+import com.jacekgajek.kapelusz.app.generated.artist_settles_with
 import com.jacekgajek.kapelusz.app.generated.artist_still_to_receive
 import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.artist_to_receive
@@ -40,6 +42,7 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Money
 import org.jetbrains.compose.resources.stringResource
 
@@ -61,10 +64,16 @@ fun ArtistLineup(context: EventContext) {
     }
 }
 
-/** What the artist gets from this event (their share and refunds), how much came, how much is still to come; never from whom. */
+/**
+ * What the artist gets from this event (their share and refunds), how much came, how much is still to come; never from
+ * whom. Settling together (ITERATION_6 §11), what their partner holds for them, but none of the partner's own numbers.
+ */
 @Composable
 fun ArtistPayout(context: EventContext) {
-    val line = context.me?.let { context.settlement.line(it.id) } ?: return
+    val me = context.me ?: return
+    val line = context.settlement.line(me.id) ?: return
+    val partner = context.settlement.partners[me.id]?.let { partyName(context.band, context.event, it, "") }
+    val kept = SettleTogether.keptByPartner(context.settlement, me.id)
     SectionTitle(stringResource(Res.string.artist_payout))
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -72,8 +81,10 @@ fun ArtistPayout(context: EventContext) {
             PayoutRow(stringResource(Res.string.artist_received), line.received - line.sent, context.currency)
             // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
             // got too much (or owe from before they were an artist), a lead settles it with whoever is owed.
+            if (partner != null && kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)
             if (line.delta.isPositive) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta, context.currency, bold = true)
-            else PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta, context.currency, bold = true)
+            else PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta - kept, context.currency, bold = true)
+            if (partner != null) Text(stringResource(Res.string.artist_settles_with, partner), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

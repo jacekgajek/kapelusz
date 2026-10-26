@@ -237,7 +237,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                 )
             }
             composable<RosterRoute> { entry ->
-                if (artist) BackToEvents(navController) else RosterScreen(graph, state, back, openMember = entry.toRoute<RosterRoute>().memberId)
+                RosterScreen(graph, state, back, openMember = entry.toRoute<RosterRoute>().memberId)
             }
             composable<SummaryRoute> { SummaryScreen(graph, state, back, onInviteMember = { navController.navigate(RosterRoute(it)) }) }
             composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph, state, back) }

@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
+import com.jacekgajek.kapelusz.domain.SettleTogether
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
@@ -25,13 +27,21 @@ data class EventSummary(val event: Event, val settlement: Settlement, val myNumb
     val isMine: Boolean get() = myNumber != MyNumber.NotParticipating
 }
 
-/** As a party of the settlement: with a partner settling together, the pair's number (ITERATION_5 §7). */
+/**
+ * As a party of the settlement: with a partner settling together, the pair's number (ITERATION_5 §7). An artist sees only
+ * their own, what their partner keeps for them counting as received (ITERATION_6 §11).
+ */
 fun myNumber(event: Event, settlement: Settlement, me: Member?): MyNumber {
     if (me == null || event.participant(me.id) == null) return MyNumber.NotParticipating
-    val line = settlement.party(me.id) ?: return MyNumber.NotParticipating
+    val delta = if (me.role == Role.ARTIST) {
+        val line = settlement.line(me.id) ?: return MyNumber.NotParticipating
+        if (line.delta.isNegative) line.delta + SettleTogether.keptByPartner(settlement, me.id) else line.delta
+    } else {
+        (settlement.party(me.id) ?: return MyNumber.NotParticipating).delta
+    }
     return when {
-        line.delta.isNegative -> MyNumber.Get(-line.delta)
-        line.delta.isPositive -> MyNumber.HandOver(line.delta)
+        delta.isNegative -> MyNumber.Get(-delta)
+        delta.isPositive -> MyNumber.HandOver(delta)
         else -> MyNumber.Even
     }
 }

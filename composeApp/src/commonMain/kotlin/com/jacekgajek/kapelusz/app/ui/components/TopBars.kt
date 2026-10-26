@@ -128,8 +128,8 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extra
                     )
                     HorizontalDivider()
                 }
-                // Icons for easier hunting (ITERATION_6 §7).
-                if (bar?.artist != true) DropdownMenuItem(
+                // Icons for easier hunting (ITERATION_6 §7). Artists too: names only, to settle together (ITERATION_6 §11).
+                DropdownMenuItem(
                     text = { Text(stringResource(Res.string.menu_roster)) },
                     leadingIcon = { Icon(Icons.Default.ManageAccounts, null) },
                     onClick = { menuOpen = false; onRoster() },

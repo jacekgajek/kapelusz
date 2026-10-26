@@ -158,6 +158,8 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
     val actions = rememberActions(graph, snackbar)
     val can = Can(band, state.userId)
     val isAdmin = can.manageRoster()
+    // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
+    val namesOnly = can.artist
     var adding by remember { mutableStateOf(false) }
     // Opened at a member from elsewhere (an event's "invite them", ITERATION_5 §12).
     var selected by remember { mutableStateOf(openMember) }
@@ -219,6 +221,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
                     onClick = open(member),
                     moves = moves.takeIf { isAdmin },
                     isMyPartner = me != null && member.id == me.settlesWith,
+                    namesOnly = namesOnly,
                 )
             }
             if (archived.isNotEmpty()) {
@@ -231,7 +234,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
                     )
                 }
                 if (showArchived) items(archived, key = { it.id }) { member ->
-                    MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member))
+                    MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), namesOnly = namesOnly)
                 }
             }
         }
@@ -353,6 +356,7 @@ private fun MemberRow(
     moves: (@Composable () -> Unit)? = null,
     /** You settle together with them (ITERATION_5 §7): only your own partner is marked, nobody else's pair. */
     isMyPartner: Boolean = false,
+    namesOnly: Boolean = false,
 ) {
     ListItem(
         modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
@@ -370,13 +374,13 @@ private fun MemberRow(
                 )
             }
         },
-        supportingContent = {
+        supportingContent = if (namesOnly) null else ({
             Column {
                 Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
                 if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
                 Text(stringResource(Res.string.member_share_line, shareText(member, currency)))
             }
-        },
+        }),
         trailingContent = { if (moves != null) Row { moves() } },
     )
     HorizontalDivider()

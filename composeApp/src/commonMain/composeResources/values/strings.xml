@@ -16,6 +16,8 @@
     <string name="artist_still_to_receive">Still to receive</string>
     <string name="artist_to_hand_back">To hand back (a leader settles it)</string>
     <string name="artist_my_costs">Your costs for this event</string>
+    <string name="artist_kept_by_partner">Kept for you by %1$s</string>
+    <string name="artist_settles_with">You settle together with %1$s: what you’re owed may be kept or received by them.</string>
     <string name="tab_settle">Settle</string>
     <string name="language">Language</string>
     <string name="language_system">Device language</string>
@@ -577,6 +579,7 @@
     <string name="pair_breakdown">%1$s: payout %2$s · holds %3$s</string>
     <string name="settle_together_title">Settle together</string>
     <string name="settle_together_hint">On Settlement you're one party; everywhere else you stay separate.</string>
+    <string name="settle_together_hint_artist">The other person may keep or receive what you’re owed; you still see only your own money.</string>
     <string name="settle_together_invite">Settle together with me</string>
     <string name="settle_together_waiting">Waiting for %1$s to answer.</string>
     <string name="settle_together_cancel">Cancel invitation</string>

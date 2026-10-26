@@ -16,6 +16,8 @@
     <string name="artist_still_to_receive">Pozostało do otrzymania</string>
     <string name="artist_to_hand_back">Do oddania (rozliczy to lider)</string>
     <string name="artist_my_costs">Twoje koszty dla tego wydarzenia</string>
+    <string name="artist_kept_by_partner">Trzyma dla ciebie: %1$s</string>
+    <string name="artist_settles_with">Rozliczasz się razem z: %1$s. Ta osoba może zatrzymać albo odebrać to, co ci się należy.</string>
     <string name="tab_settle">Rozliczenia</string>
     <string name="language">Język</string>
     <string name="language_system">Język urządzenia</string>
@@ -579,6 +581,7 @@
     <string name="pair_breakdown">%1$s: wypłata %2$s · trzyma %3$s</string>
     <string name="settle_together_title">Wspólne rozliczenie</string>
     <string name="settle_together_hint">W rozliczeniu jesteście jedną stroną; wszędzie indziej osobno.</string>
+    <string name="settle_together_hint_artist">Druga osoba może zatrzymać albo odebrać to, co ci się należy; nadal widzisz tylko swoje pieniądze.</string>
     <string name="settle_together_invite">Rozliczaj się razem ze mną</string>
     <string name="settle_together_waiting">Czekamy na odpowiedź: %1$s.</string>
     <string name="settle_together_cancel">Anuluj zaproszenie</string>

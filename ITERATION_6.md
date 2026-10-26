@@ -232,7 +232,28 @@ wasn't worth it, and a bank's own notification already says money arrived.
   services, its module not there yet): "Couldn't open the scanner. Type the code instead." Not on the web (a phone's
   camera opens the invite link anyway).
 
-## 11. Milestones and task checklist
+## 11. V6-M5 — Artists settle together (grilled 2026-10-26)
+
+Reverses ITERATION_5 §7.2's "not artists" (dropped then because an artist's payout with a pair's numbers was
+confusing): a household where one is a hired artist, or both are, wants one money flow too.
+
+- **Who:** artists pair like members: with members and leaders, and with other artists. Viewers still don't; both need
+  an account, neither archived. Artists invite, answer and end a pair themselves.
+- **Money:** unchanged rules. Settlement shows the pair as one party with the sum and one BLIK number; recording it
+  stores one or two transfers between real people (`SettleTogether.split`), an artist never getting more than they're
+  owed and never paying out. Two artists are paid by one transfer (one BLIK), stored as one transfer to each.
+- **What the artist sees:** only their own numbers. Their payout shows what the partner holds for them ("Kept for you
+  by Ania": what the partner holds over their own target, up to what the artist is owed), "Still to receive" without
+  it, and "You settle together with Ania: what you're owed may be kept or received by them." The events list counts the
+  kept part as received (the artist is even when the partner keeps it all), never the pair's number. The summary is
+  unchanged: it counts earnings, not who holds them.
+- **Roster for artists:** the cog menu's Members opens for them too, names and avatars only: no roles, shares or
+  invites. A tap opens only settling together, as for members. Their hint: "The other person may keep or receive
+  what you're owed; you still see only your own money."
+- **Role changes:** moving between artist, member and leader keeps a pair (and an invitation); only becoming a viewer,
+  being archived or unlinked ends it, so only those warn about it.
+
+## 12. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -259,10 +280,16 @@ wasn't worth it, and a bank's own notification already says money arrived.
 
 ### Calendar on the app's domain, scanning an invite (§10)
 
-- [ ] Terraform applied (`/calendar/*` to the API), before the server gives out the new links
+- [x] Terraform applied (`/calendar/*` to the API), before the server gives out the new links
 - [x] Feed links on the app's domain, 410 for gone ones; Join band's Scan QR code
 
-## 12. Decision log
+### V6-M5 — Artists settle together (§11)
+
+- [x] Pairing from artists up, pairs kept across artist role changes (with tests)
+- [x] The artist's payout with what the partner keeps; the events list's number (with tests)
+- [x] The roster for artists: names only, settling together behind a tap
+
+## 13. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
@@ -291,3 +318,5 @@ wasn't worth it, and a bank's own notification already says money arrived.
   OFL in licenses/): Compose draws web text with its own font and no system fallback, so ⚙ and → showed as boxes.
   Nothing is drawn before they're preloaded (at most 3 s; the bands load meanwhile), as text already drawn isn't
   redrawn. Compose 1.12 is documented to fetch Noto by itself; the app is on 1.11.
+- 2026-10-26: Artists settle together after all (§11): no new money rules, as `split` already kept artists from
+  holding money in pairs left from before. What the artist sees stays their own; the partner's numbers stay hidden.

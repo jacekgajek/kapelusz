@@ -117,8 +117,8 @@ object Permissions {
         is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && partnerIn(band, me, op.eventId).let { it != null && (it == op.from || it == op.to) }))
         is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))
 
-        // Only for oneself (checked above), from members up: artists don't settle together (ITERATION_5 §7.2).
-        is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.MEMBER
+        // Only for oneself (checked above), from artists up (ITERATION_6 §11).
+        is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST
 
         // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8).
         is SetBlikPhone -> Role.ARTIST
