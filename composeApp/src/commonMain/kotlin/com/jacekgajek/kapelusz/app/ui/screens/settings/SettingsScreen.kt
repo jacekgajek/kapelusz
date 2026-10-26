@@ -5,6 +5,12 @@ import com.jacekgajek.kapelusz.app.generated.blik_mine
 import com.jacekgajek.kapelusz.app.generated.blik_mine_off
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import androidx.compose.foundation.BorderStroke
+import com.jacekgajek.kapelusz.app.generated.support_me
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,6 +83,9 @@ import org.jetbrains.compose.resources.stringResource
 /** The settings that open a page of their own (ITERATION_2 §8). */
 enum class SettingsPage { FUND, AGENDA, CALENDAR }
 
+private const val SUPPORT_URL = "https://buymeacoffee.com/jacekgajek"
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     language: String?,
@@ -172,6 +181,9 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
                     Text(account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                }
+                // Below the address, so a long one has the whole width; they wrap when both don't fit.
+                FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Signing out takes a moment (sync stops, data is cleared): a spinner at once, and no second tap. The
                     // screen goes away when it is done.
                     var signingOut by remember { mutableStateOf(false) }
@@ -180,15 +192,22 @@ fun SettingsScreen(
                         if (signingOut) Spacer(Modifier.width(8.dp))
                         Text(stringResource(Res.string.sign_out))
                     }
+                    var signingOutEverywhere by remember { mutableStateOf(false) }
+                    TextButton(onClick = { signingOutEverywhere = true }) {
+                        Text(stringResource(Res.string.sign_out_everywhere))
+                    }
+                    if (signingOutEverywhere) SignOutEverywhereDialog(onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })
                 }
-                var signingOutEverywhere by remember { mutableStateOf(false) }
-                TextButton(onClick = { signingOutEverywhere = true }, modifier = Modifier.align(Alignment.End)) {
-                    Text(stringResource(Res.string.sign_out_everywhere))
-                }
-                if (signingOutEverywhere) SignOutEverywhereDialog(onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })
+            }
+            val uriHandler = LocalUriHandler.current
+            SettingsItem(Icons.Default.Coffee, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
+                uriHandler.openUri(SUPPORT_URL)
+            }
+
+            Column(Modifier.padding(horizontal = 16.dp)) {
                 // Last, set apart: it cannot be undone (ITERATION_2 §7).
                 if (onDeleteBand != null) {
-                    HorizontalDivider(Modifier.padding(top = 24.dp))
+                    HorizontalDivider(Modifier.padding(top = 8.dp))
                     var deleting by remember { mutableStateOf(false) }
                     OutlinedButton(
                         onClick = { deleting = true },
