@@ -7,7 +7,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,8 +21,7 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
-import com.jacekgajek.kapelusz.app.generated.show_history
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.screens.historyMonth
 import com.jacekgajek.kapelusz.app.ui.screens.toLines
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -40,11 +38,9 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
     var shown by remember(context.event.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val history = remember(context.event.id) { HistoryController(graph, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
-    SectionTitle(stringResource(Res.string.history))
-    if (!shown) {
-        TextButton(onClick = { shown = true }) { Text(stringResource(Res.string.show_history)) }
-        return
-    }
+    // Folded like Recorded transfers; loaded only once opened (it needs the server).
+    CollapsibleHeader(stringResource(Res.string.history), shown) { shown = !shown }
+    if (!shown) return
     LaunchedEffect(context.event.id, history.reload) {
         history.load {
             // Newest first; the first page of each month is enough for one event. One request for all the months: one

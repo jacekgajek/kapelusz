@@ -390,7 +390,6 @@
     <string name="summary_and_more">i jeszcze %1$d</string>
     <string name="summary_empty">W tym okresie nic nie zostało rozliczone.</string>
     <string name="history">Historia</string>
-    <string name="show_history">Pokaż historię</string>
     <string name="history_empty">Brak zmian.</string>
     <string name="history_unavailable">Historia wymaga połączenia z serwerem.</string>
     <string name="previous_month">Poprzedni miesiąc</string>

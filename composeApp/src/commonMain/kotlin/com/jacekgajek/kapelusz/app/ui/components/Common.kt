@@ -34,6 +34,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -228,6 +232,18 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
  */
 @Composable
 fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) = AvatarIcon(Icons.Default.VisibilityOff, size, description)
+
+/** A section folded away until tapped open: an arrow and its [title], the whole row tappable (e.g. Recorded transfers, History). */
+@Composable
+fun CollapsibleHeader(title: String, expanded: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onToggle).padding(top = 16.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+        Text(title, Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+    }
+}
 
 /** "Bob cannot see the band. Do you want to invite them?" for a member not in the app; Invite: [onInvite]. */
 @Composable

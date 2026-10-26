@@ -390,7 +390,6 @@
     <string name="summary_and_more">and %1$d more</string>
     <string name="summary_empty">Nothing settled in this period.</string>
     <string name="history">History</string>
-    <string name="show_history">Show history</string>
     <string name="history_empty">No changes yet.</string>
     <string name="history_unavailable">History needs a connection to the server.</string>
     <string name="previous_month">Previous month</string>
