@@ -7,7 +7,7 @@ import com.jacekgajek.kapelusz.domain.BlikPhone
 import androidx.compose.foundation.BorderStroke
 import com.jacekgajek.kapelusz.app.generated.support_me
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
@@ -200,7 +200,7 @@ fun SettingsScreen(
                 }
             }
             val uriHandler = LocalUriHandler.current
-            SettingsItem(Icons.Default.Coffee, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
+            SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
                 uriHandler.openUri(SUPPORT_URL)
             }
 
