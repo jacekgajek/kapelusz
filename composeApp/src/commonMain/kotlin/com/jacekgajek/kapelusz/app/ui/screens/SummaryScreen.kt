@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
@@ -58,6 +60,7 @@ import com.jacekgajek.kapelusz.app.generated.summary_events
 import com.jacekgajek.kapelusz.app.generated.summary_fund_balance
 import com.jacekgajek.kapelusz.app.generated.summary_fund_in
 import com.jacekgajek.kapelusz.app.generated.summary_fund_out
+import com.jacekgajek.kapelusz.app.generated.summary_former_members
 import com.jacekgajek.kapelusz.app.generated.summary_guests
 import com.jacekgajek.kapelusz.app.generated.summary_last_12
 import com.jacekgajek.kapelusz.app.generated.summary_last_year
@@ -245,18 +248,31 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             }
         }
     }
-    if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
-    items(summary.members, key = { "member-" + it.first.id }) { (member, totals) ->
+    val (former, current) = summary.members.partition { it.first.archived }
+    if (current.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
+    items(current, key = { "member-" + it.first.id }) { (member, totals) ->
         // As on the roster and in events: a member not in the app is the crossed eye, a tap invites them (only those
-        // who may invite; former members need to be back first).
-        val invite = canInvite && member.userId == null && !member.archived && member.id != myId
+        // who may invite).
+        val invite = canInvite && member.userId == null && member.id != myId
         val inviteLabel = stringResource(Res.string.not_in_app_invite)
         PersonRow(totals, currency, member.name, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
-            if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)
+            MemberAvatar(member)
         }
     }
     summary.guests?.let { guests ->
         item(key = "guests") { PersonRow(guests, currency, stringResource(Res.string.summary_guests)) { GuestIcon(40.dp) } }
+    }
+    // Who has left the band, apart: nothing to invite them to until they're back.
+    if (former.isNotEmpty()) item(key = "former") {
+        Text(
+            stringResource(Res.string.summary_former_members),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).semantics { heading() },
+        )
+    }
+    items(former, key = { "member-" + it.first.id }) { (member, totals) ->
+        PersonRow(totals, currency, member.name) { MemberAvatar(member) }
     }
 }
 
@@ -288,3 +304,7 @@ private fun PersonRow(totals: PersonTotals, currency: String, name: String, modi
         }
     }
 }
+
+@Composable
+private fun MemberAvatar(member: Member) =
+    if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)

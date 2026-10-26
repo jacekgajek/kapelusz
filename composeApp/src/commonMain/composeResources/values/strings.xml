@@ -381,6 +381,7 @@
     <string name="summary_fund_in">Into the fund</string>
     <string name="summary_fund_out">Out of the fund</string>
     <string name="summary_fund_balance">In the fund at the period’s end</string>
+    <string name="summary_former_members">Former members</string>
     <string name="summary_guests">Guests</string>
     <string name="summary_unsettled">Not settled yet, so not counted: %1$s.</string>
     <string name="summary_and_more">and %1$d more</string>

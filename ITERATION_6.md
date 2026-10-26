@@ -151,7 +151,8 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    matches. No "profit": the money is shared out completely.
 3. **Costs by category:** Total (costs fully refunded in the period, from events or the fund), then a row per category
    (icon, total), largest first; none: Other.
-4. **Members:** anyone with a number in the period, former members too, by Earned, highest first, you among them:
+4. **Members:** anyone with a number in the period, by Earned, highest first, you among them; former members apart,
+   last, under "Former members" (2026-10-26):
    Earned and Refunded. Each of a pair settling together on their own row (the settlement keeps them apart). A
    member's avatar, or the crossed eye: a tap invites them, as for an event's participants (only for those who may
    invite; not for former members). One "Guests" row last, with the handshake: guests are per event, nothing joins
