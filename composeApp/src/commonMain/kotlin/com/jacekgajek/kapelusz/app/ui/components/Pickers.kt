@@ -105,17 +105,17 @@ fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, Local
             title = null,
             headline = {
                 val lang = language
-                val from = start?.let { formatDate(it.date(), lang) }
-                val until = end?.let { formatDate(it.date(), lang) }
+                val first = start?.let { formatDate(it.date(), lang) }
+                val last = end?.let { formatDate(it.date(), lang) }
                 val text = when {
-                    from == null -> stringResource(Res.string.range_pick_start)
-                    until == null -> "$from – …"
-                    else -> "$from – $until"
+                    first == null -> stringResource(Res.string.range_pick_start)
+                    last == null -> "$first – …"
+                    else -> "$first – $last"
                 }
                 val spoken = when {
-                    from == null -> text
-                    until == null -> stringResource(Res.string.range_pick_end, from)
-                    else -> stringResource(Res.string.range_from_to, from, until)
+                    first == null -> text
+                    last == null -> stringResource(Res.string.range_pick_end, first)
+                    else -> stringResource(Res.string.range_from_to, first, last)
                 }
                 // Smaller rather than cut off (a long language, a large font); read out on each tap, as Material's own.
                 Text(

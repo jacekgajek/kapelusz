@@ -28,6 +28,7 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetFundAmount
+import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.coroutines.test.runTest
@@ -182,6 +183,23 @@ class PeriodSummaryTest {
         assertEquals(custom, stored.summaryPeriod("b"))
         assertEquals(SummaryPeriod.Last12Months, stored.summaryPeriod("other"))
         assertEquals(SummaryPeriod.Last12Months, AppSettings(summaryPeriods = mapOf("b" to "{\"type\":\"season\"}")).summaryPeriod("b"))
+    }
+
+    @Test
+    fun partsAddUpToCollectedWhenSharesNeedRounding() = runTest {
+        val odd = Band.create("b", "Band", "PLN", "me", "Me", "u").apply(
+            AddMember("bob", "Bob"),
+            AddMember("ann", "Ann"),
+            CreateEvent("gig", "Gig", LocalDate(2026, 6, 1), participants = listOf(Participant("me"), Participant("bob"), Participant("ann"))),
+            AddHolding("gig", "h", "me", Money(100_001), IncomeSource.DOOR),
+            AddCost("c", "bob", Money(1_000), LocalDate(2026, 6, 1)),
+            SetRefund("gig", "c", Money(1_000)),
+            SettleSuggestions("gig"),
+        )
+        val summary = periodSummary(odd, odd.member("me"), null, null)
+        assertEquals(1, summary.events, "settled by the suggested transfers")
+        assertEquals(Money(100_001), summary.collected)
+        assertEquals(summary.collected, summary.paidOut + summary.refundedAtEvents + summary.toFund)
     }
 
     @Test

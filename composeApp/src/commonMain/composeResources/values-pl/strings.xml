@@ -376,7 +376,7 @@
     <string name="summary_collected">Zebrane</string>
     <string name="summary_paid_out">Wypłacone zespołowi</string>
     <string name="summary_refunds_at_events">Zwroty kosztów</string>
-    <string name="summary_to_fund">Do kasy zespołowej</string>
+    <string name="summary_to_fund">Odłożone do kasy</string>
     <string name="summary_total">Razem</string>
     <string name="summary_fund_in">Do kasy</string>
     <string name="summary_fund_out">Z kasy</string>
