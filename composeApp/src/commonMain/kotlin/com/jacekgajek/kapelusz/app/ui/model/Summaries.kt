@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.ui.model
 
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -48,6 +49,16 @@ fun eventSummaries(band: Band, me: Member?, settings: AppSettings): List<EventSu
 
 /** The event list's order: newest first. */
 internal val EVENT_ORDER: Comparator<EventSummary> = compareByDescending<EventSummary> { it.event.date }.thenByDescending { it.event.updatedAt }
+
+/**
+ * Of what [line] still has to hand over, the part its party keeps as the band fund's holder (ITERATION_6 §8): the
+ * fund's share not handed over yet, up to what they hold too much. Zero for anyone but the treasurer (or their pair).
+ */
+fun fundKeptBy(band: Band, settlement: Settlement, line: PartyLine): Money {
+    if (!line.delta.isPositive || band.treasurerMemberId !in line.partyIds) return Money.ZERO
+    val fundStillGets = settlement.line(BAND_FUND)?.delta?.takeIf { it.isNegative }?.let { -it } ?: return Money.ZERO
+    return minOf(fundStillGets, line.delta)
+}
 
 /** Display name of a party: member, guest, or the band fund (with its holder). */
 fun partyName(band: Band, event: Event?, partyId: Id, fundLabel: String): String = when (partyId) {

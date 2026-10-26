@@ -3,7 +3,6 @@ package com.jacekgajek.kapelusz.app.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -23,17 +22,20 @@ import qrcode.raw.QRCodeProcessor
  * the theme, with a white margin: scanners need the contrast and the quiet zone.
  */
 @Composable
-fun QrCode(text: String, description: String, modifier: Modifier = Modifier, size: Dp = 180.dp) {
+fun QrCode(text: String, description: String, modifier: Modifier = Modifier, size: Dp = 204.dp) {
     val squares = remember(text) { QRCodeProcessor(text).encode().map { row -> row.map { it.dark } } }
-    Box(modifier.background(Color.White, RoundedCornerShape(12.dp)).padding(12.dp).semantics { contentDescription = description }) {
+    Box(modifier.background(Color.White, RoundedCornerShape(12.dp)).semantics { contentDescription = description }) {
         Canvas(Modifier.size(size)) {
-            val cell = this.size.minDimension / squares.size
+            // The quiet zone is four modules of white on every side (the encoder gives none), drawn as part of the grid.
+            val cell = this.size.minDimension / (squares.size + 2 * QUIET_ZONE)
             squares.forEachIndexed { row, cells ->
                 cells.forEachIndexed { column, dark ->
                     // A hair larger than the cell, so neighbours leave no seams.
-                    if (dark) drawRect(Color.Black, Offset(column * cell, row * cell), Size(cell + 0.5f, cell + 0.5f))
+                    if (dark) drawRect(Color.Black, Offset((column + QUIET_ZONE) * cell, (row + QUIET_ZONE) * cell), Size(cell + 0.5f, cell + 0.5f))
                 }
             }
         }
     }
 }
+
+private const val QUIET_ZONE = 4

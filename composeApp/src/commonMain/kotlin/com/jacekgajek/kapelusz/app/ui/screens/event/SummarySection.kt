@@ -44,7 +44,7 @@ import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.model.BAND_FUND
-import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.app.ui.model.fundKeptBy
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -138,8 +138,7 @@ private fun DeltaLabel(context: EventContext, line: PartyLine) {
         line.delta.isPositive -> {
             // The treasurer doesn't hand the fund's part to anyone: they keep it. Said apart, so the red amount is only
             // what leaves their pocket.
-            val fund = context.settlement.line(BAND_FUND)?.delta?.takeIf { it.isNegative }?.let { -it }
-            val keeps = fund?.takeIf { context.band.treasurerMemberId in line.partyIds }?.let { minOf(it, line.delta) } ?: Money.ZERO
+            val keeps = fundKeptBy(context.band, context.settlement, line)
             val handsOver = line.delta - keeps
             if (handsOver.isPositive) Text(
                 stringResource(Res.string.line_hands_over, formatMoney(handsOver, currency, lang)),

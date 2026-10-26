@@ -34,6 +34,8 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.asTimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -219,6 +221,37 @@ class PeriodSummaryTest {
         val untilToday = periodSummary(early, me, LocalDate(2026, 1, 1), LocalDate(2026, 10, 26), timeZone = TimeZone.UTC).fund
         assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400)), untilToday)
         assertEquals(BandFund.balance(early), untilToday?.balance, "as on the fund's page")
+    }
+
+    @Test
+    fun aHandOverRecordedAfterThePeriodIsNotInIt() = runTest {
+        fun at(date: LocalDate) = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds() + 3_600_000
+        val late = band.apply(
+            CreateEvent("may", "May", LocalDate(2026, 5, 1), participants = listOf(Participant("me"), Participant("bob"))),
+            AddHolding("may", "h7", "me", zl(100), IncomeSource.DOOR),
+            SetFundAmount("may", zl(-100)),
+        ).apply(RecordTransfer("may", "t7", BAND_FUND, "bob", zl(100)), at = at(LocalDate(2026, 6, 2)))
+        // Out of the fund on 2 June, though the gig was in May.
+        val may = periodSummary(late, me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31), timeZone = TimeZone.UTC).fund
+        assertEquals(FundTotals(into = Money.ZERO, out = Money.ZERO, balance = zl(300)), may)
+        val june = periodSummary(late, me, LocalDate(2026, 6, 1), LocalDate(2026, 6, 30), timeZone = TimeZone.UTC).fund
+        assertEquals(FundTotals(into = Money.ZERO, out = zl(100), balance = zl(200)), june)
+        assertEquals(BandFund.balance(late), periodSummary(late, me, null, null).fund?.balance)
+    }
+
+    @Test
+    fun aHandOverIsDatedInTheViewersTimeZone() = runTest {
+        // 23:30 UTC on 31 May is already 1 June in Poland (UTC+2 in summer; a fixed offset, as the web tests have no
+        // time zone database).
+        val atNight = LocalDate(2026, 5, 31).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds() + 23 * 3_600_000 + 30 * 60_000
+        val night = band.apply(
+            CreateEvent("gig2", "Gig", LocalDate(2026, 5, 31), participants = listOf(Participant("me"))),
+            AddHolding("gig2", "h8", "me", zl(100), IncomeSource.DOOR),
+            SetFundAmount("gig2", zl(100)),
+        ).apply(RecordTransfer("gig2", "t8", "me", BAND_FUND, zl(100)), at = atNight)
+        val june = LocalDate(2026, 6, 1) to LocalDate(2026, 6, 30)
+        assertEquals(zl(100), periodSummary(night, me, june.first, june.second, timeZone = UtcOffset(hours = 2).asTimeZone()).fund?.into)
+        assertEquals(Money.ZERO, periodSummary(night, me, june.first, june.second, timeZone = TimeZone.UTC).fund?.into)
     }
 
     @Test

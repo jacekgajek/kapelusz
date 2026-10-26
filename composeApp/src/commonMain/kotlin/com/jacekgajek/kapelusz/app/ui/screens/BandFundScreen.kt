@@ -219,6 +219,8 @@ private fun FundEntryDialog(
     // Refunding a cost is only offered for new entries; the link cannot be changed later.
     val pendingCosts = band.costs.filter { CostLedger.outstanding(band, it).isPositive }
     var costId by remember { mutableStateOf(initial?.costId) }
+    // The description filled in from the picked cost: replaced when another cost is picked, unless the user typed over it.
+    var filled by remember { mutableStateOf<String?>(null) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     val signed = parsed?.let { if (incoming) it else -it }
 
@@ -231,10 +233,17 @@ private fun FundEntryDialog(
                     Dropdown(costId, listOf<String?>(null) + pendingCosts.map { it.id }, { id ->
                         costId = id
                         val cost = id?.let { band.cost(it) }
+                        val ours = description.isBlank() || description == filled
                         if (cost != null) {
                             incoming = false
                             amount = formatMoneyInput(CostLedger.outstanding(band, cost), lang)
-                            if (description.isBlank()) description = cost.description ?: cost.category?.let(categoryLabels::getValue) ?: unnamed
+                            if (ours) {
+                                description = cost.description ?: cost.category?.let(categoryLabels::getValue) ?: unnamed
+                                filled = description
+                            }
+                        } else if (ours) {
+                            description = ""
+                            filled = null
                         }
                     }, stringResource(Res.string.fund_refund_cost)) { id ->
                         id?.let { band.cost(it) }?.let { cost ->
