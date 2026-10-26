@@ -1,11 +1,15 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.jacekgajek.kapelusz.app.generated.former_member
 import com.jacekgajek.kapelusz.app.generated.former_member_restore
 import com.jacekgajek.kapelusz.app.generated.former_member_restored
+import com.jacekgajek.kapelusz.app.generated.section_collapsed
+import com.jacekgajek.kapelusz.app.generated.section_expanded
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.app.generated.name_taken
@@ -17,6 +21,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.app.generated.settle_paid
 import com.jacekgajek.kapelusz.app.generated.settle_received
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,10 +61,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.Locale
@@ -228,6 +235,26 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
  */
 @Composable
 fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) = AvatarIcon(Icons.Default.VisibilityOff, size, description)
+
+/** A section folded away until tapped open: an arrow and its [title], the whole row tappable (e.g. Recorded transfers, History). */
+@Composable
+fun CollapsibleHeader(title: String, expanded: Boolean, onToggle: () -> Unit) {
+    // A heading to jump to with a screen reader, which also says whether it's open.
+    val state = stringResource(if (expanded) Res.string.section_expanded else Res.string.section_collapsed)
+    Row(
+        Modifier.fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onToggle)
+            .semantics {
+                heading()
+                stateDescription = state
+            }
+            .padding(top = 16.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+        Text(title, Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+    }
+}
 
 /** "Bob cannot see the band. Do you want to invite them?" for a member not in the app; Invite: [onInvite]. */
 @Composable

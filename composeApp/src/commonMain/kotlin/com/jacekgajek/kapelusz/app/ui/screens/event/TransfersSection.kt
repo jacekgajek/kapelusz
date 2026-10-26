@@ -50,8 +50,6 @@ import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.ExpandLess
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -64,6 +62,7 @@ import com.jacekgajek.kapelusz.app.generated.hand_over_to
 import com.jacekgajek.kapelusz.app.generated.keep_for_fund
 import com.jacekgajek.kapelusz.app.generated.note_optional
 import com.jacekgajek.kapelusz.app.generated.recorded_transfers
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.generated.remove
 import com.jacekgajek.kapelusz.app.generated.remove_transfer_confirm
 import com.jacekgajek.kapelusz.app.generated.remove_transfer_title
@@ -136,17 +135,7 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
     // Done already: folded away, opened on demand (each visit starts folded).
     var showRecorded by remember(event.id) { mutableStateOf(false) }
     if (event.transfers.isNotEmpty()) {
-        Row(
-            Modifier.fillMaxWidth().clickable { showRecorded = !showRecorded }.padding(top = 16.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(if (showRecorded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
-            Text(
-                "${stringResource(Res.string.recorded_transfers)} (${event.transfers.size})",
-                Modifier.padding(start = 8.dp),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
+        CollapsibleHeader("${stringResource(Res.string.recorded_transfers)} (${event.transfers.size})", showRecorded) { showRecorded = !showRecorded }
     }
     if (event.transfers.isNotEmpty() && showRecorded) {
         val fundLabel = stringResource(Res.string.band_fund)
