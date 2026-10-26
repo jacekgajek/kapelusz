@@ -121,7 +121,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     LaunchedEffect(openEvent) {
         val (bandId, eventId) = openEvent ?: return@LaunchedEffect
         graph.pendingOpenEvent.value = null
-        // A link can outlive its band (deleted, access lost): then it only opens the app.
+        // The band can be gone by the time it opens (deleted, access lost): then nothing more happens.
         if (!graph.bands.hasStored(bandId)) {
             graph.sharedHandover.value = null
             return@LaunchedEffect

@@ -403,7 +403,7 @@ object Reducer {
             location = op.location.blankToNull(),
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
-            // Who added each participant (the creator), for a personal reminder prompt (ITERATION_2 §5.2).
+            // Who added each participant (the creator); was for the reminder prompt (ITERATION_2 §5.2), gone since ITERATION_6 §9.
             participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )

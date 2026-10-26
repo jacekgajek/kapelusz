@@ -2,7 +2,8 @@ package com.jacekgajek.kapelusz.app.sync
 
 import android.app.AlarmManager
 import android.content.Context
-import android.os.Build
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -41,8 +42,8 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
 
         /**
          * Once, what versions with notifications (before 1.12) left on the phone: the periodic sync and the reminders'
-         * jobs, their alarms (Android 14+ can cancel them all; older ones find no receiver and drop them), the
-         * channels in Android's settings (and with them their notifications), and what was shown or seen.
+         * jobs, their alarms, the channels in Android's settings (and with them their notifications), and what was
+         * shown or seen.
          */
         fun removeOldNotifications(context: Context) {
             val prefs = context.getSharedPreferences("kapelusz-cleanup", Context.MODE_PRIVATE)
@@ -51,7 +52,16 @@ class BackgroundSyncWorker(context: Context, params: WorkerParameters) : Corouti
                 cancelUniqueWork("background-sync")
                 cancelUniqueWork("reminders-local")
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) context.getSystemService(AlarmManager::class.java).cancelAll()
+            // The reminders' alarms, as they were made: the key's hash and the (now missing) receiver, on every version.
+            val alarms = context.getSystemService(AlarmManager::class.java)
+            val keys = context.getSharedPreferences("kapelusz-reminders", Context.MODE_PRIVATE).getStringSet("scheduled", emptySet()).orEmpty() + "test"
+            keys.forEach { key ->
+                val receiver = Intent().setClassName(context, "com.jacekgajek.kapelusz.app.notify.ReminderReceiver")
+                PendingIntent.getBroadcast(context, key.hashCode(), receiver, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let { pending ->
+                    alarms.cancel(pending)
+                    pending.cancel()
+                }
+            }
             NotificationManagerCompat.from(context).run { listOf("reminders", "transfers", "debts").forEach(::deleteNotificationChannel) }
             listOf("kapelusz-reminders", "kapelusz-transfers").forEach(context::deleteSharedPreferences)
             prefs.edit().putBoolean(NOTIFICATIONS_REMOVED, true).apply()

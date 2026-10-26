@@ -196,8 +196,9 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
 private const val NO_BAND = "-"
 
 /**
- * An event link (ITERATION_5 §10): opens its event in whichever of the user's bands has it, switching band if needed; "Opening the event…" while the bands are looked through (a new device downloads them first), and "no
- * access" when none of the user's bands has it for them.
+ * An event link (ITERATION_5 §10): opens its event in whichever of the user's bands has it, switching band if needed;
+ * "Opening the event…" while the bands are looked through (a new device downloads them first), and "no access" when
+ * none of the user's bands has it for them.
  */
 @Composable
 private fun EventLinkOpening(graph: AppGraph) {

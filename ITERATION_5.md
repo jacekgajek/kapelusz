@@ -62,7 +62,7 @@ case.
   bands still in memory, and may post transfer notifications (`AndroidAppGraph.afterSignOut` doesn't take
   `afterSyncLock`; `BackgroundSyncWorker` captures `userId` before `syncAll`). Old notifications stay in the tray. Fix:
   check the session user under the lock before rescheduling; run `afterSignOut` under the lock; `cancelAll()` on
-  sign-out.
+  sign-out. *(Gone since ITERATION_6 §9: no notifications.)*
 - The sign-out work runs in the Settings screen's coroutine scope; leaving the screen can cancel it partway. Fix: run it
   in the app scope.
 

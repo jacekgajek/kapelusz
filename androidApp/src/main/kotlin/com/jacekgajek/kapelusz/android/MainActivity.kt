@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
         val fromRecents = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
         if (savedInstanceState == null && !fromRecents) {
             takeJoinCode(intent)
-                takeSharedFiles(intent)
+            takeSharedFiles(intent)
         }
         setContent {
             var loaded by remember { mutableStateOf(false) }
