@@ -73,6 +73,8 @@ import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.amount_invalid
 import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
+import com.jacekgajek.kapelusz.app.generated.not_in_app_text
 import com.jacekgajek.kapelusz.app.generated.edit
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.remove
@@ -226,6 +228,22 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
  */
 @Composable
 fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) = AvatarIcon(Icons.Default.VisibilityOff, size, description)
+
+/** "Bob cannot see the band. Do you want to invite them?" for a member not in the app; Invite: [onInvite]. */
+@Composable
+fun InviteMemberDialog(name: String, onInvite: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        text = { Text(stringResource(Res.string.not_in_app_text, name)) },
+        confirmButton = {
+            TextButton(onClick = {
+                onDismiss()
+                onInvite()
+            }) { Text(stringResource(Res.string.not_in_app_invite)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
 
 /** In place of a guest's avatar: someone playing this one event with the band. */
 @Composable

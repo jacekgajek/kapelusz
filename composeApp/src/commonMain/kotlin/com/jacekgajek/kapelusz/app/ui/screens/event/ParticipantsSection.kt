@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
 import com.jacekgajek.kapelusz.app.generated.participants_guests
-import com.jacekgajek.kapelusz.app.generated.not_in_app_text
 import androidx.compose.runtime.LaunchedEffect
 import com.jacekgajek.kapelusz.app.generated.guest_is_member
 import com.jacekgajek.kapelusz.app.generated.guest_add_member_instead
 import com.jacekgajek.kapelusz.app.generated.guest_add_anyway
-import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
+import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
 import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.FormerMember
 import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
@@ -288,15 +288,5 @@ private fun InviteThemDialog(context: EventContext, memberId: String, onDismiss:
         LaunchedEffect(Unit) { onDismiss() }
         return
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        text = { Text(stringResource(Res.string.not_in_app_text, member.name)) },
-        confirmButton = {
-            TextButton(onClick = {
-                onDismiss()
-                context.onInviteMember(memberId)
-            }) { Text(stringResource(Res.string.not_in_app_invite)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
-    )
+    InviteMemberDialog(member.name, onInvite = { context.onInviteMember(memberId) }, onDismiss = onDismiss)
 }

@@ -34,7 +34,7 @@ object CostLedger {
 
     fun status(band: Band, cost: Cost): CostStatus = CostStatuses(band).status(cost)
 
-    internal fun fundRefunds(band: Band, costId: Id): Money = band.fundEntries.filter { it.costId == costId }.sumOfMoney { -it.amount }
+    fun fundRefunds(band: Band, costId: Id): Money = band.fundEntries.filter { it.costId == costId }.sumOfMoney { -it.amount }
 
     /** Costs may only be refunded at events their owner takes part in. */
     fun isRefundableAt(cost: Cost, event: Event): Boolean = event.participant(cost.memberId) != null

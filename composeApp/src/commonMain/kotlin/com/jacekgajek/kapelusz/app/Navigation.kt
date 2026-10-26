@@ -51,6 +51,8 @@ import com.jacekgajek.kapelusz.app.ui.EventRoute
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.FundRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
+import com.jacekgajek.kapelusz.app.ui.SummaryRoute
+import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
 import com.jacekgajek.kapelusz.app.ui.MyCostsRoute
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
 import com.jacekgajek.kapelusz.app.ui.RosterRoute
@@ -241,6 +243,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             composable<RosterRoute> { entry ->
                 if (artist) BackToEvents(navController) else RosterScreen(graph, state, back, openMember = entry.toRoute<RosterRoute>().memberId)
             }
+            composable<SummaryRoute> { SummaryScreen(graph, state, back, onInviteMember = { navController.navigate(RosterRoute(it)) }) }
             composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph, state, back) }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->

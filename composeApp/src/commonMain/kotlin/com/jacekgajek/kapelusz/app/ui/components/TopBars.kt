@@ -59,6 +59,10 @@ import com.jacekgajek.kapelusz.app.generated.sync_syncing
 import com.jacekgajek.kapelusz.app.sync.SyncStatus
 import com.jacekgajek.kapelusz.api.BandSummary
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.History
+import com.jacekgajek.kapelusz.app.generated.summary_title
 
 /** What every tab's top bar shows besides the title: sync state and the band switcher. */
 class TopBarState(
@@ -71,6 +75,8 @@ class TopBarState(
     val onNewBand: () -> Unit,
     val onJoinBand: () -> Unit,
     val onHistory: () -> Unit,
+    /** The period summary (ITERATION_6 §7). */
+    val onSummary: () -> Unit,
     val onSyncNow: () -> Unit,
     /** Signs in again with a fresh Google token; returns false if it was a different account. */
     val onReauthenticate: suspend (String) -> Boolean,
@@ -122,11 +128,28 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extra
                     )
                     HorizontalDivider()
                 }
-                if (bar?.artist != true) DropdownMenuItem(text = { Text(stringResource(Res.string.menu_roster)) }, onClick = { menuOpen = false; onRoster() })
-                if (onHistory != null && bar?.artist != true) {
-                    DropdownMenuItem(text = { Text(stringResource(Res.string.history)) }, onClick = { menuOpen = false; onHistory() })
-                }
-                DropdownMenuItem(text = { Text(stringResource(Res.string.menu_settings)) }, onClick = { menuOpen = false; onSettings() })
+                // Icons for easier hunting (ITERATION_6 §7).
+                if (bar?.artist != true) DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.menu_roster)) },
+                    leadingIcon = { Icon(Icons.Default.ManageAccounts, null) },
+                    onClick = { menuOpen = false; onRoster() },
+                )
+                // Artists too: only their own numbers.
+                if (bar != null) DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.summary_title)) },
+                    leadingIcon = { Icon(Icons.Default.BarChart, null) },
+                    onClick = { menuOpen = false; bar.onSummary() },
+                )
+                if (onHistory != null && bar?.artist != true) DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.history)) },
+                    leadingIcon = { Icon(Icons.Default.History, null) },
+                    onClick = { menuOpen = false; onHistory() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.menu_settings)) },
+                    leadingIcon = { Icon(Icons.Default.Settings, null) },
+                    onClick = { menuOpen = false; onSettings() },
+                )
             }
         },
     )

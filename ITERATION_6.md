@@ -144,8 +144,9 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    refunded, as of today, whatever the period). Hidden when all are zero (most viewers).
 2. **Band:** settled events (count); Collected (awaited fees count once the event is settled); Paid to the band (all
    shares: everyone's Earned); Costs (fully refunded costs); Fund: in (its cut at events, deposits), out (covering
-   events, withdrawals, refunds from it), and the balance at the period's end, hidden without a fund. No "profit":
-   the money is shared out completely.
+   events, withdrawals, refunds from it), and the balance at the period's end, hidden without a fund. The fund is the
+   money actually there, as on its page (moved by events, on the event's date, settled or not), so the balance
+   matches. No "profit": the money is shared out completely.
 3. **Costs by category:** a row per category with costs in the period (icon, total), largest first; none: Other.
 4. **Members:** anyone with a number in the period, former members too, by Earned, highest first, you among them:
    Earned and Refunded. Each of a pair settling together on their own row (the settlement keeps them apart). A
@@ -154,9 +155,10 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    them.
 
 **Which money, on which date:**
-- Only settled events count: the money is final, a closed period never changes. Events in the period not settled
-  yet: "2 events in this period aren't settled yet and aren't counted: Wesele Ani, Juwenalia." (three named, then
-  "and 2 more").
+- Only settled events count: the money is final, a closed period never changes. Events in the period with money,
+  not settled yet: "Not settled yet, so not counted: Wesele Ani, Juwenalia." (three named, then "and 2 more"; no
+  count, which Polish would need plural forms for). Drafts aren't named: nothing in them to count. An artist's line
+  names only their events.
 - An event's money (collected, shares, the fund's part, refunds paid there): the event's date.
 - Fund entries, refunds from the fund too: the entry's date.
 - Refunded (You, Members): each payment on its own date, so part-refunds show as they're paid.
@@ -195,9 +197,9 @@ background when the screen opens (a spinner meanwhile), again when the band chan
 
 ### V6-M4 — Summary of a period (§7)
 
-- [ ] Icons in the cog menu; Summary in it
-- [ ] The numbers per period (with tests)
-- [ ] The screen: period chips with the custom range, the four blocks, who sees what
+- [x] Icons in the cog menu; Summary in it
+- [x] The numbers per period (with tests)
+- [x] The screen: period chips with the custom range, the four blocks, who sees what
 
 ## 9. Decision log
 

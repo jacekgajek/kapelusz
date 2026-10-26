@@ -27,7 +27,10 @@ object BandFund {
     fun canDisable(band: Band): Boolean = balance(band).isZero && band.events.all { isHandedOver(it) }
 
     /** The event's fund amount has been transferred to (or, if negative, from) the fund in full. */
-    fun isHandedOver(event: Event): Boolean = transferred(event.transfers) + heldBy(event) == event.fundAmount
+    fun isHandedOver(event: Event): Boolean = moved(event) == event.fundAmount
+
+    /** Money the event has actually moved into the fund so far (negative: out of it): transfers and fees paid to it. */
+    fun moved(event: Event): Money = transferred(event.transfers) + heldBy(event)
 
     /** A fee paid straight to the band's account: the fund collected it for the event (ITERATION_4 §2.2). */
     private fun heldBy(event: Event): Money = event.holdings.filter { it.partyId == BAND_FUND }.sumOfMoney { it.amount }
