@@ -1,6 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui
 
+import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.app.ui.model.FundTotals
+import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
+import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
+import com.jacekgajek.kapelusz.domain.BandFund
+import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.app.ui.model.PersonTotals
 import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.periodSummary
@@ -113,6 +119,64 @@ class PeriodSummaryTest {
         assertEquals(zl(300), summary.costs)
         assertEquals(PersonTotals(zl(50), zl(50)), summary.me, "the part paid back counts as refunded")
         assertEquals(zl(50), summary.myWaiting)
+    }
+
+    @Test
+    fun theFundCoveringAnEventIsOutAndTheBalanceIsTheFundPages() = runTest {
+        val covered = band.apply(
+            CreateEvent("covered", "Covered", LocalDate(2026, 4, 1), participants = listOf(Participant("me"), Participant("bob"))),
+            AddHolding("covered", "h4", "me", zl(100), IncomeSource.DOOR),
+            SetFundAmount("covered", zl(-100)),
+            RecordTransfer("covered", "t4", BAND_FUND, "bob", zl(100)),
+        )
+        val y2026 = periodSummary(covered, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
+        assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200)), y2026.fund)
+        assertEquals(BandFund.balance(covered), periodSummary(covered, me, null, null).fund?.balance)
+    }
+
+    @Test
+    fun aCostFinishedFromTheFundCountsOnTheLaterDate() = runTest {
+        val finished = band.apply(
+            CreateEvent("spring", "Spring", LocalDate(2026, 3, 1), participants = listOf(Participant("me"))),
+            AddHolding("spring", "h3", "me", zl(100), IncomeSource.DOOR),
+            SetRefund("spring", "c3", zl(50)),
+            AddFundEntry("e2", LocalDate(2026, 5, 1), "Rest", zl(-50), costId = "c3"),
+        )
+        assertEquals(emptyList(), periodSummary(finished, me, LocalDate(2026, 3, 1), LocalDate(2026, 4, 30)).categories)
+        assertEquals(
+            listOf(CostCategory.EQUIPMENT to zl(100)),
+            periodSummary(finished, me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31)).categories,
+        )
+        assertEquals(Money.ZERO, periodSummary(finished, me, null, null).myWaiting)
+    }
+
+    @Test
+    fun onlyWaitingIsStillAnEmptyPeriod() = runTest {
+        val summary = periodSummary(band, me, LocalDate(2024, 1, 1), LocalDate(2024, 12, 31))
+        assertEquals(true, summary.isEmpty)
+        assertEquals(zl(100), summary.myWaiting)
+    }
+
+    @Test
+    fun anArtistsUnsettledLineNamesOnlyTheirEvents() = runTest {
+        val withBobs = band.apply(
+            CreateEvent("bobs", "Bob's", LocalDate(2026, 2, 2), participants = listOf(Participant("bob"))),
+            AddHolding("bobs", "h5", "bob", zl(100), IncomeSource.DOOR),
+            AddMember("ann", "Ann"),
+            AddParticipant("bobs", "ann"),
+        )
+        assertEquals(listOf("open", "bobs"), periodSummary(withBobs, me, null, null).unsettled.map { it.id })
+        assertEquals(listOf("open"), periodSummary(withBobs, me, null, null, onlyEventsOf = "me").unsettled.map { it.id })
+    }
+
+    @Test
+    fun periodsAreRememberedPerBandAndAnUnreadableOneIsForgotten() {
+        val custom = SummaryPeriod.Custom(LocalDate(2025, 9, 1), LocalDate(2026, 8, 31))
+        val settings = AppSettings().withSummaryPeriod("b", custom)
+        val stored = KapeluszJson.decodeFromString(AppSettings.serializer(), KapeluszJson.encodeToString(AppSettings.serializer(), settings))
+        assertEquals(custom, stored.summaryPeriod("b"))
+        assertEquals(SummaryPeriod.Last12Months, stored.summaryPeriod("other"))
+        assertEquals(SummaryPeriod.Last12Months, AppSettings(summaryPeriods = mapOf("b" to "{\"type\":\"season\"}")).summaryPeriod("b"))
     }
 
     @Test

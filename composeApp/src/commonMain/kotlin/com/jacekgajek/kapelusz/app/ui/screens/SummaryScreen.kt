@@ -42,6 +42,7 @@ import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
 import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
 import com.jacekgajek.kapelusz.app.generated.summary_all_time
 import com.jacekgajek.kapelusz.app.generated.summary_and_more
 import com.jacekgajek.kapelusz.app.generated.summary_band
@@ -84,6 +85,8 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.periodSummary
+import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
+import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
@@ -105,14 +108,14 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
     // another period starts from the spinner, not the old period's numbers.
     var shown by remember { mutableStateOf<Pair<SummaryPeriod, PeriodSummary>?>(null) }
     LaunchedEffect(band, state.me, period, today) {
-        if (shown?.first != period) shown = null
         val me = state.me
-        shown = period to withContext(Dispatchers.Default) { periodSummary(band, me, from, to) }
+        // An artist sees only their own events and money (ITERATION_4 §1.1).
+        shown = period to withContext(Dispatchers.Default) { periodSummary(band, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) }
     }
     var choosingRange by remember { mutableStateOf(false) }
     var inviting by remember { mutableStateOf<Member?>(null) }
     val canInvite = Can(band, state.userId).manageRoster()
-    fun choose(period: SummaryPeriod) = graph.settings.update { it.copy(summaryPeriods = it.summaryPeriods + (band.id to period)) }
+    fun choose(period: SummaryPeriod) = graph.settings.update { it.withSummaryPeriod(band.id, period) }
 
     Scaffold(
         topBar = {
@@ -157,7 +160,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
                     }
                 }
             }
-            val summary = shown?.second
+            val summary = shown?.takeIf { it.first == period }?.second
             if (summary == null) {
                 item(key = "loading") {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -185,19 +188,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     canInvite: Boolean,
     onInvite: (Member) -> Unit,
 ) {
-    // An artist sees only their own events and money (ITERATION_4 §1.1).
-    val unsettled = if (artist) summary.unsettled.filter { event -> myId != null && event.participant(myId) != null } else summary.unsettled
+    val unsettled = summary.unsettled
     if (unsettled.isNotEmpty()) item(key = "unsettled") {
         val names = unsettled.take(3).joinToString(", ") { it.name } +
             if (unsettled.size > 3) " " + stringResource(Res.string.summary_and_more, unsettled.size - 3) else ""
         Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp))
     }
     val showMe = !summary.me.isZero || summary.myWaiting.isPositive
-    val empty = !showMe && (artist || summary.isEmpty)
-    if (empty) {
-        item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(vertical = 32.dp)) }
-        return
-    }
     if (showMe) item(key = "you") {
         Column {
             SectionHeader(stringResource(Res.string.summary_you))
@@ -205,6 +202,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             AmountRow(Res.string.summary_refunded, summary.me.refunded, currency)
             AmountRow(Res.string.summary_waiting, summary.myWaiting, currency)
         }
+    }
+    // An artist sees only their own money (ITERATION_4 §1.1).
+    val empty = if (artist) summary.me.isZero else summary.isEmpty
+    if (empty) {
+        item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(vertical = 32.dp)) }
+        return
     }
     if (artist) return
     item(key = "band") {
@@ -237,7 +240,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         // As on the roster and in events: a member not in the app is the crossed eye, a tap invites them (only those
         // who may invite; former members need to be back first).
         val invite = canInvite && member.userId == null && !member.archived && member.id != myId
-        PersonRow(totals, currency, member.name, Modifier.clickable(enabled = invite, role = Role.Button) { onInvite(member) }) {
+        val inviteLabel = stringResource(Res.string.not_in_app_invite)
+        PersonRow(totals, currency, member.name, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
             if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)
         }
     }

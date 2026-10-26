@@ -1,7 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
-import com.jacekgajek.kapelusz.domain.CostStatus
-import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.app.data.AppSettings
+import com.jacekgajek.kapelusz.domain.BandFund
+import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -52,6 +54,14 @@ sealed interface SummaryPeriod {
     }
 }
 
+/** The period [bandId]'s summary was last shown for; at first, or unreadable: the last 12 months. */
+fun AppSettings.summaryPeriod(bandId: String): SummaryPeriod =
+    summaryPeriods[bandId]?.let { runCatching { KapeluszJson.decodeFromString(SummaryPeriod.serializer(), it) }.getOrNull() }
+        ?: SummaryPeriod.Last12Months
+
+fun AppSettings.withSummaryPeriod(bandId: String, period: SummaryPeriod): AppSettings =
+    copy(summaryPeriods = summaryPeriods + (bandId to KapeluszJson.encodeToString(SummaryPeriod.serializer(), period)))
+
 /** What one person got in the period: their shares, and payments of their costs. */
 data class PersonTotals(val earned: Money, val refunded: Money) {
     val isZero: Boolean get() = earned.isZero && refunded.isZero
@@ -95,10 +105,10 @@ data class PeriodSummary(
 /**
  * The summary of [band] from [from] to [to] (both included; null: no limit), as ITERATION_6 §7 counts it: settled
  * events' money on the event's date, fund entries on their own, each refund payment on its date, costs once fully
- * refunded on the date that happened. Settles every event, the costly part: yields between events, to be cancelled
+ * refunded on the date that happened. [onlyEventsOf]: an artist's id, naming only their unsettled events. Settles every event, the costly part: yields between events, to be cancelled
  * when outdated and to let the web's one thread draw.
  */
-suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDate?): PeriodSummary {
+suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDate?, onlyEventsOf: Id? = null): PeriodSummary {
     fun inPeriod(date: LocalDate) = (from == null || date >= from) && (to == null || date <= to)
 
     val settlements = band.events.associate { event ->
@@ -127,17 +137,20 @@ suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDa
     }
 
     // A cost counts once fully refunded, on the latest date among its refunds (settled events and fund entries).
-    val statuses = CostStatuses(band)
-    val refundedCosts = band.costs.filter { statuses.status(it) == CostStatus.REFUNDED }.mapNotNull { cost ->
+    // Paid amounts from the settlements above: settling every event again (as CostStatuses does) costs as much again.
+    fun paid(costId: Id) = settled.sumOfMoney { it.refundOf(costId)?.amount ?: Money.ZERO } + CostLedger.fundRefunds(band, costId)
+    val refundedCosts = band.costs.mapNotNull { cost ->
+        yield()
+        if (paid(cost.id) < cost.amount) return@mapNotNull null
         val dates = settled.filter { it.refundOf(cost.id) != null }.map { it.date } +
             band.fundEntries.filter { it.costId == cost.id }.map { it.date }
         dates.maxOrNull()?.takeIf(::inPeriod)?.let { cost }
     }
 
+    // The fund is money actually there, as on the band fund's page: what events moved into or out of it (by the
+    // event's date, settled or not) and its entries.
     val fund = band.treasurerMemberId?.let {
-        val eventFlows = settled.map { it.date to it.fundAmount }
-        val entryFlows = band.fundEntries.map { it.date to it.amount }
-        val flows = eventFlows + entryFlows
+        val flows = band.events.map { it.date to BandFund.moved(it) } + band.fundEntries.map { it.date to it.amount }
         val inside = flows.filter { (date, _) -> inPeriod(date) }.map { it.second }
         FundTotals(
             into = inside.filter { it.isPositive }.sumOfMoney { it },
@@ -160,10 +173,11 @@ suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDa
         members = members,
         guests = guests.takeIf { !it.isZero },
         me = me?.let { totals[it.id] } ?: PersonTotals.ZERO,
-        myWaiting = me?.let { band.costs.filter { cost -> cost.memberId == it.id }.sumOfMoney(statuses::unpaid) } ?: Money.ZERO,
+        myWaiting = me?.let { band.costs.filter { cost -> cost.memberId == it.id }.sumOfMoney { cost -> cost.amount - paid(cost.id) } } ?: Money.ZERO,
         // Drafts have no money in them yet: nothing to count, so not named either.
         unsettled = band.events.filter {
-            inPeriod(it.date) && settlements.getValue(it.id).status.let { status -> status != EventStatus.SETTLED && status != EventStatus.DRAFT }
+            inPeriod(it.date) && settlements.getValue(it.id).status.let { status -> status != EventStatus.SETTLED && status != EventStatus.DRAFT } &&
+                (onlyEventsOf == null || it.participant(onlyEventsOf) != null)
         }.sortedBy { it.date },
     )
 }

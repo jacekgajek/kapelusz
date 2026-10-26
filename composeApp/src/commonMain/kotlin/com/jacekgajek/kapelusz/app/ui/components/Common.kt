@@ -229,7 +229,6 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
 @Composable
 fun NotInAppIcon(size: Dp = 28.dp, description: String? = null) = AvatarIcon(Icons.Default.VisibilityOff, size, description)
 
-/** In place of a guest's avatar: someone playing this one event with the band. */
 /** "Bob cannot see the band. Do you want to invite them?" for a member not in the app; Invite: [onInvite]. */
 @Composable
 fun InviteMemberDialog(name: String, onInvite: () -> Unit, onDismiss: () -> Unit) {
@@ -246,6 +245,7 @@ fun InviteMemberDialog(name: String, onInvite: () -> Unit, onDismiss: () -> Unit
     )
 }
 
+/** In place of a guest's avatar: someone playing this one event with the band. */
 @Composable
 fun GuestIcon(size: Dp = 28.dp) = AvatarIcon(Icons.Default.Handshake, size, null)
 

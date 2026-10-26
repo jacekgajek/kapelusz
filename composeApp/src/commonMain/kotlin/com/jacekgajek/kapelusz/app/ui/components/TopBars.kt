@@ -1,13 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
-import com.jacekgajek.kapelusz.app.generated.summary_title
-
-import androidx.compose.material.icons.filled.History
-
-import androidx.compose.material.icons.filled.BarChart
-
-import androidx.compose.material.icons.filled.ManageAccounts
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -67,6 +59,10 @@ import com.jacekgajek.kapelusz.app.generated.sync_syncing
 import com.jacekgajek.kapelusz.app.sync.SyncStatus
 import com.jacekgajek.kapelusz.api.BandSummary
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.History
+import com.jacekgajek.kapelusz.app.generated.summary_title
 
 /** What every tab's top bar shows besides the title: sync state and the band switcher. */
 class TopBarState(
