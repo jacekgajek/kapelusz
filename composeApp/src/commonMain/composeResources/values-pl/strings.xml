@@ -381,7 +381,7 @@
     <string name="summary_fund_in">Do kasy</string>
     <string name="summary_fund_out">Z kasy</string>
     <string name="summary_fund_balance">W kasie na koniec okresu</string>
-    <string name="summary_former_members">Byli członkowie</string>
+    <string name="summary_former_members">Dawni członkowie</string>
     <string name="summary_guests">Goście</string>
     <string name="summary_unsettled">Jeszcze nierozliczone, więc pominięte: %1$s.</string>
     <string name="summary_and_more">i jeszcze %1$d</string>

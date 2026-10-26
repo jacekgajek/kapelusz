@@ -249,7 +249,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         }
     }
     val (former, current) = summary.members.partition { it.first.archived }
-    if (current.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
+    // The heading over current and former members alike: "Former members" is part of it.
+    if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
     items(current, key = { "member-" + it.first.id }) { (member, totals) ->
         // As on the roster and in events: a member not in the app is the crossed eye, a tap invites them (only those
         // who may invite).
