@@ -214,7 +214,25 @@ wasn't worth it, and a bank's own notification already says money arrived.
   and turn on Sync." Then "How to add it: Google's help", support.google.com/calendar/answer/37100 in the app's
   language.
 
-## 10. Milestones and task checklist
+## 10. The calendar on the app's domain; scanning an invite (2026-10-26)
+
+- **Calendar link:** `https://kapelusz.jacekgajek.com/calendar/<secret>.ics` instead of the API's own address
+  (`…execute-api…amazonaws.com`). CloudFront passes `/calendar/*` to the API like `/e/*`; the feed says
+  `private, max-age=900`, so CloudFront doesn't keep it. Links given out before keep working on the API's address.
+  Needs the Terraform change applied before the server gives out the new links.
+- **A feed that's gone** (a reset link, a wrong secret): **410 Gone**, not 404. CloudFront's error pages turn
+  403/404/5xx into the web app's page with a 200 for every path; a 410 passes as it is. Not an empty calendar: one
+  given out by mistake (a server hiccup) would wipe everyone's gigs from their calendars. A 5xx still becomes the page;
+  the calendar app keeps its last good copy.
+- **Join band, scan:** a "Scan QR code" button under the invite code field (Android): scanning is the usual way in,
+  standing next to the leader's phone, typing the fallback. It opens Google Play services' code scanner (its own camera
+  screen: no camera permission; "Scanned by Google on behalf of Pass the Hat"; the module downloaded with the app). A
+  join link's code (also with `?…` or `#…` after it), or a bare code, fills the field and is checked at once; anything
+  else: "That QR code isn't a Pass the Hat invite." Cancelled: back to the dialog. The scanner not opening (no Play
+  services, its module not there yet): "Couldn't open the scanner. Type the code instead." Not on the web (a phone's
+  camera opens the invite link anyway).
+
+## 11. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -239,7 +257,12 @@ wasn't worth it, and a bank's own notification already says money arrived.
 - [x] The numbers per period (with tests)
 - [x] The screen: period chips with the custom range, the four blocks, who sees what
 
-## 11. Decision log
+### Calendar on the app's domain, scanning an invite (§10)
+
+- [ ] Terraform applied (`/calendar/*` to the API), before the server gives out the new links
+- [x] Feed links on the app's domain, 410 for gone ones; Join band's Scan QR code
+
+## 12. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
@@ -262,3 +285,5 @@ wasn't worth it, and a bank's own notification already says money arrived.
   library needed Compose UI 1.12 (compileSdk 37) while the app is on Compose Multiplatform 1.11.
 - 2026-10-26: All notifications removed (§9): unreliable for an app opened rarely (Samsung's sleeping apps, Android's
   restricted bucket), push not worth it. Gigs reach phones through the calendar subscription, whose reminders work.
+- 2026-10-26: Scanning invites uses Google Play services' code scanner rather than a camera library: no camera
+  permission, no scanning UI to build; phones without Play services type the code.

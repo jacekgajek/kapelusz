@@ -35,7 +35,7 @@ class CalendarTest {
         return KapeluszJson.decodeFromString(CalendarSubscription.serializer(), response.body!!)
     }
 
-    private fun feed(url: String) = call("GET", url.removePrefix("https://api.test"), null)
+    private fun feed(url: String) = call("GET", url.removePrefix("https://kapelusz.jacekgajek.com"), null)
 
     private fun setup() {
         call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
@@ -56,7 +56,7 @@ class CalendarTest {
     fun theFeedHasMyGigsWithTheirTimes() {
         setup()
         val sub = subscription("alice")
-        assertTrue(sub.url.startsWith("https://api.test/calendar/") && sub.url.endsWith(".ics"))
+        assertTrue(sub.url.startsWith("https://kapelusz.jacekgajek.com/calendar/") && sub.url.endsWith(".ics"), "on the app's domain")
         val response = feed(sub.url)
         assertEquals(200, response.status)
         assertTrue(response.headers.getValue("content-type").startsWith("text/calendar"))
@@ -83,9 +83,9 @@ class CalendarTest {
         val old = subscription("alice")
         val fresh = subscription("alice", CalendarSubscriptionChange(reset = true))
         assertNotEquals(old.url, fresh.url)
-        assertEquals(404, feed(old.url).status)
+        assertEquals(410, feed(old.url).status, "gone: passes CloudFront as it is")
         assertEquals(200, feed(fresh.url).status)
-        assertEquals(404, call("GET", "/calendar/abcdefghijklmnopqrstuvwxyz.ics", null).status)
+        assertEquals(410, call("GET", "/calendar/abcdefghijklmnopqrstuvwxyz.ics", null).status)
     }
 
     @Test

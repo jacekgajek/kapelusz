@@ -291,6 +291,9 @@
     <string name="unlink_confirm">%1$s straci dostęp do zespołu do czasu ponownego zaproszenia. Koszty i historia zostają.</string>
     <string name="make_owner">Przekaż własność</string>
     <string name="make_owner_confirm">%1$s przejmie rolę właściciela; Ty pozostaniesz liderem.</string>
+    <string name="join_scan_qr">Zeskanuj kod QR</string>
+    <string name="join_scan_failed">Nie udało się otworzyć skanera. Wpisz kod.</string>
+    <string name="join_qr_not_invite">Ten kod QR nie jest zaproszeniem do Kapelusza.</string>
     <string name="invite_code">Kod zaproszenia</string>
     <string name="check_code">Sprawdź</string>
     <string name="join">Dołącz</string>

@@ -16,7 +16,7 @@ internal class CalendarHandlers(
     private val users: UserHandlers,
 ) {
     /** The user's feed link, created on first use; [change] can switch "include all" or make a new link. */
-    fun subscription(user: VerifiedUser, request: HttpRequest, change: CalendarSubscriptionChange): HttpResponse {
+    fun subscription(user: VerifiedUser, change: CalendarSubscriptionChange): HttpResponse {
         val key = StorageKeys.calendar(user.userId)
         val (secret, updated) = retryOnConflict(exhausted = { throw busy("Try again") }) {
             val blob = store.get(key)
@@ -32,16 +32,20 @@ internal class CalendarHandlers(
             }
             secret to updated
         }
-        // The link points at this API, whichever address the app used.
-        val host = request.header("host") ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "No host")
-        return ok(CalendarSubscription.serializer(), CalendarSubscription("https://$host/calendar/$secret.ics", updated.includeAll))
+        // On the app's own domain, which passes /calendar/* to this API (ITERATION_6 §10); links given out earlier on the
+        // API's own address keep working.
+        return ok(CalendarSubscription.serializer(), CalendarSubscription("$WEB_URL/calendar/$secret.ics", updated.includeAll))
     }
 
+    /**
+     * A feed that isn't (any more): 410 Gone, not 404. On the app's domain CloudFront turns 403/404/5xx into the web
+     * app's page with a 200 (ITERATION_6 §10); a 410 reaches the calendar app as it is.
+     */
     fun feed(secret: String): HttpResponse {
         val owner = store.get(StorageKeys.calendarSecret(secret))?.let { decode(CalendarOwner.serializer(), it.content) }
-            ?: return error(404, ApiErrors.NOT_FOUND, "No such calendar")
+            ?: return error(410, ApiErrors.NOT_FOUND, "No such calendar")
         val settings = store.get(StorageKeys.calendar(owner.userId))?.let { decode(StoredCalendar.serializer(), it.content) }
-        if (settings?.secret != secret) return error(404, ApiErrors.NOT_FOUND, "No such calendar")
+        if (settings?.secret != secret) return error(410, ApiErrors.NOT_FOUND, "No such calendar")
         val list = users.loadUser(owner.userId).bandIds.mapNotNull { bands.load(it)?.first }
         val now = Instant.ofEpochMilli(clock()).atZone(ZoneOffset.UTC).toLocalDateTime()
         val stamp = kotlinx.datetime.LocalDateTime(now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute)

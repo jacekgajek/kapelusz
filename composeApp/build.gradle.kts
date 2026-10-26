@@ -123,6 +123,8 @@ kotlin {
             implementation(libs.qrcode.kotlin)
         }
         androidMain.dependencies {
+            // Scanning an invite's QR code in Join band (ITERATION_6 §10): Play services' own scanner, no camera permission.
+            implementation(libs.play.services.code.scanner)
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.exifinterface)

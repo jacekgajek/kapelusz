@@ -1,5 +1,15 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.foundation.layout.padding
+import com.jacekgajek.kapelusz.app.generated.join_scan_qr
+import com.jacekgajek.kapelusz.app.generated.join_qr_not_invite
+import com.jacekgajek.kapelusz.app.platform.QrScan
+import com.jacekgajek.kapelusz.app.platform.rememberQrScanner
+import com.jacekgajek.kapelusz.app.generated.join_scan_failed
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.Icons
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,6 +82,29 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
 
     // A code from a join link is checked right away.
     LaunchedEffect(Unit) { if (code.length == CODE_LENGTH) check() }
+    // An invite's QR code (ITERATION_6 §10): its join link, or a bare code; checked right away too.
+    val scanQr = rememberQrScanner()
+    var scanning by remember { mutableStateOf(false) }
+    fun scan(scanner: suspend () -> QrScan) = scope.launch {
+        scanning = true
+        val result = scanner()
+        scanning = false
+        when (result) {
+            QrScan.Cancelled -> {}
+            QrScan.Failed -> error = Res.string.join_scan_failed
+            is QrScan.Scanned -> {
+                // Nothing from before stays joinable under the new result.
+                preview = null
+                val scanned = inviteCode(result.text)
+                if (scanned == null) {
+                    error = Res.string.join_qr_not_invite
+                } else {
+                    code = scanned
+                    check()
+                }
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -90,6 +123,13 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // Scanning is the usual way in, next to the leader's phone; typing the fallback.
+                scanQr?.let { scanner ->
+                    OutlinedButton(onClick = { scan(scanner) }, enabled = !busy && !scanning, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                        Text(stringResource(Res.string.join_scan_qr), Modifier.padding(start = 8.dp))
+                    }
+                }
                 preview?.let { Text(stringResource(Res.string.join_preview, it.bandName, it.memberName, it.role.label()), style = MaterialTheme.typography.titleSmall) }
                 error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
             }
@@ -110,4 +150,11 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
+}
+
+/** The invite code in a scanned text: a join link's (…/join/ABC123, maybe with ?… or #… after it) or the code alone. */
+internal fun inviteCode(text: String): String? {
+    val trimmed = text.trim()
+    val candidate = Regex("/join/([A-Za-z0-9]+)/?(?:[?#].*)?$").find(trimmed)?.groupValues?.get(1) ?: trimmed
+    return candidate.uppercase().takeIf { it.length == CODE_LENGTH && it.all { c -> c in 'A'..'Z' || c in '0'..'9' } }
 }
