@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -178,6 +177,13 @@ fun SettingsScreen(
 
             Column(Modifier.padding(horizontal = 16.dp)) {
                 rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
+            }
+            val uriHandler = LocalUriHandler.current
+            SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
+                uriHandler.openUri(SUPPORT_URL)
+            }
+
+            Column(Modifier.padding(horizontal = 16.dp)) {
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
@@ -199,18 +205,9 @@ fun SettingsScreen(
                     }
                     if (signingOutEverywhere) SignOutEverywhereDialog(onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })
                 }
-            }
-            // Set apart from the account actions above.
-            Spacer(Modifier.height(16.dp))
-            val uriHandler = LocalUriHandler.current
-            SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
-                uriHandler.openUri(SUPPORT_URL)
-            }
-
-            Column(Modifier.padding(horizontal = 16.dp)) {
                 // Last, set apart: it cannot be undone (ITERATION_2 §7).
                 if (onDeleteBand != null) {
-                    HorizontalDivider(Modifier.padding(top = 16.dp))
+                    HorizontalDivider(Modifier.padding(top = 24.dp))
                     var deleting by remember { mutableStateOf(false) }
                     OutlinedButton(
                         onClick = { deleting = true },
