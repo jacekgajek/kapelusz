@@ -12,6 +12,7 @@ class InviteCodeTest {
     fun aJoinLinksCode() {
         assertEquals("T2KTHM", inviteCode("https://kapelusz.jacekgajek.com/join/T2KTHM"))
         assertEquals("T2KTHM", inviteCode(" https://kapelusz.jacekgajek.com/join/t2kthm/ "))
+        assertEquals("T2KTHM", inviteCode("https://kapelusz.jacekgajek.com/join/T2KTHM?utm=qr"))
     }
 
     @Test
@@ -24,5 +25,6 @@ class InviteCodeTest {
         assertNull(inviteCode("https://example.com/menu"))
         assertNull(inviteCode("https://kapelusz.jacekgajek.com/join/TOOLONG1"))
         assertNull(inviteCode("hello!"))
+        assertNull(inviteCode("ĄBC123"), "only A–Z and 0–9")
     }
 }

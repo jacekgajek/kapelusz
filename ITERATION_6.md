@@ -217,14 +217,20 @@ wasn't worth it, and a bank's own notification already says money arrived.
 ## 10. The calendar on the app's domain; scanning an invite (2026-10-26)
 
 - **Calendar link:** `https://kapelusz.jacekgajek.com/calendar/<secret>.ics` instead of the API's own address
-  (`…execute-api…amazonaws.com`). CloudFront passes `/calendar/*` to the API like `/e/*`, cached up to 5 minutes (Google
-  refreshes every few hours anyway). Links given out before keep working on the API's address. Needs the Terraform
-  change applied before the server gives out the new links. Like every path, a feed that's gone (a reset link) gets
-  the web app's page from CloudFront's error pages rather than a 404: the calendar app just can't read it.
-- **Join band, scan:** a QR icon in the invite code field (Android) opens Google Play services' code scanner (its own
-  camera screen: no camera permission; "Scanned by Google on behalf of Pass the Hat"). A join link's code, or a bare
-  code, fills the field and is checked at once; anything else: "That QR code isn't a Pass the Hat invite." Cancelled:
-  back to the dialog. Not on the web (a phone's camera opens the invite link anyway).
+  (`…execute-api…amazonaws.com`). CloudFront passes `/calendar/*` to the API like `/e/*`; the feed says
+  `private, max-age=900`, so CloudFront doesn't keep it. Links given out before keep working on the API's address.
+  Needs the Terraform change applied before the server gives out the new links.
+- **A feed that's gone** (a reset link, a wrong secret): **410 Gone**, not 404. CloudFront's error pages turn
+  403/404/5xx into the web app's page with a 200 for every path; a 410 passes as it is. Not an empty calendar: one
+  given out by mistake (a server hiccup) would wipe everyone's gigs from their calendars. A 5xx still becomes the page;
+  the calendar app keeps its last good copy.
+- **Join band, scan:** a "Scan QR code" button under the invite code field (Android): scanning is the usual way in,
+  standing next to the leader's phone, typing the fallback. It opens Google Play services' code scanner (its own camera
+  screen: no camera permission; "Scanned by Google on behalf of Pass the Hat"; the module downloaded with the app). A
+  join link's code (also with `?…` or `#…` after it), or a bare code, fills the field and is checked at once; anything
+  else: "That QR code isn't a Pass the Hat invite." Cancelled: back to the dialog. The scanner not opening (no Play
+  services, its module not there yet): "Couldn't open the scanner. Type the code instead." Not on the web (a phone's
+  camera opens the invite link anyway).
 
 ## 11. Milestones and task checklist
 
@@ -250,6 +256,11 @@ wasn't worth it, and a bank's own notification already says money arrived.
 - [x] Icons in the cog menu; Summary in it
 - [x] The numbers per period (with tests)
 - [x] The screen: period chips with the custom range, the four blocks, who sees what
+
+### Calendar on the app's domain, scanning an invite (§10)
+
+- [ ] Terraform applied (`/calendar/*` to the API), before the server gives out the new links
+- [x] Feed links on the app's domain, 410 for gone ones; Join band's Scan QR code
 
 ## 12. Decision log
 

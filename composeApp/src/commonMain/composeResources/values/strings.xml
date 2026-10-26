@@ -291,7 +291,8 @@
     <string name="unlink_confirm">%1$s will lose access to the band until invited again. Their costs and history stay.</string>
     <string name="make_owner">Make owner</string>
     <string name="make_owner_confirm">%1$s becomes the owner; you stay a leader.</string>
-    <string name="join_scan_qr">Scan the invite’s QR code</string>
+    <string name="join_scan_qr">Scan QR code</string>
+    <string name="join_scan_failed">Couldn’t open the scanner. Type the code instead.</string>
     <string name="join_qr_not_invite">That QR code isn’t a Pass the Hat invite.</string>
     <string name="invite_code">Invite code</string>
     <string name="check_code">Check</string>

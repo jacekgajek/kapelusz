@@ -83,9 +83,9 @@ class CalendarTest {
         val old = subscription("alice")
         val fresh = subscription("alice", CalendarSubscriptionChange(reset = true))
         assertNotEquals(old.url, fresh.url)
-        assertEquals(404, feed(old.url).status)
+        assertEquals(410, feed(old.url).status, "gone: passes CloudFront as it is")
         assertEquals(200, feed(fresh.url).status)
-        assertEquals(404, call("GET", "/calendar/abcdefghijklmnopqrstuvwxyz.ics", null).status)
+        assertEquals(410, call("GET", "/calendar/abcdefghijklmnopqrstuvwxyz.ics", null).status)
     }
 
     @Test

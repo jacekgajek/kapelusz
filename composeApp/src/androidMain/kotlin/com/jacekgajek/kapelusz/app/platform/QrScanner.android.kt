@@ -10,21 +10,21 @@ import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
- * Google Play services' code scanner: its own camera screen, so the app needs no camera permission; the scanning module
- * is downloaded by Play services on first use.
+ * Google Play services' code scanner: its own camera screen, so the app needs no camera permission; its module comes
+ * with the app's install (the manifest's ML Kit dependencies), or else on first use.
  */
 @Composable
-actual fun rememberQrScanner(): (suspend () -> String?)? {
+actual fun rememberQrScanner(): (suspend () -> QrScan)? {
     val context = LocalContext.current
     return remember(context) {
         val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build()
         val scanner = GmsBarcodeScanning.getClient(context, options)
-        val scan: suspend () -> String? = {
+        val scan: suspend () -> QrScan = {
             suspendCancellableCoroutine { continuation ->
                 scanner.startScan()
-                    .addOnSuccessListener { continuation.resume(it.rawValue) }
-                    .addOnCanceledListener { continuation.resume(null) }
-                    .addOnFailureListener { continuation.resume(null) }
+                    .addOnSuccessListener { code -> continuation.resume(code.rawValue?.let { QrScan.Scanned(it) } ?: QrScan.Failed) }
+                    .addOnCanceledListener { continuation.resume(QrScan.Cancelled) }
+                    .addOnFailureListener { continuation.resume(QrScan.Failed) }
             }
         }
         scan
