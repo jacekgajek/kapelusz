@@ -511,6 +511,7 @@ Some removals apply at once and offer **Undo** in a snackbar instead of asking f
   stays their own, as do the fund, shares and participants.
 
 ### 7.2 Invitations and who may do what
+(Artists pair too since 2026-10-26: ITERATION_6 §11.)
 - Each for themselves only (nobody, admins included, pairs others): members and up invite, answer and end a pair.
 - Both need an account and must be members or up (not viewers, not artists: dropped 2026-10-24, an artist's payout
   with a pair's numbers was confusing), neither archived, in a pair or with an invitation waiting either way.

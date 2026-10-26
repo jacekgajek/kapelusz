@@ -18,12 +18,14 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -84,6 +86,37 @@ class PresentationTest {
             eventSummaries(band, alice, AppSettings(showArchived = true)).map { it.event.id },
         )
         assertEquals(MyNumber.HandOver(Money(5000)), eventSummaries(band, band.member("bob"), AppSettings()).first().myNumber)
+    }
+
+    @Test
+    fun aPairedArtistSeesOnlyTheirOwnNumber() {
+        // ITERATION_6 §11: Carol, an artist, settles together with Bob. Three shares of 100.
+        // [before] is applied while Carol is still a member.
+        fun band(holder: String, vararg before: Operation) = Band.create("b", "Band", "PLN", "alice", "Alice", "u").apply(
+            AddMember("bob", "Bob"),
+            AddMember("carol", "Carol"),
+            CreateEvent("gig", "Gig", LocalDate(2026, 9, 13), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol"))),
+            AddHolding("gig", "h", holder, Money(30000), IncomeSource.DOOR),
+            *before,
+        ).let { band ->
+            band.copy(members = band.members.map {
+                when (it.id) {
+                    "bob" -> it.copy(userId = "ub", settlesWith = "carol")
+                    "carol" -> it.copy(userId = "uc", role = Role.ARTIST, settlesWith = "bob")
+                    else -> it
+                }
+            })
+        }
+        fun number(band: Band, id: String) = eventSummaries(band, band.member(id), AppSettings()).single().myNumber
+
+        val bobHolds = band("bob")
+        assertEquals(MyNumber.Even, number(bobHolds, "carol"), "Bob keeps her 100")
+        assertEquals(MyNumber.HandOver(Money(10000)), number(bobHolds, "bob"), "the pair's number: Alice's 100")
+        val aliceHolds = band("alice")
+        assertEquals(MyNumber.Get(Money(10000)), number(aliceHolds, "carol"), "her own 100, not the pair's 200")
+        // Paid the pair's 200 while still a member: she holds Bob's 100 for him, nothing to hand back.
+        val paidToCarol = band("alice", RecordTransfer("gig", "t", "alice", "carol", Money(20000)))
+        assertEquals(MyNumber.Even, number(paidToCarol, "carol"))
     }
 
     @Test

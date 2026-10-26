@@ -25,6 +25,7 @@ import com.jacekgajek.kapelusz.app.generated.settle_together_cancel
 import com.jacekgajek.kapelusz.app.generated.settle_together_decline
 import com.jacekgajek.kapelusz.app.generated.settle_together_ends
 import com.jacekgajek.kapelusz.app.generated.settle_together_hint
+import com.jacekgajek.kapelusz.app.generated.settle_together_hint_artist
 import com.jacekgajek.kapelusz.app.generated.settle_together_invite
 import com.jacekgajek.kapelusz.app.generated.settle_together_invited
 import com.jacekgajek.kapelusz.app.generated.settle_together_pending_other
@@ -82,7 +83,7 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
             }
             member.invitedToSettle != null || inviter != null -> Text(stringResource(Res.string.settle_together_pending_other))
             SettleTogether.mayInvite(band, me, member) -> {
-                Text(stringResource(Res.string.settle_together_hint), style = MaterialTheme.typography.bodySmall)
+                SettleTogetherHint(me)
                 FilledTonalButton(onClick = { actions.run(InviteToSettleTogether(me.id, member.id)) }) {
                     Text(stringResource(Res.string.settle_together_invite))
                 }
@@ -98,6 +99,13 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
             onDismiss = { stopping = null },
         )
     }
+}
+
+/** What settling together means for [me]: an artist sees only their own money (ITERATION_6 §11). */
+@Composable
+private fun SettleTogetherHint(me: Member) {
+    val hint = if (me.role == Role.ARTIST) Res.string.settle_together_hint_artist else Res.string.settle_together_hint
+    Text(stringResource(hint), style = MaterialTheme.typography.bodySmall)
 }
 
 /** [member]'s dialog has something on settling together for [me] (see [SettleTogetherSection]). */
@@ -123,7 +131,7 @@ fun SettleTogetherInvitationCard(band: Band, me: Member?, actions: Actions) {
 private fun InvitationAnswer(from: Member, me: Member, actions: Actions) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(Res.string.settle_together_invited, from.name))
-        Text(stringResource(Res.string.settle_together_hint), style = MaterialTheme.typography.bodySmall)
+        SettleTogetherHint(me)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilledTonalButton(onClick = { actions.run(AcceptSettleTogether(from.id, me.id)) }) { Text(stringResource(Res.string.settle_together_accept)) }
             OutlinedButton(onClick = { actions.run(DeclineSettleTogether(from.id, me.id)) }) { Text(stringResource(Res.string.settle_together_decline)) }
@@ -131,9 +139,9 @@ private fun InvitationAnswer(from: Member, me: Member, actions: Actions) {
     }
 }
 
-/** A new [role] for [member] ends their pair: a viewer or an artist (ITERATION_5 §7.2). */
+/** A new [role] for [member] ends their pair: a viewer (ITERATION_5 §7.2; artists pair too since ITERATION_6 §11). */
 fun pairEndsWarningNeeded(member: Member, role: Role): Boolean =
-    member.settlesWith != null && (role == Role.VIEWER || role == Role.ARTIST)
+    member.settlesWith != null && role == Role.VIEWER
 
 /**
  * The line a confirmation adds when archiving, unlinking or a new [role] (null: not a role change) ends [member]'s pair

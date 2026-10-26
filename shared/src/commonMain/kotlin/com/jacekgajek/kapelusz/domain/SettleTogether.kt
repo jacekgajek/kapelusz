@@ -15,10 +15,10 @@ import com.jacekgajek.kapelusz.model.Role
 object SettleTogether {
 
     /**
-     * May be in a pair at all: on the roster, with an account (to answer), from members up. Not viewers, who play in no
-     * event, nor artists, who hold no money and see only their own numbers (§7.2).
+     * May be in a pair at all: on the roster, with an account (to answer), from artists up (ITERATION_6 §11). Not viewers,
+     * who play in no event. An artist still holds no money: their partner keeps or receives their share.
      */
-    fun canPair(member: Member): Boolean = !member.archived && member.userId != null && member.role.atLeast(Role.MEMBER) && member.role != Role.VIEWER
+    fun canPair(member: Member): Boolean = !member.archived && member.userId != null && member.role.atLeast(Role.ARTIST)
 
     /** May send an invitation: as [canPair]. */
     fun canInvite(member: Member): Boolean = canPair(member)
@@ -40,7 +40,7 @@ object SettleTogether {
 
     /**
      * [band] without the pairs and invitations a change made impossible (§7): someone archived, unlinked, or made a
-     * viewer or an artist. Nothing else changes. A pair ending keeps the events it settled together as they were
+     * viewer. Nothing else changes. A pair ending keeps the events it settled together as they were
      * [before] the change, while it still counted.
      */
     fun tidy(band: Band, before: Band = band): Band {
@@ -89,13 +89,23 @@ object SettleTogether {
         val kept = event.settledTogether
             .filter { pair -> pair.all { event.participant(it) != null } }
             .flatMap { (a, b) -> listOf(a to b, b to a) }.toMap()
-        // Only pairs that may still be (a stored pair with an artist from before §7.2 changed counts no more).
+        // Only pairs that may still be (a stored pair with a viewer, say, counts no more).
         val current = band.members
             .filter { member -> member.settlesWith != null && event.participant(member.id) != null && event.participant(member.settlesWith!!) != null }
             .filter { member -> band.member(member.settlesWith!!)?.let { validPair(member, it) } == true }
             .filter { it.id !in kept && it.settlesWith !in kept }
             .associate { it.id to it.settlesWith!! }
         return kept + current
+    }
+
+    /**
+     * Of what [memberId] is still owed in [settlement], the part their partner holds for them (ITERATION_6 §11): what the
+     * partner holds over their own target, up to what [memberId] is owed. Zero without a partner here.
+     */
+    fun keptByPartner(settlement: Settlement, memberId: Id): Money {
+        val owed = settlement.line(memberId)?.delta?.takeIf { it.isNegative }?.let { -it } ?: return Money.ZERO
+        val spare = settlement.partners[memberId]?.let { settlement.line(it) }?.delta?.takeIf { it.isPositive } ?: return Money.ZERO
+        return minOf(owed, spare)
     }
 
     /**

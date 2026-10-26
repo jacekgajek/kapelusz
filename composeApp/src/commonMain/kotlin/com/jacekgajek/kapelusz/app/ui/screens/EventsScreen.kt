@@ -209,7 +209,7 @@ fun EventsScreen(
                     BandHintCard(hint, onRoster, onHide = { graph.settings.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
                 }
             }
-            // Until answered (ITERATION_5 §7): there are no pushes, and the roster is not where artists look.
+            // Until answered (ITERATION_5 §7): there are no pushes, and nobody visits the roster to check.
             if (!searching && state.me?.let { SettleTogether.inviterOf(band, it.id) } != null) {
                 item(key = "settle-together") { SettleTogetherInvitationCard(band, state.me, actions) }
             }

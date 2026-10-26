@@ -16,6 +16,10 @@
     <string name="artist_still_to_receive">Pozostało do otrzymania</string>
     <string name="artist_to_hand_back">Do oddania (rozliczy to lider)</string>
     <string name="artist_my_costs">Twoje koszty dla tego wydarzenia</string>
+    <string name="artist_kept_by_partner">Trzyma dla ciebie: %1$s</string>
+    <string name="artist_settles_with">Rozliczasz się razem z: %1$s. Ta osoba może zatrzymać albo odebrać to, co ci się należy.</string>
+    <string name="artist_held_for_partner">Trzymasz dla: %1$s</string>
+    <string name="artist_settled_with">Tutaj rozliczono cię razem z: %1$s.</string>
     <string name="tab_settle">Rozliczenia</string>
     <string name="language">Język</string>
     <string name="language_system">Język urządzenia</string>
@@ -405,7 +409,7 @@
     <string name="change_own_role_confirm">Zmień moją rolę</string>
     <string name="load_more">Pokaż więcej</string>
     <string name="role_desc_viewer">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Niczego nie zmienia. Dla menedżera, księgowego lub każdego, kto sprawdza, ale nie gra.</string>
-    <string name="role_desc_artist">Widzi tylko wydarzenia, w których gra (szczegóły i skład), swoje koszty i to, ile ma otrzymać. Dodaje własne koszty, które lider zwraca na wydarzeniu. Nigdy nie trzyma pieniędzy.</string>
+    <string name="role_desc_artist">Widzi tylko wydarzenia, w których gra (szczegóły i skład), swoje koszty, to, ile ma otrzymać, i imiona członków zespołu. Dodaje własne koszty, które lider zwraca na wydarzeniu. Nigdy nie trzyma pieniędzy; może rozliczać się razem z innym członkiem.</string>
     <string name="role_desc_member">Widzi wszystko: wydarzenia, rozliczenia, kasę zespołową i historię. Dodaje i edytuje własne koszty, zapisuje pieniądze otrzymane przez siebie na wydarzeniach, w których gra, i rozlicza przekazania, w których płaci lub otrzymuje pieniądze.</string>
     <string name="role_desc_lead">To samo co członek, a do tego: tworzy i edytuje wydarzenia, uczestników, gości i udziały, decyduje o zwrotach kosztów i kasie zespołowej, poprawia koszty i otrzymane pieniądze innych, rozlicza całe wydarzenia, zarządza składem zespołu, rolami i zaproszeniami, odłącza konta w aplikacji i wybiera, kto trzyma kasę zespołową.</string>
     <string name="role_owner_note">Właściciel ma wszystkie uprawnienia lidera i jako jedyny może przekazać własność innemu liderowi lub usunąć zespół.</string>
@@ -579,6 +583,7 @@
     <string name="pair_breakdown">%1$s: wypłata %2$s · trzyma %3$s</string>
     <string name="settle_together_title">Wspólne rozliczenie</string>
     <string name="settle_together_hint">W rozliczeniu jesteście jedną stroną; wszędzie indziej osobno.</string>
+    <string name="settle_together_hint_artist">Druga osoba może zatrzymać albo odebrać to, co ci się należy; nadal widzisz tylko swoje pieniądze.</string>
     <string name="settle_together_invite">Rozliczaj się razem ze mną</string>
     <string name="settle_together_waiting">Czekamy na odpowiedź: %1$s.</string>
     <string name="settle_together_cancel">Anuluj zaproszenie</string>
