@@ -391,7 +391,7 @@
     <string name="change_own_role_confirm">Change my role</string>
     <string name="load_more">Load more</string>
     <string name="role_desc_viewer">Sees everything: events, settlements, the band fund and the history. Changes nothing. For a manager, an accountant or anyone who checks but doesn’t play.</string>
-    <string name="role_desc_artist">Sees only the events they play (details and who plays), their own costs and what they receive. Adds their own costs, which a leader includes or refuses. Never holds money.</string>
+    <string name="role_desc_artist">Sees only the events they play (details and who plays), their own costs and what they receive. Adds their own costs, which a leader refunds at an event. Never holds money.</string>
     <string name="role_desc_member">Sees everything: events, settlements, the band fund and the history. Adds and edits their own costs, records money they received at events they play, and settles transfers in which they pay or receive money.</string>
     <string name="role_desc_lead">Everything a member can, plus: creates and edits events, participants, guests and shares, decides on cost refunds and the band fund, corrects anyone's costs and received money, settles whole events, manages band members, roles and invites, unlinks app accounts, and chooses who holds the band fund.</string>
     <string name="role_owner_note">The owner has all leader rights and is the only one who can hand ownership over to another leader, or delete the band.</string>
