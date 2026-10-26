@@ -142,12 +142,15 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
 **Blocks, in this order:**
 1. **You:** Earned (your shares at settled events), Refunded (payments of your costs), Waiting (your costs not fully
    refunded, as of today, whatever the period). Hidden when all are zero (most viewers).
-2. **Band:** settled events (count); Collected (awaited fees count once the event is settled); Paid to the band (all
-   shares: everyone's Earned); Costs (fully refunded costs); Fund: in (its cut at events, deposits), out (covering
+2. **Band:** settled events (count); Collected (awaited fees count once the event is settled), and under it the parts
+   that add up to it (2026-10-26, after "the numbers don't add up"): Paid to the band (all shares: everyone's Earned),
+   Cost refunds (paid at those events), To the band fund (its part of them; negative: the fund covered some; shown with
+   a fund). Fund: in (its cut at events, deposits), out (covering
    events, withdrawals, refunds from it), and the balance at the period's end, hidden without a fund. The fund is the
    money actually there, as on its page (moved by events, on the event's date, settled or not), so the balance
    matches. No "profit": the money is shared out completely.
-3. **Costs by category:** a row per category with costs in the period (icon, total), largest first; none: Other.
+3. **Costs by category:** Total (costs fully refunded in the period, from events or the fund), then a row per category
+   (icon, total), largest first; none: Other.
 4. **Members:** anyone with a number in the period, former members too, by Earned, highest first, you among them:
    Earned and Refunded. Each of a pair settling together on their own row (the settlement keeps them apart). A
    member's avatar, or the crossed eye: a tap invites them, as for an event's participants (only for those who may

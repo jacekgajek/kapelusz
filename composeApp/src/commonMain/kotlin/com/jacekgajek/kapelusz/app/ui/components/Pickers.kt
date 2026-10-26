@@ -2,7 +2,6 @@ package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -33,6 +32,15 @@ import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.ok
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
+import com.jacekgajek.kapelusz.app.generated.range_from_to
+import com.jacekgajek.kapelusz.app.generated.range_pick_end
+import com.jacekgajek.kapelusz.app.generated.range_pick_start
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -97,11 +105,27 @@ fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, Local
             title = null,
             headline = {
                 val lang = language
+                val from = start?.let { formatDate(it.date(), lang) }
+                val until = end?.let { formatDate(it.date(), lang) }
+                val text = when {
+                    from == null -> stringResource(Res.string.range_pick_start)
+                    until == null -> "$from – …"
+                    else -> "$from – $until"
+                }
+                val spoken = when {
+                    from == null -> text
+                    until == null -> stringResource(Res.string.range_pick_end, from)
+                    else -> stringResource(Res.string.range_from_to, from, until)
+                }
+                // Smaller rather than cut off (a long language, a large font); read out on each tap, as Material's own.
                 Text(
-                    listOf(start, end).joinToString(" – ") { millis -> millis?.let { formatDate(it.date(), lang) } ?: "…" },
-                    Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
-                    style = MaterialTheme.typography.titleLarge,
+                    text,
+                    Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp).semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = spoken
+                    },
                     maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 14.sp, maxFontSize = 22.sp),
                 )
             },
         )

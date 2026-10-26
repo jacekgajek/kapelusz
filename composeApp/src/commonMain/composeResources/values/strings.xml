@@ -356,6 +356,9 @@
     <string name="h_remove_attachment">Removed a file</string>
     <string name="h_rename_attachment">Renamed a file to %1$s</string>
     <string name="h_unknown">Made a change</string>
+    <string name="range_pick_start">Pick the first day</string>
+    <string name="range_pick_end">From %1$s, pick the last day</string>
+    <string name="range_from_to">From %1$s to %2$s</string>
     <string name="summary_title">Summary</string>
     <string name="summary_last_12">Last 12 months</string>
     <string name="summary_this_year">This year</string>
@@ -372,7 +375,9 @@
     <string name="summary_events">Settled events</string>
     <string name="summary_collected">Collected</string>
     <string name="summary_paid_out">Paid to the band</string>
-    <string name="summary_costs">Costs</string>
+    <string name="summary_refunds_at_events">Cost refunds</string>
+    <string name="summary_to_fund">To the band fund</string>
+    <string name="summary_total">Total</string>
     <string name="summary_fund_in">Into the fund</string>
     <string name="summary_fund_out">Out of the fund</string>
     <string name="summary_fund_balance">In the fund at the period’s end</string>

@@ -48,7 +48,9 @@ import com.jacekgajek.kapelusz.app.generated.summary_and_more
 import com.jacekgajek.kapelusz.app.generated.summary_band
 import com.jacekgajek.kapelusz.app.generated.summary_categories
 import com.jacekgajek.kapelusz.app.generated.summary_collected
-import com.jacekgajek.kapelusz.app.generated.summary_costs
+import com.jacekgajek.kapelusz.app.generated.summary_refunds_at_events
+import com.jacekgajek.kapelusz.app.generated.summary_to_fund
+import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_custom
 import com.jacekgajek.kapelusz.app.generated.summary_earned
 import com.jacekgajek.kapelusz.app.generated.summary_empty
@@ -214,9 +216,11 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         Column {
             SectionHeader(stringResource(Res.string.summary_band))
             ValueRow(stringResource(Res.string.summary_events), summary.events.toString())
+            // Where the collected money went: the indented lines add up to it.
             AmountRow(Res.string.summary_collected, summary.collected, currency)
-            AmountRow(Res.string.summary_paid_out, summary.paidOut, currency)
-            AmountRow(Res.string.summary_costs, summary.costs, currency)
+            AmountRow(Res.string.summary_paid_out, summary.paidOut, currency, indent = true)
+            AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, indent = true)
+            if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, indent = true)
             summary.fund?.let { fund ->
                 SectionHeader(stringResource(Res.string.band_fund))
                 AmountRow(Res.string.summary_fund_in, fund.into, currency)
@@ -226,7 +230,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         }
     }
     if (summary.categories.isNotEmpty()) {
-        item(key = "categories") { SectionHeader(stringResource(Res.string.summary_categories)) }
+        item(key = "categories") {
+            Column {
+                SectionHeader(stringResource(Res.string.summary_categories))
+                // Fully refunded costs, from events or the fund, on the day they were.
+                AmountRow(Res.string.summary_total, summary.costs, currency)
+            }
+        }
         items(summary.categories, key = { "category-" + it.first.name }) { (category, amount) ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconCircle(category.icon())
@@ -251,11 +261,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
 }
 
 @Composable
-private fun AmountRow(label: StringResource, amount: Money, currency: String) = ValueRow(stringResource(label), formatMoney(amount, currency, language))
+private fun AmountRow(label: StringResource, amount: Money, currency: String, indent: Boolean = false) =
+    ValueRow(stringResource(label), formatMoney(amount, currency, language), indent)
 
+/** A label and its value; [indent]: a part of the row above. */
 @Composable
-private fun ValueRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+private fun ValueRow(label: String, value: String, indent: Boolean = false) {
+    Row(Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp, top = 4.dp, bottom = 4.dp)) {
         Text(label, Modifier.weight(1f))
         Text(value)
     }

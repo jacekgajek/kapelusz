@@ -356,6 +356,9 @@
     <string name="h_remove_attachment">Usunięto plik</string>
     <string name="h_rename_attachment">Zmieniono nazwę pliku na %1$s</string>
     <string name="h_unknown">Wprowadzono zmianę</string>
+    <string name="range_pick_start">Wybierz pierwszy dzień</string>
+    <string name="range_pick_end">Od %1$s, wybierz ostatni dzień</string>
+    <string name="range_from_to">Od %1$s do %2$s</string>
     <string name="summary_title">Podsumowanie</string>
     <string name="summary_last_12">Ostatnie 12 miesięcy</string>
     <string name="summary_this_year">Ten rok</string>
@@ -372,7 +375,9 @@
     <string name="summary_events">Rozliczone wydarzenia</string>
     <string name="summary_collected">Zebrane</string>
     <string name="summary_paid_out">Wypłacone zespołowi</string>
-    <string name="summary_costs">Koszty</string>
+    <string name="summary_refunds_at_events">Zwroty kosztów</string>
+    <string name="summary_to_fund">Do kasy zespołowej</string>
+    <string name="summary_total">Razem</string>
     <string name="summary_fund_in">Do kasy</string>
     <string name="summary_fund_out">Z kasy</string>
     <string name="summary_fund_balance">W kasie na koniec okresu</string>

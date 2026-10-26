@@ -78,6 +78,9 @@ class PeriodSummaryTest {
         assertEquals(1, summary.events, "only settled events")
         assertEquals(zl(1000), summary.collected)
         assertEquals(zl(700), summary.paidOut)
+        assertEquals(zl(200), summary.refundedAtEvents)
+        assertEquals(zl(100), summary.toFund)
+        assertEquals(summary.collected, summary.paidOut + summary.refundedAtEvents + summary.toFund, "the parts add up to Collected")
         assertEquals(zl(500), summary.costs, "fully refunded: my travel at the gig, Bob's food from the fund")
         assertEquals(listOf(CostCategory.FOOD to zl(300), CostCategory.TRAVEL to zl(200)), summary.categories)
         assertEquals(FundTotals(into = zl(600), out = zl(300), balance = zl(300)), summary.fund)
@@ -131,6 +134,8 @@ class PeriodSummaryTest {
         )
         val y2026 = periodSummary(covered, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
         assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200)), y2026.fund)
+        assertEquals(zl(-100), y2026.toFund, "the fund covered part of the event")
+        assertEquals(y2026.collected, y2026.paidOut + y2026.refundedAtEvents + y2026.toFund)
         assertEquals(BandFund.balance(covered), periodSummary(covered, me, null, null).fund?.balance)
     }
 
