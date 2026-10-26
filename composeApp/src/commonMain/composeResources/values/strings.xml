@@ -245,8 +245,8 @@
     <string name="sign_out">Sign out</string>
     <string name="sign_out_everywhere">Sign out on all devices</string>
     <string name="sign_out_everywhere_text">Pass the Hat is signed out on every device where you use it, including this one. Each of them has to sign in with Google again. Useful after losing a phone or signing in on someone else’s computer.</string>
-    <string name="support_me">Support me!</string>
     <string name="sign_out_everywhere_failed">Could not sign out on all devices. Check your connection and try again.</string>
+    <string name="support_me">Support me!</string>
     <string name="signed_out_everywhere">You were signed out on all devices. Sign in again to continue.</string>
     <string name="new_band">New band</string>
     <string name="new_band_title">New band</string>
