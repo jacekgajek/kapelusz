@@ -97,7 +97,84 @@ refunded yet. Refund one here, or leave it for a later event."; one button, Refu
 costs): whether a cost is paid back is talked over in person, not a formal step in the app. A cost no one should repay
 is deleted or edited by its owner or a lead; one left alone simply waits.
 
-## 6. Milestones and task checklist
+## 6. V6-M3 — Searching events (grilled 2026-10-26)
+
+- **Where:** a search icon left of the filter chips on the Events screen. A tap turns the row into a search box across
+  the full width (the chips hidden), with the keyboard open. The cards above (band hint, settle-together invitation,
+  Continue, Upcoming) are hidden while searching, at once, without animation; the list doesn't scroll by itself (the
+  row is at the top anyway).
+- **What it looks in:** an event's name and Location only. Not the notes: a setlist in every event would match a song
+  name everywhere. Not people's names (nearly every event) nor the date (the list is by date already).
+- **Which events:** all of them, ignoring the hidden filters (an old gig is often archived, or one you didn't play);
+  archived ones show their usual status chip. Artists still find only their own events (privacy, not a filter). Until
+  something is typed (spaces don't count), the list stays as it was, filters included. Results keep the list's order.
+- **Matching:** each typed word must appear somewhere in the name or Location, in any order ("wesele kraków"),
+  ignoring case and Polish letters ("lodz" finds "Łódź"): a small table for ą ć ę ł ń ó ś ź ż and common Latin
+  letters (é, ü, ö…), as Kotlin's common library has no `Normalizer`. No highlighting of the match: with letters
+  folded, mapping positions back to the original text isn't worth it.
+- **Closing:** the X clears and closes at once; Back (Esc on the web) closes the search before leaving the screen.
+  The query stays when an event is opened and closed, and across tabs (tabs keep their state); not across restarts.
+- **Performance:** today `eventSummaries` settles every event on each redraw of the Events screen; typing would redraw
+  on every key.
+  - The normal list's summaries are remembered (`band`, `me`, filters): settled again only when the band changes.
+  - Opening the search starts a job (`Dispatchers.Default`) building, once, the summaries of every event the user may
+    see and their folded name + Location. Typed before it's done: a small spinner in the box, results when ready.
+  - The band changes while searching (a sync, an edit): built again; the old results stay until the new ones are
+    ready. Closing the search drops it.
+  - Each key: the typed words folded the same way, plain `contains` over the prepared texts (1,000 events: well under
+    a millisecond). No debounce.
+  - The web build has one thread: the job runs between frames there and the spinner may stop for that moment.
+- **Wording:** placeholder "Search by name or place" / "Szukaj po nazwie lub miejscu"; nothing found: "No events
+  match "kraków wesele"." / "Żadne wydarzenie nie pasuje do „kraków wesele”." (the query repeated: a typo shows);
+  the icon read out as "Search events" / "Szukaj wydarzeń", the X as "Close search" / "Zamknij wyszukiwanie".
+
+## 7. V6-M4 — Summary of a period (grilled 2026-10-26)
+
+**Where:** Summary ("Podsumowanie") in the cog menu, next to History. The menu's items get icons for easier hunting:
+Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Summary", the band's name below.
+
+**Period:** chips scrolling sideways, `Last 12 months` · `This year` · `Last year` · `All time` · `Custom…`.
+- Presets move with time: the 12 months up to today; 1 January to today; the whole previous year.
+- Custom… opens Material's date range picker; kept as fixed dates, the chip reads them ("1 Sep 2025 – 31 Aug 2026").
+  A band counting from September picks it once.
+- Remembered per band on the device, next to the filters; Last 12 months at first.
+
+**Blocks, in this order:**
+1. **You:** Earned (your shares at settled events), Refunded (payments of your costs), Waiting (your costs not fully
+   refunded, as of today, whatever the period). Hidden when all are zero (most viewers).
+2. **Band:** settled events (count); Collected (awaited fees count once the event is settled); Paid to the band (all
+   shares: everyone's Earned); Costs (fully refunded costs); Fund: in (its cut at events, deposits), out (covering
+   events, withdrawals, refunds from it), and the balance at the period's end, hidden without a fund. No "profit":
+   the money is shared out completely.
+3. **Costs by category:** a row per category with costs in the period (icon, total), largest first; none: Other.
+4. **Members:** anyone with a number in the period, former members too, by Earned, highest first, you among them:
+   Earned and Refunded. Each of a pair settling together on their own row (the settlement keeps them apart). A
+   member's avatar, or the crossed eye: a tap invites them, as for an event's participants (only for those who may
+   invite; not for former members). One "Guests" row last, with the handshake: guests are per event, nothing joins
+   them.
+
+**Which money, on which date:**
+- Only settled events count: the money is final, a closed period never changes. Events in the period not settled
+  yet: "2 events in this period aren't settled yet and aren't counted: Wesele Ani, Juwenalia." (three named, then
+  "and 2 more").
+- An event's money (collected, shares, the fund's part, refunds paid there): the event's date.
+- Fund entries, refunds from the fund too: the entry's date.
+- Refunded (You, Members): each payment on its own date, so part-refunds show as they're paid.
+- Costs (Band, categories): a cost counts once fully refunded, on the date that happened (the latest of its refunds'
+  dates); waiting and partly refunded costs not at all. So the Refunded rows needn't add up to Costs.
+- Nothing in the period: "Nothing settled in this period." (the unsettled line still shows).
+
+**Who sees what:** leaders, members and viewers all four blocks; artists only You (they see only their own money
+anywhere).
+
+**Nothing else is tappable:** no drilling into numbers until the first version shows which ones people want.
+
+**Offline, and speed:** all from the band on the device. Settling every event is the costly part: computed in the
+background when the screen opens (a spinner meanwhile), again when the band changes (the old numbers stay until then).
+
+**Later:** export (CSV) of the period; a band-wide season start, if remembering a custom range is not enough.
+
+## 8. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -111,7 +188,18 @@ is deleted or edited by its owner or a lead; one left alone simply waits.
 - [x] Event pointers, rendering `index.html` with the tags, the icon
 - [ ] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
 
-## 7. Decision log
+### V6-M3 — Searching events (§6)
+
+- [x] Remembered summaries; folding and matching (with tests)
+- [x] The search row, the background build, closing and Back
+
+### V6-M4 — Summary of a period (§7)
+
+- [ ] Icons in the cog menu; Summary in it
+- [ ] The numbers per period (with tests)
+- [ ] The screen: period chips with the custom range, the four blocks, who sees what
+
+## 9. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
@@ -122,3 +210,11 @@ is deleted or edited by its owner or a lead; one left alone simply waits.
 - 2026-10-25: Invite cards stay generic (Q11 changed after review): a band's name would confirm guessed codes.
 - 2026-10-25: Guests can't become members any more (§5); duplicate member names stay refused: rows show only names.
 - 2026-10-25: Refusing costs removed (§5): a conversation, not a procedure; it also simplifies My costs.
+- 2026-10-26: Search looks only in names and Location (§6): notes hold setlists, people's names are in nearly every
+  event. It ignores the filters it hides, and hides the cards: they would push the results under the keyboard.
+- 2026-10-26: The search's summaries are built in the background when it opens, not kept up to date all the time:
+  settling every event is the costly part, and most visits never search.
+- 2026-10-26: The summary lives in the cog menu, not a fifth tab: labels would have to go, and it's opened a few times
+  a year. A chosen range, not calendar years: bands count seasons from September too.
+- 2026-10-26: The summary counts only settled events, and costs once fully refunded: final money, so a closed period
+  never changes. Refunded counts each payment on its date instead: what a member actually got back then.

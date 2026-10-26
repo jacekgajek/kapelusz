@@ -3,6 +3,35 @@ package com.jacekgajek.kapelusz.app.ui.screens
 import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
 import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.input.ImeAction
+import com.jacekgajek.kapelusz.app.generated.search_close
+import com.jacekgajek.kapelusz.app.generated.search_events
+import com.jacekgajek.kapelusz.app.generated.search_no_results
+import com.jacekgajek.kapelusz.app.generated.search_placeholder
+import com.jacekgajek.kapelusz.app.ui.model.EventSearch
+import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.jacekgajek.kapelusz.app.ui.model.searchWords
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -102,6 +131,7 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import org.jetbrains.compose.resources.stringResource
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EventsScreen(
     graph: AppGraph,
@@ -118,7 +148,37 @@ fun EventsScreen(
     // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
     // (ITERATION_4 §1.1).
     val artist = band.isArtist(state.userId)
-    val summaries = eventSummaries(band, state.me, if (artist) settings.copy(onlyMyEvents = true) else settings)
+    val onlyMine = artist || settings.onlyMyEvents
+    // Settling every event is costly: again only when the band or a filter changes, not on each redraw (e.g. a key
+    // typed in the search).
+    val summaries = remember(band, state.me, onlyMine, settings.showArchived) {
+        eventSummaries(band, state.me, settings.copy(onlyMyEvents = onlyMine))
+    }
+    // Searching (ITERATION_6 §6): all events the user may see, whatever the filters, prepared in the background once
+    // the search opens; kept until the band changes, then built again (the old results shown meanwhile).
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var search by remember { mutableStateOf<EventSearch?>(null) }
+    LaunchedEffect(searching, band, state.me, artist) {
+        if (!searching) {
+            search = null
+            return@LaunchedEffect
+        }
+        val me = state.me
+        search = withContext(Dispatchers.Default) { EventSearch(searchableSummaries(band, me, artist)) }
+    }
+    val words = remember(query) { searchWords(query) }
+    // Until something is typed, the list as it was, filters included. Results of a search being built again leave out
+    // events deleted meanwhile.
+    val found = remember(search, words) { search?.find(words) }
+    val results = if (searching && words.isNotEmpty()) found?.filter { band.event(it.event.id) != null } else summaries
+    // The keyboard only when the search icon is tapped, not each time the row comes back (scrolling, coming back).
+    var focusSearch by remember { mutableStateOf(false) }
+    fun closeSearch() {
+        searching = false
+        query = ""
+    }
+    BackHandler(enabled = searching) { closeSearch() }
     val today = today()
     val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(band, today) }
     // One card per event: an open gig tonight is unsettled business, not also "upcoming".
@@ -143,16 +203,17 @@ fun EventsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // What the band still lacks, for its leaders (ITERATION_5 §11): until it's there, or (no one in the app) hidden.
-            bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
+            // While searching, only the search and its results: the cards would push them under the keyboard.
+            if (!searching) bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
                 item(key = "band-hint") {
                     BandHintCard(hint, onRoster, onHide = { graph.settings.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
                 }
             }
             // Until answered (ITERATION_5 §7): there are no pushes, and the roster is not where artists look.
-            if (state.me?.let { SettleTogether.inviterOf(band, it.id) } != null) {
+            if (!searching && state.me?.let { SettleTogether.inviterOf(band, it.id) } != null) {
                 item(key = "settle-together") { SettleTogetherInvitationCard(band, state.me, actions) }
             }
-            if (continueEvent != null) {
+            if (!searching && continueEvent != null) {
                 item {
                     EventCard(
                         Icons.Default.PlayArrow,
@@ -161,7 +222,7 @@ fun EventsScreen(
                     ) { onOpenEvent(continueEvent.id) }
                 }
             }
-            if (upcoming != null) {
+            if (!searching && upcoming != null) {
                 item {
                     EventCard(
                         Icons.Default.Event,
@@ -170,8 +231,20 @@ fun EventsScreen(
                     ) { onOpenEvent(upcoming.id) }
                 }
             }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item(key = "filters") {
+                if (searching) {
+                    SearchField(
+                        query,
+                        building = search == null && words.isNotEmpty(),
+                        focus = focusSearch,
+                        onFocused = { focusSearch = false },
+                        onQuery = { query = it },
+                        onClose = ::closeSearch,
+                    )
+                } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { searching = true; focusSearch = true }) {
+                        Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.search_events))
+                    }
                     // Artists only ever see their own events: no "only mine" to switch.
                     if (!artist) FilterChip(
                         selected = settings.onlyMyEvents,
@@ -185,7 +258,9 @@ fun EventsScreen(
                     )
                 }
             }
-            if (summaries.isEmpty()) {
+            if (searching && words.isNotEmpty()) {
+                if (results?.isEmpty() == true) item { Text(stringResource(Res.string.search_no_results, query.trim()), Modifier.padding(vertical = 32.dp)) }
+            } else if (summaries.isEmpty()) {
                 // Events hidden by the filters are not "no events": say which it is.
                 val text = when {
                     // Hidden by the archived filter: say so, as for others.
@@ -198,7 +273,7 @@ fun EventsScreen(
                 }
                 item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
             }
-            items(summaries, key = { it.event.id }) { summary ->
+            items(results.orEmpty(), key = { it.event.id }) { summary ->
                 EventRow(band, summary, showStatus = !artist) { onOpenEvent(summary.event.id) }
             }
         }
@@ -222,6 +297,39 @@ fun EventsScreen(
             },
         )
     }
+}
+
+/** The search box in place of the filters: a spinner while the search is being prepared, the X clears and closes. */
+@Composable
+private fun SearchField(query: String, building: Boolean, focus: Boolean, onFocused: () -> Unit, onQuery: (String) -> Unit, onClose: () -> Unit) {
+    val requester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(focus) {
+        if (focus) {
+            requester.requestFocus()
+            onFocused()
+        }
+    }
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQuery,
+        modifier = Modifier.fillMaxWidth().focusRequester(requester).onPreviewKeyEvent {
+            // Esc on the web, as Back elsewhere.
+            if (it.key == Key.Escape && it.type == KeyEventType.KeyDown) onClose()
+            it.key == Key.Escape
+        },
+        placeholder = { Text(stringResource(Res.string.search_placeholder)) },
+        leadingIcon = {
+            if (building) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Icon(Icons.Default.Search, contentDescription = null)
+        },
+        trailingIcon = {
+            IconButton(onClick = onClose) { Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.search_close)) }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        // Results show as you type: the key just puts the keyboard away, to look through them.
+        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+    )
 }
 
 /**

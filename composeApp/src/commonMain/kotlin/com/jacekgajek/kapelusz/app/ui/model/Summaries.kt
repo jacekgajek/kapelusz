@@ -44,7 +44,10 @@ fun eventSummaries(band: Band, me: Member?, settings: AppSettings): List<EventSu
             EventSummary(event, settlement, myNumber(event, settlement, me))
         }
         .filter { !settings.onlyMyEvents || it.isMine }
-        .sortedWith(compareByDescending<EventSummary> { it.event.date }.thenByDescending { it.event.updatedAt })
+        .sortedWith(EVENT_ORDER)
+
+/** The event list's order: newest first. */
+internal val EVENT_ORDER: Comparator<EventSummary> = compareByDescending<EventSummary> { it.event.date }.thenByDescending { it.event.updatedAt }
 
 /** Display name of a party: member, guest, or the band fund (with its holder). */
 fun partyName(band: Band, event: Event?, partyId: Id, fundLabel: String): String = when (partyId) {
