@@ -1,13 +1,11 @@
 package com.jacekgajek.kapelusz.app
 
 import android.content.Context
-import androidx.core.app.NotificationManagerCompat
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.FileStore
 import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
-import com.jacekgajek.kapelusz.app.notify.BackgroundSyncWorker
-import com.jacekgajek.kapelusz.app.notify.ReminderScheduler
+import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
 import java.io.File
 
 /** Single [AppGraph] per process, so activity recreation (rotation) keeps the loaded state. */
@@ -20,13 +18,7 @@ object AndroidAppGraph {
         val app = context.applicationContext
         AndroidPlatform.context = app
         return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth).also { graph ->
-            // Nothing of the previous user stays: no alarms, nothing in the notification tray.
-            graph.afterSignOut = {
-                ReminderScheduler.reschedule(app, emptyList())
-                NotificationManagerCompat.from(app).cancelAll()
-            }
-            // A changed reminder time or gig applies at once, not only when the app leaves the screen.
-            graph.watchReminderInputs { userId -> BackgroundSyncWorker.rescheduleReminders(app, graph, userId) }
+            BackgroundSyncWorker.removeOldNotifications(app)
             instance = graph
         }
     }

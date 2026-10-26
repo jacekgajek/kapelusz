@@ -23,8 +23,7 @@ import com.jacekgajek.kapelusz.app.App
 import com.jacekgajek.kapelusz.app.AppLoading
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.updates.UpdateWorker
-import com.jacekgajek.kapelusz.app.notify.BackgroundSyncWorker
-import com.jacekgajek.kapelusz.app.notify.Notifier
+import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
 import com.jacekgajek.kapelusz.app.updates.Updater
 import java.lang.ref.WeakReference
 
@@ -40,15 +39,12 @@ class MainActivity : ComponentActivity() {
         Updater.appVisible = true
         UpdateWorker.schedule(this)
         UpdateWorker.checkSoon(this)
-        BackgroundSyncWorker.schedule(this)
     }
 
     override fun onStop() {
         graph.sync.stop()
         Updater.appVisible = false
-        // Reminders follow what was just changed; transfers seen in the app are not notified later.
-        BackgroundSyncWorker.refreshLocal(this)
-        // Changes not sent yet go out as soon as there is a network, not hours later with the periodic sync.
+        // Changes not sent yet go out as soon as there is a network.
         if (graph.hasUnsentWork()) BackgroundSyncWorker.syncSoon(this)
         super.onStop()
     }
@@ -56,7 +52,6 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         takeJoinCode(intent)
-        takeEventToOpen(intent)
         takeSharedFiles(intent)
     }
 
@@ -84,15 +79,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** A tapped reminder or transfer notification: open its gig (a debt reminder: at To settle, ITERATION_3 §2.2). */
-    private fun takeEventToOpen(intent: Intent?) {
-        val band = intent?.getStringExtra(Notifier.EXTRA_BAND) ?: return
-        val event = intent.getStringExtra(Notifier.EXTRA_EVENT) ?: return
-        graph.pendingToSettle.value = event.takeIf { intent.getBooleanExtra(Notifier.EXTRA_TO_SETTLE, false) }
-        graph.pendingOpenEvent.value = band to event
-        intent.removeExtra(Notifier.EXTRA_BAND)
-    }
-
     /**
      * A join link (https://kapelusz.jacekgajek.com/join/CODE) opened the app: offer to join with its code. An event link
      * (…/e/EVENT_ID, ITERATION_5 §10): open that event.
@@ -110,7 +96,6 @@ class MainActivity : ComponentActivity() {
         val fromRecents = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
         if (savedInstanceState == null && !fromRecents) {
             takeJoinCode(intent)
-            takeEventToOpen(intent)
             takeSharedFiles(intent)
         }
         setContent {

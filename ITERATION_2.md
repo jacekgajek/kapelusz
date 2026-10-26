@@ -85,6 +85,9 @@ No in-app map (Google's map and place APIs need an API key and a billing account
 
 ## 5. Notifications (Android)
 
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
+
 ### 5.1 Background sync
 - Periodic sync of **all** the user's bands (today only the open band is pulled, and only while the app is visible), every few hours, only with a network connection (Android WorkManager). Exact timing is up to Android.
 - After each sync the app reschedules gig reminders (§5.2), looks for new transfers (§5.3) and, once a day, checks for updates (§1).
@@ -135,7 +138,7 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 
 ### 7.1 Secret menu (admins)
 - In Settings, a **tap on the version number** opens the secret menu for an **Admin or Owner** of the open band; for others it does nothing.
-- **Gig reminders on this phone** (Android): whether notifications are allowed, the battery optimisation state as information (optimised is Android's default and reminders arrive with it, also on realme's "intelligent" mode), a button to the app's Android settings, the next scheduled reminders, and **Test reminder in 1 minute** through the same alarm path (Android may deliver it up to an hour later).
+- **Gig reminders on this phone** (Android): whether notifications are allowed, the battery optimisation state as information (optimised is Android's default and reminders arrive with it, also on realme's "intelligent" mode), a button to the app's Android settings, the next scheduled reminders, and **Test reminder in 1 minute** through the same alarm path (Android may deliver it up to an hour later). *(Gone since ITERATION_6 §9: no notifications.)*
 - **Copy raw JSON data** copies the band's file exactly as stored in the bucket (`bands/<id>/state.json`, byte for byte), so putting the copy back changes nothing. A server endpoint for admins returns the stored file unchanged; offline it shows an error.
 
 ### 7.2 Undo from history
@@ -154,7 +157,7 @@ Gigs appear in Google Calendar (or any calendar app) through a subscription that
 ### 7.3 Settings layout
 - The main Settings page is a list: icon, name, current value; entries that open a page have a ›. Grouped by whom they affect:
   - **Band** (for everyone): **Band name** (tap: rename dialog, admins), **Band fund** (page: what the fund is, on/off and who holds it; read-only for non-admins), **Event agenda** (page: the template, admins only).
-  - **Personal**: **Language** (tap: dialog with the choices), **Notifications and calendar** (page: gig reminders, transfer notifications and the calendar subscription; on the web only **Calendar subscription**).
+  - **Personal**: **Language** (tap: dialog with the choices), **Notifications and calendar** (page: gig reminders, transfer notifications and the calendar subscription; on the web only **Calendar subscription**). *(Since ITERATION_6 §9 only **Calendar subscription**, everywhere.)*
   - Then **App updates** (Android) and **Account** in place, and **Delete band** last after a divider; the version (secret menu) below.
 - Pages are their own navigation entries, so Back returns to the list; on wide screens the content stays at a readable width.
 
@@ -269,7 +272,7 @@ Monitoring stays as in iteration 1: server logs in CloudWatch, no crash-reportin
 | 2026-10-21 | The "Planned" filter and the calendar view were dropped in favour of an "Upcoming" card; the calendar view may come later. |
 | 2026-10-21 | Agenda: a band template of times (default Arrival, Sound check, Concert start), copied into each new event, plus one-off times per event. Calendar entries run from the earliest to the latest time (one hour for a single time, all-day without times); times before 05:00 are the next day. Free text goes into a Details section that replaces notes. |
 | 2026-10-21 | Google Calendar through a per-user subscription link rather than a one-off button or the Calendar API (which needs a sensitive scope and Google's app verification). Refresh timing is Google's. |
-| 2026-10-21 | V2-M1 review: a downloaded update installs **30 minutes** after the app left the screen (or with the daily check while it is hidden), so stepping out briefly, e.g. to take a photo for a cost, never restarts it. A declined or failed version, or one Android asked to confirm, is not tried again on its own; Settings offers "Install now", and the strip offers a pending confirmation. The "ready to install" notification needs the notification permission, which the app asks for with gig reminders (V2-M4); until then the strip in the app is the way. |
+| 2026-10-21 | V2-M1 review: a downloaded update installs **30 minutes** after the app left the screen (or with the daily check while it is hidden), so stepping out briefly, e.g. to take a photo for a cost, never restarts it. A declined or failed version, or one Android asked to confirm, is not tried again on its own; Settings offers "Install now", and the strip offers a pending confirmation. The "ready to install" notification needs the notification permission, which the app asks for with gig reminders (V2-M4); until then the strip in the app is the way. *(Since ITERATION_6 §9 nothing asks for it: the strip, unless granted before.)* |
 | 2026-10-21 | V2-M2: the app version goes as the query parameter `appVersion`, because a new header would need the API's CORS allow-list (terraform) changed. On the web, the browser's Back button goes back a page rather than leaving selection mode (a page cannot intercept it); ✕ in the top bar leaves it. On Android, Back leaves selection mode. |
 | 2026-10-21 | V2-M3 review: a band stored by an older app (which dropped the new fields but kept the server's version) is downloaded in full once (`LocalBand.schema`), so agenda times are never shown missing and then overwritten. Unknown enum values from newer versions fall back to defaults (`coerceInputValues`). Template entries are marked `fromTemplate` instead of being recognised by label; the template editor keeps whole entries, so moving or removing one never turns built-in times into fixed labels. |
 | 2026-10-21 | `MIN_APP_VERSION` raised to 11 (the V2-M2 deploy, already live) together with V2-M3: older apps cannot read the history entries of agenda changes, and build-11 apps read history leniently and show "update required". Build 10 updates itself (V2-M1). |

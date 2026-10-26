@@ -116,12 +116,12 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             navController.resetTo(EventsRoute)
         }
     }
-    // A tapped reminder or transfer notification (Android): open its gig, switching band if needed.
+    // An event to open (e.g. an event link): open it, switching band if needed.
     val openEvent by graph.pendingOpenEvent.collectAsState()
     LaunchedEffect(openEvent) {
         val (bandId, eventId) = openEvent ?: return@LaunchedEffect
         graph.pendingOpenEvent.value = null
-        // A notification can outlive its band (deleted, access lost): then the tap only opens the app.
+        // The band can be gone by the time it opens (deleted, access lost): then nothing more happens.
         if (!graph.bands.hasStored(bandId)) {
             graph.sharedHandover.value = null
             return@LaunchedEffect
@@ -139,8 +139,6 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
         navController.resetTo(EventsRoute)
         navController.navigate(EventRoute(eventId))
     }
-    ReminderPrompt(graph, settings)
-    DebtReminderPrompt(graph, settings)
     LaunchedEffect(state.me?.pictureUrl) { graph.sendPictureIfMissing(state.me) }
     SharedFilesDialog(graph, state)
     val toSettings = { navController.navigate(SettingsRoute()) }
@@ -220,8 +218,6 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                         .takeIf { state.me?.role == Role.OWNER },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
                     autoUpdate = settings.autoUpdate,
-                    appSettings = settings,
-                    onAppSettings = { change -> graph.settings.update(change) },
                     artist = artist,
                     // The secret menu (ITERATION_2 §7.1), for the band's leaders.
                     rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.LEAD) == true },

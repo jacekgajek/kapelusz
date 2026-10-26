@@ -219,7 +219,7 @@ object Updater {
     private fun notifyReady(context: Context, versionName: String, confirmIntent: Intent): Boolean {
         val notifications = NotificationManagerCompat.from(context)
         val strings = Strings(AndroidAppGraph.get(context).settings.settings.value.language)
-        // Without the notification permission (asked for with gig reminders) the in-app strip offers the install.
+        // Without the notification permission (the app no longer asks for it, ITERATION_6 §9) the in-app strip offers the install.
         if (!notifications.areNotificationsEnabled()) return false
         context.getSystemService(NotificationManager::class.java)
             .createNotificationChannel(NotificationChannel(CHANNEL, strings.channelName(), NotificationManager.IMPORTANCE_DEFAULT))

@@ -26,6 +26,7 @@ import com.jacekgajek.kapelusz.app.generated.calendar_add_google
 import com.jacekgajek.kapelusz.app.generated.calendar_add_on_computer
 import com.jacekgajek.kapelusz.app.generated.calendar_failed
 import com.jacekgajek.kapelusz.app.generated.calendar_get
+import com.jacekgajek.kapelusz.app.generated.calendar_help
 import com.jacekgajek.kapelusz.app.generated.calendar_hint
 import com.jacekgajek.kapelusz.app.generated.calendar_include_all
 import com.jacekgajek.kapelusz.app.generated.calendar_refresh_note
@@ -38,6 +39,7 @@ import com.jacekgajek.kapelusz.app.generated.link_copied
 import com.jacekgajek.kapelusz.app.platform.isAndroidApp
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
+import com.jacekgajek.kapelusz.app.ui.components.language
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -83,7 +85,13 @@ internal fun CalendarSection(
             }
             OutlinedButton(onClick = { scope.launch { copied = copy(current.url) } }) { Text(stringResource(if (copied) Res.string.link_copied else Res.string.copy_link)) }
         }
-        if (isAndroidApp()) Text(stringResource(Res.string.calendar_add_on_computer), style = MaterialTheme.typography.bodySmall)
+        // Google Calendar subscribes only on a computer, and the phone app then shows the calendar only once its sync
+        // is on: the steps, and Google's own help (ITERATION_6 §9).
+        Text(stringResource(Res.string.calendar_add_on_computer), style = MaterialTheme.typography.bodySmall)
+        val lang = language
+        TextButton(onClick = { uriHandler.openUri("https://support.google.com/calendar/answer/37100?hl=$lang") }) {
+            Text(stringResource(Res.string.calendar_help))
+        }
         // Not while a change is under way: a late answer could otherwise show a link that a reset just replaced.
         if (showIncludeAll) SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !working) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
         TextButton(onClick = { confirmReset = true }, enabled = !working) { Text(stringResource(Res.string.calendar_reset)) }

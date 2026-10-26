@@ -356,7 +356,7 @@ private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTa
     val bandId = chosen.band.id
     val eventId = chosen.event.id
     if (graph.bands.currentBandId != bandId) {
-        // Like a tapped notification: showing the other band must not reset the screens opened below.
+        // Like an event link: showing the other band must not reset the screens opened below.
         graph.navigatedForBand = bandId
         graph.bands.open(bandId)
     }

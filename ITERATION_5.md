@@ -62,7 +62,7 @@ case.
   bands still in memory, and may post transfer notifications (`AndroidAppGraph.afterSignOut` doesn't take
   `afterSyncLock`; `BackgroundSyncWorker` captures `userId` before `syncAll`). Old notifications stay in the tray. Fix:
   check the session user under the lock before rescheduling; run `afterSignOut` under the lock; `cancelAll()` on
-  sign-out.
+  sign-out. *(Gone since ITERATION_6 §9: no notifications.)*
 - The sign-out work runs in the Settings screen's coroutine scope; leaving the screen can cancel it partway. Fix: run it
   in the app scope.
 
@@ -226,6 +226,9 @@ automatic installing, keep automatic downloading (see §1.7, C1′).*
   only on the zero screen). Fix: a snackbar or dialog.
 
 ### 1.4 Batch D — Notifications and web
+
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
 
 **D1 (M) Transfers downloaded by a "sync soon" run are never notified.**
 - Where: `composeApp/src/androidMain/.../notify/BackgroundSyncWorker.kt` (`notifyTransfers = !local && !SOON`, and

@@ -203,6 +203,9 @@ Chosen on 2026-10-22; details to be settled (grilling) before building.
 - **How:** the system share sheet on Android; Web Share where the browser has it, otherwise copied to the clipboard.
 
 ### 2.2 Reminder about open debts
+
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
 - **Who:** only the one who still has to pay ("Still to pay" lines): "You still owe Jacek 100 zł from Club gig
   (Sat 12 Sep)". Money owed to the band fund reminds the payer; money the fund owes reminds its holder (treasurer).
 - **When:** first **two weeks after the gig**, then **once a week**, **at most 4 times**; at the time of day set for

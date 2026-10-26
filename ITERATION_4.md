@@ -44,7 +44,7 @@ concerns them.
     first". Settled events don't matter. An artist invite for someone holding money is refused when created, and when accepted (if
   they got money meanwhile) the invitee is told to have it settled first; the invite stays.
 - **Notifications:** gig reminders and calendar for their events, as for members. No "transfer recorded with you"
-  notification that would name the sender.
+  notification that would name the sender. *(Gone since ITERATION_6 §9: no notifications.)*
 
 ### 1.2 Costs wait for a lead: Include or Refuse
 
@@ -86,6 +86,9 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
 - History shows "refused" and "resubmitted"; Undo works as for other ops.
 
 ### 1.3 Notifications
+
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
 
 - **Defaults:** only the reminder about unsettled business (open debts) is on. Gig reminders and "transfers others
   record with me" start off.
@@ -162,7 +165,7 @@ collected money, as today).
   "Open", as now). Not settled, so it cannot be archived; it counts as unsettled business (Continue card, leads' Settle
   list).
 - **Reminder:** to the lead who recorded the fee (if they are no longer a lead: to the event's leads), 14, 28, 42 and
-  56 days after the gig, with the debt reminders' setting: "The organiser still owes 3000 zł".
+  56 days after the gig, with the debt reminders' setting: "The organiser still owes 3000 zł". *(Gone since ITERATION_6 §9: no notifications.)*
 - **Who:** leads record awaited fees and mark them received.
 - **Buttons** (2026-10-23): under the awaited entry, laid out like Include / Refuse: **"Paid" / "Zapłacili"** (the
   Received dialog) and a red **"Welched" / "Wydymali"** (deliberately informal), which removes the entry after a

@@ -160,9 +160,9 @@ class SyncEngine(
         if (result == SyncStatus.SYNCED && _stuck.value.keys.any { bands.local(it) != null }) SyncStatus.ERROR else result
 
     /**
-     * The background sync (Android, ITERATION_2 §5.1): every band the user belongs to, not only the open one, so
-     * reminders and transfer notifications see current data. Bands not on this device yet are downloaded without
-     * opening them. Returns false when it should be retried.
+     * Every band the user belongs to, not only the open one: e.g. "sync soon" once the app has left the screen, or an event
+     * link looking for its band. Bands not on this device yet are downloaded without opening them. Returns false when it
+     * should be retried.
      */
     suspend fun syncAll(): Boolean = runLock.withLock {
         if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return false
@@ -244,7 +244,7 @@ class SyncEngine(
 
     /**
      * Updates the band list, and checks every band still on this device that it no longer has (ITERATION_3 R9): the
-     * check finds it deleted or access lost, says so, and removes it, so it stops feeding reminders.
+     * check finds it deleted or access lost, says so, and removes it.
      */
     private suspend fun checkBandList(listed: List<BandSummary>) {
         val unlisted = bands.unlisted(listed)

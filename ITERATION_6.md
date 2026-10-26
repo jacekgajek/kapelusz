@@ -193,7 +193,28 @@ background when the screen opens (a spinner meanwhile), again when the band chan
   Copy link carry the link). Black on white whatever the theme. Encoded by qrcode-kotlin (no Compose of its own) and
   drawn with a Canvas: QRose would have pulled a newer Compose than the app's and compileSdk 37.
 
-## 9. Milestones and task checklist
+## 9. No notifications; the calendar instead (2026-10-26)
+
+Testing on the emulator and Android's documentation showed the app's own notifications can't be relied on: Samsung
+puts an app not opened for 3 days to sleep ("alarms will not work anymore", dontkillmyapp.com), Android 13+ moves one
+not used for 8 days to the restricted bucket (one alarm a day, jobs once a day), and transfer notifications came only
+with the 4-hourly background sync. Members open a band app rarely, so exactly they would miss them; push (Firebase)
+wasn't worth it, and a bank's own notification already says money arrived.
+
+- **Removed:** gig reminders, debt reminders, notifications of transfers others recorded, their prompts and settings,
+  the secret menu's reminder checks, the periodic background sync. Kept: sending unsent changes once the app leaves
+  the screen ("sync soon"), and the updater's own "ready to install" notification (without the permission, the app's
+  strip).
+- **On update, once:** the old periodic jobs are cancelled, the alarms too (Android 14+; older ones find no receiver),
+  the three notification channels deleted (with their notifications), and the reminder and transfer logs.
+- **Settings:** "Notifications and calendar" is now "Calendar subscription", on Android as on the web.
+- **Calendar card:** the steps, as Google Calendar subscribes only on a computer and the phone app shows the calendar
+  only once its sync is on: "Add it on a computer: in Google Calendar (calendar.google.com) choose Other calendars › +
+  › From URL and paste the link. Then on your phone, in the Google Calendar app, open Settings, tap the new calendar
+  and turn on Sync." Then "How to add it: Google's help", support.google.com/calendar/answer/37100 in the app's
+  language.
+
+## 10. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -218,7 +239,7 @@ background when the screen opens (a spinner meanwhile), again when the band chan
 - [x] The numbers per period (with tests)
 - [x] The screen: period chips with the custom range, the four blocks, who sees what
 
-## 10. Decision log
+## 11. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
@@ -239,3 +260,5 @@ background when the screen opens (a spinner meanwhile), again when the band chan
   never changes. Refunded counts each payment on its date instead: what a member actually got back then.
 - 2026-10-26: The invite's QR code is drawn by the app from a plain encoder rather than a Compose QR library: the
   library needed Compose UI 1.12 (compileSdk 37) while the app is on Compose Multiplatform 1.11.
+- 2026-10-26: All notifications removed (§9): unreliable for an app opened rarely (Samsung's sleeping apps, Android's
+  restricted bucket), push not worth it. Gigs reach phones through the calendar subscription, whose reminders work.

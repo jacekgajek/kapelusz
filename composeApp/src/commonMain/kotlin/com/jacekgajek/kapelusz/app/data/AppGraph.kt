@@ -2,9 +2,6 @@ package com.jacekgajek.kapelusz.app.data
 
 import kotlinx.coroutines.CoroutineExceptionHandler
 import com.jacekgajek.kapelusz.model.Member
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.FlowPreview
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
 import com.jacekgajek.kapelusz.app.auth.Session
@@ -31,7 +28,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.time.Duration.Companion.milliseconds
 
 /** Process-wide objects, created once per app start (no DI framework). */
 class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
@@ -103,14 +99,11 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     private val loadLock = Mutex()
     private var backgroundUser: String? = null
 
-    /** Called after signing out, e.g. to cancel this user's reminders (Android). */
     /**
-     * The band whose screens the navigation was last set up for by whoever switched to it (a tapped notification opening
-     * one of its events): the "another band is shown" reset then leaves that navigation alone (V5-M1 C2b).
+     * The band whose screens the navigation was last set up for by whoever switched to it (an event link opening one of
+     * its events): the "another band is shown" reset then leaves that navigation alone (V5-M1 C2b).
      */
     var navigatedForBand: String? = null
-
-    var afterSignOut: () -> Unit = {}
 
     /** Photos or PDFs shared to Kapelusz (Android, ITERATION_6 §1), waiting for "Attach to…". */
     val sharedFiles = MutableStateFlow<SharedFiles?>(null)
@@ -134,11 +127,8 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     /** An event link's event id (ITERATION_5 §10), opened once the user is signed in and their bands are known. */
     val pendingEventLink = MutableStateFlow<String?>(null)
 
-    /** A gig to open, e.g. from a reminder notification: band id and event id. */
+    /** A gig to open, e.g. from an event link: band id and event id. */
     val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
-
-    /** The event (id) of a tapped debt reminder, opened at its To settle section (ITERATION_3 §2.2). */
-    val pendingToSettle = MutableStateFlow<String?>(null)
 
     /**
      * Loads what a background job needs (settings, session, bands, waiting uploads) without starting the foreground
@@ -155,20 +145,6 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
             }
         }
         sessions.session.value?.userId
-    }
-
-    /**
-     * Calls [onChange] (debounced) whenever the settings, the bands or the signed-in user change, e.g. to schedule gig
-     * reminders again right away (ITERATION_2 §5.2) instead of only when the app leaves the screen.
-     */
-    @OptIn(FlowPreview::class)
-    fun watchReminderInputs(onChange: suspend (userId: String) -> Unit) {
-        scope.launch {
-            // Only with the bands loaded: before that there is nothing to remind of, and every alarm would be dropped.
-            combine(settings.settings, bands.state, sessions.session) { _, state, session -> session?.userId?.takeIf { state is BandState.Ready } }
-                .debounce(500.milliseconds)
-                .collect { userId -> if (userId != null) onChange(userId) }
-        }
     }
 
     /** Settings for a background job, which may run without the app having started (loads them if needed). */
@@ -205,8 +181,6 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         sync.stop()
         sessions.signOut()
         pendingOpenEvent.value = null
-        pendingToSettle.value = null
-        afterSignOut()
     }
 
     /**

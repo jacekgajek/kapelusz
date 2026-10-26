@@ -175,8 +175,8 @@ class BandRepository(
     }
 
     /**
-     * Keeps a band the user belongs to on this device without opening it (background sync, ITERATION_2 §5.1); an open
-     * band is left to the regular sync.
+     * Keeps a band the user belongs to on this device without opening it (syncing every band, e.g. for an event link);
+     * an open band is left to the regular sync.
      */
     suspend fun storeFromServer(band: Band, version: String) {
         val owner = userId ?: return
@@ -188,7 +188,7 @@ class BandRepository(
         if (stored == null) persist(band.id)
     }
 
-    /** Every band on this device as the user sees it (with unsent changes), e.g. for reminders. */
+    /** Every band on this device as the user sees it (with unsent changes). */
     fun allBands(): List<Band> = locals.values.map(::replay)
 
     /** The id of the operation [dispatch] applied last, e.g. to recognise it in the history later. */

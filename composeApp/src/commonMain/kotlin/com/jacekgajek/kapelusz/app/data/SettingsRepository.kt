@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 
 /** Per-device preferences. */
@@ -21,21 +20,6 @@ data class AppSettings(
     val showArchived: Boolean = false,
     /** Android: download and install new versions automatically. */
     val autoUpdate: Boolean = true,
-    /**
-     * Android: gig reminders (ITERATION_2 §5.2), [reminderDays] before the event at [reminderTime]. Off until chosen
-     * (ITERATION_4 §1.3): only the reminder about unsettled business is on by default.
-     */
-    val remindersEnabled: Boolean = false,
-    val reminderDays: Set<Int> = setOf(1),
-    val reminderTime: LocalTime = LocalTime(18, 0),
-    /** Android: notifications about transfers others recorded with you (ITERATION_2 §5.3). */
-    val transferNotifications: Boolean = false,
-    /** Android: reminders to the payer about money still to send after a gig, at [reminderTime] (ITERATION_3 §2.2). */
-    val debtReminders: Boolean = true,
-    /** The one-time "get a reminder before your gigs?" prompt was answered. */
-    val notificationPromptDone: Boolean = false,
-    /** The one-time "remind you of money to pass on?" prompt was answered (V5-M1 D3). */
-    val debtPromptDone: Boolean = false,
     /**
      * The page each event (`band/event`) was last left on, when not Gig (ITERATION_4 §2.4, ITERATION_5 §4.4); every
      * other event opens on Gig. The most recent last, at most [MAX_EVENT_TABS].

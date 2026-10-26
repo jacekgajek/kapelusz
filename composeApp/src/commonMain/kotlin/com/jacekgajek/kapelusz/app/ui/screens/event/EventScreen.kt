@@ -177,14 +177,6 @@ fun EventScreen(
         snapshotFlow { list.layoutInfo.totalItemsCount }.first { it == sections.size }
         list.scrollToItem(sections.indexOf(section))
     }
-    // Opened from a reminder about an open debt (ITERATION_3 §2.2): the settlement, straight at To settle.
-    val toSettle by graph.pendingToSettle.collectAsState()
-    LaunchedEffect(toSettle, event != null) {
-        if (toSettle != eventId || event == null || artist) return@LaunchedEffect
-        scrollTo(EventSection.TO_SETTLE)
-        // Last: clearing it restarts this effect, which would cancel the scroll above.
-        graph.pendingToSettle.value = null
-    }
     // Files shared to Kapelusz (ITERATION_6 §1): the section they went to, or on to the new cost that takes them. Only
     // by the screen in front: one on its way out (the same event opened again) would take them along.
     val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
@@ -269,7 +261,7 @@ fun EventScreen(
                         contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
                     ) {
                         if (artist) {
-                            // Artists get no debt reminders, so nothing scrolls by section here.
+                            // Artists see fewer sections: nothing scrolls to one by name here.
                             if (tab == EventTab.GIG) {
                                 item("when") { WhenAndWhere(context, onEdit = null) }
                                 item("details") { DetailsSection(context) }
@@ -311,8 +303,8 @@ fun EventScreen(
 }
 
 /**
- * The event screen's sections in list order, each on the pages ([tabs]) it shows on. One list item each, so a reminder
- * about an open debt finds [TO_SETTLE] by its index on the settlement page.
+ * The event screen's sections in list order, each on the pages ([tabs]) it shows on. One list item each, so a section is
+ * found by its index on its page (e.g. where shared files were attached).
  */
 private enum class EventSection(vararg val tabs: EventTab) {
     WHEN(EventTab.GIG), DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG), SHARE_INFO(EventTab.GIG),
