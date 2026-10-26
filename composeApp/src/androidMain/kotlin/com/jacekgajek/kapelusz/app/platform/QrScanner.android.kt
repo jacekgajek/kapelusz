@@ -17,14 +17,20 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 actual fun rememberQrScanner(): (suspend () -> QrScan)? {
     val context = LocalContext.current
     return remember(context) {
-        val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build()
-        val scanner = GmsBarcodeScanning.getClient(context, options)
-        val scan: suspend () -> QrScan = {
+        val scan: suspend () -> QrScan = scan@{
+            // Made only when a scan is asked for, and any failure is "couldn't open": a problem in the scanner must never
+            // take the Join dialog down with it (1.13.0 crashed creating it while drawing the dialog).
+            val scanner = runCatching {
+                val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build()
+                GmsBarcodeScanning.getClient(context, options)
+            }.getOrNull() ?: return@scan QrScan.Failed
             suspendCancellableCoroutine { continuation ->
-                scanner.startScan()
-                    .addOnSuccessListener { code -> continuation.resume(code.rawValue?.let { QrScan.Scanned(it) } ?: QrScan.Failed) }
-                    .addOnCanceledListener { continuation.resume(QrScan.Cancelled) }
-                    .addOnFailureListener { continuation.resume(QrScan.Failed) }
+                runCatching {
+                    scanner.startScan()
+                        .addOnSuccessListener { code -> continuation.resume(code.rawValue?.let { QrScan.Scanned(it) } ?: QrScan.Failed) }
+                        .addOnCanceledListener { continuation.resume(QrScan.Cancelled) }
+                        .addOnFailureListener { continuation.resume(QrScan.Failed) }
+                }.onFailure { continuation.resume(QrScan.Failed) }
             }
         }
         scan
