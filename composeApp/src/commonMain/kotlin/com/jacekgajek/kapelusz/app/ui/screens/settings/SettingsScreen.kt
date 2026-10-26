@@ -175,15 +175,13 @@ fun SettingsScreen(
                 onOpenPage(SettingsPage.CALENDAR)
             }
 
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
-            }
             val uriHandler = LocalUriHandler.current
             SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
                 uriHandler.openUri(SUPPORT_URL)
             }
 
             Column(Modifier.padding(horizontal = 16.dp)) {
+                rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
