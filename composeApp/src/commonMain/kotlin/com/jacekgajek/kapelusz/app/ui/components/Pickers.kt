@@ -6,6 +6,8 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -63,6 +65,27 @@ fun DateField(date: LocalDate, onDate: (LocalDate) -> Unit, label: String, modif
             dismissButton = { TextButton(onClick = { open = false }) { Text(stringResource(Res.string.cancel)) } },
         ) { DatePicker(state) }
     }
+}
+
+/** A date range in a dialog (e.g. a summary's period, ITERATION_6 §7): OK once both ends are picked. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, LocalDate) -> Unit, onDismiss: () -> Unit) {
+    fun LocalDate.millis() = atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+    fun Long.date() = Instant.fromEpochMilliseconds(this).toLocalDateTime(TimeZone.UTC).date
+    val state = rememberDateRangePickerState(initialSelectedStartDateMillis = from?.millis(), initialSelectedEndDateMillis = to?.millis())
+    val start = state.selectedStartDateMillis
+    val end = state.selectedEndDateMillis
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(enabled = start != null && end != null, onClick = {
+                if (start != null && end != null) onRange(start.date(), end.date())
+                onDismiss()
+            }) { Text(stringResource(Res.string.ok)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    ) { DateRangePicker(state, Modifier.weight(1f)) }
 }
 
 /** Dropdown choosing one of [options]; [label] renders each option. */

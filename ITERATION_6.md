@@ -154,9 +154,10 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    them.
 
 **Which money, on which date:**
-- Only settled events count: the money is final, a closed period never changes. Events in the period not settled
-  yet: "2 events in this period aren't settled yet and aren't counted: Wesele Ani, Juwenalia." (three named, then
-  "and 2 more").
+- Only settled events count: the money is final, a closed period never changes. Events in the period with money,
+  not settled yet: "Not settled yet, so not counted: Wesele Ani, Juwenalia." (three named, then "and 2 more"; no
+  count, which Polish would need plural forms for). Drafts aren't named: nothing in them to count. An artist's line
+  names only their events.
 - An event's money (collected, shares, the fund's part, refunds paid there): the event's date.
 - Fund entries, refunds from the fund too: the entry's date.
 - Refunded (You, Members): each payment on its own date, so part-refunds show as they're paid.
@@ -195,9 +196,9 @@ background when the screen opens (a spinner meanwhile), again when the band chan
 
 ### V6-M4 — Summary of a period (§7)
 
-- [ ] Icons in the cog menu; Summary in it
-- [ ] The numbers per period (with tests)
-- [ ] The screen: period chips with the custom range, the four blocks, who sees what
+- [x] Icons in the cog menu; Summary in it
+- [x] The numbers per period (with tests)
+- [x] The screen: period chips with the custom range, the four blocks, who sees what
 
 ## 9. Decision log
 

@@ -43,6 +43,7 @@ import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
+import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.LocalAppLocale
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
 import com.jacekgajek.kapelusz.app.ui.components.LoadingScreen
@@ -180,6 +181,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onNewBand = { navController.navigate(NewBandRoute) },
                 onJoinBand = { joining = true },
                 onHistory = { navController.navigate(HistoryRoute) },
+                onSummary = { navController.navigate(SummaryRoute) },
                 onSyncNow = { graph.sync.requestSync() },
                 onReauthenticate = reauthenticate,
                 accountEmail = session?.email,

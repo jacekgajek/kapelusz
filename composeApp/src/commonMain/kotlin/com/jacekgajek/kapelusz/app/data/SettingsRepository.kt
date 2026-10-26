@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.ui.SUPPORTED_LANGUAGES
+import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +44,11 @@ data class AppSettings(
     val eventTabs: Map<String, EventTab> = emptyMap(),
     /** Bands (ids) whose "no one else uses the app" hint was hidden on this device (ITERATION_5 §11). */
     val hiddenNoAppHints: Set<String> = emptySet(),
+    /** Per band (id), the period its summary was last shown for (ITERATION_6 §7); else the last 12 months. */
+    val summaryPeriods: Map<String, SummaryPeriod> = emptyMap(),
 ) {
+    fun summaryPeriod(bandId: String): SummaryPeriod = summaryPeriods[bandId] ?: SummaryPeriod.Last12Months
+
     fun eventTab(bandId: String, eventId: String): EventTab = eventTabs["$bandId/$eventId"] ?: EventTab.GIG
 
     fun withEventTab(bandId: String, eventId: String, tab: EventTab): AppSettings {

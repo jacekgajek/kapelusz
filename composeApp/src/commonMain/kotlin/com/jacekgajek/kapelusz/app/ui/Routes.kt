@@ -20,3 +20,4 @@ import kotlinx.serialization.Serializable
 @Serializable @SerialName("members") data class RosterRoute(val memberId: String? = null)
 @Serializable @SerialName("new-band") data object NewBandRoute
 @Serializable @SerialName("history") data object HistoryRoute
+@Serializable @SerialName("summary") data object SummaryRoute
