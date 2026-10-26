@@ -119,6 +119,8 @@ kotlin {
             // Google photos of members (ITERATION_2 §7.4).
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
+            // The invite's QR code (ITERATION_6 §8): only the encoder; it's drawn in Compose.
+            implementation(libs.qrcode.kotlin)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.android)

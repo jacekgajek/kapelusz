@@ -33,14 +33,17 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class PeriodSummaryTest {
 
-    private fun Band.apply(vararg ops: Operation): Band = ops.fold(this) { band, op ->
-        val result = Engine.apply(band, Actor.System, op, "op", 1)
+    /** At [at] (epoch millis); 0: unknown, so a transfer counts on its gig's date. */
+    private fun Band.apply(vararg ops: Operation, at: Long = 0): Band = ops.fold(this) { band, op ->
+        val result = Engine.apply(band, Actor.System, op, "op", at)
         (result as? ApplyResult.Applied ?: error("$op: $result")).band
     }
 
@@ -200,6 +203,22 @@ class PeriodSummaryTest {
         assertEquals(1, summary.events, "settled by the suggested transfers")
         assertEquals(Money(100_001), summary.collected)
         assertEquals(summary.collected, summary.paidOut + summary.refundedAtEvents + summary.toFund)
+    }
+
+    @Test
+    fun theFundsPartHandedOverBeforeTheGigCountsWhenRecorded() = runTest {
+        val gig = LocalDate(2026, 10, 27)
+        val early = band.apply(
+            CreateEvent("next", "Next", gig, participants = listOf(Participant("me"))),
+            AddHolding("next", "h6", "me", zl(100), IncomeSource.DOOR),
+            SetFundAmount("next", zl(100)),
+        ).apply(
+            RecordTransfer("next", "t6", "me", BAND_FUND, zl(100)),
+            at = LocalDate(2026, 10, 26).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds() + 3_600_000,
+        )
+        val untilToday = periodSummary(early, me, LocalDate(2026, 1, 1), LocalDate(2026, 10, 26), timeZone = TimeZone.UTC).fund
+        assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400)), untilToday)
+        assertEquals(BandFund.balance(early), untilToday?.balance, "as on the fund's page")
     }
 
     @Test

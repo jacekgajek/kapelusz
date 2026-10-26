@@ -41,6 +41,8 @@ import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.fund_entry_refund_to
+import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -177,7 +179,12 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
                 Row(Modifier.fillMaxWidth().clickable(enabled = canEdit) { editing = entry }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(entry.description)
-                        Text(formatDate(entry.date, lang), style = MaterialTheme.typography.bodySmall)
+                        // A refund names whose cost it paid back: the description alone ("Cable") doesn't.
+                        val refundOf = entry.costId?.let { band.cost(it) }?.let { band.member(it.memberId)?.name }
+                        Text(
+                            listOfNotNull(formatDate(entry.date, lang), refundOf?.let { stringResource(Res.string.fund_entry_refund_to, it) }).joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                     MoneyText(entry.amount, band.currency, colored = true)
                     if (canEdit) EditButton { editing = entry }
@@ -202,6 +209,9 @@ private fun FundEntryDialog(
     onDismiss: () -> Unit,
 ) {
     val lang = language
+    // What a refund is called when the cost has no description: its category, else "Cost" (as in the cost lists).
+    val categoryLabels = CostCategory.entries.associateWith { it.label() }
+    val unnamed = stringResource(Res.string.unnamed_cost)
     var incoming by remember { mutableStateOf(initial?.amount?.isPositive ?: false) }
     var amount by remember { mutableStateOf(initial?.let { formatMoneyInput(Money(abs(it.amount.minor)), lang) } ?: "") }
     var description by remember { mutableStateOf(initial?.description.orEmpty()) }
@@ -224,7 +234,7 @@ private fun FundEntryDialog(
                         if (cost != null) {
                             incoming = false
                             amount = formatMoneyInput(CostLedger.outstanding(band, cost), lang)
-                            if (description.isBlank()) description = cost.description.orEmpty()
+                            if (description.isBlank()) description = cost.description ?: cost.category?.let(categoryLabels::getValue) ?: unnamed
                         }
                     }, stringResource(Res.string.fund_refund_cost)) { id ->
                         id?.let { band.cost(it) }?.let { cost ->
