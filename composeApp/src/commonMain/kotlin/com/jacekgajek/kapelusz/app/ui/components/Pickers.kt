@@ -1,6 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.AlertDialog
@@ -85,7 +88,24 @@ fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, Local
             }) { Text(stringResource(Res.string.ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
-    ) { DateRangePicker(state, Modifier.weight(1f)) }
+    ) {
+        // No "Select dates" title (the calendar is obvious), and the range in the app's short dates on one line: the
+        // picker's own headline wrapped in Polish ("27 paź 2025 - 26 paź / 2026").
+        DateRangePicker(
+            state,
+            Modifier.weight(1f),
+            title = null,
+            headline = {
+                val lang = language
+                Text(
+                    listOf(start, end).joinToString(" – ") { millis -> millis?.let { formatDate(it.date(), lang) } ?: "…" },
+                    Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                )
+            },
+        )
+    }
 }
 
 /** Dropdown choosing one of [options]; [label] renders each option. */
