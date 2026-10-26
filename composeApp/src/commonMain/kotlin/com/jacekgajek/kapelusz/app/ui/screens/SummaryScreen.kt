@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
@@ -48,7 +50,9 @@ import com.jacekgajek.kapelusz.app.generated.summary_and_more
 import com.jacekgajek.kapelusz.app.generated.summary_band
 import com.jacekgajek.kapelusz.app.generated.summary_categories
 import com.jacekgajek.kapelusz.app.generated.summary_collected
-import com.jacekgajek.kapelusz.app.generated.summary_costs
+import com.jacekgajek.kapelusz.app.generated.summary_refunds_at_events
+import com.jacekgajek.kapelusz.app.generated.summary_to_fund
+import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_custom
 import com.jacekgajek.kapelusz.app.generated.summary_earned
 import com.jacekgajek.kapelusz.app.generated.summary_empty
@@ -56,6 +60,7 @@ import com.jacekgajek.kapelusz.app.generated.summary_events
 import com.jacekgajek.kapelusz.app.generated.summary_fund_balance
 import com.jacekgajek.kapelusz.app.generated.summary_fund_in
 import com.jacekgajek.kapelusz.app.generated.summary_fund_out
+import com.jacekgajek.kapelusz.app.generated.summary_former_members
 import com.jacekgajek.kapelusz.app.generated.summary_guests
 import com.jacekgajek.kapelusz.app.generated.summary_last_12
 import com.jacekgajek.kapelusz.app.generated.summary_last_year
@@ -214,9 +219,11 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         Column {
             SectionHeader(stringResource(Res.string.summary_band))
             ValueRow(stringResource(Res.string.summary_events), summary.events.toString())
+            // Where the collected money went: the indented lines add up to it.
             AmountRow(Res.string.summary_collected, summary.collected, currency)
-            AmountRow(Res.string.summary_paid_out, summary.paidOut, currency)
-            AmountRow(Res.string.summary_costs, summary.costs, currency)
+            AmountRow(Res.string.summary_paid_out, summary.paidOut, currency, indent = true)
+            AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, indent = true)
+            if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, indent = true)
             summary.fund?.let { fund ->
                 SectionHeader(stringResource(Res.string.band_fund))
                 AmountRow(Res.string.summary_fund_in, fund.into, currency)
@@ -226,7 +233,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         }
     }
     if (summary.categories.isNotEmpty()) {
-        item(key = "categories") { SectionHeader(stringResource(Res.string.summary_categories)) }
+        item(key = "categories") {
+            Column {
+                SectionHeader(stringResource(Res.string.summary_categories))
+                // Fully refunded costs, from events or the fund, on the day they were.
+                AmountRow(Res.string.summary_total, summary.costs, currency)
+            }
+        }
         items(summary.categories, key = { "category-" + it.first.name }) { (category, amount) ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconCircle(category.icon())
@@ -235,27 +248,43 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             }
         }
     }
+    val (former, current) = summary.members.partition { it.first.archived }
+    // The heading over current and former members alike: "Former members" is part of it.
     if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
-    items(summary.members, key = { "member-" + it.first.id }) { (member, totals) ->
+    items(current, key = { "member-" + it.first.id }) { (member, totals) ->
         // As on the roster and in events: a member not in the app is the crossed eye, a tap invites them (only those
-        // who may invite; former members need to be back first).
-        val invite = canInvite && member.userId == null && !member.archived && member.id != myId
+        // who may invite).
+        val invite = canInvite && member.userId == null && member.id != myId
         val inviteLabel = stringResource(Res.string.not_in_app_invite)
         PersonRow(totals, currency, member.name, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
-            if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)
+            MemberAvatar(member)
         }
     }
     summary.guests?.let { guests ->
         item(key = "guests") { PersonRow(guests, currency, stringResource(Res.string.summary_guests)) { GuestIcon(40.dp) } }
     }
+    // Who has left the band, apart: nothing to invite them to until they're back.
+    if (former.isNotEmpty()) item(key = "former") {
+        Text(
+            stringResource(Res.string.summary_former_members),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).semantics { heading() },
+        )
+    }
+    items(former, key = { "member-" + it.first.id }) { (member, totals) ->
+        PersonRow(totals, currency, member.name) { MemberAvatar(member) }
+    }
 }
 
 @Composable
-private fun AmountRow(label: StringResource, amount: Money, currency: String) = ValueRow(stringResource(label), formatMoney(amount, currency, language))
+private fun AmountRow(label: StringResource, amount: Money, currency: String, indent: Boolean = false) =
+    ValueRow(stringResource(label), formatMoney(amount, currency, language), indent)
 
+/** A label and its value; [indent]: a part of the row above. */
 @Composable
-private fun ValueRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+private fun ValueRow(label: String, value: String, indent: Boolean = false) {
+    Row(Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp, top = 4.dp, bottom = 4.dp)) {
         Text(label, Modifier.weight(1f))
         Text(value)
     }
@@ -276,3 +305,7 @@ private fun PersonRow(totals: PersonTotals, currency: String, name: String, modi
         }
     }
 }
+
+@Composable
+private fun MemberAvatar(member: Member) =
+    if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)

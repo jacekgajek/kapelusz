@@ -82,6 +82,11 @@ data class PeriodSummary(
     val collected: Money,
     /** Everyone's shares. */
     val paidOut: Money,
+    /** Cost refunds paid at the settled events. */
+    val refundedAtEvents: Money,
+    /** The fund's part of the settled events (negative: the fund covered some). With [paidOut] and
+     * [refundedAtEvents], all of [collected]. */
+    val toFund: Money,
     /** Costs fully refunded in the period. */
     val costs: Money,
     /** Null when the band has no fund. */
@@ -165,6 +170,8 @@ suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDa
         events = settledInPeriod.size,
         collected = settledInPeriod.sumOfMoney { it.income },
         paidOut = settledInPeriod.sumOfMoney { event -> settlements.getValue(event.id).lines.filter { it.partyId != BAND_FUND }.sumOfMoney { it.share } },
+        refundedAtEvents = settledInPeriod.sumOfMoney { event -> event.refunds.sumOfMoney { it.amount } },
+        toFund = settledInPeriod.sumOfMoney { it.fundAmount },
         costs = refundedCosts.sumOfMoney { it.amount },
         fund = fund,
         categories = refundedCosts.groupBy { it.category ?: CostCategory.OTHER }

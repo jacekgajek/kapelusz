@@ -1,6 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.AlertDialog
@@ -30,6 +32,15 @@ import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.ok
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
+import com.jacekgajek.kapelusz.app.generated.range_from_to
+import com.jacekgajek.kapelusz.app.generated.range_pick_end
+import com.jacekgajek.kapelusz.app.generated.range_pick_start
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -85,7 +96,40 @@ fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, Local
             }) { Text(stringResource(Res.string.ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
-    ) { DateRangePicker(state, Modifier.weight(1f)) }
+    ) {
+        // No "Select dates" title (the calendar is obvious), and the range in the app's short dates on one line: the
+        // picker's own headline wrapped in Polish ("27 paź 2025 - 26 paź / 2026").
+        DateRangePicker(
+            state,
+            Modifier.weight(1f),
+            title = null,
+            headline = {
+                val lang = language
+                val first = start?.let { formatDate(it.date(), lang) }
+                val last = end?.let { formatDate(it.date(), lang) }
+                val text = when {
+                    first == null -> stringResource(Res.string.range_pick_start)
+                    last == null -> "$first – …"
+                    else -> "$first – $last"
+                }
+                val spoken = when {
+                    first == null -> text
+                    last == null -> stringResource(Res.string.range_pick_end, first)
+                    else -> stringResource(Res.string.range_from_to, first, last)
+                }
+                // Smaller rather than cut off (a long language, a large font); read out on each tap, as Material's own.
+                Text(
+                    text,
+                    Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp).semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = spoken
+                    },
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 14.sp, maxFontSize = 22.sp),
+                )
+            },
+        )
+    }
 }
 
 /** Dropdown choosing one of [options]; [label] renders each option. */
