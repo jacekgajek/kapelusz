@@ -143,10 +143,12 @@
     <string name="defer">Defer</string>
     <string name="unnamed_cost">Cost</string>
     <string name="summary">Settlement</string>
+    <string name="fund_entry_refund_to">refund to %1$s</string>
     <string name="band_fund">Band fund</string>
     <string name="line_payout">payout %1$s = share %2$s + refunds %3$s</string>
     <string name="line_holds">holds %1$s</string>
     <string name="line_gets">gets %1$s</string>
+    <string name="line_keeps_for_fund">keeps %1$s for the fund</string>
     <string name="line_hands_over">hands over %1$s</string>
     <string name="line_settled">settled</string>
     <string name="line_payout_share_only">payout %1$s</string>
@@ -278,6 +280,7 @@
     <string name="invite_hint">Invite this member to use the app: they will join with the code below and see this band.</string>
     <string name="create_invite">Create invite code</string>
     <string name="invite_active_until">Invite %1$s, valid until %2$s</string>
+    <string name="invite_qr">QR code of the invite link: scan it with the other person’s phone camera</string>
     <string name="share_invite">Share</string>
     <string name="share_invite_text">Join %1$s in Pass the Hat with code %2$s: %3$s</string>
     <string name="invite_copied">Invite copied to the clipboard</string>

@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
 import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.EventStatus
@@ -17,6 +16,9 @@ import com.jacekgajek.kapelusz.model.sumOfMoney
 import kotlinx.coroutines.yield
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.serialization.SerialName
@@ -113,7 +115,14 @@ data class PeriodSummary(
  * refunded on the date that happened. [onlyEventsOf]: an artist's id, naming only their unsettled events. Settles every event, the costly part: yields between events, to be cancelled
  * when outdated and to let the web's one thread draw.
  */
-suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDate?, onlyEventsOf: Id? = null): PeriodSummary {
+suspend fun periodSummary(
+    band: Band,
+    me: Member?,
+    from: LocalDate?,
+    to: LocalDate?,
+    onlyEventsOf: Id? = null,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): PeriodSummary {
     fun inPeriod(date: LocalDate) = (from == null || date >= from) && (to == null || date <= to)
 
     val settlements = band.events.associate { event ->
@@ -152,10 +161,22 @@ suspend fun periodSummary(band: Band, me: Member?, from: LocalDate?, to: LocalDa
         dates.maxOrNull()?.takeIf(::inPeriod)?.let { cost }
     }
 
-    // The fund is money actually there, as on the band fund's page: what events moved into or out of it (by the
-    // event's date, settled or not) and its entries.
+    // The fund is money actually there, as on the band fund's page. Transfers to or from it count on the day they were
+    // recorded (a gig's part may be handed over before the gig), fees paid straight to it on the gig's date, entries on
+    // their own.
     val fund = band.treasurerMemberId?.let {
-        val flows = band.events.map { it.date to BandFund.moved(it) } + band.fundEntries.map { it.date to it.amount }
+        val flows = band.events.flatMap { event ->
+            val transfers = event.transfers.mapNotNull { transfer ->
+                val amount = when (BAND_FUND) {
+                    transfer.to -> transfer.amount
+                    transfer.from -> -transfer.amount
+                    else -> return@mapNotNull null
+                }
+                val recorded = transfer.recordedAt.takeIf { it > 0 }?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date }
+                (recorded ?: event.date) to amount
+            }
+            transfers + event.holdings.filter { it.partyId == BAND_FUND }.map { event.date to it.amount }
+        } + band.fundEntries.map { it.date to it.amount }
         val inside = flows.filter { (date, _) -> inPeriod(date) }.map { it.second }
         FundTotals(
             into = inside.filter { it.isPositive }.sumOfMoney { it },

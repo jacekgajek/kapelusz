@@ -179,7 +179,21 @@ background when the screen opens (a spinner meanwhile), again when the band chan
 
 **Later:** export (CSV) of the period; a band-wide season start, if remembering a custom range is not enough.
 
-## 8. Milestones and task checklist
+## 8. Band fund fixes and the invite's QR code (2026-10-26, from testing on the emulator)
+
+- **Summary's fund:** a transfer to or from the fund counts on the day it was recorded, not on its gig's date (a
+  gig's part may be handed over before the gig); fees paid straight to the fund on the gig's date. "In the fund at the
+  period's end" now matches the fund's page (it showed −80 against 20 after an early hand-over).
+- **A refund from the fund** needs no typed description: picking the cost fills it in (its description, else its
+  category, else "Cost"). On the fund's page the entry says whose cost it was: "26 Oct 2026 · refund to Bob"
+  ("zwrot: Bob": Polish names aren't declined by the app).
+- **The treasurer's line** in a settlement no longer counts the fund's part as handed over: "hands over 450.00" with
+  "keeps 100.00 for the fund" under it (only the second when nothing else leaves their pocket).
+- **Invite QR code:** the member's invite card shows a QR code of the join link instead of the link's text (Share and
+  Copy link carry the link). Black on white whatever the theme. Encoded by qrcode-kotlin (no Compose of its own) and
+  drawn with a Canvas: QRose would have pulled a newer Compose than the app's and compileSdk 37.
+
+## 9. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
 
@@ -204,7 +218,7 @@ background when the screen opens (a spinner meanwhile), again when the band chan
 - [x] The numbers per period (with tests)
 - [x] The screen: period chips with the custom range, the four blocks, who sees what
 
-## 9. Decision log
+## 10. Decision log
 
 - 2026-10-25: Ideas not taken: debt reminders shared by hand (not wanted), event links in the settlement summary
   (the event link already gets there), the band's past venues first in Location (rare).
@@ -223,3 +237,5 @@ background when the screen opens (a spinner meanwhile), again when the band chan
   a year. A chosen range, not calendar years: bands count seasons from September too.
 - 2026-10-26: The summary counts only settled events, and costs once fully refunded: final money, so a closed period
   never changes. Refunded counts each payment on its date instead: what a member actually got back then.
+- 2026-10-26: The invite's QR code is drawn by the app from a plain encoder rather than a Compose QR library: the
+  library needed Compose UI 1.12 (compileSdk 37) while the app is on Compose Multiplatform 1.11.

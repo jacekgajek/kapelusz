@@ -78,6 +78,8 @@ import com.jacekgajek.kapelusz.app.generated.close
 import com.jacekgajek.kapelusz.app.generated.copy_link
 import com.jacekgajek.kapelusz.app.generated.create_invite
 import com.jacekgajek.kapelusz.app.generated.invite_active_until
+import com.jacekgajek.kapelusz.app.ui.components.QrCode
+import com.jacekgajek.kapelusz.app.generated.invite_qr
 import com.jacekgajek.kapelusz.app.generated.invite_copied
 import com.jacekgajek.kapelusz.app.generated.invite_failed
 import com.jacekgajek.kapelusz.app.generated.invite_hint
@@ -476,7 +478,8 @@ private fun MemberDialog(
                                 val text = stringResource(Res.string.share_invite_text, band.name, current.code, link)
                                 val copied = stringResource(Res.string.invite_copied)
                                 val linkCopied = stringResource(Res.string.link_copied)
-                                Text(link, style = MaterialTheme.typography.bodySmall)
+                                // A QR code to scan from another phone; the link itself goes by Share or Copy link.
+                                QrCode(link, stringResource(Res.string.invite_qr), Modifier.align(Alignment.CenterHorizontally))
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     FilledTonalButton(onClick = {
                                         scope.launch { if (share(text) == ShareResult.COPIED) message = copied }

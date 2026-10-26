@@ -143,10 +143,12 @@
     <string name="defer">Odłóż</string>
     <string name="unnamed_cost">Koszt</string>
     <string name="summary">Rozliczenie</string>
+    <string name="fund_entry_refund_to">zwrot: %1$s</string>
     <string name="band_fund">Kasa zespołowa</string>
     <string name="line_payout">wypłata %1$s = udział %2$s + zwroty %3$s</string>
     <string name="line_holds">ma %1$s</string>
     <string name="line_gets">dostaje %1$s</string>
+    <string name="line_keeps_for_fund">zatrzymuje %1$s dla kasy</string>
     <string name="line_hands_over">oddaje %1$s</string>
     <string name="line_settled">rozliczone</string>
     <string name="line_payout_share_only">wypłata %1$s</string>
@@ -278,6 +280,7 @@
     <string name="invite_hint">Zaproś tę osobę do aplikacji: dołączy za pomocą kodu i zobaczy ten zespół.</string>
     <string name="create_invite">Utwórz kod zaproszenia</string>
     <string name="invite_active_until">Zaproszenie %1$s, ważne do %2$s</string>
+    <string name="invite_qr">Kod QR z linkiem zaproszenia: zeskanuj go aparatem telefonu drugiej osoby</string>
     <string name="share_invite">Udostępnij</string>
     <string name="share_invite_text">Dołącz do zespołu %1$s w Kapeluszu kodem %2$s: %3$s</string>
     <string name="invite_copied">Skopiowano zaproszenie do schowka</string>

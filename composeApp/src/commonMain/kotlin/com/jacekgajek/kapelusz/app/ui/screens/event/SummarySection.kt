@@ -25,6 +25,7 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.line_gets
 import com.jacekgajek.kapelusz.app.generated.line_hands_over
+import com.jacekgajek.kapelusz.app.generated.line_keeps_for_fund
 import com.jacekgajek.kapelusz.app.generated.line_holds
 import com.jacekgajek.kapelusz.app.generated.line_payout
 import com.jacekgajek.kapelusz.app.generated.line_payout_fixed
@@ -43,6 +44,7 @@ import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.model.BAND_FUND
+import com.jacekgajek.kapelusz.app.ui.model.fundKeptBy
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -133,11 +135,21 @@ private fun DeltaLabel(context: EventContext, line: PartyLine) {
             color = MoneyColors.positive,
             style = MaterialTheme.typography.labelLarge,
         )
-        line.delta.isPositive -> Text(
-            stringResource(Res.string.line_hands_over, formatMoney(line.delta, currency, lang)),
-            color = MoneyColors.negative,
-            style = MaterialTheme.typography.labelLarge,
-        )
+        line.delta.isPositive -> {
+            // The treasurer doesn't hand the fund's part to anyone: they keep it. Said apart, so the red amount is only
+            // what leaves their pocket.
+            val keeps = fundKeptBy(context.band, context.settlement, line)
+            val handsOver = line.delta - keeps
+            if (handsOver.isPositive) Text(
+                stringResource(Res.string.line_hands_over, formatMoney(handsOver, currency, lang)),
+                color = MoneyColors.negative,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            if (keeps.isPositive) Text(
+                stringResource(Res.string.line_keeps_for_fund, formatMoney(keeps, currency, lang)),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
         else -> Text(stringResource(Res.string.line_settled), style = MaterialTheme.typography.labelLarge)
     }
 }
