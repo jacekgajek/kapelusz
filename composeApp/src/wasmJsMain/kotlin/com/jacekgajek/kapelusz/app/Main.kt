@@ -1,5 +1,14 @@
 package com.jacekgajek.kapelusz.app
 
+import org.jetbrains.compose.resources.preloadFont
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import com.jacekgajek.kapelusz.app.generated.fallback_text
+import com.jacekgajek.kapelusz.app.generated.fallback_symbols
+import com.jacekgajek.kapelusz.app.generated.fallback_checks
+import com.jacekgajek.kapelusz.app.generated.Res
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.domain.EventLinks
 import kotlinx.coroutines.delay
 import androidx.compose.material3.Surface
@@ -52,6 +61,11 @@ fun main() {
         }
     }
     ComposeViewport {
+        // Before any text is laid out: text already drawn isn't drawn again with fonts that arrive later.
+        if (!fallbackFontsReady()) {
+            AppLoading()
+            return@ComposeViewport
+        }
         var phase by remember { mutableStateOf(Phase.STARTING) }
         val scope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
@@ -97,4 +111,31 @@ private fun takeJoinCodeFromUrl(): String? {
     val match = Regex("^/join/([A-Za-z0-9]{6})/?$").find(window.location.pathname) ?: return null
     window.history.replaceState(null, "", "/" + window.location.hash)
     return match.groupValues[1].uppercase()
+}
+
+/**
+ * Compose draws text on the web with a font of its own, without the system's: characters it lacks showed as boxes (the
+ * hints' ⚙ and →, the summary's ✓). Fonts preloaded into the resolver are its fallbacks (since Compose 1.8; 1.12 fetches
+ * Noto by itself); these are small cuts of Noto Sans, Noto Sans Symbols and Symbols 2 (SIL Open Font License,
+ * licenses/OFL-Noto.txt). Ready once preloaded, or after 3 s whatever happened, so a font that can't load never holds the
+ * app back.
+ */
+@OptIn(ExperimentalResourceApi::class)
+@Composable
+private fun fallbackFontsReady(): Boolean {
+    val resolver = LocalFontFamilyResolver.current
+    val fonts = listOf(Res.font.fallback_text, Res.font.fallback_symbols, Res.font.fallback_checks).map { preloadFont(it).value }
+    var preloaded by remember { mutableStateOf(false) }
+    var timedOut by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(3000)
+        timedOut = true
+    }
+    LaunchedEffect(fonts) {
+        if (fonts.all { it != null }) {
+            fonts.forEach { resolver.preload(FontFamily(it!!)) }
+            preloaded = true
+        }
+    }
+    return preloaded || timedOut
 }

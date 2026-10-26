@@ -287,3 +287,7 @@ wasn't worth it, and a bank's own notification already says money arrived.
   restricted bucket), push not worth it. Gigs reach phones through the calendar subscription, whose reminders work.
 - 2026-10-26: Scanning invites uses Google Play services' code scanner rather than a camera library: no camera
   permission, no scanning UI to build; phones without Play services type the code.
+- 2026-10-26: The web app bundles fallback fonts (small cuts of Noto Sans, Noto Sans Symbols and Symbols 2, ~80 KB,
+  SIL OFL in licenses/): Compose draws web text with its own font and no system fallback, so ⚙ → ✓ ✗ showed as boxes.
+  They're preloaded before the first screen (at most 3 s), as text already drawn isn't redrawn. Compose 1.12 would fetch
+  Noto by itself; the app is on 1.11.
