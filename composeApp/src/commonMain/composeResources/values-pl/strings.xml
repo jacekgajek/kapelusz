@@ -426,6 +426,10 @@
     <string name="attachment_remove_confirm">Plik %1$s zostanie usunięty.</string>
     <string name="transfer_a11y">%1$s dla %2$s</string>
     <string name="events_filtered_empty">Żadne wydarzenie nie pasuje do filtrów.</string>
+    <string name="search_events">Szukaj wydarzeń</string>
+    <string name="search_close">Zamknij wyszukiwanie</string>
+    <string name="search_placeholder">Szukaj po nazwie lub miejscu</string>
+    <string name="search_no_results">Żadne wydarzenie nie pasuje do „%1$s”.</string>
     <string name="costs_none">Nie ma jeszcze kosztów. Dodaj swoje wydatki na zespół, a zwrot dostaniesz z kolejnych wydarzeń.</string>
     <string name="costs_none_everyone">Nikt jeszcze nie dodał kosztu.</string>
     <string name="attachment_open_failed">Nie udało się otworzyć załącznika. Sprawdź połączenie i spróbuj ponownie.</string>
