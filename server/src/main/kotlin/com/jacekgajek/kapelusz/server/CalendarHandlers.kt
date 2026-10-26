@@ -16,7 +16,7 @@ internal class CalendarHandlers(
     private val users: UserHandlers,
 ) {
     /** The user's feed link, created on first use; [change] can switch "include all" or make a new link. */
-    fun subscription(user: VerifiedUser, request: HttpRequest, change: CalendarSubscriptionChange): HttpResponse {
+    fun subscription(user: VerifiedUser, change: CalendarSubscriptionChange): HttpResponse {
         val key = StorageKeys.calendar(user.userId)
         val (secret, updated) = retryOnConflict(exhausted = { throw busy("Try again") }) {
             val blob = store.get(key)
@@ -32,9 +32,9 @@ internal class CalendarHandlers(
             }
             secret to updated
         }
-        // The link points at this API, whichever address the app used.
-        val host = request.header("host") ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "No host")
-        return ok(CalendarSubscription.serializer(), CalendarSubscription("https://$host/calendar/$secret.ics", updated.includeAll))
+        // On the app's own domain, which passes /calendar/* to this API (ITERATION_6 §10); links given out earlier on the
+        // API's own address keep working.
+        return ok(CalendarSubscription.serializer(), CalendarSubscription("$WEB_URL/calendar/$secret.ics", updated.includeAll))
     }
 
     fun feed(secret: String): HttpResponse {

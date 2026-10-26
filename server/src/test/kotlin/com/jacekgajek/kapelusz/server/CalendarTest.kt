@@ -35,7 +35,7 @@ class CalendarTest {
         return KapeluszJson.decodeFromString(CalendarSubscription.serializer(), response.body!!)
     }
 
-    private fun feed(url: String) = call("GET", url.removePrefix("https://api.test"), null)
+    private fun feed(url: String) = call("GET", url.removePrefix("https://kapelusz.jacekgajek.com"), null)
 
     private fun setup() {
         call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
@@ -56,7 +56,7 @@ class CalendarTest {
     fun theFeedHasMyGigsWithTheirTimes() {
         setup()
         val sub = subscription("alice")
-        assertTrue(sub.url.startsWith("https://api.test/calendar/") && sub.url.endsWith(".ics"))
+        assertTrue(sub.url.startsWith("https://kapelusz.jacekgajek.com/calendar/") && sub.url.endsWith(".ics"), "on the app's domain")
         val response = feed(sub.url)
         assertEquals(200, response.status)
         assertTrue(response.headers.getValue("content-type").startsWith("text/calendar"))

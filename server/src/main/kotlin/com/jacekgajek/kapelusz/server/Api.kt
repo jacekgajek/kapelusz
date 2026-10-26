@@ -76,9 +76,9 @@ class Api(
         return when {
             method == "GET" && segments == listOf("me") -> users.me(user)
             method == "POST" && segments == listOf("me", "picture") -> users.picture(user, request)
-            method == "GET" && segments == listOf("me", "calendar") -> calendar.subscription(user, request, CalendarSubscriptionChange())
+            method == "GET" && segments == listOf("me", "calendar") -> calendar.subscription(user, CalendarSubscriptionChange())
             method == "POST" && segments == listOf("me", "calendar") ->
-                calendar.subscription(user, request, parse(request, CalendarSubscriptionChange.serializer()))
+                calendar.subscription(user, parse(request, CalendarSubscriptionChange.serializer()))
             method == "POST" && segments == listOf("session") -> users.session(user)
             method == "POST" && segments == listOf("sessions", "revoke") -> users.revokeSessions(user)
             method == "POST" && segments == listOf("bands") -> bandHandlers.create(user, parse(request, CreateBandRequest.serializer()))
