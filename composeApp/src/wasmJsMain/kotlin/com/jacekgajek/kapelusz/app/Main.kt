@@ -4,7 +4,6 @@ import org.jetbrains.compose.resources.preloadFont
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import com.jacekgajek.kapelusz.app.generated.fallback_text
 import com.jacekgajek.kapelusz.app.generated.fallback_symbols
-import com.jacekgajek.kapelusz.app.generated.fallback_checks
 import com.jacekgajek.kapelusz.app.generated.Res
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalFontFamilyResolver
@@ -61,11 +60,9 @@ fun main() {
         }
     }
     ComposeViewport {
-        // Before any text is laid out: text already drawn isn't drawn again with fonts that arrive later.
-        if (!fallbackFontsReady()) {
-            AppLoading()
-            return@ComposeViewport
-        }
+        // Nothing is drawn before the fallback fonts: text already drawn isn't drawn again with fonts that arrive later.
+        // Loading the bands doesn't wait for them.
+        val fontsReady = fallbackFontsReady()
         var phase by remember { mutableStateOf(Phase.STARTING) }
         val scope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
@@ -76,8 +73,9 @@ fun main() {
                 Phase.OTHER_TAB
             }
         }
-        when (phase) {
-            Phase.STARTING -> AppLoading()
+        // One loading screen for both waits, so its spinner doesn't start over in between.
+        if (!fontsReady || phase == Phase.STARTING) AppLoading() else when (phase) {
+            Phase.STARTING -> {}
             Phase.OTHER_TAB -> KapeluszTheme {
                 Surface {
                     OtherTabScreen(onUseHere = {
@@ -115,27 +113,26 @@ private fun takeJoinCodeFromUrl(): String? {
 
 /**
  * Compose draws text on the web with a font of its own, without the system's: characters it lacks showed as boxes (the
- * hints' ⚙ and →, the summary's ✓). Fonts preloaded into the resolver are its fallbacks (since Compose 1.8; 1.12 fetches
- * Noto by itself); these are small cuts of Noto Sans, Noto Sans Symbols and Symbols 2 (SIL Open Font License,
- * licenses/OFL-Noto.txt). Ready once preloaded, or after 3 s whatever happened, so a font that can't load never holds the
- * app back.
+ * hints' ⚙ and →). Fonts preloaded into the resolver are its fallbacks (since Compose 1.8); these are small cuts of Noto
+ * Sans and Noto Sans Symbols (SIL Open Font License, licenses/OFL-Noto.txt), web only. Each is registered as it arrives;
+ * ready once both are, or after 3 s, so a slow font doesn't hold the first screen back (text laid out later still gets
+ * it).
  */
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 private fun fallbackFontsReady(): Boolean {
     val resolver = LocalFontFamilyResolver.current
-    val fonts = listOf(Res.font.fallback_text, Res.font.fallback_symbols, Res.font.fallback_checks).map { preloadFont(it).value }
-    var preloaded by remember { mutableStateOf(false) }
+    val text by preloadFont(Res.font.fallback_text)
+    val symbols by preloadFont(Res.font.fallback_symbols)
     var timedOut by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(3000)
         timedOut = true
     }
-    LaunchedEffect(fonts) {
-        if (fonts.all { it != null }) {
-            fonts.forEach { resolver.preload(FontFamily(it!!)) }
-            preloaded = true
-        }
-    }
-    return preloaded || timedOut
+    // Ready once registered, not merely downloaded: registering runs after the frame that sees a font arrive, and text
+    // laid out in that frame would miss it.
+    var registered by remember { mutableStateOf(0) }
+    LaunchedEffect(text) { text?.let { resolver.preload(FontFamily(it)); registered++ } }
+    LaunchedEffect(symbols) { symbols?.let { resolver.preload(FontFamily(it)); registered++ } }
+    return registered == 2 || timedOut
 }
