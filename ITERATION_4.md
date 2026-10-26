@@ -87,6 +87,9 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
 
 ### 1.3 Notifications
 
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
+
 - **Defaults:** only the reminder about unsettled business (open debts) is on. Gig reminders and "transfers others
   record with me" start off.
 - The one-time "remind me before gigs?" question (Android 13+) still comes with the first upcoming gig: it is now how gig

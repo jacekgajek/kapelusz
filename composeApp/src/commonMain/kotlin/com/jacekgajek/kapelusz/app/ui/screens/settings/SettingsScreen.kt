@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens.settings
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.filled.PhoneAndroid
 import com.jacekgajek.kapelusz.app.generated.blik_mine
 import com.jacekgajek.kapelusz.app.generated.blik_mine_off
@@ -20,7 +22,6 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
@@ -35,17 +36,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.CalendarSubscription
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
-import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.account
 import com.jacekgajek.kapelusz.app.generated.agenda_template_title
@@ -61,16 +59,11 @@ import com.jacekgajek.kapelusz.app.generated.language
 import com.jacekgajek.kapelusz.app.generated.language_en
 import com.jacekgajek.kapelusz.app.generated.language_pl
 import com.jacekgajek.kapelusz.app.generated.language_system
-import com.jacekgajek.kapelusz.app.generated.notifications_and_calendar
-import com.jacekgajek.kapelusz.app.generated.reminders_summary_off
-import com.jacekgajek.kapelusz.app.generated.reminders_summary_on
 import com.jacekgajek.kapelusz.app.generated.settings
 import com.jacekgajek.kapelusz.app.generated.settings_band
 import com.jacekgajek.kapelusz.app.generated.settings_personal
 import com.jacekgajek.kapelusz.app.generated.sign_out
 import com.jacekgajek.kapelusz.app.generated.sign_out_everywhere
-import com.jacekgajek.kapelusz.app.platform.NotificationPermission
-import com.jacekgajek.kapelusz.app.platform.rememberNotificationPermission
 import com.jacekgajek.kapelusz.app.platform.rememberUpdateControls
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
@@ -79,11 +72,10 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.label
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The settings that open a page of their own (ITERATION_2 §8). */
-enum class SettingsPage { FUND, AGENDA, NOTIFICATIONS }
+enum class SettingsPage { FUND, AGENDA, CALENDAR }
 
 @Composable
 fun SettingsScreen(
@@ -115,8 +107,6 @@ fun SettingsScreen(
     /** The band stored its own template (even if it equals the defaults). */
     agendaTemplateStored: Boolean,
     onAgendaTemplate: ((List<AgendaTemplateItem>) -> Unit)?,
-    appSettings: AppSettings,
-    onAppSettings: ((AppSettings) -> AppSettings) -> Unit,
     /** The calendar subscription (needs the server): get it, or change it. */
     calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
     /** The band's raw file from the server, for the secret menu; null for non-leaders. */
@@ -131,7 +121,6 @@ fun SettingsScreen(
     blikPhone: String? = null,
     onBlikPhone: ((String?) -> Unit)? = null,
 ) {
-    val permission = rememberNotificationPermission()
     when (page) {
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
             if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
@@ -141,10 +130,9 @@ fun SettingsScreen(
             // No longer a leader (e.g. demoted meanwhile): nothing to edit here.
             else LaunchedEffect(Unit) { onBack() }
         }
-        SettingsPage.NOTIFICATIONS -> SettingsPageScaffold(stringResource(notificationsTitle(permission)), onBack) {
-            permission?.let { NotificationsSection(it, appSettings, onAppSettings) }
-            // Without notifications (web) the page is the calendar, already named in the top bar.
-            CalendarSection(calendar, showTitle = permission != null, showIncludeAll = !artist)
+        // The app's own notifications are gone (ITERATION_6 §9): gigs reach the phone through the calendar.
+        SettingsPage.CALENDAR -> SettingsPageScaffold(stringResource(Res.string.calendar_title), onBack) {
+            CalendarSection(calendar, showTitle = false, showIncludeAll = !artist)
         }
         null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
             var choosingLanguage by remember { mutableStateOf(false) }
@@ -174,18 +162,9 @@ fun SettingsScreen(
             SettingsItem(Icons.Default.Language, stringResource(Res.string.language), stringResource((languages.firstOrNull { it.first == language } ?: languages.first()).second)) {
                 choosingLanguage = true
             }
-            SettingsItem(
-                if (permission != null) Icons.Default.Notifications else Icons.Default.Event,
-                stringResource(notificationsTitle(permission)),
-                stringResource(
-                    when {
-                        permission == null -> Res.string.calendar_summary
-                        appSettings.remindersEnabled -> Res.string.reminders_summary_on
-                        else -> Res.string.reminders_summary_off
-                    },
-                ),
-                chevron = true,
-            ) { onOpenPage(SettingsPage.NOTIFICATIONS) }
+            SettingsItem(Icons.Default.Event, stringResource(Res.string.calendar_title), stringResource(Res.string.calendar_summary), chevron = true) {
+                onOpenPage(SettingsPage.CALENDAR)
+            }
 
             Column(Modifier.padding(horizontal = 16.dp)) {
                 rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
@@ -257,6 +236,3 @@ fun SettingsScreen(
         }
     }
 }
-
-private fun notificationsTitle(permission: NotificationPermission?): StringResource =
-    if (permission != null) Res.string.notifications_and_calendar else Res.string.calendar_title

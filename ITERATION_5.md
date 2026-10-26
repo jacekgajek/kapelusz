@@ -227,6 +227,9 @@ automatic installing, keep automatic downloading (see §1.7, C1′).*
 
 ### 1.4 Batch D — Notifications and web
 
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
+
 **D1 (M) Transfers downloaded by a "sync soon" run are never notified.**
 - Where: `composeApp/src/androidMain/.../notify/BackgroundSyncWorker.kt` (`notifyTransfers = !local && !SOON`, and
   `afterSync`).

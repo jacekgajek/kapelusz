@@ -85,6 +85,9 @@ No in-app map (Google's map and place APIs need an API key and a billing account
 
 ## 5. Notifications (Android)
 
+> **Superseded (2026-10-26):** the app has no notifications any more, only the calendar subscription (ITERATION_6 §9).
+
+
 ### 5.1 Background sync
 - Periodic sync of **all** the user's bands (today only the open band is pulled, and only while the app is visible), every few hours, only with a network connection (Android WorkManager). Exact timing is up to Android.
 - After each sync the app reschedules gig reminders (§5.2), looks for new transfers (§5.3) and, once a day, checks for updates (§1).

@@ -188,7 +188,7 @@ class BandRepository(
         if (stored == null) persist(band.id)
     }
 
-    /** Every band on this device as the user sees it (with unsent changes), e.g. for reminders. */
+    /** Every band on this device as the user sees it (with unsent changes). */
     fun allBands(): List<Band> = locals.values.map(::replay)
 
     /** The id of the operation [dispatch] applied last, e.g. to recognise it in the history later. */
