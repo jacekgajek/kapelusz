@@ -23,10 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
+import com.jacekgajek.kapelusz.app.generated.artist_held_for_partner
 import com.jacekgajek.kapelusz.app.generated.artist_kept_by_partner
 import com.jacekgajek.kapelusz.app.generated.artist_my_costs
 import com.jacekgajek.kapelusz.app.generated.artist_payout
 import com.jacekgajek.kapelusz.app.generated.artist_received
+import com.jacekgajek.kapelusz.app.generated.artist_settled_with
 import com.jacekgajek.kapelusz.app.generated.artist_settles_with
 import com.jacekgajek.kapelusz.app.generated.artist_still_to_receive
 import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
@@ -72,8 +74,11 @@ fun ArtistLineup(context: EventContext) {
 fun ArtistPayout(context: EventContext) {
     val me = context.me ?: return
     val line = context.settlement.line(me.id) ?: return
-    val partner = context.settlement.partners[me.id]?.let { partyName(context.band, context.event, it, "") }
+    val partnerId = context.settlement.partners[me.id]
+    val partner = partnerId?.let { partyName(context.band, context.event, it, "") }
+    // Either way round: the partner holds what the artist is owed, or the artist got what the partner is owed.
     val kept = SettleTogether.keptByPartner(context.settlement, me.id)
+    val heldForPartner = partnerId?.let { SettleTogether.keptByPartner(context.settlement, it) } ?: Money.ZERO
     SectionTitle(stringResource(Res.string.artist_payout))
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -82,9 +87,14 @@ fun ArtistPayout(context: EventContext) {
             // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
             // got too much (or owe from before they were an artist), a lead settles it with whoever is owed.
             if (partner != null && kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)
-            if (line.delta.isPositive) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta, context.currency, bold = true)
-            else PayoutRow(stringResource(Res.string.artist_still_to_receive), -line.delta - kept, context.currency, bold = true)
-            if (partner != null) Text(stringResource(Res.string.artist_settles_with, partner), style = MaterialTheme.typography.bodySmall)
+            if (partner != null && heldForPartner.isPositive) PayoutRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner, context.currency)
+            if (line.delta > heldForPartner) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, context.currency, bold = true)
+            else PayoutRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), context.currency, bold = true)
+            // A pair kept by an event settled together before it ended (ITERATION_5 §7) is told in the past.
+            if (partner != null) {
+                val text = if (me.settlesWith == partnerId) Res.string.artist_settles_with else Res.string.artist_settled_with
+                Text(stringResource(text, partner), style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

@@ -18,6 +18,8 @@
     <string name="artist_my_costs">Twoje koszty dla tego wydarzenia</string>
     <string name="artist_kept_by_partner">Trzyma dla ciebie: %1$s</string>
     <string name="artist_settles_with">Rozliczasz się razem z: %1$s. Ta osoba może zatrzymać albo odebrać to, co ci się należy.</string>
+    <string name="artist_held_for_partner">Trzymasz dla: %1$s</string>
+    <string name="artist_settled_with">Tutaj rozliczono cię razem z: %1$s.</string>
     <string name="tab_settle">Rozliczenia</string>
     <string name="language">Język</string>
     <string name="language_system">Język urządzenia</string>

@@ -244,7 +244,9 @@ confusing): a household where one is a hired artist, or both are, wants one mone
   owed and never paying out. Two artists are paid by one transfer (one BLIK), stored as one transfer to each.
 - **What the artist sees:** only their own numbers. Their payout shows what the partner holds for them ("Kept for you
   by Ania": what the partner holds over their own target, up to what the artist is owed), "Still to receive" without
-  it, and "You settle together with Ania: what you're owed may be kept or received by them." The events list counts the
+  it, and "You settle together with Ania: what you're owed may be kept or received by them." The other way round too:
+  an artist paid the pair's money while still a member sees "You hold for Ania", not money to hand back. A pair that
+  has ended since is told in the past on the events it settled ("Settled together with Ania here."). The events list counts the
   kept part as received (the artist is even when the partner keeps it all), never the pair's number. The summary is
   unchanged: it counts earnings, not who holds them.
 - **Roster for artists:** the cog menu's Members opens for them too, names and avatars only: no roles, shares or

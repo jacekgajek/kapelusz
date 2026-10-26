@@ -25,6 +25,7 @@ import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -90,11 +91,13 @@ class PresentationTest {
     @Test
     fun aPairedArtistSeesOnlyTheirOwnNumber() {
         // ITERATION_6 §11: Carol, an artist, settles together with Bob. Three shares of 100.
-        fun band(holder: String) = Band.create("b", "Band", "PLN", "alice", "Alice", "u").apply(
+        // [before] is applied while Carol is still a member.
+        fun band(holder: String, vararg before: Operation) = Band.create("b", "Band", "PLN", "alice", "Alice", "u").apply(
             AddMember("bob", "Bob"),
             AddMember("carol", "Carol"),
             CreateEvent("gig", "Gig", LocalDate(2026, 9, 13), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol"))),
             AddHolding("gig", "h", holder, Money(30000), IncomeSource.DOOR),
+            *before,
         ).let { band ->
             band.copy(members = band.members.map {
                 when (it.id) {
@@ -111,6 +114,9 @@ class PresentationTest {
         assertEquals(MyNumber.HandOver(Money(10000)), number(bobHolds, "bob"), "the pair's number: Alice's 100")
         val aliceHolds = band("alice")
         assertEquals(MyNumber.Get(Money(10000)), number(aliceHolds, "carol"), "her own 100, not the pair's 200")
+        // Paid the pair's 200 while still a member: she holds Bob's 100 for him, nothing to hand back.
+        val paidToCarol = band("alice", RecordTransfer("gig", "t", "alice", "carol", Money(20000)))
+        assertEquals(MyNumber.Even, number(paidToCarol, "carol"))
     }
 
     @Test

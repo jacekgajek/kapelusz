@@ -1,10 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
-import com.jacekgajek.kapelusz.domain.SettleTogether
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
+import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -13,6 +12,7 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Role
 import kotlinx.datetime.LocalDate
 
 /** The current user's position in an event: what they still get or must hand over. */
@@ -35,7 +35,13 @@ fun myNumber(event: Event, settlement: Settlement, me: Member?): MyNumber {
     if (me == null || event.participant(me.id) == null) return MyNumber.NotParticipating
     val delta = if (me.role == Role.ARTIST) {
         val line = settlement.line(me.id) ?: return MyNumber.NotParticipating
-        if (line.delta.isNegative) line.delta + SettleTogether.keptByPartner(settlement, me.id) else line.delta
+        // Either way round: the partner holds what the artist is owed, or the artist got what the partner is owed.
+        val partner = settlement.partners[me.id]
+        when {
+            line.delta.isNegative -> line.delta + SettleTogether.keptByPartner(settlement, me.id)
+            partner != null -> line.delta - SettleTogether.keptByPartner(settlement, partner)
+            else -> line.delta
+        }
     } else {
         (settlement.party(me.id) ?: return MyNumber.NotParticipating).delta
     }
