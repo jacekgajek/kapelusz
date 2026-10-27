@@ -32,7 +32,7 @@ makes this explicit, so the data format can change later without silently broken
 - Apps send their version code with every request as the query parameter `appVersion=<versionCode>` (0 for local development builds, which are always allowed). A header would have needed the API's CORS allow-list changed.
 - The server has a **minimum supported version** in its code (`Api.MIN_APP_VERSION`, 0 = everyone), raised whenever a change would break older apps. Below it, or without a version (apps from before iteration 2), it answers `426` with `update_required`. Sync then stops retrying.
 - The app then shows a blocking screen: **"This version of Kapelusz is too old. Update to continue"** with **Update** (Android: download and install, §1; web: reload).
-- **Raising the minimum takes two deploys:** first deploy apps that handle the new data, then set the minimum to *that* deploy's run number. A number not yet deployed would refuse every app, and during a deploy the server switches before the new web app and APK are uploaded.
+- **Raising the minimum takes two deploys:** first deploy apps that handle the new data, then set the minimum to *that* deploy's version code (its run number; since 2026-10-27 its run number + 10, ITERATION_7 §1.3). A number not yet deployed would refuse every app, and during a deploy the server switches before the new web app and APK are uploaded.
 - History entries an app cannot read are shown as **"A change from a newer version"** instead of failing the whole page.
 - Initial users are known personally, so the policy is pragmatic: raise the minimum when needed and tell people to update.
 

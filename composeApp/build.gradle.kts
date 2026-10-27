@@ -28,7 +28,7 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     // Without a key (local builds, unless set) there is no map to pick a place on.
     val mapsKey = setting("KAPELUSZ_GOOGLE_MAPS_ANDROID_KEY", "kapelusz.googleMapsAndroidKey").orElse("")
     val versionName = providers.gradleProperty("kapelusz.versionName")
-    // CI passes its run number; local builds are "dev".
+    // CI passes an increasing number (its run number + 10); local builds are "dev".
     val versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orElse("0")
     inputs.property("versionName", versionName)
     inputs.property("versionCode", versionCode)

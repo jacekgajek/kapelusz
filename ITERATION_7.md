@@ -10,8 +10,8 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 ### 1.1 Two channels, the APK later dropped
 
 - **Both for now** (Q1): the `androidApp` module has two variants, `site` (the APK on the website, with its own
-  updater, ITERATION_2 §1) and `play` (for Google Play). Same application id, same version code (CI's run number), so a
-  phone moves from one to the other as an ordinary update, without uninstalling or losing anything.
+  updater, ITERATION_2 §1) and `play` (for Google Play). Same application id, same version code (CI's run number + 10),
+  so a phone moves from one to the other as an ordinary update, without uninstalling or losing anything.
 - **Later**, when (by judgement, or `version.json` requests in CloudFront) hardly anyone is left on the APK, the `site`
   variant is deleted.
 - **The `play` variant** has no self-updater (code, `REQUEST_INSTALL_PACKAGES`, `UPDATE_PACKAGES_WITHOUT_USER_ACTION`,
@@ -33,6 +33,9 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
   **closed testing** track through the Play Developer API (a Google Cloud service account, its key a GitHub secret).
   Without the secret, the bundle is built and the upload skipped. The very first upload is by hand (the API can't create
   the app's first release).
+- **Version codes** (2026-10-27): CI's run number + 10, as the first Play bundle went up by hand as 231 while the live
+  version was 225; every later upload must be higher. While the app is still a draft in the Console (the first release in review),
+  the variable `PLAY_RELEASE_STATUS=draft`; removed once it is published.
 - **Production** is promoted by hand in the Console.
 - **Raising the minimum app version** (`Api.MIN_APP_VERSION`, ITERATION_2 §2) waits until the build it requires is live
   on Play too: Play builds come later (review, promotion by hand), and until then Play users would be told to update

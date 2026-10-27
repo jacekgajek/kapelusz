@@ -57,8 +57,8 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 CI (`.github/workflows/ci.yml`) tests every pull request and push to `main`. On `main`, once the tests pass, its
 deploy job runs `scripts/deploy.sh`: it builds the release artefacts once (the signed APK, the production web bundle,
 the server jar) and uploads the API to Lambda, the web app to S3 and CloudFront, and the APK to the website and a
-GitHub Release. The version code is CI's run number. AWS access uses GitHub OIDC, and the keystore
-comes from the repository's secrets. Running `scripts/deploy.sh` by hand is described at its top.
+GitHub Release. The version code is CI's run number plus 10 (since the first Play bundle, 231, went up by hand). AWS
+access uses GitHub OIDC, and the keystore comes from the repository's secrets. Running `scripts/deploy.sh` by hand is described at its top.
 
 Google Play (ITERATION_7 §1.3): with the upload key in the secrets (`ANDROID_UPLOAD_KEYSTORE_BASE64`,
 `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, optionally `ANDROID_UPLOAD_KEY_PASSWORD`, and the variable
