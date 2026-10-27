@@ -30,6 +30,11 @@
     <string name="create">Utwórz</string>
     <string name="archive">Archiwizuj</string>
     <string name="unarchive">Przywróć</string>
+    <string name="delete_member">Usuń członka</string>
+    <string name="delete_member_title">Usunąć: %1$s?</string>
+    <string name="delete_member_text">%1$s nie ma w tym zespole żadnych wpisów, więc usunięcie niczego więcej nie zmienia.</string>
+    <string name="delete_member_linked">%1$s korzysta z aplikacji: usunięcie odbiera też dostęp do zespołu. Aby wrócić, potrzebne będzie nowe zaproszenie.</string>
+    <string name="deleted_member">Usunięto: %1$s</string>
     <string name="archive_not_settled">Jeszcze nierozliczone</string>
     <string name="move_up">Przesuń w górę</string>
     <string name="move_down">Przesuń w dół</string>
@@ -316,7 +321,7 @@
     <string name="h_move_member">Przesunięto %1$s na liście członków</string>
     <string name="h_archive_member">Zarchiwizowano: %1$s</string>
     <string name="h_restore_member">Przywrócono: %1$s</string>
-    <string name="h_delete_member">Usunięto członka</string>
+    <string name="h_delete_member">Usunięto członka: %1$s</string>
     <string name="h_set_role">Zmiana roli: %1$s → %2$s</string>
     <string name="h_link_user">%1$s dołącza do zespołu z rolą: %2$s</string>
     <string name="h_unlink_user">Odłączono konto: %1$s</string>
@@ -443,6 +448,10 @@
     <string name="app_banner_download">Pobierz</string>
     <string name="app_update_text">Dostępna jest nowa wersja Kapelusza (%1$s).</string>
     <string name="app_update_download">Aktualizuj</string>
+    <string name="store_update_available">Nowa wersja Kapelusza jest w Google Play.</string>
+    <string name="store_update_downloading">Pobieranie nowej wersji…</string>
+    <string name="store_update_ready">Pobrano nową wersję.</string>
+    <string name="store_update_restart">Uruchom ponownie</string>
     <string name="total_from_fund">Z kasy zespołowej</string>
     <string name="fund_direction_to">Do kasy</string>
     <string name="fund_direction_from">Z kasy</string>

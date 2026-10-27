@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.BlikPhone
+import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.Viewers
@@ -57,7 +58,7 @@ object Reducer {
             }
             is MoveMember -> moveMember(band, op)
             is SetMemberArchived -> setMemberArchived(band, op)
-            is DeleteMember -> deleteMember(band, op)
+            is DeleteMember -> deleteMember(band, op, ctx)
             is SetMemberRole -> setMemberRole(band, op)
             is SetMemberShare -> setMemberShare(band, op, ctx)
             is LinkUser -> linkUser(band, op)
@@ -293,12 +294,14 @@ object Reducer {
         return band.updateMember(op.memberId) { it.copy(archived = op.archived, pictureUrl = it.pictureUrl.takeUnless { op.archived }) }
     }
 
-    private fun deleteMember(band: Band, op: DeleteMember): Band {
+    private fun deleteMember(band: Band, op: DeleteMember, ctx: OpContext): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
+        // Yourself: Leave band is for that (ITERATION_6 §11a).
+        conflictIf(member.id == ctx.memberId, RejectionReason.MEMBER_HAS_HISTORY) { "Not yourself; leave the band instead" }
         conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Unlink the user before deleting the member" }
         conflictIf(band.treasurerMemberId == member.id, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
-        conflictIf(band.costs.any { it.memberId == member.id }, RejectionReason.MEMBER_HAS_HISTORY) { "Member has costs; archive instead" }
-        conflictIf(band.events.any { it.participant(member.id) != null }, RejectionReason.MEMBER_HAS_HISTORY) { "Member took part in events; archive instead" }
+        // Only who left no trace (ITERATION_7 §2a): anyone who did take part is archived instead.
+        conflictIf(!MemberDeletion.possible(band, member.id), RejectionReason.MEMBER_HAS_HISTORY) { "Something in the band refers to this member; archive instead" }
         return band.copy(members = band.members.filterNot { it.id == member.id })
     }
 

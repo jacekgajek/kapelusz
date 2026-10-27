@@ -22,6 +22,9 @@ import com.jacekgajek.kapelusz.app.generated.update_required_text
 import com.jacekgajek.kapelusz.app.generated.update_required_title
 import com.jacekgajek.kapelusz.app.platform.appReloader
 import com.jacekgajek.kapelusz.app.platform.storeListing
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import com.jacekgajek.kapelusz.app.platform.rememberStoreUpdates
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import org.jetbrains.compose.resources.stringResource
 
@@ -33,6 +36,8 @@ import org.jetbrains.compose.resources.stringResource
 fun UpdateRequiredScreen() {
     val reload = appReloader()
     val store = storeListing()
+    val storeUpdates = rememberStoreUpdates()
+    val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     // Clear of the system bars (edge to edge on Android 15+).
     Box(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -40,10 +45,11 @@ fun UpdateRequiredScreen() {
             Text(stringResource(Res.string.update_required_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(Res.string.update_required_text), style = MaterialTheme.typography.bodyMedium)
             Button(onClick = {
-                // The web reloads into the deployed version; Android updates from Google Play (ITERATION_7 §1.1).
+                // The web reloads into the deployed version; Android updates from Google Play (ITERATION_7 §1.1): its
+                // full-screen update when Play offers one here (§2b), else the listing.
                 when {
                     reload != null -> reload()
-                    store != null -> uriHandler.openUri(store)
+                    store != null -> scope.launch { if (storeUpdates?.updateNow() != true) uriHandler.openUri(store) }
                 }
             }) { Text(stringResource(Res.string.update_required_button)) }
         }

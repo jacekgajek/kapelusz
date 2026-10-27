@@ -101,10 +101,11 @@ internal class BandHandlers(
             // A precondition failure here: changed meanwhile, the whole batch again on the new state.
             val newEtag = if (encoded == null) etag else store.put(StorageKeys.band(bandId), encoded, ifMatch = etag)
             if (result.accepted.isNotEmpty()) {
-                // A member whose account was linked or unlinked must not keep any invite (see InviteHandlers.revokeFor).
-                envelopes.filter { it.opId in result.accepted }.map { it.op }
-                    .mapNotNull { (it as? UnlinkUser)?.memberId }
-                    .forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
+                // A member whose account was unlinked, or who is gone (deleted, also by a redo), keeps no invite
+                // (InviteHandlers.revokeFor).
+                val unlinkedMembers = envelopes.filter { it.opId in result.accepted }.map { it.op }.mapNotNull { (it as? UnlinkUser)?.memberId }
+                val goneMembers = band.members.map { it.id } - result.band.members.map { it.id }.toSet()
+                (unlinkedMembers + goneMembers).distinct().forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
                 // New events (also one brought back by an undo): where their links find them; deleted ones: not anymore.
                 val before = band.events.map { it.id }.toSet()
                 val after = result.band.events.map { it.id }.toSet()
@@ -119,6 +120,13 @@ internal class BandHandlers(
                 // Everyone in the band before or after (a member just removed learns it at once), but this device
                 // (ITERATION_7 §2.2).
                 if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }
+                // Someone's account unlinked (by a leader, or deleting them, ITERATION_7 §2a): as if they had left, after
+                // the message their devices still get (ITERATION_6 §11a).
+                val unlinked = band.members.mapNotNull { it.userId }.toSet() - result.band.members.mapNotNull { it.userId }.toSet()
+                unlinked.forEach { userId ->
+                    runCatching { users.removeBandFromUser(userId, bandId) }
+                    runCatching { users.forgetIfNoBands(userId) }
+                }
             }
             ok(PushResponse.serializer(), PushResponse(newEtag, result.band, result.accepted, result.rejected, result.duplicates))
         }

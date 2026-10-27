@@ -14,6 +14,7 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import kotlinx.datetime.LocalDate
@@ -107,6 +108,30 @@ class LeaveBandTest {
         assertEquals(KapeluszJson.decodeFromString(UserRecord.serializer(), before).copy(bandIds = listOf("band2")), record)
         assertTrue(store.get("users/bob-calendar.json") != null, "the calendar keeps working for band2")
         assertTrue(store.list("calendar/").isNotEmpty())
+    }
+
+    @Test
+    fun beingUnlinkedByALeaderIsLikeLeaving() {
+        setup()
+        subscribeAndGivePhoto("bob")
+        val unlink = listOf(OpEnvelope("op9", "phone", 9, 1, UnlinkUser("m-bob")))
+        assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(unlink))).status)
+
+        val record = KapeluszJson.decodeFromString(UserRecord.serializer(), store.get("users/bob.json")!!.content)
+        assertEquals(UserRecord("bob", sessionsValidFrom = record.sessionsValidFrom), record, "his last band: only the account id stays")
+        assertNull(store.get("users/bob-calendar.json"))
+        assertTrue(KapeluszJson.decodeFromString(MeResponse.serializer(), call("GET", "/me", "bob").body!!).bands.isEmpty())
+    }
+
+    @Test
+    fun deletingAMemberCancelsTheirInvites() {
+        setup()
+        val add = listOf(OpEnvelope("op10", "phone", 10, 1, AddMember("m-carol", "Carol")))
+        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(add)))
+        val code = invite("m-carol")
+        val delete = listOf(OpEnvelope("op11", "phone", 11, 1, DeleteMember("m-carol")))
+        assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(delete))).status)
+        assertEquals(404, call("GET", "/invites/$code", "dan").status, "no old code comes back with an Undo")
     }
 
     /** A calendar link and a Google photo kept for [user], as signing in and subscribing leave them. */

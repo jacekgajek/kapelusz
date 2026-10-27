@@ -30,6 +30,11 @@
     <string name="create">Create</string>
     <string name="archive">Archive</string>
     <string name="unarchive">Restore</string>
+    <string name="delete_member">Delete member</string>
+    <string name="delete_member_title">Delete %1$s?</string>
+    <string name="delete_member_text">Nothing in this band refers to %1$s, so deleting changes nothing else.</string>
+    <string name="delete_member_linked">%1$s uses the app: deleting also removes their access to the band. To come back, they need a new invite.</string>
+    <string name="deleted_member">Deleted %1$s</string>
     <string name="archive_not_settled">Not settled yet</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
@@ -316,7 +321,7 @@
     <string name="h_move_member">Moved %1$s in the member list</string>
     <string name="h_archive_member">Archived %1$s</string>
     <string name="h_restore_member">Restored %1$s</string>
-    <string name="h_delete_member">Deleted a member</string>
+    <string name="h_delete_member">Deleted member %1$s</string>
     <string name="h_set_role">Gave %1$s the role %2$s</string>
     <string name="h_link_user">%1$s joined the band as %2$s</string>
     <string name="h_unlink_user">Unlinked the app account of %1$s</string>
@@ -443,6 +448,10 @@
     <string name="app_banner_download">Get the app</string>
     <string name="app_update_text">A new version of Pass the Hat is available (%1$s).</string>
     <string name="app_update_download">Update</string>
+    <string name="store_update_available">A new version of Pass the Hat is on Google Play.</string>
+    <string name="store_update_downloading">Downloading the new version…</string>
+    <string name="store_update_ready">The new version is downloaded.</string>
+    <string name="store_update_restart">Restart</string>
     <string name="total_from_fund">From band fund</string>
     <string name="fund_direction_to">To the fund</string>
     <string name="fund_direction_from">From the fund</string>
