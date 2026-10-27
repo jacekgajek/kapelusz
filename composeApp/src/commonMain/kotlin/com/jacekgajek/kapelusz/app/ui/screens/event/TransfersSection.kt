@@ -236,7 +236,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
  * (ITERATION_5 §3).
  */
 @Composable
-private fun CopyAmountButton(context: EventContext, amount: Money) {
+internal fun CopyAmountButton(context: EventContext, amount: Money) {
     val copy = rememberCopy()
     val scope = rememberCoroutineScope()
     val text = formatMoneyInput(amount, language)

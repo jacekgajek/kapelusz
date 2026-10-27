@@ -270,6 +270,7 @@ fun EventScreen(
                                 item("share") { ShareInfoButton(shareInfo) }
                             } else {
                                 item("payout") { ArtistPayout(context) }
+                                item("transfers") { ArtistTransfers(context) }
                                 item("costs") { ArtistCosts(context, onOpenCost, onAddCost = { onAddCost(eventId) }) }
                             }
                             return@LazyColumn

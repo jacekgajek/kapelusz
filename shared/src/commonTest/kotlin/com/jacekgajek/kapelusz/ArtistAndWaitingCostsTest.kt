@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz
 
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.domain.EventStatus
@@ -49,6 +50,24 @@ class ArtistAndWaitingCostsTest {
         assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
         val back = scenario.band.event("gig")!!.transfers.filter { it.from == "carol" }
         assertEquals(listOf(pln("10")), back.map { it.amount }, "Carol hands back what she was paid too much")
+    }
+
+    @Test
+    fun anArtistSeesOnlyTheirOwnTransfers() {
+        val scenario = gig()
+        val alice = scenario.userFor("alice", Role.OWNER)
+        scenario.userFor("carol", Role.ARTIST)
+        scenario.apply(AddHolding("gig", "hat", "alice", pln("600"), DOOR), alice)
+        val owed = Artists.ownTransfers(scenario.band, scenario.settle("gig"), "carol")
+        assertEquals(listOf(Triple("alice", "carol", pln("200"))), owed.map { Triple(it.from, it.to, it.amount) }, "not Alice → Bob")
+
+        // Paid, then Bob's refund makes her share smaller: she sees whom she hands back to.
+        scenario.apply(RecordTransfer("gig", "to-carol", "alice", "carol", pln("200")), alice)
+        val bob = scenario.userFor("bob", Role.MEMBER)
+        scenario.apply(AddCost("bobs", "bob", pln("30"), DATE, incurredForEventId = "gig"), bob)
+        scenario.apply(SetRefund("gig", "bobs", pln("30")), alice)
+        val back = Artists.ownTransfers(scenario.band, scenario.settle("gig"), "carol")
+        assertEquals(listOf(Triple("carol", "bob", pln("10"))), back.map { Triple(it.from, it.to, it.amount) }, "to Bob, who is owed")
     }
 
     @Test

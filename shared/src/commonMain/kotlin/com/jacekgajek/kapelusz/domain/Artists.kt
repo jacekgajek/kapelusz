@@ -18,4 +18,16 @@ object Artists {
             (event.holdings.any { it.partyId == memberId } || event.transfers.any { it.from == memberId }) &&
                 SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
         }
+
+    /**
+     * An artist's own transfers still to make in [settlement] (ITERATION_7 §2c): who pays them and whom they hand back
+     * to, between real people; a pair's transfer counts as the artist's part of it. Nobody else's.
+     */
+    fun ownTransfers(band: Band, settlement: Settlement, memberId: Id): List<SuggestedTransfer> {
+        if (!settlement.canSettle) return emptyList()
+        return settlement.suggestions
+            .filter { BlikPhone.onSide(band, settlement, memberId, it.from) || BlikPhone.onSide(band, settlement, memberId, it.to) }
+            .flatMap { SettleTogether.split(band, settlement, it.from, it.to, it.amount) }
+            .filter { it.from == memberId || it.to == memberId }
+    }
 }
