@@ -678,19 +678,18 @@ class SyncEngineTest {
     fun aRoundShowsSyncingOnlyWhenItSendsSomething() = runTest {
         val server = FakeServer()
         val (repository, sync) = setup(server, this)
-        val bandId = joinedBand(server, repository, sync)
-        // The status as a round starts, up to its first request: collecting the flow instead could miss a short
-        // "syncing" (a StateFlow keeps only the latest value).
-        val check = async(start = CoroutineStart.UNDISPATCHED) { sync.syncNow() }
-        assertEquals(SyncStatus.SYNCED, sync.status.value, "a check for news keeps the icon")
-        // Whether the round itself succeeded isn't this test's question (it failed once on a slow CI machine).
-        check.await()
+        joinedBand(server, repository, sync)
+        // Every status as it is set: an unconfined collector runs at once, inside the setter, so a short "syncing"
+        // isn't missed (a StateFlow keeps only the latest value for a collector that comes later; it failed on CI).
+        val seen = mutableListOf<SyncStatus>()
+        backgroundScope.launch(Dispatchers.Unconfined) { sync.status.collect { seen += it } }
+
+        sync.syncNow()
+        assertTrue(SyncStatus.SYNCING !in seen.toList(), "a check for news keeps the icon")
 
         repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
-        repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
-        val send = async(start = CoroutineStart.UNDISPATCHED) { sync.syncNow() }
-        assertEquals(SyncStatus.SYNCING, sync.status.value, "sending shows it")
-        send.await()
+        sync.syncNow()
+        assertTrue(SyncStatus.SYNCING in seen.toList(), "sending shows it")
     }
 
     @Test
