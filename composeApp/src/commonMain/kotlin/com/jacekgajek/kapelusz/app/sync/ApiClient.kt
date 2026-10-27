@@ -128,6 +128,12 @@ class ApiClient(
         if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
     }
 
+    /** Unlinks the caller's account from the band (not its owner, who gets [ApiErrors.OWNER_CANNOT_LEAVE]). */
+    suspend fun leaveBand(bandId: Id) {
+        val response = send(HttpMethod.Post, "/bands/$bandId/leave") {}
+        if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
+    }
+
     /** The band's file exactly as stored on the server, for leaders (ITERATION_2 §7.1). */
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 

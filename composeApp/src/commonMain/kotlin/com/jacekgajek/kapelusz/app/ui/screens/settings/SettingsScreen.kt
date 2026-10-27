@@ -9,6 +9,12 @@ import com.jacekgajek.kapelusz.app.generated.support_me
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.rememberCoroutineScope
+import com.jacekgajek.kapelusz.app.generated.leave_band
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
@@ -108,6 +114,10 @@ fun SettingsScreen(
     fundBalance: String,
     /** Deletes the band for everyone; only for its owner. Throws when it did not work (e.g. offline). */
     onDeleteBand: (suspend () -> Unit)?,
+    /** Leaves the band (not as its owner, who has [onDeleteBand]). Throws when it did not work (e.g. offline). */
+    onLeaveBand: (suspend () -> Unit)?,
+    /** Band members, where the owner hands the band to another leader before leaving. */
+    onOpenMembers: () -> Unit,
     otherMembers: Int,
     autoUpdate: Boolean,
     onAutoUpdate: (Boolean) -> Unit,
@@ -203,6 +213,32 @@ fun SettingsScreen(
                     }
                     if (signingOutEverywhere) SignOutEverywhereDialog(onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })
                 }
+                // Red, as a link: the owner is told how to hand the band over or delete it instead.
+                val deleteButton = remember { BringIntoViewRequester() }
+                val scope = rememberCoroutineScope()
+                if (onLeaveBand != null) {
+                    var leaving by remember { mutableStateOf(false) }
+                    TextButton(
+                        onClick = { leaving = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) {
+                        Text(stringResource(Res.string.leave_band))
+                    }
+                    if (leaving) {
+                        // Only the owner may delete the band, and the owner alone can't leave it.
+                        if (onDeleteBand != null) {
+                            OwnerCannotLeaveDialog(
+                                onOpenMembers = onOpenMembers,
+                                onDeleteBand = { leaving = false; scope.launch { deleteButton.bringIntoView() } },
+                                onDismiss = { leaving = false },
+                            )
+                        } else {
+                            LeaveBandDialog(bandName, onLeaveBand, onDismiss = { leaving = false })
+                        }
+                    }
+                }
                 // Last, set apart: it cannot be undone (ITERATION_2 §7).
                 if (onDeleteBand != null) {
                     HorizontalDivider(Modifier.padding(top = 24.dp))
@@ -211,7 +247,7 @@ fun SettingsScreen(
                         onClick = { deleting = true },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                        modifier = Modifier.padding(top = 16.dp),
+                        modifier = Modifier.padding(top = 16.dp).bringIntoViewRequester(deleteButton),
                     ) {
                         Icon(Icons.Default.DeleteForever, null)
                         Text(stringResource(Res.string.delete_band), Modifier.padding(start = 8.dp))

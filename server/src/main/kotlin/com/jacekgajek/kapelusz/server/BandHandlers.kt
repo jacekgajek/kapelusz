@@ -9,8 +9,10 @@ import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
+import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
@@ -136,6 +138,29 @@ internal class BandHandlers(
         runCatching { linkPages.forget(bandId, band.events.map { it.id }) }
         runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
         return HttpResponse(204)
+    }
+
+    /**
+     * The caller leaves the band (2026-10-27): their account is unlinked from their member, who stays with what they
+     * recorded, as when a leader unlinks them. Not the owner: ownership goes to another leader first, or the band is
+     * deleted. Done here rather than as a pushed operation, so it either happens on the server or fails for the app to
+     * say so, and the member's invites and the user's band list follow at once.
+     */
+    fun leave(user: VerifiedUser, bandId: String): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+        val (band, etag) = bands.loadForMember(user, bandId)
+        val me = band.memberOfUser(user.userId)!!
+        if (me.role == Role.OWNER) throw ApiError(409, ApiErrors.OWNER_CANNOT_LEAVE, "Hand the band to another leader or delete it first")
+        val op = UnlinkUser(me.id)
+        val opId = "leave-${clock()}"
+        val left = when (val result = Engine.apply(band, Actor.System, op, opId, clock())) {
+            is ApplyResult.Applied -> result.band
+            is ApplyResult.Rejected -> throw ApiError(409, ApiErrors.CONFLICT, result.rejection.message)
+        }
+        store.put(StorageKeys.band(bandId), encode(Band.serializer(), left), ifMatch = etag)
+        users.removeBandFromUser(user.userId, bandId)
+        runCatching { invites.revokeFor(bandId, me.id) }
+        runCatching { history.append(user, left, bandId, listOf(OpEnvelope(opId, "server", 0, clock(), op)), emptyMap()) }
+        HttpResponse(204)
     }
 
     /** The band's file exactly as stored, for leaders (ITERATION_2 §7.1): putting it back changes nothing. */

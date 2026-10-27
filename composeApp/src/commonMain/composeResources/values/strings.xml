@@ -498,6 +498,14 @@
     <string name="delete_band_type_name">Type %1$s to confirm</string>
     <string name="delete_band_confirm">Delete forever</string>
     <string name="delete_band_failed">The band was not deleted. Check your connection and try again.</string>
+    <string name="leave_band">Leave band</string>
+    <string name="leave_band_title">Leave %1$s?</string>
+    <string name="leave_band_text">You lose access to the band. Your name, costs and the money you recorded stay with it.</string>
+    <string name="leave_band_return">To come back, ask a leader to invite you again.</string>
+    <string name="leave_band_confirm">Leave</string>
+    <string name="leave_band_failed">You didn't leave the band. Check your connection and try again.</string>
+    <string name="leave_band_owner_title">You own this band</string>
+    <string name="leave_band_owner_text">You can't leave a band you own. First make another leader its owner in Band members, or delete the band.</string>
     <string name="updates_title">App updates</string>
     <string name="updates_auto">Download updates automatically</string>
     <string name="updates_check_now">Check now</string>

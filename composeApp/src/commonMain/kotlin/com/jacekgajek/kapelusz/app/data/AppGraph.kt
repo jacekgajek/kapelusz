@@ -213,6 +213,17 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     }
 
     /**
+     * Leaves the open band (not as its owner): its unsent changes are sent first, then the server unlinks the account.
+     * Network errors and refusals surface as exceptions; on success the band is gone from this device.
+     */
+    suspend fun leaveBand() {
+        val bandId = bands.currentBandId ?: return
+        check(awaitPushed(bandId)) { "Changes not sent yet" }
+        api.leaveBand(bandId)
+        bands.forgetDeleted(bandId)
+    }
+
+    /**
      * Discards the unsent changes of a band the server refuses them for (ITERATION_3 R9); in the app scope, since the
      * banner asking for it leaves as soon as the band is no longer stuck.
      */

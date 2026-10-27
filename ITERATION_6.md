@@ -259,6 +259,20 @@ confusing): a household where one is a hired artist, or both are, wants one mone
 - **Role changes:** moving between artist, member and leader keeps a pair (and an invitation); only becoming a viewer,
   being archived or unlinked ends it, so only those warn about it.
 
+## 11a. Leaving a band (2026-10-27)
+
+- **Leave band** ("Opuść zespół"): a red link in Settings › Account, below the sign-out buttons, for every role.
+- **Not the owner:** a dialog says they lose access, that their name, costs and recorded money stay with the band, and
+  that a leader's new invite brings them back. **Leave** asks the server (`POST /bands/{id}/leave`) after sending the
+  band's unsent changes; offline or refused, the dialog says so and nothing changes. Then the band is gone from the
+  device, as after deleting it.
+- **The server** unlinks the account from the member, as a leader's Unlink does (photo and BLIK number go with it),
+  takes the band off the user's list, cancels invites for the member and records it in the history.
+- **The owner** can't leave (`owner_cannot_leave`): the dialog offers **Band members**, to make another leader the
+  owner, and **Delete band**, which closes it onto the Delete band button just below.
+- Towards Play's account deletion: what a user's account holds is their bands; leaving them (and deleting the ones
+  they own) leaves nothing but the empty user record.
+
 ## 12. Milestones and task checklist
 
 ### V6-M1 — Share receipts to Kapelusz (§1)
@@ -294,6 +308,11 @@ confusing): a household where one is a hired artist, or both are, wants one mone
 - [x] Pairing from artists up, pairs kept across artist role changes (with tests)
 - [x] The artist's payout with what the partner keeps; the events list's number (with tests)
 - [x] The roster for artists: names only, settling together behind a tap
+
+### Leaving a band (§11a)
+
+- [x] The server's leave, the owner refused (with tests)
+- [x] Leave band in Settings, the owner's dialog
 
 ## 13. Decision log
 

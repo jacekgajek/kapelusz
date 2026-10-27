@@ -500,6 +500,14 @@
     <string name="delete_band_type_name">Wpisz %1$s, aby potwierdzić</string>
     <string name="delete_band_confirm">Usuń na zawsze</string>
     <string name="delete_band_failed">Zespół nie został usunięty. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="leave_band">Opuść zespół</string>
+    <string name="leave_band_title">Opuścić zespół %1$s?</string>
+    <string name="leave_band_text">Stracisz dostęp do zespołu. Twoje imię, koszty i zapisane przez ciebie pieniądze zostaną w nim.</string>
+    <string name="leave_band_return">Żeby wrócić, poproś lidera o ponowne zaproszenie.</string>
+    <string name="leave_band_confirm">Opuść</string>
+    <string name="leave_band_failed">Zespół nie został opuszczony. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="leave_band_owner_title">Ten zespół należy do ciebie</string>
+    <string name="leave_band_owner_text">Nie możesz opuścić zespołu, który należy do ciebie. Najpierw przekaż go innemu liderowi w Członkach zespołu albo usuń zespół.</string>
     <string name="updates_title">Aktualizacje aplikacji</string>
     <string name="updates_auto">Pobieraj aktualizacje automatycznie</string>
     <string name="updates_check_now">Sprawdź teraz</string>

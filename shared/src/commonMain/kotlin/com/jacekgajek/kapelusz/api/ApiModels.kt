@@ -73,6 +73,9 @@ object ApiErrors {
     /** The caller is already a member of the invited band. */
     const val ALREADY_MEMBER = "already_member"
 
+    /** The owner asked to leave their band (`409`): ownership goes to another leader first, or the band is deleted. */
+    const val OWNER_CANNOT_LEAVE = "owner_cannot_leave"
+
     /** An artist invite for someone who still holds band money (ITERATION_4 §1.1): settle it first (`409`). */
     const val HOLDS_MONEY = "holds_money"
 

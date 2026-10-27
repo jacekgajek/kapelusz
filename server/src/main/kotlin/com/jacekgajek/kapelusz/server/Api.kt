@@ -85,6 +85,7 @@ class Api(
             method == "GET" && bandPath && segments[2] == "state" -> bandHandlers.state(user, segments[1], request.header("if-none-match"))
             method == "POST" && bandPath && segments[2] == "ops" -> bandHandlers.push(user, segments[1], parse(request, PushRequest.serializer()))
             method == "DELETE" && segments.size == 2 && segments[0] == "bands" -> bandHandlers.delete(user, segments[1])
+            method == "POST" && bandPath && segments[2] == "leave" -> bandHandlers.leave(user, segments[1])
             method == "GET" && bandPath && segments[2] == "raw" -> bandHandlers.raw(user, segments[1])
             method == "GET" && bandPath && segments[2] == "log" -> history.history(user, segments[1], request.query["month"], request.query["before"], request.query["months"])
             method == "GET" && bandPath && segments[2] == "invites" -> invites.list(user, segments[1])

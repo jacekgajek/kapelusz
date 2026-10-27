@@ -216,6 +216,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     fundBalance = formatMoney(BandFund.balance(state.band), state.band.currency, language),
                     onDeleteBand = suspend { graph.deleteBand(); navController.resetTo(EventsRoute) }
                         .takeIf { state.me?.role == Role.OWNER },
+                    onLeaveBand = suspend { graph.leaveBand(); navController.resetTo(EventsRoute) }.takeIf { state.me != null },
+                    onOpenMembers = { navController.navigate(RosterRoute()) },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
                     autoUpdate = settings.autoUpdate,
                     artist = artist,
