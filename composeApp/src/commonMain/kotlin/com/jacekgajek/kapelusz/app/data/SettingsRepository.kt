@@ -18,8 +18,6 @@ data class AppSettings(
     val language: String? = null,
     val onlyMyEvents: Boolean = false,
     val showArchived: Boolean = false,
-    /** Android: download and install new versions automatically. */
-    val autoUpdate: Boolean = true,
     /**
      * The page each event (`band/event`) was last left on, when not Gig (ITERATION_4 §2.4, ITERATION_5 §4.4); every
      * other event opens on Gig. The most recent last, at most [MAX_EVENT_TABS].

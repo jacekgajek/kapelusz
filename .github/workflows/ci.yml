@@ -44,7 +44,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       id-token: write   # GitHub OIDC -> AWS role, no stored AWS keys
-      contents: write   # GitHub Release with the APK
+      contents: read
     env:
       KAPELUSZ_API_URL: ${{ vars.API_URL }}
       KAPELUSZ_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
@@ -69,6 +69,8 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      # The app signing key (Google Play signs the app with it, ITERATION_7 §1.2) for its fingerprint only: the website
+      # vouches for the app with it (assetlinks.json), so links open the app.
       - name: Release keystore and certificate fingerprints
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -94,7 +96,7 @@ jobs:
           # Without a fingerprint the deploy would silently drop assetlinks.json and break Android App Links.
           if [[ -z "$RELEASE" ]]; then echo "::error::Could not read the release certificate fingerprint"; exit 1; fi
           echo "ANDROID_CERT_SHA256=${RELEASE}${DEBUG_SHA256:+,$DEBUG_SHA256}" >> "$GITHUB_ENV"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/release.jks"
 
       # Android installs an update only with a higher version code: CI's run number grows with every run, plus 10
       # since 2026-10-27, past the first Play bundle (231), uploaded by hand (ITERATION_7 §1.3). The codes only ever
@@ -122,28 +124,12 @@ jobs:
           fi
           echo "ANDROID_UPLOAD_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
 
-      - name: Build and deploy API, web and APK
+      - name: Build and deploy API, web and the Play bundle
         env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
           ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
           ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
           ANDROID_UPLOAD_KEY_ALIAS: ${{ vars.ANDROID_UPLOAD_KEY_ALIAS }}
         run: scripts/deploy.sh
-
-      - name: GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.sha }}
-          CODE: ${{ env.KAPELUSZ_VERSION_CODE }}
-        run: |
-          # A re-run of the same deploy keeps its run number, and with it the release.
-          if gh release view "build-$CODE" >/dev/null 2>&1; then exit 0; fi
-          FILE="$RUNNER_TEMP/kapelusz-$APK_VERSION_NAME-$CODE.apk"
-          cp androidApp/build/outputs/apk/site/release/androidApp-site-release.apk "$FILE"
-          gh release create "build-$CODE" "$FILE" --target "$SHA" --title "Kapelusz (Pass the Hat) $APK_VERSION_NAME (build $CODE)" \
-            --notes "Bandmates download it from https://kapelusz.jacekgajek.com/download/kapelusz.apk"
 
       # To closed testing (ITERATION_7 §1.3); production is promoted by hand in the Play Console. Needs the app's first
       # release uploaded by hand: the API can't create it. While the app is still a draft in the Console, Play takes
@@ -156,9 +142,9 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.jacekgajek.kapelusz
-          releaseFiles: androidApp/build/outputs/bundle/playRelease/androidApp-play-release.aab
-          releaseName: ${{ env.APK_VERSION_NAME }} (${{ env.KAPELUSZ_VERSION_CODE }})
-          track: alpha
+          releaseFiles: androidApp/build/outputs/bundle/release/androidApp-release.aab
+          releaseName: ${{ env.APP_VERSION_NAME }} (${{ env.KAPELUSZ_VERSION_CODE }})
+          tracks: alpha
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
 
       - name: Remove keystores

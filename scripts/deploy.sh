@@ -2,10 +2,11 @@
 # Deploys the API (Lambda) and the web app (S3 + CloudFront). Used by the deploy job of .github/workflows/ci.yml and
 # locally:
 #   AWS_PROFILE=... WEB_BUCKET=jacekgajek-art-split-web CLOUDFRONT_DISTRIBUTION_ID=... scripts/deploy.sh
-# Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_KEYSTORE_PATH (and ANDROID_KEYSTORE_PASSWORD,
-# ANDROID_KEY_ALIAS, KAPELUSZ_VERSION_CODE) it also publishes the signed APK at /download/kapelusz.apk. With
-# ANDROID_UPLOAD_KEYSTORE_PATH (and ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS) it also builds the Google
-# Play bundle (ITERATION_7 §1.3), signed with the upload key; CI uploads it to Play.
+# Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_UPLOAD_KEYSTORE_PATH (and
+# ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS, KAPELUSZ_VERSION_CODE) it also builds the Android app's
+# bundle for Google Play (ITERATION_7 §1.3), signed with the upload key; CI uploads it to Play, the only place the app
+# comes from (no APK on the website since 2026-10-27). With KAPELUSZ_VERSION_CODE it writes /download/version.json,
+# from which a web app open since before the deploy learns to reload.
 # KAPELUSZ_VERSION_CODE must not be lower than the live one (see below); without it the web app is a "dev" build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -15,8 +16,6 @@ cd "$(dirname "$0")/.."
 FUNCTION_NAME="${FUNCTION_NAME:-art-split-api}"
 JAR=server/build/libs/server-all.jar
 DIST=composeApp/build/dist/wasmJs/productionExecutable
-# The website's APK is the `site` variant (ITERATION_7 §1.1).
-APK=androidApp/build/outputs/apk/site/release/androidApp-site-release.apk
 
 # The version code becomes the app's version (web and Android): the server refuses apps below its minimum, and phones
 # only update to a higher one. So never publish a lower one than what is live, e.g. a local deploy with an old number.
@@ -30,13 +29,9 @@ if [[ -n "${KAPELUSZ_VERSION_CODE:-}" && "${FORCE_VERSION_CODE:-0}" != 1 ]]; the
 fi
 
 TASKS=(:server:shadowJar :composeApp:wasmJsBrowserDistribution)
-if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
-  : "${KAPELUSZ_VERSION_CODE:?KAPELUSZ_VERSION_CODE is required to publish the APK}"
-  TASKS+=(:androidApp:assembleSiteRelease)
-fi
 if [[ -n "${ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
   : "${KAPELUSZ_VERSION_CODE:?KAPELUSZ_VERSION_CODE is required to build the Play bundle}"
-  TASKS+=(:androidApp:bundlePlayRelease)
+  TASKS+=(:androidApp:bundleRelease)
 fi
 if [[ "${SKIP_BUILD:-0}" != 1 ]]; then
   # The build reads the KAPELUSZ_* variables (API URL, version code, keystore) while configuring: a cached
@@ -69,7 +64,7 @@ echo "== Web: syncing $DIST to s3://$WEB_BUCKET"
 # missing file.
 WASM_ARGS=(--exclude "*" --include "*.wasm" --content-type application/wasm --cache-control "public, max-age=31536000, immutable")
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" "${WASM_ARGS[@]}"
-# download/ is not part of the web build: it holds the published APK, which a deploy without a keystore keeps.
+# download/ is not part of the web build: it holds version.json, written below.
 # .well-known/ likewise, unless this deploy writes it: without it Android stops opening invite links in the app.
 KEEP_ARGS=(--exclude "download/*" --exclude "privacy-policy" --exclude "privacy-policy/*")
 [[ -n "${ANDROID_CERT_SHA256:-}" ]] || KEEP_ARGS+=(--exclude ".well-known/*")
@@ -85,18 +80,14 @@ echo "== Privacy policy: /privacy-policy, /privacy-policy/pl"
 aws s3 cp privacy-policy/index.html "s3://$WEB_BUCKET/privacy-policy" --cache-control "no-cache" --content-type "text/html; charset=utf-8"
 aws s3 cp privacy-policy/pl.html "s3://$WEB_BUCKET/privacy-policy/pl" --cache-control "no-cache" --content-type "text/html; charset=utf-8"
 
-if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
+if [[ -n "${KAPELUSZ_VERSION_CODE:-}" ]]; then
   VERSION_NAME=$(sed -n 's/^kapelusz.versionName=//p' gradle.properties)
-  echo "== APK: publishing $VERSION_NAME ($KAPELUSZ_VERSION_CODE)"
-  # The APK first: version.json announces it to the website banner and the in-app update check.
-  aws s3 cp "$APK" "s3://$WEB_BUCKET/download/kapelusz.apk" --cache-control "no-cache" \
-    --content-type application/vnd.android.package-archive --content-disposition 'attachment; filename="kapelusz.apk"'
+  echo "== version.json: $VERSION_NAME ($KAPELUSZ_VERSION_CODE)"
+  # A web app open since before this deploy sees a newer version here and offers to reload; also where a check
+  # that versions only go up reads the live one (above).
   printf '{"versionCode": %d, "versionName": "%s"}\n' "$KAPELUSZ_VERSION_CODE" "$VERSION_NAME" |
     aws s3 cp - "s3://$WEB_BUCKET/download/version.json" --cache-control "no-cache" --content-type application/json
-  if [[ -n "${GITHUB_ENV:-}" ]]; then echo "APK_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"; fi
-else
-  # Not an error (web and API are deployed), but the website banner and the update check need a published APK.
-  echo "== APK: not published (set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, KAPELUSZ_VERSION_CODE)"
+  if [[ -n "${GITHUB_ENV:-}" ]]; then echo "APP_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"; fi
 fi
 aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" >/dev/null
 

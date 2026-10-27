@@ -7,7 +7,7 @@ Settles a band's money after gigs: who collected what, who paid which costs, wha
 hands over how much to whom. Shared by the whole band and synced through a small server; works offline.
 
 - Web: https://kapelusz.jacekgajek.com
-- Android: download `kapelusz.apk` from the website; the app updates itself. Google Play: in closed testing.
+- Android: Google Play only (in closed testing: testers join through the band's testers group).
 
 ## Project
 
@@ -15,7 +15,8 @@ hands over how much to whom. Shared by the whole band and synced through a small
 - `composeApp/` — the app (Compose Multiplatform) for Android and the web (Wasm).
 - `androidApp/` — the Android application shell.
 - `server/` — the API (AWS Lambda, Java 21, SnapStart); data in S3.
-- `scripts/deploy.sh` — deploys API, website and APK (run by CI after a merge to `main`).
+- `scripts/deploy.sh` — deploys API and website, and builds the bundle for Google Play (run by CI after a merge to
+  `main`).
 - `design/icon/` — sources of the app icon.
 
 ## Build and run
@@ -26,13 +27,9 @@ the wrapper.
 - Web app in a browser, reloading on changes: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun --continuous`
 - Web production bundle (what is deployed): `./gradlew :composeApp:wasmJsBrowserDistribution`, output in
   `composeApp/build/dist/wasmJs/productionExecutable/`
-- The Android app comes in two variants (ITERATION_7 §1.1): `site`, the APK on the website, which updates itself, and
-  `play`, for Google Play, without the updater or Support me!. Same application id and version code.
-- Android on a connected phone or emulator: `./gradlew :androidApp:installSiteDebug` (or `installPlayDebug`). A debug
-  build never updates itself.
-- Android release APK for the website: `./gradlew :androidApp:assembleSiteRelease`. It is unsigned unless
-  `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` are set.
-- Google Play bundle: `./gradlew :androidApp:bundlePlayRelease`, signed with the upload key when
+- Android on a connected phone or emulator: `./gradlew :androidApp:installDebug`. The app comes only from Google Play
+  (ITERATION_7 §1.1, since 2026-10-27), which updates it.
+- Google Play bundle: `./gradlew :androidApp:bundleRelease`, signed with the upload key when
   `ANDROID_UPLOAD_KEYSTORE_PATH`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD` and `ANDROID_UPLOAD_KEY_ALIAS` are set.
 - Server (Lambda) jar: `./gradlew :server:shadowJar`, output `server/build/libs/server-all.jar`. There is no local
   server; the apps use the API in `gradle.properties`.
@@ -44,7 +41,7 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 
 ## Test
 
-- Everything CI runs: `./gradlew check`. CI also builds the release APK, the web bundle and the server jar (see
+- Everything CI runs: `./gradlew check`. CI also builds the Play bundle, the web bundle and the server jar (see
   `.github/workflows/ci.yml`).
 - Shared rules: `./gradlew :shared:allTests`. Server: `./gradlew :server:test`.
 - App: `./gradlew :composeApp:allTests`. The common tests run on the JVM and in headless Chrome (wasm), together
@@ -55,10 +52,11 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 ## Deploy
 
 CI (`.github/workflows/ci.yml`) tests every pull request and push to `main`. On `main`, once the tests pass, its
-deploy job runs `scripts/deploy.sh`: it builds the release artefacts once (the signed APK, the production web bundle,
-the server jar) and uploads the API to Lambda, the web app to S3 and CloudFront, and the APK to the website and a
-GitHub Release. The version code is CI's run number plus 10 (since the first Play bundle, 231, went up by hand). AWS
-access uses GitHub OIDC, and the keystore comes from the repository's secrets. Running `scripts/deploy.sh` by hand is described at its top.
+deploy job runs `scripts/deploy.sh`: it builds the release artefacts once (the Play bundle, the production web bundle,
+the server jar) and uploads the API to Lambda and the web app to S3 and CloudFront. The version code is CI's run
+number plus 10 (since the first Play bundle, 231, went up by hand). AWS access uses GitHub OIDC; the keys come from
+the repository's secrets (the app signing key only for its fingerprint, in `assetlinks.json`). Running
+`scripts/deploy.sh` by hand is described at its top.
 
 Google Play (ITERATION_7 §1.3): with the upload key in the secrets (`ANDROID_UPLOAD_KEYSTORE_BASE64`,
 `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, optionally `ANDROID_UPLOAD_KEY_PASSWORD`, and the variable

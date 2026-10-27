@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Sync with the Kapelusz API. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- The website's APK updates itself: its permissions are in src/site (ITERATION_7 §1.1). -->
+    <!-- No notifications at all: Firebase Messaging, used only to sync (ITERATION_7 §2.3), would ask for it. -->
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS"
+        tools:node="remove" />
 
     <application
         android:allowBackup="false"

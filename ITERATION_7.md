@@ -7,19 +7,19 @@ merge when CI is green.
 
 Pass the Hat goes to Google Play while the website's APK keeps working for everyone who has it.
 
-### 1.1 Two channels, the APK later dropped
+### 1.1 Google Play only (Q1, changed 2026-10-27)
 
-- **Both for now** (Q1): the `androidApp` module has two variants, `site` (the APK on the website, with its own
-  updater, ITERATION_2 §1) and `play` (for Google Play). Same application id, same version code (CI's run number + 10),
-  so a phone moves from one to the other as an ordinary update, without uninstalling or losing anything.
-- **Later**, when (by judgement, or `version.json` requests in CloudFront) hardly anyone is left on the APK, the `site`
-  variant is deleted.
-- **The `play` variant** has no self-updater (code, `REQUEST_INSTALL_PACKAGES`, `UPDATE_PACKAGES_WITHOUT_USER_ACTION`,
-  `POST_NOTIFICATIONS`, the update worker and receiver, "Automatic updates" in Settings, the version.json update strip)
-  and no **Support me!** (Q5: Play's payments policy and a tip link). "Update required" opens the Play listing. The web
-  app and the `site` APK keep Support me!.
-- The updater's code lives in the `site` variant's own sources, so the Play bundle doesn't contain it (WorkManager's
-  keep rules would otherwise keep the worker, and with it the installer, in a build that never calls them).
+- **First decided:** both channels for a while (the website's APK with its own updater, and Play), the APK dropped
+  later. **Changed the same day:** Play only, at once. The one person on the APK reinstalls from Play (or updates over
+  it: same signature); everyone else installs from Play directly.
+- **One Android build**, without the self-updater, its install permissions, "Automatic updates", the version.json
+  update strip, Support me! (Q5) and notifications (Firebase Messaging's `POST_NOTIFICATIONS` is removed). "Update
+  required" opens the Play listing. A phone that came from the APK has the updater's leftovers (scheduled checks, its
+  notification channel, a downloaded APK) cleaned up at start (`ApkLeftovers`).
+- **The website** offers no APK: the web app's install hint links to the Play listing. `version.json` is still written
+  by every deploy, for the web app's "a new version: reload". The old `/download/kapelusz.apk` is removed by hand.
+- **Not on Play yet** (closed test): testers join the testers' Google Group, then the opt-in link; anyone else uses the
+  web app meanwhile.
 
 ### 1.2 Signing
 
@@ -58,9 +58,8 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 
 ### 1.5 The website (Q7)
 
-- During the closed test nothing changes: the website offers the APK; testers get the opt-in link directly.
-- In production: a "Get it on Google Play" badge first on the website and in the web app's install hint, the APK as a
-  smaller link; the `site` variant shows once "Kapelusz is now on Google Play", with a button to the listing.
+- No APK anywhere (§1.1): the web app's install hint links to the Play listing (it shows the app to testers during the
+  closed test, to everyone in production).
 
 ## 1a. The sync icon (2026-10-27)
 
@@ -170,7 +169,8 @@ services' one connection, shared by all apps: the radio wakes only when somethin
 - [x] The play bundle in CI, signed with the upload key; the upload to closed testing when the secret is set
 - [x] Listing texts, Data safety and content rating drafts; screenshots of the demo band
 - [ ] (User) The app in the Console, the signing key, the first upload, the testers' group, 14 days
-- [ ] (Later, in production) Play first on the website; the `site` variant's note
+- [x] Google Play only (§1.1, 2026-10-27): one Android build, no APK on the website, the install hint to Play
+- [ ] (User) Remove the old `/download/kapelusz.apk` from the web bucket
 
 Old apps need nothing for V7-M2/M3: they don't register and keep polling every 30 s. No minimum version.
 
@@ -206,3 +206,4 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   (§2.5); no background syncing on a message (§2.3).
 - 2026-10-27: The FCM key in the data bucket rather than Parameter Store (§2.5): 200 KB instead of 6 MB in the
   Lambda, no Terraform, the session key's precedent.
+- 2026-10-27: Google Play only, at once (Q1 changed): one APK user, who reinstalls; no second build to maintain.
