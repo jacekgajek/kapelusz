@@ -61,3 +61,9 @@ expect fun appReloader(): (() -> Unit)?
 
 /** True in the Android app, false on the web. */
 expect fun isAndroidApp(): Boolean
+
+/**
+ * The store page of an app installed from Google Play (ITERATION_7 §1.1), which updates it; null for the website's APK
+ * (which updates itself) and on the web. Such an app shows no Support me! either (Play's payments policy).
+ */
+expect fun storeListing(): String?

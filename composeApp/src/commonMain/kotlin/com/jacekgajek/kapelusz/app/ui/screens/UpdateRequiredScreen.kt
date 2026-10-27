@@ -28,6 +28,7 @@ import com.jacekgajek.kapelusz.app.generated.updates_failed
 import com.jacekgajek.kapelusz.app.generated.updates_installing
 import com.jacekgajek.kapelusz.app.platform.UpdateStatus
 import com.jacekgajek.kapelusz.app.platform.appReloader
+import com.jacekgajek.kapelusz.app.platform.storeListing
 import com.jacekgajek.kapelusz.app.platform.rememberUpdateControls
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import org.jetbrains.compose.resources.stringResource
@@ -40,6 +41,7 @@ import org.jetbrains.compose.resources.stringResource
 fun UpdateRequiredScreen() {
     val updates = rememberUpdateControls()
     val reload = appReloader()
+    val store = storeListing()
     val uriHandler = LocalUriHandler.current
     val status = updates?.status?.collectAsState()?.value
     // Clear of the system bars (edge to edge on Android 15+).
@@ -50,6 +52,8 @@ fun UpdateRequiredScreen() {
             Button(onClick = {
                 when {
                     reload != null -> reload()
+                    // Installed from Google Play, which has the update (ITERATION_7 §1.1).
+                    store != null -> uriHandler.openUri(store)
                     // Without the install permission, or in a debug build, the browser download still works.
                     updates == null || status is UpdateStatus.Unavailable || status is UpdateStatus.NeedsInstallPermission ->
                         uriHandler.openUri("${AppConfig.WEB_URL}/download/kapelusz.apk")

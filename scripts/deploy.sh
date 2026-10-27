@@ -3,7 +3,9 @@
 # locally:
 #   AWS_PROFILE=... WEB_BUCKET=jacekgajek-art-split-web CLOUDFRONT_DISTRIBUTION_ID=... scripts/deploy.sh
 # Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_KEYSTORE_PATH (and ANDROID_KEYSTORE_PASSWORD,
-# ANDROID_KEY_ALIAS, KAPELUSZ_VERSION_CODE) it also publishes the signed APK at /download/kapelusz.apk.
+# ANDROID_KEY_ALIAS, KAPELUSZ_VERSION_CODE) it also publishes the signed APK at /download/kapelusz.apk. With
+# ANDROID_UPLOAD_KEYSTORE_PATH (and ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS) it also builds the Google
+# Play bundle (ITERATION_7 §1.3), signed with the upload key; CI uploads it to Play.
 # KAPELUSZ_VERSION_CODE must not be lower than the live one (see below); without it the web app is a "dev" build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -13,7 +15,8 @@ cd "$(dirname "$0")/.."
 FUNCTION_NAME="${FUNCTION_NAME:-art-split-api}"
 JAR=server/build/libs/server-all.jar
 DIST=composeApp/build/dist/wasmJs/productionExecutable
-APK=androidApp/build/outputs/apk/release/androidApp-release.apk
+# The website's APK is the `site` variant (ITERATION_7 §1.1).
+APK=androidApp/build/outputs/apk/site/release/androidApp-site-release.apk
 
 # The version code becomes the app's version (web and Android): the server refuses apps below its minimum, and phones
 # only update to a higher one. So never publish a lower one than what is live, e.g. a local deploy with an old number.
@@ -29,7 +32,11 @@ fi
 TASKS=(:server:shadowJar :composeApp:wasmJsBrowserDistribution)
 if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
   : "${KAPELUSZ_VERSION_CODE:?KAPELUSZ_VERSION_CODE is required to publish the APK}"
-  TASKS+=(:androidApp:assembleRelease)
+  TASKS+=(:androidApp:assembleSiteRelease)
+fi
+if [[ -n "${ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]]; then
+  : "${KAPELUSZ_VERSION_CODE:?KAPELUSZ_VERSION_CODE is required to build the Play bundle}"
+  TASKS+=(:androidApp:bundlePlayRelease)
 fi
 if [[ "${SKIP_BUILD:-0}" != 1 ]]; then
   # The build reads the KAPELUSZ_* variables (API URL, version code, keystore) while configuring: a cached
