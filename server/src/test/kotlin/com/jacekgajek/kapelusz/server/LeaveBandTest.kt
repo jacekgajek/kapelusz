@@ -3,7 +3,9 @@ package com.jacekgajek.kapelusz.server
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
+import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
+import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PushRequest
@@ -13,6 +15,7 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.OpEnvelope
+import com.jacekgajek.kapelusz.ops.UnlinkUser
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +24,8 @@ import kotlin.test.assertTrue
 
 class LeaveBandTest {
     private val store = InMemoryBlobStore()
-    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
+    private val history = InMemoryHistoryStore()
+    private val api = Api(store, history, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
 
     private fun call(method: String, path: String, user: String, body: String? = null) =
         api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
@@ -66,5 +70,27 @@ class LeaveBandTest {
         assertEquals(409, refused.status)
         assertTrue(refused.body!!.contains(ApiErrors.OWNER_CANNOT_LEAVE))
         assertEquals("alice", band().owner?.userId)
+    }
+
+    @Test
+    fun theHistoryNamesWhoLeft() {
+        setup()
+        assertEquals(204, call("POST", "/bands/band1/leave", "bob").status)
+        val entry = history.bands["band1"]!!.values.map { KapeluszJson.decodeFromString(HistoryEntry.serializer(), it) }
+            .single { it.ops.single().op == UnlinkUser("m-bob") }
+        assertEquals("m-bob", entry.memberId, "the author is who left, not unknown")
+    }
+
+    @Test
+    fun leavingTheLastBandLeavesOnlyTheAccountId() {
+        setup()
+        call("POST", "/me/calendar", "bob", KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), CalendarSubscriptionChange()))
+        assertTrue(store.get("users/bob-calendar.json") != null)
+        assertEquals(204, call("POST", "/bands/band1/leave", "bob").status)
+
+        val record = KapeluszJson.decodeFromString(UserRecord.serializer(), store.get("users/bob.json")!!.content)
+        assertEquals(UserRecord("bob", sessionsValidFrom = record.sessionsValidFrom), record, "no bands, no photo")
+        assertNull(store.get("users/bob-calendar.json"))
+        assertTrue(store.list("calendar/").isEmpty(), "the feed link is gone")
     }
 }

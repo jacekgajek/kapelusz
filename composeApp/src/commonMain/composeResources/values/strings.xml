@@ -320,6 +320,7 @@
     <string name="h_set_role">Gave %1$s the role %2$s</string>
     <string name="h_link_user">%1$s joined the band as %2$s</string>
     <string name="h_unlink_user">Unlinked the app account of %1$s</string>
+    <string name="h_left_band">%1$s left the band</string>
     <string name="h_set_treasurer">Made %1$s the holder of the band fund</string>
     <string name="h_transfer_ownership">Transferred ownership to %1$s</string>
     <string name="h_create_event">Created event %1$s</string>
@@ -499,10 +500,13 @@
     <string name="delete_band_confirm">Delete forever</string>
     <string name="delete_band_failed">The band was not deleted. Check your connection and try again.</string>
     <string name="leave_band">Leave band</string>
+    <string name="privacy_policy">Privacy policy</string>
     <string name="leave_band_title">Leave %1$s?</string>
     <string name="leave_band_text">You lose access to the band. Your name, costs and the money you recorded stay with it.</string>
     <string name="leave_band_return">To come back, ask a leader to invite you again.</string>
     <string name="leave_band_confirm">Leave</string>
+    <string name="leave_band_treasurer">You hold the band fund. It stays with your name until a leader picks who holds it.</string>
+    <string name="leave_band_stuck">The server refuses your unsent changes in this band. Deal with them first (the banner on the band's screens), then leave.</string>
     <string name="leave_band_failed">You didn't leave the band. Check your connection and try again.</string>
     <string name="leave_band_owner_title">You own this band</string>
     <string name="leave_band_owner_text">You can't leave a band you own. First make another leader its owner in Band members, or delete the band.</string>

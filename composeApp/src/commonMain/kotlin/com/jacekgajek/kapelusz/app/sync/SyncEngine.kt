@@ -44,6 +44,9 @@ data class StuckPush(val status: Int, val code: String, val message: String)
 
 enum class SyncStatus { IDLE, SYNCING, SYNCED, OFFLINE, NEEDS_SIGN_IN, UPDATE_REQUIRED, ERROR }
 
+/** Leaving a band waits for its unsent changes and files; they could not be sent ([stuck]: the server refuses them). */
+class LeaveBlocked(val stuck: Boolean) : RuntimeException("Unsent changes or files")
+
 /** The server answered in a way the client cannot make progress with. */
 class SyncProtocolException(message: String) : RuntimeException(message)
 
@@ -265,6 +268,29 @@ class SyncEngine(
             runSuspendCatching { pullBand(bandId) }
         }
         requestSync()
+    }
+
+    /**
+     * Leaves [bandId] between sync rounds, so none of them meets the band already left and reports it lost: its unsent
+     * changes (held for Undo too) and files go first, then the server unlinks the account and the band is forgotten.
+     * Throws [LeaveBlocked] when they can't be sent, and network errors and refusals as they come.
+     */
+    suspend fun leave(bandId: Id) {
+        runLock.withLock {
+            if (bandId in _stuck.value) throw LeaveBlocked(stuck = true)
+            bands.local(bandId)?.let { local -> bands.release(bandId, *local.pending.map { it.opId }.toTypedArray()) }
+            pushBand(bandId)
+            if (bandId in _stuck.value || bands.local(bandId)?.pending?.isNotEmpty() == true) throw LeaveBlocked(stuck = bandId in _stuck.value)
+            uploads?.uploadFor(bandId)
+            if (uploads?.bandsWithUploads()?.contains(bandId) == true) throw LeaveBlocked(stuck = false)
+            try {
+                api.leaveBand(bandId)
+            } catch (e: ApiException) {
+                // Not a member any more: an earlier attempt went through, its answer lost on the way.
+                if (e.code != ApiErrors.BAND_NOT_FOUND) throw e
+            }
+            bands.forgetDeleted(bandId)
+        }
     }
 
     /** Downloads a band the user belongs to but that is not on this device yet, and opens it. */

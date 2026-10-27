@@ -41,6 +41,7 @@ import androidx.navigation.toRoute
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.leave_band_treasurer
 import com.jacekgajek.kapelusz.app.generated.sync_refused
 import com.jacekgajek.kapelusz.app.generated.tab_events
 import com.jacekgajek.kapelusz.app.generated.tab_fund
@@ -53,6 +54,7 @@ import com.jacekgajek.kapelusz.app.ui.FundRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
 import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
+import com.jacekgajek.kapelusz.app.ui.screens.pairEndsWarning
 import com.jacekgajek.kapelusz.app.ui.MyCostsRoute
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
 import com.jacekgajek.kapelusz.app.ui.RosterRoute
@@ -217,6 +219,13 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     onDeleteBand = suspend { graph.deleteBand(); navController.resetTo(EventsRoute) }
                         .takeIf { state.me?.role == Role.OWNER },
                     onLeaveBand = suspend { graph.leaveBand(); navController.resetTo(EventsRoute) }.takeIf { state.me != null },
+                    // Leaving unlinks the account, as a leader's Unlink does: the same pair warning as on the roster.
+                    leaveWarnings = state.me?.let { me ->
+                        listOfNotNull(
+                            pairEndsWarning(state.band, me),
+                            stringResource(Res.string.leave_band_treasurer).takeIf { state.band.treasurerMemberId == me.id },
+                        )
+                    }.orEmpty(),
                     onOpenMembers = { navController.navigate(RosterRoute()) },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
                     autoUpdate = settings.autoUpdate,

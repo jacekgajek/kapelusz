@@ -93,6 +93,26 @@ internal class UserHandlers(
         }
     }
 
+    /**
+     * After leaving their last band, what the server keeps of a user goes (what Play asks of account deletion): the
+     * photo, the calendar link and invite attempts. Only the account id and the time of "Sign out on all devices"
+     * stay, so sessions ended then don't work again.
+     */
+    fun forgetIfNoBands(userId: String) {
+        val key = StorageKeys.user(userId)
+        retryOnConflict(exhausted = {}) {
+            val blob = store.get(key) ?: return@retryOnConflict
+            val record = decode(UserRecord.serializer(), blob.content)
+            if (record.bandIds.any { id -> bands.load(id)?.first?.memberOfUser(userId) != null }) return@retryOnConflict
+            store.put(key, encode(UserRecord.serializer(), UserRecord(userId, sessionsValidFrom = record.sessionsValidFrom)), ifMatch = blob.etag)
+        }
+        store.get(StorageKeys.calendar(userId))?.let { blob ->
+            runCatching { store.delete(StorageKeys.calendarSecret(decode(StoredCalendar.serializer(), blob.content).secret)) }
+            store.delete(StorageKeys.calendar(userId))
+        }
+        store.delete(StorageKeys.joinAttempts(userId))
+    }
+
     fun removeBandFromUser(userId: String, bandId: String) {
         val key = StorageKeys.user(userId)
         retryOnConflict(exhausted = {}) {

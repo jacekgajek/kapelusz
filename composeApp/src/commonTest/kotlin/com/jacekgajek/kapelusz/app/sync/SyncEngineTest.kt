@@ -38,6 +38,11 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
+import com.jacekgajek.kapelusz.ops.LinkUser
+import com.jacekgajek.kapelusz.ops.UnlinkUser
+import kotlin.test.assertFails
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlinx.datetime.LocalDate
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +87,10 @@ private class FakeServer {
     /** Bands whose pushes are refused as a whole (`400`), e.g. too many devices. */
     val refusePushes = mutableSetOf<String>()
     val pushedBands = mutableListOf<String>()
+
+    /** Leaves already done, and whether the next one's answer is lost on the way (it is done all the same). */
+    val leaves = mutableListOf<String>()
+    var loseLeaveAnswer = false
 
     /** Answers /me with something that is not its JSON (a proxy's page, a broken deploy). */
     var unreadableMe = false
@@ -138,6 +147,22 @@ private class FakeServer {
                 val result = Engine.applyBatch(bands.getValue(bandId), Actor.User(user), push.ops)
                 bands[bandId] = result.band
                 ok(PushResponse.serializer(), PushResponse("v${++version}", result.band, result.accepted, result.rejected, result.duplicates))
+            }
+            path.endsWith("/leave") -> {
+                val bandId = path.split('/')[2]
+                val band = bands.getValue(bandId)
+                val me = band.memberOfUser(user)
+                if (me == null) {
+                    respond("""{"error":"band_not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
+                } else {
+                    leaves += user
+                    serverSide(bandId, UnlinkUser(me.id))
+                    if (loseLeaveAnswer) {
+                        loseLeaveAnswer = false
+                        throw object : Throwable("Connection reset") {}
+                    }
+                    respond("", HttpStatusCode.NoContent)
+                }
             }
             request.method == HttpMethod.Get && path.matches(Regex("/bands/[^/]+/attachments/[^/]+")) ->
                 respond("""{"url":"https://s3.test/get/${path.substringAfterLast('/')}"}""", HttpStatusCode.OK, json)
@@ -590,6 +615,58 @@ class SyncEngineTest {
         sync.syncNow()
         assertEquals(LostBand("Night Owls", deleted = true), message.await())
         assertEquals(null, repository.local(bandId))
+    }
+
+    /** Zed's band, which Alice joined as a member; on her device. */
+    private suspend fun joinedBand(server: FakeServer, repository: BandRepository, sync: SyncEngine): String {
+        server.bands["b1"] = Band.create("b1", "Night Owls", "PLN", "m-zed", "Zed", "zed")
+        server.serverSide("b1", AddMember("m-alice", "Alice"), LinkUser("m-alice", "alice", Role.MEMBER))
+        repository.load("alice")
+        sync.syncNow()
+        sync.download("b1")
+        return "b1"
+    }
+
+    @Test
+    fun leavingSendsUnsentChangesFirstAndForgetsTheBandQuietly() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        val bandId = joinedBand(server, repository, sync)
+        repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
+        val lost = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) { sync.lostAccess.first() }
+
+        sync.leave(bandId)
+        assertEquals(1, server.bands.getValue(bandId).costs.size, "the change went first")
+        assertNull(server.bands.getValue(bandId).member("m-alice")!!.userId)
+        assertNull(repository.local(bandId))
+        assertTrue(sync.syncNow())
+        assertTrue(lost.isActive, "leaving on purpose is not reported as lost access")
+    }
+
+    @Test
+    fun aLeaveWhoseAnswerWasLostCountsWhenTriedAgain() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        val bandId = joinedBand(server, repository, sync)
+        server.loseLeaveAnswer = true
+        assertFails { sync.leave(bandId) }
+        assertTrue(repository.local(bandId) != null, "not known to be done yet")
+
+        sync.leave(bandId)
+        assertNull(repository.local(bandId))
+        assertEquals(listOf("alice"), server.leaves)
+    }
+
+    @Test
+    fun aBandWithRefusedChangesCannotBeLeft() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        val bandId = joinedBand(server, repository, sync)
+        server.refusePushes += bandId
+        repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
+        assertTrue(assertFailsWith<LeaveBlocked> { sync.leave(bandId) }.stuck)
+        assertTrue(server.leaves.isEmpty())
+        assertTrue(repository.local(bandId) != null)
     }
 
     @Test
