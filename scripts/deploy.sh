@@ -117,7 +117,9 @@ check "${WEB_URL%/}/manifest.json" 200 json
 # The single-page app answers missing pages with 200 too: the policy is told apart by its own text.
 check_policy() { # url
   for _ in 1 2 3 4 5 6; do
-    curl -s --max-time 15 "$1" | grep -q 'id="rights"' && return 0
+    # The whole page first: grep -q would stop reading early, and pipefail would count curl's broken pipe as a failure.
+    local page
+    page="$(curl -s --max-time 15 "$1")" && [[ "$page" == *'id="rights"'* ]] && return 0
     sleep 10
   done
   echo "Smoke check failed: $1 is not the privacy policy" >&2

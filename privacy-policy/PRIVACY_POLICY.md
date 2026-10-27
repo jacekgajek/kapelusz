@@ -114,7 +114,8 @@ All connections use HTTPS. Stored data is encrypted at rest by AWS.
 - **Server logs**: 14 days.
 - When a leader moves you to the band's former members, you no longer see the band, but your member entry and what
   you recorded stay in it, because the band's accounts depend on them; your Google account stays linked to the entry
-  so you can be welcomed back. A leader can also unlink it.
+  so you can be welcomed back. A leader can also unlink it. When you leave a band yourself, your member entry and what
+  you recorded stay in it as well, and your Google account is unlinked from it.
 
 ## 7. Data on your device
 

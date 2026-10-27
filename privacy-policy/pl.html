@@ -56,7 +56,8 @@
         .intro { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--hat);
             border-radius: 10px; padding: 1rem 1.25rem; margin: 0 0 2rem; }
         nav { margin: 0 0 2.5rem; }
-        nav h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.5rem; }
+        nav h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.5rem;
+            padding-top: 0; border-top: 0; }
         nav ol { margin: 0; padding-left: 1.5rem; columns: 2 14rem; column-gap: 2rem; }
         nav li { break-inside: avoid; margin: 0 0 0.3rem; }
         h2 { font-size: 1.35rem; line-height: 1.3; margin: 2.5rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
@@ -96,7 +97,7 @@
 <main>
     <p class="effective">Data wejścia w życie: 27 października 2026 r.</p>
 
-    <p class="intro">Ta polityka wyjaśnia, jakie dane osobowe przetwarza aplikacja Kapelusz (po angielsku Pass the Hat;
+    <p class="intro">Niniejsza polityka wyjaśnia, jakie dane osobowe przetwarza aplikacja Kapelusz (po angielsku Pass the Hat;
         dalej „aplikacja”), w jakim celu, gdzie są przechowywane, kto je otrzymuje i jakie masz prawa. Dotyczy aplikacji
         na Androida, aplikacji internetowej pod adresem
         <a href="https://kapelusz.jacekgajek.com">https://kapelusz.jacekgajek.com</a> oraz obsługującego je serwera.
@@ -133,7 +134,7 @@
             listą zespołów, do których należysz, czasem ostatniego użycia „Wyloguj na wszystkich urządzeniach” i linkiem
             do zdjęcia profilowego.</li>
         <li><strong>Imię i nazwisko oraz adres e-mail</strong> nie są przechowywane na serwerze. Znajdują się w tokenie
-            sesji zapisanym na Twoim urządzeniu i są pokazywane Tobie w aplikacji.</li>
+            sesji zapisanym na Twoim urządzeniu i widzisz je tylko Ty w aplikacji.</li>
         <li><strong>Link do zdjęcia profilowego</strong> jest kopiowany do Twojego wpisu członka w każdym z Twoich
             zespołów, aby inni członkowie widzieli Twoje zdjęcie. Samo zdjęcie pozostaje na serwerach Google i jest
             stamtąd wczytywane.</li>
@@ -143,11 +144,11 @@
     <p>Wszystko, co Ty i inni członkowie wprowadzacie do zespołu:</p>
     <ul>
         <li>nazwa zespołu, waluta i ustawienia;</li>
-        <li>członkowie: ich nazwy (wpisane przez lidera zespołu, niekoniecznie takie jak w Google), role, domyślne
+        <li>członkowie: ich imiona (wpisane przez lidera zespołu, niekoniecznie takie jak w Google), role, domyślne
             udziały oraz, jeśli członek go poda, <strong>numer telefonu do płatności BLIK</strong>;</li>
         <li>goście: imiona wpisane na potrzeby jednego wydarzenia;</li>
         <li>wydarzenia: nazwa, data, miejsce, harmonogram, notatki, uczestnicy i ich udziały;</li>
-        <li>pieniądze: zebrane kwoty, koszty wraz z opisami i kategoriami, zwroty, przekazy między osobami oraz kasa
+        <li>pieniądze: zebrane kwoty, koszty wraz z opisami i kategoriami, zwroty, przekazania między osobami oraz kasa
             zespołowa;</li>
         <li><strong>załączniki</strong>: zdjęcia i pliki PDF (np. paragony) dodane do kosztów, otrzymanych pieniędzy lub
             wydarzeń;</li>
@@ -155,7 +156,7 @@
             cofnąć.</li>
     </ul>
     <p>Dane zespołu są widoczne dla jego członków zgodnie z ich rolą. Członkowie z rolą Artysta widzą tylko swoje
-        wydarzenia, swoje pieniądze i nazwy pozostałych członków.</p>
+        wydarzenia, swoje pieniądze i imiona pozostałych członków.</p>
 
     <h3 id="server-data">2.3 Inne dane przechowywane na serwerze</h3>
     <ul>
@@ -175,7 +176,7 @@
             kalendarza), wynik i czas obsługi, a w razie błędu także jego szczegóły. Dziennik nie zawiera treści danych
             Twojego zespołu.</li>
         <li>Nasz dostawca hostingu (Amazon Web Services) przetwarza Twój adres IP i podobne dane połączenia, aby
-            dostarczać żądania.</li>
+            obsługiwać żądania.</li>
     </ul>
 
     <h3 id="not-collected">2.5 Czego nie zbieramy</h3>
@@ -244,11 +245,13 @@
         <li><strong>Sesje</strong>: sesja trwa do 30 dni od ostatniego użycia i najwyżej 90 dni, potem logujesz się
             ponownie.</li>
         <li><strong>Zaproszenia</strong>: do wygaśnięcia lub wycofania.</li>
-        <li><strong>Nieudane próby wpisania zaproszenia</strong>: przez bieżącą godzinę.</li>
+        <li><strong>Nieudane próby wpisania kodu zaproszenia</strong>: przez bieżącą godzinę.</li>
         <li><strong>Dziennik serwera</strong>: 14 dni.</li>
         <li>Gdy lider przeniesie Cię do dawnych członków zespołu, przestajesz widzieć zespół, ale Twój wpis członka i to,
             co zapisałeś(-aś), pozostają w nim, bo zależą od nich rozliczenia zespołu; Twoje konto Google pozostaje
-            powiązane z wpisem, aby można było Cię przywrócić. Lider może też to powiązanie usunąć.</li>
+            powiązane z wpisem, aby można było Cię przywrócić. Lider może też to powiązanie usunąć. Gdy sam(a) odejdziesz
+            z zespołu, Twój wpis członka i to, co zapisałeś(-aś), również w nim pozostają, a Twoje konto Google zostaje od
+            niego odłączone.</li>
     </ul>
 
     <h2 id="device">7. Dane na Twoim urządzeniu</h2>
@@ -266,7 +269,7 @@
     <p><strong>Usunięcie konta:</strong> napisz na adres <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a> z adresu e-mail swojego konta
         Google. Twój rekord użytkownika i utworzone przez Ciebie zaproszenia zostaną usunięte, a Twoje konto Google
         odłączone od wszystkich Twoich zespołów. Zespoły, których jesteś właścicielem, zostaną usunięte albo, na Twoją
-        prośbę, najpierw przekazane innemu liderowi. Dane należące do wspólnych rozliczeń zespołu (Twoja nazwa członka i
+        prośbę, najpierw przekazane innemu liderowi. Dane należące do wspólnych rozliczeń zespołu (Twoje imię w zespole i
         zapisane przez Ciebie pieniądze) pozostają w zespole, jak opisano w punkcie <a href="#how-long">6</a>.</p>
     <p>Masz też prawo wnieść skargę do organu nadzorczego; w Polsce jest nim Prezes Urzędu Ochrony Danych Osobowych
         (<a href="https://uodo.gov.pl">https://uodo.gov.pl</a>).</p>
