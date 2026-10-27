@@ -123,9 +123,11 @@ grilling's questions, not §1's.
 
 - **Firebase in the existing Google Cloud project** (`bold-vial-278611`, with the sign-in client, the Maps key and
   `kapelusz-ci`; to be checked). `google-services.json` committed: public identifiers, in every APK anyway.
-- **A separate service account `kapelusz-fcm`**, role Firebase Cloud Messaging API Admin only. Its key in an **SSM
-  Parameter Store SecureString** (standard tier, free), created by Terraform, filled by hand; the Lambda reads it at
-  start.
+- **A separate service account `kapelusz-fcm`**, role Firebase Cloud Messaging API Admin only. Its key in the **data
+  bucket**, `server/fcm-service-account.json`, next to the session signing key (`server/session-key.json`), put there
+  by hand; the Lambda reads it on the first message (not into the SnapStart snapshot). Missing: no messages. (Q7 said
+  Parameter Store; changed while building: its SDK added 6 MB to the Lambda, and the bucket already holds the session
+  key with the same protection, needing no Terraform.)
 - **FCM's HTTP v1 API called directly**, with a self-signed short-lived Google token (cached for its lifetime); no
   Firebase Admin SDK (tens of MB in the Lambda).
 - **Sent within the request, in parallel** (HTTP v1 has one call per device), waiting **at most ~1 s** in all;
@@ -164,10 +166,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 ### V7-M2 — Sync: server (§2.2, §2.4, §2.5)
 
-- [ ] (User) Firebase in the project, the `kapelusz-fcm` service account and key; Terraform applied (SSM parameter,
-  the Lambda may read it); the key in the parameter
-- [ ] Device endpoints, the registry and its pruning (with tests)
-- [ ] The FCM sender, messages after pushes, joins, leaves and deletion, the sender excluded (with tests)
+- [ ] (User) Firebase in the project, the `kapelusz-fcm` service account and key; the key in the data bucket
+  (`aws s3 cp kapelusz-fcm.json s3://jacekgajek-art-split-data/server/fcm-service-account.json`)
+- [x] Device endpoints, the registry and its pruning (with tests)
+- [x] The FCM sender, messages after pushes, joins, leaves and deletion, the sender excluded (with tests)
 
 ### V7-M3 — Sync: apps (§2.3, §2.6, §2.7)
 
@@ -190,3 +192,5 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   (§1a).
 - 2026-10-27: Tokens rather than topics (§2.4); within the request rather than an asynchronous Lambda or a queue
   (§2.5); no background syncing on a message (§2.3).
+- 2026-10-27: The FCM key in the data bucket rather than Parameter Store (§2.5): 200 KB instead of 6 MB in the
+  Lambda, no Terraform, the session key's precedent.

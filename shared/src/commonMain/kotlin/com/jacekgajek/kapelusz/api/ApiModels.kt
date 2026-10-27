@@ -61,6 +61,12 @@ object ApiErrors {
     /** Query parameter carrying the app's version code on every request; 0 for local development builds. */
     const val APP_VERSION_PARAMETER = "appVersion"
 
+    /**
+     * Query parameter carrying the Android app's installation id (ITERATION_7 §2.4) on changes, so the server doesn't
+     * send that device a sync message about its own change. A parameter rather than a header, as for the version.
+     */
+    const val INSTALLATION_PARAMETER = "installation"
+
     /** The band was deleted by its owner; only its former members get this (others get [BAND_NOT_FOUND]). */
     const val BAND_DELETED = "band_deleted"
 
@@ -199,6 +205,13 @@ data class HistoryEntry(
 /** One page of a calendar month's history (UTC), newest first; pass [next] as `before` for the following page. */
 @Serializable
 data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, val next: String? = null)
+
+/**
+ * PUT /me/devices/{installationId} (ITERATION_7 §2.4): this installation's Firebase token, so the server can tell it
+ * when one of the user's bands changed. A new token for the same installation replaces the old one.
+ */
+@Serializable
+data class DeviceRegistration(val token: String)
 
 /** POST /me/picture: a Google sign-in token of the user (may have expired); its photo becomes theirs in their bands. */
 @Serializable
