@@ -33,18 +33,23 @@ import com.jacekgajek.kapelusz.app.generated.leave_band_failed
 import com.jacekgajek.kapelusz.app.generated.leave_band_owner_text
 import com.jacekgajek.kapelusz.app.generated.leave_band_owner_title
 import com.jacekgajek.kapelusz.app.generated.leave_band_return
+import com.jacekgajek.kapelusz.app.generated.leave_band_stuck
 import com.jacekgajek.kapelusz.app.generated.leave_band_text
 import com.jacekgajek.kapelusz.app.generated.leave_band_title
 import com.jacekgajek.kapelusz.app.generated.menu_roster
+import com.jacekgajek.kapelusz.app.sync.LeaveBlocked
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
-/** Leaving the band: what it means, and the (red) button; the server unlinks the account, so it needs a connection. */
+/**
+ * Leaving the band: what it means, what else it ends ([warnings]: a pair settling together, the band fund held), and the
+ * (red) button; the server unlinks the account, so it needs a connection.
+ */
 @Composable
-internal fun LeaveBandDialog(bandName: String, onLeave: suspend () -> Unit, onDismiss: () -> Unit) {
+internal fun LeaveBandDialog(bandName: String, warnings: List<String>, onLeave: suspend () -> Unit, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var working by remember { mutableStateOf(false) }
-    var failed by remember { mutableStateOf(false) }
+    var failure by remember { mutableStateOf<Throwable?>(null) }
     AlertDialog(
         onDismissRequest = { if (!working) onDismiss() },
         icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error) },
@@ -52,8 +57,12 @@ internal fun LeaveBandDialog(bandName: String, onLeave: suspend () -> Unit, onDi
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.leave_band_text))
+                warnings.forEach { Text(it) }
                 Text(stringResource(Res.string.leave_band_return))
-                if (failed) Text(stringResource(Res.string.leave_band_failed), color = MaterialTheme.colorScheme.error)
+                failure?.let { e ->
+                    val text = if ((e as? LeaveBlocked)?.stuck == true) Res.string.leave_band_stuck else Res.string.leave_band_failed
+                    Text(stringResource(text), color = MaterialTheme.colorScheme.error)
+                }
             }
         },
         confirmButton = {
@@ -62,9 +71,9 @@ internal fun LeaveBandDialog(bandName: String, onLeave: suspend () -> Unit, onDi
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                 onClick = {
                     working = true
-                    failed = false
+                    failure = null
                     scope.launch {
-                        runSuspendCatching { onLeave() }.onFailure { failed = true }
+                        runSuspendCatching { onLeave() }.onFailure { failure = it }
                         working = false
                     }
                 },

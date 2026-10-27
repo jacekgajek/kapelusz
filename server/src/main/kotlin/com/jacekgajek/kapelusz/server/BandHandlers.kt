@@ -156,10 +156,13 @@ internal class BandHandlers(
             is ApplyResult.Applied -> result.band
             is ApplyResult.Rejected -> throw ApiError(409, ApiErrors.CONFLICT, result.rejection.message)
         }
+        // The commit point: what follows is tidying up, which a failure must not report as a failed leave.
         store.put(StorageKeys.band(bandId), encode(Band.serializer(), left), ifMatch = etag)
-        users.removeBandFromUser(user.userId, bandId)
+        runCatching { users.removeBandFromUser(user.userId, bandId) }
         runCatching { invites.revokeFor(bandId, me.id) }
-        runCatching { history.append(user, left, bandId, listOf(OpEnvelope(opId, "server", 0, clock(), op)), emptyMap()) }
+        // With the band as it was, so the entry has who left as its author.
+        runCatching { history.append(user, band, bandId, listOf(OpEnvelope(opId, "server", 0, clock(), op)), emptyMap()) }
+        runCatching { users.forgetIfNoBands(user.userId) }
         HttpResponse(204)
     }
 

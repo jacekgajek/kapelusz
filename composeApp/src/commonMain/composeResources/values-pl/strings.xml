@@ -320,6 +320,7 @@
     <string name="h_set_role">Zmiana roli: %1$s → %2$s</string>
     <string name="h_link_user">%1$s dołącza do zespołu z rolą: %2$s</string>
     <string name="h_unlink_user">Odłączono konto: %1$s</string>
+    <string name="h_left_band">%1$s opuszcza zespół</string>
     <string name="h_set_treasurer">Kasę zespołową trzyma teraz: %1$s</string>
     <string name="h_transfer_ownership">Przekazano własność: %1$s</string>
     <string name="h_create_event">Utworzono wydarzenie %1$s</string>
@@ -501,13 +502,16 @@
     <string name="delete_band_confirm">Usuń na zawsze</string>
     <string name="delete_band_failed">Zespół nie został usunięty. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="leave_band">Opuść zespół</string>
+    <string name="privacy_policy">Polityka prywatności</string>
     <string name="leave_band_title">Opuścić zespół %1$s?</string>
-    <string name="leave_band_text">Stracisz dostęp do zespołu. Twoje imię, koszty i zapisane przez ciebie pieniądze zostaną w nim.</string>
+    <string name="leave_band_text">Stracisz dostęp do zespołu. Twoje imię, koszty i zapisane przez ciebie kwoty zostają w zespole.</string>
     <string name="leave_band_return">Żeby wrócić, poproś lidera o ponowne zaproszenie.</string>
     <string name="leave_band_confirm">Opuść</string>
-    <string name="leave_band_failed">Zespół nie został opuszczony. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="leave_band_treasurer">Trzymasz kasę zespołową. Zostanie przy twoim imieniu, dopóki lider nie wybierze, kto ją trzyma.</string>
+    <string name="leave_band_stuck">Serwer odrzuca twoje niewysłane zmiany w tym zespole. Najpierw zajmij się nimi (pasek na ekranach zespołu), potem opuść zespół.</string>
+    <string name="leave_band_failed">Nie udało się opuścić zespołu. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="leave_band_owner_title">Ten zespół należy do ciebie</string>
-    <string name="leave_band_owner_text">Nie możesz opuścić zespołu, który należy do ciebie. Najpierw przekaż go innemu liderowi w Członkach zespołu albo usuń zespół.</string>
+    <string name="leave_band_owner_text">Właściciel nie może opuścić zespołu. Najpierw przekaż zespół innemu liderowi na ekranie Członkowie zespołu albo go usuń.</string>
     <string name="updates_title">Aktualizacje aplikacji</string>
     <string name="updates_auto">Pobieraj aktualizacje automatycznie</string>
     <string name="updates_check_now">Sprawdź teraz</string>

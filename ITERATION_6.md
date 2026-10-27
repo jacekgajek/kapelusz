@@ -262,16 +262,22 @@ confusing): a household where one is a hired artist, or both are, wants one mone
 ## 11a. Leaving a band (2026-10-27)
 
 - **Leave band** ("Opuść zespół"): a red link in Settings › Account, below the sign-out buttons, for every role.
-- **Not the owner:** a dialog says they lose access, that their name, costs and recorded money stay with the band, and
-  that a leader's new invite brings them back. **Leave** asks the server (`POST /bands/{id}/leave`) after sending the
-  band's unsent changes; offline or refused, the dialog says so and nothing changes. Then the band is gone from the
-  device, as after deleting it.
-- **The server** unlinks the account from the member, as a leader's Unlink does (photo and BLIK number go with it),
-  takes the band off the user's list, cancels invites for the member and records it in the history.
+- **Not the owner:** a dialog says they lose access, that their name, costs and recorded amounts stay with the band, and
+  that a leader's new invite brings them back; also, as on the roster's Unlink, that settling together ends, and that
+  the band fund stays with their name if they hold it.
+- **Leave** runs in the sync engine between rounds (no round then reports the band as lost) and in the app's scope (the
+  band's screens going away don't cancel it): the band's unsent changes, Undo's held ones too, and files go first; then
+  `POST /bands/{id}/leave`; then the band is gone from the device, as after deleting it. Unsent work that can't go
+  (offline, or refused: the stuck banner) stops it with a message, and nothing changes. A "band not found" answer means
+  an earlier attempt went through, its answer lost: done.
+- **The server** unlinks the account from the member, as a leader's Unlink does (role back to Member, photo and BLIK
+  number go with it, a pair ends), takes the band off the user's list, cancels invites for the member and records "X
+  left the band" in the history. After the user's last band, it also drops what it kept for the account (photo link,
+  calendar link, invite attempts): only the account id and the time of "Sign out on all devices" stay.
 - **The owner** can't leave (`owner_cannot_leave`): the dialog offers **Band members**, to make another leader the
   owner, and **Delete band**, which closes it onto the Delete band button just below.
-- Towards Play's account deletion: what a user's account holds is their bands; leaving them (and deleting the ones
-  they own) leaves nothing but the empty user record.
+- **This is the app's account deletion for Play** (grilled 2026-10-27): the privacy policy (§8) says so, with email
+  only for who can no longer sign in. Settings has a **Privacy policy** entry (`/privacy-policy`, `/pl` in Polish).
 
 ## 12. Milestones and task checklist
 
@@ -313,6 +319,8 @@ confusing): a household where one is a hired artist, or both are, wants one mone
 
 - [x] The server's leave, the owner refused (with tests)
 - [x] Leave band in Settings, the owner's dialog
+- [x] Review fixes: leaving between sync rounds, files first, a lost answer, "left the band" in the history, the
+  account's leftovers after the last band (with tests); Privacy policy in Settings
 
 ## 13. Decision log
 

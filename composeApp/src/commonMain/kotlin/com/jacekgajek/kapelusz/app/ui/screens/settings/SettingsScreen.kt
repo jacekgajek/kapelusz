@@ -8,6 +8,8 @@ import androidx.compose.foundation.BorderStroke
 import com.jacekgajek.kapelusz.app.generated.support_me
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.VolunteerActivism
+import androidx.compose.material.icons.filled.Policy
+import com.jacekgajek.kapelusz.app.generated.privacy_policy
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -91,6 +93,9 @@ enum class SettingsPage { FUND, AGENDA, CALENDAR }
 
 private const val SUPPORT_URL = "https://buymeacoffee.com/jacekgajek"
 
+/** The privacy policy (published by the deploy), in Polish under `/pl`. */
+private const val PRIVACY_URL = "https://kapelusz.jacekgajek.com/privacy-policy"
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
@@ -116,6 +121,8 @@ fun SettingsScreen(
     onDeleteBand: (suspend () -> Unit)?,
     /** Leaves the band (not as its owner, who has [onDeleteBand]). Throws when it did not work (e.g. offline). */
     onLeaveBand: (suspend () -> Unit)?,
+    /** What else leaving ends, said in its dialog (a pair settling together, the band fund held). */
+    leaveWarnings: List<String>,
     /** Band members, where the owner hands the band to another leader before leaving. */
     onOpenMembers: () -> Unit,
     otherMembers: Int,
@@ -189,6 +196,11 @@ fun SettingsScreen(
             SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
                 uriHandler.openUri(SUPPORT_URL)
             }
+            // In the language the app shows (the parameter [language] is only a manual choice).
+            val privacyUrl = if (androidx.compose.ui.text.intl.Locale.current.language == "pl") "$PRIVACY_URL/pl" else PRIVACY_URL
+            SettingsItem(Icons.Default.Policy, stringResource(Res.string.privacy_policy), privacyUrl.removePrefix("https://")) {
+                uriHandler.openUri(privacyUrl)
+            }
 
             Column(Modifier.padding(horizontal = 16.dp)) {
                 rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
@@ -235,7 +247,7 @@ fun SettingsScreen(
                                 onDismiss = { leaving = false },
                             )
                         } else {
-                            LeaveBandDialog(bandName, onLeaveBand, onDismiss = { leaving = false })
+                            LeaveBandDialog(bandName, leaveWarnings, onLeaveBand, onDismiss = { leaving = false })
                         }
                     }
                 }

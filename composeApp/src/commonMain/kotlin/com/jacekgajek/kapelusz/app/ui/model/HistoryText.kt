@@ -62,6 +62,7 @@ import com.jacekgajek.kapelusz.app.generated.h_settle_all
 import com.jacekgajek.kapelusz.app.generated.h_settle_party
 import com.jacekgajek.kapelusz.app.generated.h_transfer_ownership
 import com.jacekgajek.kapelusz.app.generated.h_unknown
+import com.jacekgajek.kapelusz.app.generated.h_left_band
 import com.jacekgajek.kapelusz.app.generated.h_unlink_user
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -130,7 +131,7 @@ import org.jetbrains.compose.resources.stringResource
  * them (an entry logged without its changes).
  */
 @Composable
-fun describe(op: Operation, band: Band, change: BandChange? = null): String {
+fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = null): String {
     val lang = language
     val fund = stringResource(Res.string.band_fund)
     val parts = listOfNotNull(change?.before, change?.after)
@@ -158,7 +159,8 @@ fun describe(op: Operation, band: Band, change: BandChange? = null): String {
         is DeleteMember -> stringResource(Res.string.h_delete_member)
         is SetMemberRole -> stringResource(Res.string.h_set_role, member(op.memberId), op.role.label())
         is LinkUser -> stringResource(Res.string.h_link_user, member(op.memberId), op.role.label())
-        is UnlinkUser -> stringResource(Res.string.h_unlink_user, member(op.memberId))
+        // Their own unlink is how a member leaves (Settings › Leave band).
+        is UnlinkUser -> stringResource(if (op.memberId == by) Res.string.h_left_band else Res.string.h_unlink_user, member(op.memberId))
         is SetTreasurer -> stringResource(Res.string.h_set_treasurer, member(op.memberId))
         is DisableBandFund -> stringResource(Res.string.h_disable_fund)
         is TransferOwnership -> stringResource(Res.string.h_transfer_ownership, member(op.toMemberId))
