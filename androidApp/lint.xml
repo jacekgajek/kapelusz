@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Firebase Messaging shows notifications for notification messages; the server sends only data messages, to
+         sync (ITERATION_7 §2.3), so the Play build, without the permission on purpose, never reaches that code. -->
+    <issue id="NotificationPermission">
+        <ignore regexp="com\.google\.firebase\.messaging\.DisplayNotification" />
+    </issue>
+</lint>
