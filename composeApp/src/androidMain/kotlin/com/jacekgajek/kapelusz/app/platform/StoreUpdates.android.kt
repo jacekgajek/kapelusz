@@ -1,20 +1,23 @@
 package com.jacekgajek.kapelusz.app.platform
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import com.google.android.gms.tasks.Task
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.ActivityResult
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
@@ -38,20 +41,24 @@ actual fun rememberStoreUpdates(): StoreUpdates? {
     return updates
 }
 
-/** [StoreUpdates] through Play's in-app updates library; every failure (not from Play, offline) is "nothing to offer". */
+/**
+ * [StoreUpdates] through Play's in-app updates library (its manager is one per process, holding only the application
+ * context). Every failure (not from Play, offline) is "nothing to offer". A version declined in Play's dialog isn't
+ * offered again; a newer one is.
+ */
 private class PlayStoreUpdates(private val activity: Activity) : StoreUpdates {
     private val manager: AppUpdateManager = AppUpdateManagerFactory.create(activity)
+    private val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val _state = MutableStateFlow(StoreUpdateState.NONE)
     override val state: StateFlow<StoreUpdateState> = _state.asStateFlow()
-    private var info: AppUpdateInfo? = null
 
     private val listener = InstallStateUpdatedListener { install ->
-        _state.value = when (install.installStatus()) {
-            InstallStatus.PENDING, InstallStatus.DOWNLOADING -> StoreUpdateState.DOWNLOADING
-            InstallStatus.DOWNLOADED -> StoreUpdateState.DOWNLOADED
-            // Cancelled or failed: offered again; installed: the app restarts anyway.
-            InstallStatus.CANCELED, InstallStatus.FAILED -> StoreUpdateState.AVAILABLE
-            else -> _state.value
+        when (install.installStatus()) {
+            InstallStatus.PENDING, InstallStatus.DOWNLOADING -> _state.value = StoreUpdateState.DOWNLOADING
+            InstallStatus.DOWNLOADED -> _state.value = StoreUpdateState.DOWNLOADED
+            // Cancelled or failed: what Play offers now, asked afresh.
+            InstallStatus.CANCELED, InstallStatus.FAILED -> check()
+            else -> Unit
         }
     }
 
@@ -61,31 +68,54 @@ private class PlayStoreUpdates(private val activity: Activity) : StoreUpdates {
 
     override fun check() {
         manager.appUpdateInfo.addOnSuccessListener { found ->
-            info = found
             _state.value = when {
                 found.installStatus() == InstallStatus.DOWNLOADED -> StoreUpdateState.DOWNLOADED
                 found.installStatus() == InstallStatus.DOWNLOADING || found.installStatus() == InstallStatus.PENDING -> StoreUpdateState.DOWNLOADING
-                found.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && found.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> StoreUpdateState.AVAILABLE
+                offered(found, AppUpdateType.FLEXIBLE) && found.availableVersionCode() > prefs.getInt(DECLINED, 0) -> StoreUpdateState.AVAILABLE
                 else -> StoreUpdateState.NONE
             }
         }.addOnFailureListener { _state.value = StoreUpdateState.NONE }
     }
 
     override fun download() {
-        val found = info ?: return
-        runCatching { manager.startUpdateFlow(found, activity, AppUpdateOptions.defaultOptions(AppUpdateType.FLEXIBLE)) }
+        // A fresh answer each time: one already used for a flow (a cancelled download, a second tap) can't start another.
+        manager.appUpdateInfo.addOnSuccessListener { found ->
+            if (!offered(found, AppUpdateType.FLEXIBLE)) return@addOnSuccessListener
+            manager.startUpdateFlow(found, activity, AppUpdateOptions.defaultOptions(AppUpdateType.FLEXIBLE))
+                .addOnSuccessListener { result ->
+                    // Declined in Play's dialog: not this version again (a newer one is offered).
+                    if (result == Activity.RESULT_CANCELED) {
+                        prefs.edit { putInt(DECLINED, found.availableVersionCode()) }
+                        _state.value = StoreUpdateState.NONE
+                    }
+                }
+        }
     }
 
     override fun install() {
         manager.completeUpdate()
     }
 
+    /** True when it is under way or the user chose not to (nothing else to do); false when Play can't, for the listing. */
     override suspend fun updateNow(): Boolean {
-        val found = runCatching { manager.appUpdateInfo.awaitOrNull() }.getOrNull() ?: return false
-        val offered = found.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE ||
-            found.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
-        if (!offered || !found.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) return false
-        return runCatching { manager.startUpdateFlow(found, activity, AppUpdateOptions.defaultOptions(AppUpdateType.IMMEDIATE)) }.isSuccess
+        val found = manager.appUpdateInfo.awaitOrNull() ?: return false
+        // Downloaded already: installing it is the update.
+        if (found.installStatus() == InstallStatus.DOWNLOADED) {
+            manager.completeUpdate()
+            return true
+        }
+        val resumable = found.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+        if (!resumable && !offered(found, AppUpdateType.IMMEDIATE)) return false
+        val result = manager.startUpdateFlow(found, activity, AppUpdateOptions.defaultOptions(AppUpdateType.IMMEDIATE)).awaitOrNull()
+        return result != null && result != ActivityResult.RESULT_IN_APP_UPDATE_FAILED
+    }
+
+    private fun offered(info: AppUpdateInfo, type: Int) =
+        info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && info.isUpdateTypeAllowed(type)
+
+    private companion object {
+        const val PREFS = "kapelusz-store-updates"
+        const val DECLINED = "declinedVersionCode"
     }
 }
 

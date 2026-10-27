@@ -10,7 +10,6 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
 import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.OpEnvelope
@@ -102,10 +101,11 @@ internal class BandHandlers(
             // A precondition failure here: changed meanwhile, the whole batch again on the new state.
             val newEtag = if (encoded == null) etag else store.put(StorageKeys.band(bandId), encoded, ifMatch = etag)
             if (result.accepted.isNotEmpty()) {
-                // A member whose account was linked or unlinked, or who was deleted, keeps no invite (InviteHandlers.revokeFor).
-                envelopes.filter { it.opId in result.accepted }.map { it.op }
-                    .mapNotNull { (it as? UnlinkUser)?.memberId ?: (it as? DeleteMember)?.memberId }
-                    .forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
+                // A member whose account was unlinked, or who is gone (deleted, also by a redo), keeps no invite
+                // (InviteHandlers.revokeFor).
+                val unlinkedMembers = envelopes.filter { it.opId in result.accepted }.map { it.op }.mapNotNull { (it as? UnlinkUser)?.memberId }
+                val goneMembers = band.members.map { it.id } - result.band.members.map { it.id }.toSet()
+                (unlinkedMembers + goneMembers).distinct().forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
                 // New events (also one brought back by an undo): where their links find them; deleted ones: not anymore.
                 val before = band.events.map { it.id }.toSet()
                 val after = result.band.events.map { it.id }.toSet()

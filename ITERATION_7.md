@@ -187,8 +187,9 @@ services' one connection, shared by all apps: the radio wakes only when somethin
   downloads it in the background (Play's flexible update), then "The new version is downloaded · Restart" installs it.
 - **Update required** (too old for the server) starts Play's full-screen update when Play offers one, else opens the
   listing.
-- No notifications and no permissions. Only for the app installed from Play (a debug build is never offered one), and
-  only once Google's review has passed and the release reached the phone: hours after a merge, not at once.
+- No notifications and no permissions. Offered only to the app installed from Play, and only once Google's review has
+  passed and the release reached the phone: hours after a merge, not at once. A version declined in Play's dialog isn't
+  offered again (a newer one is); a download that fails or is cancelled is offered again.
 
 ## 3. Milestones and task checklist
 

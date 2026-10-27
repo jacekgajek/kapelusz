@@ -148,13 +148,14 @@ internal object Undoing {
         return restored
     }
 
-    /** References that point nowhere and over-refunded costs; these never come from ordinary operations. */
+    /** References that point nowhere, over-refunded costs and duplicate member names; ordinary operations never make them. */
     fun problems(band: Band): Set<String> = buildSet {
         val memberIds = band.members.map { it.id }.toSet()
         val costs = band.costs.associateBy { it.id }
         band.treasurerMemberId?.let { id -> if (band.member(id)?.archived != false) add("treasurer $id") }
         // Names are unique (ITERATION_5 §12): e.g. a deleted member brought back after another took their name.
-        band.members.groupBy { it.name.trim().lowercase() }.filterValues { it.size > 1 }.keys.forEach { add("name $it") }
+        band.members.filter { member -> band.members.any { it !== member && it.name.trim().equals(member.name.trim(), ignoreCase = true) } }
+            .forEach { add("name ${it.name.trim().lowercase()}") }
         // A pair or invitation that no longer holds, e.g. one partner settling with someone else since (ITERATION_5 §7).
         if (SettleTogether.tidy(band) != band) add("settling together")
         // The fund is off only when it is empty and every event handed over its part (as DisableBandFund requires).
