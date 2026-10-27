@@ -71,7 +71,7 @@ Console.
 - [ITERATION_1.md](ITERATION_1.md) — the first planning iteration, as built.
 - [ITERATION_2.md](ITERATION_2.md) — the second iteration: plan, milestones and decision log (app 1.0).
 - [ITERATION_3.md](ITERATION_3.md) — the third iteration: hardening, quality work and new features.
-- [ITERATION_7.md](ITERATION_7.md) — the seventh iteration: Google Play.
+- [ITERATION_7.md](ITERATION_7.md) — the seventh iteration: Google Play, and syncing when something changed.
 
 The app was called Art Split until 1.0 (and Split Art for a few hours). The S3 buckets (`jacekgajek-art-split-*`) and the Lambda (`art-split-api`)
 keep the old name: they hold the bands' data and run the API.
