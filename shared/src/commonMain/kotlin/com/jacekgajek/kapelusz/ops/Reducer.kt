@@ -296,11 +296,11 @@ object Reducer {
 
     private fun deleteMember(band: Band, op: DeleteMember, ctx: OpContext): Band {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Unlink the user before deleting the member" }
-        conflictIf(band.treasurerMemberId == member.id, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
         // Yourself: Leave band is for that (ITERATION_6 §11a).
         conflictIf(member.id == ctx.memberId, RejectionReason.MEMBER_HAS_HISTORY) { "Not yourself; leave the band instead" }
-        // Only who left no trace (ITERATION_7 §3): anyone who did take part is archived instead.
+        conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Unlink the user before deleting the member" }
+        conflictIf(band.treasurerMemberId == member.id, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
+        // Only who left no trace (ITERATION_7 §2a): anyone who did take part is archived instead.
         conflictIf(!MemberDeletion.possible(band, member.id), RejectionReason.MEMBER_HAS_HISTORY) { "Something in the band refers to this member; archive instead" }
         return band.copy(members = band.members.filterNot { it.id == member.id })
     }

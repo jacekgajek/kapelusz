@@ -321,7 +321,7 @@
     <string name="h_move_member">Przesunięto %1$s na liście członków</string>
     <string name="h_archive_member">Zarchiwizowano: %1$s</string>
     <string name="h_restore_member">Przywrócono: %1$s</string>
-    <string name="h_delete_member">Usunięto członka</string>
+    <string name="h_delete_member">Usunięto członka: %1$s</string>
     <string name="h_set_role">Zmiana roli: %1$s → %2$s</string>
     <string name="h_link_user">%1$s dołącza do zespołu z rolą: %2$s</string>
     <string name="h_unlink_user">Odłączono konto: %1$s</string>

@@ -14,6 +14,7 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import kotlinx.datetime.LocalDate
@@ -120,6 +121,17 @@ class LeaveBandTest {
         assertEquals(UserRecord("bob", sessionsValidFrom = record.sessionsValidFrom), record, "his last band: only the account id stays")
         assertNull(store.get("users/bob-calendar.json"))
         assertTrue(KapeluszJson.decodeFromString(MeResponse.serializer(), call("GET", "/me", "bob").body!!).bands.isEmpty())
+    }
+
+    @Test
+    fun deletingAMemberCancelsTheirInvites() {
+        setup()
+        val add = listOf(OpEnvelope("op10", "phone", 10, 1, AddMember("m-carol", "Carol")))
+        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(add)))
+        val code = invite("m-carol")
+        val delete = listOf(OpEnvelope("op11", "phone", 11, 1, DeleteMember("m-carol")))
+        assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(delete))).status)
+        assertEquals(404, call("GET", "/invites/$code", "dan").status, "no old code comes back with an Undo")
     }
 
     /** A calendar link and a Google photo kept for [user], as signing in and subscribing leave them. */

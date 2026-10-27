@@ -153,6 +153,8 @@ internal object Undoing {
         val memberIds = band.members.map { it.id }.toSet()
         val costs = band.costs.associateBy { it.id }
         band.treasurerMemberId?.let { id -> if (band.member(id)?.archived != false) add("treasurer $id") }
+        // Names are unique (ITERATION_5 §12): e.g. a deleted member brought back after another took their name.
+        band.members.groupBy { it.name.trim().lowercase() }.filterValues { it.size > 1 }.keys.forEach { add("name $it") }
         // A pair or invitation that no longer holds, e.g. one partner settling with someone else since (ITERATION_5 §7).
         if (SettleTogether.tidy(band) != band) add("settling together")
         // The fund is off only when it is empty and every event handed over its part (as DisableBandFund requires).

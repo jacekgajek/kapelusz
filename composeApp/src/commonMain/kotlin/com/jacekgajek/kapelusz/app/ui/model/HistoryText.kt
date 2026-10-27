@@ -156,7 +156,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         is RenameMember -> stringResource(Res.string.h_rename_member, op.name)
         is MoveMember -> stringResource(Res.string.h_move_member, member(op.memberId))
         is SetMemberArchived -> stringResource(if (op.archived) Res.string.h_archive_member else Res.string.h_restore_member, member(op.memberId))
-        is DeleteMember -> stringResource(Res.string.h_delete_member)
+        is DeleteMember -> stringResource(Res.string.h_delete_member, member(op.memberId))
         is SetMemberRole -> stringResource(Res.string.h_set_role, member(op.memberId), op.role.label())
         is LinkUser -> stringResource(Res.string.h_link_user, member(op.memberId), op.role.label())
         // Their own unlink is how a member leaves (Settings › Leave band).

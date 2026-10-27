@@ -165,13 +165,14 @@ services' one connection, shared by all apps: the radio wakes only when somethin
 ## 2a. Deleting members added by mistake (grilled 2026-10-27)
 
 - **When** (Q3): only a member nothing in the band refers to: no costs, never in an event (so no collected money or
-  transfers), never named as who recorded a transfer or added a participant, not holding the band fund, not in a
+  transfers), never named as who recorded a transfer or collected money or added a participant, not holding the band fund, not in a
   settle-together pair or invitation, not the owner and not yourself (Leave band is for that). Checked by the shared
   rules (`MemberDeletion`), so app and server agree. Anyone else is moved to the former members, as before.
 - **A member using the app** (Q1): deleted in one step; the confirmation says it also removes their access. Underneath,
   two changes: Unlink (not undoable) and the deletion.
 - **Undo** (Q2): from the snackbar or the history; it brings the member back without the app account (a new invite gives
-  access again). The account joins only by invite.
+  access again; invites made before the deletion are cancelled with it). The account joins only by invite. Refused
+  when another member has taken the name meanwhile.
 - **Where** (Q4): Band members › the member › a red "Delete member" at the bottom, shown only when allowed; "Delete Bob?"
   with what it changes; a snackbar "Deleted Bob" with Undo.
 - **The server** (Q5): a push that unlinks someone (a leader's Unlink, or this) is treated as leaving: the band leaves

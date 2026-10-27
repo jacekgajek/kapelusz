@@ -2,6 +2,12 @@ package com.jacekgajek.kapelusz
 
 import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.ops.RenameMember
+import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.AddHolding
+import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.CreateEvent
@@ -16,7 +22,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Deleting a member added by mistake (ITERATION_7 §3): only who left no trace in the band. */
+/** Deleting a member added by mistake (ITERATION_7 §2a): only who left no trace in the band. */
 class MemberDeletionTest {
     private fun band() = Scenario("Alice", "Bob", "Carol", "Dan", "Erin")
 
@@ -64,5 +70,27 @@ class MemberDeletionTest {
         assertEquals(RejectionReason.MEMBER_LINKED, scenario.rejected(DeleteMember("carol"), alice).reason)
         scenario.apply(UnlinkUser("carol"), alice).apply(DeleteMember("carol"), alice)
         assertNull(scenario.band.member("carol"))
+    }
+
+    @Test
+    fun aLeaderWhoRecordedMoneyWithoutPlayingStays() {
+        val scenario = band().event("gig", "Alice", "Carol")
+        val bob = scenario.userFor("bob", Role.LEAD)
+        scenario.apply(AddHolding("gig", "h1", "carol", pln("100"), IncomeSource.HAT), bob)
+        scenario.apply(UnlinkUser("bob"))
+        assertFalse(MemberDeletion.possible(scenario.band, "bob"), "named as who recorded Carol's money")
+    }
+
+    @Test
+    fun undoingADeletionWhoseNameWasTakenSinceIsRefused() {
+        val scenario = band()
+        val before = scenario.band
+        scenario.apply(DeleteMember("carol"))
+        val undo = Undo("deleted", DeleteMember("carol"), BandChange.between(before, scenario.band))
+        scenario.apply(AddMember("carol2", "Carol"))
+        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undo).reason, "two members named Carol")
+        scenario.apply(RenameMember("carol2", "Caroline"))
+        scenario.apply(undo)
+        assertEquals("Carol", scenario.band.member("carol")?.name)
     }
 }
