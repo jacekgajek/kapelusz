@@ -75,7 +75,7 @@ android {
 dependencies {
     implementation(project(":composeApp"))
     implementation(libs.androidx.activity.compose)
-    // The website APK's updater (ITERATION_7 §1.1).
-    "siteImplementation"(libs.androidx.work.runtime)
+    // The website APK's updater (ITERATION_7 §1.1); the Play build only cancels its leftover work.
+    implementation(libs.androidx.work.runtime)
     "siteImplementation"(libs.kotlinx.coroutines.core)
 }

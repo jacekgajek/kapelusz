@@ -34,6 +34,9 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
   Without the secret, the bundle is built and the upload skipped. The very first upload is by hand (the API can't create
   the app's first release).
 - **Production** is promoted by hand in the Console.
+- **Raising the minimum app version** (`Api.MIN_APP_VERSION`, ITERATION_2 §2) waits until the build it requires is live
+  on Play too: Play builds come later (review, promotion by hand), and until then Play users would be told to update
+  to a build Play doesn't have yet.
 - **Closed test first** (Q4): a personal account created after Nov 2023 must run a closed test with at least 12 testers
   opted in for 14 days in a row before applying for production. **15–20 testers** (Q10): the bands' members with Android
   and friends, through a **Google Group**, using the app as usual (Google wants real use). They install from Play over

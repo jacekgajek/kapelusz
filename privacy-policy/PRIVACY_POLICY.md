@@ -61,7 +61,9 @@ events, their own money and other members' names.
 
 No advertising, no analytics, no tracking across apps or websites, no crash reporting service. The app does not read
 your device's location, contacts or files other than those you pick or share to it. Photos are taken by your camera app
-and only those you choose are attached.
+and only those you choose are attached. Google's map and QR code scanner on Android (see 4) send Google technical
+data about their own use, such as device and performance information, under Google's privacy policy; we receive none
+of it.
 
 ## 3. Why we process it (legal basis)
 

@@ -1,7 +1,8 @@
 # Store listing (ITERATION_7 §1.4)
 
 Paste into Play Console › Grow › Store presence › Main store listing; Polish as a translation (Polski – pl-PL),
-English (en-US) as the default. Limits: title 30, short description 80, full description 4000 characters.
+English (en-US) as the default. Limits: title 30, short description 80, full description 4000 characters. Each paragraph and bullet
+of the full description is one line: Play keeps line breaks.
 
 ## English (en-US)
 
@@ -15,8 +16,7 @@ Settle your band's gig money: collections, costs, band fund, who pays whom.
 
 **Full description**
 
-The hat has gone round, the gig is over, and someone holds the door money while someone else paid for fuel. Pass the
-Hat works out who hands over how much to whom, so the band settles in a minute instead of a spreadsheet evening.
+The hat has gone round, the gig is over, and someone holds the door money while someone else paid for fuel. Pass the Hat works out who hands over how much to whom, so the band settles in a minute instead of a spreadsheet evening.
 
 GIGS AND SHARES
 • Add an event with its date, place on the map and schedule (arrival, sound check, start).
@@ -35,8 +35,7 @@ WHO PAYS WHOM
 
 FOR THE WHOLE BAND
 • Everyone sees the same numbers, synced between phones and the web app; it works offline too.
-• Roles: owner, leaders, members, artists who see only their own money, and read-only viewers for a manager or an
-  accountant.
+• Roles: owner, leaders, members, artists who see only their own money, and read-only viewers for a manager or an accountant.
 • Invite bandmates with a code or a QR code.
 • Photos and PDFs of receipts on costs, received money and events; share them to the app from your gallery.
 • A summary of any period: what you earned, what the band collected, costs by category.
@@ -57,8 +56,7 @@ Rozliczenia koncertów: zbiórki, koszty, kasa zespołowa i kto komu oddaje.
 
 **Pełny opis**
 
-Kapelusz poszedł w obieg, koncert się skończył, ktoś trzyma pieniądze z wejściówek, a ktoś inny zapłacił za paliwo.
-Kapelusz wylicza, kto komu ile oddaje, więc zespół rozlicza się w minutę zamiast w wieczór z arkuszem.
+Kapelusz poszedł w obieg, koncert się skończył, ktoś trzyma pieniądze z wejściówek, a ktoś inny zapłacił za paliwo. Kapelusz wylicza, kto komu ile oddaje, więc zespół rozlicza się w minutę zamiast w wieczór z arkuszem.
 
 KONCERTY I UDZIAŁY
 • Dodaj wydarzenie z datą, miejscem na mapie i harmonogramem (przyjazd, próba dźwięku, początek).
@@ -67,8 +65,7 @@ KONCERTY I UDZIAŁY
 
 PIENIĄDZE: WPŁYWY I WYDATKI
 • Zapisz, kto co zebrał: kapelusz, wejściówki, bilety online, merch, gażę z umowy albo od sponsora.
-• Koszty należą do członka, który zapłacił: paliwo, hotel, sprzęt, jedzenie. Liderzy decydują, z którego koncertu
-  wracają.
+• Koszty należą do członka, który zapłacił: paliwo, hotel, sprzęt, jedzenie. Liderzy decydują, z którego koncertu wracają.
 • Opcjonalna kasa zespołowa, trzymana przez jednego członka, dostaje swoją część z każdego koncertu.
 
 KTO KOMU ODDAJE
@@ -78,23 +75,21 @@ KTO KOMU ODDAJE
 
 DLA CAŁEGO ZESPOŁU
 • Wszyscy widzą te same liczby, zsynchronizowane między telefonami a aplikacją w przeglądarce; działa też offline.
-• Role: właściciel, liderzy, członkowie, artyści widzący tylko swoje pieniądze i obserwatorzy bez prawa zmian, np. dla
-  menedżera albo księgowej.
+• Role: właściciel, liderzy, członkowie, artyści widzący tylko swoje pieniądze i obserwatorzy bez prawa zmian, np. dla menedżera albo księgowości.
 • Zaproś członków zespołu kodem albo kodem QR.
-• Zdjęcia i pliki PDF paragonów przy kosztach, otrzymanych pieniądzach i wydarzeniach; udostępnij je do aplikacji
-  prosto z galerii.
+• Zdjęcia i pliki PDF paragonów przy kosztach, otrzymanych pieniądzach i wydarzeniach; udostępnij je aplikacji prosto z galerii.
 • Podsumowanie dowolnego okresu: Twoje zarobki, wpływy zespołu, koszty według kategorii.
 • Twoje koncerty w Kalendarzu Google albo innej aplikacji kalendarza, przez subskrypcję.
 • Każda zmiana w historii, z możliwością cofnięcia.
 
-Bez reklam i śledzenia. Po polsku i po angielsku. Także w przeglądarce na kapelusz.jacekgajek.com, na iPhone'a
-i komputer.
+Bez reklam i śledzenia. Po polsku i po angielsku. Także w przeglądarce na kapelusz.jacekgajek.com, na iPhone'a i komputer.
 
 ## Graphics
 
 - App icon (512 × 512): `design/icon/icon-512.png`.
 - Feature graphic (1024 × 500): `design/play-store/feature-graphic-en.png`, `feature-graphic-pl.png` for Polish.
-- Phone screenshots (1080 × 2400): `design/play-store/screenshots/en/` and `design/play-store/screenshots/pl/`.
+- Phone screenshots (1137 × 2274, RGB PNG; Play allows at most 2:1): `design/play-store/screenshots/en/` and
+  `design/play-store/screenshots/pl/`.
 
 ## Tags and category
 

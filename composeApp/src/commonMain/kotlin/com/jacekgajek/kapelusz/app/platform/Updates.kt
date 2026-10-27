@@ -31,7 +31,7 @@ sealed interface UpdateStatus {
     /** The check itself failed (e.g. offline); it is retried later. */
     data object Failed : UpdateStatus
 
-    /** Debug builds (installDebug) never update themselves. */
+    /** Debug builds (installSiteDebug) never update themselves. */
     data object Unavailable : UpdateStatus
 }
 

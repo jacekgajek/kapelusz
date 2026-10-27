@@ -48,7 +48,7 @@ actual suspend fun appDownload(): AppDownload? {
     val context = AndroidPlatform.context ?: return null
     // From Google Play, which updates it: the website's APK is not its update (ITERATION_7 §1.1).
     if (Distribution.selfUpdater == null) return null
-    // Debug builds (installDebug) always have version 1; they would see every published release as an update.
+    // Debug builds (installSiteDebug, installPlayDebug) always have version 1; they would see every published release as an update.
     if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) return null
     val published = published ?: withContext(Dispatchers.IO) { runCatching { fetchPublished() }.getOrNull() }?.also { published = it } ?: return null
     val dismissed = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(DISMISSED_VERSION, 0)

@@ -64,8 +64,8 @@ No.
 **Shared:** nothing. Google (sign-in, places, maps, QR scanner) and Amazon Web Services (hosting) act as service
 providers, which Play doesn't count as sharing.
 
-**Collected** (all: not shared; processed for **App functionality**, and account items also for **Account
-management**; none for analytics, ads or personalisation):
+**Collected by the app itself** (all: not shared; processed for **App functionality**, and account items also for
+**Account management**; none for analytics, ads or personalisation):
 
 | Play's data type | What it is in Kapelusz | Required or optional | Ephemeral |
 |---|---|---|---|
@@ -79,5 +79,16 @@ management**; none for analytics, ads or personalisation):
 | App activity › Other user-generated content | events (name, place, schedule, notes), cost descriptions, band name | Required | No |
 | Device or other IDs | a random identifier per band and installation, which orders a device's changes | Required | No |
 
-**Not collected:** location (the device's), contacts, messages, audio, health, web browsing, app interactions,
-crash logs, diagnostics, advertising IDs.
+**Collected by Google's SDKs in the app** (Play counts what bundled SDKs collect; check each one's own Data safety
+guidance, which Google publishes, and add exactly what it lists):
+
+- **Google Play services code scanner** (ML Kit, Join band › Scan QR code): Google's ML Kit disclosure lists device or
+  app information, per-installation identifiers and performance metrics, for diagnostics and usage analytics. So also:
+  **App info and performance › Diagnostics** and **Device or other IDs**, purpose **Analytics**, not shared.
+- **Maps SDK for Android** (picking a place on a map): see Google's "Maps SDK for Android" Play Data safety page; it
+  may add diagnostics or crash logs.
+- **Credential Manager / Sign in with Google**: see its Data safety guidance; usually nothing beyond the account data
+  above.
+
+**Not collected:** location (the device's), contacts, messages, audio, health, web browsing, advertising IDs; by the
+app itself also no crash logs, diagnostics or analytics (only what the SDKs above list).
