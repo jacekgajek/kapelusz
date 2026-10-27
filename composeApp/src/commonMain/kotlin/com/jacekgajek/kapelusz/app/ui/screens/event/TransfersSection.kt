@@ -265,9 +265,18 @@ private fun transferParties(context: EventContext): List<String> {
 private fun handOverRecipients(context: EventContext, from: String): List<String> =
     transferParties(context).filter { it != from && !Artists.isArtist(context.band, it) && context.can.recordTransfer(context.event, from, it) }
 
+/**
+ * What [partyId] can hand over: what they hold, or for an artist only what they were paid too much (ITERATION_4 §1.1),
+ * e.g. after a refund accepted later made their share smaller.
+ */
+private fun handOverable(context: EventContext, partyId: String): Money {
+    val line = context.settlement.line(partyId) ?: return Money.ZERO
+    return (if (Artists.isArtist(context.band, partyId)) line.delta else line.balance).takeIf { it.isPositive } ?: Money.ZERO
+}
+
 /** Parties holding money the user may record a hand-over from (themselves for members, anyone for leads). */
 private fun handOverSenders(context: EventContext): List<String> =
-    transferParties(context).filter { context.settlement.line(it)?.balance?.isPositive == true && handOverRecipients(context, it).isNotEmpty() }
+    transferParties(context).filter { handOverable(context, it).isPositive && handOverRecipients(context, it).isNotEmpty() }
 
 /** Manual transfer, e.g. one holder handing all collected money to another who then pays everyone. */
 @Composable
@@ -286,10 +295,10 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     }
     var from by remember { mutableStateOf(firstFrom) }
     var to by remember { mutableStateOf(firstTo) }
-    var amount by remember { mutableStateOf(settlement.line(from)?.balance?.takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }
+    var amount by remember { mutableStateOf(handOverable(context, from).takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }
     var note by remember { mutableStateOf("") }
-    // At most what the sender holds: a hand-over passes on money, it doesn't make any up.
-    val held = settlement.line(from)?.balance ?: Money.ZERO
+    // At most what the sender holds (an artist: owes back): a hand-over passes on money, it doesn't make any up.
+    val held = handOverable(context, from)
     val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= held }
     // Read without arguments: its placeholders stay for the names and amount known on OK.
     val recordedText = stringResource(Res.string.transfer_recorded)
@@ -303,7 +312,7 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 Dropdown(from, senders, {
                     from = it
                     if (to !in handOverRecipients(context, it)) to = handOverRecipients(context, it).firstOrNull() ?: to
-                    settlement.line(it)?.balance?.takeIf { balance -> balance.isPositive }?.let { balance -> amount = formatMoneyInput(balance, lang) }
+                    handOverable(context, it).takeIf { held -> held.isPositive }?.let { held -> amount = formatMoneyInput(held, lang) }
                 }, stringResource(Res.string.hand_over_from)) { partyName(context.band, event, it, fundLabel) }
                 Dropdown(to, handOverRecipients(context, from), { to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)

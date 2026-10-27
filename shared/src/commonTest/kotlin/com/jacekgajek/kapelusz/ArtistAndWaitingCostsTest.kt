@@ -60,6 +60,12 @@ class ArtistAndWaitingCostsTest {
         scenario.apply(RecordTransfer("gig", "to-carol", "alice", "carol", pln("100")), alice)
         // Settled with Carol: she owes nothing, so passing money on is still refused.
         assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "from-carol", "carol", "bob", pln("10")), alice).reason)
+        // A refund makes her owe 10: no more than that, and exactly that.
+        val bob = scenario.userFor("bob", Role.MEMBER)
+        scenario.apply(AddCost("bobs", "bob", pln("30"), DATE, incurredForEventId = "gig"), bob)
+        scenario.apply(SetRefund("gig", "bobs", pln("30")), alice)
+        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "back-11", "carol", "bob", pln("11")), alice).reason)
+        scenario.apply(RecordTransfer("gig", "back-10", "carol", "bob", pln("10")), alice)
     }
 
     @Test

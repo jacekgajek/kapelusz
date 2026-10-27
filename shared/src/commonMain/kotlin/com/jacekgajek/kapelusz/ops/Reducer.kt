@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SettleTogether
+import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -206,7 +207,7 @@ object Reducer {
                 validateTransferParty(band, event, op.to)
                 invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
                 validatePositive(op.amount, "Transfer amount")
-                validateArtistsPaid(band, event, listOf(com.jacekgajek.kapelusz.domain.SuggestedTransfer(op.from, op.to, op.amount)))
+                validateArtistsPaid(band, event, listOf(SuggestedTransfer(op.from, op.to, op.amount)))
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }
             is SettleSuggestions -> settleSuggestions(band, op, ctx)
@@ -555,7 +556,7 @@ object Reducer {
      * An artist is paid what they are owed, never more, and pays only what they were paid too much (ITERATION_4 §1.1):
      * e.g. paid their share, which a refund accepted later made smaller (2026-10-27). They hold no money either way.
      */
-    private fun validateArtistsPaid(band: Band, event: Event, parts: List<com.jacekgajek.kapelusz.domain.SuggestedTransfer>) {
+    private fun validateArtistsPaid(band: Band, event: Event, parts: List<SuggestedTransfer>) {
         val settlement = SettlementCalculator.settle(band, event)
         parts.forEach { part ->
             if (Artists.isArtist(band, part.from)) {

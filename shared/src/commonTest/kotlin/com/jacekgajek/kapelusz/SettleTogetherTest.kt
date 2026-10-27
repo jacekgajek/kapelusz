@@ -20,6 +20,8 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import com.jacekgajek.kapelusz.ops.SetRefund
+import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.Undo
@@ -146,6 +148,23 @@ class SettleTogetherTest {
         // Stored between real people, each artist up to what they are owed.
         assertEquals(listOf("bob" to pln("100"), "carol" to pln("100")), scenario.band.event("gig")!!.transfers.map { it.to to it.amount }.sortedBy { it.first })
         assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+    }
+
+    /** Both artists of a pair paid, then a refund accepted makes both owe a little back (2026-10-27). */
+    @Test
+    fun twoOverpaidArtistsHandBackTheirOwnShares() {
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+        scenario.apply(SetMemberRole("bob", Role.ARTIST))
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        scenario.apply(AddHolding("gig", "h", "alice", pln("400"), DOOR))
+        scenario.apply(RecordTransfer("gig", "t", "alice", "bob", pln("200"), together = true))
+        scenario.apply(AddCost("daves", "dave", pln("40"), DATE, incurredForEventId = "gig"))
+        scenario.apply(SetRefund("gig", "daves", pln("40")))
+
+        scenario.apply(SettleSuggestions("gig"))
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+        val back = scenario.band.event("gig")!!.transfers.filter { it.from == "bob" || it.from == "carol" }
+        assertEquals(listOf("bob" to pln("10"), "carol" to pln("10")), back.map { it.from to it.amount }.sortedBy { it.first }, "each their own")
     }
 
     @Test
