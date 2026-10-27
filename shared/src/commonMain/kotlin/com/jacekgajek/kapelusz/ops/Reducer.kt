@@ -206,11 +206,7 @@ object Reducer {
                 validateTransferParty(band, event, op.to)
                 invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
                 validatePositive(op.amount, "Transfer amount")
-                // An artist is paid what they are owed, never more: they don't hold money (ITERATION_4 §1.1).
-                if (Artists.isArtist(band, op.to)) {
-                    val owed = SettlementCalculator.settle(band, event).line(op.to)?.delta?.let { -it } ?: Money.ZERO
-                    invalidIf(op.amount > owed, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist is owed" }
-                }
+                validateArtistsPaid(band, event, listOf(com.jacekgajek.kapelusz.domain.SuggestedTransfer(op.from, op.to, op.amount)))
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }
             is SettleSuggestions -> settleSuggestions(band, op, ctx)
@@ -555,11 +551,17 @@ object Reducer {
         return band.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
     }
 
-    /** An artist is paid what they are owed, never more, and pays nothing (ITERATION_4 §1.1); the split sees to both. */
+    /**
+     * An artist is paid what they are owed, never more, and pays only what they were paid too much (ITERATION_4 §1.1):
+     * e.g. paid their share, which a refund accepted later made smaller (2026-10-27). They hold no money either way.
+     */
     private fun validateArtistsPaid(band: Band, event: Event, parts: List<com.jacekgajek.kapelusz.domain.SuggestedTransfer>) {
         val settlement = SettlementCalculator.settle(band, event)
         parts.forEach { part ->
-            invalidIf(Artists.isArtist(band, part.from), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not pass money on" }
+            if (Artists.isArtist(band, part.from)) {
+                val owes = settlement.line(part.from)?.delta?.takeIf { it.isPositive } ?: Money.ZERO
+                invalidIf(part.amount > owes, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist was paid too much" }
+            }
             if (Artists.isArtist(band, part.to)) {
                 val owed = settlement.line(part.to)?.delta?.let { -it } ?: Money.ZERO
                 invalidIf(part.amount > owed, RejectionReason.ARTIST_HOLDS_NO_MONEY) { "More than the artist is owed" }

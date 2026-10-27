@@ -247,3 +247,6 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - 2026-10-27: The FCM key in the data bucket rather than Parameter Store (§2.5): 200 KB instead of 6 MB in the
   Lambda, no Terraform, the session key's precedent.
 - 2026-10-27: Google Play only, at once (Q1 changed): one APK user, who reinstalls; no second build to maintain.
+- 2026-10-27 (bug): an artist paid their share before a refund was accepted at the event owed the difference back, and
+  "Settle all" refused it ("artists don't hold money"). An artist now pays back what they were paid too much, never
+  more; a single transfer from an artist is held to the same (it wasn't checked at all).
