@@ -63,6 +63,8 @@ class SyncEngine(
     /** Attachment files waiting for upload; none in tests that only cover operations. */
     private val uploads: AttachmentUploads? = null,
     private val clock: () -> Long = ::nowMillis,
+    /** A band made on this device is now on the server: maybe the user's first, so registering for messages pays. */
+    private val onBandCreated: () -> Unit = {},
 ) {
     private val _status = MutableStateFlow(SyncStatus.IDLE)
     val status: StateFlow<SyncStatus> = _status.asStateFlow()
@@ -132,9 +134,12 @@ class SyncEngine(
         if (drain?.isActive == true) return
         drain = scope.launch {
             var backoff = 5_000L
-            while (bands.bandsToPush().isNotEmpty() || uploads?.bandsWithUploads().orEmpty().isNotEmpty()) {
+            // Not what can't go: bands whose changes the server refuses, or no session, or too old an app.
+            fun waiting() = (bands.bandsToPush() - _stuck.value.keys).isNotEmpty() || uploads?.bandsWithUploads().orEmpty().isNotEmpty()
+            fun blocked() = _status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED
+            while (waiting() && !blocked()) {
                 val ok = syncNow()
-                if (bands.bandsToPush().isEmpty() && uploads?.bandsWithUploads().orEmpty().isEmpty()) break
+                if (!waiting() || blocked()) break
                 delay((if (ok) 2_000 else backoff).milliseconds)
                 backoff = if (ok) 5_000 else (backoff * 2).coerceAtMost(5 * 60_000)
             }
@@ -380,6 +385,7 @@ class SyncEngine(
             val owner = local.base.owner ?: return
             val created = api.createBand(CreateBandRequest(local.base.id, local.base.name, local.base.currency, owner.id, owner.name))
             bands.onCreated(bandId, created.band, created.version)
+            onBandCreated()
         }
         // Refused as a whole before: not again until the user decides (ITERATION_3 R9).
         if (bandId in _stuck.value) return

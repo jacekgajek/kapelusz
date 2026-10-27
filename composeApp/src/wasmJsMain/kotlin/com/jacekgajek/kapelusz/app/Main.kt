@@ -76,6 +76,8 @@ fun main() {
         LaunchedEffect(Unit) {
             phase = if (TabLock.acquire(steal = false)) {
                 graph.load()
+                // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                if (documentHidden()) graph.sync.pauseAfterSending()
                 Phase.READY
             } else {
                 Phase.OTHER_TAB
@@ -92,6 +94,8 @@ fun main() {
                             // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
                             delay(1500)
                             graph.load()
+                            // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                            if (documentHidden()) graph.sync.pauseAfterSending()
                             phase = Phase.READY
                         }
                     })

@@ -742,6 +742,22 @@ class SyncEngineTest {
     }
 
     @Test
+    fun aHiddenTabDoesNotKeepRetryingChangesTheServerRefuses() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, backgroundScope)
+        val bandId = joinedBand(server, repository, sync)
+        server.refusePushes += bandId
+        repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
+        repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
+        sync.pauseAfterSending()
+        eventually("the push was tried, and refused") { bandId in sync.stuck.value }
+        withContext(Dispatchers.Default) { delay(200) }
+        val requests = server.requests
+        withContext(Dispatchers.Default) { delay(300) }
+        assertEquals(requests, server.requests, "stuck: nothing more while hidden")
+    }
+
+    @Test
     fun anOutdatedAppStopsSyncingAndSaysSo() = runTest {
         val server = FakeServer()
         val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })

@@ -1,6 +1,8 @@
 package com.jacekgajek.kapelusz.app.sync
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.edit
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
@@ -64,7 +66,9 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
 class SyncMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val bandId = message.data["band"] ?: return
-        AndroidAppGraph.get(applicationContext).sync.bandChanged(bandId)
+        // Firebase calls on a thread of its own; the sync engine lives on the main one.
+        val graph = AndroidAppGraph.get(applicationContext)
+        Handler(Looper.getMainLooper()).post { graph.sync.bandChanged(bandId) }
     }
 
     override fun onNewToken(token: String) {

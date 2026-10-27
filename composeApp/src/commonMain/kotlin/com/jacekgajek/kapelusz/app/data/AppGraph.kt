@@ -23,6 +23,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeout
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,7 +63,7 @@ class AppGraph(
         onSessionsRevoked = { scope.launch { signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
-    val sync = SyncEngine(api, bands, scope, uploads = uploads)
+    val sync = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { registerForMessages() })
     val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.
         val response = http.get(url)
@@ -82,7 +84,7 @@ class AppGraph(
         bands.adoptFromServer(joined.band, joined.version)
         sync.requestSync()
         // Possibly a first band: the server keeps the device only while the user is in one.
-        if (!sync.messaged) registerForMessages()
+        registerForMessages()
     }
 
     /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
@@ -190,10 +192,15 @@ class AppGraph(
     fun registerForMessages() {
         val channel = messages ?: return
         if (sessions.session.value == null) return
-        scope.launch {
-            sync.messaged = runSuspendCatching { channel.token()?.let { api.registerDevice(channel.installationId, it) } ?: false }.getOrDefault(false)
+        // The latest one counts: an older one finishing later must not overwrite its answer.
+        registration?.cancel()
+        registration = scope.launch {
+            val messaged = runSuspendCatching { channel.token()?.let { api.registerDevice(channel.installationId, it) } ?: false }.getOrDefault(false)
+            if (isActive) sync.messaged = messaged
         }
     }
+
+    private var registration: Job? = null
 
     /**
      * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and
@@ -203,14 +210,20 @@ class AppGraph(
         scope.launch { signOut() }
     }
 
-    suspend fun signOut() {
+    /**
+     * [tellServer]: remove this device from the server's list. Not after "sign out on all devices" (the server cleared
+     * the list, and would refuse the request, signing out again), nor with a session that would need renewing (that
+     * could show Google's sign-in): the deleted token is enough, as the server forgets it at the next message.
+     */
+    suspend fun signOut(tellServer: Boolean = true) {
         sync.stop()
+        registration?.cancel()
         sync.messaged = false
         messages?.let { channel ->
-            // Nothing more for this device. If the server can't be told now, the deleted token is enough: the server
-            // forgets it at the next message, as Firebase calls it invalid.
-            runSuspendCatching { withTimeout(5_000) { api.removeDevice(channel.installationId) } }
-            runSuspendCatching { channel.deleteToken() }
+            val usable = sessions.session.value?.let { it.apiToken != null && it.apiExpiresAt > nowMillis() + 60_000 } == true
+            if (tellServer && usable) runSuspendCatching { withTimeout(5_000) { api.removeDevice(channel.installationId) } }
+            // Before the session goes: a quick sign-in again must not have its new token deleted by this one.
+            runSuspendCatching { withTimeout(5_000) { channel.deleteToken() } }
         }
         sessions.signOut()
         pendingOpenEvent.value = null
@@ -222,7 +235,7 @@ class AppGraph(
      */
     suspend fun signOutEverywhere() {
         api.revokeSessions()
-        signOut()
+        signOut(tellServer = false)
     }
 
     /**
@@ -232,7 +245,7 @@ class AppGraph(
     private suspend fun signOutRevoked() {
         if (sessions.session.value == null) return
         signedOutEverywhere.value = true
-        signOut()
+        signOut(tellServer = false)
     }
 
     /**
@@ -253,6 +266,8 @@ class AppGraph(
     suspend fun leaveBand() {
         val bandId = bands.currentBandId ?: return
         scope.async { sync.leave(bandId) }.await()
+        // Maybe the last band: the server then forgot this device, and the answer says no messages come.
+        registerForMessages()
     }
 
     /**
