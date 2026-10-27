@@ -33,23 +33,29 @@ import com.jacekgajek.kapelusz.app.generated.artist_settles_with
 import com.jacekgajek.kapelusz.app.generated.artist_still_to_receive
 import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.artist_to_receive
+import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.participants
+import com.jacekgajek.kapelusz.app.generated.to_settle
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.BlikButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
+import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Money
 import org.jetbrains.compose.resources.stringResource
 
-// What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout and their own costs; none
-// of the band's money.
+// What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout, their own transfers
+// (ITERATION_7 §2c) and their own costs; none of the band's money.
 
 /** Who plays: names only, no weights or shares. */
 @Composable
@@ -67,8 +73,8 @@ fun ArtistLineup(context: EventContext) {
 }
 
 /**
- * What the artist gets from this event (their share and refunds), how much came, how much is still to come; never from
- * whom. Settling together (ITERATION_6 §11), what their partner holds for them, but none of the partner's own numbers.
+ * What the artist gets from this event (their share and refunds), how much came, how much is still to come; from whom is
+ * [ArtistTransfers]. Settling together (ITERATION_6 §11), what their partner holds for them, but none of the partner's own numbers.
  */
 @Composable
 fun ArtistPayout(context: EventContext) {
@@ -94,6 +100,34 @@ fun ArtistPayout(context: EventContext) {
             if (partner != null) {
                 val text = if (me.settlesWith == partnerId) Res.string.artist_settles_with else Res.string.artist_settled_with
                 Text(stringResource(text, partner), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+/**
+ * The artist's own transfers still to make (ITERATION_7 §2c): who pays them, or whom they hand back to with that person's
+ * BLIK number and the amount to copy; nobody else's. Read only: the other side or a lead records them.
+ */
+@Composable
+fun ArtistTransfers(context: EventContext) {
+    val me = context.me ?: return
+    val band = context.band
+    val mine = Artists.ownTransfers(band, context.settlement, me.id)
+    if (mine.isEmpty()) return
+    val fundLabel = stringResource(Res.string.band_fund)
+    SectionTitle(stringResource(Res.string.to_settle))
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            mine.forEach { part ->
+                Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TransferParties(partyName(band, context.event, part.from, fundLabel), partyName(band, context.event, part.to, fundLabel), Modifier.weight(1f))
+                    // Only to the one who pays (ITERATION_5 §8), as in To settle.
+                    val pays = part.from == me.id
+                    if (pays) CopyAmountButton(context, part.amount)
+                    MoneyText(part.amount, context.currency, bold = true)
+                    if (pays) BlikButton(BlikPhone.recipient(band, part.to))
+                }
             }
         }
     }
