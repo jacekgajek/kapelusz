@@ -142,7 +142,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth(), contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth(), contentPadding = PaddingValues(8.dp, 0.dp, 8.dp, 32.dp)) {
             item(key = "periods") {
                 val presets = listOf(
                     SummaryPeriod.Last12Months to Res.string.summary_last_12,
@@ -154,7 +154,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
                 val chips = rememberLazyListState()
                 val selected = presets.indexOfFirst { it.first == period }.takeIf { it >= 0 } ?: presets.size
                 LaunchedEffect(selected) { chips.animateScrollToItem(selected) }
-                LazyRow(state = chips, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(state = chips, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = Inset)) {
                     items(presets) { (preset, label) ->
                         FilterChip(selected = period == preset, onClick = { choose(preset) }, label = { Text(stringResource(label)) })
                     }
@@ -202,12 +202,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     if (unsettled.isNotEmpty()) item(key = "unsettled") {
         val names = unsettled.take(3).joinToString(", ") { it.name } +
             if (unsettled.size > 3) " " + stringResource(Res.string.summary_and_more, unsettled.size - 3) else ""
-        Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp))
+        Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = Inset, end = Inset, top = 12.dp))
     }
     val showMe = !summary.me.isZero || summary.myWaiting.isPositive
     if (showMe) item(key = "you") {
         Column {
-            SectionHeader(stringResource(Res.string.summary_you))
+            SummaryHeader(stringResource(Res.string.summary_you))
             AmountRow(Res.string.summary_earned, summary.me.earned, currency, 0)
             AmountRow(Res.string.summary_refunded, summary.me.refunded, currency, 1)
             AmountRow(Res.string.summary_waiting, summary.myWaiting, currency, 2)
@@ -216,13 +216,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     // An artist sees only their own money (ITERATION_4 §1.1).
     val empty = if (artist) summary.me.isZero else summary.isEmpty
     if (empty) {
-        item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(vertical = 32.dp)) }
+        item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(horizontal = Inset, vertical = 32.dp)) }
         return
     }
     if (artist) return
     item(key = "band") {
         Column {
-            SectionHeader(stringResource(Res.string.summary_band))
+            SummaryHeader(stringResource(Res.string.summary_band))
             ValueRow(stringResource(Res.string.summary_events), summary.events.toString(), 0)
             // Where the collected money went: the indented lines add up to it.
             AmountRow(Res.string.summary_collected, summary.collected, currency, 1)
@@ -230,7 +230,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, 3, indent = true)
             if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)
             summary.fund?.let { fund ->
-                SectionHeader(stringResource(Res.string.band_fund))
+                SummaryHeader(stringResource(Res.string.band_fund))
                 AmountRow(Res.string.summary_fund_in, fund.into, currency, 0)
                 AmountRow(Res.string.summary_fund_out, fund.out, currency, 1)
                 AmountRow(Res.string.summary_fund_balance, fund.balance, currency, 2)
@@ -240,7 +240,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     if (summary.categories.isNotEmpty()) {
         item(key = "categories") {
             Column {
-                SectionHeader(stringResource(Res.string.summary_categories))
+                SummaryHeader(stringResource(Res.string.summary_categories))
                 // Fully refunded costs, from events or the fund, on the day they were.
                 AmountRow(Res.string.summary_total, summary.costs, currency, 0)
             }
@@ -255,7 +255,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     }
     val (former, current) = summary.members.partition { it.first.archived }
     // The heading over current and former members alike: "Former members" is part of it.
-    if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
+    if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SummaryHeader(stringResource(Res.string.summary_members)) }
     itemsIndexed(current, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
         // As on the roster and in events: a member not in the app is the crossed eye, a tap invites them (only those
         // who may invite).
@@ -274,7 +274,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             stringResource(Res.string.summary_former_members),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).semantics { heading() },
+            modifier = Modifier.padding(start = Inset, end = Inset, top = 16.dp, bottom = 4.dp).semantics { heading() },
         )
     }
     itemsIndexed(former, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
@@ -282,14 +282,20 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     }
 }
 
+/** The rows' shading reaches into the screen's margin, by this much; everything else is inset by it, text stays in line. */
+private val Inset = 8.dp
+
+@Composable
+private fun SummaryHeader(text: String) = SectionHeader(text, Modifier.padding(horizontal = Inset))
+
 /**
  * A row's place in its block, every other one shaded: the band runs from the label to its amount, so the eye doesn't
  * slip to the next line's number across the width of the screen. [inside] goes on the whole band (a tap's ripple).
  */
 @Composable
 private fun Modifier.stripe(index: Int, inside: Modifier = Modifier): Modifier {
-    val shade = if (index % 2 == 0) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
-    return fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(shade).then(inside).padding(horizontal = 8.dp)
+    val shade = if (index % 2 == 0) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
+    return fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(shade).then(inside).padding(horizontal = Inset)
 }
 
 @Composable
