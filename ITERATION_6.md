@@ -157,6 +157,9 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    row, with the handshake: guests are per event, nothing joins them. Former members last, apart under a smaller
    "Former members" ("Dawni członkowie") within the block, without the tap (2026-10-26). Under the name, Earned and
    Refunded each on its own line, label left and amount right, in body text rather than small (2026-10-27).
+- **Rows set apart** (2026-10-27, "you can easily mismatch an entry's name with its amount"): in every block, every
+  other row is shaded (`surfaceContainerHigh`, rounded) from the label to its amount, reaching 8dp into the margin so
+  the text stays in line with the headings; a person, with both lines, is one row.
 
 **Which money, on which date:**
 - Only settled events count: the money is final, a closed period never changes. Events in the period with money,

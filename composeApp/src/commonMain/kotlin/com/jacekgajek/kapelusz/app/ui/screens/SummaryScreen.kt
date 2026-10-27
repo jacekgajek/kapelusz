@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -50,25 +55,25 @@ import com.jacekgajek.kapelusz.app.generated.summary_and_more
 import com.jacekgajek.kapelusz.app.generated.summary_band
 import com.jacekgajek.kapelusz.app.generated.summary_categories
 import com.jacekgajek.kapelusz.app.generated.summary_collected
-import com.jacekgajek.kapelusz.app.generated.summary_refunds_at_events
-import com.jacekgajek.kapelusz.app.generated.summary_to_fund
-import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_custom
 import com.jacekgajek.kapelusz.app.generated.summary_earned
 import com.jacekgajek.kapelusz.app.generated.summary_empty
 import com.jacekgajek.kapelusz.app.generated.summary_events
+import com.jacekgajek.kapelusz.app.generated.summary_former_members
 import com.jacekgajek.kapelusz.app.generated.summary_fund_balance
 import com.jacekgajek.kapelusz.app.generated.summary_fund_in
 import com.jacekgajek.kapelusz.app.generated.summary_fund_out
-import com.jacekgajek.kapelusz.app.generated.summary_former_members
 import com.jacekgajek.kapelusz.app.generated.summary_guests
 import com.jacekgajek.kapelusz.app.generated.summary_last_12
 import com.jacekgajek.kapelusz.app.generated.summary_last_year
 import com.jacekgajek.kapelusz.app.generated.summary_members
 import com.jacekgajek.kapelusz.app.generated.summary_paid_out
 import com.jacekgajek.kapelusz.app.generated.summary_refunded
+import com.jacekgajek.kapelusz.app.generated.summary_refunds_at_events
 import com.jacekgajek.kapelusz.app.generated.summary_this_year
 import com.jacekgajek.kapelusz.app.generated.summary_title
+import com.jacekgajek.kapelusz.app.generated.summary_to_fund
+import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_unsettled
 import com.jacekgajek.kapelusz.app.generated.summary_waiting
 import com.jacekgajek.kapelusz.app.generated.summary_you
@@ -137,7 +142,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth(), contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth(), contentPadding = PaddingValues(8.dp, 0.dp, 8.dp, 32.dp)) {
             item(key = "periods") {
                 val presets = listOf(
                     SummaryPeriod.Last12Months to Res.string.summary_last_12,
@@ -149,7 +154,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
                 val chips = rememberLazyListState()
                 val selected = presets.indexOfFirst { it.first == period }.takeIf { it >= 0 } ?: presets.size
                 LaunchedEffect(selected) { chips.animateScrollToItem(selected) }
-                LazyRow(state = chips, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(state = chips, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = Inset)) {
                     items(presets) { (preset, label) ->
                         FilterChip(selected = period == preset, onClick = { choose(preset) }, label = { Text(stringResource(label)) })
                     }
@@ -197,51 +202,51 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     if (unsettled.isNotEmpty()) item(key = "unsettled") {
         val names = unsettled.take(3).joinToString(", ") { it.name } +
             if (unsettled.size > 3) " " + stringResource(Res.string.summary_and_more, unsettled.size - 3) else ""
-        Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp))
+        Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = Inset, end = Inset, top = 12.dp))
     }
     val showMe = !summary.me.isZero || summary.myWaiting.isPositive
     if (showMe) item(key = "you") {
         Column {
-            SectionHeader(stringResource(Res.string.summary_you))
-            AmountRow(Res.string.summary_earned, summary.me.earned, currency)
-            AmountRow(Res.string.summary_refunded, summary.me.refunded, currency)
-            AmountRow(Res.string.summary_waiting, summary.myWaiting, currency)
+            SummaryHeader(stringResource(Res.string.summary_you))
+            AmountRow(Res.string.summary_earned, summary.me.earned, currency, 0)
+            AmountRow(Res.string.summary_refunded, summary.me.refunded, currency, 1)
+            AmountRow(Res.string.summary_waiting, summary.myWaiting, currency, 2)
         }
     }
     // An artist sees only their own money (ITERATION_4 §1.1).
     val empty = if (artist) summary.me.isZero else summary.isEmpty
     if (empty) {
-        item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(vertical = 32.dp)) }
+        item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(horizontal = Inset, vertical = 32.dp)) }
         return
     }
     if (artist) return
     item(key = "band") {
         Column {
-            SectionHeader(stringResource(Res.string.summary_band))
-            ValueRow(stringResource(Res.string.summary_events), summary.events.toString())
+            SummaryHeader(stringResource(Res.string.summary_band))
+            ValueRow(stringResource(Res.string.summary_events), summary.events.toString(), 0)
             // Where the collected money went: the indented lines add up to it.
-            AmountRow(Res.string.summary_collected, summary.collected, currency)
-            AmountRow(Res.string.summary_paid_out, summary.paidOut, currency, indent = true)
-            AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, indent = true)
-            if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, indent = true)
+            AmountRow(Res.string.summary_collected, summary.collected, currency, 1)
+            AmountRow(Res.string.summary_paid_out, summary.paidOut, currency, 2, indent = true)
+            AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, 3, indent = true)
+            if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)
             summary.fund?.let { fund ->
-                SectionHeader(stringResource(Res.string.band_fund))
-                AmountRow(Res.string.summary_fund_in, fund.into, currency)
-                AmountRow(Res.string.summary_fund_out, fund.out, currency)
-                AmountRow(Res.string.summary_fund_balance, fund.balance, currency)
+                SummaryHeader(stringResource(Res.string.band_fund))
+                AmountRow(Res.string.summary_fund_in, fund.into, currency, 0)
+                AmountRow(Res.string.summary_fund_out, fund.out, currency, 1)
+                AmountRow(Res.string.summary_fund_balance, fund.balance, currency, 2)
             }
         }
     }
     if (summary.categories.isNotEmpty()) {
         item(key = "categories") {
             Column {
-                SectionHeader(stringResource(Res.string.summary_categories))
+                SummaryHeader(stringResource(Res.string.summary_categories))
                 // Fully refunded costs, from events or the fund, on the day they were.
-                AmountRow(Res.string.summary_total, summary.costs, currency)
+                AmountRow(Res.string.summary_total, summary.costs, currency, 0)
             }
         }
-        items(summary.categories, key = { "category-" + it.first.name }) { (category, amount) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        itemsIndexed(summary.categories, key = { _, it -> "category-" + it.first.name }) { index, (category, amount) ->
+            Row(Modifier.stripe(index + 1).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconCircle(category.icon())
                 Text(category.label(), Modifier.weight(1f).padding(start = 12.dp))
                 Text(formatMoney(amount, currency, language))
@@ -250,18 +255,18 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     }
     val (former, current) = summary.members.partition { it.first.archived }
     // The heading over current and former members alike: "Former members" is part of it.
-    if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SectionHeader(stringResource(Res.string.summary_members)) }
-    items(current, key = { "member-" + it.first.id }) { (member, totals) ->
+    if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SummaryHeader(stringResource(Res.string.summary_members)) }
+    itemsIndexed(current, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
         // As on the roster and in events: a member not in the app is the crossed eye, a tap invites them (only those
         // who may invite).
         val invite = canInvite && member.userId == null && member.id != myId
         val inviteLabel = stringResource(Res.string.not_in_app_invite)
-        PersonRow(totals, currency, member.name, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
+        PersonRow(totals, currency, member.name, index, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
             MemberAvatar(member)
         }
     }
     summary.guests?.let { guests ->
-        item(key = "guests") { PersonRow(guests, currency, stringResource(Res.string.summary_guests)) { GuestIcon(40.dp) } }
+        item(key = "guests") { PersonRow(guests, currency, stringResource(Res.string.summary_guests), current.size) { GuestIcon(40.dp) } }
     }
     // Who has left the band, apart: nothing to invite them to until they're back.
     if (former.isNotEmpty()) item(key = "former") {
@@ -269,32 +274,54 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             stringResource(Res.string.summary_former_members),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).semantics { heading() },
+            modifier = Modifier.padding(start = Inset, end = Inset, top = 16.dp, bottom = 4.dp).semantics { heading() },
         )
     }
-    items(former, key = { "member-" + it.first.id }) { (member, totals) ->
-        PersonRow(totals, currency, member.name) { MemberAvatar(member) }
+    itemsIndexed(former, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
+        PersonRow(totals, currency, member.name, index) { MemberAvatar(member) }
     }
 }
 
-@Composable
-private fun AmountRow(label: StringResource, amount: Money, currency: String, indent: Boolean = false) =
-    ValueRow(stringResource(label), formatMoney(amount, currency, language), indent)
+/** The rows' shading reaches into the screen's margin, by this much; everything else is inset by it, text stays in line. */
+private val Inset = 8.dp
 
-/** A label and its value; [indent]: a part of the row above. */
 @Composable
-private fun ValueRow(label: String, value: String, indent: Boolean = false) {
-    Row(Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp, top = 4.dp, bottom = 4.dp)) {
+private fun SummaryHeader(text: String) = SectionHeader(text, Modifier.padding(horizontal = Inset))
+
+/**
+ * A row's place in its block, every other one shaded: the band runs from the label to its amount, so the eye doesn't
+ * slip to the next line's number across the width of the screen. [inside] goes on the whole band (a tap's ripple).
+ */
+@Composable
+private fun Modifier.stripe(index: Int, inside: Modifier = Modifier): Modifier {
+    val shade = if (index % 2 == 0) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
+    return fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(shade).then(inside).padding(horizontal = Inset)
+}
+
+@Composable
+private fun AmountRow(label: StringResource, amount: Money, currency: String, index: Int, indent: Boolean = false) =
+    ValueRow(stringResource(label), formatMoney(amount, currency, language), index, indent)
+
+/** A label and its value, [index] in its block (see [stripe]); [indent]: a part of the row above. */
+@Composable
+private fun ValueRow(label: String, value: String, index: Int, indent: Boolean = false) {
+    Row(Modifier.stripe(index).padding(start = if (indent) 16.dp else 0.dp, top = 4.dp, bottom = 4.dp)) {
         Text(label, Modifier.weight(1f))
         Text(value)
     }
 }
 
-/** A person's lines beside their avatar: the name, then what they earned and what they got refunded, one per line. */
+/**
+ * A person's lines beside their avatar: the name, then what they earned and what they got refunded, one per line;
+ * [index] among the people (see [stripe]).
+ */
 @Composable
-private fun PersonRow(totals: PersonTotals, currency: String, name: String, modifier: Modifier = Modifier, avatar: @Composable () -> Unit) {
+private fun PersonRow(totals: PersonTotals, currency: String, name: String, index: Int, modifier: Modifier = Modifier, avatar: @Composable () -> Unit) {
     // One stop for screen readers: the name with both amounts, not five pieces (a tap to invite merges anyway).
-    Row(modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.stripe(index, modifier).semantics(mergeDescendants = true) {}.padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         avatar()
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
