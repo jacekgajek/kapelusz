@@ -182,7 +182,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onJoinBand = { joining = true },
                 onHistory = { navController.navigate(HistoryRoute) },
                 onSummary = { navController.navigate(SummaryRoute) },
-                onSyncNow = { graph.sync.requestSync() },
+                onSyncNow = { graph.sync.syncAsked() },
                 onReauthenticate = reauthenticate,
                 accountEmail = session?.email,
                 artist = bandState.band.isArtist(session?.userId),

@@ -120,6 +120,12 @@ class SyncEngine(
         wakeUp.trySend(Unit)
     }
 
+    /** The user tapped the sync icon: it shows "syncing" at once, even when nothing waits to be sent. */
+    fun syncAsked() {
+        if (_status.value != SyncStatus.NEEDS_SIGN_IN && _status.value != SyncStatus.UPDATE_REQUIRED) _status.value = SyncStatus.SYNCING
+        requestSync()
+    }
+
     /**
      * One full round; returns false when it should be retried later. Bands are synced independently, so a problem
      * with one band never blocks the others.
