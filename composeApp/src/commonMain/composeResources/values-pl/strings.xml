@@ -448,6 +448,10 @@
     <string name="app_banner_download">Pobierz</string>
     <string name="app_update_text">Dostępna jest nowa wersja Kapelusza (%1$s).</string>
     <string name="app_update_download">Aktualizuj</string>
+    <string name="store_update_available">Nowa wersja Kapelusza jest w Google Play.</string>
+    <string name="store_update_downloading">Pobieranie nowej wersji…</string>
+    <string name="store_update_ready">Nowa wersja jest pobrana.</string>
+    <string name="store_update_restart">Uruchom ponownie</string>
     <string name="total_from_fund">Z kasy zespołowej</string>
     <string name="fund_direction_to">Do kasy</string>
     <string name="fund_direction_from">Z kasy</string>

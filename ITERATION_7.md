@@ -179,6 +179,17 @@ services' one connection, shared by all apps: the radio wakes only when somethin
   their account's list, and after their last band what the server kept for them goes too (ITERATION_6 §11a).
 - **Not widened** (Q6): deleting a member who took part by turning them into a guest was considered and left out.
 
+## 2b. Updates from Google Play in the app (2026-10-27)
+
+- Play's own automatic updates usually get there first; for when they don't, the app asks Play (its in-app updates
+  library, `com.google.android.play:app-update`) whenever it comes to the screen. A newer version available for this
+  phone shows the quiet strip above the bottom bar: "A new version of Pass the Hat is on Google Play · Update"; Update
+  downloads it in the background (Play's flexible update), then "The new version is downloaded · Restart" installs it.
+- **Update required** (too old for the server) starts Play's full-screen update when Play offers one, else opens the
+  listing.
+- No notifications and no permissions. Only for the app installed from Play (a debug build is never offered one), and
+  only once Google's review has passed and the release reached the phone: hours after a merge, not at once.
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -211,6 +222,11 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 ### Deleting members added by mistake (§2a)
 
 - [x] The shared rule and the server's clean-up after an unlink (with tests); Delete member in Band members, Undo
+
+### Updates from Google Play in the app (§2b)
+
+- [x] The strip (available, downloading, downloaded), Update required's full-screen update
+- [ ] Seen with a real update from Play (needs a Play-installed build and a newer release)
 
 ## 4. Decision log
 
