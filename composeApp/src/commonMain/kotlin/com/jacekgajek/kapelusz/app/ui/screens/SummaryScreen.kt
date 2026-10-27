@@ -290,21 +290,26 @@ private fun ValueRow(label: String, value: String, indent: Boolean = false) {
     }
 }
 
-/** A person's two lines beside their avatar: the name, then what they earned and got refunded. */
+/** A person's lines beside their avatar: the name, then what they earned and what they got refunded, one per line. */
 @Composable
 private fun PersonRow(totals: PersonTotals, currency: String, name: String, modifier: Modifier = Modifier, avatar: @Composable () -> Unit) {
-    Row(modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    // One stop for screen readers: the name with both amounts, not five pieces (a tap to invite merges anyway).
+    Row(modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         avatar()
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                stringResource(Res.string.summary_earned) + " " + formatMoney(totals.earned, currency, language) + " · " +
-                    stringResource(Res.string.summary_refunded) + " " + formatMoney(totals.refunded, currency, language),
-                style = MaterialTheme.typography.bodySmall,
-            )
+            PersonAmount(Res.string.summary_earned, totals.earned, currency)
+            PersonAmount(Res.string.summary_refunded, totals.refunded, currency)
         }
     }
 }
+
+@Composable
+private fun PersonAmount(label: StringResource, amount: Money, currency: String) =
+    Row(Modifier.fillMaxWidth()) {
+        Text(stringResource(label), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Text(formatMoney(amount, currency, language), style = MaterialTheme.typography.bodyMedium)
+    }
 
 @Composable
 private fun MemberAvatar(member: Member) =

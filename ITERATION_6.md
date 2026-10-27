@@ -155,7 +155,8 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    Each of a pair settling together on their own row (the settlement keeps them apart). A member's avatar, or the
    crossed eye: a tap invites them, as for an event's participants (only for those who may invite). Then one "Guests"
    row, with the handshake: guests are per event, nothing joins them. Former members last, apart under a smaller
-   "Former members" ("Dawni członkowie") within the block, without the tap (2026-10-26).
+   "Former members" ("Dawni członkowie") within the block, without the tap (2026-10-26). Under the name, Earned and
+   Refunded each on its own line, label left and amount right, in body text rather than small (2026-10-27).
 
 **Which money, on which date:**
 - Only settled events count: the money is final, a closed period never changes. Events in the period with money,
@@ -267,7 +268,7 @@ confusing): a household where one is a hired artist, or both are, wants one mone
 ### V6-M2 — Link cards (§2)
 
 - [x] Event pointers, rendering `index.html` with the tags, the icon
-- [ ] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
+- [x] Terraform applied (CloudFront behaviours, Lambda reads `index.html`)
 
 ### V6-M3 — Searching events (§6)
 
