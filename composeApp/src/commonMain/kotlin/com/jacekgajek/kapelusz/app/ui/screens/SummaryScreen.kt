@@ -293,7 +293,8 @@ private fun ValueRow(label: String, value: String, indent: Boolean = false) {
 /** A person's lines beside their avatar: the name, then what they earned and what they got refunded, one per line. */
 @Composable
 private fun PersonRow(totals: PersonTotals, currency: String, name: String, modifier: Modifier = Modifier, avatar: @Composable () -> Unit) {
-    Row(modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    // One stop for screen readers: the name with both amounts, not five pieces (a tap to invite merges anyway).
+    Row(modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         avatar()
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
