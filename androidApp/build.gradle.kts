@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
+    // Firebase's configuration (google-services.json) for sync messages (ITERATION_7 §2.5).
+    alias(libs.plugins.google.services)
 }
 
 kotlin {

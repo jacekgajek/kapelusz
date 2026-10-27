@@ -26,6 +26,7 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.IndexedDbStore
 import com.jacekgajek.kapelusz.app.ui.screens.OtherTabScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
+import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -34,6 +35,9 @@ private enum class Phase { STARTING, OTHER_TAB, READY }
 
 private const val JOIN_CODE_KEY = "kapelusz-join-code"
 private const val EVENT_LINK_KEY = "kapelusz-event-link"
+
+// Whether the tab is hidden (another tab in front, the window minimised, the phone locked): not in Kotlin's bindings.
+private fun documentHidden(): Boolean = js("document.hidden")
 
 // The running build, for smoke tests of a deploy: `kapeluszVersion` in the browser console.
 private fun exposeVersion(label: String) {
@@ -44,6 +48,10 @@ private fun exposeVersion(label: String) {
 fun main() {
     exposeVersion(AppConfig.VERSION_LABEL)
     val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
+    // A hidden tab sends what waits, then stops looking for news; shown again, it syncs at once (ITERATION_7 §2.6).
+    document.addEventListener("visibilitychange", {
+        if (documentHidden()) graph.sync.pauseAfterSending() else if (graph.sessions.session.value != null) graph.sync.start()
+    })
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
     // keeps it.
     (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.pendingJoinCode.value = it }
@@ -68,6 +76,8 @@ fun main() {
         LaunchedEffect(Unit) {
             phase = if (TabLock.acquire(steal = false)) {
                 graph.load()
+                // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                if (documentHidden()) graph.sync.pauseAfterSending()
                 Phase.READY
             } else {
                 Phase.OTHER_TAB
@@ -84,6 +94,8 @@ fun main() {
                             // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
                             delay(1500)
                             graph.load()
+                            // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                            if (documentHidden()) graph.sync.pauseAfterSending()
                             phase = Phase.READY
                         }
                     })

@@ -23,6 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withTimeout
+import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,7 +34,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** Process-wide objects, created once per app start (no DI framework). */
-class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = HttpClient()) {
+class AppGraph(
+    store: KeyValueStore,
+    google: GoogleAuth,
+    http: HttpClient = HttpClient(),
+    /** Firebase sync messages (ITERATION_7 §2.3); null on the web. */
+    private val messages: MessageChannel? = null,
+) {
     // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") })
     val settings = SettingsRepository(store, scope)
@@ -47,12 +57,13 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         AppConfig.API_URL,
         token = { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) },
         appVersion = AppConfig.VERSION_CODE,
+        installation = messages?.installationId,
         onUpdateRequired = { updateRequired.value = true },
         // In the app scope: signing out stops the sync loop, which may be the very caller.
         onSessionsRevoked = { scope.launch { signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
-    val sync = SyncEngine(api, bands, scope, uploads = uploads)
+    val sync = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { registerForMessages() })
     val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.
         val response = http.get(url)
@@ -72,6 +83,8 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         val joined = api.acceptInvite(code)
         bands.adoptFromServer(joined.band, joined.version)
         sync.requestSync()
+        // Possibly a first band: the server keeps the device only while the user is in one.
+        registerForMessages()
     }
 
     /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
@@ -94,6 +107,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         }
         if (sessions.session.value != null) sync.start()
         loaded = true
+        registerForMessages()
     }
 
     private val loadLock = Mutex()
@@ -167,7 +181,26 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         _signIns.value++
         sync.start()
         sync.resumeAfterSignIn()
+        registerForMessages()
     }.await()
+
+    /**
+     * Registers this device for sync messages (ITERATION_7 §2.4), while signed in: after loading, signing in, joining
+     * a band, a new Firebase token, and each time the Android app comes to the screen (a first band may have been made
+     * since). The server's answer sets how often the app looks for news itself; any failure leaves it every 30 s.
+     */
+    fun registerForMessages() {
+        val channel = messages ?: return
+        if (sessions.session.value == null) return
+        // The latest one counts: an older one finishing later must not overwrite its answer.
+        registration?.cancel()
+        registration = scope.launch {
+            val messaged = runSuspendCatching { channel.token()?.let { api.registerDevice(channel.installationId, it) } ?: false }.getOrDefault(false)
+            if (isActive) sync.messaged = messaged
+        }
+    }
+
+    private var registration: Job? = null
 
     /**
      * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and
@@ -177,8 +210,21 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
         scope.launch { signOut() }
     }
 
-    suspend fun signOut() {
+    /**
+     * [tellServer]: remove this device from the server's list. Not after "sign out on all devices" (the server cleared
+     * the list, and would refuse the request, signing out again), nor with a session that would need renewing (that
+     * could show Google's sign-in): the deleted token is enough, as the server forgets it at the next message.
+     */
+    suspend fun signOut(tellServer: Boolean = true) {
         sync.stop()
+        registration?.cancel()
+        sync.messaged = false
+        messages?.let { channel ->
+            val usable = sessions.session.value?.let { it.apiToken != null && it.apiExpiresAt > nowMillis() + 60_000 } == true
+            if (tellServer && usable) runSuspendCatching { withTimeout(5_000) { api.removeDevice(channel.installationId) } }
+            // Before the session goes: a quick sign-in again must not have its new token deleted by this one.
+            runSuspendCatching { withTimeout(5_000) { channel.deleteToken() } }
+        }
         sessions.signOut()
         pendingOpenEvent.value = null
     }
@@ -189,7 +235,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
      */
     suspend fun signOutEverywhere() {
         api.revokeSessions()
-        signOut()
+        signOut(tellServer = false)
     }
 
     /**
@@ -199,7 +245,7 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     private suspend fun signOutRevoked() {
         if (sessions.session.value == null) return
         signedOutEverywhere.value = true
-        signOut()
+        signOut(tellServer = false)
     }
 
     /**
@@ -220,6 +266,8 @@ class AppGraph(store: KeyValueStore, google: GoogleAuth, http: HttpClient = Http
     suspend fun leaveBand() {
         val bandId = bands.currentBandId ?: return
         scope.async { sync.leave(bandId) }.await()
+        // Maybe the last band: the server then forgot this device, and the answer says no messages come.
+        registerForMessages()
     }
 
     /**

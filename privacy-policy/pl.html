@@ -166,6 +166,10 @@
             oraz Twój wybór, które wydarzenia ma obejmować.</li>
         <li><strong>Nieudane próby wpisania kodu zaproszenia</strong> w bieżącej godzinie, aby uniemożliwić zgadywanie
             kodów.</li>
+        <li><strong>Twoje urządzenia z Androidem, dla wiadomości synchronizujących</strong>: gdy aplikacja na Androida
+            jest zalogowana na Twoje konto, a Ty należysz do zespołu, losowy identyfikator instalacji aplikacji i jej token Firebase
+            Cloud Messaging, z datą ostatniego zgłoszenia. Serwer używa ich, by dać znać Twoim urządzeniom, że zespół
+            się zmienił, aby od razu go pobrały.</li>
         <li><strong>Linki do wydarzeń</strong> (<code>/e/…</code>): powiązanie identyfikatora wydarzenia z jego zespołem,
             aby link otwierał właściwe wydarzenie.</li>
     </ul>
@@ -222,6 +226,10 @@
                 <li><strong>mapy</strong> na Androidzie (Google Maps SDK), wyświetlanej przy wyborze miejsca;</li>
                 <li><strong>skanera kodów QR</strong> na Androidzie (Usługi Google Play), używanego przy skanowaniu
                     zaproszenia;</li>
+                <li><strong>wiadomości synchronizujących</strong> na Androidzie (Firebase Cloud Messaging): gdy zespół się
+                    zmieni, serwer prosi Google o dostarczenie na urządzenia jego członków wiadomości zawierającej tylko
+                    identyfikator zespołu, nic więcej z zespołu; Firebase uruchamia się dopiero po zalogowaniu i tylko dla
+                    tych wiadomości (bez analityki);</li>
                 <li><strong>zdjęć profilowych</strong>, wczytywanych z serwerów Google.</li>
             </ul>
             Google przetwarza te dane zgodnie z własną polityką prywatności:
@@ -248,6 +256,9 @@
             ponownie.</li>
         <li><strong>Zaproszenia</strong>: do wygaśnięcia lub wycofania.</li>
         <li><strong>Nieudane próby wpisania kodu zaproszenia</strong>: przez bieżącą godzinę.</li>
+        <li><strong>Urządzenia dla wiadomości synchronizujących</strong>: do wylogowania na tym urządzeniu lub na
+            wszystkich, opuszczenia ostatniego zespołu, odinstalowania aplikacji (Firebase zgłasza wtedy token jako
+            nieważny) albo gdy urządzenie nie zgłosi się przez 60 dni.</li>
         <li><strong>Dziennik serwera</strong>: 14 dni.</li>
         <li>Gdy lider przeniesie Cię do dawnych członków zespołu, przestajesz widzieć zespół, ale Twój wpis członka i to,
             co zapisałeś(-aś), pozostają w nim, bo zależą od nich rozliczenia zespołu; Twoje konto Google pozostaje
@@ -271,7 +282,7 @@
     <p><strong>Samodzielne usunięcie danych w aplikacji:</strong> bez pisania do nas. W Ustawieniach › Konto opcja
         <strong>Opuść zespół</strong> odłącza Twoje konto Google od Twojego wpisu członka w tym zespole, usuwa z niego
         Twoje zdjęcie i numer BLIK oraz usuwa zespół z Twojego konta. Gdy opuścisz ostatni zespół, serwer usuwa też link
-        do Twojego zdjęcia, link do kalendarza i zapis prób wpisania kodu zaproszenia; Twój rekord użytkownika zawiera
+        do Twojego zdjęcia, link do kalendarza, Twoje urządzenia dla wiadomości synchronizujących i zapis prób wpisania kodu zaproszenia; Twój rekord użytkownika zawiera
         wtedy już tylko identyfikator konta i czas ostatniego „Wyloguj na wszystkich urządzeniach”, aby zakończone wtedy
         sesje nie mogły znów działać. Zaproszenia utworzone przez Ciebie jako lidera od razu przestają działać.
         Właściciel nie może opuścić zespołu: najpierw przekaż zespół innemu liderowi (Członkowie zespołu) albo go usuń

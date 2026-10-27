@@ -63,6 +63,8 @@ class SyncEngine(
     /** Attachment files waiting for upload; none in tests that only cover operations. */
     private val uploads: AttachmentUploads? = null,
     private val clock: () -> Long = ::nowMillis,
+    /** A band made on this device is now on the server: maybe the user's first, so registering for messages pays. */
+    private val onBandCreated: () -> Unit = {},
 ) {
     private val _status = MutableStateFlow(SyncStatus.IDLE)
     val status: StateFlow<SyncStatus> = _status.asStateFlow()
@@ -88,25 +90,87 @@ class SyncEngine(
     private val runLock = Mutex()
     private val wakeUp = Channel<Unit>(1, BufferOverflow.DROP_OLDEST)
     private var loop: Job? = null
+    private var drain: Job? = null
+
+    /**
+     * The server will send this device a message when one of the user's bands changes (ITERATION_7 §2.3): the loop then
+     * looks for news itself only every [MESSAGED_INTERVAL], in case a message got lost.
+     */
+    var messaged: Boolean = false
 
     /** Starts the periodic loop (idempotent). */
     fun start() {
+        drain?.cancel()
         if (loop?.isActive == true) return
         loop = scope.launch {
             var backoff = 0L
             while (true) {
                 val ok = syncNow()
                 backoff = if (ok) 0 else (if (backoff == 0L) 5_000 else backoff * 2).coerceAtMost(5 * 60_000)
-                withTimeoutOrNull((if (ok) interval else backoff).milliseconds) { wakeUp.receive() }
+                withTimeoutOrNull(waitAfter(ok, backoff).milliseconds) { wakeUp.receive() }
                 delay(DEBOUNCE.milliseconds)
             }
         }
     }
 
+    /** Until the next round: [interval] (or [MESSAGED_INTERVAL] when messages come) after a good one, else [backoff]. */
+    internal fun waitAfter(ok: Boolean, backoff: Long): Long = if (!ok) backoff else if (messaged) MESSAGED_INTERVAL else interval
+
     /** Pauses the periodic loop, e.g. while the Android app is in the background. */
     fun stop() {
         loop?.cancel()
         loop = null
+        drain?.cancel()
+        drain = null
+    }
+
+    /**
+     * The web app's tab was hidden (ITERATION_7 §2.6): what waits to be sent goes first (with backoff while offline,
+     * and after Undo's hold), then nothing more until [start] when it is shown again.
+     */
+    fun pauseAfterSending() {
+        loop?.cancel()
+        loop = null
+        if (drain?.isActive == true) return
+        drain = scope.launch {
+            var backoff = 5_000L
+            // Not what can't go: bands whose changes the server refuses, or no session, or too old an app.
+            fun waiting() = (bands.bandsToPush() - _stuck.value.keys).isNotEmpty() || uploads?.bandsWithUploads().orEmpty().isNotEmpty()
+            fun blocked() = _status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED
+            while (waiting() && !blocked()) {
+                val ok = syncNow()
+                if (!waiting() || blocked()) break
+                delay((if (ok) 2_000 else backoff).milliseconds)
+                backoff = if (ok) 5_000 else (backoff * 2).coerceAtMost(5 * 60_000)
+            }
+        }
+    }
+
+    /**
+     * A message said [bandId] changed (ITERATION_7 §2.3). Only while the app is on screen (the loop runs); ignored
+     * otherwise, as coming back to the screen syncs anyway. The open band syncs in a round of its own; another is
+     * fetched quietly, downloaded if it isn't here yet, or let go of if it is gone for the user.
+     */
+    fun bandChanged(bandId: Id) {
+        if (loop?.isActive != true) return
+        if (bandId == bands.currentBandId) {
+            requestSync()
+            return
+        }
+        scope.launch {
+            runSuspendCatching {
+                runLock.withLock {
+                    if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return@withLock
+                    if (bands.local(bandId) != null) syncBand(bandId, pull = true)
+                    else {
+                        checkBandList(api.me().bands)
+                        if (bands.local(bandId) == null && bands.index.value?.bands.orEmpty().any { it.id == bandId }) {
+                            api.state(bandId, null)?.let { bands.storeFromServer(it.band, it.version) }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /** The user signed in again: leave [SyncStatus.NEEDS_SIGN_IN] and sync right away. */
@@ -321,6 +385,7 @@ class SyncEngine(
             val owner = local.base.owner ?: return
             val created = api.createBand(CreateBandRequest(local.base.id, local.base.name, local.base.currency, owner.id, owner.name))
             bands.onCreated(bandId, created.band, created.version)
+            onBandCreated()
         }
         // Refused as a whole before: not again until the user decides (ITERATION_3 R9).
         if (bandId in _stuck.value) return
@@ -358,6 +423,9 @@ class SyncEngine(
     companion object {
         const val BATCH_SIZE = 200
         const val DEBOUNCE = 1_000L
+
+        /** How often the app on screen looks for news itself when messages tell it about changes (ITERATION_7 §2.3). */
+        const val MESSAGED_INTERVAL = 5 * 60_000L
 
         /**
          * The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once (ITERATION_3 R6);

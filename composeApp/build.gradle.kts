@@ -134,6 +134,8 @@ kotlin {
             implementation(libs.googleid)
             // Picking a place on a map for Location (ITERATION_6 §3).
             implementation(libs.maps.compose)
+            // Sync messages, not notifications (ITERATION_7 §2.3): messaging only, no Analytics.
+            implementation(libs.firebase.messaging)
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)

@@ -10,6 +10,8 @@ import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
 import com.jacekgajek.kapelusz.api.AttachmentUploadResponse
 import com.jacekgajek.kapelusz.api.AttachmentUrlResponse
 import com.jacekgajek.kapelusz.api.ApiErrors
+import com.jacekgajek.kapelusz.api.DeviceRegistration
+import com.jacekgajek.kapelusz.api.DeviceRegistrationResponse
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CalendarSubscription
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
@@ -82,10 +84,26 @@ class ApiClient(
     private val onUpdateRequired: () -> Unit = {},
     /** The server answered "signed out on all devices"; then a [SessionsRevokedException] is thrown. */
     private val onSessionsRevoked: suspend () -> Unit = {},
+    /**
+     * The Android installation's id, sent with every request (`installation`), so the server doesn't send this device a
+     * sync message about its own changes (ITERATION_7 §2.4); null on the web.
+     */
+    private val installation: String? = null,
     /** The token to send; [refused] is the one the server just refused (null: the current one is wanted). */
     private val token: suspend (refused: String?) -> String?,
 ) {
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
+
+    /** This installation's Firebase token (ITERATION_7 §2.4); the answer says whether sync messages will come. */
+    suspend fun registerDevice(installationId: String, token: String): Boolean = call(
+        HttpMethod.Put, "/me/devices/$installationId", DeviceRegistrationResponse.serializer(),
+        body = KapeluszJson.encodeToString(DeviceRegistration.serializer(), DeviceRegistration(token)),
+    ).messaging
+
+    /** No more sync messages for this installation (signing out). */
+    suspend fun removeDevice(installationId: String) {
+        text(send(HttpMethod.Delete, "/me/devices/$installationId") {})
+    }
 
     /** Hands the server the Google sign-in token this device kept, for the photo in it (ITERATION_2 §7.4). */
     suspend fun sendPicture(googleToken: String) {
@@ -228,6 +246,7 @@ class ApiClient(
             this.method = method
             // A query parameter, not a header: a new header would need the API's CORS allow-list changed.
             parameter(ApiErrors.APP_VERSION_PARAMETER, appVersion)
+            installation?.let { parameter(ApiErrors.INSTALLATION_PARAMETER, it) }
             header(HttpHeaders.Authorization, "Bearer $bearer")
             configure()
         }

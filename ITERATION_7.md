@@ -103,6 +103,8 @@ grilling's questions, not §1's.
   messages will come: the server has its key, and the user is in a band),
   every **30 s** without (no Google Play services, registration failed), as before. Plus, as before, at once when the
   app comes to the screen and after every local change.
+- **The Play build shows no notifications:** Firebase Messaging asks for `POST_NOTIFICATIONS`, removed in the `play`
+  variant's manifest; the website's APK keeps it for "update ready".
 - **Firebase only after sign-in:** automatic start off (`firebase_messaging_auto_init_enabled=false`), Analytics
   deactivated, only `firebase-messaging` added. After sign-in the app turns messaging on and registers its token; on
   sign-out it deletes the token (`deleteToken`) and its registration. In the shared module's Android code, for both
@@ -181,9 +183,11 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 ### V7-M3 — Sync: apps (§2.3, §2.6, §2.7)
 
-- [ ] Android: Firebase after sign-in, the token's registration and removal, syncing on a message, 5 min / 30 s
-- [ ] Web: pausing in a hidden tab
-- [ ] Privacy policy and Data safety; tested on the emulator against the web app
+- [x] Android: Firebase after sign-in, the token's registration and removal, syncing on a message, 5 min / 30 s
+- [x] Web: pausing in a hidden tab
+- [x] Privacy policy and Data safety
+- [x] Tested on the emulator (2026-10-27): a change from another device reached it, which fetched the band about 1 s
+  after the change
 
 ## 4. Decision log
 
