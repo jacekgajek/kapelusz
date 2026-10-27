@@ -64,13 +64,19 @@ WASM_ARGS=(--exclude "*" --include "*.wasm" --content-type application/wasm --ca
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" "${WASM_ARGS[@]}"
 # download/ is not part of the web build: it holds the published APK, which a deploy without a keystore keeps.
 # .well-known/ likewise, unless this deploy writes it: without it Android stops opening invite links in the app.
-KEEP_ARGS=(--exclude "download/*")
+KEEP_ARGS=(--exclude "download/*" --exclude "privacy-policy" --exclude "privacy-policy/*")
 [[ -n "${ANDROID_CERT_SHA256:-}" ]] || KEEP_ARGS+=(--exclude ".well-known/*")
 # no-cache (revalidated on every load) also keeps sw.js and the manifests fresh: the service worker caches the app for
 # offline starts itself (network first for these, cache first only for the hashed wasm files), so a new deploy is
 # picked up on the next start.
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete --exclude "*.wasm" "${KEEP_ARGS[@]}" --cache-control "no-cache"
 aws s3 sync "$DIST" "s3://$WEB_BUCKET" --delete "${WASM_ARGS[@]}"
+
+# The privacy policy (privacy-policy/, not part of the web build): plain pages without an extension, as CloudFront
+# serves the bucket's keys as they are; anything else is the single-page app.
+echo "== Privacy policy: /privacy-policy, /privacy-policy/pl"
+aws s3 cp privacy-policy/index.html "s3://$WEB_BUCKET/privacy-policy" --cache-control "no-cache" --content-type "text/html; charset=utf-8"
+aws s3 cp privacy-policy/pl.html "s3://$WEB_BUCKET/privacy-policy/pl" --cache-control "no-cache" --content-type "text/html; charset=utf-8"
 
 if [[ -n "${ANDROID_KEYSTORE_PATH:-}" ]]; then
   VERSION_NAME=$(sed -n 's/^kapelusz.versionName=//p' gradle.properties)
@@ -108,4 +114,15 @@ check "${WEB_URL%/}/" 200 html
 check "${WEB_URL%/}/composeApp.js" 200 javascript
 check "${WEB_URL%/}/sw.js" 200 javascript
 check "${WEB_URL%/}/manifest.json" 200 json
+# The single-page app answers missing pages with 200 too: the policy is told apart by its own text.
+check_policy() { # url
+  for _ in 1 2 3 4 5 6; do
+    curl -s --max-time 15 "$1" | grep -q 'id="rights"' && return 0
+    sleep 10
+  done
+  echo "Smoke check failed: $1 is not the privacy policy" >&2
+  return 1
+}
+check_policy "${WEB_URL%/}/privacy-policy"
+check_policy "${WEB_URL%/}/privacy-policy/pl"
 echo "== Done"

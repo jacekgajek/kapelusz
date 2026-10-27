@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<!-- The privacy policy, from PRIVACY_POLICY.md; served at /privacy-policy by scripts/deploy.sh. Polish: pl.html. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy · Pass the Hat</title>
+    <meta name="description" content="What personal data the Pass the Hat (Kapelusz) app processes, why, where it is kept and what rights you have.">
+    <meta name="theme-color" content="#F5CB5C">
+    <link rel="alternate" hreflang="en" href="https://kapelusz.jacekgajek.com/privacy-policy">
+    <link rel="alternate" hreflang="pl" href="https://kapelusz.jacekgajek.com/privacy-policy/pl">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <style>
+        :root {
+            --hat: #F5CB5C;
+            --bg: #FBF8F1;
+            --surface: #FFFFFF;
+            --text: #24221E;
+            --muted: #6B665C;
+            --line: #E8E1D0;
+            --accent: #8A6200;
+            --mark: #FDF1CF;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #171614;
+                --surface: #211F1C;
+                --text: #EDE9E1;
+                --muted: #A39D90;
+                --line: #36332D;
+                --accent: #F5CB5C;
+                --mark: #3A3221;
+            }
+        }
+        * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; scroll-padding-top: 1rem; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        header { background: var(--hat); color: #24221E; }
+        .bar, main, footer { max-width: 46rem; margin: 0 auto; padding: 0 1rem; }
+        .bar { display: flex; align-items: center; gap: 1rem; padding-top: 1.75rem; padding-bottom: 1.75rem; }
+        .bar img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.18); flex: none; }
+        .bar .app { margin: 0; font-size: 0.95rem; font-weight: 600; opacity: 0.75; }
+        .bar h1 { margin: 0; font-size: clamp(1.6rem, 5vw, 2.1rem); line-height: 1.2; }
+        .lang { margin-left: auto; align-self: flex-start; font-size: 0.9rem; font-weight: 600; color: inherit;
+            text-decoration: none; border: 1.5px solid currentColor; border-radius: 999px; padding: 0.2rem 0.7rem;
+            white-space: nowrap; }
+        .lang:hover { background: rgb(0 0 0 / 0.08); }
+        main { padding-top: 1.5rem; padding-bottom: 2rem; }
+        .effective { color: var(--muted); margin: 0 0 1.5rem; }
+        .intro { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--hat);
+            border-radius: 10px; padding: 1rem 1.25rem; margin: 0 0 2rem; }
+        nav { margin: 0 0 2.5rem; }
+        nav h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.5rem; }
+        nav ol { margin: 0; padding-left: 1.5rem; columns: 2 14rem; column-gap: 2rem; }
+        nav li { break-inside: avoid; margin: 0 0 0.3rem; }
+        h2 { font-size: 1.35rem; line-height: 1.3; margin: 2.5rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+        h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
+        a { color: var(--accent); text-underline-offset: 2px; overflow-wrap: anywhere; }
+        ul { padding-left: 1.4rem; }
+        li { margin: 0.3rem 0; }
+        li > ul { margin: 0.3rem 0; }
+        strong { font-weight: 650; }
+        code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em;
+            background: var(--mark); padding: 0.1em 0.35em; border-radius: 4px; }
+        footer { padding-top: 1.5rem; padding-bottom: 2.5rem; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); }
+        @media (max-width: 480px) {
+            body { font-size: 16px; }
+            .bar { flex-wrap: wrap; }
+            .bar img { width: 56px; height: 56px; border-radius: 14px; }
+        }
+        @media print {
+            header { background: none; }
+            .lang, nav { display: none; }
+            a { color: inherit; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="bar">
+        <img src="/icon-192.png" alt="" width="72" height="72">
+        <div>
+            <p class="app">Pass the Hat · Kapelusz</p>
+            <h1>Privacy Policy</h1>
+        </div>
+        <a class="lang" href="/privacy-policy/pl" hreflang="pl" lang="pl">Po polsku</a>
+    </div>
+</header>
+
+<main>
+    <p class="effective">Effective date: 27 October 2026</p>
+
+    <p class="intro">This policy explains what personal data the Pass the Hat app (called Kapelusz in Polish; “the app”)
+        processes, why, where it is kept, who receives it and what rights you have. It covers the Android app, the web
+        app at <a href="https://kapelusz.jacekgajek.com">https://kapelusz.jacekgajek.com</a> and the server behind
+        them. The app settles a band’s money after gigs; a band’s data is shared by its members and synchronised through
+        the app’s server.</p>
+
+    <nav aria-labelledby="toc">
+        <h2 id="toc">Contents</h2>
+        <ol>
+            <li><a href="#who">Who is responsible</a></li>
+            <li><a href="#data">Data we process</a></li>
+            <li><a href="#why">Why we process it</a></li>
+            <li><a href="#recipients">Who receives the data</a></li>
+            <li><a href="#where">Where the data is kept</a></li>
+            <li><a href="#how-long">How long we keep it</a></li>
+            <li><a href="#device">Data on your device</a></li>
+            <li><a href="#rights">Your rights</a></li>
+            <li><a href="#children">Children</a></li>
+            <li><a href="#changes">Changes</a></li>
+        </ol>
+    </nav>
+
+    <h2 id="who">1. Who is responsible</h2>
+    <p>The data controller is Jacek Gajek, a private individual who develops and runs the app.
+        Contact for anything about privacy: <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a>.</p>
+
+    <h2 id="data">2. Data we process</h2>
+
+    <h3 id="google-account">2.1 Your Google account</h3>
+    <p>You sign in with Google. From Google we receive your account identifier, your name, your email address and the
+        link to your profile photo.</p>
+    <ul>
+        <li>The <strong>account identifier</strong> is stored on the server as your user record, together with the list
+            of bands you belong to, the time of your last “Sign out on all devices”, and the link to your profile
+            photo.</li>
+        <li>Your <strong>name and email</strong> are not stored on the server. They are kept in the session token held
+            by your device and are shown to you in the app.</li>
+        <li>Your <strong>profile photo link</strong> is copied to your member entry in each of your bands, so your
+            bandmates see your photo. The photo itself stays on Google’s servers and is loaded from there.</li>
+    </ul>
+
+    <h3 id="band-data">2.2 Band data</h3>
+    <p>Everything you and your bandmates enter into a band:</p>
+    <ul>
+        <li>the band’s name, currency and settings;</li>
+        <li>members: their names (as entered by a band leader, not necessarily the Google name), roles, default shares,
+            and, if a member enters it, a <strong>phone number for BLIK</strong> payments;</li>
+        <li>guests: names entered for a single event;</li>
+        <li>events: name, date, location, agenda, notes, participants and their shares;</li>
+        <li>money: amounts collected, costs and their descriptions and categories, refunds, transfers between people, and
+            the band fund;</li>
+        <li><strong>attachments</strong>: photos and PDFs (e.g. receipts) added to costs, received money or events;</li>
+        <li>the band’s <strong>history</strong>: each change, who made it and when, so it can be reviewed and
+            undone.</li>
+    </ul>
+    <p>Band data is visible to the band’s members according to their role. Members with the Artist role see only their
+        own events, their own money and other members’ names.</p>
+
+    <h3 id="server-data">2.3 Other data the server keeps</h3>
+    <ul>
+        <li><strong>Invites</strong>: invite codes with the role and the member they are for, valid until they
+            expire.</li>
+        <li><strong>Calendar subscription</strong>: if you turn it on, a secret link to a calendar feed of your band’s
+            events, and your choice of which events it includes.</li>
+        <li><strong>Failed invite code attempts</strong> in the current hour, to stop codes from being guessed.</li>
+        <li><strong>Event links</strong> (<code>/e/…</code>): a pointer from an event’s identifier to its band, so a link
+            opens the right event.</li>
+    </ul>
+
+    <h3 id="technical-data">2.4 Technical data</h3>
+    <ul>
+        <li>The server logs one line per request: the method, the path (with invite codes and calendar links removed),
+            the result and how long it took, plus error details when something fails. Logs do not contain the content
+            of your band data.</li>
+        <li>Our hosting provider (Amazon Web Services) processes your IP address and similar connection data to deliver
+            requests.</li>
+    </ul>
+
+    <h3 id="not-collected">2.5 What we do not collect</h3>
+    <p>No advertising, no analytics, no tracking across apps or websites, no crash reporting service. The app does not
+        read your device’s location, contacts or files other than those you pick or share to it. Photos are taken by
+        your camera app and only those you choose are attached.</p>
+
+    <h2 id="why">3. Why we process it (legal basis)</h2>
+    <ul>
+        <li><strong>To provide the app</strong> you signed up for — your account, your bands and their synchronisation,
+            attachments, invites, calendar feeds and links (Art. 6(1)(b) GDPR, performance of a contract).</li>
+        <li><strong>To keep the service secure and working</strong> — sessions, limits on invite guesses, request logs
+            (Art. 6(1)(f) GDPR, legitimate interest in a secure, reliable service).</li>
+    </ul>
+    <p>Your data is not used for advertising, profiling or automated decisions, and is not sold.</p>
+
+    <h2 id="recipients">4. Who receives the data</h2>
+    <ul>
+        <li><strong>Your bandmates</strong>, as described in <a href="#band-data">2.2</a>.</li>
+        <li><strong>Anyone you give a link to:</strong>
+            <ul>
+                <li>an event link shows the event’s name and date to anyone who has it, and opens the event itself only
+                    for the band’s members;</li>
+                <li>a calendar feed link shows the band’s events (names, dates, locations, agendas) to anyone who has
+                    it, until you turn the subscription off or create a new link;</li>
+                <li>an invite link lets the person who has it join the band in the role it was made for, until it
+                    expires.</li>
+            </ul>
+        </li>
+        <li><strong>Amazon Web Services</strong> (Amazon Web Services EMEA SARL), which hosts the server and stores all
+            data, as our processor.</li>
+        <li><strong>Google</strong>, for:
+            <ul>
+                <li><strong>Sign-in</strong> (Google Sign-In on Android, Google Identity Services on the web);</li>
+                <li><strong>Place search and addresses</strong> (Google Places and Geocoding APIs): when you type an
+                    event’s location, the text you type and the app’s language are sent by our server to Google; when
+                    you pick a place on a map, its coordinates are;</li>
+                <li><strong>the map</strong> on Android (Google Maps SDK), shown when you pick a place;</li>
+                <li><strong>the QR code scanner</strong> on Android (Google Play services), used when you scan an
+                    invite;</li>
+                <li><strong>profile photos</strong>, loaded from Google’s servers.</li>
+            </ul>
+            Google processes this data under its own privacy policy:
+            <a href="https://policies.google.com/privacy">https://policies.google.com/privacy</a>.
+        </li>
+        <li><strong>Buy Me a Coffee</strong>, only if you open the “Support me!” link, which leaves the app.</li>
+    </ul>
+
+    <h2 id="where">5. Where the data is kept</h2>
+    <p>The server and its data are in the AWS region <strong>eu-central-1 (Frankfurt, Germany)</strong>. The website
+        and app files are delivered through Amazon CloudFront, which serves them from locations close to you, including
+        outside the European Economic Area. Google may process data outside the EEA; such transfers are covered by the
+        EU–US Data Privacy Framework and standard contractual clauses.</p>
+    <p>All connections use HTTPS. Stored data is encrypted at rest by AWS.</p>
+
+    <h2 id="how-long">6. How long we keep it</h2>
+    <ul>
+        <li><strong>Band data, attachments and history</strong>: as long as the band exists. Removed attachments and
+            deleted bands are deleted, and their stored copies are kept for <strong>30 days</strong> for recovery from
+            mistakes, then removed.</li>
+        <li><strong>Your user record</strong>: while you have an account.</li>
+        <li><strong>Sessions</strong>: a session lasts up to 30 days from its last use and at most 90 days, then you
+            sign in again.</li>
+        <li><strong>Invites</strong>: until they expire or are withdrawn.</li>
+        <li><strong>Failed invite attempts</strong>: for the current hour.</li>
+        <li><strong>Server logs</strong>: 14 days.</li>
+        <li>When a leader moves you to the band’s former members, you no longer see the band, but your member entry and
+            what you recorded stay in it, because the band’s accounts depend on them; your Google account stays linked
+            to the entry so you can be welcomed back. A leader can also unlink it.</li>
+    </ul>
+
+    <h2 id="device">7. Data on your device</h2>
+    <p>The app keeps a copy of your bands, changes not yet sent to the server, your session and your settings on your
+        device, so it works offline. On Android this is stored in the app’s private storage and is excluded from Android
+        backups; on the web it is stored in your browser (IndexedDB and local storage). It is kept separately for each
+        Google account, so another account signed in on the same device does not see it. Signing out ends your session
+        but keeps this copy, so changes not yet sent are not lost; uninstalling the app, clearing its data, or clearing
+        the site’s data in your browser removes it.</p>
+
+    <h2 id="rights">8. Your rights</h2>
+    <p>Under the GDPR you have the right to access your data, to have it corrected or deleted, to restrict or object to
+        its processing, and to receive it in a portable format. To use them, write to
+        <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a>.</p>
+    <p><strong>Deleting your account:</strong> write to <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a> from the email address of your
+        Google account. Your user record and invites you created are deleted, and your Google account is unlinked from
+        all your bands. Bands you own are deleted, or, if you ask, handed to another leader first. Band data that belongs
+        to the band’s shared accounts (your member name and the money you recorded) stays with the band, as described in
+        <a href="#how-long">6</a>.</p>
+    <p>You also have the right to lodge a complaint with a supervisory authority; in Poland that is the President of the
+        Personal Data Protection Office (Prezes Urzędu Ochrony Danych Osobowych,
+        <a href="https://uodo.gov.pl">https://uodo.gov.pl</a>).</p>
+
+    <h2 id="children">9. Children</h2>
+    <p>The app is not intended for children under 13, and we do not knowingly process their data.</p>
+
+    <h2 id="changes">10. Changes</h2>
+    <p>If this policy changes, the new version is published at the same address with a new effective date. Significant
+        changes are announced in the app.</p>
+</main>
+
+<footer>
+    <p>Pass the Hat · <a href="/">kapelusz.jacekgajek.com</a> ·
+        <a href="/privacy-policy/pl" hreflang="pl" lang="pl">Polityka prywatności po polsku</a></p>
+</footer>
+</body>
+</html>

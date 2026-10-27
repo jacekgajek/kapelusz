@@ -7,8 +7,8 @@
 // - composeApp.js names the .wasm files it loads, so a copy of it is cached only once those are, and .wasm files no
 //   longer named are dropped: the cached app always starts, also when the deploy has deleted the old files.
 // - Anything else of this site (resources, icons, manifest): network first, cached for offline.
-// - Not touched: other origins (the API, Google sign-in, photos), non-GET requests, /download/ (APK, version.json)
-//   and /.well-known/.
+// - Not touched: other origins (the API, Google sign-in, photos), non-GET requests, /download/ (APK, version.json),
+//   /.well-known/ and the privacy policy (its own pages, not the app: never kept as the app's page).
 const CACHE = "kapelusz-v1";
 const SCOPE = new URL("./", self.location).href;
 const PAGE = SCOPE; // Every page (e.g. /join/ABC123) is index.html, the single-page app.
@@ -54,7 +54,8 @@ self.addEventListener("fetch", (event) => {
 function handled(url) {
     if (url.origin !== self.location.origin || !url.href.startsWith(SCOPE)) return false;
     const path = url.pathname;
-    return !path.startsWith("/download/") && !path.startsWith("/.well-known/") && !path.endsWith("/sw.js");
+    return !path.startsWith("/download/") && !path.startsWith("/.well-known/") && !path.endsWith("/sw.js") &&
+        path !== "/privacy-policy" && !path.startsWith("/privacy-policy/");
 }
 
 function stripSearch(url) {

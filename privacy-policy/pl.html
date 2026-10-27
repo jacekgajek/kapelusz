@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<!-- The Polish privacy policy, a translation of index.html; served at /privacy-policy/pl by scripts/deploy.sh. -->
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polityka prywatności · Kapelusz</title>
+    <meta name="description" content="Jakie dane osobowe przetwarza aplikacja Kapelusz (Pass the Hat), w jakim celu, gdzie są przechowywane i jakie masz prawa.">
+    <meta name="theme-color" content="#F5CB5C">
+    <link rel="alternate" hreflang="en" href="https://kapelusz.jacekgajek.com/privacy-policy">
+    <link rel="alternate" hreflang="pl" href="https://kapelusz.jacekgajek.com/privacy-policy/pl">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <style>
+        :root {
+            --hat: #F5CB5C;
+            --bg: #FBF8F1;
+            --surface: #FFFFFF;
+            --text: #24221E;
+            --muted: #6B665C;
+            --line: #E8E1D0;
+            --accent: #8A6200;
+            --mark: #FDF1CF;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #171614;
+                --surface: #211F1C;
+                --text: #EDE9E1;
+                --muted: #A39D90;
+                --line: #36332D;
+                --accent: #F5CB5C;
+                --mark: #3A3221;
+            }
+        }
+        * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; scroll-padding-top: 1rem; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        header { background: var(--hat); color: #24221E; }
+        .bar, main, footer { max-width: 46rem; margin: 0 auto; padding: 0 1rem; }
+        .bar { display: flex; align-items: center; gap: 1rem; padding-top: 1.75rem; padding-bottom: 1.75rem; }
+        .bar img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.18); flex: none; }
+        .bar .app { margin: 0; font-size: 0.95rem; font-weight: 600; opacity: 0.75; }
+        .bar h1 { margin: 0; font-size: clamp(1.6rem, 5vw, 2.1rem); line-height: 1.2; }
+        .lang { margin-left: auto; align-self: flex-start; font-size: 0.9rem; font-weight: 600; color: inherit;
+            text-decoration: none; border: 1.5px solid currentColor; border-radius: 999px; padding: 0.2rem 0.7rem;
+            white-space: nowrap; }
+        .lang:hover { background: rgb(0 0 0 / 0.08); }
+        main { padding-top: 1.5rem; padding-bottom: 2rem; }
+        .effective { color: var(--muted); margin: 0 0 1.5rem; }
+        .intro { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--hat);
+            border-radius: 10px; padding: 1rem 1.25rem; margin: 0 0 2rem; }
+        nav { margin: 0 0 2.5rem; }
+        nav h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.5rem; }
+        nav ol { margin: 0; padding-left: 1.5rem; columns: 2 14rem; column-gap: 2rem; }
+        nav li { break-inside: avoid; margin: 0 0 0.3rem; }
+        h2 { font-size: 1.35rem; line-height: 1.3; margin: 2.5rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+        h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
+        a { color: var(--accent); text-underline-offset: 2px; overflow-wrap: anywhere; }
+        ul { padding-left: 1.4rem; }
+        li { margin: 0.3rem 0; }
+        li > ul { margin: 0.3rem 0; }
+        strong { font-weight: 650; }
+        code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em;
+            background: var(--mark); padding: 0.1em 0.35em; border-radius: 4px; }
+        footer { padding-top: 1.5rem; padding-bottom: 2.5rem; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); }
+        @media (max-width: 480px) {
+            body { font-size: 16px; }
+            .bar { flex-wrap: wrap; }
+            .bar img { width: 56px; height: 56px; border-radius: 14px; }
+        }
+        @media print {
+            header { background: none; }
+            .lang, nav { display: none; }
+            a { color: inherit; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="bar">
+        <img src="/icon-192.png" alt="" width="72" height="72">
+        <div>
+            <p class="app">Kapelusz · Pass the Hat</p>
+            <h1>Polityka prywatności</h1>
+        </div>
+        <a class="lang" href="/privacy-policy" hreflang="en" lang="en">In English</a>
+    </div>
+</header>
+
+<main>
+    <p class="effective">Data wejścia w życie: 27 października 2026 r.</p>
+
+    <p class="intro">Ta polityka wyjaśnia, jakie dane osobowe przetwarza aplikacja Kapelusz (po angielsku Pass the Hat;
+        dalej „aplikacja”), w jakim celu, gdzie są przechowywane, kto je otrzymuje i jakie masz prawa. Dotyczy aplikacji
+        na Androida, aplikacji internetowej pod adresem
+        <a href="https://kapelusz.jacekgajek.com">https://kapelusz.jacekgajek.com</a> oraz obsługującego je serwera.
+        Aplikacja rozlicza pieniądze zespołu po koncertach; dane zespołu są wspólne dla jego członków i synchronizowane
+        przez serwer aplikacji.</p>
+
+    <nav aria-labelledby="toc">
+        <h2 id="toc">Spis treści</h2>
+        <ol>
+            <li><a href="#who">Kto odpowiada za dane</a></li>
+            <li><a href="#data">Jakie dane przetwarzamy</a></li>
+            <li><a href="#why">W jakim celu je przetwarzamy</a></li>
+            <li><a href="#recipients">Kto otrzymuje dane</a></li>
+            <li><a href="#where">Gdzie przechowujemy dane</a></li>
+            <li><a href="#how-long">Jak długo je przechowujemy</a></li>
+            <li><a href="#device">Dane na Twoim urządzeniu</a></li>
+            <li><a href="#rights">Twoje prawa</a></li>
+            <li><a href="#children">Dzieci</a></li>
+            <li><a href="#changes">Zmiany</a></li>
+        </ol>
+    </nav>
+
+    <h2 id="who">1. Kto odpowiada za dane</h2>
+    <p>Administratorem danych jest Jacek Gajek, osoba prywatna, która tworzy i prowadzi aplikację.
+        Kontakt we wszystkich sprawach dotyczących prywatności: <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a>.</p>
+
+    <h2 id="data">2. Jakie dane przetwarzamy</h2>
+
+    <h3 id="google-account">2.1 Twoje konto Google</h3>
+    <p>Logujesz się kontem Google. Od Google otrzymujemy identyfikator Twojego konta, imię i nazwisko, adres e-mail oraz
+        link do zdjęcia profilowego.</p>
+    <ul>
+        <li><strong>Identyfikator konta</strong> jest przechowywany na serwerze jako Twój rekord użytkownika, razem z
+            listą zespołów, do których należysz, czasem ostatniego użycia „Wyloguj na wszystkich urządzeniach” i linkiem
+            do zdjęcia profilowego.</li>
+        <li><strong>Imię i nazwisko oraz adres e-mail</strong> nie są przechowywane na serwerze. Znajdują się w tokenie
+            sesji zapisanym na Twoim urządzeniu i są pokazywane Tobie w aplikacji.</li>
+        <li><strong>Link do zdjęcia profilowego</strong> jest kopiowany do Twojego wpisu członka w każdym z Twoich
+            zespołów, aby inni członkowie widzieli Twoje zdjęcie. Samo zdjęcie pozostaje na serwerach Google i jest
+            stamtąd wczytywane.</li>
+    </ul>
+
+    <h3 id="band-data">2.2 Dane zespołu</h3>
+    <p>Wszystko, co Ty i inni członkowie wprowadzacie do zespołu:</p>
+    <ul>
+        <li>nazwa zespołu, waluta i ustawienia;</li>
+        <li>członkowie: ich nazwy (wpisane przez lidera zespołu, niekoniecznie takie jak w Google), role, domyślne
+            udziały oraz, jeśli członek go poda, <strong>numer telefonu do płatności BLIK</strong>;</li>
+        <li>goście: imiona wpisane na potrzeby jednego wydarzenia;</li>
+        <li>wydarzenia: nazwa, data, miejsce, harmonogram, notatki, uczestnicy i ich udziały;</li>
+        <li>pieniądze: zebrane kwoty, koszty wraz z opisami i kategoriami, zwroty, przekazy między osobami oraz kasa
+            zespołowa;</li>
+        <li><strong>załączniki</strong>: zdjęcia i pliki PDF (np. paragony) dodane do kosztów, otrzymanych pieniędzy lub
+            wydarzeń;</li>
+        <li><strong>historia</strong> zespołu: każda zmiana, kto ją wprowadził i kiedy, aby można ją było przejrzeć i
+            cofnąć.</li>
+    </ul>
+    <p>Dane zespołu są widoczne dla jego członków zgodnie z ich rolą. Członkowie z rolą Artysta widzą tylko swoje
+        wydarzenia, swoje pieniądze i nazwy pozostałych członków.</p>
+
+    <h3 id="server-data">2.3 Inne dane przechowywane na serwerze</h3>
+    <ul>
+        <li><strong>Zaproszenia</strong>: kody zaproszeń wraz z rolą i członkiem, dla którego są przeznaczone, ważne do
+            czasu wygaśnięcia.</li>
+        <li><strong>Subskrypcja kalendarza</strong>: jeśli ją włączysz, tajny link do kalendarza z wydarzeniami zespołu
+            oraz Twój wybór, które wydarzenia ma obejmować.</li>
+        <li><strong>Nieudane próby wpisania kodu zaproszenia</strong> w bieżącej godzinie, aby uniemożliwić zgadywanie
+            kodów.</li>
+        <li><strong>Linki do wydarzeń</strong> (<code>/e/…</code>): powiązanie identyfikatora wydarzenia z jego zespołem,
+            aby link otwierał właściwe wydarzenie.</li>
+    </ul>
+
+    <h3 id="technical-data">2.4 Dane techniczne</h3>
+    <ul>
+        <li>Serwer zapisuje w dzienniku jeden wiersz na każde żądanie: metodę, ścieżkę (bez kodów zaproszeń i linków do
+            kalendarza), wynik i czas obsługi, a w razie błędu także jego szczegóły. Dziennik nie zawiera treści danych
+            Twojego zespołu.</li>
+        <li>Nasz dostawca hostingu (Amazon Web Services) przetwarza Twój adres IP i podobne dane połączenia, aby
+            dostarczać żądania.</li>
+    </ul>
+
+    <h3 id="not-collected">2.5 Czego nie zbieramy</h3>
+    <p>Żadnych reklam, żadnej analityki, żadnego śledzenia między aplikacjami ani stronami internetowymi, żadnej usługi
+        raportowania awarii. Aplikacja nie odczytuje lokalizacji Twojego urządzenia, kontaktów ani plików innych niż te,
+        które sam(a) wybierzesz lub do niej udostępnisz. Zdjęcia robi Twoja aplikacja aparatu, a dołączane są tylko te,
+        które wybierzesz.</p>
+
+    <h2 id="why">3. W jakim celu je przetwarzamy (podstawa prawna)</h2>
+    <ul>
+        <li><strong>Aby świadczyć usługę aplikacji</strong>, z której zdecydowałeś(-aś) się korzystać — Twoje konto,
+            Twoje zespoły i ich synchronizacja, załączniki, zaproszenia, kalendarze i linki (art. 6 ust. 1 lit. b RODO,
+            wykonanie umowy).</li>
+        <li><strong>Aby usługa była bezpieczna i działała</strong> — sesje, limity zgadywania zaproszeń, dziennik żądań
+            (art. 6 ust. 1 lit. f RODO, prawnie uzasadniony interes w bezpiecznej i niezawodnej usłudze).</li>
+    </ul>
+    <p>Twoje dane nie są wykorzystywane do reklam, profilowania ani zautomatyzowanego podejmowania decyzji i nie są
+        sprzedawane.</p>
+
+    <h2 id="recipients">4. Kto otrzymuje dane</h2>
+    <ul>
+        <li><strong>Inni członkowie Twojego zespołu</strong>, jak opisano w punkcie <a href="#band-data">2.2</a>.</li>
+        <li><strong>Każdy, komu przekażesz link:</strong>
+            <ul>
+                <li>link do wydarzenia pokazuje jego nazwę i datę każdemu, kto go ma, a samo wydarzenie otwiera tylko
+                    członkom zespołu;</li>
+                <li>link do kalendarza pokazuje wydarzenia zespołu (nazwy, daty, miejsca, harmonogramy) każdemu, kto go
+                    ma, dopóki nie wyłączysz subskrypcji lub nie utworzysz nowego linku;</li>
+                <li>link z zaproszeniem pozwala osobie, która go ma, dołączyć do zespołu w roli, dla której został
+                    utworzony, do czasu jego wygaśnięcia.</li>
+            </ul>
+        </li>
+        <li><strong>Amazon Web Services</strong> (Amazon Web Services EMEA SARL), który hostuje serwer i przechowuje
+            wszystkie dane jako nasz podmiot przetwarzający.</li>
+        <li><strong>Google</strong>, w zakresie:
+            <ul>
+                <li><strong>logowania</strong> (Google Sign-In na Androidzie, Google Identity Services w przeglądarce);</li>
+                <li><strong>wyszukiwania miejsc i adresów</strong> (Google Places API i Geocoding API): gdy wpisujesz
+                    miejsce wydarzenia, nasz serwer wysyła do Google wpisany tekst i język aplikacji; gdy wybierasz
+                    miejsce na mapie — jego współrzędne;</li>
+                <li><strong>mapy</strong> na Androidzie (Google Maps SDK), wyświetlanej przy wyborze miejsca;</li>
+                <li><strong>skanera kodów QR</strong> na Androidzie (Usługi Google Play), używanego przy skanowaniu
+                    zaproszenia;</li>
+                <li><strong>zdjęć profilowych</strong>, wczytywanych z serwerów Google.</li>
+            </ul>
+            Google przetwarza te dane zgodnie z własną polityką prywatności:
+            <a href="https://policies.google.com/privacy?hl=pl">https://policies.google.com/privacy</a>.
+        </li>
+        <li><strong>Buy Me a Coffee</strong>, tylko jeśli otworzysz link „Wesprzyj mnie!”, który prowadzi poza
+            aplikację.</li>
+    </ul>
+
+    <h2 id="where">5. Gdzie przechowujemy dane</h2>
+    <p>Serwer i jego dane znajdują się w regionie AWS <strong>eu-central-1 (Frankfurt, Niemcy)</strong>. Strona i pliki
+        aplikacji są dostarczane przez Amazon CloudFront, który serwuje je z lokalizacji blisko Ciebie, w tym spoza
+        Europejskiego Obszaru Gospodarczego. Google może przetwarzać dane poza EOG; takie przekazania są objęte ramami
+        ochrony danych UE–USA (EU–US Data Privacy Framework) oraz standardowymi klauzulami umownymi.</p>
+    <p>Wszystkie połączenia są szyfrowane (HTTPS). Przechowywane dane są szyfrowane przez AWS.</p>
+
+    <h2 id="how-long">6. Jak długo je przechowujemy</h2>
+    <ul>
+        <li><strong>Dane zespołu, załączniki i historia</strong>: tak długo, jak istnieje zespół. Usunięte załączniki i
+            usunięte zespoły są kasowane, a ich zapisane kopie są przechowywane przez <strong>30 dni</strong>, aby można
+            było naprawić pomyłkę, a potem usuwane.</li>
+        <li><strong>Twój rekord użytkownika</strong>: dopóki masz konto.</li>
+        <li><strong>Sesje</strong>: sesja trwa do 30 dni od ostatniego użycia i najwyżej 90 dni, potem logujesz się
+            ponownie.</li>
+        <li><strong>Zaproszenia</strong>: do wygaśnięcia lub wycofania.</li>
+        <li><strong>Nieudane próby wpisania zaproszenia</strong>: przez bieżącą godzinę.</li>
+        <li><strong>Dziennik serwera</strong>: 14 dni.</li>
+        <li>Gdy lider przeniesie Cię do dawnych członków zespołu, przestajesz widzieć zespół, ale Twój wpis członka i to,
+            co zapisałeś(-aś), pozostają w nim, bo zależą od nich rozliczenia zespołu; Twoje konto Google pozostaje
+            powiązane z wpisem, aby można było Cię przywrócić. Lider może też to powiązanie usunąć.</li>
+    </ul>
+
+    <h2 id="device">7. Dane na Twoim urządzeniu</h2>
+    <p>Aplikacja przechowuje na Twoim urządzeniu kopię Twoich zespołów, zmiany jeszcze niewysłane na serwer, Twoją sesję
+        i ustawienia, aby działała bez internetu. Na Androidzie są one zapisane w prywatnej pamięci aplikacji i wyłączone
+        z kopii zapasowych Androida; w przeglądarce — w pamięci przeglądarki (IndexedDB i local storage). Są
+        przechowywane osobno dla każdego konta Google, więc inne konto zalogowane na tym samym urządzeniu ich nie widzi.
+        Wylogowanie kończy sesję, ale zachowuje tę kopię, aby niewysłane zmiany nie przepadły; odinstalowanie aplikacji,
+        wyczyszczenie jej danych lub wyczyszczenie danych strony w przeglądarce ją usuwa.</p>
+
+    <h2 id="rights">8. Twoje prawa</h2>
+    <p>Na podstawie RODO masz prawo dostępu do swoich danych, ich sprostowania lub usunięcia, ograniczenia
+        przetwarzania, wniesienia sprzeciwu wobec przetwarzania oraz otrzymania ich w formacie nadającym się do
+        przeniesienia. Aby z nich skorzystać, napisz na adres <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a>.</p>
+    <p><strong>Usunięcie konta:</strong> napisz na adres <a href="mailto:privacy@jacekgajek.com"><strong>privacy@jacekgajek.com</strong></a> z adresu e-mail swojego konta
+        Google. Twój rekord użytkownika i utworzone przez Ciebie zaproszenia zostaną usunięte, a Twoje konto Google
+        odłączone od wszystkich Twoich zespołów. Zespoły, których jesteś właścicielem, zostaną usunięte albo, na Twoją
+        prośbę, najpierw przekazane innemu liderowi. Dane należące do wspólnych rozliczeń zespołu (Twoja nazwa członka i
+        zapisane przez Ciebie pieniądze) pozostają w zespole, jak opisano w punkcie <a href="#how-long">6</a>.</p>
+    <p>Masz też prawo wnieść skargę do organu nadzorczego; w Polsce jest nim Prezes Urzędu Ochrony Danych Osobowych
+        (<a href="https://uodo.gov.pl">https://uodo.gov.pl</a>).</p>
+
+    <h2 id="children">9. Dzieci</h2>
+    <p>Aplikacja nie jest przeznaczona dla dzieci poniżej 13 lat i nie przetwarzamy świadomie ich danych.</p>
+
+    <h2 id="changes">10. Zmiany</h2>
+    <p>Jeśli ta polityka się zmieni, nowa wersja zostanie opublikowana pod tym samym adresem z nową datą wejścia w życie.
+        O istotnych zmianach poinformujemy w aplikacji.</p>
+</main>
+
+<footer>
+    <p>Kapelusz · <a href="/">kapelusz.jacekgajek.com</a> ·
+        <a href="/privacy-policy" hreflang="en" lang="en">Privacy policy in English</a></p>
+</footer>
+</body>
+</html>
