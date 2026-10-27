@@ -127,9 +127,11 @@ object SettleTogether {
             senders.size == 1 -> listOf(from to amount.minor)
             to == BAND_FUND && treasurer in senders -> listOf(treasurer!! to amount.minor)
             else -> {
-                // An artist holds no money (ITERATION_4 §1.1): only in a pair kept by an event settled before one of them
-                // became an artist (Event.settledTogether), and only if that event is reopened.
-                fun holds(id: Id) = if (Artists.isArtist(band, id)) 0 else (line(id)?.balance?.minor ?: 0).coerceAtLeast(0)
+                // An artist holds no money (ITERATION_4 §1.1), but pays back what they were paid too much (e.g. a refund
+                // accepted after their payout made their share smaller): that, and no more, is theirs to send.
+                fun holds(id: Id) =
+                    if (Artists.isArtist(band, id)) (line(id)?.delta?.minor ?: 0).coerceAtLeast(0)
+                    else (line(id)?.balance?.minor ?: 0).coerceAtLeast(0)
                 val byHolding = senders.sortedByDescending { holds(it) }
                 var left = amount.minor
                 val parts = byHolding.map { id ->

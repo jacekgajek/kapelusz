@@ -31,6 +31,43 @@ class ArtistAndWaitingCostsTest {
 
     private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
 
+    /** The bug from 2026-10-27: paid, then a refund added made the artist's share smaller; they hand the difference back. */
+    @Test
+    fun anArtistPaidBeforeALaterRefundHandsTheDifferenceBack() {
+        val scenario = gig()
+        val alice = scenario.userFor("alice", Role.OWNER)
+        val bob = scenario.userFor("bob", Role.MEMBER)
+        scenario.userFor("carol", Role.ARTIST)
+        scenario.apply(AddHolding("gig", "hat", "alice", pln("300"), DOOR), alice)
+        // Everyone settled but Bob: Carol got her 100.
+        scenario.apply(RecordTransfer("gig", "to-carol", "alice", "carol", pln("100")), alice)
+        // Bob's cost, accepted for this gig: every share drops to 90, so Carol was paid 10 too much.
+        scenario.apply(AddCost("bobs", "bob", pln("30"), DATE, incurredForEventId = "gig"), bob)
+        scenario.apply(SetRefund("gig", "bobs", pln("30")), alice)
+
+        scenario.apply(SettleSuggestions("gig"), alice)
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+        val back = scenario.band.event("gig")!!.transfers.filter { it.from == "carol" }
+        assertEquals(listOf(pln("10")), back.map { it.amount }, "Carol hands back what she was paid too much")
+    }
+
+    @Test
+    fun anArtistHandsBackNoMoreThanTheyOwe() {
+        val scenario = gig()
+        val alice = scenario.userFor("alice", Role.OWNER)
+        scenario.userFor("carol", Role.ARTIST)
+        scenario.apply(AddHolding("gig", "hat", "alice", pln("300"), DOOR), alice)
+        scenario.apply(RecordTransfer("gig", "to-carol", "alice", "carol", pln("100")), alice)
+        // Settled with Carol: she owes nothing, so passing money on is still refused.
+        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "from-carol", "carol", "bob", pln("10")), alice).reason)
+        // A refund makes her owe 10: no more than that, and exactly that.
+        val bob = scenario.userFor("bob", Role.MEMBER)
+        scenario.apply(AddCost("bobs", "bob", pln("30"), DATE, incurredForEventId = "gig"), bob)
+        scenario.apply(SetRefund("gig", "bobs", pln("30")), alice)
+        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "back-11", "carol", "bob", pln("11")), alice).reason)
+        scenario.apply(RecordTransfer("gig", "back-10", "carol", "bob", pln("10")), alice)
+    }
+
     @Test
     fun onlyALeadsCostEntryIsIncludedAutomatically() {
         val scenario = gig()
