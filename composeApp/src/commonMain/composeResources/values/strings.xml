@@ -30,6 +30,11 @@
     <string name="create">Create</string>
     <string name="archive">Archive</string>
     <string name="unarchive">Restore</string>
+    <string name="delete_member">Delete member</string>
+    <string name="delete_member_title">Delete %1$s?</string>
+    <string name="delete_member_text">%1$s took part in nothing in this band, so deleting changes nothing else.</string>
+    <string name="delete_member_linked">%1$s uses the app: deleting also removes their access to the band. To come back, they need a new invite.</string>
+    <string name="deleted_member">Deleted %1$s</string>
     <string name="archive_not_settled">Not settled yet</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>

@@ -119,6 +119,13 @@ internal class BandHandlers(
                 // Everyone in the band before or after (a member just removed learns it at once), but this device
                 // (ITERATION_7 §2.2).
                 if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }
+                // Someone's account unlinked (by a leader, or deleting them, ITERATION_7 §3): as if they had left, after
+                // the message their devices still get (ITERATION_6 §11a).
+                val unlinked = band.members.mapNotNull { it.userId }.toSet() - result.band.members.mapNotNull { it.userId }.toSet()
+                unlinked.forEach { userId ->
+                    runCatching { users.removeBandFromUser(userId, bandId) }
+                    runCatching { users.forgetIfNoBands(userId) }
+                }
             }
             ok(PushResponse.serializer(), PushResponse(newEtag, result.band, result.accepted, result.rejected, result.duplicates))
         }

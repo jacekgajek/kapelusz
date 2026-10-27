@@ -140,6 +140,17 @@ import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.RenameMember
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
+import androidx.compose.material3.ButtonDefaults
+import com.jacekgajek.kapelusz.app.generated.delete
+import com.jacekgajek.kapelusz.app.generated.deleted_member
+import com.jacekgajek.kapelusz.app.generated.delete_member_linked
+import com.jacekgajek.kapelusz.app.generated.delete_member_text
+import com.jacekgajek.kapelusz.app.generated.delete_member_title
+import com.jacekgajek.kapelusz.app.generated.delete_member
+import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
+import com.jacekgajek.kapelusz.app.ui.components.UndoStack
+import com.jacekgajek.kapelusz.domain.MemberDeletion
+import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.TransferOwnership
@@ -155,7 +166,9 @@ import org.jetbrains.compose.resources.stringResource
 fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
+    // Deleting a member can be undone from its snackbar (ITERATION_7 §3).
+    val undos = remember { UndoStack() }
+    val actions = rememberActions(graph, snackbar, undos)
     val can = Can(band, state.userId)
     val isAdmin = can.manageRoster()
     // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
@@ -189,7 +202,12 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
 
     Scaffold(
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = {
+            Column {
+                UndoSnackbars(undos)
+                SnackbarHost(snackbar)
+            }
+        },
         floatingActionButton = {
             if (isAdmin) ExtendedFloatingActionButton(
                 onClick = { adding = true },
@@ -422,6 +440,7 @@ private fun MemberDialog(
     var pickingRole by remember { mutableStateOf(false) }
     var confirmRole by remember { mutableStateOf<Role?>(null) }
     var confirmArchive by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val isOwner = member.role == Role.OWNER
     val isMe = member.userId == myUserId
     // An invite created before the list has loaded would silently replace a code that may already have been shared.
@@ -550,11 +569,35 @@ private fun MemberDialog(
                         Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
                     }
                 }
+                // Only who left no trace (ITERATION_7 §3); anyone else is moved to the former members above.
+                if (!isOwner && !isMe && can.allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)) {
+                    TextButton(
+                        onClick = { confirmDelete = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) { Text(stringResource(Res.string.delete_member)) }
+                }
                 message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
     )
+
+    if (confirmDelete) {
+        val deleted = stringResource(Res.string.deleted_member, member.name)
+        ConfirmDialog(
+            title = stringResource(Res.string.delete_member_title, member.name),
+            text = listOfNotNull(
+                stringResource(Res.string.delete_member_text, member.name),
+                stringResource(Res.string.delete_member_linked, member.name).takeIf { member.userId != null },
+            ).joinToString("\n\n"),
+            confirmLabel = stringResource(Res.string.delete),
+            onConfirm = {
+                // The account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §3).
+                if (member.userId == null || actions.run(UnlinkUser(member.id))) actions.runWithUndo(DeleteMember(member.id), deleted)
+            },
+            onDismiss = { confirmDelete = false },
+        )
+    }
 
     if (confirmUnlink) {
         ConfirmDialog(

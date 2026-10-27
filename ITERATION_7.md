@@ -162,6 +162,22 @@ about 1 % of a battery per hour); every 10 s it never rests (+0.3–0.5 W, about
 services' one connection, shared by all apps: the radio wakes only when something changed and every 5 minutes, about
 +0.01–0.03 W.
 
+## 2a. Deleting members added by mistake (grilled 2026-10-27)
+
+- **When** (Q3): only a member nothing in the band refers to: no costs, never in an event (so no collected money or
+  transfers), never named as who recorded a transfer or added a participant, not holding the band fund, not in a
+  settle-together pair or invitation, not the owner and not yourself (Leave band is for that). Checked by the shared
+  rules (`MemberDeletion`), so app and server agree. Anyone else is moved to the former members, as before.
+- **A member using the app** (Q1): deleted in one step; the confirmation says it also removes their access. Underneath,
+  two changes: Unlink (not undoable) and the deletion.
+- **Undo** (Q2): from the snackbar or the history; it brings the member back without the app account (a new invite gives
+  access again). The account joins only by invite.
+- **Where** (Q4): Band members › the member › a red "Delete member" at the bottom, shown only when allowed; "Delete Bob?"
+  with what it changes; a snackbar "Deleted Bob" with Undo.
+- **The server** (Q5): a push that unlinks someone (a leader's Unlink, or this) is treated as leaving: the band leaves
+  their account's list, and after their last band what the server kept for them goes too (ITERATION_6 §11a).
+- **Not widened** (Q6): deleting a member who took part by turning them into a guest was considered and left out.
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -190,6 +206,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - [x] Privacy policy and Data safety
 - [x] Tested on the emulator (2026-10-27): a change from another device reached it, which fetched the band about 1 s
   after the change
+
+### Deleting members added by mistake (§2a)
+
+- [x] The shared rule and the server's clean-up after an unlink (with tests); Delete member in Band members, Undo
 
 ## 4. Decision log
 

@@ -109,6 +109,19 @@ class LeaveBandTest {
         assertTrue(store.list("calendar/").isNotEmpty())
     }
 
+    @Test
+    fun beingUnlinkedByALeaderIsLikeLeaving() {
+        setup()
+        subscribeAndGivePhoto("bob")
+        val unlink = listOf(OpEnvelope("op9", "phone", 9, 1, UnlinkUser("m-bob")))
+        assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(unlink))).status)
+
+        val record = KapeluszJson.decodeFromString(UserRecord.serializer(), store.get("users/bob.json")!!.content)
+        assertEquals(UserRecord("bob", sessionsValidFrom = record.sessionsValidFrom), record, "his last band: only the account id stays")
+        assertNull(store.get("users/bob-calendar.json"))
+        assertTrue(KapeluszJson.decodeFromString(MeResponse.serializer(), call("GET", "/me", "bob").body!!).bands.isEmpty())
+    }
+
     /** A calendar link and a Google photo kept for [user], as signing in and subscribing leave them. */
     private fun subscribeAndGivePhoto(user: String) {
         call("POST", "/me/calendar", user, KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), CalendarSubscriptionChange()))
