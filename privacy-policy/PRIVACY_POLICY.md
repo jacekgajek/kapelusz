@@ -131,17 +131,23 @@ browser removes it.
 Under the GDPR you have the right to access your data, to have it corrected or deleted, to restrict or object to its
 processing, and to receive it in a portable format. To use them, write to **privacy@jacekgajek.com**.
 
-**Deleting your account:** write to **privacy@jacekgajek.com** from the email address of your Google account. Your user
-record and invites you created are deleted, and your Google account is unlinked from all your bands. Bands you own are
-deleted, or, if you ask, handed to another leader first. Band data that belongs to the band's shared accounts (your
-member name and the money you recorded) stays with the band, as described in 6.
+**Deleting your data yourself, in the app:** no email needed. In Settings › Account, **Leave band** unlinks your Google
+account from your member in that band, removes your photo and BLIK number from it, and takes the band off your account.
+When you leave your last band, the server also deletes your photo link, your calendar link and everything else it kept
+for your account; only your account identifier and the time of your last "Sign out on all devices" remain, so sessions
+you ended then cannot be used again. You can't leave a band you own: first make another leader its owner (Band members),
+or delete the band (Settings › Delete band). Your member name and the money you recorded stay with the band, as
+described in 6.
+
+If you can no longer sign in, write to **privacy@jacekgajek.com** from the email address of your Google account and we
+will do it for you.
 
 You also have the right to lodge a complaint with a supervisory authority; in Poland that is the President of the
 Personal Data Protection Office (Prezes Urzędu Ochrony Danych Osobowych, https://uodo.gov.pl).
 
 ## 9. Children
 
-The app is not intended for children under 13, and we do not knowingly process their data.
+The app is intended for adults (18 and over). It is not intended for anyone under 18, and we do not knowingly process their data.
 
 ## 10. Changes
 
