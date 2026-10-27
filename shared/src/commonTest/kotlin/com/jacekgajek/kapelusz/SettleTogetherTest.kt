@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz
 
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
@@ -165,6 +166,16 @@ class SettleTogetherTest {
         assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
         val back = scenario.band.event("gig")!!.transfers.filter { it.from == "bob" || it.from == "carol" }
         assertEquals(listOf("bob" to pln("10"), "carol" to pln("10")), back.map { it.from to it.amount }.sortedBy { it.first }, "each their own")
+    }
+
+    @Test
+    fun anArtistInAPairSeesNoTransferTheirPartnerReceives() {
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        scenario.apply(AddHolding("gig", "h", "alice", pln("400"), DOOR))
+        // Alice pays the pair, recorded to Bob (ITERATION_5 §7.3): Carol's payout says Bob keeps hers; Alice → Dave isn't hers.
+        val own = Artists.ownTransfers(scenario.band, scenario.settle("gig"), "carol")
+        assertEquals(emptyList(), own.map { Triple(it.from, it.to, it.amount) })
     }
 
     @Test
