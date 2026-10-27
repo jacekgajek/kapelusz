@@ -115,6 +115,8 @@ class Handler : RequestStreamHandler {
             store, history, verifier, minAppVersion = Api.MIN_APP_VERSION,
             placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
             webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it) },
+            // Sync messages (ITERATION_7 §2.5): the key is read on the first one, not into the SnapStart snapshot.
+            messageSender = FcmSender(StoredServiceAccount(store)),
         )
 
         init {
@@ -127,6 +129,7 @@ class Handler : RequestStreamHandler {
          */
         override fun beforeCheckpoint(context: org.crac.Context<out Resource>?) {
             runCatching { verifier.warmUp() }
+            runCatching { FcmSender.prime() }
             runCatching { store.get(StorageKeys.PRIMING) }
             runCatching { history.keys("priming") }
             val ops = listOf(

@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
+import com.jacekgajek.kapelusz.api.DeviceRegistration
 import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.ops.Limits
@@ -28,17 +29,22 @@ class Api(
     placeSearch: PlaceSearch? = null,
     /** The web app's page, for link cards (ITERATION_6 §2); null where it can't be read. */
     webIndex: WebIndex? = null,
+    /** Sync messages to Android devices (ITERATION_7 §2); null where FCM isn't set up: devices register, nothing is sent. */
+    messageSender: MessageSender? = null,
 ) {
     private val revocations = SessionRevocations(store, clock)
     private val bands = BandAccess(store)
-    private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands)
+    private val devices = DeviceRegistry(store, clock)
+    private val messenger: SyncMessenger? = messageSender?.let { DeviceMessenger(devices, it) }
+    private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands, devices)
+    private val deviceHandlers = DeviceHandlers(devices, users) { messageSender?.ready() == true }
     private val history = HistoryHandlers(historyStore, clock, bands)
     private val attachments = AttachmentHandlers(store, bands)
-    private val invites = InviteHandlers(store, clock, bands, users, history)
+    private val invites = InviteHandlers(store, clock, bands, users, history, messenger)
     private val calendar = CalendarHandlers(store, clock, bands, users)
     private val places = PlacesHandlers(bands, placeSearch)
     private val linkPages = LinkPages(store, webIndex, clock, bands)
-    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages)
+    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages, messenger)
 
     fun handle(request: HttpRequest): HttpResponse = try {
         route(request)
@@ -73,9 +79,15 @@ class Api(
         val method = request.method
         // bands/{id}/{what}
         val bandPath = segments.size == 3 && segments[0] == "bands"
+        // The Android device making a change: no sync message for it about its own change (ITERATION_7 §2.4).
+        val installation = request.query[ApiErrors.INSTALLATION_PARAMETER]?.takeIf { DeviceHandlers.INSTALLATION_ID.matches(it) }
+            ?.let { SenderDevice(user.userId, it) }
         return when {
             method == "GET" && segments == listOf("me") -> users.me(user)
             method == "POST" && segments == listOf("me", "picture") -> users.picture(user, request)
+            method == "PUT" && segments.size == 3 && segments[0] == "me" && segments[1] == "devices" ->
+                deviceHandlers.register(user, segments[2], parse(request, DeviceRegistration.serializer()))
+            method == "DELETE" && segments.size == 3 && segments[0] == "me" && segments[1] == "devices" -> deviceHandlers.remove(user, segments[2])
             method == "GET" && segments == listOf("me", "calendar") -> calendar.subscription(user, CalendarSubscriptionChange())
             method == "POST" && segments == listOf("me", "calendar") ->
                 calendar.subscription(user, parse(request, CalendarSubscriptionChange.serializer()))
@@ -83,9 +95,9 @@ class Api(
             method == "POST" && segments == listOf("sessions", "revoke") -> users.revokeSessions(user)
             method == "POST" && segments == listOf("bands") -> bandHandlers.create(user, parse(request, CreateBandRequest.serializer()))
             method == "GET" && bandPath && segments[2] == "state" -> bandHandlers.state(user, segments[1], request.header("if-none-match"))
-            method == "POST" && bandPath && segments[2] == "ops" -> bandHandlers.push(user, segments[1], parse(request, PushRequest.serializer()))
-            method == "DELETE" && segments.size == 2 && segments[0] == "bands" -> bandHandlers.delete(user, segments[1])
-            method == "POST" && bandPath && segments[2] == "leave" -> bandHandlers.leave(user, segments[1])
+            method == "POST" && bandPath && segments[2] == "ops" -> bandHandlers.push(user, segments[1], parse(request, PushRequest.serializer()), installation)
+            method == "DELETE" && segments.size == 2 && segments[0] == "bands" -> bandHandlers.delete(user, segments[1], installation)
+            method == "POST" && bandPath && segments[2] == "leave" -> bandHandlers.leave(user, segments[1], installation)
             method == "GET" && bandPath && segments[2] == "raw" -> bandHandlers.raw(user, segments[1])
             method == "GET" && bandPath && segments[2] == "log" -> history.history(user, segments[1], request.query["month"], request.query["before"], request.query["months"])
             method == "GET" && bandPath && segments[2] == "invites" -> invites.list(user, segments[1])
@@ -102,7 +114,7 @@ class Api(
             method == "GET" && segments.size == 4 && segments[0] == "bands" && segments[2] == "attachments" ->
                 attachments.download(user, segments[1], segments[3])
             method == "GET" && segments.size == 2 && segments[0] == "invites" -> invites.preview(user, segments[1])
-            method == "POST" && segments.size == 3 && segments[0] == "invites" && segments[2] == "accept" -> invites.accept(user, segments[1])
+            method == "POST" && segments.size == 3 && segments[0] == "invites" && segments[2] == "accept" -> invites.accept(user, segments[1], installation)
             else -> throw ApiError(404, ApiErrors.NOT_FOUND, "No route for ${request.method} ${request.path}")
         }
     }

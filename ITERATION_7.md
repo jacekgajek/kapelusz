@@ -66,9 +66,101 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 
 - A sync round shows "syncing" only while it sends something: the check for news every 30 s keeps the cloud icon as it
   is, instead of blinking it (and redrawing the band's screens) each time. A tap on the icon still shows "syncing" at
-  once. Faster sync: ITERATION_8 (Firebase messages that ask the app to sync).
+  once. Faster sync: §2 (Firebase messages that ask the app to sync).
 
-## 2. Milestones and task checklist
+## 2. V7-M2/M3 — Sync when something changed (grilled 2026-10-27)
+
+Bandmates settling at the same table should see each other's changes within seconds, without the battery cost of
+polling often. The server tells the Android app, through Firebase Cloud Messaging, that a band changed; the app then
+syncs it as usual. **Messages only trigger syncing: no notifications** (ITERATION_6 §9 stays). Q2–Q12 below are this second
+grilling's questions, not §1's.
+
+### 2.1 Which apps (Q2)
+
+- **Android** (both variants, §1.1): Firebase messages.
+- **Web:** keeps polling every 30 s, but **pauses in a hidden tab** (§2.6). Web push can't be silent (browsers require
+  a visible notification per message), and a live connection (API Gateway WebSockets) would be a new paid service.
+
+### 2.2 What sends a message, to whom (Q3)
+
+- **Triggers:** every write that changes a band for others: a push with accepted operations, joining by invite,
+  leaving, deleting the band. Not reads, refused pushes or attachment file uploads (the operation adding the
+  attachment already sent one).
+- **Recipients:** every registered device of every linked, non-archived member, **except the device that made the
+  change** (it sends its installation id with the request, §2.4). A user's other devices do get it.
+- **Content:** only the band's id, as an FCM data message: no names, amounts or anything else of the band goes through
+  Google. The app syncs through the API as usual.
+
+### 2.3 On the phone (Q4, Q5, Q9, Q12)
+
+- **Normal priority.** An app on screen syncs on a message; in the background or closed the message is **ignored**
+  (the app syncs when it comes to the screen anyway). High priority without a visible notification gets downgraded by
+  Android.
+- **Any of the user's bands:** the open band syncs as usual; another band is fetched quietly (so switching to it shows
+  current data), downloaded if it isn't on the phone yet, or let go with the usual dialog when it was deleted or the
+  user removed.
+- **Fallback polling** while on screen: every **5 minutes** with working Firebase (the registration's answer says
+  messages will come: the server has its key, and the user is in a band),
+  every **30 s** without (no Google Play services, registration failed), as before. Plus, as before, at once when the
+  app comes to the screen and after every local change.
+- **Firebase only after sign-in:** automatic start off (`firebase_messaging_auto_init_enabled=false`), Analytics
+  deactivated, only `firebase-messaging` added. After sign-in the app turns messaging on and registers its token; on
+  sign-out it deletes the token (`deleteToken`) and its registration. In the shared module's Android code, for both
+  variants. Without Google Play services nothing breaks: 30 s polling.
+
+### 2.4 Devices on the server (Q6)
+
+- Each installation makes a random **installation id** once. `PUT /me/devices/{installationId}` with its FCM token:
+  after sign-in, at each start, when Firebase issues a new token (replaces the old one), and after joining or
+  creating a first band. `DELETE` on sign-out. The answer, `{"messaging": true|false}`, says whether messages will
+  come. A user in no band is not stored (`messaging: false`), so nothing of theirs comes back after Leave band.
+- Kept per user in `users/{userId}-devices.json`: installation id, token, last seen. At most **10** per user (an
+  eleventh replaces the longest unseen).
+- Forgotten: on sign-out (that device), on "Sign out on all devices" (all), after the user's last band
+  (ITERATION_6 §11a), when FCM reports a token invalid (404 `UNREGISTERED` or 400 about the token, at once), and when
+  unseen for **60 days** (dropped at the user's next registration, or when a message to the band finds it).
+- The app sends its installation id with every request (the query parameter `installation`, like `appVersion`), so
+  the server skips that device: only the caller's own, not another user's with the same id.
+- **Tokens, not topics** (Q6): only current members get messages (anyone knowing a band id could subscribe to a
+  topic), removed members stop at once, and Firebase advises tokens for fast delivery to small groups.
+
+### 2.5 Firebase and sending (Q7, Q8)
+
+- **Firebase in the existing Google Cloud project** (`bold-vial-278611`, with the sign-in client, the Maps key and
+  `kapelusz-ci`; to be checked). `google-services.json` committed: public identifiers, in every APK anyway.
+- **A separate service account `kapelusz-fcm`**, role Firebase Cloud Messaging API Admin only. Its key in the **data
+  bucket**, `server/fcm-service-account.json`, next to the session signing key (`server/session-key.json`), put there
+  by hand; the Lambda reads it on the first message (not into the SnapStart snapshot). Missing: no messages. (Q7 said
+  Parameter Store; changed while building: its SDK added 6 MB to the Lambda, and the bucket already holds the session
+  key with the same protection, needing no Terraform.)
+- **FCM's HTTP v1 API called directly**, with a self-signed short-lived Google token (cached for its lifetime); no
+  Firebase Admin SDK (tens of MB in the Lambda).
+- **Sent within the request, in parallel** (HTTP v1 has one call per device), waiting **at most ~1 s** in all;
+  failures and timeouts are ignored: the fallback polling catches up. The members' device lists are read in parallel
+  first (at most 0.4 s); the Google sign-in has its own 1.5 s, only on an instance's first message an hour (a refused
+  one is tried again after a minute). Without the key nothing is read or sent. The sender's own push answers a few
+  hundred milliseconds later.
+
+### 2.6 The web app in a hidden tab (Q10)
+
+- On `visibilitychange` to hidden: send what is waiting (one round; on failure the usual backoff until it is out),
+  then pause. Visible again: sync at once, then every 30 s. A closed tab keeps unsent changes for the next start, as
+  before.
+
+### 2.7 Privacy
+
+- The FCM token and installation id are device identifiers: the privacy policy and the Data safety answers
+  (`design/play-store/console-answers.md`) say so (Device or other IDs, app functionality; Firebase Messaging's own
+  SDK disclosure).
+
+### 2.8 Battery (estimated, 2026-10-27)
+
+On mobile data with the app open, polling every 30 s keeps the radio active about a third of the time (+0.1–0.2 W,
+about 1 % of a battery per hour); every 10 s it never rests (+0.3–0.5 W, about 3 %). Messages ride on Google Play
+services' one connection, shared by all apps: the radio wakes only when something changed and every 5 minutes, about
++0.01–0.03 W.
+
+## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
 
@@ -78,7 +170,22 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 - [ ] (User) The app in the Console, the signing key, the first upload, the testers' group, 14 days
 - [ ] (Later, in production) Play first on the website; the `site` variant's note
 
-## 3. Decision log
+Old apps need nothing for V7-M2/M3: they don't register and keep polling every 30 s. No minimum version.
+
+### V7-M2 — Sync: server (§2.2, §2.4, §2.5)
+
+- [ ] (User) Firebase in the project, the `kapelusz-fcm` service account and key; the key in the data bucket
+  (`aws s3 cp kapelusz-fcm.json s3://jacekgajek-art-split-data/server/fcm-service-account.json`)
+- [x] Device endpoints, the registry and its pruning (with tests)
+- [x] The FCM sender, messages after pushes, joins, leaves and deletion, the sender excluded (with tests)
+
+### V7-M3 — Sync: apps (§2.3, §2.6, §2.7)
+
+- [ ] Android: Firebase after sign-in, the token's registration and removal, syncing on a message, 5 min / 30 s
+- [ ] Web: pausing in a hidden tab
+- [ ] Privacy policy and Data safety; tested on the emulator against the web app
+
+## 4. Decision log
 
 - 2026-10-27: Both channels, the APK dropped later (Q1), rather than Play only at once: nobody has to do anything now.
 - 2026-10-27: The existing key as Play's app signing key (Q2): moving between channels stays an update.
@@ -87,3 +194,11 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 - 2026-10-27: Support me! hidden in the Play build only (Q5): a tip link outside Play billing risks a strike on a new
   account.
 - 2026-10-27: The play and listing work on one branch (Q14).
+- 2026-10-27: Firebase messages trigger syncing only, no notifications: the earlier "no FCM" (ITERATION_2) was about
+  notifications, which stay gone (ITERATION_6 §9).
+- 2026-10-27: The 10 s polling tried first was dropped (about 3 % battery an hour on mobile data); its icon fix kept
+  (§1a).
+- 2026-10-27: Tokens rather than topics (§2.4); within the request rather than an asynchronous Lambda or a queue
+  (§2.5); no background syncing on a message (§2.3).
+- 2026-10-27: The FCM key in the data bucket rather than Parameter Store (§2.5): 200 KB instead of 6 MB in the
+  Lambda, no Terraform, the session key's precedent.

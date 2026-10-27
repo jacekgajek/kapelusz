@@ -14,6 +14,7 @@ internal class UserHandlers(
     private val revocations: SessionRevocations,
     private val clock: () -> Long,
     private val bands: BandAccess,
+    private val devices: DeviceRegistry,
 ) {
     fun me(user: VerifiedUser): HttpResponse {
         val record = loadUser(user.userId)
@@ -47,6 +48,8 @@ internal class UserHandlers(
     /** "Sign out on all devices" (ITERATION_3 R6): every session of the user so far, this one included, stops working. */
     fun revokeSessions(user: VerifiedUser): HttpResponse {
         revocations.revoke(user.userId)
+        // Signed out everywhere: no device of theirs gets sync messages until it signs in again and registers.
+        runCatching { devices.clear(user.userId) }
         return HttpResponse(204)
     }
 
@@ -95,7 +98,7 @@ internal class UserHandlers(
 
     /**
      * After leaving their last band, what the server keeps of a user goes (what Play asks of account deletion): the
-     * photo, the calendar link and invite attempts. Only the account id and the time of "Sign out on all devices"
+     * photo, the devices for sync messages, the calendar link and invite attempts. Only the account id and the time of "Sign out on all devices"
      * stay, so sessions ended then don't work again.
      */
     fun forgetIfNoBands(userId: String) {
@@ -109,6 +112,7 @@ internal class UserHandlers(
             true
         }
         if (!forgotten) return
+        runCatching { devices.clear(userId) }
         store.get(StorageKeys.calendar(userId))?.let { blob ->
             runCatching { store.delete(StorageKeys.calendarSecret(decode(StoredCalendar.serializer(), blob.content).secret)) }
             store.delete(StorageKeys.calendar(userId))

@@ -675,16 +675,17 @@ class SyncEngineTest {
         val server = FakeServer()
         val (repository, sync) = setup(server, this)
         val bandId = joinedBand(server, repository, sync)
-        val seen = mutableListOf<SyncStatus>()
-        backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) { sync.status.collect { seen += it } }
-
-        assertTrue(sync.syncNow())
-        assertTrue(SyncStatus.SYNCING !in seen, "a check for news keeps the icon: $seen")
+        // The status as a round starts, up to its first request: collecting the flow instead could miss a short
+        // "syncing" (a StateFlow keeps only the latest value).
+        val check = async(start = CoroutineStart.UNDISPATCHED) { sync.syncNow() }
+        assertEquals(SyncStatus.SYNCED, sync.status.value, "a check for news keeps the icon")
+        assertTrue(check.await())
 
         repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
         repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
-        assertTrue(sync.syncNow())
-        assertTrue(SyncStatus.SYNCING in seen, "sending shows it: $seen")
+        val send = async(start = CoroutineStart.UNDISPATCHED) { sync.syncNow() }
+        assertEquals(SyncStatus.SYNCING, sync.status.value, "sending shows it")
+        assertTrue(send.await())
     }
 
     @Test

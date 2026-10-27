@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "914954628516",
+    "project_id": "bold-vial-278611",
+    "storage_bucket": "bold-vial-278611.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:914954628516:android:c2726c9d7e1b05bd14a531",
+        "android_client_info": {
+          "package_name": "com.jacekgajek.kapelusz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "914954628516-3ocol9g9d60ahrvcv3k40k5mg5dkqqua.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaOCiUcp6PjKvqetBApWuRe1saQ-kxzQE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "914954628516-3ocol9g9d60ahrvcv3k40k5mg5dkqqua.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

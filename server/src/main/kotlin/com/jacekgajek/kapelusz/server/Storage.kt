@@ -23,11 +23,20 @@ object StorageKeys {
     fun user(userId: String) = "users/${safe(userId)}.json"
     fun joinAttempts(userId: String) = "users/${safe(userId)}-join-attempts.json"
     fun calendar(userId: String) = "users/${safe(userId)}-calendar.json"
+
+    /** The user's devices that get sync messages ([StoredDevices], ITERATION_7 §2.4). */
+    fun devices(userId: String) = "users/${safe(userId)}-devices.json"
     fun calendarSecret(secret: String) = "calendar/$secret.json"
     fun invite(code: String) = "invites/$code.json"
 
     /** Which band an event is in ([EventPointer]), for its link's card (ITERATION_6 §2). */
     fun eventPointer(eventId: String) = "events/${safe(eventId)}.json"
+
+    /**
+     * The `kapelusz-fcm` Google service account's JSON key, for sync messages ([StoredServiceAccount], ITERATION_7
+     * §2.5); put by hand, never written by the server.
+     */
+    const val FCM_KEY = "server/fcm-service-account.json"
 
     /** The key that signs session tokens (see [SessionTokens]). */
     const val SESSION_KEY = "server/session-key.json"
