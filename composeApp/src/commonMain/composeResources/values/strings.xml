@@ -14,7 +14,7 @@
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
     <string name="artist_still_to_receive">Still to receive</string>
-    <string name="artist_to_hand_back">To hand back (a leader settles it)</string>
+    <string name="artist_to_hand_back">To hand back</string>
     <string name="artist_my_costs">Your costs for this event</string>
     <string name="artist_kept_by_partner">Kept for you by %1$s</string>
     <string name="artist_settles_with">You settle together with %1$s: what you’re owed may be kept or received by them.</string>
