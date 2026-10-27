@@ -43,6 +43,7 @@ import com.jacekgajek.kapelusz.ops.UnlinkUser
 import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
@@ -667,6 +668,23 @@ class SyncEngineTest {
         assertTrue(assertFailsWith<LeaveBlocked> { sync.leave(bandId) }.stuck)
         assertTrue(server.leaves.isEmpty())
         assertTrue(repository.local(bandId) != null)
+    }
+
+    @Test
+    fun aRoundShowsSyncingOnlyWhenItSendsSomething() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, this)
+        val bandId = joinedBand(server, repository, sync)
+        val seen = mutableListOf<SyncStatus>()
+        backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) { sync.status.collect { seen += it } }
+
+        assertTrue(sync.syncNow())
+        assertTrue(SyncStatus.SYNCING !in seen, "a check for news keeps the icon: $seen")
+
+        repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
+        repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
+        assertTrue(sync.syncNow())
+        assertTrue(SyncStatus.SYNCING in seen, "sending shows it: $seen")
     }
 
     @Test

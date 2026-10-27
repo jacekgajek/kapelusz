@@ -120,6 +120,12 @@ class SyncEngine(
         wakeUp.trySend(Unit)
     }
 
+    /** The user tapped the sync icon: it shows "syncing" at once, even when nothing waits to be sent. */
+    fun syncAsked() {
+        if (_status.value != SyncStatus.NEEDS_SIGN_IN && _status.value != SyncStatus.UPDATE_REQUIRED) _status.value = SyncStatus.SYNCING
+        requestSync()
+    }
+
     /**
      * One full round; returns false when it should be retried later. Bands are synced independently, so a problem
      * with one band never blocks the others.
@@ -130,11 +136,14 @@ class SyncEngine(
         if (_status.value == SyncStatus.NEEDS_SIGN_IN) return false
         // Retrying is pointless until the app is updated (which restarts it).
         if (_status.value == SyncStatus.UPDATE_REQUIRED) return false
-        _status.value = SyncStatus.SYNCING
         var result = SyncStatus.SYNCED
         try {
             val current = bands.currentBandId
-            val toSync = (bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty() + listOfNotNull(current)).distinct()
+            val outgoing = (bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
+            // "Syncing" only while something is sent: a round that only checks for news (every [interval]) keeps the
+            // icon as it is, rather than blinking it, and redrawing the band's screens, each time.
+            if (outgoing.isNotEmpty()) _status.value = SyncStatus.SYNCING
+            val toSync = (outgoing + listOfNotNull(current)).distinct()
             for (bandId in toSync) {
                 val bandResult = syncBand(bandId, pull = bandId == current)
                 if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE || bandResult == SyncStatus.UPDATE_REQUIRED) {
