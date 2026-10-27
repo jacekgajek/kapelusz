@@ -186,7 +186,8 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - [x] Android: Firebase after sign-in, the token's registration and removal, syncing on a message, 5 min / 30 s
 - [x] Web: pausing in a hidden tab
 - [x] Privacy policy and Data safety
-- [ ] Tested on the emulator against the web app (needs V7-M2 deployed and the key in the bucket)
+- [x] Tested on the emulator (2026-10-27): a change from another device reached it, which fetched the band about 1 s
+  after the change
 
 ## 4. Decision log
 
