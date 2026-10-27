@@ -60,7 +60,7 @@ import com.jacekgajek.kapelusz.app.ui.NewBandRoute
 import com.jacekgajek.kapelusz.app.ui.RosterRoute
 import com.jacekgajek.kapelusz.app.ui.SettingsRoute
 import com.jacekgajek.kapelusz.app.ui.SettleRoute
-import com.jacekgajek.kapelusz.app.ui.components.AndroidAppBanner
+import com.jacekgajek.kapelusz.app.ui.components.AppBanner
 import com.jacekgajek.kapelusz.app.ui.components.StuckPushBanner
 import com.jacekgajek.kapelusz.app.ui.components.labelRes
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -228,7 +228,6 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     }.orEmpty(),
                     onOpenMembers = { navController.navigate(RosterRoute()) },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
-                    autoUpdate = settings.autoUpdate,
                     artist = artist,
                     // The secret menu (ITERATION_2 §7.1), for the band's leaders.
                     rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.LEAD) == true },
@@ -237,7 +236,6 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     agendaTemplateStored = state.band.agendaTemplate != null,
                     onAgendaTemplate = { items: List<AgendaTemplateItem> -> graph.dispatch(SetAgendaTemplate(items)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetAgendaTemplate(emptyList())) },
-                    onAutoUpdate = { on -> graph.settings.update { it.copy(autoUpdate = on) } },
                     page = page,
                     // Only from the list while it is on screen, so a double tap does not open the page twice.
                     onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) },
@@ -303,7 +301,7 @@ private fun MainScaffold(navController: NavHostController, graph: AppGraph, band
                     if (current != null && stuck != null) {
                         StuckPushBanner(stuck, { graph.bands.pendingAsJson(bandId) }, { graph.discardStuck(bandId) }, { snackbar.showSnackbar(it) })
                     }
-                    if (current != null) AndroidAppBanner(autoUpdate = graph.settings.settings.collectAsState().value.autoUpdate, eventList = current == Tab.EVENTS)
+                    if (current != null) AppBanner(eventList = current == Tab.EVENTS)
                     if (!wide && current != null) NavigationBar {
                         tabs.forEach { tab ->
                             NavigationBarItem(

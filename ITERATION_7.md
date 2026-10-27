@@ -5,31 +5,32 @@ merge when CI is green.
 
 ## 1. V7-M1 — Google Play (grilled 2026-10-27)
 
-Pass the Hat goes to Google Play while the website's APK keeps working for everyone who has it.
+Pass the Hat goes to Google Play, which since 2026-10-27 is the only place the Android app comes from (§1.1).
 
-### 1.1 Two channels, the APK later dropped
+### 1.1 Google Play only (Q1, changed 2026-10-27)
 
-- **Both for now** (Q1): the `androidApp` module has two variants, `site` (the APK on the website, with its own
-  updater, ITERATION_2 §1) and `play` (for Google Play). Same application id, same version code (CI's run number + 10),
-  so a phone moves from one to the other as an ordinary update, without uninstalling or losing anything.
-- **Later**, when (by judgement, or `version.json` requests in CloudFront) hardly anyone is left on the APK, the `site`
-  variant is deleted.
-- **The `play` variant** has no self-updater (code, `REQUEST_INSTALL_PACKAGES`, `UPDATE_PACKAGES_WITHOUT_USER_ACTION`,
-  `POST_NOTIFICATIONS`, the update worker and receiver, "Automatic updates" in Settings, the version.json update strip)
-  and no **Support me!** (Q5: Play's payments policy and a tip link). "Update required" opens the Play listing. The web
-  app and the `site` APK keep Support me!.
-- The updater's code lives in the `site` variant's own sources, so the Play bundle doesn't contain it (WorkManager's
-  keep rules would otherwise keep the worker, and with it the installer, in a build that never calls them).
+- **First decided:** both channels for a while (the website's APK with its own updater, and Play), the APK dropped
+  later. **Changed the same day:** Play only, at once. The one person on the APK reinstalls from Play (or updates over
+  it: same signature); everyone else installs from Play directly.
+- **One Android build**, without the self-updater, its install permissions, "Automatic updates", the version.json
+  update strip, Support me! (Q5) and notifications (Firebase Messaging's `POST_NOTIFICATIONS` is removed). "Update
+  required" opens the Play listing. A phone that came from the APK has the updater's leftovers (scheduled checks, its
+  notification channel, a downloaded APK) cleaned up at start (`ApkLeftovers`).
+- **The website** offers no APK: the web app's install hint links to the Play listing. `version.json` is still written
+  by every deploy, for the web app's "a new version: reload". The old `/download/kapelusz.apk` is removed by hand.
+- **Not on Play yet** (closed test): testers join the testers' Google Group, then the opt-in link; anyone else uses the
+  web app meanwhile.
 
 ### 1.2 Signing
 
-- **Play App Signing with the existing release key** (Q2): uploaded once through the Console (PEPK). Play and site
-  builds carry the same signature: links (`assetlinks.json`), Google sign-in and the Maps key need nothing new.
+- **Play App Signing with the existing release key** (Q2): uploaded once through the Console (PEPK). The app from
+  Play carries the same certificate as the old APK (an update over it works), and its fingerprint is the one in
+  `assetlinks.json`: links, Google sign-in and the Maps key need nothing new.
 - **A new upload key** for what CI uploads to Play; a CI secret. Lost or leaked, Google resets it.
 
 ### 1.3 Releases
 
-- **CI** (Q6) builds the `play` bundle (AAB) on every merge to `main`, signed with the upload key, and uploads it to the
+- **CI** (Q6) builds the release bundle (AAB) on every merge to `main`, signed with the upload key, and uploads it to the
   **closed testing** track through the Play Developer API (a Google Cloud service account, its key a GitHub secret).
   Without the secret, the bundle is built and the upload skipped. The very first upload is by hand (the API can't create
   the app's first release).
@@ -58,9 +59,9 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 
 ### 1.5 The website (Q7)
 
-- During the closed test nothing changes: the website offers the APK; testers get the opt-in link directly.
-- In production: a "Get it on Google Play" badge first on the website and in the web app's install hint, the APK as a
-  smaller link; the `site` variant shows once "Kapelusz is now on Google Play", with a button to the listing.
+- No APK anywhere (§1.1). The web app's install hint ("Get the app") links to the Play listing, shown only once anyone
+  can install it there: `PLAY_PUBLIC` in `platform/Updates.kt`, false during the closed test (the listing is "not
+  found" for everyone but the testers), **set to true at the production release**.
 
 ## 1a. The sync icon (2026-10-27)
 
@@ -77,7 +78,7 @@ grilling's questions, not §1's.
 
 ### 2.1 Which apps (Q2)
 
-- **Android** (both variants, §1.1): Firebase messages.
+- **Android:** Firebase messages.
 - **Web:** keeps polling every 30 s, but **pauses in a hidden tab** (§2.6). Web push can't be silent (browsers require
   a visible notification per message), and a live connection (API Gateway WebSockets) would be a new paid service.
 
@@ -103,12 +104,11 @@ grilling's questions, not §1's.
   messages will come: the server has its key, and the user is in a band),
   every **30 s** without (no Google Play services, registration failed), as before. Plus, as before, at once when the
   app comes to the screen and after every local change.
-- **The Play build shows no notifications:** Firebase Messaging asks for `POST_NOTIFICATIONS`, removed in the `play`
-  variant's manifest; the website's APK keeps it for "update ready".
+- **No notifications at all:** Firebase Messaging asks for `POST_NOTIFICATIONS`, removed in the manifest (lint is told
+  that Firebase's notification display is never reached).
 - **Firebase only after sign-in:** automatic start off (`firebase_messaging_auto_init_enabled=false`), Analytics
   deactivated, only `firebase-messaging` added. After sign-in the app turns messaging on and registers its token; on
-  sign-out it deletes the token (`deleteToken`) and its registration. In the shared module's Android code, for both
-  variants. Without Google Play services nothing breaks: 30 s polling.
+  sign-out it deletes the token (`deleteToken`) and its registration. In the shared module's Android code. Without Google Play services nothing breaks: 30 s polling.
 
 ### 2.4 Devices on the server (Q6)
 
@@ -170,7 +170,9 @@ services' one connection, shared by all apps: the radio wakes only when somethin
 - [x] The play bundle in CI, signed with the upload key; the upload to closed testing when the secret is set
 - [x] Listing texts, Data safety and content rating drafts; screenshots of the demo band
 - [ ] (User) The app in the Console, the signing key, the first upload, the testers' group, 14 days
-- [ ] (Later, in production) Play first on the website; the `site` variant's note
+- [x] Google Play only (§1.1, 2026-10-27): one Android build, no APK on the website, the install hint to Play
+- [ ] (User) Remove the old `/download/kapelusz.apk` from the web bucket
+- [ ] At the production release: `PLAY_PUBLIC = true` (the web suggests the app on Play again)
 
 Old apps need nothing for V7-M2/M3: they don't register and keep polling every 30 s. No minimum version.
 
@@ -206,3 +208,4 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   (§2.5); no background syncing on a message (§2.3).
 - 2026-10-27: The FCM key in the data bucket rather than Parameter Store (§2.5): 200 KB instead of 6 MB in the
   Lambda, no Terraform, the session key's precedent.
+- 2026-10-27: Google Play only, at once (Q1 changed): one APK user, who reinstalls; no second build to maintain.

@@ -78,7 +78,6 @@ import com.jacekgajek.kapelusz.app.generated.settings_band
 import com.jacekgajek.kapelusz.app.generated.settings_personal
 import com.jacekgajek.kapelusz.app.generated.sign_out
 import com.jacekgajek.kapelusz.app.generated.sign_out_everywhere
-import com.jacekgajek.kapelusz.app.platform.rememberUpdateControls
 import com.jacekgajek.kapelusz.app.platform.storeListing
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
@@ -127,8 +126,6 @@ fun SettingsScreen(
     /** Band members, where the owner hands the band to another leader before leaving. */
     onOpenMembers: () -> Unit,
     otherMembers: Int,
-    autoUpdate: Boolean,
-    onAutoUpdate: (Boolean) -> Unit,
     /** The band's agenda template; [onAgendaTemplate] is null for non-leaders. */
     agendaTemplate: List<AgendaTemplateItem>,
     /** The band stored its own template (even if it equals the defaults). */
@@ -207,7 +204,6 @@ fun SettingsScreen(
             }
 
             Column(Modifier.padding(horizontal = 16.dp)) {
-                rememberUpdateControls()?.let { AppUpdatesSection(it, autoUpdate, onAutoUpdate) }
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     accountPicture?.let { Avatar(account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }

@@ -15,7 +15,8 @@ class SettingsRepositoryTest {
     @Test
     fun anUnknownLanguageFollowsTheDevice() = runTest {
         // E.g. stored by a newer version offering more languages: never a crash (ITERATION_3 R13).
-        assertEquals(AppSettings(language = null, autoUpdate = false), loaded("""{"language":"de","autoUpdate":false}"""))
+        // A setting from an older version (automatic updates of the website's APK) is ignored.
+        assertEquals(AppSettings(language = null), loaded("""{"language":"de","autoUpdate":false}"""))
         assertEquals("pl", loaded("""{"language":"pl"}""").language)
     }
 

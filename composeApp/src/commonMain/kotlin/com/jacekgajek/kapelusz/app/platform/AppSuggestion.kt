@@ -2,18 +2,9 @@ package com.jacekgajek.kapelusz.app.platform
 
 import kotlinx.serialization.Serializable
 
-/** `/download/version.json` on the website, published together with the APK by the deploy. */
+/**
+ * `/download/version.json` on the website, written by every deploy: the deployed version, so a web app open since
+ * before it offers a reload (ITERATION_3 §2.3).
+ */
 @Serializable
 data class PublishedVersion(val versionCode: Long, val versionName: String)
-
-/** The Android app to suggest: installing it (on the website) or updating to a newer published version (in the app). */
-data class AppDownload(val url: String, val isUpdate: Boolean, val versionCode: Long, val versionName: String)
-
-/**
- * A newer version to suggest in the Android app, or null when nothing should be: after the user dismissed it, when no
- * APK is published, or when the installed app is up to date. Always null on the web, which has [webInstallState].
- */
-expect suspend fun appDownload(): AppDownload?
-
-/** Stops suggesting [download]; an update is suggested again once an even newer version is published. */
-expect fun dismissAppDownload(download: AppDownload)
