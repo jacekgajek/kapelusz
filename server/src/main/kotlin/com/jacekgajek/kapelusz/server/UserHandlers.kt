@@ -100,12 +100,15 @@ internal class UserHandlers(
      */
     fun forgetIfNoBands(userId: String) {
         val key = StorageKeys.user(userId)
-        retryOnConflict(exhausted = {}) {
-            val blob = store.get(key) ?: return@retryOnConflict
+        val forgotten = retryOnConflict(exhausted = { false }) {
+            val blob = store.get(key) ?: return@retryOnConflict false
             val record = decode(UserRecord.serializer(), blob.content)
-            if (record.bandIds.any { id -> bands.load(id)?.first?.memberOfUser(userId) != null }) return@retryOnConflict
+            // Still in a band (archived too, it can be restored): nothing goes.
+            if (record.bandIds.any { id -> bands.load(id)?.first?.memberOfUser(userId) != null }) return@retryOnConflict false
             store.put(key, encode(UserRecord.serializer(), UserRecord(userId, sessionsValidFrom = record.sessionsValidFrom)), ifMatch = blob.etag)
+            true
         }
+        if (!forgotten) return
         store.get(StorageKeys.calendar(userId))?.let { blob ->
             runCatching { store.delete(StorageKeys.calendarSecret(decode(StoredCalendar.serializer(), blob.content).secret)) }
             store.delete(StorageKeys.calendar(userId))

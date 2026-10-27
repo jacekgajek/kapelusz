@@ -133,11 +133,12 @@ processing, and to receive it in a portable format. To use them, write to **priv
 
 **Deleting your data yourself, in the app:** no email needed. In Settings › Account, **Leave band** unlinks your Google
 account from your member in that band, removes your photo and BLIK number from it, and takes the band off your account.
-When you leave your last band, the server also deletes your photo link, your calendar link and everything else it kept
-for your account; only your account identifier and the time of your last "Sign out on all devices" remain, so sessions
-you ended then cannot be used again. You can't leave a band you own: first make another leader its owner (Band members),
-or delete the band (Settings › Delete band). Your member name and the money you recorded stay with the band, as
-described in 6.
+When you leave your last band, the server also deletes your photo link, your calendar link and your record of invite
+code attempts; your user record then keeps only your account identifier and the time of your last "Sign out on all
+devices", so sessions you ended then cannot be used again. Invites you created as a leader stop working at once. You
+can't leave a band you own: first make another leader its owner (Band members), or delete the band (Settings › Delete
+band). Your member name, the money you recorded and the band's history of the changes you made (with your account
+identifier) stay with the band, as described in 6.
 
 If you can no longer sign in, write to **privacy@jacekgajek.com** from the email address of your Google account and we
 will do it for you.

@@ -507,7 +507,7 @@
     <string name="leave_band_text">Stracisz dostęp do zespołu. Twoje imię, koszty i zapisane przez ciebie kwoty zostają w zespole.</string>
     <string name="leave_band_return">Żeby wrócić, poproś lidera o ponowne zaproszenie.</string>
     <string name="leave_band_confirm">Opuść</string>
-    <string name="leave_band_treasurer">Trzymasz kasę zespołu. Zostanie przy twoim imieniu, dopóki lider nie wybierze, kto ją trzyma.</string>
+    <string name="leave_band_treasurer">Trzymasz kasę zespołową. Zostanie przy twoim imieniu, dopóki lider nie wybierze, kto ją trzyma.</string>
     <string name="leave_band_stuck">Serwer odrzuca twoje niewysłane zmiany w tym zespole. Najpierw zajmij się nimi (pasek na ekranach zespołu), potem opuść zespół.</string>
     <string name="leave_band_failed">Nie udało się opuścić zespołu. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="leave_band_owner_title">Ten zespół należy do ciebie</string>
