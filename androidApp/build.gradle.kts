@@ -15,7 +15,7 @@ android {
         applicationId = "com.jacekgajek.kapelusz"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        // CI passes an increasing number (its run number); Android only installs updates with a higher one.
+        // CI passes an increasing number (its run number + 10); Android only installs updates with a higher one.
         versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orNull?.toInt() ?: 1
         versionName = providers.gradleProperty("kapelusz.versionName").get()
         // Google Maps for picking a place (ITERATION_6 §3); restricted to this app's package and signing certificates.
