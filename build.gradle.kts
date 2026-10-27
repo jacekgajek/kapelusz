@@ -9,3 +9,14 @@ plugins {
     alias(libs.plugins.shadow) apply false
     alias(libs.plugins.google.services) apply false
 }
+
+// A failing test shows its assertion's message and stack in the build's output (CI's log), not only in the report,
+// which CI doesn't keep.
+subprojects {
+    tasks.withType<AbstractTestTask>().configureEach {
+        testLogging {
+            events("failed")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+}
