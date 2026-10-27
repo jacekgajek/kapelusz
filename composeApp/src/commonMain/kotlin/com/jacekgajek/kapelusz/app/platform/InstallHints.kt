@@ -14,7 +14,7 @@ data class BrowserFacts(
 /** Everything the web hints are chosen from; see [webHint]. */
 data class WebInstallState(
     val browser: BrowserFacts,
-    /** `/download/version.json`, or null when nothing is published or the device is offline. */
+    /** `/download/version.json` (the deployed version), or null when it can't be read (offline, a local build). */
     val published: PublishedVersion?,
     /** The running web app's version code; 0 in local builds. */
     val runningVersionCode: Int,
@@ -47,11 +47,11 @@ fun isIosSafari(userAgent: String, maxTouchPoints: Int): Boolean =
 
 /**
  * The hint to show, or null. A newer deploy comes first; then the install hint of this device: "Add to Home Screen" in
- * Safari on iPhones and iPads unless already opened from the home screen, the Android app elsewhere when one is
- * published and the browser does not see it installed. A hint the user dismissed ("Not now") stays hidden until the
+ * Safari on iPhones and iPads unless already opened from the home screen, the Android app from Google Play elsewhere
+ * once anyone can install it there ([playPublic]) and the browser does not see it installed. A hint the user dismissed ("Not now") stays hidden until the
  * next visit to the event list, i.e. [dismissed] only holds this visit's dismissals.
  */
-fun webHint(state: WebInstallState, dismissed: Set<WebHint>): WebHint? {
+fun webHint(state: WebInstallState, dismissed: Set<WebHint>, playPublic: Boolean = PLAY_PUBLIC): WebHint? {
     val browser = state.browser
     val published = state.published
     val newVersion = published?.takeIf { state.runningVersionCode > 0 && it.versionCode > state.runningVersionCode }
@@ -59,7 +59,7 @@ fun webHint(state: WebInstallState, dismissed: Set<WebHint>): WebHint? {
     val install = when {
         isAppleMobile(browser.userAgent, browser.maxTouchPoints) ->
             WebHint.HomeScreen.takeIf { isIosSafari(browser.userAgent, browser.maxTouchPoints) && !browser.standalone }
-        published != null && !browser.androidAppInstalled -> WebHint.AndroidApp
+        playPublic && !browser.androidAppInstalled -> WebHint.AndroidApp
         else -> null
     }
     return listOfNotNull(newVersion, install).firstOrNull { it !in dismissed }

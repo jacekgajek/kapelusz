@@ -22,7 +22,7 @@ private fun androidAppInstalled(): Promise<JsBoolean> = js(
         : Promise.resolve(false))""",
 )
 
-// Resolves to the text of version.json, or null when nothing is published yet or the device is offline.
+// Resolves to the text of version.json (written by every deploy), or null when it can't be read (offline).
 private fun fetchVersion(): Promise<JsString?> = js("fetch('/download/version.json', { cache: 'no-cache' }).then((r) => r.ok ? r.text() : null, () => null)")
 
 // Earlier versions hid the Android app hint for good after "Don't show again".

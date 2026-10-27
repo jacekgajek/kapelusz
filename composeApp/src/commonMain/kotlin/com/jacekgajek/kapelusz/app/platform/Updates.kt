@@ -14,3 +14,10 @@ expect fun storeListing(): String?
 
 /** The app on Google Play, for links from the web too. */
 const val PLAY_LISTING = "https://play.google.com/store/apps/details?id=com.jacekgajek.kapelusz"
+
+/**
+ * Whether anyone can install the app from [PLAY_LISTING]. False during the closed test, where the listing is "not
+ * found" for everyone but the testers: the web then doesn't suggest the Android app. Set to true at the production
+ * release (ITERATION_7 §1.5).
+ */
+const val PLAY_PUBLIC = false

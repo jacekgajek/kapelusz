@@ -7,3 +7,8 @@ local.properties
 *.jks
 *.keystore
 .DS_Store
+
+# Play App Signing (PEPK): the encrypted key export and its tools, never committed.
+output.zip
+pepk.jar
+encryption_public_key.pem
