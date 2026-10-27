@@ -60,9 +60,9 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 
 ### V7-M1 — Google Play (§1), branch `play`
 
-- [ ] The `site` and `play` variants, the updater in `site` only, Support me! and "Update required" per variant
-- [ ] The play bundle in CI, signed with the upload key; the upload to closed testing when the secret is set
-- [ ] Listing texts, Data safety and content rating drafts; screenshots of the demo band
+- [x] The `site` and `play` variants, the updater in `site` only, Support me! and "Update required" per variant
+- [x] The play bundle in CI, signed with the upload key; the upload to closed testing when the secret is set
+- [x] Listing texts, Data safety and content rating drafts; screenshots of the demo band
 - [ ] (User) The app in the Console, the signing key, the first upload, the testers' group, 14 days
 - [ ] (Later, in production) Play first on the website; the `site` variant's note
 
