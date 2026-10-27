@@ -79,6 +79,7 @@ import com.jacekgajek.kapelusz.app.generated.settings_personal
 import com.jacekgajek.kapelusz.app.generated.sign_out
 import com.jacekgajek.kapelusz.app.generated.sign_out_everywhere
 import com.jacekgajek.kapelusz.app.platform.rememberUpdateControls
+import com.jacekgajek.kapelusz.app.platform.storeListing
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
@@ -193,8 +194,11 @@ fun SettingsScreen(
             }
 
             val uriHandler = LocalUriHandler.current
-            SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
-                uriHandler.openUri(SUPPORT_URL)
+            // Not in the Google Play build: a tip link outside Play's billing (ITERATION_7 §1.1).
+            if (storeListing() == null) {
+                SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
+                    uriHandler.openUri(SUPPORT_URL)
+                }
             }
             // In the language the app shows (the parameter [language] is only a manual choice).
             val privacyUrl = if (androidx.compose.ui.text.intl.Locale.current.language == "pl") "$PRIVACY_URL/pl" else PRIVACY_URL

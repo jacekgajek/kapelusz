@@ -22,9 +22,7 @@ import com.jacekgajek.kapelusz.app.AndroidAppGraph
 import com.jacekgajek.kapelusz.app.App
 import com.jacekgajek.kapelusz.app.AppLoading
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
-import com.jacekgajek.kapelusz.app.updates.UpdateWorker
 import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
-import com.jacekgajek.kapelusz.app.updates.Updater
 import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
@@ -36,14 +34,12 @@ class MainActivity : ComponentActivity() {
         // The screen in front is the one Google's sign-in UI uses (also after another one was closed).
         AndroidGoogleAuth.activity = WeakReference(this)
         if (graph.sessions.session.value != null) graph.sync.start()
-        Updater.appVisible = true
-        UpdateWorker.schedule(this)
-        UpdateWorker.checkSoon(this)
+        Flavor.onStart(this)
     }
 
     override fun onStop() {
         graph.sync.stop()
-        Updater.appVisible = false
+        Flavor.onStop()
         // Changes not sent yet go out as soon as there is a network.
         if (graph.hasUnsentWork()) BackgroundSyncWorker.syncSoon(this)
         super.onStop()
@@ -90,6 +86,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The website's APK or the Play build (ITERATION_7 §1.1), before any screen asks how it updates.
+        Flavor.install()
         super.onCreate(savedInstanceState)
         // Only on a real launch: after a rotation Android re-delivers the same intent, which must not reopen a dismissed join.
         // Nor when started again from Recents (e.g. after a reboot): that is the task's old intent (V5-M1 D7).

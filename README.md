@@ -7,7 +7,7 @@ Settles a band's money after gigs: who collected what, who paid which costs, wha
 hands over how much to whom. Shared by the whole band and synced through a small server; works offline.
 
 - Web: https://kapelusz.jacekgajek.com
-- Android: download `kapelusz.apk` from the website; the app updates itself.
+- Android: download `kapelusz.apk` from the website; the app updates itself. Google Play: in closed testing.
 
 ## Project
 
@@ -26,9 +26,14 @@ the wrapper.
 - Web app in a browser, reloading on changes: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun --continuous`
 - Web production bundle (what is deployed): `./gradlew :composeApp:wasmJsBrowserDistribution`, output in
   `composeApp/build/dist/wasmJs/productionExecutable/`
-- Android on a connected phone or emulator: `./gradlew :androidApp:installDebug`. A debug build never updates itself.
-- Android release APK: `./gradlew :androidApp:assembleRelease`. It is unsigned unless `ANDROID_KEYSTORE_PATH`,
-  `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` are set.
+- The Android app comes in two variants (ITERATION_7 §1.1): `site`, the APK on the website, which updates itself, and
+  `play`, for Google Play, without the updater or Support me!. Same application id and version code.
+- Android on a connected phone or emulator: `./gradlew :androidApp:installSiteDebug` (or `installPlayDebug`). A debug
+  build never updates itself.
+- Android release APK for the website: `./gradlew :androidApp:assembleSiteRelease`. It is unsigned unless
+  `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` are set.
+- Google Play bundle: `./gradlew :androidApp:bundlePlayRelease`, signed with the upload key when
+  `ANDROID_UPLOAD_KEYSTORE_PATH`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD` and `ANDROID_UPLOAD_KEY_ALIAS` are set.
 - Server (Lambda) jar: `./gradlew :server:shadowJar`, output `server/build/libs/server-all.jar`. There is no local
   server; the apps use the API in `gradle.properties`.
 
@@ -55,11 +60,18 @@ the server jar) and uploads the API to Lambda, the web app to S3 and CloudFront,
 GitHub Release. The version code is CI's run number. AWS access uses GitHub OIDC, and the keystore
 comes from the repository's secrets. Running `scripts/deploy.sh` by hand is described at its top.
 
+Google Play (ITERATION_7 §1.3): with the upload key in the secrets (`ANDROID_UPLOAD_KEYSTORE_BASE64`,
+`ANDROID_UPLOAD_KEYSTORE_PASSWORD`, optionally `ANDROID_UPLOAD_KEY_PASSWORD`, and the variable
+`ANDROID_UPLOAD_KEY_ALIAS`) the deploy also builds the Play bundle, and with a service account's key
+(`PLAY_SERVICE_ACCOUNT_JSON`) uploads it to the closed testing track. Production is promoted by hand in the Play
+Console.
+
 ## Documents
 
 - [ITERATION_1.md](ITERATION_1.md) — the first planning iteration, as built.
 - [ITERATION_2.md](ITERATION_2.md) — the second iteration: plan, milestones and decision log (app 1.0).
 - [ITERATION_3.md](ITERATION_3.md) — the third iteration: hardening, quality work and new features.
+- [ITERATION_7.md](ITERATION_7.md) — the seventh iteration: Google Play.
 
 The app was called Art Split until 1.0 (and Split Art for a few hours). The S3 buckets (`jacekgajek-art-split-*`) and the Lambda (`art-split-api`)
 keep the old name: they hold the bands' data and run the API.
