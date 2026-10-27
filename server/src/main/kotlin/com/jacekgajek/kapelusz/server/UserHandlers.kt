@@ -112,7 +112,7 @@ internal class UserHandlers(
             true
         }
         if (!forgotten) return
-        devices.clear(userId)
+        runCatching { devices.clear(userId) }
         store.get(StorageKeys.calendar(userId))?.let { blob ->
             runCatching { store.delete(StorageKeys.calendarSecret(decode(StoredCalendar.serializer(), blob.content).secret)) }
             store.delete(StorageKeys.calendar(userId))

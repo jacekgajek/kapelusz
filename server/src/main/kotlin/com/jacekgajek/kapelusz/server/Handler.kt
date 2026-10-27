@@ -129,6 +129,7 @@ class Handler : RequestStreamHandler {
          */
         override fun beforeCheckpoint(context: org.crac.Context<out Resource>?) {
             runCatching { verifier.warmUp() }
+            runCatching { FcmSender.prime() }
             runCatching { store.get(StorageKeys.PRIMING) }
             runCatching { history.keys("priming") }
             val ops = listOf(

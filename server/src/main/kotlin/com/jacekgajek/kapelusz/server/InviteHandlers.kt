@@ -69,7 +69,7 @@ internal class InviteHandlers(
         return ok(InvitePreview.serializer(), InvitePreview(invite.code, band.id, band.name, member.name, invite.role, invite.expiresAt))
     }
 
-    fun accept(user: VerifiedUser, code: String, installation: String? = null): HttpResponse {
+    fun accept(user: VerifiedUser, code: String, from: SenderDevice? = null): HttpResponse {
         val stored = find(user, code)
         val invite = stored.info
         users.requireRoomForBand(user.userId, invite.bandId)
@@ -101,7 +101,7 @@ internal class InviteHandlers(
             finishJoin(user, band.id, invite.memberId)
             runCatching { history.append(user, linked, band.id, listOf(OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role))), emptyMap()) }
             // Bandmates see the new member at once (ITERATION_7 §2.2).
-            runCatching { messenger?.bandChanged(band.id, linked.messagedUsers(), installation) }
+            runCatching { messenger?.bandChanged(band.id, linked.messagedUsers(), from) }
             ok(BandStateResponse.serializer(), BandStateResponse(newEtag, linked))
         }
     }

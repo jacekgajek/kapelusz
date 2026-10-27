@@ -213,6 +213,13 @@ data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, v
 @Serializable
 data class DeviceRegistration(val token: String)
 
+/**
+ * The answer to a [DeviceRegistration]: whether sync messages will come ([messaging]: the server can send them, and
+ * keeps this device because the user is in a band). Without them the app looks for news more often (ITERATION_7 §2.3).
+ */
+@Serializable
+data class DeviceRegistrationResponse(val messaging: Boolean)
+
 /** POST /me/picture: a Google sign-in token of the user (may have expired); its photo becomes theirs in their bands. */
 @Serializable
 data class PictureRequest(val googleToken: String)

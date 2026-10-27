@@ -25,6 +25,7 @@ import java.time.Duration
 import java.util.Base64
 import java.util.Date
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -32,8 +33,8 @@ import java.util.concurrent.TimeUnit
  * effort within about a second; the apps' fallback polling catches up with anything lost.
  */
 interface SyncMessenger {
-    /** The devices of [userIds] but [exceptInstallation] (the one that made the change). */
-    fun bandChanged(bandId: String, userIds: Collection<String>, exceptInstallation: String?)
+    /** The devices of [userIds] but [from] (the one that made the change). */
+    fun bandChanged(bandId: String, userIds: Collection<String>, from: SenderDevice?)
 }
 
 /** Who a band's sync messages go to: its linked members who are still in it. */
@@ -44,19 +45,48 @@ enum class SendResult { SENT, INVALID_TOKEN, FAILED }
 
 /** Sends one data message to each token; unanswered in time counts as [SendResult.FAILED]. Null: not set up. */
 interface MessageSender {
+    /** Whether messages can be sent at all (the key is in place); checked before any device is read. */
+    fun ready(): Boolean
+
     fun send(tokens: List<String>, data: Map<String, String>): Map<String, SendResult>?
 }
 
-internal class DeviceMessenger(private val registry: DeviceRegistry, private val sender: MessageSender) : SyncMessenger {
-    override fun bandChanged(bandId: String, userIds: Collection<String>, exceptInstallation: String?) {
-        val targets = runCatching { registry.targets(userIds, exceptInstallation) }
-            .getOrElse { System.err.println("Sync message for band $bandId: could not read the devices: $it"); return }
-        if (targets.isEmpty()) return
-        val results = sender.send(targets.map { it.token }.distinct(), mapOf("band" to bandId)) ?: return
-        // An uninstalled app (or one whose data was cleared): its token never works again.
-        targets.filter { results[it.token] == SendResult.INVALID_TOKEN }.forEach { runCatching { registry.forget(it) } }
-        val counts = results.values.groupingBy { it }.eachCount()
-        if (counts.keys != setOf(SendResult.SENT)) println("SYNC band $bandId: $counts")
+internal class DeviceMessenger(
+    private val registry: DeviceRegistry,
+    private val sender: MessageSender,
+    private val clock: () -> Long = System::currentTimeMillis,
+) : SyncMessenger {
+    override fun bandChanged(bandId: String, userIds: Collection<String>, from: SenderDevice?) {
+        // Not set up (no key yet): nothing to read or send.
+        if (!runCatching { sender.ready() }.getOrDefault(false)) return
+        // Each member's devices at once, within [READ_MS]; one that can't be read doesn't cost the others theirs.
+        val deadline = clock() + READ_MS
+        val reads = userIds.distinct().associateWith { userId -> CompletableFuture.supplyAsync({ registry.stored(userId) }, readers) }
+        runCatching { CompletableFuture.allOf(*reads.values.toTypedArray()).get((deadline - clock()).coerceAtLeast(1), TimeUnit.MILLISECONDS) }
+        val stored = reads.mapNotNull { (userId, read) ->
+            if (!read.isDone || read.isCompletedExceptionally) null.also { System.err.println("Sync message for band $bandId: devices of a member not read") }
+            else userId to read.join()
+        }
+        val targets = stored.flatMap { (userId, devices) ->
+            devices.filter { registry.fresh(it) && !(userId == from?.userId && it.installationId == from.installationId) }
+                .map { DeviceTarget(userId, it.installationId, it.token) }
+        }
+        if (targets.isNotEmpty()) {
+            val results = sender.send(targets.map { it.token }.distinct(), mapOf("band" to bandId)) ?: return
+            // An uninstalled app (or one whose data was cleared): its token never works again.
+            targets.filter { results[it.token] == SendResult.INVALID_TOKEN }.forEach { runCatching { registry.forget(it) } }
+            val counts = results.values.groupingBy { it }.eachCount()
+            if (counts.keys != setOf(SendResult.SENT)) println("SYNC band $bandId: $counts")
+        }
+        // Devices unseen for 60 days go when found, not only when their user registers again (ITERATION_7 §2.4).
+        stored.filter { (_, devices) -> devices.any { !registry.fresh(it) } }.forEach { (userId, _) -> runCatching { registry.prune(userId) } }
+    }
+
+    companion object {
+        const val READ_MS = 400L
+
+        /** Reading devices is waiting on S3: threads of their own, as many as a band's members, daemons. */
+        private val readers = Executors.newCachedThreadPool { runnable -> Thread(runnable, "devices").apply { isDaemon = true } }
     }
 }
 
@@ -72,24 +102,29 @@ data class ServiceAccount(
 
 /**
  * Firebase Cloud Messaging's HTTP v1 API (ITERATION_7 §2.5), without the Firebase Admin SDK: one call per token, all
- * at once, everything (the access token included) within [deadlineMs]. The access token is a self-signed JWT exchanged
- * at Google and kept until shortly before it expires.
+ * at once, within [deadlineMs]. The access token is a self-signed JWT exchanged at Google (within [signInMs] of its
+ * own: the first message of an instance opens two connections) and kept until shortly before it expires; a failed
+ * sign-in isn't tried again for [SIGN_IN_RETRY_MS].
  */
 class FcmSender(
     private val account: () -> ServiceAccount?,
     private val clock: () -> Long = System::currentTimeMillis,
     private val deadlineMs: Long = 1_000,
+    private val signInMs: Long = 1_500,
     private val http: HttpClient = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(800)).build(),
     /** Tests point it at a local server. */
     private val fcmUrl: String = "https://fcm.googleapis.com",
 ) : MessageSender {
     private var accessToken: Pair<String, Long>? = null
+    private var signInFailedAt: Long? = null
+
+    override fun ready(): Boolean = account() != null
 
     override fun send(tokens: List<String>, data: Map<String, String>): Map<String, SendResult>? {
         val failed = tokens.associateWith { SendResult.FAILED }
-        val deadline = clock() + deadlineMs
         val account = runCatching { account() }.getOrNull() ?: return null
-        val bearer = runCatching { bearer(account, deadline) }.getOrElse { System.err.println("FCM sign-in failed: $it"); return failed }
+        val bearer = runCatching { bearer(account) }.getOrElse { System.err.println("FCM sign-in failed: $it"); return failed } ?: return failed
+        val deadline = clock() + deadlineMs
         val url = URI("$fcmUrl/v1/projects/${account.projectId}/messages:send")
         val calls = tokens.associateWith { token ->
             val request = java.net.http.HttpRequest.newBuilder(url)
@@ -107,6 +142,8 @@ class FcmSender(
             val response = call.join()
             when {
                 response.statusCode() == 200 -> SendResult.SENT
+                // The access token was refused (revoked key, clock skew): signed in again on the next message.
+                response.statusCode() == 401 -> SendResult.FAILED.also { synchronized(this) { accessToken = null } }
                 // UNREGISTERED (404), or a token FCM can't read at all (400 INVALID_ARGUMENT about the token).
                 response.statusCode() == 404 || (response.statusCode() == 400 && "registration token" in response.body()) -> SendResult.INVALID_TOKEN
                 else -> SendResult.FAILED.also { System.err.println("FCM ${response.statusCode()}: ${response.body().take(300)}") }
@@ -128,9 +165,16 @@ class FcmSender(
         }
     }
 
+    /** The access token; null while a failed sign-in waits to be tried again. */
     @Synchronized
-    private fun bearer(account: ServiceAccount, deadline: Long): String {
+    private fun bearer(account: ServiceAccount): String? {
         accessToken?.let { (token, expiresAt) -> if (clock() < expiresAt - REFRESH_MARGIN_MS) return token }
+        signInFailedAt?.let { if (clock() - it < SIGN_IN_RETRY_MS) return null }
+        return runCatching { signIn(account) }.onFailure { signInFailedAt = clock() }.getOrThrow().also { signInFailedAt = null }
+    }
+
+    private fun signIn(account: ServiceAccount): String {
+        val deadline = clock() + signInMs
         val now = clock()
         val claims = JWTClaimsSet.Builder()
             .issuer(account.clientEmail)
@@ -159,6 +203,18 @@ class FcmSender(
     companion object {
         private const val SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
         private const val REFRESH_MARGIN_MS = 5 * 60_000L
+        const val SIGN_IN_RETRY_MS = 60_000L
+
+        /**
+         * SnapStart priming (Handler): loads and warms the signing code with a throwaway key, no network, so an
+         * instance's first message doesn't spend its time budget on that.
+         */
+        fun prime() {
+            val keys = java.security.KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+            val claims = JWTClaimsSet.Builder().issuer("prime").audience("prime").issueTime(Date()).build()
+            SignedJWT(JWSHeader.Builder(JWSAlgorithm.RS256).keyID("prime").build(), claims).apply { sign(RSASSASigner(keys.private)) }.serialize()
+            privateKey("-----BEGIN PRIVATE KEY-----\n" + Base64.getMimeEncoder().encodeToString(keys.private.encoded) + "\n-----END PRIVATE KEY-----")
+        }
 
         fun privateKey(pem: String): RSAPrivateKey {
             val der = Base64.getMimeDecoder().decode(pem.replace(Regex("-----[A-Z ]+-----"), ""))

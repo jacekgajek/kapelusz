@@ -37,7 +37,7 @@ class Api(
     private val devices = DeviceRegistry(store, clock)
     private val messenger: SyncMessenger? = messageSender?.let { DeviceMessenger(devices, it) }
     private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands, devices)
-    private val deviceHandlers = DeviceHandlers(devices)
+    private val deviceHandlers = DeviceHandlers(devices, users) { messageSender?.ready() == true }
     private val history = HistoryHandlers(historyStore, clock, bands)
     private val attachments = AttachmentHandlers(store, bands)
     private val invites = InviteHandlers(store, clock, bands, users, history, messenger)
@@ -81,6 +81,7 @@ class Api(
         val bandPath = segments.size == 3 && segments[0] == "bands"
         // The Android device making a change: no sync message for it about its own change (ITERATION_7 §2.4).
         val installation = request.query[ApiErrors.INSTALLATION_PARAMETER]?.takeIf { DeviceHandlers.INSTALLATION_ID.matches(it) }
+            ?.let { SenderDevice(user.userId, it) }
         return when {
             method == "GET" && segments == listOf("me") -> users.me(user)
             method == "POST" && segments == listOf("me", "picture") -> users.picture(user, request)

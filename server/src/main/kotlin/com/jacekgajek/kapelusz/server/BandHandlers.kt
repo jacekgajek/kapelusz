@@ -61,7 +61,7 @@ internal class BandHandlers(
         return ok(BandStateResponse.serializer(), BandStateResponse(etag, band), mapOf("etag" to etag))
     }
 
-    fun push(user: VerifiedUser, bandId: String, request: PushRequest, installation: String? = null): HttpResponse {
+    fun push(user: VerifiedUser, bandId: String, request: PushRequest, from: SenderDevice? = null): HttpResponse {
         badRequestIf(request.ops.size > Api.MAX_OPS_PER_PUSH) { "At most ${Api.MAX_OPS_PER_PUSH} operations per push" }
         // One push comes from one device. Device ids are short, and each user has a bounded number of them, so no
         // member (not even a viewer, whose ops are all refused) can bloat the band's state.
@@ -118,7 +118,7 @@ internal class BandHandlers(
                     .onFailure { System.err.println("Could not append history for band $bandId: $it") }
                 // Everyone in the band before or after (a member just removed learns it at once), but this device
                 // (ITERATION_7 §2.2).
-                if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), installation) }
+                if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }
             }
             ok(PushResponse.serializer(), PushResponse(newEtag, result.band, result.accepted, result.rejected, result.duplicates))
         }
@@ -129,7 +129,7 @@ internal class BandHandlers(
      * members' band lists, invites, history and attachment files. A small marker tells former members that it was
      * deleted. Bucket versioning keeps the objects for 30 days, so a mistake can still be undone by hand.
      */
-    fun delete(user: VerifiedUser, bandId: String, installation: String? = null): HttpResponse {
+    fun delete(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse {
         val (band, _) = bands.loadForMember(user, bandId)
         val me = band.memberOfUser(user.userId)!!
         if (me.role != Role.OWNER) throw ApiError(403, ApiErrors.FORBIDDEN, "Only the owner can delete the band")
@@ -141,8 +141,8 @@ internal class BandHandlers(
         store.deleteAll(store.list(StorageKeys.bandPrefix(bandId)).filter { it != StorageKeys.deleted(bandId) })
         runCatching { linkPages.forget(bandId, band.events.map { it.id }) }
         runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
-        // The members' apps let go of it at once (ITERATION_7 §2.3).
-        runCatching { messenger?.bandChanged(bandId, userIds, installation) }
+        // The members' apps let go of it at once (ITERATION_7 §2.3); former members' apps did already.
+        runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), from) }
         return HttpResponse(204)
     }
 
@@ -152,7 +152,7 @@ internal class BandHandlers(
      * deleted. Done here rather than as a pushed operation, so it either happens on the server or fails for the app to
      * say so, and the member's invites and the user's band list follow at once.
      */
-    fun leave(user: VerifiedUser, bandId: String, installation: String? = null): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+    fun leave(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
         val (band, etag) = bands.loadForMember(user, bandId)
         val me = band.memberOfUser(user.userId)!!
         if (me.role == Role.OWNER) throw ApiError(409, ApiErrors.OWNER_CANNOT_LEAVE, "Hand the band to another leader or delete it first")
@@ -169,7 +169,7 @@ internal class BandHandlers(
         // With the band as it was, so the entry has who left as its author.
         runCatching { history.append(user, band, bandId, listOf(OpEnvelope(opId, "server", 0, clock(), op)), emptyMap()) }
         // Before the user's devices are forgotten: their other devices let go of the band too (ITERATION_7 §2.2).
-        runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), installation) }
+        runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), from) }
         runCatching { users.forgetIfNoBands(user.userId) }
         HttpResponse(204)
     }

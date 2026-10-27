@@ -77,7 +77,7 @@ grilling's questions, not §1's.
 
 ### 2.1 Which apps (Q2)
 
-- **Android** (both variants, ITERATION_7 §2.1): Firebase messages.
+- **Android** (both variants, §1.1): Firebase messages.
 - **Web:** keeps polling every 30 s, but **pauses in a hidden tab** (§2.6). Web push can't be silent (browsers require
   a visible notification per message), and a live connection (API Gateway WebSockets) would be a new paid service.
 
@@ -99,7 +99,8 @@ grilling's questions, not §1's.
 - **Any of the user's bands:** the open band syncs as usual; another band is fetched quietly (so switching to it shows
   current data), downloaded if it isn't on the phone yet, or let go with the usual dialog when it was deleted or the
   user removed.
-- **Fallback polling** while on screen: every **5 minutes** with working Firebase (the server confirmed the token),
+- **Fallback polling** while on screen: every **5 minutes** with working Firebase (the registration's answer says
+  messages will come: the server has its key, and the user is in a band),
   every **30 s** without (no Google Play services, registration failed), as before. Plus, as before, at once when the
   app comes to the screen and after every local change.
 - **Firebase only after sign-in:** automatic start off (`firebase_messaging_auto_init_enabled=false`), Analytics
@@ -110,12 +111,16 @@ grilling's questions, not §1's.
 ### 2.4 Devices on the server (Q6)
 
 - Each installation makes a random **installation id** once. `PUT /me/devices/{installationId}` with its FCM token:
-  after sign-in, at each start, and when Firebase issues a new token (replaces the old one). `DELETE` on sign-out.
+  after sign-in, at each start, when Firebase issues a new token (replaces the old one), and after joining or
+  creating a first band. `DELETE` on sign-out. The answer, `{"messaging": true|false}`, says whether messages will
+  come. A user in no band is not stored (`messaging: false`), so nothing of theirs comes back after Leave band.
 - Kept per user in `users/{userId}-devices.json`: installation id, token, last seen. At most **10** per user (an
   eleventh replaces the longest unseen).
 - Forgotten: on sign-out (that device), on "Sign out on all devices" (all), after the user's last band
-  (ITERATION_6 §11a), when FCM reports a token invalid (`UNREGISTERED`, at once), and when unseen for **60 days**.
-- The app sends its installation id with pushes (a header), so the server skips that device.
+  (ITERATION_6 §11a), when FCM reports a token invalid (404 `UNREGISTERED` or 400 about the token, at once), and when
+  unseen for **60 days** (dropped at the user's next registration, or when a message to the band finds it).
+- The app sends its installation id with every request (the query parameter `installation`, like `appVersion`), so
+  the server skips that device: only the caller's own, not another user's with the same id.
 - **Tokens, not topics** (Q6): only current members get messages (anyone knowing a band id could subscribe to a
   topic), removed members stop at once, and Firebase advises tokens for fast delivery to small groups.
 
@@ -131,7 +136,10 @@ grilling's questions, not §1's.
 - **FCM's HTTP v1 API called directly**, with a self-signed short-lived Google token (cached for its lifetime); no
   Firebase Admin SDK (tens of MB in the Lambda).
 - **Sent within the request, in parallel** (HTTP v1 has one call per device), waiting **at most ~1 s** in all;
-  failures and timeouts are ignored: the fallback polling catches up. The sender's own push answers ~100–300 ms later.
+  failures and timeouts are ignored: the fallback polling catches up. The members' device lists are read in parallel
+  first (at most 0.4 s); the Google sign-in has its own 1.5 s, only on an instance's first message an hour (a refused
+  one is tried again after a minute). Without the key nothing is read or sent. The sender's own push answers a few
+  hundred milliseconds later.
 
 ### 2.6 The web app in a hidden tab (Q10)
 
