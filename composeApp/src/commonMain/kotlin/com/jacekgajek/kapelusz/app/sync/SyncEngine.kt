@@ -130,11 +130,14 @@ class SyncEngine(
         if (_status.value == SyncStatus.NEEDS_SIGN_IN) return false
         // Retrying is pointless until the app is updated (which restarts it).
         if (_status.value == SyncStatus.UPDATE_REQUIRED) return false
-        _status.value = SyncStatus.SYNCING
         var result = SyncStatus.SYNCED
         try {
             val current = bands.currentBandId
-            val toSync = (bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty() + listOfNotNull(current)).distinct()
+            val outgoing = (bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
+            // "Syncing" only while something is sent: a round that only checks for news (every [interval]) keeps the
+            // icon as it is, rather than blinking it, and redrawing the band's screens, each time.
+            if (outgoing.isNotEmpty()) _status.value = SyncStatus.SYNCING
+            val toSync = (outgoing + listOfNotNull(current)).distinct()
             for (bandId in toSync) {
                 val bandResult = syncBand(bandId, pull = bandId == current)
                 if (bandResult == SyncStatus.NEEDS_SIGN_IN || bandResult == SyncStatus.OFFLINE || bandResult == SyncStatus.UPDATE_REQUIRED) {

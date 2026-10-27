@@ -62,6 +62,11 @@ Pass the Hat goes to Google Play while the website's APK keeps working for every
 - In production: a "Get it on Google Play" badge first on the website and in the web app's install hint, the APK as a
   smaller link; the `site` variant shows once "Kapelusz is now on Google Play", with a button to the listing.
 
+## 1a. The sync icon (2026-10-27)
+
+- A sync round shows "syncing" only while it sends something: the check for news every 30 s keeps the cloud icon as it
+  is, instead of blinking it (and redrawing the band's screens) each time. Faster sync: ITERATION_8.
+
 ## 2. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
