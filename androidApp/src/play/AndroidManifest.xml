@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Google Play build (ITERATION_7 §1.1): it shows no notifications at all; Firebase Messaging, used only to sync
+     (§2.3), would otherwise ask for the permission. The website's APK keeps it for "update ready". -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS"
+        tools:node="remove" />
+
+</manifest>

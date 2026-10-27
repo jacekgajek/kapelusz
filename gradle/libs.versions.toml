@@ -1,4 +1,6 @@
 [versions]
+firebase-messaging = "26.0.0"
+google-services = "4.5.0"
 play-services-code-scanner = "16.1.0"
 qrcode-kotlin = "4.5.0"
 kotlin = "2.4.21"
@@ -64,6 +66,7 @@ androidx-credentials = { module = "androidx.credentials:credentials", version.re
 androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
 [plugins]
@@ -75,3 +78,4 @@ compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-m
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }

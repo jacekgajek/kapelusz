@@ -44,6 +44,10 @@ import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDate
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
@@ -686,6 +690,55 @@ class SyncEngineTest {
         val send = async(start = CoroutineStart.UNDISPATCHED) { sync.syncNow() }
         assertEquals(SyncStatus.SYNCING, sync.status.value, "sending shows it")
         assertTrue(send.await())
+    }
+
+    @Test
+    fun withMessagesTheAppLooksForNewsEveryFiveMinutes() = runTest {
+        val (_, sync) = setup(FakeServer(), this)
+        assertEquals(30_000, sync.waitAfter(ok = true, backoff = 0))
+        sync.messaged = true
+        assertEquals(SyncEngine.MESSAGED_INTERVAL, sync.waitAfter(ok = true, backoff = 0))
+        assertEquals(5_000, sync.waitAfter(ok = false, backoff = 5_000), "a failed round still retries soon")
+    }
+
+    /** Real time: the mock HTTP engine answers on a thread of its own. */
+    private suspend fun eventually(what: String, condition: () -> Boolean) = withContext(Dispatchers.Default) {
+        withTimeout(5_000) { while (!condition()) delay(20) }
+        assertTrue(condition(), what)
+    }
+
+    @Test
+    fun aMessageAboutAnotherBandFetchesItQuietly() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, backgroundScope)
+        val other = joinedBand(server, repository, sync)
+        repository.createBand("Own band", "PLN", "Alice")
+        assertTrue(sync.syncNow())
+        server.serverSide(other, RenameBand("Renamed by Zed"))
+
+        sync.bandChanged(other)
+        assertEquals("Night Owls", repository.local(other)!!.base.name, "the loop isn't running: ignored")
+
+        sync.start()
+        sync.bandChanged(other)
+        eventually("the other band is fetched") { repository.local(other)?.base?.name == "Renamed by Zed" }
+        assertEquals("Own band", assertIs<BandState.Ready>(repository.state.value).band.name, "and the open band stays open")
+        sync.stop()
+    }
+
+    @Test
+    fun aHiddenTabSendsWhatWaitsThenStops() = runTest {
+        val server = FakeServer()
+        val (repository, sync) = setup(server, backgroundScope)
+        val bandId = joinedBand(server, repository, sync)
+        sync.start()
+        repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
+        repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
+        sync.pauseAfterSending()
+        eventually("the change went out") { server.bands.getValue(bandId).costs.size == 1 && repository.local(bandId)!!.pending.isEmpty() }
+        val requests = server.requests
+        withContext(Dispatchers.Default) { delay(300) }
+        assertEquals(requests, server.requests, "then nothing more while hidden")
     }
 
     @Test

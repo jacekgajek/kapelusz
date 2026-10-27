@@ -52,6 +52,22 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${googleMapsKey}" />
+        <!-- Sync messages, not notifications (ITERATION_7 §2.3): "band X changed" makes the app on screen sync it. -->
+        <service
+            android:name="com.jacekgajek.kapelusz.app.sync.SyncMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <!-- Firebase starts only after sign-in, and only messaging: no token before, no Analytics. -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+
         <!-- Hands the camera app a file to write a photo for a cost attachment into (cache/photos). -->
         <provider
             android:name="androidx.core.content.FileProvider"

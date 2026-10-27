@@ -49,6 +49,9 @@ events, their own money and other members' names.
 - **Calendar subscription**: if you turn it on, a secret link to a calendar feed of your band's events, and your choice
   of which events it includes.
 - **Failed invite code attempts** in the current hour, to stop codes from being guessed.
+- **Your Android devices, for sync messages**: while you are signed in to the Android app and in a band, a random
+  identifier of the app's installation and its Firebase Cloud Messaging token, with the date it last checked in. The
+  server uses them to tell your devices that a band changed, so they fetch it at once.
 - **Event links** (`/e/…`): a pointer from an event's identifier to its band, so a link opens the right event.
 
 ### 2.4 Technical data
@@ -91,6 +94,9 @@ Your data is not used for advertising, profiling or automated decisions, and is 
     type and the app's language are sent by our server to Google; when you pick a place on a map, its coordinates are;
   - **the map** on Android (Google Maps SDK), shown when you pick a place;
   - **the QR code scanner** on Android (Google Play services), used when you scan an invite;
+  - **sync messages** on Android (Firebase Cloud Messaging): when a band changes, the server asks Google to deliver
+    to its members' devices a message naming only the band's identifier, nothing else from the band; Firebase starts
+    only after you sign in, and only for these messages (no analytics);
   - **profile photos**, loaded from Google's servers.
 
   Google processes this data under its own privacy policy: https://policies.google.com/privacy.
@@ -113,6 +119,8 @@ All connections use HTTPS. Stored data is encrypted at rest by AWS.
 - **Sessions**: a session lasts up to 30 days from its last use and at most 90 days, then you sign in again.
 - **Invites**: until they expire or are withdrawn.
 - **Failed invite attempts**: for the current hour.
+- **Devices for sync messages**: until you sign out on that device or on all devices, leave your last band, the app
+  is uninstalled (Firebase then reports its token invalid), or the device hasn't checked in for 60 days.
 - **Server logs**: 14 days.
 - When a leader moves you to the band's former members, you no longer see the band, but your member entry and what
   you recorded stay in it, because the band's accounts depend on them; your Google account stays linked to the entry
@@ -135,8 +143,8 @@ processing, and to receive it in a portable format. To use them, write to **priv
 
 **Deleting your data yourself, in the app:** no email needed. In Settings › Account, **Leave band** unlinks your Google
 account from your member in that band, removes your photo and BLIK number from it, and takes the band off your account.
-When you leave your last band, the server also deletes your photo link, your calendar link and your record of invite
-code attempts; your user record then keeps only your account identifier and the time of your last "Sign out on all
+When you leave your last band, the server also deletes your photo link, your calendar link, your devices for sync
+messages and your record of invite code attempts; your user record then keeps only your account identifier and the time of your last "Sign out on all
 devices", so sessions you ended then cannot be used again. Invites you created as a leader stop working at once. You
 can't leave a band you own: first make another leader its owner (Band members), or delete the band (Settings › Delete
 band). Your member name, the money you recorded and the band's history of the changes you made (with your account
