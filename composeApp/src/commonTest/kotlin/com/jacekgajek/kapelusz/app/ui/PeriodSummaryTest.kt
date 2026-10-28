@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui
 
 import com.jacekgajek.kapelusz.app.data.AppSettings
+import com.jacekgajek.kapelusz.app.ui.model.FundSource
 import com.jacekgajek.kapelusz.app.ui.model.FundTotals
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
@@ -54,12 +55,12 @@ class PeriodSummaryTest {
     /**
      * A settled winter gig (1000 collected, 100 to the fund, a guest on a fixed 100, my 200 travel cost refunded; the
      * rest 300 each), an open gig in February, Bob's 300 food cost refunded from the fund in January, and my 100 cost
-     * still waiting.
+     * still waiting. Bob paid 500 into the fund in November.
      */
     private val band = Band.create("b", "Band", "PLN", "me", "Me", "u").apply(
         AddMember("bob", "Bob"),
         SetTreasurer("me"),
-        AddFundEntry("e0", LocalDate(2025, 11, 1), "Deposit", zl(500)),
+        AddFundEntry("e0", LocalDate(2025, 11, 1), "Membership fee", zl(500), paidBy = "bob"),
         CreateEvent("winter", "Winter", LocalDate(2025, 12, 10), participants = listOf(Participant("me"), Participant("bob"))),
         AddGuest("winter", "g", "Guest", fixedShare = zl(100)),
         AddHolding("winter", "h", "bob", zl(1000), IncomeSource.DOOR),
@@ -89,7 +90,15 @@ class PeriodSummaryTest {
         assertEquals(summary.collected, summary.paidOut + summary.refundedAtEvents + summary.toFund, "the parts add up to Collected")
         assertEquals(zl(500), summary.costs, "fully refunded: my travel at the gig, Bob's food from the fund")
         assertEquals(listOf(CostCategory.FOOD to zl(300), CostCategory.TRAVEL to zl(200)), summary.categories)
-        assertEquals(FundTotals(into = zl(600), out = zl(300), balance = zl(300)), summary.fund)
+        assertEquals(
+            FundTotals(
+                into = zl(600), out = zl(300), balance = zl(300),
+                // Who paid in, and whose costs it refunded (ITERATION_7 §2e).
+                intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100)),
+                outBy = listOf(FundSource.Of(bob) to zl(300)),
+            ),
+            summary.fund,
+        )
         assertEquals(listOf(bob to PersonTotals(zl(300), zl(300)), me!! to PersonTotals(zl(300), zl(200))), summary.members)
         assertEquals(PersonTotals(zl(100), Money.ZERO), summary.guests)
         assertEquals(PersonTotals(zl(300), zl(200)), summary.me)
@@ -102,13 +111,13 @@ class PeriodSummaryTest {
         val y2025 = periodSummary(band, me, LocalDate(2025, 1, 1), LocalDate(2025, 12, 31))
         assertEquals(1, y2025.events)
         assertEquals(zl(200), y2025.costs)
-        assertEquals(FundTotals(into = zl(600), out = Money.ZERO, balance = zl(600)), y2025.fund)
+        assertEquals(FundTotals(into = zl(600), out = Money.ZERO, balance = zl(600), intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100))), y2025.fund)
         assertEquals(emptyList(), y2025.unsettled)
 
         val y2026 = periodSummary(band, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
         assertEquals(0, y2026.events)
         assertEquals(listOf(CostCategory.FOOD to zl(300)), y2026.categories)
-        assertEquals(FundTotals(into = Money.ZERO, out = zl(300), balance = zl(300)), y2026.fund)
+        assertEquals(FundTotals(into = Money.ZERO, out = zl(300), balance = zl(300), outBy = listOf(FundSource.Of(bob) to zl(300))), y2026.fund)
         assertEquals(listOf(bob to PersonTotals(Money.ZERO, zl(300))), y2026.members, "a refund from the fund on the entry's date")
         assertNull(y2026.guests)
         assertEquals(PersonTotals.ZERO, y2026.me)
@@ -139,7 +148,7 @@ class PeriodSummaryTest {
             RecordTransfer("covered", "t4", BAND_FUND, "bob", zl(100)),
         )
         val y2026 = periodSummary(covered, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
-        assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200)), y2026.fund)
+        assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200), outBy = listOf(FundSource.Of(bob) to zl(300), FundSource.Events to zl(100))), y2026.fund)
         assertEquals(zl(-100), y2026.toFund, "the fund covered part of the event")
         assertEquals(y2026.collected, y2026.paidOut + y2026.refundedAtEvents + y2026.toFund)
         assertEquals(BandFund.balance(covered), periodSummary(covered, me, null, null).fund?.balance)
@@ -219,7 +228,7 @@ class PeriodSummaryTest {
             at = LocalDate(2026, 10, 26).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds() + 3_600_000,
         )
         val untilToday = periodSummary(early, me, LocalDate(2026, 1, 1), LocalDate(2026, 10, 26), timeZone = TimeZone.UTC).fund
-        assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400)), untilToday)
+        assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400), intoBy = listOf(FundSource.Events to zl(100)), outBy = listOf(FundSource.Of(bob) to zl(300))), untilToday)
         assertEquals(BandFund.balance(early), untilToday?.balance, "as on the fund's page")
     }
 
@@ -235,7 +244,7 @@ class PeriodSummaryTest {
         val may = periodSummary(late, me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31), timeZone = TimeZone.UTC).fund
         assertEquals(FundTotals(into = Money.ZERO, out = Money.ZERO, balance = zl(300)), may)
         val june = periodSummary(late, me, LocalDate(2026, 6, 1), LocalDate(2026, 6, 30), timeZone = TimeZone.UTC).fund
-        assertEquals(FundTotals(into = Money.ZERO, out = zl(100), balance = zl(200)), june)
+        assertEquals(FundTotals(into = Money.ZERO, out = zl(100), balance = zl(200), outBy = listOf(FundSource.Events to zl(100))), june)
         assertEquals(BandFund.balance(late), periodSummary(late, me, null, null).fund?.balance)
     }
 

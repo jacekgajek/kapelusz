@@ -33,7 +33,7 @@ import com.jacekgajek.kapelusz.app.generated.install_home_screen_text
 import com.jacekgajek.kapelusz.app.generated.install_not_now
 import com.jacekgajek.kapelusz.app.platform.WebHint
 import com.jacekgajek.kapelusz.app.platform.WebInstallState
-import com.jacekgajek.kapelusz.app.platform.PLAY_LISTING
+import com.jacekgajek.kapelusz.app.platform.PLAY_INSTALL
 import com.jacekgajek.kapelusz.app.platform.appReloader
 import com.jacekgajek.kapelusz.app.platform.webHint
 import com.jacekgajek.kapelusz.app.platform.webInstallState
@@ -78,7 +78,7 @@ internal fun WebInstallHint(eventList: Boolean, modifier: Modifier = Modifier) {
             when (hint) {
                 is WebHint.NewVersion -> if (reload != null) TextButton(onClick = reload) { Text(stringResource(Res.string.app_update_download)) }
                 // From Google Play only (ITERATION_7 §1.1).
-                WebHint.AndroidApp -> TextButton(onClick = { uriHandler.openUri(PLAY_LISTING) }) { Text(stringResource(Res.string.app_banner_download)) }
+                WebHint.AndroidApp -> TextButton(onClick = { uriHandler.openUri(PLAY_INSTALL) }) { Text(stringResource(Res.string.app_banner_download)) }
                 WebHint.HomeScreen -> Unit
             }
             IconButton(onClick = { dismissedThisVisit = dismissedThisVisit + hint }) {

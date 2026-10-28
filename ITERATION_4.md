@@ -167,7 +167,7 @@ collected money, as today).
   list).
 - **Reminder:** to the lead who recorded the fee (if they are no longer a lead: to the event's leads), 14, 28, 42 and
   56 days after the gig, with the debt reminders' setting: "The organiser still owes 3000 zł". *(Gone since ITERATION_6 §9: no notifications.)*
-- **Who:** leads record awaited fees and mark them received.
+- **Who:** leads record awaited fees and mark them received. (Since ITERATION_7 §2d, who it was paid to marks it received too.)
 - **Buttons** (2026-10-23): under the awaited entry, laid out like Include / Refuse: **"Paid" / "Zapłacili"** (the
   Received dialog) and a red **"Welched" / "Wydymali"** (deliberately informal), which removes the entry after a
   confirmation.

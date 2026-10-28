@@ -14,6 +14,9 @@ import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
+import com.jacekgajek.kapelusz.ops.Change
+import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetTreasurer
@@ -81,16 +84,23 @@ class AwaitedFeeTest {
     }
 
     @Test
-    fun onlyLeadsRecordAndReceiveIt() {
+    fun leadsRecordItAndWhoGotItReceivesIt() {
         val scenario = gig()
         val bob = scenario.userFor("bob", Role.MEMBER)
         val alice = scenario.userFor("alice", Role.OWNER)
         scenario.userFor("carol", Role.ARTIST)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddHolding("gig", "f2", ORGANISER, pln("1"), CONTRACT), bob).reason)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "bob", pln("1")), bob).reason)
+        // Paid to Bob: he says it arrived (ITERATION_7 §2d), but not that someone else got it.
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("1")), bob).reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1")), bob).reason)
+        scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("1")), bob)
         assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("1")), alice).reason)
         scenario.apply(AddHolding("gig", "f2", ORGANISER, pln("100"), CONTRACT), alice)
         assertEquals("alice", scenario.band.event("gig")!!.holdings.single { it.id == "f2" }.recordedBy, "the lead to remind")
+        // Received by Bob, it is still the lead's record: he can't make the fee or its contract vanish.
+        scenario.apply(ReceiveAwaited("gig", "f2", "f2-bob", "bob", pln("100")), bob)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RemoveHolding("gig", "f2-bob"), bob).reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(UpdateHolding("gig", "f2-bob", amount = Change(pln("2"))), bob).reason)
         assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(ReceiveAwaited("gig", "door", "x", "alice", pln("1"))).reason, "not an awaited fee")
     }
 

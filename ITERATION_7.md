@@ -16,7 +16,8 @@ Pass the Hat goes to Google Play, which since 2026-10-27 is the only place the A
   update strip, Support me! (Q5) and notifications (Firebase Messaging's `POST_NOTIFICATIONS` is removed). "Update
   required" opens the Play listing. A phone that came from the APK has the updater's leftovers (scheduled checks, its
   notification channel, a downloaded APK) cleaned up at start (`ApkLeftovers`).
-- **The website** offers no APK: the web app's install hint links to the Play listing. `version.json` is still written
+- **The website** offers no APK: the web app's install hint links to Google Play (joining the closed test until it is
+  public, §1.5). `version.json` is still written
   by every deploy, for the web app's "a new version: reload". The old `/download/kapelusz.apk` is removed by hand.
 - **Not on Play yet** (closed test): testers join the testers' Google Group, then the opt-in link; anyone else uses the
   web app meanwhile.
@@ -59,9 +60,11 @@ Pass the Hat goes to Google Play, which since 2026-10-27 is the only place the A
 
 ### 1.5 The website (Q7)
 
-- No APK anywhere (§1.1). The web app's install hint ("Get the app") links to the Play listing, shown only once anyone
-  can install it there: `PLAY_PUBLIC` in `platform/Updates.kt`, false during the closed test (the listing is "not
-  found" for everyone but the testers), **set to true at the production release**.
+- No APK anywhere (§1.1). The web app's install hint ("Get the app") links to the Play listing once anyone can install
+  it there: `PLAY_PUBLIC` in `platform/Updates.kt`, **set to true at the production release**. During the closed test
+  (the listing is "not found" for everyone but the testers) it links to joining the test,
+  play.google.com/apps/testing/com.jacekgajek.kapelusz (2026-10-28; before, it wasn't shown at all). That works only
+  for an account in the testers' Google Group: anyone else sees Play's "not available" and keeps using the web app.
 
 ## 1a. The sync icon (2026-10-27)
 
@@ -202,6 +205,40 @@ what they were paid too much). A pair's transfer counts as the artist's own part
 partner receives for the pair stays "Kept for you by …" in the payout. The server already sends artists the whole band
 (the app hides the rest), so only the app and the shared permission changed.
 
+## 2d. Fewer messages to a leader (2026-10-28)
+
+Who knows something happened records it, instead of telling a leader (a search after §2c; the user picked these four):
+
+1. **Taking back your own transfer.** Whoever recorded a transfer (Paid, Received, Hand over money) may remove it from
+   Recorded transfers, e.g. a Paid tapped by mistake after the Undo is gone; leads any, as before. Undo from History of
+   a transfer still needs a lead (ITERATION_2 §7.2).
+2. **An organiser's fee arriving.** Who it was paid to marks it received (Paid on the awaited fee), and the fund's holder
+   for the fund; leads for anyone, as before. Recording an awaited fee stays with leads (ITERATION_4 §2.2). The money
+   received stays the lead's record: who received it can't edit or remove it, nor its contract (only collected money
+   one recorded oneself is one's own to change).
+3. **The treasurer keeps the fund's ledger.** The fund's holder adds, edits and removes its plain entries (since §2e
+   only money paid in, e.g. membership fees; money out refunds a cost). Refunding a cost from the fund decides about someone's cost, so it stays with leads, and so do
+   entries that refund one.
+4. **A forgotten receipt.** A cost's owner adds and renames its files after it is locked (refunded at an event with
+   transfers): a file changes no money. Removing one (Undo of adding it too), and changing the cost, stays locked.
+
+## 2e. Who paid into the band fund (grilled 2026-10-28)
+
+- **Entries:** money paid in names who paid it: a member (artists too), or **Outside the band** ("Spoza zespołu", e.g.
+  a sponsor). It defaults to whoever adds it. **Money leaves the fund only to refund a cost** (the Reducer refuses a
+  plain withdrawal): strings bought from the fund are a member's cost, refunded from it. An entry keeps its direction;
+  its payer can change. Old plain withdrawals stay as they are (deleted, not edited; the Summary counts them under Outside the band). A member who paid in can't be deleted (§2a).
+- **Adding:** "Paid by" is a dropdown (members, then Outside the band) with a People button beside it: a list to tick
+  several people, e.g. this month's membership fee (składka), each then getting their own entry for the same amount
+  (the amount is per person; the total is shown). Money out picks a cost waiting for a refund, with a + beside it
+  that adds a cost and comes back to refund it. Leads add both; the treasurer (§2d) only money paid in.
+- **The Fund tab:** one list, events' money and entries together, by date (an event's before entries on its day),
+  newest first or oldest first by a toggle the device remembers (entries on a day in the order added, either way). Entries say "from Bob", "from outside the band" or
+  "refund to Bob".
+- **Summary:** "Into the fund" and "Out of the fund" open into who paid in (members, Outside the band, From events)
+  and whose costs it refunded (and For events, what it added to an event). "To the band fund" stays as it is. Seen by
+  everyone who sees the band's numbers (not artists, ITERATION_4 §1.1).
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -212,7 +249,7 @@ partner receives for the pair stays "Kept for you by …" in the payout. The ser
 - [ ] (User) The app in the Console, the signing key, the first upload, the testers' group, 14 days
 - [x] Google Play only (§1.1, 2026-10-27): one Android build, no APK on the website, the install hint to Play
 - [ ] (User) Remove the old `/download/kapelusz.apk` from the web bucket
-- [ ] At the production release: `PLAY_PUBLIC = true` (the web suggests the app on Play again)
+- [ ] At the production release: `PLAY_PUBLIC = true` (the web links to the listing instead of joining the test)
 
 Old apps need nothing for V7-M2/M3: they don't register and keep polling every 30 s. No minimum version.
 
@@ -239,6 +276,14 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 - [x] To settle on the artist's Money page, their own transfers only, with BLIK when they pay
 - [x] Paid / Received / Part on them; RecordTransfer of one's own from artists up
+
+### Fewer messages to a leader (§2d)
+
+- [x] Removing one's own transfer; receiving an awaited fee paid to oneself; the treasurer's fund entries; receipts on a locked cost
+
+### Who paid into the band fund (§2e)
+
+- [x] Payer on entries, money out only for a cost; several people at once; one sorted list; the Summary breakdown
 
 ### Updates from Google Play in the app (§2b)
 
@@ -270,3 +315,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   hidden from them (ITERATION_4 §1.1).
 - 2026-10-28: Artists record their own transfers (§2c): an artist paying another artist otherwise needed two people to
   pass the word to a lead.
+- 2026-10-28: Fewer messages to a leader (§2d): four things the person involved knows are theirs to record. Refunding a
+  cost from the fund, recording an awaited fee and undoing from History stay with leads.
+- 2026-10-28: Money leaves the band fund only to refund a cost (§2e), rather than also as plain withdrawals: every
+  withdrawal has an owner, so the Summary's breakdown always adds up.
+- 2026-10-28: Several payers through a People list beside the dropdown (§2e), rather than chips: most entries are one
+  person's.
+- 2026-10-28: The web links to joining the closed test (§1.5) rather than showing no app link until production.

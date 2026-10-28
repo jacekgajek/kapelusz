@@ -18,6 +18,8 @@ import com.jacekgajek.kapelusz.app.generated.h_add_cost
 import com.jacekgajek.kapelusz.app.generated.h_redo
 import com.jacekgajek.kapelusz.app.generated.h_undo
 import com.jacekgajek.kapelusz.app.generated.h_add_fund_entry
+import com.jacekgajek.kapelusz.app.generated.h_add_fund_entry_outside
+import com.jacekgajek.kapelusz.app.generated.h_add_fund_entry_from
 import com.jacekgajek.kapelusz.app.generated.h_add_guest
 import com.jacekgajek.kapelusz.app.generated.h_add_holding
 import com.jacekgajek.kapelusz.app.generated.h_add_member
@@ -191,7 +193,12 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
             stringResource(Res.string.h_set_refund, money(op.amount), event(op.eventId))
         }
         is SetFundAmount -> stringResource(Res.string.h_set_fund_amount, money(op.amount), event(op.eventId))
-        is AddFundEntry -> stringResource(Res.string.h_add_fund_entry, op.description, money(op.amount))
+        is AddFundEntry -> when {
+            // Who paid it in (ITERATION_7 §2e); a refund names its cost's owner on the fund's page.
+            op.paidBy != null -> stringResource(Res.string.h_add_fund_entry_from, op.description, money(op.amount), member(op.paidBy!!))
+            op.amount.isPositive -> stringResource(Res.string.h_add_fund_entry_outside, op.description, money(op.amount))
+            else -> stringResource(Res.string.h_add_fund_entry, op.description, money(op.amount))
+        }
         is UpdateFundEntry -> stringResource(Res.string.h_edit_fund_entry)
         is RemoveFundEntry -> stringResource(Res.string.h_remove_fund_entry)
         is RecordTransfer -> stringResource(

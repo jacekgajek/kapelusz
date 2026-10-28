@@ -176,6 +176,7 @@ internal object Undoing {
             if (CostLedger.outstanding(band, cost).isNegative) add("cost ${cost.id} refunded more than its amount")
         }
         band.fundEntries.forEach { entry -> entry.costId?.let { if (it !in costs) add("cost of fund entry ${entry.id}") } }
+        band.fundEntries.forEach { entry -> entry.paidBy?.let { if (it !in memberIds) add("payer of fund entry ${entry.id}") } }
     }
 
     /**

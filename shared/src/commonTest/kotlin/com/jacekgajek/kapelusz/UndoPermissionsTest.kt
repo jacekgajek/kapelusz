@@ -59,13 +59,19 @@ class UndoPermissionsTest {
     }
 
     @Test
-    fun attachmentsOfALockedCostNeedALead() {
-        // Refunded in an event with transfers: the owner of the cost can no longer change it, nor its attachments.
+    fun aLockedCostTakesMoreReceiptsButKeepsItsFiles() {
+        // Refunded in an event with transfers: the owner of the cost can no longer change it nor remove its files, but
+        // still adds a forgotten receipt (ITERATION_7 §2d).
         scenario.apply(SetRefund("gig", "c-member", pln("50")))
             .apply(AddHolding("gig", "h", "owner", pln("300"), DOOR))
             .apply(RecordTransfer("gig", "t", "owner", "member", pln("10")))
-        assertFalse(allowed(member, AddAttachment("c-member", photo)))
+        assertTrue(allowed(member, AddAttachment("c-member", photo)))
         assertFalse(allowed(member, RemoveAttachment("c-member", "a1")))
+        assertFalse(allowed(member, AddAttachment("c-owner", photo)), "not someone else's")
+        // Undoing an added file removes it: refused like removing it.
+        val undoAdd = recorded(AddAttachment("c-member", photo.copy(id = "a3")))
+        assertFalse(allowed(member, undoAdd))
+        assertTrue(allowed(lead, undoAdd))
         assertTrue(allowed(lead, AddAttachment("c-member", photo)))
     }
 

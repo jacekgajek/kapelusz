@@ -88,6 +88,9 @@ import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.KapeluszJson
@@ -108,6 +111,8 @@ fun CostScreen(
     costId: String?,
     onBack: () -> Unit,
     onAddedForOther: () -> Unit = {},
+    /** A new cost saved, with its id. */
+    onAdded: (String) -> Unit = {},
     /** A new cost "incurred for" this event, from the event's Cost refunds (ITERATION_2 §7). */
     forEventId: String? = null,
     /** An event the cost is refunded at, opened at its Money page. */
@@ -161,6 +166,7 @@ fun CostScreen(
             actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
                 .also { if (it) graph.attachments.attachAfterSave(id, drafts) }
                 .also { if (it && paidBy != state.me?.id) onAddedForOther() }
+                .also { if (it) onAdded(id) }
         } else {
             actions.run(
                 UpdateCost(
@@ -263,7 +269,8 @@ fun CostScreen(
                     attachments = existing?.attachments.orEmpty(),
                     drafts = drafts,
                     onDrafts = { drafts = it },
-                    editable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
+                    editable = existing == null || Permissions.isAllowed(band, actor, AddAttachment(existing.id, Attachment("probe", AttachmentKind.IMAGE))),
+                    removable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
                     actions = actions,
                     undoRemoval = true,
                 )

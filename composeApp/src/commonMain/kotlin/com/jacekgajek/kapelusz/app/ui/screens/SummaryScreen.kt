@@ -28,6 +28,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import com.jacekgajek.kapelusz.app.ui.model.FundSource
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +52,9 @@ import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.fund_outside
+import com.jacekgajek.kapelusz.app.generated.summary_fund_for_events
+import com.jacekgajek.kapelusz.app.generated.fund_from_events
 import com.jacekgajek.kapelusz.app.generated.back
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
@@ -231,8 +239,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)
             summary.fund?.let { fund ->
                 SummaryHeader(stringResource(Res.string.band_fund))
-                AmountRow(Res.string.summary_fund_in, fund.into, currency, 0)
-                AmountRow(Res.string.summary_fund_out, fund.out, currency, 1)
+                // Each opens into who paid in, or whose costs it refunded (ITERATION_7 §2e).
+                FundBreakdownRow(Res.string.summary_fund_in, fund.into, fund.intoBy, Res.string.fund_from_events, currency, 0)
+                FundBreakdownRow(Res.string.summary_fund_out, fund.out, fund.outBy, Res.string.summary_fund_for_events, currency, 1)
                 AmountRow(Res.string.summary_fund_balance, fund.balance, currency, 2)
             }
         }
@@ -301,6 +310,37 @@ private fun Modifier.stripe(index: Int, inside: Modifier = Modifier): Modifier {
 @Composable
 private fun AmountRow(label: StringResource, amount: Money, currency: String, index: Int, indent: Boolean = false) =
     ValueRow(stringResource(label), formatMoney(amount, currency, language), index, indent)
+
+/** A fund total that opens into its parts, one per [FundSource]; [events] names the events' part. */
+@Composable
+private fun FundBreakdownRow(label: StringResource, amount: Money, parts: List<Pair<FundSource, Money>>, events: StringResource, currency: String, index: Int) {
+    var open by rememberSaveable(label.key) { mutableStateOf(false) }
+    val lang = language
+    Column(Modifier.stripe(index)) {
+        Row(
+            Modifier.fillMaxWidth().clickable(enabled = parts.isNotEmpty()) { open = !open }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(label), Modifier.weight(1f))
+            Text(formatMoney(amount, currency, lang))
+            if (parts.isNotEmpty()) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, Modifier.padding(start = 4.dp).size(20.dp))
+        }
+        if (open) parts.forEach { (source, part) ->
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 2.dp, bottom = 2.dp)) {
+                Text(
+                    when (source) {
+                        is FundSource.Of -> source.member.name
+                        FundSource.Outside -> stringResource(Res.string.fund_outside)
+                        FundSource.Events -> stringResource(events)
+                    },
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(formatMoney(part, currency, lang), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
 
 /** A label and its value, [index] in its block (see [stripe]); [indent]: a part of the row above. */
 @Composable

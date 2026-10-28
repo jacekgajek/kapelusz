@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
@@ -96,7 +97,7 @@ object Permissions {
     private fun requiredRole(band: Band, me: Member, op: Operation): Role = when (op) {
         // Undo is allowed to whoever may make the original change (ITERATION_2 §7.2), and the reverse one where that
         // needs more: a member may record their own transfer, but only leads remove transfers.
-        is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(op.original))
+        is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(band, me, op.original))
         is TransferOwnership -> Role.OWNER
 
         is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,
@@ -104,14 +105,23 @@ object Permissions {
         -> Role.LEAD
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
-        is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount, is AddFundEntry,
-        is UpdateFundEntry, is RemoveFundEntry, is RemoveTransfer, is ReceiveAwaited,
+        is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount,
         is SetMemberShare,
         -> Role.LEAD
 
+        // The treasurer keeps the fund's ledger (ITERATION_7 §2d): they hold its money. Refunding a cost from it decides
+        // about someone's cost, so stays with leads.
+        is AddFundEntry -> fundEntry(band, me, op.costId)
+        is UpdateFundEntry -> band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD
+        is RemoveFundEntry -> band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD
+        // Who recorded a transfer takes it back, e.g. a Paid tapped by mistake (ITERATION_7 §2d); leads any.
+        is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null && it == me.id }, Role.ARTIST)
+        // An organiser's fee paid to someone: they say it arrived (ITERATION_7 §2d), the treasurer for the fund.
+        is ReceiveAwaited -> ownIf(ownsParty(band, me, op.partyId))
+
         is AddHolding -> ownIf(op.partyId == me.id && band.event(op.eventId)?.participant(me.id) != null)
-        is UpdateHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
-        is RemoveHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
+        is UpdateHolding -> ownIf(ownHolding(band, me, op.eventId, op.holdingId))
+        is RemoveHolding -> ownIf(ownHolding(band, me, op.eventId, op.holdingId))
 
         // Either partner settles a pair's transfer (ITERATION_5 §7). Artists too mark their own as paid or received
         // (ITERATION_7 §2c), only as themselves: a pair's transfer is split by what each holds, so it could move their
@@ -132,9 +142,9 @@ object Permissions {
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
         is UpdateCost -> ownCost(band, me, op.costId)
         is DeleteCost -> ownCost(band, me, op.costId)
-        is AddAttachment -> ownAttachments(band, me, op.owner)
+        is AddAttachment -> ownAttachments(band, me, op.owner, adding = true)
         is RemoveAttachment -> ownAttachments(band, me, op.owner)
-        is RenameAttachment -> ownAttachments(band, me, op.owner)
+        is RenameAttachment -> ownAttachments(band, me, op.owner, adding = true)
     }
 
     /** Whom [me] settles together with in this event: only where both take part (ITERATION_5 §7). */
@@ -152,9 +162,11 @@ object Permissions {
         else -> null
     }
 
-    private fun reverseRole(op: Operation): Role = when (op) {
+    private fun reverseRole(band: Band, me: Member, op: Operation): Role = when (op) {
         is RecordTransfer, is SettleSuggestions -> Role.LEAD
-        is Undo -> reverseRole(op.original)
+        // Taking a file back removes it: a locked cost's owner adds receipts but removes none (ITERATION_7 §2d).
+        is AddAttachment -> requiredRole(band, me, RemoveAttachment(op.owner, op.attachment.id))
+        is Undo -> reverseRole(band, me, op.original)
         else -> Role.VIEWER
     }
 
@@ -165,12 +177,23 @@ object Permissions {
     private fun ownIf(isOwn: Boolean, own: Role = Role.MEMBER) = if (isOwn) own else Role.LEAD
 
     /**
-     * Files follow what they belong to (ITERATION_4 §2.1): a cost's as the cost, a collected entry's as the entry (its
-     * holder, or leads), the event's as the event (leads).
+     * Money [me] holds and recorded (or nobody did, before that was kept): not what a lead recorded for them, e.g. a fee
+     * they received, which keeps the lead's record and its contract (ITERATION_7 §2d).
      */
-    private fun ownAttachments(band: Band, me: Member, owner: AttachmentOwner): Role = when (owner) {
-        is AttachmentOwner.OfCost -> ownCost(band, me, owner.costId)
-        is AttachmentOwner.OfHolding -> ownIf(band.event(owner.eventId)?.holdings?.firstOrNull { it.id == owner.holdingId }?.partyId == me.id)
+    private fun ownHolding(band: Band, me: Member, eventId: Id, holdingId: Id): Boolean =
+        band.event(eventId)?.holdings?.firstOrNull { it.id == holdingId }?.let { it.partyId == me.id && (it.recordedBy == null || it.recordedBy == me.id) } == true
+
+    /** The fund's holder for a plain entry; leads for any, and for one refunding a cost. */
+    private fun fundEntry(band: Band, me: Member, costId: Id?) = ownIf(band.treasurerMemberId == me.id && costId == null)
+
+    /**
+     * Files follow what they belong to (ITERATION_4 §2.1): a cost's as the cost, a collected entry's as the entry (its
+     * holder, or leads), the event's as the event (leads). [adding] (or renaming) a receipt to one's own cost stays
+     * allowed once it is locked (ITERATION_7 §2d): a file changes no money; removing one doesn't.
+     */
+    private fun ownAttachments(band: Band, me: Member, owner: AttachmentOwner, adding: Boolean = false): Role = when (owner) {
+        is AttachmentOwner.OfCost -> if (adding && band.cost(owner.costId)?.memberId == me.id) Role.ARTIST else ownCost(band, me, owner.costId)
+        is AttachmentOwner.OfHolding -> ownIf(ownHolding(band, me, owner.eventId, owner.holdingId))
         is AttachmentOwner.OfEvent -> Role.LEAD
     }
 

@@ -31,6 +31,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -93,6 +95,8 @@ fun AttachmentsSection(
     onDrafts: (List<PreparedFile>) -> Unit,
     editable: Boolean,
     actions: Actions,
+    /** Saved files may be removed; [editable] alone adds and renames (a locked cost's receipt, ITERATION_7 §2d). */
+    removable: Boolean = editable,
     max: Int = MAX_ATTACHMENTS,
     hint: StringResource = Res.string.attachment_hint,
     title: String? = stringResource(Res.string.attachments),
@@ -161,7 +165,13 @@ fun AttachmentsSection(
         if (images.isNotEmpty() || imageDrafts.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 images.forEach { attachment ->
-                    key(attachment.id) { AttachmentThumbnail(graph, attachment, THUMBNAIL) { viewing = viewable.indexOf(attachment) } }
+                    key(attachment.id) {
+                        // Removed by its X in the corner, as the photos not saved yet (opening it first was a detour).
+                        Box {
+                            AttachmentThumbnail(graph, attachment, THUMBNAIL) { viewing = viewable.indexOf(attachment) }
+                            if (removable) ThumbnailRemoveButton(attachment.fileName ?: attachment.id, Modifier.align(Alignment.TopEnd)) { remove(attachment) }
+                        }
+                    }
                 }
                 imageDrafts.forEach { draft -> key(draft) { DraftThumbnail(draft, onRemove = { onDrafts(drafts - draft) }.takeIf { editable }) } }
             }
@@ -174,7 +184,7 @@ fun AttachmentsSection(
                 attachment.sizeBytes,
                 status = if (uploading) stringResource(Res.string.attachment_uploading) else null,
                 onOpen = { if (pdfInViewer) viewing = viewable.indexOf(attachment) else openInBrowser(attachment) },
-                onRemove = { remove(attachment) }.takeIf { editable },
+                onRemove = { remove(attachment) }.takeIf { removable },
                 onRename = { renaming = attachment }.takeIf { editable },
             )
         }
@@ -209,7 +219,7 @@ fun AttachmentsSection(
         AttachmentViewer(
             graph, viewable, start,
             onRename = { attachment: Attachment -> renaming = attachment }.takeIf { editable },
-            onRemove = { attachment: Attachment -> remove(attachment) }.takeIf { editable },
+            onRemove = { attachment: Attachment -> remove(attachment) }.takeIf { removable },
             onOpenElsewhere = openInBrowser,
             onDismiss = { viewing = null },
         )
@@ -269,10 +279,16 @@ internal fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?, size: 
             if (bytes != null) BytesImage(bytes, "draft-${draft.base64.hashCode()}-${draft.sizeBytes}", ContentScale.Crop, Modifier.fillMaxSize())
             else Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (onRemove != null) {
-            IconButton(onClick = onRemove, modifier = Modifier.align(Alignment.TopEnd).size(32.dp)) {
-                Icon(Icons.Default.Close, removeLabel(draft.fileName), Modifier.size(18.dp))
-            }
+        if (onRemove != null) ThumbnailRemoveButton(draft.fileName, Modifier.align(Alignment.TopEnd), onRemove)
+    }
+}
+
+/** The X in a thumbnail's top-right corner, on a round backing so it shows on any photo. */
+@Composable
+private fun ThumbnailRemoveButton(name: String, modifier: Modifier, onRemove: () -> Unit) {
+    IconButton(onClick = onRemove, modifier = modifier.size(32.dp)) {
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
+            Icon(Icons.Default.Close, removeLabel(name), Modifier.padding(2.dp).size(18.dp))
         }
     }
 }

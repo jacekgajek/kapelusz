@@ -17,6 +17,7 @@ object MemberDeletion {
         if (member.settlesWith != null || member.invitedToSettle != null) return false
         if (band.members.any { it.settlesWith == member.id || it.invitedToSettle == member.id }) return false
         if (band.costs.any { it.memberId == member.id }) return false
+        if (band.fundEntries.any { it.paidBy == member.id }) return false
         return band.events.none { event ->
             event.participant(member.id) != null ||
                 event.participants.any { it.addedBy == member.id } ||
