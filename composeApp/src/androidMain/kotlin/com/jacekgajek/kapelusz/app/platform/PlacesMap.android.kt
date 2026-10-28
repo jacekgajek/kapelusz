@@ -1,12 +1,5 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
-import androidx.compose.ui.platform.LocalDensity
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,17 +48,13 @@ actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Pl
         // Places a few metres apart: not closer than one place alone.
         if (camera.position.zoom > SINGLE_ZOOM) camera.move(CameraUpdateFactory.zoomTo(SINGLE_ZOOM))
     }
-    val density = LocalDensity.current.density
     GoogleMap(modifier = modifier, cameraPositionState = camera, contentPadding = PaddingValues(bottom = bottomInset), onMapLoaded = { loaded = true }) {
-        // Made inside the map: a bitmap descriptor needs Maps initialised.
-        val upcomingPin = remember(density) { greyPin(density) }
         places.forEach { place -> key(place.latitude, place.longitude) {
-            // Just pins: the text shows only for the one tapped. Red where we played, grey where we only will (§2f).
+            // Just pins: the text shows only for the one tapped.
             Marker(
                 state = rememberUpdatedMarkerState(LatLng(place.latitude, place.longitude)),
                 title = place.title,
                 snippet = pluralStringResource(Res.plurals.played_concerts, place.events.size, place.events.size),
-                icon = if (place.upcoming) upcomingPin else null,
                 onInfoWindowClick = { onPlace(place) },
             )
         } }
@@ -75,28 +64,6 @@ actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Pl
 private const val SINGLE_ZOOM = 15f
 /** Room around the markers, the bottom one clear of the status panel over the map. */
 private const val EDGE_PX = 160
-
-/** The standard pin's droplet in grey, with its dot: a gig still to come. */
-private fun greyPin(density: Float): BitmapDescriptor {
-    val width = (27 * density).toInt()
-    val height = (43 * density).toInt()
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val radius = width / 2f
-    // One outline: a circle and a triangle as one path would cancel where they overlap (opposite windings).
-    val circle = Path().apply { addCircle(radius, radius, radius - density, Path.Direction.CW) }
-    val point = Path().apply {
-        moveTo(radius * 0.25f, radius * 1.45f)
-        lineTo(radius * 1.75f, radius * 1.45f)
-        lineTo(radius, height - density)
-        close()
-    }
-    val droplet = Path().apply { op(circle, point, Path.Op.UNION) }
-    canvas.drawPath(droplet, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF9E9E9E.toInt() })
-    canvas.drawPath(droplet, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF616161.toInt(); style = Paint.Style.STROKE; strokeWidth = density })
-    canvas.drawCircle(radius, radius, radius * 0.35f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF424242.toInt() })
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
-}
 
 /** Where the band played, before the map can be fitted to it exactly: the middle of the places, at a zoom for their spread. */
 private fun roughly(places: List<PlayedPlaces.Place>): CameraPosition {

@@ -61,7 +61,6 @@ import com.jacekgajek.kapelusz.app.generated.played_missing
 import com.jacekgajek.kapelusz.app.generated.played_missing_hint
 import com.jacekgajek.kapelusz.app.generated.played_show_on_map
 import com.jacekgajek.kapelusz.app.generated.played_title
-import com.jacekgajek.kapelusz.app.generated.played_upcoming
 import com.jacekgajek.kapelusz.app.platform.PlacesMap
 import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -85,7 +84,7 @@ fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, on
     val (from, to) = graph.settings.settings.collectAsState().value.summaryPeriod(band.id).range(today)
     val events = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     val located by produceState(LocatedPlaces(pending = -1), band.id) { graph.places.locate(band.id).collect { value = it } }
-    val (places, missing) = remember(events, located) { PlayedPlaces.places(events, today) { located.coordinates[PlayedPlaces.key(it)] } }
+    val (places, missing) = remember(events, located) { PlayedPlaces.places(events) { located.coordinates[PlayedPlaces.key(it)] } }
     // Not found: Google said so. The rest without coordinates: still being looked up, or not placed (offline, not sent yet).
     val (notFound, unplaced) = missing.partition { event -> event.location?.let { PlayedPlaces.key(it) in located.notFound } == true }
     val finding = located.finding && unplaced.isNotEmpty()
@@ -178,8 +177,7 @@ private fun PlaceDetails(place: PlayedPlaces.Place, onOpenEvent: (String) -> Uni
             Text(stringResource(Res.string.played_show_on_map))
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        val today = today()
-        place.events.forEach { ConcertRow(it, stringResource(Res.string.played_upcoming).takeIf { _ -> it.date > today }, onOpenEvent) }
+        place.events.forEach { ConcertRow(it, null, onOpenEvent) }
     }
 }
 

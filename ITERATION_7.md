@@ -244,11 +244,8 @@ Who knows something happened records it, instead of telling a leader (a search a
 - **Where:** Summary's last row, "Where we played · 12 places", for the Summary's period; it opens a map (Android) or
   a list (the web, which has no map; each place there opens in Google Maps).
 - **Which concerts:** every event of the period already played (date ≤ today), settled or not, archived too, with a
-  location, and every gig still to come, in any period (the periods end today, so none would show them). An artist
-  sees only theirs.
-- **Places:** concerts whose coordinates match to about 10 m (4 decimals) are one marker: Google's red pin where we
-  played, a grey one where we only will (a place with both is red; its sheet says "upcoming" beside the gigs to come).
-  A marker is just a pin;
+  location; gigs still to come never (tried as grey pins, dropped the same day). An artist sees only theirs.
+- **Places:** concerts whose coordinates match to about 10 m (4 decimals) are one marker (Google's red pin). A marker is just a pin;
   tapped, its bubble says the place (the newest concert's location up to its first comma) and "3 concerts", and opens a
   sheet with the full address and the concerts, each opening its event. Fitted to all markers; one place up close. No
   clustering.
