@@ -512,6 +512,12 @@
     <string name="delete_band">Usuń zespół</string>
     <string name="delete_band_title">Usunąć zespół %1$s?</string>
     <string name="delete_band_everything">Wszystkie wydarzenia, koszty, zwroty, przelewy, kasa zespołowa, załączniki i historia zostaną usunięte dla wszystkich.</string>
+    <plurals name="settings_member_count">
+        <item quantity="one">%1$d osoba</item>
+        <item quantity="few">%1$d osoby</item>
+        <item quantity="many">%1$d osób</item>
+        <item quantity="other">%1$d osoby</item>
+    </plurals>
     <plurals name="delete_band_members">
         <item quantity="one">%1$d inny członek od razu straci dostęp.</item>
         <item quantity="few">%1$d inni członkowie od razu stracą dostęp.</item>

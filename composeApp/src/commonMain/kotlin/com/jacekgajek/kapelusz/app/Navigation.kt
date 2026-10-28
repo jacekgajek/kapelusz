@@ -237,6 +237,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     }.orEmpty(),
                     onOpenMembers = { navController.navigate(RosterRoute()) },
                     otherMembers = state.band.members.count { it.userId != null && it.userId != state.userId },
+                    memberCount = state.band.members.count { !it.archived },
                     artist = artist,
                     // The secret menu (ITERATION_2 §7.1), for the band's leaders.
                     rawData = suspend { graph.api.rawState(state.band.id) }.takeIf { state.me?.role?.atLeast(Role.LEAD) == true },

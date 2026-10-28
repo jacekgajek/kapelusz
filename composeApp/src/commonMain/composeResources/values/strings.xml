@@ -512,6 +512,10 @@
     <string name="delete_band">Delete band</string>
     <string name="delete_band_title">Delete %1$s?</string>
     <string name="delete_band_everything">All its events, costs, refunds, transfers, the band fund, attachments and history are deleted for everyone.</string>
+    <plurals name="settings_member_count">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
     <plurals name="delete_band_members">
         <item quantity="one">%1$d other member loses access right away.</item>
         <item quantity="other">%1$d other members lose access right away.</item>
