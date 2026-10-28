@@ -83,6 +83,8 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
+    /** What new events put into the band fund (ITERATION_7 §2g); null: nothing. */
+    val fundDefault: FundCut? = null,
     /** Agenda times new events get (ITERATION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
     val agendaTemplate: List<AgendaTemplateItem>? = null,
     /** Highest applied operation sequence number per client install, for idempotent sync. */

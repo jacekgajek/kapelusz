@@ -43,6 +43,7 @@ object Limits {
      */
     fun violation(before: Band, after: Band): Rejection? {
         if (after.name != before.name) text(after.name, MAX_NAME, "Band name")?.let { return it }
+        if (after.fundDefault != before.fundDefault) after.fundDefault?.amount?.let { amount(it, "Band fund default")?.let { r -> return r } }
         count(before.members.size, after.members.size, MAX_MEMBERS, "members")?.let { return it }
         count(before.events.size, after.events.size, MAX_EVENTS, "events")?.let { return it }
         count(before.costs.size, after.costs.size, MAX_COSTS, "costs")?.let { return it }

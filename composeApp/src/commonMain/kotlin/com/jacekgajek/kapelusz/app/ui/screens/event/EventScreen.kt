@@ -18,7 +18,6 @@ import com.jacekgajek.kapelusz.app.generated.attachment_hint_event
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
-import com.jacekgajek.kapelusz.app.generated.fund_amount_to_hint
 import com.jacekgajek.kapelusz.app.generated.fund_direction_from
 import com.jacekgajek.kapelusz.app.generated.fund_direction_to
 import com.jacekgajek.kapelusz.app.generated.tab_gig
@@ -29,6 +28,9 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import kotlin.math.abs
+import com.jacekgajek.kapelusz.model.FundCut
+import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
+import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
 import kotlinx.coroutines.flow.first
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
@@ -394,10 +396,11 @@ private fun Totals(context: EventContext) {
             // Part of the income is a fee the organiser has not paid yet (ITERATION_4 §2.2).
             if (event.awaited.isPositive) TotalRow(stringResource(Res.string.total_awaited), event.awaited, context.currency)
             val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
-            if (!s.fundAmount.isZero || canSetFund) {
+            if (!s.fundAmount.isZero || event.fundPercent != null || canSetFund) {
                 // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
                 TotalRow(
-                    stringResource(if (s.fundAmount.isNegative) Res.string.total_from_fund else Res.string.total_fund),
+                    stringResource(if (s.fundAmount.isNegative) Res.string.total_from_fund else Res.string.total_fund) +
+                        (event.fundPercent?.let { " ($it%)" } ?: ""),
                     -s.fundAmount,
                     context.currency,
                     onEdit = { editingFund = true }.takeIf { canSetFund },
@@ -420,16 +423,21 @@ private fun TotalRow(label: String, amount: Money, currency: String, bold: Boole
 
 /**
  * How much of this event goes to the band fund, or comes from it to top up the payouts. The direction is a choice
- * rather than a minus sign: phone keyboards for amounts often have no minus key.
+ * rather than a minus sign: phone keyboards for amounts often have no minus key. To the fund, it may be a percentage
+ * of the profit instead (ITERATION_7 §2g); from it, always an amount.
  */
 @Composable
 private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
-    val lang = language
-    val current = context.event.fundAmount
-    var fromFund by remember { mutableStateOf(current.isNegative) }
-    var amount by remember { mutableStateOf(if (current.isZero) "" else formatMoneyInput(Money(abs(current.minor)), lang)) }
-    val parsed = if (amount.isBlank()) Money.ZERO else parseMoney(amount)?.takeIf { !it.isNegative }
-    val signed = parsed?.let { if (fromFund) -it else it }
+    val event = context.event
+    var fromFund by remember { mutableStateOf(event.fundAmount.isNegative) }
+    val editor = rememberFundCutEditorState(
+        when {
+            event.fundPercent != null -> FundCut(percent = event.fundPercent)
+            event.fundAmount.isZero -> null
+            else -> FundCut(amount = Money(abs(event.fundAmount.minor)))
+        },
+    )
+    val profit = event.income - context.settlement.refundsTotal
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.band_fund)) },
@@ -442,14 +450,27 @@ private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
                         }
                     }
                 }
-                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
-                Text(stringResource(if (fromFund) Res.string.fund_amount_from_hint else Res.string.fund_amount_to_hint), style = MaterialTheme.typography.bodySmall)
+                if (fromFund) {
+                    // The editor's amount: switching back keeps a percentage chosen before.
+                    MoneyField(editor.amount, { editor.amount = it }, stringResource(Res.string.amount))
+                    Text(stringResource(Res.string.fund_amount_from_hint), style = MaterialTheme.typography.bodySmall)
+                } else {
+                    FundCutEditor(editor, context.currency, profit)
+                }
                 DialogNotice(context.actions)
             }
         },
         confirmButton = {
-            TextButton(enabled = signed != null, onClick = {
-                if (signed == current || context.actions.run(SetFundAmount(context.event.id, signed!!))) onDismiss()
+            val valid = if (fromFund) editor.parsedAmount != null else editor.valid
+            TextButton(enabled = valid, onClick = {
+                val op = when {
+                    fromFund -> SetFundAmount(event.id, -editor.parsedAmount!!)
+                    editor.byPercent -> SetFundAmount(event.id, Money.ZERO, editor.percent)
+                    else -> SetFundAmount(event.id, editor.parsedAmount!!)
+                }
+                // As the reducer stores it: 0% is nothing, like an amount of 0.
+                val unchanged = op.percent?.takeIf { it > 0 } == event.fundPercent && (if (op.percent != null) Money.ZERO else op.amount) == event.fundAmount
+                if (unchanged || context.actions.run(op)) onDismiss()
             }) { Text(stringResource(Res.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

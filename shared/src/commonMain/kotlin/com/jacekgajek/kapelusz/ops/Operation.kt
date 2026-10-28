@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
+import com.jacekgajek.kapelusz.model.FundCut
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.IncomeSource
@@ -123,6 +124,8 @@ data class CreateEvent(
     val participants: List<Participant> = emptyList(),
     /** The band's agenda template at creation time, times not set yet (ITERATION_2 §4.1). */
     val agenda: List<AgendaTime> = emptyList(),
+    /** The band's fund default at creation time (ITERATION_7 §2g); null: nothing to the fund. */
+    val fund: FundCut? = null,
 ) : Operation
 
 /** Replaces an event's agenda times (lead+); last write wins, like other event details. */
@@ -209,7 +212,17 @@ data class RemoveHolding(override val eventId: Id, val holdingId: Id) : Operatio
 data class SetRefund(override val eventId: Id, val costId: Id, val amount: Money) : Operation
 
 @Serializable @SerialName("SetFundAmount")
-data class SetFundAmount(override val eventId: Id, val amount: Money) : Operation
+data class SetFundAmount(
+    override val eventId: Id,
+    /** Ignored when [percent] is set. */
+    val amount: Money,
+    /** A percentage of the profit, 0–100, instead of [amount] (ITERATION_7 §2g); 0 is nothing. */
+    val percent: Int? = null,
+) : Operation
+
+/** The band's fund default for new events (ITERATION_7 §2g), applied to [events] too, as a member's default share is. */
+@Serializable @SerialName("SetFundDefault")
+data class SetFundDefault(val cut: FundCut?, val events: List<Id> = emptyList()) : Operation
 
 @Serializable @SerialName("AddFundEntry")
 data class AddFundEntry(

@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.FundCut
 import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
@@ -16,7 +17,12 @@ import kotlinx.serialization.Serializable
 
 /** The band-wide settings an operation may change, as one value. */
 @Serializable
-data class BandSettings(val name: String, val treasurerMemberId: Id? = null, val agendaTemplate: List<AgendaTemplateItem>? = null)
+data class BandSettings(
+    val name: String,
+    val treasurerMemberId: Id? = null,
+    val agendaTemplate: List<AgendaTemplateItem>? = null,
+    val fundDefault: FundCut? = null,
+)
 
 /**
  * Part of a band: the entities an operation touched, by id (null: it did not exist), and the settings if they changed.
@@ -120,6 +126,7 @@ internal object Undoing {
             name = settings.name,
             treasurerMemberId = settings.treasurerMemberId,
             agendaTemplate = settings.agendaTemplate,
+            fundDefault = settings.fundDefault,
             members = restore(
                 band.members,
                 before.members.mapValues { (id, member) ->
@@ -198,7 +205,7 @@ internal object Undoing {
     }
 }
 
-private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate)
+private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate, fundDefault)
 
 /** A member as undo compares them: without the photo and the pair, which change on their own. */
 private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null, blikPhone = null)

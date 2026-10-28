@@ -261,6 +261,23 @@ Who knows something happened records it, instead of telling a leader (a search a
 - **Limits:** a band's own locations only (at most 25 new a call), but no rate limit per user: anyone may create bands
   full of places. Acceptable for now; failed lookups (quota) aren't kept and are asked again.
 
+## 2g. The band fund as a percentage (grilled 2026-10-28)
+
+- **On an event:** "To the fund" is a fixed amount or a **percentage of the profit** (income less cost refunds),
+  exactly that share, not a weight among the players: 10% of 5000 zł is 500 zł whoever plays. Rounded **down to whole
+  units** of the currency (456.789 → 456), never below 0 (a loss gives the fund nothing). Worked out live, so it follows
+  income and refunds; taken off before fixed shares and weights, as the fixed amount is. "From the fund" is always an
+  amount. Stored as `Event.fundPercent` (`fundAmount` then 0); `SetFundAmount` carries `percent`, 0 being nothing.
+- **The editor:** its own, not the member share one (a share's percentage is a weight; they may part ways in UX later):
+  % or zł; the percentage on a slider of 0–50% in 5% steps; a live "= 500 zł of 5000 zł profit". The model takes
+  0–100. The event's line says "To band fund (10%)".
+- **Band default:** Settings → Band fund → "Default for new events" (leaders, while the fund is on): a percentage, an
+  amount or nothing (`Band.fundDefault`, `SetFundDefault`). New events get it in `CreateEvent`, as members' default
+  shares; changing it asks "Use it in events not settled yet too?" for the unsettled, unarchived events still on the
+  old one. Turning the fund off drops the default and turns percentages into the amounts they came to (one still following
+  income would owe a fund that is off). A default sent after the fund was turned off elsewhere is dropped, not the event. Nothing is remembered
+  per device (tried in the grilling, dropped for the default).
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -312,6 +329,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - [x] The server's cached lookup (DynamoDB, Terraform), the Summary row, the map (Android) and the list (web)
 - [ ] Seen with real lookups once deployed
 
+### The band fund as a percentage (§2g)
+
+- [x] Percentage of the profit on events, the fund editor, the band default with apply-to-unsettled
+
 ### Updates from Google Play in the app (§2b)
 
 - [x] The strip (available, downloading, downloaded), Update required's full-screen update
@@ -353,3 +374,7 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   are, nothing to clear when an address changes; DynamoDB rather than S3, a batch read instead of a file per address.
 - 2026-10-28: The server looks up only the band's own locations (§2f), rather than addresses the app sends: no
   lookups at the band's cost for anything else.
+- 2026-10-28: The fund's percentage is of the profit, exactly (§2g), not a weight beside the players': it means what it
+  says whoever plays. Rounded down to whole units: a round sum to hand over, never more than the percentage.
+- 2026-10-28: A band default for the fund (§2g) instead of remembering the last value per device: shared by the band,
+  like members' default shares.
