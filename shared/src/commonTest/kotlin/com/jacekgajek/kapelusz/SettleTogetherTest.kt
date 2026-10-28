@@ -178,6 +178,20 @@ class SettleTogetherTest {
         assertEquals(emptyList(), own.map { Triple(it.from, it.to, it.amount) })
     }
 
+    /** An artist records only their own transfers as themselves: a pair's is split by what each holds (ITERATION_7 §2c). */
+    @Test
+    fun anArtistInAPairCannotMoveTheirPartnersMoney() {
+        val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+        scenario.apply(SetMemberRole("carol", Role.ARTIST))
+        val carol = scenario.userFor("carol", Role.ARTIST)
+        scenario.apply(AddHolding("gig", "h", "bob", pln("400"), DOOR))
+        for (op in listOf(
+            RecordTransfer("gig", "t1", "bob", "alice", pln("100"), together = true),
+            RecordTransfer("gig", "t2", "carol", "alice", pln("100"), together = true),
+            RecordTransfer("gig", "t3", "dave", "carol", pln("100"), together = true),
+        )) assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(op, carol).reason, "$op")
+    }
+
     @Test
     fun archivingUnlinkingOrViewersEndThePair() {
         for (end in listOf(SetMemberArchived("carol", true), UnlinkUser("carol"), SetMemberRole("carol", Role.VIEWER))) {

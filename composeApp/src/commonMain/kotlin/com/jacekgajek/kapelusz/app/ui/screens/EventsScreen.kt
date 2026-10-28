@@ -366,7 +366,7 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 val number = summary.myNumber
                 when {
                     summary.settlement.status == EventStatus.DRAFT -> {}
-                    // An artist doesn't hand money over: a lead settles what they got too much (V5-M1 C7).
+                    // An artist holds no money: only what they got too much is theirs to hand back (V5-M1 C7, ITERATION_7 §2c).
                     !showStatus && number is MyNumber.HandOver -> Text(
                         stringResource(Res.string.artist_to_hand_back) + ": " + formatMoney(number.amount, band.currency, language),
                         color = MoneyColors.negative,

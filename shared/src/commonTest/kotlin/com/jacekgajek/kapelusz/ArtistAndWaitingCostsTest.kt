@@ -71,6 +71,27 @@ class ArtistAndWaitingCostsTest {
     }
 
     @Test
+    fun artistsMarkTheirOwnTransfersPaidOrReceived() {
+        val scenario = Scenario("Lead", "Alice", "Bob", "Dane").event("gig", "Alice", "Bob", "Dane")
+        val alice = scenario.userFor("alice", Role.MEMBER)
+        val bob = scenario.userFor("bob", Role.ARTIST)
+        val dane = scenario.userFor("dane", Role.ARTIST)
+        scenario.apply(AddHolding("gig", "hat", "alice", pln("300"), DOOR), alice)
+        scenario.apply(SettleSuggestions("gig", "alice"), alice)
+        // Bob's cost, accepted: Alice owes him his refund's share and Dane hands back what he got too much.
+        scenario.apply(AddCost("bobs", "bob", pln("30"), DATE, incurredForEventId = "gig"), bob)
+        scenario.apply(SetRefund("gig", "bobs", pln("30")))
+        val owed = scenario.settle("gig").suggestions.map { Triple(it.from, it.to, it.amount) }
+        assertEquals(listOf(Triple("alice", "bob", pln("10")), Triple("dane", "bob", pln("10"))), owed.sortedBy { it.first })
+
+        // Each artist in it marks it, without a lead; nobody else's.
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "x", "alice", "bob", pln("10")), dane).reason)
+        scenario.apply(RecordTransfer("gig", "t1", "dane", "bob", pln("10")), dane)
+        scenario.apply(RecordTransfer("gig", "t2", "alice", "bob", pln("10")), bob)
+        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
+    }
+
+    @Test
     fun anArtistHandsBackNoMoreThanTheyOwe() {
         val scenario = gig()
         val alice = scenario.userFor("alice", Role.OWNER)
@@ -138,10 +159,11 @@ class ArtistAndWaitingCostsTest {
         assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(AddHolding("gig", "h", "carol", pln("100"), DOOR)).reason)
         assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(SetTreasurer("carol")).reason)
 
-        // They are only paid: someone who collected pays them, and they cannot record it themselves.
+        // They are only paid: someone who collected pays them, and either of the two records it (ITERATION_7 §2c).
         scenario.apply(AddHolding("gig", "h", "alice", pln("300"), DOOR))
         val carol = scenario.userFor("carol", Role.ARTIST)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "t", "alice", "carol", pln("100")), carol).reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "t", "alice", "bob", pln("100")), carol).reason, "not someone else's")
+        scenario.apply(RecordTransfer("gig", "t", "alice", "carol", pln("100")), carol)
     }
 
     @Test
@@ -170,9 +192,9 @@ class ArtistAndWaitingCostsTest {
         assertEquals(pln("400"), CostLedger.maxRefundAt(scenario.band, scenario.band.cost("c")!!, gig), "what Refund here sets")
     }
 
-    /** An artist who ends up owing (overpaid, or owing from before) is settled by a lead; they can't do it themselves. */
+    /** An artist who ends up owing (overpaid, or owing from before) hands it back and records it (ITERATION_7 §2c). */
     @Test
-    fun aLeadSettlesWhatAnArtistOwes() {
+    fun anArtistRecordsWhatTheyHandBack() {
         val scenario = gig().apply(AddHolding("gig", "h", "alice", pln("300"), DOOR))
             .apply(AddCost("c", "carol", pln("50"), DATE)).apply(SetRefund("gig", "c", pln("50"))).apply(SettleSuggestions("gig"))
         val carol = scenario.userFor("carol", Role.ARTIST)
@@ -182,8 +204,8 @@ class ArtistAndWaitingCostsTest {
         scenario.apply(SetRefund("gig", "c", pln("0")), alice)
         val owes = scenario.settle("gig").line("carol")!!.delta
         assertTrue(owes.isPositive, "overpaid: owes some back")
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "back", "carol", "alice", owes), carol).reason)
-        scenario.apply(RecordTransfer("gig", "back", "carol", "alice", owes), alice).apply(SettleSuggestions("gig"))
+        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "more", "carol", "alice", owes + pln("1")), carol).reason)
+        scenario.apply(RecordTransfer("gig", "back", "carol", "alice", owes), carol).apply(SettleSuggestions("gig"))
         assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
     }
 
