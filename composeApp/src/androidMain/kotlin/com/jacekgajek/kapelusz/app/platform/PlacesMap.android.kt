@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraMoveStartedReason
@@ -30,7 +31,9 @@ import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
 actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Place) -> Unit, modifier: Modifier) {
-    val camera = rememberCameraPositionState()
+    // Opens roughly where the places are (Poland while none are known): Maps' own start, over the Americas, would
+    // flash before the fit below.
+    val camera = rememberCameraPositionState { position = roughly(places) }
     var loaded by remember { mutableStateOf(false) }
     // Fitted as places come in, until the user pans or zooms: then the map stays where they put it.
     var moved by remember { mutableStateOf(false) }
@@ -89,4 +92,15 @@ private fun greyPin(density: Float): BitmapDescriptor {
     canvas.drawPath(droplet, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF616161.toInt(); style = Paint.Style.STROKE; strokeWidth = density })
     canvas.drawCircle(radius, radius, radius * 0.35f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF424242.toInt() })
     return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+/** Where the band played, before the map can be fitted to it exactly: the middle of the places, at a zoom for their spread. */
+private fun roughly(places: List<PlayedPlaces.Place>): CameraPosition {
+    if (places.isEmpty()) return CameraPosition.fromLatLngZoom(LatLng(52.0, 19.4), 5.5f)
+    val latitudes = places.map { it.latitude }
+    val longitudes = places.map { it.longitude }
+    val spread = maxOf(latitudes.max() - latitudes.min(), longitudes.max() - longitudes.min())
+    // The world is 360° wide at zoom 0, half that with each step; a little room around.
+    val zoom = if (spread == 0.0) SINGLE_ZOOM else (kotlin.math.ln(360.0 / (spread * 1.5)) / kotlin.math.ln(2.0)).toFloat().coerceIn(2f, SINGLE_ZOOM)
+    return CameraPosition.fromLatLngZoom(LatLng((latitudes.max() + latitudes.min()) / 2, (longitudes.max() + longitudes.min()) / 2), zoom)
 }
