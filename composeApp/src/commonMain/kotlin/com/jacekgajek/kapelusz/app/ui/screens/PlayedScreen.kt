@@ -83,7 +83,9 @@ fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, on
     val today = today()
     val (from, to) = graph.settings.settings.collectAsState().value.summaryPeriod(band.id).range(today)
     val events = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
-    val located by produceState(LocatedPlaces(pending = -1), band.id) { graph.places.locate(band.id).collect { value = it } }
+    // Null until the coordinates this device already knows are read (a moment): the map opens on those, not on Poland.
+    val first by produceState<LocatedPlaces?>(null, band.id) { graph.places.locate(band.id).collect { value = it } }
+    val located = first ?: LocatedPlaces(pending = -1)
     val (places, missing) = remember(events, located) { PlayedPlaces.places(events) { located.coordinates[PlayedPlaces.key(it)] } }
     // Not found: Google said so. The rest without coordinates: still being looked up, or not placed (offline, not sent yet).
     val (notFound, unplaced) = missing.partition { event -> event.location?.let { PlayedPlaces.key(it) in located.notFound } == true }
@@ -109,7 +111,7 @@ fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, on
                 val hasStatus = finding || located.failed || notFound.isNotEmpty() || unplaced.isNotEmpty()
                 var panel by remember { mutableStateOf(0) }
                 val density = LocalDensity.current
-                PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })
+                if (first != null) PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })
                 if (hasStatus) Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { panel = it.height }, tonalElevation = 3.dp) {
                     // At most a third of the map: the list of missing concerts scrolls.
                     Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
