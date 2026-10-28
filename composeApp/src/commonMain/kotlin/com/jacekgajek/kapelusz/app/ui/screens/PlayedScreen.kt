@@ -43,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
@@ -59,7 +61,6 @@ import com.jacekgajek.kapelusz.app.generated.played_missing
 import com.jacekgajek.kapelusz.app.generated.played_missing_hint
 import com.jacekgajek.kapelusz.app.generated.played_show_on_map
 import com.jacekgajek.kapelusz.app.generated.played_title
-import com.jacekgajek.kapelusz.app.generated.played_upcoming
 import com.jacekgajek.kapelusz.app.platform.PlacesMap
 import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -83,7 +84,7 @@ fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, on
     val (from, to) = graph.settings.settings.collectAsState().value.summaryPeriod(band.id).range(today)
     val events = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     val located by produceState(LocatedPlaces(pending = -1), band.id) { graph.places.locate(band.id).collect { value = it } }
-    val (places, missing) = remember(events, located) { PlayedPlaces.places(events, today) { located.coordinates[PlayedPlaces.key(it)] } }
+    val (places, missing) = remember(events, located) { PlayedPlaces.places(events) { located.coordinates[PlayedPlaces.key(it)] } }
     // Not found: Google said so. The rest without coordinates: still being looked up, or not placed (offline, not sent yet).
     val (notFound, unplaced) = missing.partition { event -> event.location?.let { PlayedPlaces.key(it) in located.notFound } == true }
     val finding = located.finding && unplaced.isNotEmpty()
@@ -104,8 +105,12 @@ fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, on
         }
         if (mapPickerAvailable) {
             Box(Modifier.fillMaxSize().padding(padding)) {
-                PlacesMap(places, openPlace, Modifier.fillMaxSize())
-                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), tonalElevation = 3.dp) {
+                // The panel only when it has something to say; the map keeps its controls and the fit clear of it.
+                val hasStatus = finding || located.failed || notFound.isNotEmpty() || unplaced.isNotEmpty()
+                var panel by remember { mutableStateOf(0) }
+                val density = LocalDensity.current
+                PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })
+                if (hasStatus) Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { panel = it.height }, tonalElevation = 3.dp) {
                     // At most a third of the map: the list of missing concerts scrolls.
                     Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
                         PlacesStatus(located, finding, notFound, unplaced, onOpenEvent)
@@ -172,8 +177,7 @@ private fun PlaceDetails(place: PlayedPlaces.Place, onOpenEvent: (String) -> Uni
             Text(stringResource(Res.string.played_show_on_map))
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        val today = today()
-        place.events.forEach { ConcertRow(it, stringResource(Res.string.played_upcoming).takeIf { _ -> it.date > today }, onOpenEvent) }
+        place.events.forEach { ConcertRow(it, null, onOpenEvent) }
     }
 }
 
