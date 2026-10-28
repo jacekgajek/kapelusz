@@ -23,8 +23,12 @@ object Limits {
     const val MAX_COSTS = 5000
     const val MAX_FUND_ENTRIES = 5000
 
-    /** Attachments in a band: with images of up to 3 MB and PDFs of up to 10 MB, a bounded amount of storage. */
-    const val MAX_BAND_ATTACHMENTS = 1000
+    /**
+     * Attachments in a band: with images of up to 3 MB and PDFs of up to 10 MB, a bounded amount of storage. 5000: a
+     * band with 40 gigs a year and a few receipts each reaches 1000 in under ten years. Each
+     * one is 100–250 bytes of state, so 5000 stay well inside the band's size cap.
+     */
+    const val MAX_BAND_ATTACHMENTS = 5000
     const val MAX_PARTIES_PER_EVENT = 200
     const val MAX_ITEMS_PER_EVENT = 500
 
