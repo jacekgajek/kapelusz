@@ -18,10 +18,12 @@ import com.jacekgajek.kapelusz.model.Band
 import kotlinx.serialization.Serializable
 import org.crac.Core
 import org.crac.Resource
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.URLDecoder
 import java.util.Base64
+import java.util.zip.GZIPOutputStream
 
 /** API Gateway HTTP API, payload format 2.0 (only the fields we use). */
 @Serializable
@@ -41,7 +43,40 @@ data class ApiGatewayRequest(
 }
 
 @Serializable
-data class ApiGatewayResponse(val statusCode: Int, val headers: Map<String, String>, val body: String? = null)
+data class ApiGatewayResponse(
+    val statusCode: Int,
+    val headers: Map<String, String>,
+    val body: String? = null,
+    val isBase64Encoded: Boolean = false,
+)
+
+/** JSON bodies from this size on go out gzipped to a client that takes it; below it, gzip saves next to nothing. */
+const val GZIP_MIN_BYTES = 1024
+
+/**
+ * [response] as API Gateway sends it on. A JSON body goes out gzipped when the client accepts gzip (the app's HTTP
+ * stacks on Android and in browsers ask for it and unpack it themselves): a band's state, sent back on every push, is
+ * repetitive JSON that shrinks to a fraction. HTML and calendar responses stay as they are: CloudFront compresses those.
+ */
+fun gatewayResponse(response: HttpResponse, acceptEncoding: String?): ApiGatewayResponse {
+    val body = response.body
+    val json = response.headers["content-type"]?.startsWith("application/json") == true
+    if (body == null || !json || !acceptsGzip(acceptEncoding)) return ApiGatewayResponse(response.status, response.headers, body)
+    val bytes = body.toByteArray()
+    if (bytes.size < GZIP_MIN_BYTES) return ApiGatewayResponse(response.status, response.headers, body)
+    val packed = ByteArrayOutputStream().also { out -> GZIPOutputStream(out).use { it.write(bytes) } }.toByteArray()
+    val headers = response.headers + mapOf("content-encoding" to "gzip", "vary" to "accept-encoding")
+    return ApiGatewayResponse(response.status, headers, Base64.getEncoder().encodeToString(packed), isBase64Encoded = true)
+}
+
+private val REFUSED = Regex("q=0(\\.0*)?")
+
+/** Whether an Accept-Encoding header takes gzip: listed by name (or else by `*`) and not refused by `q=0`. */
+fun acceptsGzip(acceptEncoding: String?): Boolean {
+    val codings = acceptEncoding.orEmpty().split(',').map { part -> part.split(';').map { it.replace(" ", "").lowercase() } }
+    val gzip = codings.firstOrNull { it.first() == "gzip" } ?: codings.firstOrNull { it.first() == "*" } ?: return false
+    return gzip.drop(1).none { it.matches(REFUSED) }
+}
 
 /** Lambda entry point (`com.jacekgajek.kapelusz.server.Handler::handleRequest`). */
 class Handler : RequestStreamHandler {
@@ -60,7 +95,7 @@ class Handler : RequestStreamHandler {
             line = "${event.requestContext.http.method} $path"
             val response = handle(event, path)
             status = response.status.toString()
-            respond(output, response)
+            respond(output, gatewayResponse(response, event.headers.entries.firstOrNull { it.key.equals("accept-encoding", true) }?.value))
         } finally {
             // One line per request: where the time goes (V5 history latency).
             println("TIMING $line $status ${(System.nanoTime() - start) / 1_000_000}ms ${s3Timer.summary()} ${dbTimer.summary()}")
@@ -92,8 +127,7 @@ class Handler : RequestStreamHandler {
         }
     }
 
-    private fun respond(output: OutputStream, response: HttpResponse) {
-        val payload = ApiGatewayResponse(response.status, response.headers, response.body)
+    private fun respond(output: OutputStream, payload: ApiGatewayResponse) {
         output.write(KapeluszJson.encodeToString(ApiGatewayResponse.serializer(), payload).toByteArray())
     }
 
@@ -141,7 +175,9 @@ class Handler : RequestStreamHandler {
                 (Engine.apply(band, Actor.System, op, "prime", 0) as ApplyResult.Applied).band
             }
             repeat(50) {
-                KapeluszJson.decodeFromString(Band.serializer(), KapeluszJson.encodeToString(Band.serializer(), sample))
+                val encoded = KapeluszJson.encodeToString(Band.serializer(), sample)
+                KapeluszJson.decodeFromString(Band.serializer(), encoded)
+                gatewayResponse(HttpResponse(200, encoded.repeat(20), mapOf("content-type" to "application/json")), "gzip")
                 sample.events.forEach { SettlementCalculator.settle(sample, it) }
             }
             // As a development build (always allowed), so priming goes past the version check into authentication.
