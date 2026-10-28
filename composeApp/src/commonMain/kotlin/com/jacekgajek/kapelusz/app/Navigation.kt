@@ -53,6 +53,8 @@ import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.FundRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
 import com.jacekgajek.kapelusz.app.ui.SummaryRoute
+import com.jacekgajek.kapelusz.app.ui.screens.PlayedScreen
+import com.jacekgajek.kapelusz.app.ui.PlayedRoute
 import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
 import com.jacekgajek.kapelusz.app.ui.screens.pairEndsWarning
 import com.jacekgajek.kapelusz.app.ui.MyCostsRoute
@@ -258,7 +260,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             composable<RosterRoute> { entry ->
                 RosterScreen(graph, state, back, openMember = entry.toRoute<RosterRoute>().memberId)
             }
-            composable<SummaryRoute> { SummaryScreen(graph, state, back, onInviteMember = { navController.navigate(RosterRoute(it)) }) }
+            composable<SummaryRoute> { SummaryScreen(graph, state, back, onInviteMember = { navController.navigate(RosterRoute(it)) }, onOpenPlayed = { navController.navigate(PlayedRoute) }) }
+            composable<PlayedRoute> { PlayedScreen(graph, state, back, onOpenEvent = { navController.navigate(EventRoute(it)) }) }
             composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph, state, back) }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->

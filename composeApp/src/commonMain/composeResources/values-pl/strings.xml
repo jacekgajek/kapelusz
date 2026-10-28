@@ -512,6 +512,38 @@
     <string name="delete_band">Usuń zespół</string>
     <string name="delete_band_title">Usunąć zespół %1$s?</string>
     <string name="delete_band_everything">Wszystkie wydarzenia, koszty, zwroty, przelewy, kasa zespołowa, załączniki i historia zostaną usunięte dla wszystkich.</string>
+    <string name="played_title">Gdzie graliśmy</string>
+    <string name="played_finding">Szukam miejsc na mapie…</string>
+    <string name="played_failed">Brak połączenia z serwerem: widać tylko miejsca znalezione wcześniej.</string>
+    <string name="played_missing_hint">Google nie zna tych lokalizacji. Lider może je poprawić w wydarzeniu.</string>
+    <string name="played_unplaced_hint">Jeszcze niewyszukane: zajrzyj tu później.</string>
+    <plurals name="played_unplaced">
+        <item quantity="one">%1$d koncert jeszcze bez miejsca</item>
+        <item quantity="few">%1$d koncerty jeszcze bez miejsca</item>
+        <item quantity="many">%1$d koncertów jeszcze bez miejsca</item>
+        <item quantity="other">%1$d koncertu jeszcze bez miejsca</item>
+    </plurals>
+    <string name="played_upcoming">nadchodzący</string>
+    <string name="played_show_on_map">Pokaż na mapie</string>
+    <string name="played_empty">Brak koncertów z lokalizacją w tym okresie.</string>
+    <plurals name="played_places">
+        <item quantity="one">%1$d miejsce</item>
+        <item quantity="few">%1$d miejsca</item>
+        <item quantity="many">%1$d miejsc</item>
+        <item quantity="other">%1$d miejsca</item>
+    </plurals>
+    <plurals name="played_concerts">
+        <item quantity="one">%1$d koncert</item>
+        <item quantity="few">%1$d koncerty</item>
+        <item quantity="many">%1$d koncertów</item>
+        <item quantity="other">%1$d koncertu</item>
+    </plurals>
+    <plurals name="played_missing">
+        <item quantity="one">%1$d koncert poza mapą</item>
+        <item quantity="few">%1$d koncerty poza mapą</item>
+        <item quantity="many">%1$d koncertów poza mapą</item>
+        <item quantity="other">%1$d koncertu poza mapą</item>
+    </plurals>
     <plurals name="settings_member_count">
         <item quantity="one">%1$d osoba</item>
         <item quantity="few">%1$d osoby</item>

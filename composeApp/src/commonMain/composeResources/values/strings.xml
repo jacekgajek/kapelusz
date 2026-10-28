@@ -512,6 +512,30 @@
     <string name="delete_band">Delete band</string>
     <string name="delete_band_title">Delete %1$s?</string>
     <string name="delete_band_everything">All its events, costs, refunds, transfers, the band fund, attachments and history are deleted for everyone.</string>
+    <string name="played_title">Where we played</string>
+    <string name="played_finding">Finding places on the map…</string>
+    <string name="played_failed">Couldn’t reach the server: only places found before are shown.</string>
+    <string name="played_missing_hint">Google can’t find these locations. A leader can correct them in the event.</string>
+    <string name="played_unplaced_hint">Not looked up yet: open this again later.</string>
+    <plurals name="played_unplaced">
+        <item quantity="one">%1$d concert not placed yet</item>
+        <item quantity="other">%1$d concerts not placed yet</item>
+    </plurals>
+    <string name="played_upcoming">upcoming</string>
+    <string name="played_show_on_map">Show on map</string>
+    <string name="played_empty">No concerts with a location in this period.</string>
+    <plurals name="played_places">
+        <item quantity="one">%1$d place</item>
+        <item quantity="other">%1$d places</item>
+    </plurals>
+    <plurals name="played_concerts">
+        <item quantity="one">%1$d concert</item>
+        <item quantity="other">%1$d concerts</item>
+    </plurals>
+    <plurals name="played_missing">
+        <item quantity="one">%1$d concert not on the map</item>
+        <item quantity="other">%1$d concerts not on the map</item>
+    </plurals>
     <plurals name="settings_member_count">
         <item quantity="one">%1$d member</item>
         <item quantity="other">%1$d members</item>

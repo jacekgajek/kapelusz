@@ -233,6 +233,21 @@ data class PlaceSuggestion(val placeId: String, val name: String, val address: S
 @Serializable
 data class PlacesResponse(val places: List<PlaceSuggestion>)
 
+/** An event location's coordinates, for the "Where we played" map (ITERATION_7 §2f). */
+@Serializable
+data class LocatedPlace(val location: String, val latitude: Double, val longitude: Double)
+
+/**
+ * `GET /bands/{id}/locations`: where the band's event locations are (those the user sees). [notFound]: Google knows
+ * no such place; [pending]: not looked up yet, asked again later.
+ */
+@Serializable
+data class LocationsResponse(
+    val located: List<LocatedPlace> = emptyList(),
+    val notFound: List<String> = emptyList(),
+    val pending: List<String> = emptyList(),
+)
+
 /** What Location becomes for a picked suggestion or a Google Maps link (ITERATION_5 §9.1). */
 @Serializable
 data class PlaceText(val text: String)

@@ -1,6 +1,10 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.MapLinkRequest
+import kotlinx.datetime.LocalDate
+import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.api.LocationsResponse
 import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.CreateBandRequest
@@ -42,7 +46,15 @@ class PlacesTest {
                 "https://maps.app.goo.gl/sea" to "https://www.google.com/maps/place/Somewhere/@10.5,20.25,17z",
             )[url]
         }
+
+        override fun locate(address: String): Located? {
+            located += address
+            if (address == "Broken") error("quota")
+            return if (address.startsWith("Stodoła")) Located(52.2, 21.0) else null
+        }
     }
+    // Asked from parallel lookups.
+    private val located: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
 
     private fun api(search: PlaceSearch?) = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, placeSearch = search)
     private val api = api(search)
@@ -118,5 +130,58 @@ class PlacesTest {
         assertEquals(422, resolve("alice", "https://maps.app.goo.gl/unknown").status)
         assertEquals(400, resolve("alice", "https://example.com/maps/place/X").status, "only Google Maps links are opened")
         assertEquals(403, resolve("bob", "https://maps.app.goo.gl/pin").status)
+    }
+
+    private fun push(user: String, vararg ops: com.jacekgajek.kapelusz.ops.Operation) =
+        call(user, emptyMap(), "POST", "/bands/band1/ops", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.mapIndexed { i, op -> OpEnvelope("map-$i", "map", i + 1L, 1, op) })))
+
+    private fun locations(user: String, on: Api) = KapeluszJson.decodeFromString(LocationsResponse.serializer(), call(user, emptyMap(), path = "/bands/band1/locations", on = on).body!!)
+
+    /** ITERATION_7 §2f: the band's own locations, each address looked up once ever, pins never. */
+    @Test
+    fun locationsAreLookedUpOnceAndCached() {
+        val cache = InMemoryGeocodeCache()
+        val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, placeSearch = search, geocodeCache = cache)
+        setup()
+        push(
+            "alice",
+            CreateEvent("e1", "Gig", LocalDate(2026, 5, 1), location = "Stodoła, Batorego 10, Warszawa", participants = listOf(Participant("m-alice"), Participant("m-bob"))),
+            CreateEvent("e2", "Again", LocalDate(2026, 6, 1), location = "  stodoła,  Batorego 10, warszawa "),
+            CreateEvent("e3", "Field", LocalDate(2026, 7, 1), location = "Somewhere, 51.100000, 17.000000"),
+            CreateEvent("e4", "Nowhere", LocalDate(2026, 8, 1), location = "Atlantis"),
+            CreateEvent("e5", "Broken", LocalDate(2026, 8, 2), location = "Broken"),
+        )
+        val first = locations("bob", api)
+        assertEquals(listOf("Somewhere, 51.100000, 17.000000", "Stodoła, Batorego 10, Warszawa"), first.located.map { it.location }.sorted())
+        assertEquals(listOf("Atlantis"), first.notFound)
+        assertEquals(listOf("Broken"), first.pending, "a failed lookup is not remembered")
+        assertEquals(listOf("Atlantis", "Broken", "Stodoła, Batorego 10, Warszawa"), located.sorted(), "each address once (spelling aside), the pin never")
+
+        located.clear()
+        val again = locations("alice", api)
+        assertEquals(first.located.toSet(), again.located.toSet())
+        assertEquals(listOf("Broken"), located, "only what wasn't answered is asked again")
+        assertEquals(404, call("mallory", emptyMap(), path = "/bands/band1/locations", on = api).status)
+    }
+
+    /** The cache unreachable (e.g. before its table exists): pins still answered, nothing looked up and paid in vain. */
+    @Test
+    fun aBrokenCacheAnswersPinsAndLooksNothingUp() {
+        val broken = object : GeocodeCache {
+            override fun get(keys: Collection<String>): Map<String, Located?> = error("no table")
+            override fun put(answers: Map<String, Located?>) = error("no table")
+        }
+        val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, placeSearch = search, geocodeCache = broken)
+        setup()
+        push(
+            "alice",
+            CreateEvent("e1", "Gig", LocalDate(2026, 5, 1), location = "Stodoła, Batorego 10, Warszawa"),
+            CreateEvent("e2", "Field", LocalDate(2026, 7, 1), location = "Somewhere, 51.100000, 17.000000"),
+            CreateEvent("e3", "Someday", LocalDate(2099, 1, 1), location = "Future Hall"),
+        )
+        val answer = locations("alice", api)
+        assertEquals(listOf("Somewhere, 51.100000, 17.000000"), answer.located.map { it.location })
+        assertEquals(listOf("Stodoła, Batorego 10, Warszawa", "Future Hall"), answer.pending)
+        assertTrue(located.isEmpty())
     }
 }

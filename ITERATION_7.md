@@ -239,6 +239,31 @@ Who knows something happened records it, instead of telling a leader (a search a
   and whose costs it refunded (and For events, what it added to an event). "To the band fund" stays as it is. Seen by
   everyone who sees the band's numbers (not artists, ITERATION_4 §1.1).
 
+## 2f. Where we played (grilled 2026-10-28)
+
+- **Where:** Summary's last row, "Where we played · 12 places", for the Summary's period; it opens a map (Android) or
+  a list (the web, which has no map; each place there opens in Google Maps).
+- **Which concerts:** every event of the period already played (date ≤ today), settled or not, archived too, with a
+  location, and every gig still to come, in any period (the periods end today, so none would show them). An artist
+  sees only theirs.
+- **Places:** concerts whose coordinates match to about 10 m (4 decimals) are one marker: Google's red pin where we
+  played, a grey one where we only will (a place with both is red; its sheet says "upcoming" beside the gigs to come).
+  A marker is just a pin;
+  tapped, its bubble says the place (the newest concert's location up to its first comma) and "3 concerts", and opens a
+  sheet with the full address and the concerts, each opening its event. Fitted to all markers; one place up close. No
+  clustering.
+- **Coordinates, not in the band:** a location ending in a pin is read as it is. Addresses are looked up by the server
+  (`GET /bands/{id}/locations`, any member; only the band's own locations, so nobody has addresses looked up at its
+  cost) in Google's Geocoding API, each address once ever: cached in DynamoDB (`art-split-geocode`, keyed by the
+  SHA-256 of the normalised text, so no addresses are stored as such). "Not found" is kept 30 days (TTL), then asked
+  again; a failed lookup isn't kept. At most 25 new addresses a call; the app asks again while some are pending, and
+  keeps the coordinates found on the device. Changing an event's address needs nothing: it is another key.
+- **Below the map:** "Finding places…" while lookups run, and "2 concerts not on the map" (Google can't find them),
+  listed to open and fix.
+- **Privacy policy (§4):** event locations go to Google's Geocoding; only their coordinates are kept.
+- **Limits:** a band's own locations only (at most 25 new a call), but no rate limit per user: anyone may create bands
+  full of places. Acceptable for now; failed lookups (quota) aren't kept and are asked again.
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -285,6 +310,11 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 - [x] Payer on entries, money out only for a cost; several people at once; one sorted list; the Summary breakdown
 
+### Where we played (§2f)
+
+- [x] The server's cached lookup (DynamoDB, Terraform), the Summary row, the map (Android) and the list (web)
+- [ ] Seen with real lookups once deployed
+
 ### Updates from Google Play in the app (§2b)
 
 - [x] The strip (available, downloading, downloaded), Update required's full-screen update
@@ -322,3 +352,7 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - 2026-10-28: Several payers through a People list beside the dropdown (§2e), rather than chips: most entries are one
   person's.
 - 2026-10-28: The web links to joining the closed test (§1.5) rather than showing no app link until production.
+- 2026-10-28: The map's coordinates in a server cache (DynamoDB), not in the band's events (§2f): events stay as they
+  are, nothing to clear when an address changes; DynamoDB rather than S3, a batch read instead of a file per address.
+- 2026-10-28: The server looks up only the band's own locations (§2f), rather than addresses the app sends: no
+  lookups at the band's cost for anything else.
