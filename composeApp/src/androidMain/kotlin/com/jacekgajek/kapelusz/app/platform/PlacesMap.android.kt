@@ -15,6 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.PaddingValues
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -30,7 +32,7 @@ import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
-actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Place) -> Unit, modifier: Modifier) {
+actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Place) -> Unit, modifier: Modifier, bottomInset: Dp) {
     // Opens roughly where the places are (Poland while none are known): Maps' own start, over the Americas, would
     // flash before the fit below.
     val camera = rememberCameraPositionState { position = roughly(places) }
@@ -54,7 +56,7 @@ actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Pl
         if (camera.position.zoom > SINGLE_ZOOM) camera.move(CameraUpdateFactory.zoomTo(SINGLE_ZOOM))
     }
     val density = LocalDensity.current.density
-    GoogleMap(modifier = modifier, cameraPositionState = camera, onMapLoaded = { loaded = true }) {
+    GoogleMap(modifier = modifier, cameraPositionState = camera, contentPadding = PaddingValues(bottom = bottomInset), onMapLoaded = { loaded = true }) {
         // Made inside the map: a bitmap descriptor needs Maps initialised.
         val upcomingPin = remember(density) { greyPin(density) }
         places.forEach { place -> key(place.latitude, place.longitude) {
@@ -81,13 +83,15 @@ private fun greyPin(density: Float): BitmapDescriptor {
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val radius = width / 2f
-    val droplet = Path().apply {
-        addCircle(radius, radius, radius - density, Path.Direction.CW)
+    // One outline: a circle and a triangle as one path would cancel where they overlap (opposite windings).
+    val circle = Path().apply { addCircle(radius, radius, radius - density, Path.Direction.CW) }
+    val point = Path().apply {
         moveTo(radius * 0.25f, radius * 1.45f)
-        lineTo(radius, height - density)
         lineTo(radius * 1.75f, radius * 1.45f)
+        lineTo(radius, height - density)
         close()
     }
+    val droplet = Path().apply { op(circle, point, Path.Op.UNION) }
     canvas.drawPath(droplet, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF9E9E9E.toInt() })
     canvas.drawPath(droplet, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF616161.toInt(); style = Paint.Style.STROKE; strokeWidth = density })
     canvas.drawCircle(radius, radius, radius * 0.35f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF424242.toInt() })

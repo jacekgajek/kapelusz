@@ -43,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppGraph
@@ -104,8 +106,12 @@ fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, on
         }
         if (mapPickerAvailable) {
             Box(Modifier.fillMaxSize().padding(padding)) {
-                PlacesMap(places, openPlace, Modifier.fillMaxSize())
-                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), tonalElevation = 3.dp) {
+                // The panel only when it has something to say; the map keeps its controls and the fit clear of it.
+                val hasStatus = finding || located.failed || notFound.isNotEmpty() || unplaced.isNotEmpty()
+                var panel by remember { mutableStateOf(0) }
+                val density = LocalDensity.current
+                PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })
+                if (hasStatus) Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { panel = it.height }, tonalElevation = 3.dp) {
                     // At most a third of the map: the list of missing concerts scrolls.
                     Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
                         PlacesStatus(located, finding, notFound, unplaced, onOpenEvent)
