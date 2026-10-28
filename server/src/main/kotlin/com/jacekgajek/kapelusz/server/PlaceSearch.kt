@@ -1,6 +1,10 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
+import java.util.concurrent.Executors
+import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import com.jacekgajek.kapelusz.api.LocationsResponse
+import com.jacekgajek.kapelusz.api.LocatedPlace
 import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.api.PlaceText
@@ -37,6 +41,9 @@ interface PlaceSearch {
 
     /** Where a short Maps link leads (its redirects followed, Google's hosts only); null if it leads nowhere readable. */
     fun follow(url: String): String?
+
+    /** Where an address is (ITERATION_7 §2f); null when Google knows no such place. Throws when it couldn't be asked. */
+    fun locate(address: String): Located? = throw UnsupportedOperationException("No geocoding")
 }
 
 /** Places API (New) and the Geocoding API; the key stays on the server, restricted to those two. */
@@ -98,6 +105,22 @@ class GooglePlaceSearch(private val apiKey: String) : PlaceSearch {
         }
     }
 
+    override fun locate(address: String): Located? {
+        val query = "address=" + URLEncoder.encode(address, Charsets.UTF_8) + "&key=" + URLEncoder.encode(apiKey, Charsets.UTF_8)
+        val request = java.net.http.HttpRequest.newBuilder(URI("https://maps.googleapis.com/maps/api/geocode/json?$query")).timeout(TIMEOUT).GET().build()
+        val response = http.send(request, BodyHandlers.ofString())
+        check(response.statusCode() == 200) { "Geocoding API answered ${response.statusCode()}" }
+        val root = json.parseToJsonElement(response.body()).jsonObject
+        return when (val status = root["status"]?.jsonPrimitive?.content) {
+            "ZERO_RESULTS" -> null
+            "OK" -> root["results"]?.jsonArray?.firstOrNull()?.jsonObject?.get("geometry")?.jsonObject?.get("location")?.jsonObject?.let { at ->
+                Located(at.getValue("lat").jsonPrimitive.content.toDouble(), at.getValue("lng").jsonPrimitive.content.toDouble())
+            }
+            // Over the quota, a refused key: not an answer about the place, so not remembered.
+            else -> error("Geocoding API $status: ${root["error_message"]?.jsonPrimitive?.content}")
+        }
+    }
+
     override fun follow(url: String): String? {
         var current = url
         for (hop in 0..MAX_REDIRECTS) {
@@ -154,7 +177,7 @@ private fun unavailable(message: String): Nothing = throw ApiError(503, ApiError
  * `GET /bands/{id}/places?q=…`, `GET /bands/{id}/places/{placeId}` and `POST /bands/{id}/places/resolve`: for whoever
  * may edit the band's events (leads up), so the key is not anyone's.
  */
-internal class PlacesHandlers(private val bands: BandAccess, private val search: PlaceSearch?) {
+internal class PlacesHandlers(private val bands: BandAccess, private val search: PlaceSearch?, private val geocode: GeocodeCache? = null) {
     private val language = Regex("[a-z]{2}(-[A-Z]{2})?")
     private val token = Regex("[A-Za-z0-9_-]{1,300}")
 
@@ -204,6 +227,45 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
         return ok(PlaceText.serializer(), PlaceText(text))
     }
 
+    /**
+     * `GET /bands/{id}/locations` (ITERATION_7 §2f): where the event locations the user sees are, for any member. Only
+     * the band's own locations, so nobody has addresses looked up at the band's cost; each address once, ever (cached);
+     * at most [MAX_LOOKUPS] new ones a call, the rest pending, asked again by the app.
+     */
+    fun locations(user: VerifiedUser, bandId: String): HttpResponse {
+        val (band, _) = bands.loadForMember(user, bandId)
+        // Only concerts already played (a day's slack for time zones): the map shows no future gigs.
+        val tomorrow = kotlinx.datetime.LocalDate.parse(java.time.LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1).toString())
+        val events = PlayedPlaces.visible(band, band.memberOfUser(user.userId)).filter { it.date <= tomorrow }
+        val all = events.mapNotNull { it.location?.takeIf(String::isNotBlank) }.distinctBy(PlayedPlaces::key)
+        val located = all.mapNotNull { location -> Places.pinIn(location)?.let { LocatedPlace(location, it.first, it.second) } }
+        val addresses = PlayedPlaces.toLocate(events).associateBy { GeocodeCache.key(PlayedPlaces.key(it)) }
+        val search = search
+        val cache = geocode
+        if (search == null || cache == null) return ok(LocationsResponse.serializer(), LocationsResponse(located, pending = addresses.values.toList()))
+        // The cache unreadable: pins only, the rest pending, nothing looked up (it couldn't be kept, so it would be paid again).
+        val known = runCatching { cache.get(addresses.keys) }.onFailure { System.err.println("Geocode cache unreadable: ${it.message}") }
+            .getOrElse { return ok(LocationsResponse.serializer(), LocationsResponse(located, pending = addresses.values.toList())) }
+            .toMutableMap()
+        val asked = (addresses.keys - known.keys).take(MAX_LOOKUPS)
+        val answers = Executors.newVirtualThreadPerTaskExecutor().use { pool ->
+            asked.map { key -> key to pool.submit<Located?> { search.locate(addresses.getValue(key)) } }
+                .mapNotNull { (key, answer) -> runCatching { key to answer.get() }.onFailure { System.err.println("Geocoding failed: ${it.message}") }.getOrNull() }
+                .toMap()
+        }
+        // Not kept (the table unwritable): answered all the same.
+        if (answers.isNotEmpty()) runCatching { cache.put(answers) }.onFailure { System.err.println("Geocode cache unwritable: ${it.message}") }
+        known += answers
+        return ok(
+            LocationsResponse.serializer(),
+            LocationsResponse(
+                located = located + addresses.mapNotNull { (key, location) -> known[key]?.let { LocatedPlace(location, it.latitude, it.longitude) } },
+                notFound = addresses.filter { (key, _) -> key in known && known[key] == null }.values.toList(),
+                pending = addresses.filterKeys { it !in known }.values.toList(),
+            ),
+        )
+    }
+
     private fun unreadable(): Nothing = throw ApiError(422, ApiErrors.BAD_REQUEST, "Could not read the link")
 
     private fun ready(user: VerifiedUser, bandId: String): PlaceSearch {
@@ -220,5 +282,6 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
 
     private companion object {
         const val MAX_LINK = 4000
+        const val MAX_LOOKUPS = 25
     }
 }

@@ -28,6 +28,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import com.jacekgajek.kapelusz.app.generated.played_places
+import com.jacekgajek.kapelusz.app.generated.played_title
+import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import org.jetbrains.compose.resources.pluralStringResource
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Map
 import com.jacekgajek.kapelusz.app.ui.model.FundSource
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.filled.ExpandMore
@@ -116,7 +122,7 @@ import org.jetbrains.compose.resources.stringResource
 /** What a period brought (ITERATION_6 §7): you, the band, costs by category, members. Nothing to tap but invites. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, onInviteMember: (String) -> Unit) {
+fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, onInviteMember: (String) -> Unit, onOpenPlayed: () -> Unit) {
     val band = state.band
     val artist = band.isArtist(state.userId)
     val period = graph.settings.settings.collectAsState().value.summaryPeriod(band.id)
@@ -130,6 +136,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
         // An artist sees only their own events and money (ITERATION_4 §1.1).
         shown = period to withContext(Dispatchers.Default) { periodSummary(band, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) }
     }
+    val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     var choosingRange by remember { mutableStateOf(false) }
     var inviting by remember { mutableStateOf<Member?>(null) }
     val canInvite = Can(band, state.userId).manageRoster()
@@ -185,6 +192,21 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
                 }
             } else {
                 summaryContent(summary, artist, band.currency, state.me?.id, canInvite) { inviting = it }
+            }
+            // Where the period's concerts were (ITERATION_7 §2f), by their locations (Google may merge a few later).
+            if (played.isNotEmpty()) item(key = "played") {
+                val count = played.distinctBy { PlayedPlaces.key(it.location!!) }.size
+                Column(Modifier.padding(top = 16.dp)) {
+                    SummaryHeader(stringResource(Res.string.played_title))
+                    Row(
+                        Modifier.fillMaxWidth().clickable(onClick = onOpenPlayed).padding(horizontal = Inset, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.Map, null, Modifier.padding(end = 12.dp))
+                        Text(pluralStringResource(Res.plurals.played_places, count, count), Modifier.weight(1f))
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                    }
+                }
             }
         }
     }

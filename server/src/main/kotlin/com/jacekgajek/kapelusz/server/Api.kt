@@ -27,6 +27,8 @@ class Api(
     maxBandBytes: Int = MAX_BAND_BYTES,
     /** Place suggestions for Location (ITERATION_5 §9); null where no Google key is set up. */
     placeSearch: PlaceSearch? = null,
+    /** Addresses already looked up, for the map (ITERATION_7 §2f); null: none are. */
+    geocodeCache: GeocodeCache? = null,
     /** The web app's page, for link cards (ITERATION_6 §2); null where it can't be read. */
     webIndex: WebIndex? = null,
     /** Sync messages to Android devices (ITERATION_7 §2); null where FCM isn't set up: devices register, nothing is sent. */
@@ -42,7 +44,7 @@ class Api(
     private val attachments = AttachmentHandlers(store, bands)
     private val invites = InviteHandlers(store, clock, bands, users, history, messenger)
     private val calendar = CalendarHandlers(store, clock, bands, users)
-    private val places = PlacesHandlers(bands, placeSearch)
+    private val places = PlacesHandlers(bands, placeSearch, geocodeCache)
     private val linkPages = LinkPages(store, webIndex, clock, bands)
     private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages, messenger)
 
@@ -102,6 +104,7 @@ class Api(
             method == "GET" && bandPath && segments[2] == "log" -> history.history(user, segments[1], request.query["month"], request.query["before"], request.query["months"])
             method == "GET" && bandPath && segments[2] == "invites" -> invites.list(user, segments[1])
             method == "GET" && bandPath && segments[2] == "places" -> places.suggest(user, segments[1], request)
+            method == "GET" && bandPath && segments[2] == "locations" -> places.locations(user, segments[1])
             method == "POST" && segments.size == 4 && segments[0] == "bands" && segments[2] == "places" && segments[3] == "resolve" ->
                 places.resolve(user, segments[1], request, parse(request, MapLinkRequest.serializer()))
             method == "GET" && segments.size == 4 && segments[0] == "bands" && segments[2] == "places" -> places.details(user, segments[1], segments[3], request)

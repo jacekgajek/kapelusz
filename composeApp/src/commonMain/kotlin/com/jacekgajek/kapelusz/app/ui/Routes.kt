@@ -21,3 +21,5 @@ import kotlinx.serialization.Serializable
 @Serializable @SerialName("new-band") data object NewBandRoute
 @Serializable @SerialName("history") data object HistoryRoute
 @Serializable @SerialName("summary") data object SummaryRoute
+/** "Where we played" (ITERATION_7 §2f), for the Summary's period. */
+@Serializable @SerialName("played") data object PlayedRoute

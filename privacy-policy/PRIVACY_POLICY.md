@@ -1,6 +1,6 @@
 # Privacy Policy — Pass the Hat (Kapelusz)
 
-Effective date: 27 October 2026
+Effective date: 28 October 2026
 
 This policy explains what personal data the Pass the Hat app (called Kapelusz in Polish; "the app") processes, why,
 where it is kept, who receives it and what rights you have. It covers the Android app, the web app at
@@ -92,7 +92,9 @@ Your data is not used for advertising, profiling or automated decisions, and is 
   - **Sign-in** (Google Sign-In on Android, Google Identity Services on the web);
   - **Place search and addresses** (Google Places and Geocoding APIs): when you type an event's location, the text you
     type and the app's language are sent by our server to Google; when you pick a place on a map, its coordinates are;
-  - **the map** on Android (Google Maps SDK), shown when you pick a place;
+    to show where the band played, our server sends the locations of its events to Google and keeps the
+    coordinates Google returns (without the events or who played them);
+  - **the map** on Android (Google Maps SDK), shown when you pick a place or look at where the band played;
   - **the QR code scanner** on Android (Google Play services), used when you scan an invite;
   - **sync messages** on Android (Firebase Cloud Messaging): when a band changes, the server asks Google to deliver
     to its members' devices a message naming only the band's identifier, nothing else from the band; Firebase starts

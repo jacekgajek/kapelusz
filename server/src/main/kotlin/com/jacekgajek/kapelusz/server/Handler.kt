@@ -114,6 +114,7 @@ class Handler : RequestStreamHandler {
         private val api = Api(
             store, history, verifier, minAppVersion = Api.MIN_APP_VERSION,
             placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
+            geocodeCache = DynamoGeocodeCache(System.getenv("GEOCODE_TABLE") ?: "art-split-geocode", dbTimer),
             webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it) },
             // Sync messages (ITERATION_7 §2.5): the key is read on the first one, not into the SnapStart snapshot.
             messageSender = FcmSender(StoredServiceAccount(store)),

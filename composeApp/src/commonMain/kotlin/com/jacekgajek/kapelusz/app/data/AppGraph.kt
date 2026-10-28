@@ -63,6 +63,8 @@ class AppGraph(
         onSessionsRevoked = { scope.launch { signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
+    /** Where event locations are, for the map (ITERATION_7 §2f). */
+    val places = PlacesLocator(store, api)
     val sync = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { registerForMessages() })
     val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.
