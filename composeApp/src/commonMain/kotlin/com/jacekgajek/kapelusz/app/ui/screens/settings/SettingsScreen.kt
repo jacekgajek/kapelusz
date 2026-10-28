@@ -90,6 +90,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.label
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
+import com.jacekgajek.kapelusz.model.FundCut
 import org.jetbrains.compose.resources.stringResource
 
 /** The settings that open a page of their own (ITERATION_2 §8). */
@@ -121,6 +122,10 @@ fun SettingsScreen(
     /** Turns the band fund off; null while it holds or owes money ([fundBalance] says how much it holds). */
     onDisableFund: (() -> Unit)?,
     fundBalance: String,
+    /** The fund's default for new events (ITERATION_7 §2g); [fundDefaultSetting] is null for non-leaders. */
+    fundDefault: FundCut?,
+    fundDefaultSetting: FundDefaultSetting?,
+    currency: String,
     /** Deletes the band for everyone; only for its owner. Throws when it did not work (e.g. offline). */
     onDeleteBand: (suspend () -> Unit)?,
     /** Leaves the band (not as its owner, who has [onDeleteBand]). Throws when it did not work (e.g. offline). */
@@ -153,7 +158,7 @@ fun SettingsScreen(
 ) {
     when (page) {
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
-            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance)
+            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance, fundDefault, fundDefaultSetting, currency)
         }
         SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
             if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)

@@ -51,6 +51,9 @@ import com.jacekgajek.kapelusz.app.generated.h_rename_member
 import com.jacekgajek.kapelusz.app.generated.h_restore_event
 import com.jacekgajek.kapelusz.app.generated.h_restore_member
 import com.jacekgajek.kapelusz.app.generated.h_set_fund_amount
+import com.jacekgajek.kapelusz.app.generated.h_set_fund_percent
+import com.jacekgajek.kapelusz.app.generated.h_set_fund_default
+import com.jacekgajek.kapelusz.app.generated.fund_default_none
 import com.jacekgajek.kapelusz.app.generated.h_set_member_share
 import com.jacekgajek.kapelusz.app.generated.h_set_refund
 import com.jacekgajek.kapelusz.app.generated.h_set_role
@@ -73,6 +76,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
@@ -192,7 +196,12 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         } else {
             stringResource(Res.string.h_set_refund, money(op.amount), event(op.eventId))
         }
-        is SetFundAmount -> stringResource(Res.string.h_set_fund_amount, money(op.amount), event(op.eventId))
+        is SetFundAmount -> op.percent?.let { stringResource(Res.string.h_set_fund_percent, "$it%", event(op.eventId)) }
+            ?: stringResource(Res.string.h_set_fund_amount, money(op.amount), event(op.eventId))
+        is SetFundDefault -> stringResource(
+            Res.string.h_set_fund_default,
+            op.cut?.percent?.let { "$it%" } ?: op.cut?.amount?.let(::money) ?: stringResource(Res.string.fund_default_none),
+        )
         is AddFundEntry -> when {
             // Who paid it in (ITERATION_7 §2e); a refund names its cost's owner on the fund's page.
             op.paidBy != null -> stringResource(Res.string.h_add_fund_entry_from, op.description, money(op.amount), member(op.paidBy!!))

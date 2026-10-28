@@ -1,5 +1,26 @@
 package com.jacekgajek.kapelusz.app.ui.screens.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.fund_default
+import com.jacekgajek.kapelusz.app.generated.fund_default_apply_text
+import com.jacekgajek.kapelusz.app.generated.fund_default_hint
+import com.jacekgajek.kapelusz.app.generated.fund_default_none
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_no
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_title
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_yes
+import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
+import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.model.FundCut
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,7 +55,13 @@ import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import org.jetbrains.compose.resources.stringResource
 
-/** The band fund page: what it is, whether it is on and who holds it (leaders change it). */
+/**
+ * Changing the fund's default for new events (ITERATION_7 §2g): the unsettled events that still have the old one (id and
+ * name), offered the new one too, as a member's default share is; [onSave] saves it, and to the events chosen.
+ */
+class FundDefaultSetting(val stillDefault: List<Pair<String, String>>, val onSave: (FundCut?, List<String>) -> Unit)
+
+/** The band fund page: what it is, whether it is on, who holds it and its default for new events (leaders change it). */
 @Composable
 internal fun FundSettings(
     treasurer: String?,
@@ -43,6 +70,9 @@ internal fun FundSettings(
     onTreasurer: ((String) -> Unit)?,
     onDisableFund: (() -> Unit)?,
     fundBalance: String,
+    fundDefault: FundCut?,
+    fundDefaultSetting: FundDefaultSetting?,
+    currency: String,
 ) {
     Text(stringResource(Res.string.fund_explanation), style = MaterialTheme.typography.bodyMedium)
     val names = treasurerOptions.toMap()
@@ -83,6 +113,7 @@ internal fun FundSettings(
         if (enabled && onDisableFund == null) {
             Text(stringResource(Res.string.fund_cannot_disable, fundBalance), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
         }
+        if (enabled) FundDefaultItem(fundDefault, fundDefaultSetting, currency)
     } else {
         Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
     }
@@ -93,6 +124,67 @@ internal fun FundSettings(
             confirmLabel = stringResource(Res.string.fund_disable_confirm),
             onConfirm = onDisableFund,
             onDismiss = { confirmDisable = false },
+        )
+    }
+}
+
+@Composable
+private fun FundDefaultItem(fundDefault: FundCut?, setting: FundDefaultSetting?, currency: String) {
+    var editing by remember { mutableStateOf(false) }
+    val lang = language
+    val summary = fundDefault?.percent?.let { "$it%" } ?: fundDefault?.amount?.let { formatMoney(it, currency, lang) }
+        ?: stringResource(Res.string.fund_default_none)
+    Box(Modifier.padding(top = 8.dp)) {
+        SettingsItem(Icons.Default.Percent, stringResource(Res.string.fund_default), summary, onClick = setting?.let { { editing = true } })
+    }
+    if (editing && setting != null) FundDefaultDialog(fundDefault, setting, currency) { editing = false }
+}
+
+/** The fund's default, then (if some unsettled events still have the old one) whether to use the new one there too. */
+@Composable
+private fun FundDefaultDialog(fundDefault: FundCut?, setting: FundDefaultSetting, currency: String, onDismiss: () -> Unit) {
+    val editor = rememberFundCutEditorState(fundDefault)
+    var applying by remember { mutableStateOf<FundCut?>(null) }
+    var asking by remember { mutableStateOf(false) }
+    fun save(cut: FundCut?, events: List<String>) {
+        setting.onSave(cut, events)
+        onDismiss()
+    }
+    if (!asking) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(Res.string.fund_default)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FundCutEditor(editor, currency, profit = null)
+                    Text(stringResource(Res.string.fund_default_hint), style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = editor.valid, onClick = {
+                    val cut = editor.cut
+                    when {
+                        cut == fundDefault -> onDismiss()
+                        setting.stillDefault.isEmpty() -> save(cut, emptyList())
+                        else -> {
+                            applying = cut
+                            asking = true
+                        }
+                    }
+                }) { Text(stringResource(Res.string.save)) }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+        )
+    } else {
+        val events = setting.stillDefault
+        val names = events.take(3).joinToString(", ") { it.second } + if (events.size > 3) "…" else ""
+        AlertDialog(
+            // Save was pressed already: leaving the question keeps the new default, without touching events.
+            onDismissRequest = { save(applying, emptyList()) },
+            title = { Text(stringResource(Res.string.member_share_apply_title)) },
+            text = { Text(stringResource(Res.string.fund_default_apply_text, events.size, names)) },
+            confirmButton = { TextButton(onClick = { save(applying, events.map { it.first }) }) { Text(stringResource(Res.string.member_share_apply_yes)) } },
+            dismissButton = { TextButton(onClick = { save(applying, emptyList()) }) { Text(stringResource(Res.string.member_share_apply_no)) } },
         )
     }
 }

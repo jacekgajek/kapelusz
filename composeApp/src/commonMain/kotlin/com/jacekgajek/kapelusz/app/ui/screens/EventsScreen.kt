@@ -291,6 +291,8 @@ fun EventsScreen(
                         eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
                         participants = lineupOfLastEvent(band, state.me?.id),
                         agenda = fields.agenda,
+                        // The band's fund default (ITERATION_7 §2g), while the fund is on.
+                        fund = band.fundDefault.takeIf { band.treasurerMemberId != null },
                     ),
                 )
                 if (ok) onOpenEvent(eventId)

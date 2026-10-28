@@ -473,6 +473,15 @@
     <string name="fund_direction_from">From the fund</string>
     <string name="fund_amount_to_hint">Taken off the income before it is shared. Leave empty for nothing.</string>
     <string name="fund_amount_from_hint">The band fund adds this to the money shared, e.g. to cover a loss.</string>
+    <string name="fund_percent_hint">Of the profit (income less cost refunds), rounded down to a whole amount, without the cents.</string>
+    <string name="fund_percent_of_profit">= %1$s of %2$s profit</string>
+    <string name="fund_percent_no_profit">No profit recorded yet, so nothing for now.</string>
+    <string name="fund_default">Default for new events</string>
+    <string name="fund_default_none">Nothing</string>
+    <string name="fund_default_hint">Where the band fund starts in new events; each event can still change it.</string>
+    <string name="fund_default_apply_text">%1$d of them still have the old default: %2$s.</string>
+    <string name="h_set_fund_percent">Set the band fund to %1$s of the profit at %2$s</string>
+    <string name="h_set_fund_default">Set the band fund default for new events to %1$s</string>
     <string name="reject_attachment_too_large">The file is too large (photos up to 3 MB, PDFs up to 10 MB).</string>
     <string name="attachments">Attachments</string>
     <string name="attachment_add_file">Attach</string>

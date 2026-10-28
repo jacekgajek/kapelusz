@@ -20,8 +20,13 @@ data class Event(
     val holdings: List<Holding> = emptyList(),
     val refunds: List<Refund> = emptyList(),
     val transfers: List<Transfer> = emptyList(),
-    /** Positive: taken off the top for the band fund. Negative: the fund covers part of the event. */
+    /**
+     * Positive: taken off the top for the band fund. Negative: the fund covers part of the event. Zero while
+     * [fundPercent] is set: then [fund] is worked out from the profit.
+     */
     val fundAmount: Money = Money.ZERO,
+    /** The band fund's cut as a percentage of the profit, 1–100 (ITERATION_7 §2g); null: [fundAmount] as it is. */
+    val fundPercent: Int? = null,
     /** Agenda times of the day (ITERATION_2 §4.1), copied from the band's template when the event is created. */
     val agenda: List<AgendaTime> = emptyList(),
     /** Files about the gig, not tied to any money: contract, rider, stage plan (ITERATION_4 §2.1). */
@@ -39,8 +44,36 @@ data class Event(
     fun refundOf(costId: Id): Refund? = refunds.firstOrNull { it.costId == costId }
     val income: Money get() = holdings.sumOfMoney { it.amount }
 
+    /** What goes to the band fund (negative: comes from it): the fixed [fundAmount], or [fundPercent] of the profit. */
+    val fund: Money get() = fundPercent?.let { FundCut.ofProfit(it, income - refunds.sumOfMoney { r -> r.amount }) } ?: fundAmount
+
     /** Part of [income] the organiser still owes (ITERATION_4 §2.2). */
     val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.amount }
+}
+
+/**
+ * The band fund's cut of an event (ITERATION_7 §2g): a fixed [amount] or a [percent] of the profit (income less cost
+ * refunds), never both. As a band's default for new events, always money to the fund, never from it.
+ */
+@Serializable
+data class FundCut(val amount: Money? = null, val percent: Int? = null) {
+    companion object {
+        const val MAX_PERCENT = 100
+
+        /**
+         * [percent] of [profit], rounded down to whole units of the currency, so the fund never takes more than its
+         * percentage and its money is a round sum to hand over; nothing from a loss.
+         */
+        fun ofProfit(percent: Int, profit: Money): Money =
+            if (!profit.isPositive) Money.ZERO else Money(profit.minor * percent / 100 / 100 * 100)
+    }
+}
+
+/** Whether [event] has [cut] as its fund (null: none at all), e.g. a band's default it was created with. */
+fun FundCut?.isOn(event: Event): Boolean = when {
+    this == null -> event.fundPercent == null && event.fundAmount.isZero
+    percent != null -> event.fundPercent == percent
+    else -> event.fundPercent == null && event.fundAmount == amount
 }
 
 @Serializable

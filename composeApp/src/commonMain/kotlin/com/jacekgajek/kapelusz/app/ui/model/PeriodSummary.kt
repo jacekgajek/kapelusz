@@ -219,7 +219,7 @@ suspend fun periodSummary(
         collected = settledInPeriod.sumOfMoney { it.income },
         paidOut = settledInPeriod.sumOfMoney { event -> settlements.getValue(event.id).lines.filter { it.partyId != BAND_FUND }.sumOfMoney { it.share } },
         refundedAtEvents = settledInPeriod.sumOfMoney { event -> event.refunds.sumOfMoney { it.amount } },
-        toFund = settledInPeriod.sumOfMoney { it.fundAmount },
+        toFund = settledInPeriod.sumOfMoney { it.fund },
         costs = refundedCosts.sumOfMoney { it.amount },
         fund = fund,
         categories = refundedCosts.groupBy { it.category ?: CostCategory.OTHER }

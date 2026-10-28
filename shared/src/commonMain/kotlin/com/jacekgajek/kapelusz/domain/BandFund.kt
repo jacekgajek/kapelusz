@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.domain
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.isOn
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.sum
@@ -18,7 +19,7 @@ object BandFund {
     fun balance(band: Band): Money = transferredFromEvents(band) + band.events.sumOfMoney(::heldBy) + band.fundEntries.sumOfMoney { it.amount }
 
     /** Fund amounts promised by events whose transfers are not recorded yet. */
-    fun notHandedOver(band: Band): Money = band.events.sumOfMoney { it.fundAmount - heldBy(it) } - transferredFromEvents(band)
+    fun notHandedOver(band: Band): Money = band.events.sumOfMoney { it.fund - heldBy(it) } - transferredFromEvents(band)
 
     /**
      * The fund may be turned off only when it holds nothing and no event still owes it money or expects money from it.
@@ -27,7 +28,15 @@ object BandFund {
     fun canDisable(band: Band): Boolean = balance(band).isZero && band.events.all { isHandedOver(it) }
 
     /** The event's fund amount has been transferred to (or, if negative, from) the fund in full. */
-    fun isHandedOver(event: Event): Boolean = moved(event) == event.fundAmount
+    fun isHandedOver(event: Event): Boolean = moved(event) == event.fund
+
+    /** Events a changed fund default can still be applied to (ITERATION_7 §2g): not archived, not settled. */
+    fun canApplyDefault(band: Band, event: Event): Boolean =
+        !event.archived && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
+
+    /** Events that still have the band's fund default, to offer a new one to (as a member's default share is). */
+    fun stillDefault(band: Band): List<Event> =
+        band.events.filter { canApplyDefault(band, it) && band.fundDefault.isOn(it) }
 
     /** Money the event has actually moved into the fund so far (negative: out of it): transfers and fees paid to it. */
     fun moved(event: Event): Money = transferred(event.transfers) + heldBy(event)

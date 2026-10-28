@@ -192,7 +192,7 @@ fun BandFundScreen(
         }
         // One list, by date (ITERATION_7 §2e): events' money first on a day, entries in the order they were added.
         val rows = remember(band, settings.fundOldestFirst) {
-            val all = band.events.filter { !it.fundAmount.isZero }.map { FundRow.OfEvent(it) } +
+            val all = band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
                 band.fundEntries.map { FundRow.OfEntry(it) }
             val byDate = if (settings.fundOldestFirst) compareBy<FundRow> { it.date } else compareByDescending { it.date }
             // Stable: entries on a day stay in the order they were added.
@@ -246,7 +246,7 @@ fun BandFundScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
-                            MoneyText(event.fundAmount, band.currency, colored = true)
+                            MoneyText(event.fund, band.currency, colored = true)
                         }
                     }
                     is FundRow.OfEntry -> {

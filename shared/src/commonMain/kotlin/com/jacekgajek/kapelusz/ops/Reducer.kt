@@ -20,6 +20,7 @@ import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.FundCut
 import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Holding
@@ -72,7 +73,13 @@ object Reducer {
             }
             is DisableBandFund -> {
                 conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
-                band.copy(treasurerMemberId = null)
+                // Its default goes, and percentages become the amounts they came to (ITERATION_7 §2g): one still following
+                // income would owe money to a fund that is off, and changes to its event would be refused.
+                band.copy(
+                    treasurerMemberId = null,
+                    fundDefault = null,
+                    events = band.events.map { if (it.fundPercent != null) it.copy(fundAmount = it.fund, fundPercent = null, updatedAt = ctx.timestamp) else it },
+                )
             }
             is TransferOwnership -> transferOwnership(band, op)
             is InviteToSettleTogether -> {
@@ -192,9 +199,16 @@ object Reducer {
 
             is SetRefund -> setRefund(band, op)
             is SetFundAmount -> band.updateEvent(op.eventId) { event ->
-                invalidIf(!op.amount.isZero && band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
-                event.copy(fundAmount = op.amount)
+                op.percent?.let(::validateFundPercent)
+                // 0% is no cut at all, like an amount of 0.
+                val percent = op.percent?.takeIf { it > 0 }
+                val amount = if (op.percent != null) Money.ZERO else op.amount
+                invalidIf((percent != null || !amount.isZero) && band.treasurerMemberId == null, RejectionReason.NO_TREASURER) {
+                    "Choose a treasurer before using the band fund"
+                }
+                event.copy(fundAmount = amount, fundPercent = percent)
             }
+            is SetFundDefault -> setFundDefault(band, op, ctx)
             is AddFundEntry -> addFundEntry(band, op)
             is UpdateFundEntry -> updateFundEntry(band, op)
             is RemoveFundEntry -> {
@@ -303,6 +317,31 @@ object Reducer {
         return band.copy(members = band.members.filterNot { it.id == member.id })
     }
 
+    private fun setFundDefault(band: Band, op: SetFundDefault, ctx: OpContext): Band {
+        val cut = op.cut?.let(::validFundCut)
+        invalidIf(cut != null && band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
+        var result = band.copy(fundDefault = cut)
+        // As with a member's default share: events changed since the user chose them (settled, archived, gone) stay as they are.
+        for (eventId in op.events.distinct()) {
+            band.event(eventId)?.takeIf { BandFund.canApplyDefault(band, it) } ?: continue
+            result = result.updateEvent(eventId) {
+                it.copy(fundAmount = cut?.amount ?: Money.ZERO, fundPercent = cut?.percent, updatedAt = ctx.timestamp)
+            }
+        }
+        return result
+    }
+
+    /** A fund cut as stored: exactly one of a positive amount or a percentage of 1–100; nothing at all is null. */
+    private fun validFundCut(cut: FundCut): FundCut? {
+        invalidIf(cut.amount != null && cut.percent != null, RejectionReason.INVALID_INPUT) { "Either an amount or a percentage" }
+        cut.percent?.let(::validateFundPercent)
+        cut.amount?.let { validatePositive(it, "Band fund amount") }
+        return cut.takeUnless { it.amount == null && (it.percent ?: 0) == 0 }
+    }
+
+    private fun validateFundPercent(percent: Int) =
+        invalidIf(percent !in 0..FundCut.MAX_PERCENT, RejectionReason.INVALID_SHARE) { "A percentage must be between 0 and ${FundCut.MAX_PERCENT}" }
+
     private fun setMemberShare(band: Band, op: SetMemberShare, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
         validateWeight(op.weight)
@@ -408,7 +447,10 @@ object Reducer {
             participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )
-        return band.copy(events = band.events + event)
+        // The band's default, incidental to creating the event: dropped if the fund was turned off meanwhile (e.g. on
+        // another phone), rather than refusing the event.
+        val fund = op.fund?.let(::validFundCut)?.takeIf { band.treasurerMemberId != null }
+        return band.copy(events = band.events + event.copy(fundAmount = fund?.amount ?: Money.ZERO, fundPercent = fund?.percent))
     }
 
     private fun deleteEvent(band: Band, op: DeleteEvent): Band {

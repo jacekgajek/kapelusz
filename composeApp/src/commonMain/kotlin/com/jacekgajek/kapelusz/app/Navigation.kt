@@ -89,6 +89,8 @@ import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.ops.SetFundDefault
+import com.jacekgajek.kapelusz.app.ui.screens.settings.FundDefaultSetting
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -227,6 +229,11 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     onDisableFund = { graph.dispatch(DisableBandFund); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(DisableBandFund) && BandFund.canDisable(state.band) },
                     fundBalance = formatMoney(BandFund.balance(state.band), state.band.currency, language),
+                    fundDefault = state.band.fundDefault,
+                    fundDefaultSetting = FundDefaultSetting(remember(state.band) { BandFund.stillDefault(state.band).map { it.id to it.name } }) { cut, events ->
+                        graph.dispatch(SetFundDefault(cut, events))
+                    }.takeIf { Can(state.band, state.userId).allowed(SetFundDefault(null)) },
+                    currency = state.band.currency,
                     onDeleteBand = suspend { graph.deleteBand(); navController.resetTo(EventsRoute) }
                         .takeIf { state.me?.role == Role.OWNER },
                     onLeaveBand = suspend { graph.leaveBand(); navController.resetTo(EventsRoute) }.takeIf { state.me != null },

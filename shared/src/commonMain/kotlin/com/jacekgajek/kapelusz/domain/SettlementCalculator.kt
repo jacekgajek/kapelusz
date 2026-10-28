@@ -110,7 +110,8 @@ object SettlementCalculator {
         val order = partyOrder(band, event)
         val income = event.income
         val refundsTotal = event.refunds.sumOfMoney { it.amount }
-        val net = income - event.fundAmount - refundsTotal
+        val fund = event.fund
+        val net = income - fund - refundsTotal
         // Fixed shares come off the top; the rest is split by weight among the others (ITERATION_3 §2.4).
         val fixedTotal = event.participants.sumOfMoney { it.fixedShare ?: Money.ZERO }
         val rest = net - fixedTotal
@@ -130,7 +131,7 @@ object SettlementCalculator {
         val refundsByParty = event.refunds.groupBy { band.cost(it.costId)?.memberId }
             .mapValues { (_, refunds) -> refunds.sumOfMoney { it.amount } }
 
-        val involvesFund = !event.fundAmount.isZero ||
+        val involvesFund = !fund.isZero ||
             event.transfers.any { it.from == BAND_FUND || it.to == BAND_FUND } || event.holdings.any { it.partyId == BAND_FUND }
         val partyIds = order + if (involvesFund) listOf(BAND_FUND) else emptyList()
 
@@ -145,7 +146,7 @@ object SettlementCalculator {
                 received = event.transfers.filter { it.to == partyId }.sumOfMoney { it.amount },
                 share = share,
                 refunds = refunds,
-                target = if (partyId == BAND_FUND) event.fundAmount else share + refunds,
+                target = if (partyId == BAND_FUND) fund else share + refunds,
                 isFixed = partyId in fixedShares,
             )
         }
@@ -155,7 +156,7 @@ object SettlementCalculator {
         val parties = mergePairs(lines, partners)
         val status = when {
             // No money in it yet (ITERATION_3 R10): an event the band fund pays for is not a draft, even with nothing collected.
-            event.holdings.isEmpty() && event.transfers.isEmpty() && !event.fundAmount.isNegative -> EventStatus.DRAFT
+            event.holdings.isEmpty() && event.transfers.isEmpty() && !fund.isNegative -> EventStatus.DRAFT
             SettlementProblem.LOSS in problems -> EventStatus.LOSS
             problems.isEmpty() && parties.all { it.isSettled } -> EventStatus.SETTLED
             // The organiser's fee holds no line: nobody has a surplus to pass on until it comes (ITERATION_4 §2.2).
@@ -169,7 +170,7 @@ object SettlementCalculator {
         } else {
             emptyList()
         }
-        return Settlement(income, event.fundAmount, refundsTotal, net, fixedTotal, lines, suggestions, status, problems, partners)
+        return Settlement(income, fund, refundsTotal, net, fixedTotal, lines, suggestions, status, problems, partners)
     }
 
     /** Roster members in roster order, then guests in the order they were added. */
