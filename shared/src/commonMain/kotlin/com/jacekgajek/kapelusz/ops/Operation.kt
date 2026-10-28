@@ -218,6 +218,8 @@ data class AddFundEntry(
     val description: String,
     val amount: Money,
     val costId: Id? = null,
+    /** Who paid it in: a member, or null for someone outside the band (ITERATION_7 §2e). */
+    val paidBy: Id? = null,
 ) : Operation
 
 @Serializable @SerialName("UpdateFundEntry")
@@ -226,6 +228,7 @@ data class UpdateFundEntry(
     val date: Change<LocalDate>? = null,
     val description: Change<String>? = null,
     val amount: Change<Money>? = null,
+    val paidBy: Change<Id?>? = null,
 ) : Operation
 
 @Serializable @SerialName("RemoveFundEntry")

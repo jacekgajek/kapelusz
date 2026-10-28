@@ -174,8 +174,14 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             composable<SettleRoute> {
                 if (artist) BackToEvents(navController) else SettleScreen(graph, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
             }
-            composable<FundRoute> {
-                if (artist) BackToEvents(navController) else BandFundScreen(graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) })
+            composable<FundRoute> { entry ->
+                val addedCost by entry.savedStateHandle.getStateFlow<String?>(ADDED_COST, null).collectAsState()
+                if (artist) BackToEvents(navController) else BandFundScreen(
+                    graph, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) },
+                    onAddCost = { navController.navigate(CostRoute()) },
+                    addedCost = addedCost,
+                    onAddedCostSeen = { entry.savedStateHandle[ADDED_COST] = null },
+                )
             }
             composable<EventRoute> { entry -> EventScreen(graph, state, entry.toRoute<EventRoute>().eventId, back, onAddCost = { navController.navigate(CostRoute(forEventId = it)) }, onOpenCost = { navController.navigate(CostRoute(it)) }, onInviteMember = { navController.navigate(RosterRoute(it)) }) }
             composable<CostRoute> { entry ->
@@ -192,6 +198,9 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                 }, onAddedForOther = {
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
+                }, onAdded = { costId ->
+                    // From the band fund's +: back there to refund it (ITERATION_7 §2e).
+                    navController.previousBackStackEntry?.takeIf { it.destination.hasRoute(FundRoute::class) }?.savedStateHandle?.set(ADDED_COST, costId)
                 })
             }
             composable<SettingsRoute> { entry ->
@@ -263,6 +272,9 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
 
 /** Saved state key of the "everyone's costs" switch on the costs tab. */
 private const val SHOW_EVERYONE = "showEveryone"
+
+/** Saved state key of a cost added from the band fund's +, to refund from the fund. */
+private const val ADDED_COST = "addedCost"
 
 /** Navigates to [route] and drops everything else from the back stack. */
 internal fun NavHostController.resetTo(route: Any) {

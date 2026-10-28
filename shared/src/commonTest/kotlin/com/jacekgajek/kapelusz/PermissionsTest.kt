@@ -139,12 +139,12 @@ class PermissionsTest {
 
     @Test
     fun theTreasurerKeepsTheFundsLedger() {
-        val entry = AddFundEntry("e", DATE, "Strings", pln("-40"))
+        val entry = AddFundEntry("e", DATE, "Membership fee", pln("40"), paidBy = "other")
         assertFalse(allowed(member, entry))
         scenario.apply(SetTreasurer("member"))
         assertTrue(allowed(member, entry), "ITERATION_7 §2d")
         scenario.apply(entry, member)
-        assertTrue(allowed(member, UpdateFundEntry("e", amount = Change(pln("-45")))))
+        assertTrue(allowed(member, UpdateFundEntry("e", amount = Change(pln("45")))))
         assertTrue(allowed(member, RemoveFundEntry("e")))
         // Refunding a cost decides about it: leads only.
         scenario.apply(AddCost("c", "other", pln("10"), DATE))

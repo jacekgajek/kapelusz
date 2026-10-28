@@ -134,7 +134,7 @@ class FundAndEdgeCasesTest {
         assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(DisableBandFund).reason, "the fund holds 100")
 
         // Spent on the band: empty again, though it had transfers in the past.
-        scenario.apply(AddFundEntry("f", DATE, "Van rental", pln("-100")))
+        scenario.apply(AddCost("van", "bob", pln("100"), DATE)).apply(AddFundEntry("f", DATE, "Van rental", pln("-100"), costId = "van"))
         scenario.apply(DisableBandFund)
         assertEquals(null, scenario.band.treasurerMemberId)
         assertEquals(EventStatus.SETTLED, scenario.settle("e").status, "a settled event stays settled without the fund")
@@ -160,7 +160,8 @@ class FundAndEdgeCasesTest {
             .apply(AddHolding("e", "h", "bob", pln("300"), DOOR))
             .apply(SetFundAmount("e", pln("100")))
             .apply(SettleSuggestions("e"))
-            .apply(AddFundEntry("f", DATE, "Van rental", pln("-100")))
+            .apply(AddCost("van", "bob", pln("100"), DATE))
+            .apply(AddFundEntry("f", DATE, "Van rental", pln("-100"), costId = "van"))
             .apply(DisableBandFund)
         val toFund = scenario.band.event("e")!!.transfers.first { it.to == BAND_FUND }
 
@@ -229,5 +230,30 @@ class FundAndEdgeCasesTest {
         scenario.event("d2", "Bob").apply(AddCost("c2", "bob", pln("10"), DATE, incurredForEventId = "d2"))
         assertEquals(EventStatus.DRAFT, scenario.settle("d2").status)
         assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("d2", true)).reason)
+    }
+
+    /** Money comes in from someone (a member, or outside the band) and leaves only to refund a cost (ITERATION_7 §2e). */
+    @Test
+    fun fundEntriesHaveAPayerOrACost() {
+        val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice"))
+        scenario.apply(AddFundEntry("fee", DATE, "Membership fee", pln("50"), paidBy = "bob"))
+        scenario.apply(AddFundEntry("grant", DATE, "Grant", pln("500")))
+        assertEquals(listOf("bob", null), scenario.band.fundEntries.map { it.paidBy })
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddFundEntry("x", DATE, "Strings", pln("-40"))).reason, "out only for a cost")
+        assertEquals(RejectionReason.NOT_FOUND, scenario.rejected(AddFundEntry("x", DATE, "Fee", pln("5"), paidBy = "nobody")).reason)
+        scenario.apply(AddCost("strings", "bob", pln("40"), DATE))
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddFundEntry("x", DATE, "Strings", pln("-40"), costId = "strings", paidBy = "bob")).reason)
+        scenario.apply(AddFundEntry("r", DATE, "Strings", pln("-40"), costId = "strings"))
+
+        // The payer can change (to outside the band too), the direction can't.
+        scenario.apply(UpdateFundEntry("fee", paidBy = Change("alice")))
+        scenario.apply(UpdateFundEntry("grant", paidBy = Change(null)))
+        assertEquals("alice", scenario.band.fundEntries.first { it.id == "fee" }.paidBy)
+        scenario.apply(UpdateFundEntry("fee", paidBy = Change(null)))
+        assertEquals(null, scenario.band.fundEntries.first { it.id == "fee" }.paidBy)
+        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(UpdateFundEntry("fee", amount = Change(pln("-50")))).reason)
+        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(UpdateFundEntry("r", amount = Change(pln("40")))).reason)
+        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(UpdateFundEntry("r", paidBy = Change("bob"))).reason, "a refund's cost names whose")
+        assertEquals(RejectionReason.NOT_FOUND, scenario.rejected(UpdateFundEntry("fee", paidBy = Change("nobody"))).reason)
     }
 }

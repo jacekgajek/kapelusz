@@ -111,6 +111,8 @@ fun CostScreen(
     costId: String?,
     onBack: () -> Unit,
     onAddedForOther: () -> Unit = {},
+    /** A new cost saved, with its id. */
+    onAdded: (String) -> Unit = {},
     /** A new cost "incurred for" this event, from the event's Cost refunds (ITERATION_2 §7). */
     forEventId: String? = null,
     /** An event the cost is refunded at, opened at its Money page. */
@@ -164,6 +166,7 @@ fun CostScreen(
             actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
                 .also { if (it) graph.attachments.attachAfterSave(id, drafts) }
                 .also { if (it && paidBy != state.me?.id) onAddedForOther() }
+                .also { if (it) onAdded(id) }
         } else {
             actions.run(
                 UpdateCost(

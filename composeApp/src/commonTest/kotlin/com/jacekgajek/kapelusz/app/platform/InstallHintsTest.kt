@@ -38,38 +38,37 @@ class InstallHintsTest {
 
     @Test
     fun otherBrowsersOnIphoneGetNoHint() {
-        assertNull(webHint(state(iPhoneChrome), emptySet(), playPublic = true))
-        assertNull(webHint(state(iPhoneFacebook), emptySet(), playPublic = true))
+        assertNull(webHint(state(iPhoneChrome), emptySet()))
+        assertNull(webHint(state(iPhoneFacebook), emptySet()))
         assertFalse(isIosSafari(iPhoneChrome, 5))
         assertTrue(isIosSafari(iPhoneSafari, 5))
     }
 
     @Test
     fun appleDevicesAreNeverOfferedTheAndroidApp() {
-        assertNull(webHint(state(iPhoneChrome, androidAppInstalled = false), emptySet(), playPublic = true))
+        assertNull(webHint(state(iPhoneChrome, androidAppInstalled = false), emptySet()))
         assertNull(webHint(state(iPhoneSafari, standalone = true), emptySet()))
     }
 
     @Test
     fun androidAndDesktopBrowsersAreOfferedTheAndroidApp() {
-        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome), emptySet(), playPublic = true))
-        assertEquals(WebHint.AndroidApp, webHint(state(desktopChrome, touchPoints = 0), emptySet(), playPublic = true))
+        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome), emptySet()))
+        assertEquals(WebHint.AndroidApp, webHint(state(desktopChrome, touchPoints = 0), emptySet()))
         // A Mac without a touch screen is a desktop.
-        assertEquals(WebHint.AndroidApp, webHint(state(macSafari, touchPoints = 0), emptySet(), playPublic = true))
+        assertEquals(WebHint.AndroidApp, webHint(state(macSafari, touchPoints = 0), emptySet()))
     }
 
     @Test
-    fun noAndroidHintOnceTheAppIsInstalledOrBeforeItIsPublicOnPlay() {
-        assertNull(webHint(state(androidChrome, androidAppInstalled = true), emptySet(), playPublic = true))
-        assertNull(webHint(state(androidChrome), emptySet(), playPublic = false), "the closed test: Play has it only for testers")
+    fun noAndroidHintOnceTheAppIsInstalled() {
+        assertNull(webHint(state(androidChrome, androidAppInstalled = true), emptySet()))
     }
 
     @Test
     fun notNowHidesAHintOnlyForThisVisit() {
         assertNull(webHint(state(iPhoneSafari), setOf(WebHint.HomeScreen)))
-        assertNull(webHint(state(androidChrome), setOf(WebHint.AndroidApp), playPublic = true))
+        assertNull(webHint(state(androidChrome), setOf(WebHint.AndroidApp)))
         // The next visit starts with nothing dismissed.
-        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome), emptySet(), playPublic = true))
+        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome), emptySet()))
     }
 
     @Test
@@ -84,8 +83,8 @@ class InstallHintsTest {
 
     @Test
     fun localBuildsAndCurrentVersionsAreNotOfferedAReload() {
-        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome, running = 0), emptySet(), playPublic = true))
-        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome, running = 40), emptySet(), playPublic = true))
-        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome, running = 41), emptySet(), playPublic = true))
+        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome, running = 0), emptySet()))
+        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome, running = 40), emptySet()))
+        assertEquals(WebHint.AndroidApp, webHint(state(androidChrome, running = 41), emptySet()))
     }
 }

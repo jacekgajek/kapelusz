@@ -48,10 +48,10 @@ fun isIosSafari(userAgent: String, maxTouchPoints: Int): Boolean =
 /**
  * The hint to show, or null. A newer deploy comes first; then the install hint of this device: "Add to Home Screen" in
  * Safari on iPhones and iPads unless already opened from the home screen, the Android app from Google Play elsewhere
- * once anyone can install it there ([playPublic]) and the browser does not see it installed. A hint the user dismissed ("Not now") stays hidden until the
+ * (joining the test while it is closed, [PLAY_INSTALL]) unless the browser sees it installed. A hint the user dismissed ("Not now") stays hidden until the
  * next visit to the event list, i.e. [dismissed] only holds this visit's dismissals.
  */
-fun webHint(state: WebInstallState, dismissed: Set<WebHint>, playPublic: Boolean = PLAY_PUBLIC): WebHint? {
+fun webHint(state: WebInstallState, dismissed: Set<WebHint>): WebHint? {
     val browser = state.browser
     val published = state.published
     val newVersion = published?.takeIf { state.runningVersionCode > 0 && it.versionCode > state.runningVersionCode }
@@ -59,7 +59,7 @@ fun webHint(state: WebInstallState, dismissed: Set<WebHint>, playPublic: Boolean
     val install = when {
         isAppleMobile(browser.userAgent, browser.maxTouchPoints) ->
             WebHint.HomeScreen.takeIf { isIosSafari(browser.userAgent, browser.maxTouchPoints) && !browser.standalone }
-        playPublic && !browser.androidAppInstalled -> WebHint.AndroidApp
+        !browser.androidAppInstalled -> WebHint.AndroidApp
         else -> null
     }
     return listOfNotNull(newVersion, install).firstOrNull { it !in dismissed }

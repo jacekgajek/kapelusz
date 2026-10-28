@@ -74,7 +74,10 @@ enum class AttachmentKind(val contentType: String, val extension: String, val ma
     PDF("application/pdf", "pdf", 10L * 1024 * 1024),
 }
 
-/** Manual band fund entry. A negative entry linked to [costId] refunds that cost from the fund. */
+/**
+ * Manual band fund entry (ITERATION_7 §2e): money paid in by [paidBy] (a member; null: from outside the band), or,
+ * negative, the refund of [costId] from the fund. Money leaves the fund only to refund a cost.
+ */
 @Serializable
 data class FundEntry(
     val id: Id,
@@ -82,4 +85,5 @@ data class FundEntry(
     val description: String,
     val amount: Money,
     val costId: Id? = null,
+    val paidBy: Id? = null,
 )

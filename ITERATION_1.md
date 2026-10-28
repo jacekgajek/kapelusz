@@ -165,7 +165,7 @@ sees the same tabs; actions their role cannot perform are hidden.
    - Every pending suggested transfer where you're sender or receiver, across events, each with **Settle**.
    - **"Hand over money"**: pick a party; the amount defaults to your whole balance in that event and can be edited.
    - For leads, a second section lists all `OPEN`/`LOSS` events.
-4. **Band fund**, shown only while the band fund is on: balance (red if negative), "not handed over yet", the holder, money from events (handed over or waiting), and other entries. Everyone sees it; lead+ adds, edits and removes entries, including refunding a pending cost from the fund. (Since ITERATION_7 §2d the holder keeps the plain entries too.)
+4. **Band fund**, shown only while the band fund is on: balance (red if negative), "not handed over yet", the holder, money from events (handed over or waiting), and other entries (one list by date since ITERATION_7 §2e). Everyone sees it; lead+ adds, edits and removes entries, including refunding a pending cost from the fund. (Since ITERATION_7 §2d the holder keeps the plain entries too; since §2e money in names who paid it, and money out only refunds a cost.)
 5. **⚙ Cog** in the top bar: band switcher, New band, Join a band, Band members (roster), History, Settings.
    - **Settings:** language (device / English / Polski); for admins the band name and the band fund switch with its holder; for the owner a red **Delete band** button (§4.4); the account and sign-out.
 

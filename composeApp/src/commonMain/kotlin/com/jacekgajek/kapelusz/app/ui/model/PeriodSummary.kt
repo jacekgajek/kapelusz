@@ -75,8 +75,26 @@ data class PersonTotals(val earned: Money, val refunded: Money) {
     }
 }
 
-/** Money into and out of the band fund in the period, and what it held at the period's end. */
-data class FundTotals(val into: Money, val out: Money, val balance: Money)
+/**
+ * Money into and out of the band fund in the period, and what it held at the period's end; [intoBy] and [outBy] break
+ * them down by who paid in or got a cost refunded (ITERATION_7 §2e), largest first.
+ */
+data class FundTotals(
+    val into: Money,
+    val out: Money,
+    val balance: Money,
+    val intoBy: List<Pair<FundSource, Money>> = emptyList(),
+    val outBy: List<Pair<FundSource, Money>> = emptyList(),
+)
+
+/** Whose money went into or out of the band fund. */
+sealed interface FundSource {
+    data class Of(val member: Member) : FundSource
+    /** Paid in from outside the band. */
+    data object Outside : FundSource
+    /** An event's part, or what the fund added to one. */
+    data object Events : FundSource
+}
 
 data class PeriodSummary(
     /** Settled events in the period: only their money counts (it is final). */
@@ -165,7 +183,7 @@ suspend fun periodSummary(
     // recorded (a gig's part may be handed over before the gig), fees paid straight to it on the gig's date, entries on
     // their own.
     val fund = band.treasurerMemberId?.let {
-        val flows = band.events.flatMap { event ->
+        val flows: List<Triple<LocalDate, Money, FundSource>> = band.events.flatMap { event ->
             val transfers = event.transfers.mapNotNull { transfer ->
                 val amount = when (BAND_FUND) {
                     transfer.to -> transfer.amount
@@ -173,15 +191,24 @@ suspend fun periodSummary(
                     else -> return@mapNotNull null
                 }
                 val recorded = transfer.recordedAt.takeIf { it > 0 }?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date }
-                (recorded ?: event.date) to amount
+                Triple(recorded ?: event.date, amount, FundSource.Events)
             }
-            transfers + event.holdings.filter { it.partyId == BAND_FUND }.map { event.date to it.amount }
-        } + band.fundEntries.map { it.date to it.amount }
-        val inside = flows.filter { (date, _) -> inPeriod(date) }.map { it.second }
+            transfers + event.holdings.filter { it.partyId == BAND_FUND }.map { Triple(event.date, it.amount, FundSource.Events) }
+        } + band.fundEntries.map { entry ->
+            // Paid in by someone, or a refund of someone's cost.
+            val who = (entry.paidBy ?: entry.costId?.let { band.cost(it)?.memberId })?.let { band.member(it) }
+            Triple(entry.date, entry.amount, who?.let { FundSource.Of(it) } ?: FundSource.Outside)
+        }
+        val inside = flows.filter { (date, _, _) -> inPeriod(date) }
+        fun by(amounts: List<Triple<LocalDate, Money, FundSource>>) = amounts.groupBy { it.third }
+            .map { (source, flows) -> source to flows.sumOfMoney { it.second }.let { if (it.isNegative) -it else it } }
+            .filter { !it.second.isZero }.sortedByDescending { it.second }
         FundTotals(
-            into = inside.filter { it.isPositive }.sumOfMoney { it },
-            out = -inside.filter { it.isNegative }.sumOfMoney { it },
-            balance = flows.filter { (date, _) -> to == null || date <= to }.sumOfMoney { it.second },
+            into = inside.filter { it.second.isPositive }.sumOfMoney { it.second },
+            out = -inside.filter { it.second.isNegative }.sumOfMoney { it.second },
+            balance = flows.filter { (date, _, _) -> to == null || date <= to }.sumOfMoney { it.second },
+            intoBy = by(inside.filter { it.second.isPositive }),
+            outBy = by(inside.filter { it.second.isNegative }),
         )
     }
 

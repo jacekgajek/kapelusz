@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
+import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
@@ -92,5 +93,12 @@ class MemberDeletionTest {
         scenario.apply(RenameMember("carol2", "Caroline"))
         scenario.apply(undo)
         assertEquals("Carol", scenario.band.member("carol")?.name)
+    }
+
+    @Test
+    fun whoPaidIntoTheFundStays() {
+        val scenario = band().apply(SetTreasurer("alice"))
+        scenario.apply(AddFundEntry("fee", DATE, "Membership fee", pln("50"), paidBy = "carol"))
+        assertFalse(MemberDeletion.possible(scenario.band, "carol"), "paid into the fund (ITERATION_7 §2e)")
     }
 }
