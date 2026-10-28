@@ -7,9 +7,9 @@
     <string name="menu_roster">Członkowie zespołu</string>
     <string name="tab_events">Wydarzenia</string>
     <string name="tab_my_costs">Moje koszty</string>
-    <string name="tab_gig">Koncert</string>
-    <string name="tab_money">Pieniądze</string>
-    <string name="tab_settlement">Rozliczenie</string>
+    <string name="tab_gig">Info</string>
+    <string name="tab_money">Hajs</string>
+    <string name="tab_settlement">Kto komu</string>
     <string name="artist_payout">Twoja wypłata</string>
     <string name="artist_to_receive">Do otrzymania</string>
     <string name="artist_received">Otrzymano dotąd</string>
@@ -638,7 +638,7 @@
     <string name="pair_names">%1$s i %2$s</string>
     <string name="pair_breakdown">%1$s: wypłata %2$s · trzyma %3$s</string>
     <string name="settle_together_title">Wspólne rozliczenie</string>
-    <string name="settle_together_hint">W rozliczeniu jesteście jedną stroną; wszędzie indziej osobno.</string>
+    <string name="settle_together_hint">W zakładce „Kto komu” jesteście jedną stroną; wszędzie indziej osobno.</string>
     <string name="settle_together_hint_artist">Druga osoba może zatrzymać albo odebrać to, co ci się należy; nadal widzisz tylko swoje pieniądze.</string>
     <string name="settle_together_invite">Rozliczaj się razem ze mną</string>
     <string name="settle_together_waiting">Czekamy na odpowiedź: %1$s.</string>

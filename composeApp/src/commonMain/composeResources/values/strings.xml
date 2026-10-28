@@ -9,7 +9,7 @@
     <string name="tab_my_costs">My costs</string>
     <string name="tab_gig">Gig</string>
     <string name="tab_money">Money</string>
-    <string name="tab_settlement">Settlement</string>
+    <string name="tab_settlement">Who owes whom</string>
     <string name="artist_payout">Your payout</string>
     <string name="artist_to_receive">To receive</string>
     <string name="artist_received">Received so far</string>
@@ -626,7 +626,7 @@
     <string name="pair_names">%1$s and %2$s</string>
     <string name="pair_breakdown">%1$s: payout %2$s · holds %3$s</string>
     <string name="settle_together_title">Settle together</string>
-    <string name="settle_together_hint">On Settlement you're one party; everywhere else you stay separate.</string>
+    <string name="settle_together_hint">On “Who owes whom” you're one party; everywhere else you stay separate.</string>
     <string name="settle_together_hint_artist">The other person may keep or receive what you’re owed; you still see only your own money.</string>
     <string name="settle_together_invite">Settle together with me</string>
     <string name="settle_together_waiting">Waiting for %1$s to answer.</string>
