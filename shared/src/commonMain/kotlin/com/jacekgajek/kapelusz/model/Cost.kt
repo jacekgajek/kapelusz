@@ -53,7 +53,7 @@ data class Cost(
 )
 
 @Serializable
-enum class CostCategory { TRAVEL, ACCOMMODATION, EQUIPMENT, FOOD, OTHER }
+enum class CostCategory { TRAVEL, ACCOMMODATION, EQUIPMENT, FOOD, PROMOTION, OTHER }
 
 @Serializable
 data class Attachment(
