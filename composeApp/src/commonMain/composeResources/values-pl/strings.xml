@@ -523,6 +523,7 @@
         <item quantity="many">%1$d koncertów jeszcze bez miejsca</item>
         <item quantity="other">%1$d koncertu jeszcze bez miejsca</item>
     </plurals>
+    <string name="played_upcoming">nadchodzący</string>
     <string name="played_show_on_map">Pokaż na mapie</string>
     <string name="played_empty">Brak koncertów z lokalizacją w tym okresie.</string>
     <plurals name="played_places">

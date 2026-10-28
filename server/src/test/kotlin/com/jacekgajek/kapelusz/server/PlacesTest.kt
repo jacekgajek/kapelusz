@@ -181,7 +181,7 @@ class PlacesTest {
         )
         val answer = locations("alice", api)
         assertEquals(listOf("Somewhere, 51.100000, 17.000000"), answer.located.map { it.location })
-        assertEquals(listOf("Stodoła, Batorego 10, Warszawa"), answer.pending, "a gig not played yet isn't even asked")
+        assertEquals(listOf("Stodoła, Batorego 10, Warszawa", "Future Hall"), answer.pending)
         assertTrue(located.isEmpty())
     }
 }

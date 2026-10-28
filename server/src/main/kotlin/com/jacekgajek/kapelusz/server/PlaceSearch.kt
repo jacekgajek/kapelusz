@@ -234,9 +234,8 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
      */
     fun locations(user: VerifiedUser, bandId: String): HttpResponse {
         val (band, _) = bands.loadForMember(user, bandId)
-        // Only concerts already played (a day's slack for time zones): the map shows no future gigs.
-        val tomorrow = kotlinx.datetime.LocalDate.parse(java.time.LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1).toString())
-        val events = PlayedPlaces.visible(band, band.memberOfUser(user.userId)).filter { it.date <= tomorrow }
+        // Gigs still to come too: the map shows them grey.
+        val events = PlayedPlaces.visible(band, band.memberOfUser(user.userId))
         val all = events.mapNotNull { it.location?.takeIf(String::isNotBlank) }.distinctBy(PlayedPlaces::key)
         val located = all.mapNotNull { location -> Places.pinIn(location)?.let { LocatedPlace(location, it.first, it.second) } }
         val addresses = PlayedPlaces.toLocate(events).associateBy { GeocodeCache.key(PlayedPlaces.key(it)) }

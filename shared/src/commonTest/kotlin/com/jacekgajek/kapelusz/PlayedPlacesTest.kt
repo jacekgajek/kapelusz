@@ -22,10 +22,10 @@ class PlayedPlacesTest {
     }
 
     @Test
-    fun concertsPlayedWithALocationOnlyAndAnArtistOnlyTheirs() {
+    fun concertsWithALocationUpcomingOnesInAnyPeriodAndAnArtistOnlyTheirs() {
         val scenario = band()
-        assertEquals(listOf("old", "new", "pin", "lost"), PlayedPlaces.played(scenario.band, scenario.band.member("alice"), null, null, today).map { it.id })
-        assertEquals(listOf("new", "pin", "lost"), PlayedPlaces.played(scenario.band, null, LocalDate(2026, 1, 1), null, today).map { it.id }, "the period")
+        assertEquals(listOf("old", "new", "pin", "lost", "soon"), PlayedPlaces.played(scenario.band, scenario.band.member("alice"), null, null, today).map { it.id })
+        assertEquals(listOf("new", "pin", "lost", "soon"), PlayedPlaces.played(scenario.band, null, LocalDate(2026, 1, 1), today, today).map { it.id }, "the period, and what is still to come")
         scenario.userFor("bob", Role.ARTIST)
         assertEquals(listOf("new"), PlayedPlaces.played(scenario.band, scenario.band.member("bob"), null, null, today).map { it.id })
         assertEquals(
@@ -41,9 +41,14 @@ class PlayedPlacesTest {
         val events = PlayedPlaces.played(scenario.band, null, null, null, today)
         // Both spellings of the venue a few metres apart; Atlantis not found.
         val at = mapOf("pod sowami, wrocław" to (51.10781 to 17.03312), "piwnica artystyczna \"pod sowami\", kraszewskiego 26, 50-229 wrocław" to (51.10779 to 17.03308))
-        val (places, missing) = PlayedPlaces.places(events) { at[PlayedPlaces.key(it)] }
-        assertEquals(listOf("Pod Sowami" to listOf("new", "old"), "Łąka" to listOf("pin")), places.map { it.title to it.events.map { e -> e.id } })
+        val future = mapOf("future hall" to (50.0 to 19.0))
+        val (places, missing) = PlayedPlaces.places(events, today) { at[PlayedPlaces.key(it)] ?: future[PlayedPlaces.key(it)] }
+        assertEquals(
+            listOf("Pod Sowami" to listOf("new", "old"), "Future Hall" to listOf("soon"), "Łąka" to listOf("pin")),
+            places.map { it.title to it.events.map { e -> e.id } },
+        )
         assertEquals("Pod Sowami, Wrocław", places.first().address)
+        assertEquals(listOf(false, true, false), places.map { it.upcoming }, "only gigs still to come: grey")
         assertEquals(listOf("lost"), missing.map { it.id })
     }
 }
