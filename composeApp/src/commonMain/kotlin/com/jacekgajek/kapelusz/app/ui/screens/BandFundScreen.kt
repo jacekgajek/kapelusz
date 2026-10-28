@@ -176,7 +176,7 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
             item { SectionTitle(stringResource(Res.string.fund_entries)) }
             if (band.fundEntries.isEmpty()) item { Text(stringResource(Res.string.fund_entries_empty), style = MaterialTheme.typography.bodyMedium) }
             items(band.fundEntries.sortedByDescending { it.date }, key = { "entry-${it.id}" }) { entry ->
-                Row(Modifier.fillMaxWidth().clickable(enabled = canEdit) { editing = entry }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable(enabled = canEdit && can.allowed(UpdateFundEntry(entry.id))) { editing = entry }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(entry.description)
                         // A refund names whose cost it paid back: the description alone ("Cable") doesn't.
@@ -187,13 +187,13 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
                         )
                     }
                     MoneyText(entry.amount, band.currency, colored = true)
-                    if (canEdit) EditButton { editing = entry }
+                    if (canEdit && can.allowed(UpdateFundEntry(entry.id))) EditButton { editing = entry }
                 }
             }
         }
     }
 
-    if (adding) FundEntryDialog(band, null, onSave = { actions.run(it) }, onDelete = null, onDismiss = { adding = false })
+    if (adding) FundEntryDialog(band, null, refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(1), costId = "probe")), onSave = { actions.run(it) }, onDelete = null, onDismiss = { adding = false })
     editing?.let { entry ->
         FundEntryDialog(band, entry, onSave = { actions.run(it) }, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null })
     }
@@ -204,6 +204,8 @@ fun BandFundScreen(graph: AppGraph, state: BandState.Ready, onSettings: () -> Un
 private fun FundEntryDialog(
     band: Band,
     initial: FundEntry?,
+    /** Leads only: refunding a cost decides about it (ITERATION_7 §2d); the treasurer records plain entries. */
+    refundsCosts: Boolean = true,
     onSave: (Operation) -> Boolean,
     onDelete: (() -> Boolean)?,
     onDismiss: () -> Unit,
@@ -217,7 +219,7 @@ private fun FundEntryDialog(
     var description by remember { mutableStateOf(initial?.description.orEmpty()) }
     var date by remember { mutableStateOf(initial?.date ?: today()) }
     // Refunding a cost is only offered for new entries; the link cannot be changed later.
-    val pendingCosts = band.costs.filter { CostLedger.outstanding(band, it).isPositive }
+    val pendingCosts = if (refundsCosts) band.costs.filter { CostLedger.outstanding(band, it).isPositive } else emptyList()
     var costId by remember { mutableStateOf(initial?.costId) }
     // The description filled in from the picked cost: replaced when another cost is picked, unless the user typed over it.
     var filled by remember { mutableStateOf<String?>(null) }
@@ -229,7 +231,7 @@ private fun FundEntryDialog(
         title = { Text(stringResource(Res.string.band_fund)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (initial == null) {
+                if (initial == null && refundsCosts) {
                     Dropdown(costId, listOf<String?>(null) + pendingCosts.map { it.id }, { id ->
                         costId = id
                         val cost = id?.let { band.cost(it) }

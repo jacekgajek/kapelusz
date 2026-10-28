@@ -180,7 +180,8 @@ object Reducer {
                 }
                 val full = op.amount == awaited.amount
                 // Its files (the contract) go with the money once all of it is in.
-                val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), ctx.memberId)
+                // Still the lead's record: who received it can't then remove it, or its contract (ITERATION_7 §2d).
+                val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), awaited.recordedBy ?: ctx.memberId)
                 val rest = if (full) emptyList() else listOf(awaited.copy(amount = awaited.amount - op.amount))
                 event.copy(holdings = event.holdings.flatMap { if (it.id == awaited.id) rest + received else listOf(it) })
             }

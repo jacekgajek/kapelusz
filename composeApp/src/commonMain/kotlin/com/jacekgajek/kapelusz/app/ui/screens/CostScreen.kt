@@ -88,6 +88,9 @@ import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.KapeluszJson
@@ -263,7 +266,8 @@ fun CostScreen(
                     attachments = existing?.attachments.orEmpty(),
                     drafts = drafts,
                     onDrafts = { drafts = it },
-                    editable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
+                    editable = existing == null || Permissions.isAllowed(band, actor, AddAttachment(existing.id, Attachment("probe", AttachmentKind.IMAGE))),
+                    removable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
                     actions = actions,
                     undoRemoval = true,
                 )

@@ -202,6 +202,23 @@ what they were paid too much). A pair's transfer counts as the artist's own part
 partner receives for the pair stays "Kept for you by …" in the payout. The server already sends artists the whole band
 (the app hides the rest), so only the app and the shared permission changed.
 
+## 2d. Fewer messages to a leader (2026-10-28)
+
+Who knows something happened records it, instead of telling a leader (a search after §2c; the user picked these four):
+
+1. **Taking back your own transfer.** Whoever recorded a transfer (Paid, Received, Hand over money) may remove it from
+   Recorded transfers, e.g. a Paid tapped by mistake after the Undo is gone; leads any, as before. Undo from History of
+   a transfer still needs a lead (ITERATION_2 §7.2).
+2. **An organiser's fee arriving.** Who it was paid to marks it received (Paid on the awaited fee), and the fund's holder
+   for the fund; leads for anyone, as before. Recording an awaited fee stays with leads (ITERATION_4 §2.2). The money
+   received stays the lead's record: who received it can't edit or remove it, nor its contract (only collected money
+   one recorded oneself is one's own to change).
+3. **The treasurer keeps the fund's ledger.** The fund's holder adds, edits and removes its plain entries (strings
+   bought, cash counted). Refunding a cost from the fund decides about someone's cost, so it stays with leads, and so do
+   entries that refund one.
+4. **A forgotten receipt.** A cost's owner adds and renames its files after it is locked (refunded at an event with
+   transfers): a file changes no money. Removing one (Undo of adding it too), and changing the cost, stays locked.
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -240,6 +257,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - [x] To settle on the artist's Money page, their own transfers only, with BLIK when they pay
 - [x] Paid / Received / Part on them; RecordTransfer of one's own from artists up
 
+### Fewer messages to a leader (§2d)
+
+- [x] Removing one's own transfer; receiving an awaited fee paid to oneself; the treasurer's fund entries; receipts on a locked cost
+
 ### Updates from Google Play in the app (§2b)
 
 - [x] The strip (available, downloading, downloaded), Update required's full-screen update
@@ -270,3 +291,5 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   hidden from them (ITERATION_4 §1.1).
 - 2026-10-28: Artists record their own transfers (§2c): an artist paying another artist otherwise needed two people to
   pass the word to a lead.
+- 2026-10-28: Fewer messages to a leader (§2d): four things the person involved knows are theirs to record. Refunding a
+  cost from the fund, recording an awaited fee and undoing from History stay with leads.

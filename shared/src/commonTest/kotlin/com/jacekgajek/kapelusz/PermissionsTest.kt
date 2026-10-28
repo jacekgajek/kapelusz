@@ -13,6 +13,10 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.RemoveFundEntry
+import com.jacekgajek.kapelusz.ops.UpdateFundEntry
+import com.jacekgajek.kapelusz.ops.AddFundEntry
+import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
@@ -122,5 +126,31 @@ class PermissionsTest {
         assertTrue(allowed(member, RecordTransfer("gig", "t", BAND_FUND, "other", pln("1"))))
         assertTrue(allowed(member, SettleSuggestions("gig", BAND_FUND)))
         assertFalse(allowed(member, SettleSuggestions("gig")))
+    }
+
+    @Test
+    fun whoRecordedATransferRemovesIt() {
+        scenario.apply(RecordTransfer("gig", "mine", "other", "member", pln("10")), member)
+        scenario.apply(RecordTransfer("gig", "theirs", "other", "member", pln("10")))
+        assertTrue(allowed(member, RemoveTransfer("gig", "mine")), "a Paid tapped by mistake (ITERATION_7 §2d)")
+        assertFalse(allowed(member, RemoveTransfer("gig", "theirs")))
+        assertTrue(allowed(lead, RemoveTransfer("gig", "mine")))
+    }
+
+    @Test
+    fun theTreasurerKeepsTheFundsLedger() {
+        val entry = AddFundEntry("e", DATE, "Strings", pln("-40"))
+        assertFalse(allowed(member, entry))
+        scenario.apply(SetTreasurer("member"))
+        assertTrue(allowed(member, entry), "ITERATION_7 §2d")
+        scenario.apply(entry, member)
+        assertTrue(allowed(member, UpdateFundEntry("e", amount = Change(pln("-45")))))
+        assertTrue(allowed(member, RemoveFundEntry("e")))
+        // Refunding a cost decides about it: leads only.
+        scenario.apply(AddCost("c", "other", pln("10"), DATE))
+        assertFalse(allowed(member, AddFundEntry("r", DATE, "Refund", pln("-10"), costId = "c")))
+        scenario.apply(AddFundEntry("r", DATE, "Refund", pln("-10"), costId = "c"))
+        assertFalse(allowed(member, RemoveFundEntry("r")))
+        assertTrue(allowed(lead, RemoveFundEntry("r")))
     }
 }

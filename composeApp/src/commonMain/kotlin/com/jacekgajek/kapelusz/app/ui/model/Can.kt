@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -55,19 +56,24 @@ class Can(private val band: Band, private val userId: String) {
 
     /** A suggestion's transfer, where a pair settling together is either partner (ITERATION_5 §7). */
     fun settleSuggestion(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1), together = true))
-    fun removeTransfer(event: Event) = open(event) && allowed(RemoveTransfer(event.id, PROBE))
+    /** Leads any; the one who recorded it, their own (ITERATION_7 §2d). */
+    fun removeTransfer(event: Event, transfer: Transfer) = open(event) && allowed(RemoveTransfer(event.id, transfer.id))
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */
     fun holdingParties(event: Event): List<Id> =
         if (!open(event)) emptyList() else event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) && allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
 
-    /** A fee the organiser still owes (ITERATION_4 §2.2): leads record it and mark it received. */
+    /** A fee the organiser still owes (ITERATION_4 §2.2): leads record it; who it was paid to marks it received too. */
     fun recordAwaited(event: Event) = open(event) && allowed(AddHolding(event.id, PROBE, ORGANISER, Money(1), IncomeSource.CONTRACT))
 
-    /** Who an awaited fee can have been paid to: someone in the event who may hold money, or the band fund when it is on. */
+    /**
+     * Who the user may say an awaited fee was paid to: someone in the event who may hold money, or the band fund when it
+     * is on; for leads anyone, else themselves (and the fund for its holder, ITERATION_7 §2d).
+     */
     fun receiveParties(event: Event): List<Id> =
-        if (!open(event) || !allowed(ReceiveAwaited(event.id, PROBE, PROBE, PROBE, Money(1)))) emptyList()
-        else event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) } + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId != null })
+        if (!open(event)) emptyList()
+        else (event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) } + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId != null }))
+            .filter { allowed(ReceiveAwaited(event.id, PROBE, PROBE, it, Money(1))) }
 
     fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))
     fun addCost() = meId != null && allowed(AddCost(PROBE, meId, Money(1), PROBE_DATE))
