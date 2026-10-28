@@ -84,7 +84,7 @@ payout(p)    = floor(share(p)) + leftover(p) + Σ refunds of p's costs in this e
 - Editing a settled event (late cost, changed share…) reopens it as `OPEN` and produces compensating suggestions. Recorded transfers are **never rewritten**.
 
 ### 2.4 Costs and amortization
-- **Cost fields:** member, amount (required), date (default today), optional "incurred for" event, optional category (`TRAVEL | ACCOMMODATION | EQUIPMENT | FOOD | OTHER`), optional description, up to **5 attachments** (images and/or PDFs).
+- **Cost fields:** member, amount (required), date (default today), optional "incurred for" event, optional category (`TRAVEL | ACCOMMODATION | EQUIPMENT | FOOD | PROMOTION | OTHER`, PROMOTION added in 1.27.0), optional description, up to **5 attachments** (images and/or PDFs).
 - **Outstanding** = amount − Σ refunds assigned across all events and the fund. This prevents refunding a cost twice.
 - **Paid** = Σ refunds in **settled** events + fund refunds. The owner sees a status based on this: `PENDING` (nothing assigned), `REFUND_PLANNED` (assigned, not paid yet), `PARTLY_REFUNDED`, or `REFUNDED`. If a settled event reopens, its refunds count as planned again.
 - Refunds are always 100% of what you choose to refund. There are no refund percentages; to refund less, enter the refundable amount.

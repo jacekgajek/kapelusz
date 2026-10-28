@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material.icons.filled.Hotel
@@ -27,6 +28,7 @@ import com.jacekgajek.kapelusz.app.generated.category_accommodation
 import com.jacekgajek.kapelusz.app.generated.category_equipment
 import com.jacekgajek.kapelusz.app.generated.category_food
 import com.jacekgajek.kapelusz.app.generated.category_other
+import com.jacekgajek.kapelusz.app.generated.category_promotion
 import com.jacekgajek.kapelusz.app.generated.category_travel
 import com.jacekgajek.kapelusz.app.generated.reject_already_participant
 import com.jacekgajek.kapelusz.app.generated.reject_archived_event
@@ -111,6 +113,7 @@ fun CostCategory.label(): String = stringResource(
         CostCategory.ACCOMMODATION -> Res.string.category_accommodation
         CostCategory.EQUIPMENT -> Res.string.category_equipment
         CostCategory.FOOD -> Res.string.category_food
+        CostCategory.PROMOTION -> Res.string.category_promotion
         CostCategory.OTHER -> Res.string.category_other
     },
 )
@@ -129,6 +132,7 @@ fun CostCategory?.icon(): ImageVector = when (this) {
     CostCategory.ACCOMMODATION -> Icons.Default.Hotel
     CostCategory.EQUIPMENT -> Icons.Default.Speaker
     CostCategory.FOOD -> Icons.Default.Restaurant
+    CostCategory.PROMOTION -> Icons.Default.Campaign
     CostCategory.OTHER, null -> Icons.AutoMirrored.Filled.ReceiptLong
 }
 

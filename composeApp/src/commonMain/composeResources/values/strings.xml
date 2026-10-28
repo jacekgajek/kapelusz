@@ -93,6 +93,7 @@
     <string name="category_accommodation">Accommodation</string>
     <string name="category_equipment">Equipment</string>
     <string name="category_food">Food</string>
+    <string name="category_promotion">Promotion</string>
     <string name="category_other">Other</string>
     <string name="save">Save</string>
     <string name="delete">Delete</string>

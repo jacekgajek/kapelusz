@@ -93,6 +93,7 @@
     <string name="category_accommodation">Nocleg</string>
     <string name="category_equipment">Sprzęt</string>
     <string name="category_food">Jedzenie</string>
+    <string name="category_promotion">Promocja</string>
     <string name="category_other">Inne</string>
     <string name="save">Zapisz</string>
     <string name="delete">Usuń</string>
