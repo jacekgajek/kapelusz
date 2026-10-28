@@ -105,6 +105,8 @@ import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.DisposableEffect
 import org.jetbrains.compose.resources.stringResource
 
 /** Language code of the current UI locale (`en`, `pl`), for formatting. */
@@ -120,6 +122,9 @@ class Actions(
     private val undos: UndoStack? = null,
     private val tooLate: String = "",
 ) {
+    /** Open dialogs showing messages themselves ([DialogNotice]), newest last: a dialog hides the screen's snackbar. */
+    internal val dialogs = mutableListOf<(String) -> Unit>()
+
     fun run(op: Operation): Boolean = show(graph.dispatch(op))
 
     /** Shows [rejection] (if any) in the snackbar; true when there was none. */
@@ -130,6 +135,7 @@ class Actions(
     }
 
     fun say(message: String) {
+        dialogs.lastOrNull()?.let { return it(message) }
         scope.launch { snackbar.showSnackbar(message) }
     }
 
@@ -161,6 +167,30 @@ class Actions(
         const val HOLD_MARGIN = 5_000L
     }
 }
+
+/**
+ * Inside a dialog: what [actions] say while it is open (e.g. a refusal), shown here rather than in the snackbar behind
+ * it, for a while.
+ */
+@Composable
+fun DialogNotice(actions: Actions) {
+    var message by remember { mutableStateOf<String?>(null) }
+    DisposableEffect(actions) {
+        val show = { text: String -> message = text }
+        actions.dialogs += show
+        onDispose { actions.dialogs -= show }
+    }
+    LaunchedEffect(message) {
+        if (message != null) {
+            delay(DIALOG_NOTICE_MS)
+            message = null
+        }
+    }
+    message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+}
+
+/** How long a [DialogNotice] stays. */
+private const val DIALOG_NOTICE_MS = 8_000L
 
 @Composable
 fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState, undos: UndoStack? = null): Actions {
@@ -451,6 +481,8 @@ fun PartialSettleDialog(
     onDismiss: () -> Unit,
     /** As on the suggestion's button: Paid, Received or Settle ([settleLabel]). */
     confirmLabel: StringResource = Res.string.settle,
+    /** Whose refusals show in the dialog ([DialogNotice]). */
+    actions: Actions? = null,
 ) {
     val lang = language
     // Empty and focused: the amount handed over is usually known, the suggestion stays in the hint below.
@@ -469,6 +501,7 @@ fun PartialSettleDialog(
                     stringResource(Res.string.settle_part_hint, formatMoney(suggested, currency, lang)),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                actions?.let { DialogNotice(it) }
             }
         },
         confirmButton = {

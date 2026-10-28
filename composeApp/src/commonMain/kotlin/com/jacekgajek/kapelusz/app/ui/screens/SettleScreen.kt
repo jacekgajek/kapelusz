@@ -158,7 +158,7 @@ fun SettleScreen(
                             if (partial) {
                                 PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
                                     actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it, together = true))
-                                }, onDismiss = { partial = false }, confirmLabel = settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))
+                                }, onDismiss = { partial = false }, confirmLabel = settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to), actions = actions)
                             }
                         } }
                     }

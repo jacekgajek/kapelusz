@@ -33,6 +33,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Groups
+import com.jacekgajek.kapelusz.app.generated.menu_roster
+import com.jacekgajek.kapelusz.app.generated.settings_member_count
+import org.jetbrains.compose.resources.pluralStringResource
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Schedule
@@ -126,6 +130,8 @@ fun SettingsScreen(
     /** Band members, where the owner hands the band to another leader before leaving. */
     onOpenMembers: () -> Unit,
     otherMembers: Int,
+    /** Members not archived, said on the Band members row. */
+    memberCount: Int,
     /** The band's agenda template; [onAgendaTemplate] is null for non-leaders. */
     agendaTemplate: List<AgendaTemplateItem>,
     /** The band stored its own template (even if it equals the defaults). */
@@ -181,6 +187,10 @@ fun SettingsScreen(
                 SettingsItem(Icons.Default.Schedule, stringResource(Res.string.agenda_template_title), agendaTemplate.map { it.displayLabel() }.joinToString(", "), chevron = true) {
                     onOpenPage(SettingsPage.AGENDA)
                 }
+            }
+            // Here too, not only in the menu: changing several things about the band stays in one place.
+            SettingsItem(Icons.Default.People, stringResource(Res.string.menu_roster), pluralStringResource(Res.plurals.settings_member_count, memberCount, memberCount), chevron = true) {
+                onOpenMembers()
             }
             SectionHeader(stringResource(Res.string.settings_personal), Modifier.padding(horizontal = 16.dp))
             SettingsItem(Icons.Default.Language, stringResource(Res.string.language), stringResource((languages.firstOrNull { it.first == language } ?: languages.first()).second)) {

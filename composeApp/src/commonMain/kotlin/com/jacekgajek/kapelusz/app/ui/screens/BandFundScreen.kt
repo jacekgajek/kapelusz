@@ -1,7 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.Role as SemanticsRole
 import com.jacekgajek.kapelusz.model.Role
 import kotlinx.datetime.LocalDate
@@ -96,6 +98,7 @@ import com.jacekgajek.kapelusz.app.generated.open_settings
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
@@ -282,16 +285,19 @@ fun BandFundScreen(
             refunding = null
             onAddCost()
         },
-        onSave = save, onDelete = null,
+        onSave = save, onDelete = null, actions = actions,
         onDismiss = {
             adding = false
             refunding = null
         },
     )
     editing?.let { entry ->
-        FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null })
+        FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null }, actions = actions)
     }
 }
+
+/** An outlined field's label sits above its box: a button beside it moves down by as much, to the box's middle. */
+private val FIELD_LABEL_INSET = 8.dp
 
 /** A row of the band fund's list: an event's money for the fund, or an entry. */
 private sealed interface FundRow {
@@ -325,6 +331,8 @@ private fun FundEntryDialog(
     onSave: (List<Operation>) -> Boolean,
     onDelete: (() -> Boolean)?,
     onDismiss: () -> Unit,
+    /** Whose refusals show in the dialog ([DialogNotice]). */
+    actions: Actions? = null,
 ) {
     val lang = language
     // What a refund is called when the cost has no description: its category, else "Cost" (as in the cost lists).
@@ -382,7 +390,7 @@ private fun FundEntryDialog(
                             if (chosen.size > 2) several else chosen.joinToString(", ") { name(it) }
                         }
                         // Several people paying the same, e.g. this month's fee: one entry each.
-                        if (initial == null) IconButton(onClick = { choosingPeople = true }) {
+                        if (initial == null) IconButton(onClick = { choosingPeople = true }, Modifier.padding(top = FIELD_LABEL_INSET)) {
                             Icon(Icons.Default.PeopleAlt, stringResource(Res.string.fund_several))
                         }
                     }
@@ -401,7 +409,7 @@ private fun FundEntryDialog(
                                 "${band.member(cost.memberId)?.name.orEmpty()}: ${costName(cost)} · " + formatMoney(CostLedger.outstanding(band, cost), band.currency, lang)
                             } ?: stringResource(Res.string.fund_choose_cost)
                         }
-                        if (onAddCost != null) IconButton(onClick = onAddCost) { Icon(Icons.Default.Add, stringResource(Res.string.fund_add_cost)) }
+                        if (onAddCost != null) IconButton(onClick = onAddCost, Modifier.padding(top = FIELD_LABEL_INSET)) { Icon(Icons.Default.Add, stringResource(Res.string.fund_add_cost)) }
                     }
                     if (pendingCosts.isEmpty()) Text(stringResource(Res.string.fund_no_costs), style = MaterialTheme.typography.bodySmall)
                 }
@@ -414,6 +422,7 @@ private fun FundEntryDialog(
                 }
                 OutlinedTextField(description, { description = it }, label = { Text(stringResource(Res.string.description)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 DateField(date, { date = it }, stringResource(Res.string.cost_date))
+                actions?.let { DialogNotice(it) }
             }
         },
         confirmButton = {
@@ -467,7 +476,7 @@ private fun PeopleDialog(people: List<Member>, initial: Set<String>, onDone: (Se
                 TextButton(onClick = { chosen = people.map { it.id }.toSet() }) { Text(stringResource(Res.string.fund_select_all)) }
                 people.forEach { member ->
                     Row(
-                        Modifier.fillMaxWidth().toggleable(member.id in chosen, role = SemanticsRole.Checkbox) { on -> chosen = if (on) chosen + member.id else chosen - member.id },
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(member.id in chosen, role = SemanticsRole.Checkbox) { on -> chosen = if (on) chosen + member.id else chosen - member.id },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(member.id in chosen, onCheckedChange = null)

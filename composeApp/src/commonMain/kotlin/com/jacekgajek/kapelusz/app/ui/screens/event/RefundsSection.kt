@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
 import androidx.compose.foundation.layout.Box
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.generated.add_cost
 import androidx.compose.material.icons.filled.Add
@@ -198,6 +199,7 @@ private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (Strin
                 Text(stringResource(Res.string.refund_how_much), style = MaterialTheme.typography.bodyMedium)
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.refund_max, formatMoney(max, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {
