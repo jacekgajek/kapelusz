@@ -183,6 +183,7 @@ private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTran
             onConfirm = { record(it) },
             onDismiss = { partial = false },
             confirmLabel = label,
+            actions = context.actions,
         )
     }
 }

@@ -116,6 +116,7 @@ import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.Actions
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
@@ -155,6 +156,7 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -335,6 +337,7 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ShareEditor(editor, band.currency)
                     Text(stringResource(Res.string.member_share_hint), style = MaterialTheme.typography.bodySmall)
+                    DialogNotice(actions)
                 }
             },
             confirmButton = {
@@ -577,6 +580,7 @@ private fun MemberDialog(
                     ) { Text(stringResource(Res.string.delete_member)) }
                 }
                 message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+                DialogNotice(actions)
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },

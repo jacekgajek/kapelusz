@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.jacekgajek.kapelusz.app.generated.guest_is_member
 import com.jacekgajek.kapelusz.app.generated.guest_add_member_instead
 import com.jacekgajek.kapelusz.app.generated.guest_add_anyway
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
@@ -214,6 +215,7 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
                     val share = SettlementCalculator.settle(context.band, preview).line(NEW_GUEST)?.share ?: Money.ZERO
                     Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
                 }
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {
@@ -265,6 +267,7 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
                 val preview = event.copy(participants = event.participants.map { if (it.partyId == participant.partyId) it.copy(weight = editor.weight, fixedShare = null) else it })
                 val share = SettlementCalculator.settle(context.band, preview).line(participant.partyId)?.share ?: Money.ZERO
                 Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {

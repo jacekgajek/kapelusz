@@ -60,6 +60,7 @@ import com.jacekgajek.kapelusz.app.generated.received_by
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
@@ -243,6 +244,7 @@ private fun HoldingDialog(
                     hint = Res.string.attachment_hint_holding,
                     inDialog = true,
                 )
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {
@@ -307,6 +309,7 @@ private fun ReceiveDialog(context: EventContext, awaited: Holding, parties: List
                 Dropdown(partyId, parties, { partyId = it }, stringResource(Res.string.received_by)) { partyName(context.band, event, it, fund) }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.receive_awaited_hint, formatMoney(awaited.amount, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {

@@ -31,6 +31,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import kotlin.math.abs
 import kotlinx.coroutines.flow.first
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
@@ -443,6 +444,7 @@ private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
                 }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(if (fromFund) Res.string.fund_amount_from_hint else Res.string.fund_amount_to_hint), style = MaterialTheme.typography.bodySmall)
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {

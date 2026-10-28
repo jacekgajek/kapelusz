@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.components.BlikButton
 import com.jacekgajek.kapelusz.app.ui.components.BlikNumberRow
@@ -227,6 +228,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             onConfirm = { context.actions.runWithUndo(settleOp(context, suggestion, it), recorded(it)) },
             onDismiss = { partial = false },
             confirmLabel = settleLabel(band, settlement, context.me?.id, suggestion.from, suggestion.to),
+            actions = context.actions,
         )
     }
 }
@@ -322,6 +324,7 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                DialogNotice(context.actions)
             }
         },
         confirmButton = {

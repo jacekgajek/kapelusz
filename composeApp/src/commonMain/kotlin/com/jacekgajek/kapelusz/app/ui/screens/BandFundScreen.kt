@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.heightIn
@@ -97,6 +98,7 @@ import com.jacekgajek.kapelusz.app.generated.open_settings
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
@@ -283,14 +285,14 @@ fun BandFundScreen(
             refunding = null
             onAddCost()
         },
-        onSave = save, onDelete = null,
+        onSave = save, onDelete = null, actions = actions,
         onDismiss = {
             adding = false
             refunding = null
         },
     )
     editing?.let { entry ->
-        FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null })
+        FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null }, actions = actions)
     }
 }
 
@@ -329,6 +331,8 @@ private fun FundEntryDialog(
     onSave: (List<Operation>) -> Boolean,
     onDelete: (() -> Boolean)?,
     onDismiss: () -> Unit,
+    /** Whose refusals show in the dialog ([DialogNotice]). */
+    actions: Actions? = null,
 ) {
     val lang = language
     // What a refund is called when the cost has no description: its category, else "Cost" (as in the cost lists).
@@ -418,6 +422,7 @@ private fun FundEntryDialog(
                 }
                 OutlinedTextField(description, { description = it }, label = { Text(stringResource(Res.string.description)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 DateField(date, { date = it }, stringResource(Res.string.cost_date))
+                actions?.let { DialogNotice(it) }
             }
         },
         confirmButton = {
