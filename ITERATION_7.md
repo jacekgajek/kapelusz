@@ -191,14 +191,16 @@ services' one connection, shared by all apps: the radio wakes only when somethin
   passed and the release reached the phone: hours after a merge, not at once. A version declined in Play's dialog isn't
   offered again (a newer one is); a download that fails or is cancelled is offered again.
 
-## 2c. Artists see their own transfers (2026-10-27)
+## 2c. Artists see and settle their own transfers (2026-10-27, settling 2026-10-28)
 
-Artists still see none of the band's money, but their Money page now shows **To settle** under their payout, with only
-their own transfers: who pays them ("Bob → Robert 200 zł"), and whom they hand back to, with that person's BLIK number
-and the amount to copy. It is read only: the other side or a lead records them, as before. Members still see every
-transfer and settle their own; leads settle all. A pair's transfer counts as the artist's own part of it
-(`Artists.ownTransfers`); money a partner receives for the pair stays "Kept for you by …" in the payout. The server
-already sends artists the whole band (the app hides the rest), so only the app changed.
+Artists still see none of the band's money. Their Money page shows **To settle** under their payout, with only their
+own transfers: who pays them ("Bob → Robert 200 zł"), and whom they hand back to, with that person's BLIK number and the
+amount to copy. As members do, they mark each **Paid** or **Received** (or a part of it), with Undo. Before, only the
+other side or a lead could, so an artist who paid another artist had to tell someone who then told a lead. This replaces
+ITERATION_4 §1.1's "artists can't record transfers": they still hold no money (the Reducer caps what an artist sends at
+what they were paid too much). A pair's transfer counts as the artist's own part of it (`Artists.ownTransfers`); money a
+partner receives for the pair stays "Kept for you by …" in the payout. The server already sends artists the whole band
+(the app hides the rest), so only the app and the shared permission changed.
 
 ## 3. Milestones and task checklist
 
@@ -233,9 +235,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 - [x] The shared rule and the server's clean-up after an unlink (with tests); Delete member in Band members, Undo
 
-### Artists see their own transfers (§2c)
+### Artists see and settle their own transfers (§2c)
 
 - [x] To settle on the artist's Money page, their own transfers only, with BLIK when they pay
+- [x] Paid / Received / Part on them; RecordTransfer of one's own from artists up
 
 ### Updates from Google Play in the app (§2b)
 
@@ -265,3 +268,5 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   more; a single transfer from an artist is held to the same (it wasn't checked at all).
 - 2026-10-27: Artists see their own transfers (§2c), read only; nobody else's, so the rest of the band's money stays
   hidden from them (ITERATION_4 §1.1).
+- 2026-10-28: Artists record their own transfers (§2c): an artist paying another artist otherwise needed two people to
+  pass the word to a lead.

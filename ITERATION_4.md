@@ -34,7 +34,7 @@ concerns them.
   - Add, edit and delete their own costs, like members: with or without an event; when with an event, only one they
     take part in (already the rule for everyone). Their costs are never included automatically (§1.2).
   - No collected money and no transfers: they cannot record either, and see no "Settle" actions. The payer or a lead
-    records transfers to them.
+    records transfers to them. (Superseded by ITERATION_7 §2c: artists see and record their own transfers.)
 - **Artists never hold money:**
   - Collected money cannot be recorded on an Artist's line by anyone, leads included (reducer rejection).
   - An Artist cannot be the band fund holder.
@@ -76,7 +76,8 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
   a lead in the event's Waiting list, where Include tops the refund up.
 - Deleting a refused cost from My costs asks for confirmation (artists have no History to undo it).
 - An artist can still end up owing (overpaid, an event reopened after they became one, money from before): a **lead**
-  settles it, by "Settle all" or by recording the transfer from the artist; the artist cannot record it. Their payout
+  settles it, by "Settle all" or by recording the transfer from the artist; the artist cannot record it (superseded by
+  ITERATION_7 §2c: they record it themselves). Their payout
   card then says "To hand back (a lead settles it)" without naming whom. Undo no longer guards "artists hold no money"
   (ordinary edits don't either). (Changed 2026-10-23.) Resubmitting is explicit (`UpdateCost.resubmit`), so History says "resubmitted".
 - Undo cannot bring back a refund of a refused cost. (It no longer guards "artists hold no money": leads settle an artist's debts.)

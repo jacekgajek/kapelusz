@@ -52,6 +52,21 @@ import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.app.data.newId
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.domain.SuggestedTransfer
+import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
+import com.jacekgajek.kapelusz.app.generated.transfer_recorded
+import com.jacekgajek.kapelusz.app.generated.settle_part
+import com.jacekgajek.kapelusz.app.generated.settle_received
+import com.jacekgajek.kapelusz.app.generated.settle_paid
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.material3.FilledTonalButton
 import org.jetbrains.compose.resources.stringResource
 
 // What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout, their own transfers
@@ -91,7 +106,7 @@ fun ArtistPayout(context: EventContext) {
             PayoutRow(stringResource(Res.string.artist_to_receive), line.target, context.currency)
             PayoutRow(stringResource(Res.string.artist_received), line.received - line.sent, context.currency)
             // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
-            // got too much (or owe from before they were an artist), a lead settles it with whoever is owed.
+            // got too much (or owe from before they were an artist), they hand it back (To settle, ITERATION_7 §2c).
             if (partner != null && kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)
             if (partner != null && heldForPartner.isPositive) PayoutRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner, context.currency)
             if (line.delta > heldForPartner) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, context.currency, bold = true)
@@ -107,29 +122,68 @@ fun ArtistPayout(context: EventContext) {
 
 /**
  * The artist's own transfers still to make (ITERATION_7 §2c): who pays them, or whom they hand back to with that person's
- * BLIK number and the amount to copy; nobody else's. Read only: the other side or a lead records them.
+ * BLIK number and the amount to copy; nobody else's. They mark each paid or received themselves, as members do.
  */
 @Composable
 fun ArtistTransfers(context: EventContext) {
     val me = context.me ?: return
-    val band = context.band
-    val mine = Artists.ownTransfers(band, context.settlement, me.id)
+    val mine = Artists.ownTransfers(context.band, context.settlement, me.id)
     if (mine.isEmpty()) return
-    val fundLabel = stringResource(Res.string.band_fund)
     SectionTitle(stringResource(Res.string.to_settle))
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            mine.forEach { part ->
-                Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TransferParties(partyName(band, context.event, part.from, fundLabel), partyName(band, context.event, part.to, fundLabel), Modifier.weight(1f))
-                    // Only to the one who pays (ITERATION_5 §8), as in To settle.
-                    val pays = part.from == me.id
-                    if (pays) CopyAmountButton(context, part.amount)
-                    MoneyText(part.amount, context.currency, bold = true)
-                    if (pays) BlikButton(BlikPhone.recipient(band, part.to))
-                }
+    mine.forEach { part ->
+        key(part.from, part.to) {
+            Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { ArtistTransferRow(context, me.id, part) }
             }
         }
+    }
+}
+
+/** One of [ArtistTransfers], laid out as a suggestion in To settle: the names, then the amount and the buttons. */
+@Composable
+private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTransfer) {
+    val band = context.band
+    val fundLabel = stringResource(Res.string.band_fund)
+    val from = partyName(band, context.event, part.from, fundLabel)
+    val to = partyName(band, context.event, part.to, fundLabel)
+    // Only to the one who pays (ITERATION_5 §8), as in To settle.
+    val pays = part.from == me
+    val label = if (pays) Res.string.settle_paid else Res.string.settle_received
+    var partial by remember { mutableStateOf(false) }
+    val lang = language
+    // Read without arguments, so its placeholders stay for the amount known only on tap (as in SuggestionRow).
+    val recordedText = stringResource(Res.string.transfer_recorded)
+    fun record(amount: Money) = context.actions.runWithUndo(
+        RecordTransfer(context.event.id, newId(), part.from, part.to, amount),
+        recordedText.replace("%1\$s", from).replace("%2\$s", to).replace("%3\$s", formatMoney(amount, context.currency, lang)),
+    )
+    val settles = context.can.recordTransfer(context.event, part.from, part.to)
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TransferParties(from, to, Modifier.weight(1f))
+            if (pays) BlikButton(BlikPhone.recipient(band, part.to))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                CopyAmountButton(context, part.amount)
+                MoneyText(part.amount, context.currency, bold = true)
+            }
+            if (settles) {
+                TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
+                FilledTonalButton(onClick = { record(part.amount) }) { Text(stringResource(label)) }
+            }
+        }
+    }
+    if (partial) {
+        PartialSettleDialog(
+            from = from,
+            to = to,
+            suggested = part.amount,
+            currency = context.currency,
+            onConfirm = { record(it) },
+            onDismiss = { partial = false },
+            confirmLabel = label,
+        )
     }
 }
 

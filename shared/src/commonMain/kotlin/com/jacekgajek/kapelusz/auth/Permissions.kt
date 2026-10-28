@@ -113,8 +113,13 @@ object Permissions {
         is UpdateHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
         is RemoveHolding -> ownIf(band.event(op.eventId)?.holdings?.firstOrNull { it.id == op.holdingId }?.partyId == me.id)
 
-        // Either partner settles a pair's transfer (ITERATION_5 §7).
-        is RecordTransfer -> ownIf(ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && partnerIn(band, me, op.eventId).let { it != null && (it == op.from || it == op.to) }))
+        // Either partner settles a pair's transfer (ITERATION_5 §7). Artists too mark their own as paid or received
+        // (ITERATION_7 §2c), only as themselves: a pair's transfer is split by what each holds, so it could move their
+        // partner's money.
+        is RecordTransfer -> ownIf(
+            ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && partnerIn(band, me, op.eventId).let { it != null && (it == op.from || it == op.to) }),
+            if (op.together) Role.MEMBER else Role.ARTIST,
+        )
         is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))
 
         // Only for oneself (checked above), from artists up (ITERATION_6 §11).
@@ -123,7 +128,7 @@ object Permissions {
         // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8).
         is SetBlikPhone -> Role.ARTIST
 
-        // Artists too look after their own costs (ITERATION_4 §1.1); money held or moved stays from members up.
+        // Artists too look after their own costs (ITERATION_4 §1.1); money held stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
         is UpdateCost -> ownCost(band, me, op.costId)
         is DeleteCost -> ownCost(band, me, op.costId)
