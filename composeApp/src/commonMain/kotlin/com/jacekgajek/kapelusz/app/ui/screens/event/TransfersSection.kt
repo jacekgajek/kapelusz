@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
@@ -261,7 +262,7 @@ internal fun CopyAmountButton(context: EventContext, amount: Money) {
 
 /** Everyone who can take part in a transfer of this event: participants, plus the band fund if it is set up. */
 private fun transferParties(context: EventContext): List<String> {
-    val lines = context.settlement.lines.map { it.partyId }.ifEmpty { context.event.participants.map { it.partyId } }
+    val lines = context.settlement.lines.map { it.partyId }.ifEmpty { SettlementCalculator.partyOrder(context.band, context.event) }
     return lines + (if (context.band.treasurerMemberId != null && BAND_FUND !in lines) listOf(BAND_FUND) else emptyList())
 }
 

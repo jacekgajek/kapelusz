@@ -204,16 +204,10 @@ object SettlementCalculator {
         return Settlement(income, fund, refundsTotal, net, fixedTotal, percentTotal, lines, suggestions, status, problems, partners)
     }
 
-    /** Roster members in roster order, then guests in the order they were added. */
+    /** Members, then guests, each in alphabetical order (ITERATION_8 §2). */
     fun partyOrder(band: Band, event: Event): List<Id> {
-        val memberOrder = band.members.withIndex().associate { (index, member) -> member.id to index }
-        val guestOrder = event.guests.withIndex().associate { (index, guest) -> guest.id to index }
-        return event.participants
-            .sortedWith(
-                compareBy<Participant> { memberOrder[it.partyId] ?: Int.MAX_VALUE }
-                    .thenBy { guestOrder[it.partyId] ?: Int.MAX_VALUE },
-            )
-            .map { it.partyId }
+        val (members, others) = event.participants.map { it.partyId }.partition { band.member(it) != null }
+        return members.sortedByName { band.member(it)!!.name } + others.sortedByName { event.guest(it)?.name ?: it }
     }
 
     /**

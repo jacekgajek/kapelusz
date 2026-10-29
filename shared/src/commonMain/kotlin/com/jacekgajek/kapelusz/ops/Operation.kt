@@ -39,6 +39,13 @@ sealed interface Operation {
     val eventId: Id? get() = null
 }
 
+/**
+ * An operation of a kind this version doesn't know (ITERATION_8 §2): one removed since (`MoveMember`), or one from a
+ * newer version. Read as this, so History and a phone's unsent changes still load; never applied.
+ */
+@Serializable @SerialName("Unknown")
+data object UnknownOperation : Operation
+
 // ---- Band & roster (leader) ----
 
 @Serializable @SerialName("RenameBand")
@@ -49,9 +56,6 @@ data class AddMember(val memberId: Id, val name: String) : Operation
 
 @Serializable @SerialName("RenameMember")
 data class RenameMember(val memberId: Id, val name: String) : Operation
-
-@Serializable @SerialName("MoveMember")
-data class MoveMember(val memberId: Id, val toIndex: Int) : Operation
 
 @Serializable @SerialName("SetMemberArchived")
 data class SetMemberArchived(val memberId: Id, val archived: Boolean) : Operation
@@ -213,6 +217,19 @@ data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: 
 
 @Serializable @SerialName("RemoveParticipant")
 data class RemoveParticipant(override val eventId: Id, val partyId: Id) : Operation
+
+/**
+ * The picker's line-up (ITERATION_8 §1.3): participants [add]ed with their shares, members or the new [guests] (from
+ * Start from…, each with its participant in [add]); participants (members or guests) [remove]d. All or nothing, as one
+ * change.
+ */
+@Serializable @SerialName("ChangeLineup")
+data class ChangeLineup(
+    override val eventId: Id,
+    val add: List<Participant> = emptyList(),
+    val remove: List<Id> = emptyList(),
+    val guests: List<Guest> = emptyList(),
+) : Operation
 
 // ---- Holdings (lead, or member for themselves) ----
 

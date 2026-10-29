@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.EventLinks
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.domain.Places
@@ -81,7 +82,7 @@ internal fun rememberShareInfo(band: Band, event: Event, snackbar: SnackbarHostS
         EventLinks.url(AppConfig.WEB_URL, event.id),
     )
     val plan = event.setTimes().map { "${it.displayLabel()} ${formatAgendaTime(it)}" }
-    val lineup = event.participants.map { partyName(band, event, it.partyId, "") }
+    val lineup = SettlementCalculator.partyOrder(band, event).map { partyName(band, event, it, "") }
     val copied = stringResource(Res.string.share_info_copied)
     val failed = stringResource(Res.string.share_info_failed)
     return {

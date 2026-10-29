@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -229,7 +230,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     treasurer = state.band.treasurerMemberId,
                     treasurerName = state.band.treasurerMemberId?.let { state.band.member(it)?.name },
                     // Artists hold no money and viewers record no transfers: neither can hold the fund (V5-M1 C6a).
-                    treasurerOptions = state.band.members.filter { !it.archived && it.role != Role.ARTIST && it.role != Role.VIEWER }.map { it.id to it.name },
+                    treasurerOptions = state.band.members.filter { !it.archived && it.role != Role.ARTIST && it.role != Role.VIEWER }.sortedByName { it.name }.map { it.id to it.name },
                     onTreasurer = { id: String -> graph.dispatch(SetTreasurer(id)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetTreasurer("probe")) },
                     onDisableFund = { graph.dispatch(DisableBandFund); Unit }

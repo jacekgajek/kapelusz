@@ -10,7 +10,6 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RejectionReason
@@ -81,14 +80,6 @@ class UndoTest {
     }
 
     @Test
-    fun aMoveIsUndoneInOrder() {
-        val scenario = Scenario("Alice", "Bob", "Carol")
-        val undoMove = scenario.recorded(MoveMember("carol", 0))
-        scenario.apply(undoMove)
-        assertEquals(listOf("alice", "bob", "carol"), scenario.band.members.map { it.id })
-    }
-
-    @Test
     fun membershipAndOwnershipCannotBeUndone() {
         val scenario = Scenario("Alice", "Bob")
         scenario.apply(LinkUser("bob", "user-bob", Role.LEAD))
@@ -146,16 +137,11 @@ class UndoTest {
     }
 
     @Test
-    fun laterMovesSurviveAndAMoveIsNotUndoneOverAnother() {
+    fun aDeletedMemberComesBack() {
         val scenario = Scenario("Alice", "Bob", "Carol", "Dave")
         val undoDelete = scenario.recorded(com.jacekgajek.kapelusz.ops.DeleteMember("carol"))
-        scenario.apply(MoveMember("dave", 0))
         scenario.apply(undoDelete)
-        assertEquals(listOf("dave", "alice", "bob", "carol"), scenario.band.members.map { it.id }, "Carol back after Bob; Dave's move kept")
-
-        val undoMove = scenario.recorded(MoveMember("bob", 0))
-        scenario.apply(MoveMember("carol", 1))
-        assertEquals(RejectionReason.CHANGED_SINCE, scenario.rejected(undoMove).reason)
+        assertEquals(listOf("alice", "bob", "carol", "dave"), scenario.band.members.map { it.id })
     }
 
     @Test

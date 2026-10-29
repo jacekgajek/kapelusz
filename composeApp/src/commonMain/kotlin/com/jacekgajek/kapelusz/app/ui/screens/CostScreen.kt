@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.domain.sortedByName
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -154,7 +155,7 @@ fun CostScreen(
     // Leads may add costs for anyone; others only for themselves (the permission check decides).
     val payers = band.members.filter {
         !it.archived && (forEvent == null || forEvent.participant(it.id) != null) && Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date))
-    }
+    }.sortedByName { it.name }
     // A single choice is made already (the picker is shown only for several).
     LaunchedEffect(payers.size) { if (existing == null && paidBy == null) payers.singleOrNull()?.let { paidBy = it.id } }
     val canSave = editable && parsed != null && paidBy != null && !saved

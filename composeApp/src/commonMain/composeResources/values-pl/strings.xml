@@ -319,7 +319,6 @@
     <string name="h_rename_band">Zmieniono nazwę zespołu na %1$s</string>
     <string name="h_add_member">Dodano członka: %1$s</string>
     <string name="h_rename_member">Zmieniono imię członka na %1$s</string>
-    <string name="h_move_member">Przesunięto %1$s na liście członków</string>
     <string name="h_archive_member">Zarchiwizowano: %1$s</string>
     <string name="h_restore_member">Przywrócono: %1$s</string>
     <string name="h_delete_member">Usunięto członka: %1$s</string>
@@ -339,6 +338,8 @@
     <string name="h_rename_guest">Zmieniono imię gościa na %1$s w: %2$s</string>
     <string name="h_set_weight">Ustawiono %2$s dla: %1$s w: %3$s</string>
     <string name="h_remove_participant">Usunięto %1$s z: %2$s</string>
+    <string name="h_change_lineup">Zmieniono skład: %1$s (+%2$d, −%3$d)</string>
+    <string name="h_unknown_kind">Zmiana, której ta wersja nie zna</string>
     <string name="h_add_holding">Zapisano %1$s otrzymane przez %2$s w: %3$s</string>
     <string name="h_edit_holding">Edytowano otrzymane pieniądze w: %1$s</string>
     <string name="h_remove_holding">Usunięto otrzymane pieniądze w: %1$s</string>

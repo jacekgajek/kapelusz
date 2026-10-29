@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
 import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
@@ -297,7 +298,7 @@ fun EventsScreen(
                 val ok = actions.run(
                     CreateEvent(
                         eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
-                        participants = lineupOfLastEvent(band, state.me?.id),
+                        participants = creatorAsParticipant(band, state.me?.id),
                         agenda = fields.agenda,
                         // The band's fund default (ITERATION_7 §5.2), while the fund is on.
                         fund = band.fundDefault.takeIf { band.treasurerMemberId != null },
@@ -343,16 +344,11 @@ private fun SearchField(query: String, building: Boolean, focus: Boolean, onFocu
 }
 
 /**
- * Bands usually play with the same lineup: copy the members (not guests) of the most recent event, each with their
- * default share (ITERATION_4 §2.3).
+ * A new event starts with whoever creates it, with their default share (ITERATION_8 §1.2a); another event's line-up is
+ * the picker's Start from….
  */
-private fun lineupOfLastEvent(band: Band, myId: String?): List<Participant> {
-    val last = band.events.filter { !it.archived }.maxWithOrNull(compareBy({ it.date }, { it.updatedAt }))
-    val members = last?.participants
-        ?.mapNotNull { band.member(it.partyId)?.takeIf { member -> !member.archived && member.role != Role.VIEWER } }
-        ?.map { it.asParticipant() }
-    return members ?: listOfNotNull(myId?.let { band.member(it) }?.takeIf { it.role != Role.VIEWER }?.asParticipant())
-}
+private fun creatorAsParticipant(band: Band, myId: String?): List<Participant> =
+    listOfNotNull(myId?.let { band.member(it) }?.takeIf { it.role != Role.VIEWER }?.asParticipant())
 
 @Composable
 private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onClick: () -> Unit) {
@@ -371,7 +367,7 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 if (showStatus) StatusChip(summary.settlement.status, event.archived)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AvatarStack(event.participants.map { partyName(band, event, it.partyId, "") to band.member(it.partyId)?.pictureUrl }, Modifier.weight(1f))
+                AvatarStack(SettlementCalculator.partyOrder(band, event).map { partyName(band, event, it, "") to band.member(it)?.pictureUrl }, Modifier.weight(1f))
                 // A draft has no money in it yet: nothing to be settled about.
                 val number = summary.myNumber
                 when {

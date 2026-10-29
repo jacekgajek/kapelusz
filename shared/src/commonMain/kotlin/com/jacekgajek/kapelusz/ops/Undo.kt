@@ -87,11 +87,12 @@ data class BandChange(val before: BandPart, val after: BandPart) {
 /**
  * Kinds of changes that cannot be undone: joining by invite, unlinking an account, passing on ownership, and settling
  * together and one's own payment details, which are each member's own decision (ITERATION_5 §7, §8), and deleting the
- * band or keeping it, whose times are the server's (ITERATION_7 §9).
+ * band or keeping it, whose times are the server's (ITERATION_7 §9); and a kind this version doesn't know (ITERATION_8 §2).
  */
 fun isUndoable(op: Operation): Boolean = when (op) {
     is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone, is SetBankAccount, is ScheduleBandDeletion, is CancelBandDeletion,
     is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
+    is UnknownOperation,
     -> false
     is Undo -> isUndoable(op.original)
     else -> true

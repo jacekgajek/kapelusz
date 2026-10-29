@@ -278,6 +278,23 @@ class BandRepositoryTest {
         assertEquals(BandRepository.CURRENT_SCHEMA, saved.schema)
     }
 
+    /** ITERATION_8 §2: an unsent change of a kind this version doesn't know (a MoveMember) is dropped, the rest kept. */
+    @Test
+    fun anUnsentChangeOfAnUnknownKindIsDropped() = runTest {
+        val store = InMemoryStore()
+        val band = Band.create("b1", "Night Owls", "PLN", "m1", "Alice", "alice")
+        val stored = LocalBand(base = band, version = "\"etag-1\"", clientId = "c", userId = "alice", schema = BandRepository.CURRENT_SCHEMA)
+        val pending = """[{"opId":"o1","clientId":"c","seq":1,"timestamp":1,"op":{"type":"MoveMember","memberId":"m1","toIndex":0}},""" +
+            """{"opId":"o2","clientId":"c","seq":2,"timestamp":2,"op":{"type":"RenameBand","name":"Owls"}}]"""
+        val raw = KapeluszJson.encodeToString(LocalBand.serializer(), stored).replaceFirst("{", "{\"pending\":$pending,")
+        store.write(BandRepository.bandKey("alice", "b1"), raw)
+        store.write(BandRepository.indexKey("alice"), KapeluszJson.encodeToString(BandIndex.serializer(), BandIndex("alice", "b1", listOf(BandSummary("b1", "Night Owls", "Alice", Role.OWNER)))))
+        val repository = BandRepository(store, this, ids())
+        repository.load("alice")
+        assertEquals(listOf("o2"), repository.local("b1")!!.pending.map { it.opId })
+        assertEquals("Owls", ready(repository).band.name)
+    }
+
     @Test
     fun aBandAlreadyOnTheDeviceIsNotOverwrittenByABackgroundDownload() = runTest {
         val store = InMemoryStore()

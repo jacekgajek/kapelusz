@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
@@ -84,12 +85,13 @@ fun partyName(band: Band, event: Event?, partyId: Id, fundLabel: String): String
 
 /**
  * Display name of a settlement party (ITERATION_5 §7): a pair settling together as both names, joined by [pairPattern]
- * (`%1$s and %2$s`), in party order; anyone else as [partyName].
+ * (`%1$s and %2$s`), in alphabetical order (ITERATION_8 §2); anyone else as [partyName].
  */
 fun partyName(band: Band, event: Event?, settlement: Settlement, partyId: Id, fundLabel: String, pairPattern: String): String {
     val ids = settlement.party(partyId)?.partyIds ?: listOf(partyId)
     if (ids.size == 1) return partyName(band, event, partyId, fundLabel)
-    return pairPattern.replace("%1\$s", partyName(band, event, ids[0], fundLabel)).replace("%2\$s", partyName(band, event, ids[1], fundLabel))
+    val names = ids.map { partyName(band, event, it, fundLabel) }.sortedByName { it }
+    return pairPattern.replace("%1\$s", names[0]).replace("%2\$s", names[1])
 }
 
 fun initials(name: String): String =

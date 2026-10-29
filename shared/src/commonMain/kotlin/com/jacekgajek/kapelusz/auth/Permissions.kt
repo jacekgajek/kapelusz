@@ -27,12 +27,12 @@ import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.AddParticipant
+import com.jacekgajek.kapelusz.ops.ChangeLineup
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
@@ -63,6 +63,7 @@ import com.jacekgajek.kapelusz.ops.SetFixedShare
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
+import com.jacekgajek.kapelusz.ops.UnknownOperation
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
@@ -107,17 +108,19 @@ object Permissions {
         // needs more: a member may record their own transfer, but only leads remove transfers.
         is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(band, me, op.original))
         is TransferOwnership -> Role.OWNER
+        // Never applied (ITERATION_8 §2); the reducer refuses it for anyone.
+        is UnknownOperation -> Role.OWNER
 
         // Any leader keeps the band (ITERATION_7 §9); asking for the deletion is the owner's, through the server.
         is CancelBandDeletion -> Role.LEAD
         is ScheduleBandDeletion -> Role.OWNER
 
-        is RenameBand, is AddMember, is RenameMember, is MoveMember, is SetMemberArchived, is DeleteMember,
+        is RenameBand, is AddMember, is RenameMember, is SetMemberArchived, is DeleteMember,
         is SetMemberRole, is UnlinkUser, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is LinkUser,
         -> Role.LEAD
 
         is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
-        is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is SetRefund, is SetFundAmount,
+        is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is ChangeLineup, is SetRefund, is SetFundAmount,
         is SetMemberShare, is SetFundDefault,
         -> Role.LEAD
 

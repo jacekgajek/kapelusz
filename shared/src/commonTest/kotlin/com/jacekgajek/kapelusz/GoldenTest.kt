@@ -15,7 +15,6 @@ import com.jacekgajek.kapelusz.model.IncomeSource.SPONSORSHIP
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddHolding
-import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RejectionCode
@@ -247,7 +246,7 @@ class GoldenTest {
         )
     }
 
-    /** Reordering the roster moves no grosz and no suggested transfer: ties go by party id. */
+    /** The members' stored order moves no grosz and no suggested transfer: ties go by party id. */
     @Test
     fun rosterOrderChangesNothing() {
         val scenario = Scenario("A", "B", "C", "D")
@@ -255,7 +254,7 @@ class GoldenTest {
             .apply(AddHolding("e", "h", "a", pln("100.01"), DOOR))
         val before = scenario.settle("e")
         assertEquals(listOf(pln("25.01"), pln("25"), pln("25"), pln("25")), before.lines.map { it.target })
-        scenario.apply(MoveMember("a", 3)).apply(MoveMember("d", 0))
+        scenario.storeMembersInOrder("d", "b", "c", "a")
         val after = scenario.settle("e")
         assertEquals(before.lines.associate { it.partyId to it.target }, after.lines.associate { it.partyId to it.target })
         assertEquals(before.suggestions, after.suggestions)

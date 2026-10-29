@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
@@ -77,7 +78,7 @@ import org.jetbrains.compose.resources.stringResource
 fun ArtistLineup(context: EventContext) {
     val event = context.event
     SectionTitle(stringResource(Res.string.participants))
-    event.participants.forEach { participant ->
+    SettlementCalculator.partyOrder(context.band, event).mapNotNull { event.participant(it) }.forEach { participant ->
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val member = context.band.member(participant.partyId)
