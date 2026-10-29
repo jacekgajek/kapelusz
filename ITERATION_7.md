@@ -312,13 +312,13 @@ Who knows something happened records it, instead of telling a leader (a search a
   26 digits (as Polish bank apps take it, `PL` dropped) and shown `61 1090 1014 0000 0712 1981 2874`; any other with its
   country code, in fours.
 - **The band fund's own details** (`Band.fundBlikPhone`, `Band.fundBankAccount`; `SetFundBlikPhone`,
-  `SetFundBankAccount`): set by its holder and leads, on the Band fund tab and in Settings › Band fund. They are the
+  `SetFundBankAccount`): set by its holder and leads, in Settings › Band fund. They are the
   band's, so in the history and undoable (undo now compares and restores band settings one by one, so setting them
   doesn't block undoing a rename). Only while the fund is on; turning it off forgets them (the next holder keeps the
   money elsewhere); choosing another holder keeps them, for the new one to change.
-- **Everyone sees them** on the Band fund tab, in a "Pay into the fund" card under the balance, each with a copy button
-  (its holder and leads also an edit button), once something is set: nothing there before, for leaders neither (no
-  "Not set" rows; changed 2026-10-29). They are added in Settings › Band fund, which lists both, set or not.
+- **Everyone sees them** on the Band fund tab, once set: a card under the balance with a line each, the phone or bank
+  icon, the number and a copy button. Nothing to change there, for leaders neither (changed 2026-10-29): they are set
+  only in Settings › Band fund, which lists both, set or not, with an edit button each.
 - **A transfer to the fund** shows only the fund's own details, **never its holder's** personal BLIK or account
   (changed from ITERATION_5 §8); without any, nothing. So does "Hand over money" to the fund.
 - **Beside a transfer** (an event's To settle, the Settle screen, an artist's transfers): the phone icon for BLIK and a

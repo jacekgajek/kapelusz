@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.app.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -128,19 +129,21 @@ fun PaymentDialog(kind: PaymentKind, payees: List<Payee>, recordedTo: Payee?, on
 fun payeeName(payee: Payee): String = payee.member?.name ?: stringResource(Res.string.band_fund)
 
 /**
- * One number with its copy button, e.g. also in "Hand over money" and on the band fund's tab; [whose] names it for the
- * copy button. Nothing without [stored]; [trailing] goes after the copy button, e.g. an edit button.
+ * One number with its copy button, e.g. also in "Hand over money"; [whose] names it for the copy button. Nothing without
+ * [stored]; without a [label], the kind's icon before it instead (the band fund's tab). [trailing] goes after the copy
+ * button, e.g. an edit button.
  */
 @Composable
-fun PaymentRow(kind: PaymentKind, label: String, stored: String?, whose: String, trailing: @Composable () -> Unit = {}) {
+fun PaymentRow(kind: PaymentKind, label: String?, stored: String?, whose: String, trailing: @Composable () -> Unit = {}) {
     if (stored == null) return
     val copy = rememberCopy()
     val scope = rememberCoroutineScope()
     // Said in place: a snackbar would be under the dialog.
     var copied by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
+        if (label == null) Icon(kind.icon, stringResource(kind.title), Modifier.padding(end = 12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (label != null) Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(kind.display(stored), style = MaterialTheme.typography.titleMedium)
             if (copied) Text(stringResource(Res.string.blik_copied), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }

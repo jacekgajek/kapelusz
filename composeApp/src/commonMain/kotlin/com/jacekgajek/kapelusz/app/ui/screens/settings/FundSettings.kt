@@ -143,7 +143,7 @@ internal fun FundSettings(
 private fun FundPaymentItems(blikPhone: String?, bankAccount: String?, onSave: ((PaymentKind, String?) -> Unit)?) {
     if (onSave == null && blikPhone == null && bankAccount == null) return
     SectionHeader(stringResource(Res.string.fund_pay_in))
-    FundPaymentDetails(blikPhone, bankAccount, onSave, showUnset = true)
+    FundPaymentDetails(blikPhone, bankAccount, onSave)
 }
 
 @Composable

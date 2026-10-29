@@ -86,11 +86,8 @@ import com.jacekgajek.kapelusz.app.generated.description
 import com.jacekgajek.kapelusz.app.generated.fund_add_entry
 import com.jacekgajek.kapelusz.app.generated.fund_balance
 import com.jacekgajek.kapelusz.app.generated.fund_held_by
-import com.jacekgajek.kapelusz.app.generated.fund_pay_in
-import com.jacekgajek.kapelusz.app.ui.components.FundPaymentDetails
+import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
-import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
-import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.app.generated.fund_in
 import com.jacekgajek.kapelusz.app.generated.fund_no_treasurer
 import com.jacekgajek.kapelusz.app.generated.fund_no_treasurer_admin
@@ -226,13 +223,13 @@ fun BandFundScreen(
                     }
                 }
             }
-            // Where to pay in, for everyone, once set (ITERATION_7 §2i): its holder and leads add it in the fund's settings.
-            val editsPayment = can.allowed(SetFundBlikPhone(null))
+            // Where to pay in, for everyone, once set (ITERATION_7 §2i): only shown here, set in the fund's settings.
             if (band.fundBlikPhone != null || band.fundBankAccount != null) item {
                 Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(Res.string.fund_pay_in), style = MaterialTheme.typography.titleMedium)
-                        FundPaymentDetails(band.fundBlikPhone, band.fundBankAccount, { kind: PaymentKind, value: String? -> actions.run(fundPaymentOp(kind, value)); Unit }.takeIf { editsPayment })
+                    Column(Modifier.padding(16.dp, 8.dp)) {
+                        val fund = stringResource(Res.string.band_fund)
+                        PaymentRow(PaymentKind.BLIK, null, band.fundBlikPhone, fund)
+                        PaymentRow(PaymentKind.ACCOUNT, null, band.fundBankAccount, fund)
                     }
                 }
             }
