@@ -53,10 +53,10 @@ import com.jacekgajek.kapelusz.app.generated.lineup_add
 import com.jacekgajek.kapelusz.app.generated.lineup_changed
 import com.jacekgajek.kapelusz.app.generated.lineup_start_from
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.GroupAdd
 import com.jacekgajek.kapelusz.app.generated.lineup_not_taking_part
 import com.jacekgajek.kapelusz.app.ui.components.Crowd
 import com.jacekgajek.kapelusz.domain.Lineup
-import androidx.compose.material3.OutlinedButton
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
@@ -128,41 +128,48 @@ fun ParticipantsSection(context: EventContext) {
         rows(guestRows)
     }
     // Who could take part but does not: a tap adds them, with their default share; too many for chips, the picker
-    // (ITERATION_8 §1.1).
+    // (ITERATION_8 §1.1). Viewers only watch (they take no part in events).
     val notTakingPart = Lineup.candidates(band).filter { event.participant(it.id) == null }
     val chips = notTakingPart.size <= Crowd.THRESHOLD
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
-        // Nobody yet: another event's line-up in one tap, for any band size (ITERATION_8 §1.2a).
-        if (canManage && order.isEmpty()) {
-            AssistChip(
+    if (chips && notTakingPart.isNotEmpty()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
+            notTakingPart.forEach { member ->
+                FilterChip(
+                    selected = false,
+                    enabled = canManage,
+                    onClick = { context.actions.run(AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent)) },
+                    label = { Text(member.name) },
+                    // The member's Google photo, or their initials (ITERATION_2 §7.4).
+                    leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
+                )
+            }
+        }
+    }
+    // The actions on a row of their own, below the people, all alike (ITERATION_8 §1.2a): another event's line-up
+    // while there is nobody yet; the picker past the threshold, or while there is nobody yet, for any band size.
+    val empty = order.isEmpty()
+    val picker = notTakingPart.isNotEmpty() && (!chips || empty)
+    if (canManage) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
+            if (empty) AssistChip(
                 onClick = { choosingSource = true },
                 label = { Text(stringResource(Res.string.lineup_start_from)) },
                 leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
             )
-        }
-        if (!chips) {
-            if (canManage) {
-                OutlinedButton(onClick = { picking = true }) { Text(stringResource(Res.string.lineup_add, notTakingPart.size)) }
-            } else {
-                TextButton(onClick = { picking = true }) { Text(stringResource(Res.string.lineup_not_taking_part, notTakingPart.size)) }
-            }
-        }
-        // Viewers only watch (they take no part in events).
-        if (chips) notTakingPart.forEach { member ->
-            FilterChip(
-                selected = false,
-                enabled = canManage,
-                onClick = { context.actions.run(AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent)) },
-                label = { Text(member.name) },
-                // The member's Google photo, or their initials (ITERATION_2 §7.4).
-                leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
+            if (picker) AssistChip(
+                onClick = { picking = true },
+                label = { Text(stringResource(Res.string.lineup_add, notTakingPart.size)) },
+                leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
+            )
+            AssistChip(
+                onClick = { addingGuest = true },
+                label = { Text(stringResource(Res.string.add_guest)) },
+                leadingIcon = { Icon(Icons.Default.Add, null) },
             )
         }
-        if (canManage) AssistChip(
-            onClick = { addingGuest = true },
-            label = { Text(stringResource(Res.string.add_guest)) },
-            leadingIcon = { Icon(Icons.Default.Add, null) },
-        )
+    } else if (!chips) {
+        // Information rather than an action: who isn't taking part, read only.
+        TextButton(onClick = { picking = true }) { Text(stringResource(Res.string.lineup_not_taking_part, notTakingPart.size)) }
     }
 
     if (choosingSource) {
