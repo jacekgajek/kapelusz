@@ -17,6 +17,7 @@ hands over how much to whom. Shared by the whole band and synced through a small
 - `server/` — the API (AWS Lambda, Java 21, SnapStart); data in S3.
 - `scripts/deploy.sh` — deploys API and website, and builds the bundle for Google Play (run by CI after a merge to
   `main`).
+- `scripts/restore-s3.sh` — puts a band's data back as it was at a moment in the past; see `DISASTER_RECOVERY.md`.
 - `design/icon/` — sources of the app icon.
 
 ## Build and run

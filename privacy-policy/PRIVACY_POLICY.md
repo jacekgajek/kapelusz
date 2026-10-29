@@ -119,6 +119,8 @@ All connections use HTTPS. Stored data is encrypted at rest by AWS.
 
 - **Band data, attachments and history**: as long as the band exists. Removed attachments and deleted bands are
   deleted, and their stored copies are kept for **30 days** for recovery from mistakes, then removed.
+- **Backups**: a daily backup of the stored data, kept for **one year** in a locked store, used only to recover from
+  data loss; data deleted in the app is gone from the backups when that time is up.
 - **Your user record**: while you have an account.
 - **Sessions**: a session lasts up to 30 days from its last use and at most 90 days, then you sign in again.
 - **Invites**: until they expire or are withdrawn.
