@@ -10,7 +10,6 @@
     <string name="account_number">Numer konta</string>
     <string name="account_invalid">To nie jest numer konta (26 cyfr albo IBAN)</string>
     <string name="fund_pay_in">Wpłaty do kasy</string>
-    <string name="fund_pay_in_add">Dodaj dane do wpłat</string>
     <string name="fund_pay_in_add_hint">Numer BLIK albo konto, na które każdy może wpłacać do kasy zespołowej.</string>
     <string name="fund_blik">Numer BLIK kasy zespołowej</string>
     <string name="fund_account">Konto kasy zespołowej</string>

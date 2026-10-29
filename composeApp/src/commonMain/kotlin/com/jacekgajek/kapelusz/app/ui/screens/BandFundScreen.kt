@@ -87,7 +87,6 @@ import com.jacekgajek.kapelusz.app.generated.fund_add_entry
 import com.jacekgajek.kapelusz.app.generated.fund_balance
 import com.jacekgajek.kapelusz.app.generated.fund_held_by
 import com.jacekgajek.kapelusz.app.generated.fund_pay_in
-import com.jacekgajek.kapelusz.app.generated.fund_pay_in_add
 import com.jacekgajek.kapelusz.app.ui.components.FundPaymentDetails
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
@@ -227,13 +226,12 @@ fun BandFundScreen(
                     }
                 }
             }
-            // Where to pay in, for everyone (ITERATION_7 §2i); its holder and leads set it, so others see it only once set.
+            // Where to pay in, for everyone, once set (ITERATION_7 §2i): its holder and leads add it in the fund's settings.
             val editsPayment = can.allowed(SetFundBlikPhone(null))
-            if (editsPayment || band.fundBlikPhone != null || band.fundBankAccount != null) item {
+            if (band.fundBlikPhone != null || band.fundBankAccount != null) item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val empty = band.fundBlikPhone == null && band.fundBankAccount == null
-                        Text(stringResource(if (empty) Res.string.fund_pay_in_add else Res.string.fund_pay_in), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(Res.string.fund_pay_in), style = MaterialTheme.typography.titleMedium)
                         FundPaymentDetails(band.fundBlikPhone, band.fundBankAccount, { kind: PaymentKind, value: String? -> actions.run(fundPaymentOp(kind, value)); Unit }.takeIf { editsPayment })
                     }
                 }

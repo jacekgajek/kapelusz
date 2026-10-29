@@ -29,22 +29,22 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Where to pay into the band fund (ITERATION_7 §2i): its BLIK number and bank account, each with a copy button, for
- * everyone; with [onSave] (its holder and leads), an edit button each, and the ones not set yet. Nothing for the others
- * while none is set.
+ * everyone; with [onSave] (its holder and leads), an edit button each, and with [showUnset] (in its settings) the ones
+ * not set yet.
  */
 @Composable
-fun FundPaymentDetails(blikPhone: String?, bankAccount: String?, onSave: ((PaymentKind, String?) -> Unit)?) {
+fun FundPaymentDetails(blikPhone: String?, bankAccount: String?, onSave: ((PaymentKind, String?) -> Unit)?, showUnset: Boolean = false) {
     var editing by remember { mutableStateOf<PaymentKind?>(null) }
     val fund = stringResource(Res.string.band_fund)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (blikPhone == null && bankAccount == null && onSave != null) {
+        if (blikPhone == null && bankAccount == null && onSave != null && showUnset) {
             Text(stringResource(Res.string.fund_pay_in_add_hint), style = MaterialTheme.typography.bodySmall)
         }
         listOf(PaymentKind.BLIK to blikPhone, PaymentKind.ACCOUNT to bankAccount).forEach { (kind, stored) ->
             val label = stringResource(if (kind == PaymentKind.BLIK) Res.string.blik_title else Res.string.account_number)
             if (stored != null) {
                 PaymentRow(kind, label, stored, fund) { if (onSave != null) EditButton(label) { editing = kind } }
-            } else if (onSave != null) {
+            } else if (onSave != null && showUnset) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

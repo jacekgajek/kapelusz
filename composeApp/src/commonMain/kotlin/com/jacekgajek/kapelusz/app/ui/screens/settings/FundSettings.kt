@@ -138,12 +138,12 @@ internal fun FundSettings(
     }
 }
 
-/** Where to pay into the fund (ITERATION_7 §2i), as on its tab: its holder (who is not a leader too) sets it here as well. */
+/** Where to pay into the fund (ITERATION_7 §2i): set here, by its holder and leads; shown on its tab once set. */
 @Composable
 private fun FundPaymentItems(blikPhone: String?, bankAccount: String?, onSave: ((PaymentKind, String?) -> Unit)?) {
     if (onSave == null && blikPhone == null && bankAccount == null) return
     SectionHeader(stringResource(Res.string.fund_pay_in))
-    FundPaymentDetails(blikPhone, bankAccount, onSave)
+    FundPaymentDetails(blikPhone, bankAccount, onSave, showUnset = true)
 }
 
 @Composable

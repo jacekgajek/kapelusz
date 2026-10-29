@@ -10,7 +10,6 @@
     <string name="account_number">Account number</string>
     <string name="account_invalid">Not an account number (26 digits or an IBAN)</string>
     <string name="fund_pay_in">Pay into the fund</string>
-    <string name="fund_pay_in_add">Add payment details</string>
     <string name="fund_pay_in_add_hint">A BLIK number or a bank account everyone can pay into the band fund.</string>
     <string name="fund_blik">Band fund's BLIK number</string>
     <string name="fund_account">Band fund's bank account</string>

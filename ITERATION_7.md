@@ -316,9 +316,9 @@ Who knows something happened records it, instead of telling a leader (a search a
   band's, so in the history and undoable (undo now compares and restores band settings one by one, so setting them
   doesn't block undoing a rename). Only while the fund is on; turning it off forgets them (the next holder keeps the
   money elsewhere); choosing another holder keeps them, for the new one to change.
-- **Everyone sees them** on the Band fund tab, in a "Pay into the fund" card under the balance, each with a copy button;
-  its holder and leads also an edit button, and the ones not set yet ("Add payment details" while none is). Other
-  members only see the card once something is set.
+- **Everyone sees them** on the Band fund tab, in a "Pay into the fund" card under the balance, each with a copy button
+  (its holder and leads also an edit button), once something is set: nothing there before, for leaders neither (no
+  "Not set" rows; changed 2026-10-29). They are added in Settings › Band fund, which lists both, set or not.
 - **A transfer to the fund** shows only the fund's own details, **never its holder's** personal BLIK or account
   (changed from ITERATION_5 §8); without any, nothing. So does "Hand over money" to the fund.
 - **Beside a transfer** (an event's To settle, the Settle screen, an artist's transfers): the phone icon for BLIK and a
