@@ -129,13 +129,13 @@
     <string name="total_refunds">Cost refunds</string>
     <string name="total_net">To share</string>
     <string name="problem_loss">Loss of %1$s. Defer some refunds, add income or let the band fund cover it before settling.</string>
-    <string name="problem_no_shares">Nobody has a share. Give at least one participant a share above 0%.</string>
+    <string name="problem_no_shares">Part of the money has nobody to go to. Give at least one participant a share, or make the percentages add up to 100%.</string>
     <string name="problem_no_treasurer">Choose who holds the band fund before settling.</string>
     <string name="participants">Participants</string>
     <string name="add_guest">Guest</string>
     <string name="guest_name">Guest name</string>
     <string name="share_weight">Share</string>
-    <string name="share_weight_hint">100% is one normal share, 150% gets one and a half, 0% takes part without a share.</string>
+    <string name="share_weight_hint">1 is a normal share, 1½ gets one and a half, no share takes part without any of the money.</string>
     <string name="collected_money">Received money</string>
     <string name="collected_empty">No money received yet.</string>
     <string name="collected_by">Received by</string>
@@ -217,7 +217,7 @@
     <string name="reject_invalid_input">Something in this change is not valid.</string>
     <string name="reject_invalid_amount">This amount is not allowed here.</string>
     <string name="reject_empty_name">The name cannot be empty.</string>
-    <string name="reject_invalid_share">The share must be between 0% and 10000%.</string>
+    <string name="reject_invalid_share">The share must be between 0 and 100 shares, or 0% and 100%.</string>
     <string name="reject_not_a_participant">This person does not take part in the event.</string>
     <string name="reject_already_participant">This person already takes part.</string>
     <string name="reject_same_party">Money cannot be handed to the same person.</string>

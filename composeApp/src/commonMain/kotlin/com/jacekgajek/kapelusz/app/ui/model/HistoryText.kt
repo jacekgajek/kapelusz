@@ -60,6 +60,9 @@ import com.jacekgajek.kapelusz.app.generated.h_set_role
 import com.jacekgajek.kapelusz.app.generated.h_set_treasurer
 import com.jacekgajek.kapelusz.app.generated.h_disable_fund
 import com.jacekgajek.kapelusz.app.generated.h_set_weight
+import com.jacekgajek.kapelusz.app.generated.h_set_percent_share
+import com.jacekgajek.kapelusz.app.generated.share_of_profit
+import com.jacekgajek.kapelusz.app.ui.components.sharesText
 import com.jacekgajek.kapelusz.app.generated.h_clear_fixed_share
 import com.jacekgajek.kapelusz.app.generated.h_clear_fixed_share_weight
 import com.jacekgajek.kapelusz.app.generated.h_set_fixed_share
@@ -179,11 +182,13 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         is AddParticipant -> stringResource(Res.string.h_add_participant, member(op.memberId), event(op.eventId))
         is AddGuest -> stringResource(Res.string.h_add_guest, op.name, event(op.eventId))
         is RenameGuest -> stringResource(Res.string.h_rename_guest, op.name, event(op.eventId))
-        is SetWeight -> stringResource(Res.string.h_set_weight, party(op.eventId, op.partyId), "${op.weight}%", event(op.eventId))
+        is SetWeight -> stringResource(Res.string.h_set_weight, party(op.eventId, op.partyId), sharesText(op.weight), event(op.eventId))
         is SetFixedShare -> op.amount?.let { amount ->
             stringResource(Res.string.h_set_fixed_share, party(op.eventId, op.partyId), money(amount), event(op.eventId))
-        } ?: op.weight?.let { weight ->
-            stringResource(Res.string.h_clear_fixed_share_weight, party(op.eventId, op.partyId), "$weight%", event(op.eventId))
+        } ?: op.percent?.takeIf { it > 0 }?.let { percent ->
+            stringResource(Res.string.h_set_percent_share, party(op.eventId, op.partyId), "$percent%", event(op.eventId))
+        } ?: (if (op.percent == 0) 0 else op.weight)?.let { weight ->
+            stringResource(Res.string.h_clear_fixed_share_weight, party(op.eventId, op.partyId), sharesText(weight), event(op.eventId))
         } ?: stringResource(Res.string.h_clear_fixed_share, party(op.eventId, op.partyId), event(op.eventId))
         is RemoveParticipant -> stringResource(Res.string.h_remove_participant, party(op.eventId, op.partyId), event(op.eventId))
         is AddHolding -> if (op.partyId == ORGANISER) stringResource(Res.string.h_add_awaited, money(op.amount), event(op.eventId))
@@ -231,7 +236,13 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         is AddCost -> stringResource(Res.string.h_add_cost, money(op.amount), member(op.memberId))
         is UpdateCost -> stringResource(Res.string.h_edit_cost)
         is DeleteCost -> stringResource(Res.string.h_delete_cost)
-        is SetMemberShare -> stringResource(Res.string.h_set_member_share, member(op.memberId), op.fixedShare?.let(::money) ?: "${op.weight}%")
+        is SetMemberShare -> stringResource(
+            Res.string.h_set_member_share,
+            member(op.memberId),
+            op.fixedShare?.let(::money)
+                ?: op.percent?.takeIf { it > 0 }?.let { stringResource(Res.string.share_of_profit, "$it%") }
+                ?: sharesText(if (op.percent == 0) 0 else op.weight),
+        )
         is AddAttachment -> stringResource(Res.string.h_add_attachment)
         is RemoveAttachment -> stringResource(Res.string.h_remove_attachment)
         is RenameAttachment -> stringResource(Res.string.h_rename_attachment, op.fileName)

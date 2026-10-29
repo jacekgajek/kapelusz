@@ -30,6 +30,8 @@ import com.jacekgajek.kapelusz.app.generated.line_holds
 import com.jacekgajek.kapelusz.app.generated.line_payout
 import com.jacekgajek.kapelusz.app.generated.line_payout_fixed
 import com.jacekgajek.kapelusz.app.generated.line_payout_fixed_only
+import com.jacekgajek.kapelusz.app.generated.line_payout_percent
+import com.jacekgajek.kapelusz.app.generated.line_payout_percent_only
 import com.jacekgajek.kapelusz.app.generated.line_payout_share_only
 import com.jacekgajek.kapelusz.app.generated.line_settled
 import com.jacekgajek.kapelusz.app.generated.pair_breakdown
@@ -83,15 +85,24 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                 if (isPair) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
             }
             if (line.partyId != BAND_FUND) {
-                // A fixed share says so (ITERATION_3 §2.4): it does not change with the income.
+                // A fixed share says so (ITERATION_3 §2.4): it does not change with the income. A percentage too (§2h).
+                val percent = line.percent?.let { "$it%" }
                 Text(
-                    if (line.refunds.isZero) {
-                        stringResource(
+                    when {
+                        line.refunds.isZero && percent != null ->
+                            stringResource(Res.string.line_payout_percent_only, formatMoney(line.target, currency, lang), percent)
+                        line.refunds.isZero -> stringResource(
                             if (line.isFixed) Res.string.line_payout_fixed_only else Res.string.line_payout_share_only,
                             formatMoney(line.target, currency, lang),
                         )
-                    } else {
-                        stringResource(
+                        percent != null -> stringResource(
+                            Res.string.line_payout_percent,
+                            formatMoney(line.target, currency, lang),
+                            formatMoney(line.share, currency, lang),
+                            formatMoney(line.refunds, currency, lang),
+                            percent,
+                        )
+                        else -> stringResource(
                             if (line.isFixed) Res.string.line_payout_fixed else Res.string.line_payout,
                             formatMoney(line.target, currency, lang),
                             formatMoney(line.share, currency, lang),

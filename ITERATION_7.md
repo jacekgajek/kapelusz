@@ -278,6 +278,29 @@ Who knows something happened records it, instead of telling a leader (a search a
   income would owe a fund that is off). A default sent after the fund was turned off elsewhere is dropped, not the event. Nothing is remembered
   per device (tried in the grilling, dropped for the default).
 
+## 2h. Shares in shares, and as a percentage of the profit (grilled 2026-10-29)
+
+- **Shares, not percent:** a share by weight is shown as a number of shares, 100 being one: "1½ shares" / "1½ udziału",
+  "¾ share", "No share"; a weight off the quarters as a decimal ("1.1 shares" / "1,1 udziału"). Only the display: the
+  weight is stored as before. A normal share (1) goes unsaid in the member list, as in an event's participants; a
+  member's dialog still says it, beside its edit button. "%" is left to what is a real percentage.
+- **A percentage of the profit:** a participant (member or guest) or a member's default share may be a percentage
+  instead of shares or a fixed amount (`Participant.percent`, `Member.sharePercent`; `AddParticipant`, `AddGuest`,
+  `SetFixedShare` and `SetMemberShare` carry `percent`, never with a fixed amount, 0% being no share: a weight of 0).
+  It replaces the participant's shares: they get no part of the rest. The weight stays underneath for switching back.
+- **Of what:** the profit (income less refunds) **plus what the band fund adds** to the event, the same base for every
+  percentage, the fund's own included, so they add up: fund 10% + Alice 50% of 1000 zł leaves 400 zł for the shares. A
+  fund topping up the refunds is then as if there were no costs. Rounded down to the grosz; nothing of a loss.
+- **The order:** percentages (the fund's and the participants') and fixed amounts come off first, the rest is split by
+  shares. The grosze rounding leaves go to the shares; with nobody on shares and the percentages at exactly 100%, to the
+  percentage holders, in proportion (ties in party order).
+- **Problems, not refusals** (two phones may set percentages at once): over 100% in all is "The percentages add up to
+  110%…" (`OVER_PERCENT`, not a loss); money with nobody to go to (percentages under 100% and nobody on shares) is the
+  "no shares" problem, reworded.
+- **The editor:** "Shares | % | zł" (PL "Udziały | % | zł"). Shares on a slider in quarters up to 2 with marks at 0, ½, 1,
+  1½ and 2, and what one share comes to; the percentage on a slider of 0–100% in 5% steps with "Others already take 10%
+  of the profit", in red past 100%. Payout lines and the shared text say "(50% of profit)".
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -333,6 +356,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 - [x] Percentage of the profit on events, the fund editor, the band default with apply-to-unsettled
 
+### Shares in shares, and as a percentage (§2h)
+
+- [x] Shares shown as shares, a percentage of the profit for participants and members' defaults, the three-way editor
+
 ### Updates from Google Play in the app (§2b)
 
 - [x] The strip (available, downloading, downloaded), Update required's full-screen update
@@ -378,3 +405,8 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   says whoever plays. Rounded down to whole units: a round sum to hand over, never more than the percentage.
 - 2026-10-28: A band default for the fund (§2g) instead of remembering the last value per device: shared by the band,
   like members' default shares.
+- 2026-10-29: Shares are shown as shares (§2h), "1½", not "150%": a member's "%" and the fund's meant different things.
+- 2026-10-29: Participants' percentages are of the profit plus the fund's top-up (§2h), the same base as the fund's
+  percentage, so all percentages add up; a percentage replaces the shares rather than coming on top of them.
+- 2026-10-29: Over 100% and money nobody gets are problems on the event (§2h), not refusals: two phones may set
+  percentages at once, and a refusal would drop one of the changes unseen.

@@ -59,11 +59,13 @@ data class SetMemberArchived(val memberId: Id, val archived: Boolean) : Operatio
 data class DeleteMember(val memberId: Id) : Operation
 
 /**
- * A member's default share (ITERATION_4 §2.3): [weight], or [fixedShare] when set. Also applied, in the same step, to
- * their share in [events] (chosen by the user: events not settled where they still had the old default).
+ * A member's default share (ITERATION_4 §2.3): [weight], or [fixedShare] or [percent] (ITERATION_7 §2h) when set. Also
+ * applied, in the same step, to their share in [events] (chosen by the user: events not settled where they still had
+ * the old default).
  */
 @Serializable @SerialName("SetMemberShare")
-data class SetMemberShare(val memberId: Id, val weight: Int, val fixedShare: Money?, val events: List<Id> = emptyList()) : Operation
+data class SetMemberShare(val memberId: Id, val weight: Int, val fixedShare: Money?, val events: List<Id> = emptyList(), val percent: Int? = null) :
+    Operation
 
 @Serializable @SerialName("SetMemberRole")
 data class SetMemberRole(val memberId: Id, val role: Role) : Operation
@@ -152,11 +154,23 @@ data class SetEventArchived(override val eventId: Id, val archived: Boolean) : O
 data class DeleteEvent(override val eventId: Id) : Operation
 
 @Serializable @SerialName("AddParticipant")
-data class AddParticipant(override val eventId: Id, val memberId: Id, val weight: Int = DEFAULT_WEIGHT, val fixedShare: Money? = null) : Operation
+data class AddParticipant(
+    override val eventId: Id,
+    val memberId: Id,
+    val weight: Int = DEFAULT_WEIGHT,
+    val fixedShare: Money? = null,
+    val percent: Int? = null,
+) : Operation
 
 @Serializable @SerialName("AddGuest")
-data class AddGuest(override val eventId: Id, val guestId: Id, val name: String, val weight: Int = DEFAULT_WEIGHT, val fixedShare: Money? = null) :
-    Operation
+data class AddGuest(
+    override val eventId: Id,
+    val guestId: Id,
+    val name: String,
+    val weight: Int = DEFAULT_WEIGHT,
+    val fixedShare: Money? = null,
+    val percent: Int? = null,
+) : Operation
 
 @Serializable @SerialName("RenameGuest")
 data class RenameGuest(override val eventId: Id, val guestId: Id, val name: String) : Operation
@@ -165,11 +179,13 @@ data class RenameGuest(override val eventId: Id, val guestId: Id, val name: Stri
 data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int) : Operation
 
 /**
- * A fixed amount the participant takes off the top instead of a share by weight; null goes back to the weight (ITERATION_3 §2.4).
- * [weight], when set, is applied in the same step, so going back to a different percentage is one change to undo.
+ * A fixed amount the participant takes off the top instead of a share by weight (ITERATION_3 §2.4), or a [percent] of
+ * the profit (ITERATION_7 §2h); neither goes back to the weight. [weight], when set, is applied in the same step, so
+ * going back to a different weight is one change to undo.
  */
 @Serializable @SerialName("SetFixedShare")
-data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: Money?, val weight: Int? = null) : Operation
+data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: Money?, val weight: Int? = null, val percent: Int? = null) :
+    Operation
 
 @Serializable @SerialName("RemoveParticipant")
 data class RemoveParticipant(override val eventId: Id, val partyId: Id) : Operation

@@ -1,15 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Shares as a percentage or a fixed amount (ITERATION_3 §2.4) -->
+    <!-- Shares by weight or a fixed amount (ITERATION_3 §2.4) -->
     <string name="share_fixed">fixed</string>
     <string name="share_fixed_amount">Fixed amount</string>
-    <string name="share_fixed_hint">Paid out before the rest is shared by percentage. Refunds of own costs come on top.</string>
+    <string name="share_fixed_hint">Paid out before the rest is split by shares. Refunds of own costs come on top.</string>
     <string name="share_by_percent">Percentage</string>
     <string name="share_resulting">Share now: %1$s</string>
     <string name="line_payout_fixed">payout %1$s = fixed %2$s + refunds %3$s</string>
     <string name="line_payout_fixed_only">payout %1$s (fixed)</string>
     <string name="h_set_fixed_share">Set a fixed share of %2$s for %1$s in %3$s</string>
-    <string name="h_clear_fixed_share">Set the share of %1$s back to a percentage in %2$s</string>
-    <string name="h_clear_fixed_share_weight">Set the share of %1$s back to a percentage, %2$s, in %3$s</string>
-    <string name="problem_loss_fixed">Loss of %1$s. Lower the fixed amounts, defer some refunds, add income or let the band fund cover it before settling.</string>
+    <string name="h_clear_fixed_share">Set the share of %1$s back to shares in %2$s</string>
+    <string name="h_clear_fixed_share_weight">Set the share of %1$s back to %2$s in %3$s</string>
+    <string name="problem_loss_fixed">Loss of %1$s. Lower the fixed amounts or percentages, defer some refunds, add income or let the band fund cover it before settling.</string>
+    <!-- Shares by weight, shown as a number of shares, and as a percentage of the profit (ITERATION_7 §2h) -->
+    <string name="share_by_weight">Shares</string>
+    <string name="share_none">No share</string>
+    <plurals name="share_count">
+        <item quantity="one">%1$s share</item>
+        <item quantity="other">%1$s shares</item>
+    </plurals>
+    <string name="share_part">%1$s share</string>
+    <string name="share_parts">%1$s shares</string>
+    <string name="share_of_profit">%1$s of profit</string>
+    <string name="share_percent_hint">Taken off the profit (plus what the fund adds) before the rest is split by shares.</string>
+    <string name="share_percent_taken">Others already take %1$s of the profit.</string>
+    <string name="share_percent_over">Over 100%: others already take %1$s of the profit.</string>
+    <string name="share_resulting_one">Share now: %1$s (one share: %2$s)</string>
+    <string name="line_payout_percent">payout %1$s = %4$s of profit %2$s + refunds %3$s</string>
+    <string name="line_payout_percent_only">payout %1$s (%2$s of profit)</string>
+    <string name="share_text_percent">%1$s (%2$s of profit)</string>
+    <string name="h_set_percent_share">Set the share of %1$s to %2$s of profit in %3$s</string>
+    <string name="problem_over_percent">The percentages add up to %1$s, more than the whole profit. Lower some before settling.</string>
 </resources>

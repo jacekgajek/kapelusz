@@ -93,7 +93,6 @@ import com.jacekgajek.kapelusz.app.generated.member_share_apply_no
 import com.jacekgajek.kapelusz.app.generated.member_share_apply_text
 import com.jacekgajek.kapelusz.app.generated.member_share_apply_title
 import com.jacekgajek.kapelusz.app.generated.member_share_apply_yes
-import com.jacekgajek.kapelusz.app.generated.member_share_fixed
 import com.jacekgajek.kapelusz.app.generated.member_share_hint
 import com.jacekgajek.kapelusz.app.generated.member_share_line
 import com.jacekgajek.kapelusz.app.generated.member_share_title
@@ -126,6 +125,9 @@ import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
+import com.jacekgajek.kapelusz.app.ui.components.shareText
+import com.jacekgajek.kapelusz.app.ui.components.sharesText
+import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -281,7 +283,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (canShare) Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(Res.string.member_share_line, shareText(member, band.currency)), Modifier.weight(1f))
+                        Text(shareLine(member, band.currency), Modifier.weight(1f))
                         EditButton(onClick = { sharing = member.id })
                     }
                     if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
@@ -310,10 +312,14 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
     sharing?.let { id -> band.member(id) }?.let { member -> MemberShareDialog(band, member, actions, onDismiss = { sharing = null }) }
 }
 
-/** "100%" or "300 zł (fixed)": a member's default share (ITERATION_4 §2.3). */
+/** "1½ shares", "20% of profit" or "300 zł (fixed)": a member's default share (ITERATION_4 §2.3); null for a normal one. */
 @Composable
-private fun shareText(member: Member, currency: String): String =
-    member.shareFixed?.let { stringResource(Res.string.member_share_fixed, formatMoney(it, currency, language)) } ?: "${member.shareWeight}%"
+private fun shareText(member: Member, currency: String): String? = shareText(member.shareWeight, member.shareFixed, member.sharePercent, currency)
+
+/** "Share: 1 share" in a member's dialog, where the share can be edited: said even when normal. */
+@Composable
+private fun shareLine(member: Member, currency: String): String =
+    stringResource(Res.string.member_share_line, shareText(member, currency) ?: sharesText(member.shareWeight))
 
 /**
  * A member's default share (ITERATION_4 §2.3). Saving it offers to use it in their events not settled yet where they
@@ -321,12 +327,13 @@ private fun shareText(member: Member, currency: String): String =
  */
 @Composable
 private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDismiss: () -> Unit) {
-    val editor = rememberShareEditorState(member.shareWeight, member.shareFixed)
-    var applying by remember { mutableStateOf<Pair<Int, Money?>?>(null) }
+    val editor = rememberShareEditorState(member.shareWeight, member.shareFixed, member.sharePercent)
+    // The new default as a participant has it, while asking whether to use it in events too.
+    var applying by remember { mutableStateOf<Participant?>(null) }
     // Not on every slider step: it settles each event.
     val stillOld = remember(band, member) { MemberShares.stillDefault(band, member) }
-    fun save(weight: Int, fixed: Money?, events: List<Event>) {
-        if (actions.run(SetMemberShare(member.id, weight, fixed, events.map { it.id }))) onDismiss()
+    fun save(share: Participant, events: List<Event>) {
+        if (actions.run(SetMemberShare(member.id, share.weight, share.fixedShare, events.map { it.id }, share.percent))) onDismiss()
     }
     val pending = applying
     if (pending == null) {
@@ -335,35 +342,33 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
             title = { Text("${stringResource(Res.string.member_share_title)}: ${member.name}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ShareEditor(editor, band.currency)
+                    ShareEditor(editor, band.currency, band.fundDefault?.percent ?: 0)
                     Text(stringResource(Res.string.member_share_hint), style = MaterialTheme.typography.bodySmall)
                     DialogNotice(actions)
                 }
             },
             confirmButton = {
                 TextButton(enabled = editor.valid, onClick = {
-                    // A fixed share keeps the percentage it had, so switching back restores it (as in events).
-                    val fixed = if (editor.fixed) editor.parsedAmount else null
-                    val weight = editor.weight
+                    // A fixed share or a percentage keeps the weight it had, so switching back restores it (as in events).
+                    val share = editor.applyTo(member.asParticipant())
                     when {
-                        weight == member.shareWeight && fixed == member.shareFixed -> onDismiss()
-                        stillOld.isEmpty() -> save(weight, fixed, emptyList())
-                        else -> applying = weight to fixed
+                        share == member.asParticipant() -> onDismiss()
+                        stillOld.isEmpty() -> save(share, emptyList())
+                        else -> applying = share
                     }
                 }) { Text(stringResource(Res.string.save)) }
             },
             dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
         )
     } else {
-        val (weight, fixed) = pending
         val names = stillOld.take(3).joinToString(", ") { it.name } + if (stillOld.size > 3) "…" else ""
         AlertDialog(
             // Save was pressed already: leaving the question keeps the new default, without touching events.
-            onDismissRequest = { save(weight, fixed, emptyList()) },
+            onDismissRequest = { save(pending, emptyList()) },
             title = { Text(stringResource(Res.string.member_share_apply_title)) },
             text = { Text(stringResource(Res.string.member_share_apply_text, member.name, stillOld.size, names)) },
-            confirmButton = { TextButton(onClick = { save(weight, fixed, stillOld) }) { Text(stringResource(Res.string.member_share_apply_yes)) } },
-            dismissButton = { TextButton(onClick = { save(weight, fixed, emptyList()) }) { Text(stringResource(Res.string.member_share_apply_no)) } },
+            confirmButton = { TextButton(onClick = { save(pending, stillOld) }) { Text(stringResource(Res.string.member_share_apply_yes)) } },
+            dismissButton = { TextButton(onClick = { save(pending, emptyList()) }) { Text(stringResource(Res.string.member_share_apply_no)) } },
         )
     }
 }
@@ -400,7 +405,8 @@ private fun MemberRow(
             Column {
                 Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
                 if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
-                Text(stringResource(Res.string.member_share_line, shareText(member, currency)))
+                // A normal share goes unsaid: it is everyone's, until changed.
+                shareText(member, currency)?.let { Text(it) }
             }
         }),
         trailingContent = { if (moves != null) Row { moves() } },
@@ -476,7 +482,7 @@ private fun MemberDialog(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(Res.string.member_share_line, shareText(member, band.currency)), Modifier.weight(1f))
+                    Text(shareLine(member, band.currency), Modifier.weight(1f))
                     if (onEditShare != null) EditButton(onClick = onEditShare)
                 }
                 // Without an account the role only takes effect when they join, which the invite's role decides. A linked

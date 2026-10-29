@@ -24,6 +24,8 @@ data class SettlementWords(
     val shareWithRefunds: String,
     /** "%1$s" filled with the amount: a fixed share (ITERATION_3 §2.4). */
     val fixed: String,
+    /** "%1$s" the amount, "%2$s" the percentage: a percentage of the profit (ITERATION_7 §2h). */
+    val percent: String = "%1\$s (%2\$s)",
     val done: String,
     val stillToPay: String,
     val allSettled: String,
@@ -81,9 +83,13 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
     }.joinToString("\n")
 }
 
-/** One party's share, "Jacek 475 zł (+ 150 zł refunds)": kept apart so a fixed amount (§2.4) can be worded here. */
+/** One party's share, "Jacek 475 zł (+ 150 zł refunds)": kept apart so a fixed amount (§2.4) or a percentage can be worded here. */
 private fun shareText(line: PartyLine, name: String, money: (Money) -> String, words: SettlementWords): String {
-    val share = if (line.isFixed) fill(words.fixed, money(line.share)) else money(line.share)
+    val share = when {
+        line.isFixed -> fill(words.fixed, money(line.share))
+        line.percent != null -> fill(words.percent, money(line.share), "${line.percent}%")
+        else -> money(line.share)
+    }
     return if (line.refunds.isZero) "$name $share" else fill(words.shareWithRefunds, name, share, money(line.refunds))
 }
 

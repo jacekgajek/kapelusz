@@ -33,6 +33,7 @@ import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Refund
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.model.SharePercent
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.allAttachments
 
@@ -140,14 +141,9 @@ object Reducer {
                 event.copy(participants = event.participants.map { if (it.partyId == op.partyId) it.copy(weight = op.weight) else it })
             }
             is SetFixedShare -> band.updateEvent(op.eventId) { event ->
-                event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
-                op.amount?.let { validatePositive(it, "Fixed share") }
-                op.weight?.let { validateWeight(it) }
-                event.copy(
-                    participants = event.participants.map {
-                        if (it.partyId == op.partyId) it.copy(fixedShare = op.amount, weight = op.weight ?: it.weight) else it
-                    },
-                )
+                val participant = event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
+                val share = validShare(op.weight ?: participant.weight, op.amount, op.percent)
+                event.copy(participants = event.participants.map { if (it.partyId == op.partyId) share.applyTo(it) else it })
             }
             is RemoveParticipant -> removeParticipant(band, op)
 
@@ -344,10 +340,9 @@ object Reducer {
 
     private fun setMemberShare(band: Band, op: SetMemberShare, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
-        validateWeight(op.weight)
-        op.fixedShare?.let { validatePositive(it, "Fixed share") }
+        val share = validShare(op.weight, op.fixedShare, op.percent)
         val member = band.member(op.memberId)!!
-        var result = band.updateMember(op.memberId) { it.copy(shareWeight = op.weight, shareFixed = op.fixedShare) }
+        var result = band.updateMember(op.memberId) { it.copy(shareWeight = share.weight, shareFixed = share.fixed, sharePercent = share.percent) }
         // Events that changed since the user chose them (archived, settled, the member removed, e.g. on another phone)
         // are left alone rather than losing the new default with them.
         for (eventId in op.events.distinct()) {
@@ -356,9 +351,9 @@ object Reducer {
                 it.copy(
                     participants = it.participants.map { p ->
                         if (p.partyId != op.memberId) p
-                        // A fixed amount keeps the percentage underneath, so switching back restores it (as in events).
-                        else if (op.fixedShare != null) p.copy(fixedShare = op.fixedShare)
-                        else p.copy(weight = op.weight, fixedShare = null)
+                        // A fixed amount or a percentage keeps the weight underneath, so switching back restores it (as in events).
+                        else if (share.byWeight) share.applyTo(p)
+                        else share.applyTo(p).copy(weight = p.weight)
                     },
                     updatedAt = ctx.timestamp,
                 )
@@ -429,8 +424,7 @@ object Reducer {
         invalidIf(guestIds.any { band.member(it) != null }, RejectionReason.DUPLICATE_ID) { "Guest id already used by a member" }
         invalidIf(op.participants.map { it.partyId }.toSet().size != op.participants.size, RejectionReason.INVALID_INPUT) { "Duplicate participants" }
         op.participants.forEach { participant ->
-            validateWeight(participant.weight)
-            participant.fixedShare?.let { validatePositive(it, "Fixed share") }
+            validShare(participant.weight, participant.fixedShare, participant.percent)
             if (participant.partyId !in guestIds) {
                 validateActiveMember(band, participant.partyId)
                 validateNotViewer(band, participant.partyId)
@@ -444,7 +438,7 @@ object Reducer {
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
             // Who added each participant (the creator); was for the reminder prompt (ITERATION_2 §5.2), gone since ITERATION_6 §9.
-            participants = op.participants.map { it.copy(addedBy = ctx.memberId) },
+            participants = op.participants.map { validShare(it.weight, it.fixedShare, it.percent).applyTo(it).copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )
         // The band's default, incidental to creating the event: dropped if the fund was turned off meanwhile (e.g. on
@@ -479,22 +473,20 @@ object Reducer {
     private fun addParticipant(band: Band, op: AddParticipant, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
         validateNotViewer(band, op.memberId)
-        validateWeight(op.weight)
-        op.fixedShare?.let { validatePositive(it, "Fixed share") }
+        val share = validShare(op.weight, op.fixedShare, op.percent)
         val updated = band.updateEvent(op.eventId) { event ->
             invalidIf(event.participant(op.memberId) != null, RejectionReason.ALREADY_PARTICIPANT) { "Member already takes part" }
-            event.copy(participants = event.participants + Participant(op.memberId, op.weight, addedBy = ctx.memberId, fixedShare = op.fixedShare))
+            event.copy(participants = event.participants + share.applyTo(Participant(op.memberId, addedBy = ctx.memberId)))
         }
         return updated
     }
 
     private fun addGuest(band: Band, op: AddGuest): Band = band.updateEvent(op.eventId) { event ->
         invalidIf(event.guest(op.guestId) != null || band.member(op.guestId) != null, RejectionReason.DUPLICATE_ID) { "Id ${op.guestId} already in use" }
-        validateWeight(op.weight)
-        op.fixedShare?.let { validatePositive(it, "Fixed share") }
+        val share = validShare(op.weight, op.fixedShare, op.percent)
         event.copy(
             guests = event.guests + Guest(op.guestId, op.name.validName("Guest name")),
-            participants = event.participants + Participant(op.guestId, op.weight, fixedShare = op.fixedShare),
+            participants = event.participants + share.applyTo(Participant(op.guestId)),
         )
     }
 
@@ -777,6 +769,22 @@ object Reducer {
     }
 
     private fun validateWeight(weight: Int) = invalidIf(weight !in 0..10_000, RejectionReason.INVALID_SHARE) { "Share weight must be between 0 and 10000" }
+
+    /** A share as stored (ITERATION_7 §2h): a weight, a fixed amount or a percentage of the profit. */
+    private data class Share(val weight: Int, val fixed: Money?, val percent: Int?) {
+        val byWeight: Boolean get() = fixed == null && percent == null
+
+        fun applyTo(participant: Participant) = participant.copy(weight = weight, fixedShare = fixed, percent = percent)
+    }
+
+    /** Checked; at most one of [fixed] and [percent]. 0% is no share at all: a weight of 0. */
+    private fun validShare(weight: Int, fixed: Money?, percent: Int?): Share {
+        validateWeight(weight)
+        fixed?.let { validatePositive(it, "Fixed share") }
+        percent?.let { invalidIf(it !in 0..SharePercent.MAX, RejectionReason.INVALID_SHARE) { "A percentage must be between 0 and ${SharePercent.MAX}" } }
+        invalidIf(fixed != null && percent != null, RejectionReason.INVALID_INPUT) { "A share is a fixed amount or a percentage, not both" }
+        return if (percent == 0) Share(0, null, null) else Share(weight, fixed, percent)
+    }
 
     private fun validatePositive(amount: Money, what: String) = invalidIf(!amount.isPositive, RejectionReason.INVALID_AMOUNT) { "$what must be positive" }
 

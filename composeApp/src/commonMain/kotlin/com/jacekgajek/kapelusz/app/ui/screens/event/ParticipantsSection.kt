@@ -64,8 +64,11 @@ import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.SetWeight
-import com.jacekgajek.kapelusz.app.generated.share_fixed
 import com.jacekgajek.kapelusz.app.generated.share_resulting
+import com.jacekgajek.kapelusz.app.generated.share_resulting_one
+import com.jacekgajek.kapelusz.app.ui.components.ShareMode
+import com.jacekgajek.kapelusz.app.ui.components.shareText
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
@@ -115,7 +118,7 @@ fun ParticipantsSection(context: EventContext) {
             FilterChip(
                 selected = false,
                 enabled = canManage,
-                onClick = { context.actions.run(AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed)) },
+                onClick = { context.actions.run(AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent)) },
                 label = { Text(member.name) },
                 // The member's Google photo, or their initials (ITERATION_2 §7.4).
                 leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
@@ -129,8 +132,8 @@ fun ParticipantsSection(context: EventContext) {
     }
 
     if (addingGuest) {
-        GuestDialog(context, onDismiss = { addingGuest = false }) { name, weight, fixedShare ->
-            context.actions.run(AddGuest(event.id, newId(), name, weight, fixedShare))
+        GuestDialog(context, onDismiss = { addingGuest = false }) { name, share ->
+            context.actions.run(AddGuest(event.id, newId(), name, share.weight, share.fixedShare, share.percent))
         }
     }
     inviting?.let { partyId -> InviteThemDialog(context, partyId, onDismiss = { inviting = null }) }
@@ -152,12 +155,7 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
     val partyId = participant.partyId
     val name = partyName(band, event, partyId, "")
     val guest = event.guest(partyId) != null
-    val fixed = participant.fixedShare
-    val share = when {
-        fixed != null -> "${formatMoney(fixed, context.currency, language)} · ${stringResource(Res.string.share_fixed)}"
-        participant.weight != DEFAULT_WEIGHT -> "${participant.weight}%"
-        else -> null
-    }
+    val share = shareText(participant.weight, participant.fixedShare, participant.percent, context.currency)
     val removed = stringResource(if (guest) Res.string.guest_removed else Res.string.participant_removed, name)
     // A member without the app can't see the band: the crossed eye, and (leaders) a tap to invite them (§12). A guest
     // can't either, but is only ever a guest: the handshake, and no tap.
@@ -183,12 +181,11 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
     }
 }
 
-/** A new guest's name and share: a percentage on the slider, or a fixed amount, as in [ShareDialog]. */
+/** A new guest's name and share: shares, a percentage or a fixed amount, as in [ShareDialog]. */
 @Composable
-private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (String, Int, Money?) -> Boolean) {
-    val lang = language
+private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (String, Participant) -> Boolean) {
     var name by remember { mutableStateOf("") }
-    val editor = rememberShareEditorState(DEFAULT_WEIGHT, null)
+    val editor = rememberShareEditorState(DEFAULT_WEIGHT, null, null)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.add_guest)) },
@@ -200,20 +197,19 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
                 // Or someone who used to be in the band: welcomed back, and into this event.
                 if (former != null) FormerMember(former, context.actions) {
                     // Viewers only watch: restored, but not in the event.
-                    if (former.role != Role.VIEWER && context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed))
+                    if (former.role != Role.VIEWER && context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed, former.sharePercent))
                     onDismiss()
                 }
                 context.band.memberNamed(name)?.takeIf { name.isNotBlank() && !it.archived }?.let { member ->
                     Text(stringResource(Res.string.guest_is_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     if (context.event.participant(member.id) == null) TextButton(onClick = {
-                        if (context.actions.run(AddParticipant(context.event.id, member.id, member.shareWeight, member.shareFixed))) onDismiss()
+                        if (context.actions.run(AddParticipant(context.event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent))) onDismiss()
                     }) { Text(stringResource(Res.string.guest_add_member_instead, member.name)) }
                 }
-                ShareEditor(editor, context.currency) {
-                    val guest = Participant(NEW_GUEST, editor.weight)
+                ShareEditor(editor, context.currency, percentTaken(context.event, NEW_GUEST)) {
+                    val guest = editor.applyTo(Participant(NEW_GUEST))
                     val preview = context.event.copy(guests = context.event.guests + Guest(NEW_GUEST, name), participants = context.event.participants + guest)
-                    val share = SettlementCalculator.settle(context.band, preview).line(NEW_GUEST)?.share ?: Money.ZERO
-                    Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
+                    SharePreview(context, preview, NEW_GUEST, editor.mode)
                 }
                 DialogNotice(context.actions)
             }
@@ -221,7 +217,7 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
         confirmButton = {
             TextButton(
                 enabled = name.isNotBlank() && editor.valid,
-                onClick = { if (onAdd(name.trim(), editor.weight, editor.parsedAmount.takeIf { editor.fixed })) onDismiss() },
+                onClick = { if (onAdd(name.trim(), editor.applyTo(Participant(NEW_GUEST)))) onDismiss() },
             ) {
                 val member = context.band.memberNamed(name)?.takeIf { name.isNotBlank() }
                 Text(stringResource(when {
@@ -238,35 +234,51 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
 /** The guest being added, in the preview of what their share comes to. */
 private const val NEW_GUEST = "new-guest"
 
+/** What the percentages of everyone but [partyId], the fund's included, already take of the profit (ITERATION_7 §2h). */
+private fun percentTaken(event: Event, partyId: String): Int =
+    event.participants.filter { it.partyId != partyId }.sumOf { it.percent ?: 0 } + (event.fundPercent ?: 0)
+
+/** What [partyId]'s share comes to in [preview]; by shares, also what one share does. */
+@Composable
+private fun SharePreview(context: EventContext, preview: Event, partyId: String, mode: ShareMode) {
+    val lang = language
+    val settlement = SettlementCalculator.settle(context.band, preview)
+    val share = formatMoney(settlement.line(partyId)?.share ?: Money.ZERO, context.currency, lang)
+    val weights = preview.participants.filter { it.byWeight }.sumOf { it.weight.toLong() }
+    val one = Money(settlement.rest.minor * DEFAULT_WEIGHT / weights.coerceAtLeast(1))
+        .takeIf { mode == ShareMode.WEIGHT && settlement.rest.isPositive && weights > 0 }
+    Text(
+        one?.let { stringResource(Res.string.share_resulting_one, share, formatMoney(it, context.currency, lang)) }
+            ?: stringResource(Res.string.share_resulting, share),
+        style = MaterialTheme.typography.bodyMedium,
+    )
+}
+
 /**
- * A participant's share (ITERATION_3 §2.4): a percentage on a slider in 25% steps, or a fixed amount. OK applies the
- * change; the weight stays as it was while the share is fixed, so switching back restores it.
+ * A participant's share (ITERATION_3 §2.4, ITERATION_7 §2h): shares on a slider in quarters, a percentage of the profit,
+ * or a fixed amount. OK applies the change in one operation, so one undo reverts the whole dialog; the weight stays
+ * underneath a fixed amount or a percentage, so switching back restores it.
  */
 @Composable
 private fun ShareDialog(context: EventContext, participant: Participant, onDismiss: () -> Unit) {
     val event = context.event
-    val lang = language
-    val editor = rememberShareEditorState(participant.weight, participant.fixedShare)
+    val editor = rememberShareEditorState(participant.weight, participant.fixedShare, participant.percent)
 
-    val ops = buildList {
-        if (editor.fixed) {
-            val amount = editor.parsedAmount
-            if (amount != null && amount != participant.fixedShare) add(SetFixedShare(event.id, participant.partyId, amount))
-        } else {
-            val newWeight = editor.weight.takeIf { it != participant.weight }
-            // Back to a percentage with a new weight in one operation, so one undo reverts the whole dialog.
-            if (participant.fixedShare != null) add(SetFixedShare(event.id, participant.partyId, null, newWeight))
-            else if (newWeight != null) add(SetWeight(event.id, participant.partyId, newWeight))
-        }
+    val target = editor.applyTo(participant)
+    val ops = when {
+        !editor.valid || target == participant -> emptyList()
+        participant.byWeight && target.byWeight -> listOf(SetWeight(event.id, participant.partyId, target.weight))
+        else -> listOf(
+            SetFixedShare(event.id, participant.partyId, target.fixedShare, target.weight.takeIf { it != participant.weight }, target.percent),
+        )
     }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(partyName(context.band, event, participant.partyId, "")) },
         text = {
-            ShareEditor(editor, context.currency) {
-                val preview = event.copy(participants = event.participants.map { if (it.partyId == participant.partyId) it.copy(weight = editor.weight, fixedShare = null) else it })
-                val share = SettlementCalculator.settle(context.band, preview).line(participant.partyId)?.share ?: Money.ZERO
-                Text(stringResource(Res.string.share_resulting, formatMoney(share, context.currency, lang)), style = MaterialTheme.typography.bodyMedium)
+            ShareEditor(editor, context.currency, percentTaken(event, participant.partyId)) {
+                val preview = event.copy(participants = event.participants.map { if (it.partyId == participant.partyId) editor.applyTo(it) else it })
+                SharePreview(context, preview, participant.partyId, editor.mode)
                 DialogNotice(context.actions)
             }
         },

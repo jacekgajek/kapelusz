@@ -28,6 +28,7 @@ import com.jacekgajek.kapelusz.app.generated.share_text_from_fund
 import com.jacekgajek.kapelusz.app.generated.share_text_income
 import com.jacekgajek.kapelusz.app.generated.share_text_refunds
 import com.jacekgajek.kapelusz.app.generated.share_text_fixed
+import com.jacekgajek.kapelusz.app.generated.share_text_percent
 import com.jacekgajek.kapelusz.app.generated.share_text_share_with_refunds
 import com.jacekgajek.kapelusz.app.generated.share_text_shares
 import com.jacekgajek.kapelusz.app.generated.share_text_still_to_pay
@@ -56,6 +57,7 @@ private fun settlementWords(eventId: String?) = SettlementWords(
     shares = stringResource(Res.string.share_text_shares),
     shareWithRefunds = stringResource(Res.string.share_text_share_with_refunds),
     fixed = stringResource(Res.string.share_text_fixed),
+    percent = stringResource(Res.string.share_text_percent),
     done = stringResource(Res.string.share_text_done),
     stillToPay = stringResource(Res.string.share_text_still_to_pay),
     allSettled = stringResource(Res.string.share_text_all_settled),
