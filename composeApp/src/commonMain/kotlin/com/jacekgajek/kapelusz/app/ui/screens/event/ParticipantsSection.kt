@@ -51,6 +51,9 @@ import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.generated.participants_count
 import com.jacekgajek.kapelusz.app.generated.participants_show_all
 import com.jacekgajek.kapelusz.app.generated.lineup_add
+import com.jacekgajek.kapelusz.app.generated.lineup_changed
+import com.jacekgajek.kapelusz.app.generated.lineup_start_from
+import androidx.compose.material.icons.filled.ContentCopy
 import com.jacekgajek.kapelusz.app.generated.lineup_not_taking_part
 import com.jacekgajek.kapelusz.app.ui.components.Crowd
 import com.jacekgajek.kapelusz.domain.Lineup
@@ -61,6 +64,7 @@ import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.ops.AddGuest
+import com.jacekgajek.kapelusz.ops.ChangeLineup
 import androidx.compose.runtime.key
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
@@ -98,6 +102,8 @@ fun ParticipantsSection(context: EventContext) {
     val canInvite = context.can.manageRoster()
 
     var picking by remember { mutableStateOf(false) }
+    var choosingSource by remember { mutableStateOf(false) }
+    var copying by remember { mutableStateOf<ChangeLineup?>(null) }
     var showAll by remember(event.id) { mutableStateOf(false) }
     // Members, then guests, each alphabetical (ITERATION_8 §2).
     val order = SettlementCalculator.partyOrder(band, event)
@@ -132,6 +138,14 @@ fun ParticipantsSection(context: EventContext) {
     val notTakingPart = Lineup.candidates(band).filter { event.participant(it.id) == null }
     val chips = notTakingPart.size <= Crowd.THRESHOLD
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
+        // Nobody yet: another event's line-up in one tap, for any band size (ITERATION_8 §1.2a).
+        if (canManage && order.isEmpty()) {
+            AssistChip(
+                onClick = { choosingSource = true },
+                label = { Text(stringResource(Res.string.lineup_start_from)) },
+                leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
+            )
+        }
         if (!chips) {
             if (canManage) {
                 OutlinedButton(onClick = { picking = true }) { Text(stringResource(Res.string.lineup_add, notTakingPart.size)) }
@@ -157,6 +171,20 @@ fun ParticipantsSection(context: EventContext) {
         )
     }
 
+    if (choosingSource) {
+        StartFromDialog(context, onDismiss = { choosingSource = false }) { source ->
+            choosingSource = false
+            copying = Lineup.change(band, event, Lineup.startFrom(band, event, source) { newId() })
+        }
+    }
+    // Applied at once, with Undo (its message needs the counts, hence here rather than in the click).
+    copying?.let { op ->
+        val message = stringResource(Res.string.lineup_changed, op.add.size, op.remove.size)
+        LaunchedEffect(op) {
+            context.actions.runWithUndo(op, message)
+            copying = null
+        }
+    }
     if (picking) LineupPicker(context, readOnly = !canManage, onDismiss = { picking = false })
     if (addingGuest) {
         GuestDialog(context, onDismiss = { addingGuest = false }) { name, share ->

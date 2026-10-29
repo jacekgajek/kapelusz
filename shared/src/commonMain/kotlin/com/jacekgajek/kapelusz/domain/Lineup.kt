@@ -9,7 +9,7 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.ChangeLineup
 
-/** The line-up picker (ITERATION_8 §1): who can be picked, what Start from… does, what Save sends. */
+/** The line-up picker (ITERATION_8 §1): who can be picked, what From an event… does, what Save sends. */
 object Lineup {
 
     /** Who can take part: current members, not viewers, in alphabetical order. */
@@ -26,8 +26,8 @@ object Lineup {
 
     /**
      * The picker's changes, on top of the event as it is now, so a change synced from elsewhere meanwhile stays: who
-     * the leader [added] and [removed], [shares] for newcomers not taking their default share (from Start from…), and
-     * the [newGuests] Start from… brought.
+     * the leader [added] and [removed], [shares] for newcomers not taking their default share (from From an event…), and
+     * the [newGuests] From an event… brought.
      */
     data class Draft(
         val added: Set<Id> = emptySet(),

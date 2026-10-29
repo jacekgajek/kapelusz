@@ -14,7 +14,7 @@
     <string name="lineup_add">Dodaj uczestników (%1$d)</string>
     <string name="lineup_not_taking_part">Nie biorą udziału: %1$d</string>
     <string name="lineup_title">Skład</string>
-    <string name="lineup_start_from">Zacznij od…</string>
+    <string name="lineup_start_from">Z wydarzenia…</string>
     <string name="lineup_start_from_title">Skład innego wydarzenia</string>
     <string name="lineup_start_from_none">Nie ma jeszcze innych wydarzeń.</string>
     <string name="lineup_tick_all">Zaznacz widocznych</string>

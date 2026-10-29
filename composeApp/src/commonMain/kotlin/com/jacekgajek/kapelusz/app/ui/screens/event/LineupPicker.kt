@@ -75,12 +75,12 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
 import org.jetbrains.compose.resources.stringResource
 
-/** One person in the picker: a member, one of this event's guests, or a guest Start from… brought. */
+/** One person in the picker: a member, one of this event's guests, or a guest From an event… brought. */
 private class PickRow(val id: Id, val name: String, val pictureUrl: String?, val guest: Boolean, val notInApp: Boolean, val share: Participant?)
 
 /**
  * The line-up picker (ITERATION_8 §1.2): everyone who can take part by role, this event's guests, ticks for who takes
- * part; Start from…, search, tick all; Save sends one [com.jacekgajek.kapelusz.ops.ChangeLineup]. Read only for
+ * part; From an event…, search, tick all; Save sends one [com.jacekgajek.kapelusz.ops.ChangeLineup]. Read only for
  * [readOnly] (who doesn't manage participants): who isn't taking part, without ticks.
  */
 @Composable
@@ -214,9 +214,9 @@ private fun PickRowItem(context: EventContext, row: PickRow, ticked: Boolean, re
     }
 }
 
-/** Start from…: another event, newest first, searchable by name. */
+/** From an event…: another event, newest first, searchable by name. */
 @Composable
-private fun StartFromDialog(context: EventContext, onDismiss: () -> Unit, onPick: (Event) -> Unit) {
+internal fun StartFromDialog(context: EventContext, onDismiss: () -> Unit, onPick: (Event) -> Unit) {
     var query by remember { mutableStateOf("") }
     val lang = language
     val events = context.band.events.filter { it.id != context.event.id && it.participants.isNotEmpty() }

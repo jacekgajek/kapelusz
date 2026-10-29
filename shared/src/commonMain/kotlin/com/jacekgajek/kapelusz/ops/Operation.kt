@@ -221,7 +221,7 @@ data class RemoveParticipant(override val eventId: Id, val partyId: Id) : Operat
 
 /**
  * The picker's line-up (ITERATION_8 §1.3): participants [add]ed with their shares, members or the new [guests] (from
- * Start from…, each with its participant in [add]); participants (members or guests) [remove]d. All or nothing, as one
+ * From an event…, each with its participant in [add]); participants (members or guests) [remove]d. All or nothing, as one
  * change.
  */
 @Serializable @SerialName("ChangeLineup")

@@ -298,7 +298,7 @@ fun EventsScreen(
                 val ok = actions.run(
                     CreateEvent(
                         eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
-                        participants = creatorAsParticipant(band, state.me?.id),
+                        // Nobody yet (ITERATION_8 §1.2a): the event offers another event's line-up, or one by one.
                         agenda = fields.agenda,
                         // The band's fund default (ITERATION_7 §5.2), while the fund is on.
                         fund = band.fundDefault.takeIf { band.treasurerMemberId != null },
@@ -342,13 +342,6 @@ private fun SearchField(query: String, building: Boolean, focus: Boolean, onFocu
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
     )
 }
-
-/**
- * A new event starts with whoever creates it, with their default share (ITERATION_8 §1.2a); another event's line-up is
- * the picker's Start from….
- */
-private fun creatorAsParticipant(band: Band, myId: String?): List<Participant> =
-    listOfNotNull(myId?.let { band.member(it) }?.takeIf { it.role != Role.VIEWER }?.asParticipant())
 
 @Composable
 private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onClick: () -> Unit) {
