@@ -85,6 +85,10 @@ import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.ops.DisableBandFund
+import com.jacekgajek.kapelusz.ops.SetBankAccount
+import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
@@ -262,6 +266,13 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     blikPhone = state.me?.blikPhone,
                     onBlikPhone = state.me?.let { me -> { phone: String? -> graph.dispatch(SetBlikPhone(me.id, phone)); Unit } }
                         ?.takeIf { state.me?.let { Can(state.band, state.userId).allowed(SetBlikPhone(it.id, null)) } == true },
+                    bankAccount = state.me?.bankAccount,
+                    onBankAccount = state.me?.let { me -> { account: String? -> graph.dispatch(SetBankAccount(me.id, account)); Unit } }
+                        ?.takeIf { state.me?.let { Can(state.band, state.userId).allowed(SetBankAccount(it.id, null)) } == true },
+                    fundBlikPhone = state.band.fundBlikPhone,
+                    fundBankAccount = state.band.fundBankAccount,
+                    onFundPayment = { kind: PaymentKind, value: String? -> graph.dispatch(fundPaymentOp(kind, value)); Unit }
+                        .takeIf { Can(state.band, state.userId).allowed(SetFundBlikPhone(null)) },
                 )
             }
             composable<RosterRoute> { entry ->

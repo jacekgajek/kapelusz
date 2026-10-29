@@ -2,10 +2,12 @@ package com.jacekgajek.kapelusz.app.ui.screens.event
 
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
-import com.jacekgajek.kapelusz.app.ui.components.BlikButton
-import com.jacekgajek.kapelusz.app.ui.components.BlikNumberRow
+import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
+import com.jacekgajek.kapelusz.app.ui.components.payeeName
+import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.app.generated.blik_title
 import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.LocalTextStyle
@@ -202,7 +204,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
             }
             // Only to who pays it (ITERATION_5 §8): the recipient would read the icon as owing; the fund's holder keeping it pays nobody.
-            if (settles && !keepsForFund && BlikPhone.pays(band, settlement, context.me?.id, suggestion.from)) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))
+            if (settles && !keepsForFund && BlikPhone.pays(band, settlement, context.me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
@@ -319,8 +321,11 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 Dropdown(to, handOverRecipients(context, from), { to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)
                 }
-                // The recipient's BLIK number, if they gave one, when the user hands over their own money (ITERATION_5 §8).
-                BlikPhone.recipient(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }?.let { BlikNumberRow(stringResource(Res.string.blik_title), it) }
+                // The recipient's BLIK number and account, if given, when the user hands over their own money (ITERATION_5 §8,
+                // ITERATION_7 §2i).
+                Payees.forHandOver(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }?.let { payee ->
+                    PaymentKind.entries.forEach { kind -> PaymentRow(kind, stringResource(kind.title), kind.of(payee), payeeName(payee)) }
+                }
                 MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
                 Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())

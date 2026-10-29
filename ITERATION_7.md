@@ -301,6 +301,31 @@ Who knows something happened records it, instead of telling a leader (a search a
   1½ and 2, and what one share comes to; the percentage on a slider of 0–100% in 5% steps with "Others already take 10%
   of the profit", in red past 100%. Payout lines and the shared text say "(50% of profit)".
 
+## 2i. Bank accounts, and where to pay into the band fund (grilled 2026-10-29)
+
+- **A member's bank account** (`Member.bankAccount`, `SetBankAccount`), beside their BLIK number and kept exactly like
+  it (ITERATION_5 §8): set only by the member, from artists up, in Settings ("Your bank account"); not in the history
+  (nor in the members' snapshots of other changes), not undoable, removed by unlinking, kept by archiving; shown only
+  to who pays that transfer.
+- **What is taken:** an IBAN, or a Polish NRB of 26 digits, checked with the IBAN checksum (mod 97), so a mistyped digit
+  is caught. Spaces, dashes and invisible marks dropped, letters capitalised. A Polish one is stored and copied as its
+  26 digits (as Polish bank apps take it, `PL` dropped) and shown `61 1090 1014 0000 0712 1981 2874`; any other with its
+  country code, in fours.
+- **The band fund's own details** (`Band.fundBlikPhone`, `Band.fundBankAccount`; `SetFundBlikPhone`,
+  `SetFundBankAccount`): set by its holder and leads, on the Band fund tab and in Settings › Band fund. They are the
+  band's, so in the history and undoable (undo now compares and restores band settings one by one, so setting them
+  doesn't block undoing a rename). Only while the fund is on; turning it off forgets them (the next holder keeps the
+  money elsewhere); choosing another holder keeps them, for the new one to change.
+- **Everyone sees them** on the Band fund tab, in a "Pay into the fund" card under the balance, each with a copy button;
+  its holder and leads also an edit button, and the ones not set yet ("Add payment details" while none is). Other
+  members only see the card once something is set.
+- **A transfer to the fund** shows only the fund's own details, **never its holder's** personal BLIK or account
+  (changed from ITERATION_5 §8); without any, nothing. So does "Hand over money" to the fund.
+- **Beside a transfer** (an event's To settle, the Settle screen, an artist's transfers): the phone icon for BLIK and a
+  bank icon for accounts, each when a recipient gave one, each opening its own sheet (for a pair, in the BLIK order).
+  "Hand over money" shows the recipient's account under their BLIK number.
+- **Not in:** shared settlement texts; a transfer title.
+
 ## 3. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
@@ -360,6 +385,10 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 
 - [x] Shares shown as shares, a percentage of the profit for participants and members' defaults, the three-way editor
 
+### Bank accounts, and the band fund's payment details (§2i)
+
+- [x] Members' accounts, the fund's BLIK and account (its tab and settings), both icons beside transfers
+
 ### Updates from Google Play in the app (§2b)
 
 - [x] The strip (available, downloading, downloaded), Update required's full-screen update
@@ -410,3 +439,6 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
   percentage, so all percentages add up; a percentage replaces the shares rather than coming on top of them.
 - 2026-10-29: Over 100% and money nobody gets are problems on the event (§2h), not refusals: two phones may set
   percentages at once, and a refusal would drop one of the changes unseen.
+- 2026-10-29: Transfers to the band fund show only the fund's own payment details (§2i), never its holder's: whose
+  money is whose stays clear. Bands that set none see no number for the fund until they do.
+- 2026-10-29: The fund's details are the band's (§2i): in the history and undoable, unlike a member's own.

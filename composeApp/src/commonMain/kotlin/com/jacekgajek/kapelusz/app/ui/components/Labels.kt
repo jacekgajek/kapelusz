@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.jacekgajek.kapelusz.app.generated.reject_name_taken
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.reject_invalid_account
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_phone
 import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle_together
 import com.jacekgajek.kapelusz.app.generated.category_accommodation
@@ -161,6 +162,7 @@ fun RejectionReason.labelRes(): StringResource = when (this) {
     RejectionReason.DUPLICATE_ID -> Res.string.reject_duplicate_id
     RejectionReason.INVALID_INPUT -> Res.string.reject_invalid_input
     RejectionReason.INVALID_PHONE -> Res.string.reject_invalid_phone
+    RejectionReason.INVALID_ACCOUNT -> Res.string.reject_invalid_account
     RejectionReason.INVALID_AMOUNT -> Res.string.reject_invalid_amount
     RejectionReason.EMPTY_NAME -> Res.string.reject_empty_name
     RejectionReason.INVALID_SHARE -> Res.string.reject_invalid_share

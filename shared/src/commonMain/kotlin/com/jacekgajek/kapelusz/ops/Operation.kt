@@ -81,12 +81,24 @@ data class UnlinkUser(val memberId: Id) : Operation
 @Serializable @SerialName("SetBlikPhone")
 data class SetBlikPhone(val memberId: Id, val phone: String?) : Operation
 
+/** The member's own bank account number (ITERATION_7 §2i); null removes it. */
+@Serializable @SerialName("SetBankAccount")
+data class SetBankAccount(val memberId: Id, val account: String?) : Operation
+
 @Serializable @SerialName("SetTreasurer")
 data class SetTreasurer(val memberId: Id) : Operation
 
 /** Turns the band fund off (only while it holds nothing); choosing a holder with [SetTreasurer] turns it on again. */
 @Serializable @SerialName("DisableBandFund")
 data object DisableBandFund : Operation
+
+/** The BLIK number to pay into the band fund (ITERATION_7 §2i); null removes it. */
+@Serializable @SerialName("SetFundBlikPhone")
+data class SetFundBlikPhone(val phone: String?) : Operation
+
+/** The bank account to pay into the band fund (ITERATION_7 §2i); null removes it. */
+@Serializable @SerialName("SetFundBankAccount")
+data class SetFundBankAccount(val account: String?) : Operation
 
 @Serializable @SerialName("TransferOwnership")
 data class TransferOwnership(val toMemberId: Id) : Operation

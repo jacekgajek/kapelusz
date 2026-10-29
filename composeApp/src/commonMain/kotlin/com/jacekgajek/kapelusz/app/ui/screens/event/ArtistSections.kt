@@ -38,7 +38,7 @@ import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.generated.to_settle
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
-import com.jacekgajek.kapelusz.app.ui.components.BlikButton
+import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
@@ -48,7 +48,7 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.BlikPhone
+import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Money
@@ -161,7 +161,7 @@ private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTran
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TransferParties(from, to, Modifier.weight(1f))
-            if (pays) BlikButton(BlikPhone.recipient(band, part.to))
+            if (pays) PaymentButtons(Payees.forHandOver(band, part.to))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {

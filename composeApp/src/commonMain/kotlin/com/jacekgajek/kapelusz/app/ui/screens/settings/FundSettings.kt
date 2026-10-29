@@ -17,6 +17,9 @@ import com.jacekgajek.kapelusz.app.generated.member_share_apply_title
 import com.jacekgajek.kapelusz.app.generated.member_share_apply_yes
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
+import com.jacekgajek.kapelusz.app.ui.components.FundPaymentDetails
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.generated.fund_pay_in
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -73,12 +76,16 @@ internal fun FundSettings(
     fundDefault: FundCut?,
     fundDefaultSetting: FundDefaultSetting?,
     currency: String,
+    fundBlikPhone: String?,
+    fundBankAccount: String?,
+    onFundPayment: ((PaymentKind, String?) -> Unit)?,
 ) {
     Text(stringResource(Res.string.fund_explanation), style = MaterialTheme.typography.bodyMedium)
     val names = treasurerOptions.toMap()
     if (onTreasurer == null) {
         SectionHeader(stringResource(Res.string.fund_status))
         Text(treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off))
+        if (treasurer != null) FundPaymentItems(fundBlikPhone, fundBankAccount, onFundPayment)
         return
     }
     // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
@@ -113,7 +120,10 @@ internal fun FundSettings(
         if (enabled && onDisableFund == null) {
             Text(stringResource(Res.string.fund_cannot_disable, fundBalance), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
         }
-        if (enabled) FundDefaultItem(fundDefault, fundDefaultSetting, currency)
+        if (enabled) {
+            FundDefaultItem(fundDefault, fundDefaultSetting, currency)
+            FundPaymentItems(fundBlikPhone, fundBankAccount, onFundPayment)
+        }
     } else {
         Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
     }
@@ -126,6 +136,14 @@ internal fun FundSettings(
             onDismiss = { confirmDisable = false },
         )
     }
+}
+
+/** Where to pay into the fund (ITERATION_7 §2i), as on its tab: its holder (who is not a leader too) sets it here as well. */
+@Composable
+private fun FundPaymentItems(blikPhone: String?, bankAccount: String?, onSave: ((PaymentKind, String?) -> Unit)?) {
+    if (onSave == null && blikPhone == null && bankAccount == null) return
+    SectionHeader(stringResource(Res.string.fund_pay_in))
+    FundPaymentDetails(blikPhone, bankAccount, onSave)
 }
 
 @Composable

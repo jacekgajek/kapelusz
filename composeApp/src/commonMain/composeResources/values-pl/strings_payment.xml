@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Numery kont i dane do wpłat do kasy zespołowej (ITERATION_7 §2i) -->
+    <string name="account_title">Przelew</string>
+    <string name="account_pay_to">Wyślij przelew na numer konta:</string>
+    <string name="account_numbers">Numery kont</string>
+    <string name="account_copy">Skopiuj numer konta: %1$s</string>
+    <string name="account_mine">Twój numer konta</string>
+    <string name="account_mine_hint">Widzą go przy przelewie członkowie zespołu, którzy płacą Tobie, żeby wysłać Ci przelew. Tylko w tym zespole.</string>
+    <string name="account_number">Numer konta</string>
+    <string name="account_invalid">To nie jest numer konta (26 cyfr albo IBAN)</string>
+    <string name="fund_pay_in">Wpłaty do kasy</string>
+    <string name="fund_pay_in_add">Dodaj dane do wpłat</string>
+    <string name="fund_pay_in_add_hint">Numer BLIK albo konto, na które każdy może wpłacać do kasy zespołowej.</string>
+    <string name="fund_blik">Numer BLIK kasy zespołowej</string>
+    <string name="fund_account">Konto kasy zespołowej</string>
+    <string name="fund_payment_hint">Widzą go wszyscy w zespole w zakładce Kasa i przy przelewach do kasy. Podaj ten, gdzie trzymane są pieniądze kasy.</string>
+    <string name="h_set_fund_blik">Ustawiono numer BLIK kasy zespołowej: %1$s</string>
+    <string name="h_remove_fund_blik">Usunięto numer BLIK kasy zespołowej</string>
+    <string name="h_set_fund_account">Ustawiono konto kasy zespołowej: %1$s</string>
+    <string name="h_remove_fund_account">Usunięto konto kasy zespołowej</string>
+</resources>

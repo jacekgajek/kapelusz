@@ -682,6 +682,7 @@
     <string name="blik_invalid">To nie jest numer telefonu (od 7 do 15 cyfr)</string>
     <string name="blik_remove">Usuń</string>
     <string name="reject_invalid_phone">To nie jest numer telefonu.</string>
+    <string name="reject_invalid_account">To nie jest numer konta.</string>
     <string name="places_powered_by_google">Powered by Google</string>
     <string name="settle_paid">Zapłacono</string>
     <string name="settle_received">Otrzymano</string>

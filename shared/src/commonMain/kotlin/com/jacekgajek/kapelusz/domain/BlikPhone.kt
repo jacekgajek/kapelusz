@@ -3,8 +3,6 @@ package com.jacekgajek.kapelusz.domain
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.model.Member
-import com.jacekgajek.kapelusz.model.Money
 
 /**
  * A member's BLIK phone number (ITERATION_5 §8): any phone number, 7 to 15 digits with an optional leading `+`. A
@@ -59,24 +57,4 @@ object BlikPhone {
         val people = if (side == BAND_FUND) listOfNotNull(band.treasurerMemberId) else settlement?.party(side)?.partyIds ?: listOf(side)
         return me in people
     }
-
-    /**
-     * Who to send a suggested transfer to by BLIK, with a number given: the band fund's holder for the fund; for a pair,
-     * the partner it is recorded to (owed more) first, then the other (ITERATION_5 §8). With [payer], the one that
-     * person pays comes first (a paying pair's part may go to each partner).
-     */
-    fun recipients(band: Band, settlement: Settlement, from: Id, to: Id, amount: Money, payer: Id? = null): List<Member> {
-        val people = if (to == BAND_FUND) {
-            listOfNotNull(band.treasurerMemberId)
-        } else {
-            val parts = SettleTogether.split(band, settlement, from, to, amount)
-            val first = (parts.firstOrNull { it.from == payer } ?: parts.firstOrNull())?.to ?: to
-            listOfNotNull(first, to, settlement.partners[to]).distinct()
-        }
-        return people.mapNotNull { band.member(it) }.filter { it.blikPhone != null }
-    }
-
-    /** Who to send a hand-over to [to] by BLIK: that member, or the band fund's holder; empty without a number. */
-    fun recipient(band: Band, to: Id): List<Member> =
-        listOfNotNull(band.member(if (to == BAND_FUND) band.treasurerMemberId ?: return emptyList() else to)).filter { it.blikPhone != null }
 }

@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.domain.BandFund
+import com.jacekgajek.kapelusz.domain.BankAccount
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.CostLedger
@@ -72,6 +73,17 @@ object Reducer {
                 invalidIf(op.phone != null && phone == null, RejectionReason.INVALID_PHONE) { "Not a phone number" }
                 band.updateMember(op.memberId) { it.copy(blikPhone = phone) }
             }
+            is SetBankAccount -> band.updateMember(op.memberId) { it.copy(bankAccount = account(op.account)) }
+            is SetFundBlikPhone -> {
+                invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "The band fund is off" }
+                val phone = op.phone?.let { BlikPhone.normalize(it) }
+                invalidIf(op.phone != null && phone == null, RejectionReason.INVALID_PHONE) { "Not a phone number" }
+                band.copy(fundBlikPhone = phone)
+            }
+            is SetFundBankAccount -> {
+                invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "The band fund is off" }
+                band.copy(fundBankAccount = account(op.account))
+            }
             is DisableBandFund -> {
                 conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
                 // Its default goes, and percentages become the amounts they came to (ITERATION_7 §2g): one still following
@@ -79,6 +91,9 @@ object Reducer {
                 band.copy(
                     treasurerMemberId = null,
                     fundDefault = null,
+                    // Where the money was kept, not where the holder chosen next keeps it.
+                    fundBlikPhone = null,
+                    fundBankAccount = null,
                     events = band.events.map { if (it.fundPercent != null) it.copy(fundAmount = it.fund, fundPercent = null, updatedAt = ctx.timestamp) else it },
                 )
             }
@@ -385,7 +400,14 @@ object Reducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Transfer ownership before unlinking the owner" }
         // The photo and the BLIK number were the user's: they go with the account.
-        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null, blikPhone = null) }
+        return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null, blikPhone = null, bankAccount = null) }
+    }
+
+    /** An account number as stored, null for none; refused if not one. */
+    private fun account(input: String?): String? {
+        val account = input?.let { BankAccount.normalize(it) }
+        invalidIf(input != null && account == null, RejectionReason.INVALID_ACCOUNT) { "Not a bank account number" }
+        return account
     }
 
     private fun setTreasurer(band: Band, op: SetTreasurer): Band {

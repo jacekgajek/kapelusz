@@ -15,6 +15,7 @@ enum class RejectionReason {
     DUPLICATE_ID,
     INVALID_INPUT,
     INVALID_PHONE,
+    INVALID_ACCOUNT,
     INVALID_AMOUNT,
     EMPTY_NAME,
     INVALID_SHARE,
