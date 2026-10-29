@@ -1,6 +1,6 @@
 # Privacy Policy — Pass the Hat (Kapelusz)
 
-Effective date: 28 October 2026
+Effective date: 29 October 2026
 
 This policy explains what personal data the Pass the Hat app (called Kapelusz in Polish; "the app") processes, why,
 where it is kept, who receives it and what rights you have. It covers the Android app, the web app at
@@ -32,11 +32,13 @@ Everything you and your bandmates enter into a band:
 
 - the band's name, currency and settings;
 - members: their names (as entered by a band leader, not necessarily the Google name), roles, default shares, and,
-  if a member enters it, a **phone number for BLIK** payments;
+  if a member enters them, a **phone number for BLIK** payments and a **bank account number**. Only the member enters
+  their own; the app shows them only to whoever pays that member, and they are not recorded in the band's history;
 - guests: names entered for a single event;
 - events: name, date, location, agenda, notes, participants and their shares;
 - money: amounts collected, costs and their descriptions and categories, refunds, transfers between people, and the
-  band fund;
+  band fund, with the **BLIK phone number and bank account number to pay into it**, if the fund's holder or a leader
+  enters them (shown to the band's members, and recorded in the band's history);
 - **attachments**: photos and PDFs (e.g. receipts) added to costs, received money or events;
 - the band's **history**: each change, who made it and when, so it can be reviewed and undone.
 
@@ -144,7 +146,8 @@ Under the GDPR you have the right to access your data, to have it corrected or d
 processing, and to receive it in a portable format. To use them, write to **privacy@jacekgajek.com**.
 
 **Deleting your data yourself, in the app:** no email needed. In Settings › Account, **Leave band** unlinks your Google
-account from your member in that band, removes your photo and BLIK number from it, and takes the band off your account.
+account from your member in that band, removes your photo, BLIK number and bank account number from it, and takes the
+band off your account.
 When you leave your last band, the server also deletes your photo link, your calendar link, your devices for sync
 messages and your record of invite code attempts; your user record then keeps only your account identifier and the time of your last "Sign out on all
 devices", so sessions you ended then cannot be used again. Invites you created as a leader stop working at once. You
