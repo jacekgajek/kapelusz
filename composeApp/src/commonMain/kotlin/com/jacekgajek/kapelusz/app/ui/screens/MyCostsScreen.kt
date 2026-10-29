@@ -169,6 +169,7 @@ fun MyCostsScreen(
                                 selected = everyone == value,
                                 onClick = { onEveryone(value) },
                                 shape = SegmentedButtonDefaults.itemShape(index, 2),
+                                icon = {},
                             ) { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
                     }

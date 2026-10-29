@@ -82,6 +82,7 @@ fun FundCutEditor(state: FundCutEditorState, currency: String, profit: Money?) {
                     selected = state.byPercent == value,
                     onClick = { state.byPercent = value },
                     shape = SegmentedButtonDefaults.itemShape(index, 2),
+                    icon = {},
                     modifier = Modifier.semantics { contentDescription = description },
                 ) { Text(label) }
             }

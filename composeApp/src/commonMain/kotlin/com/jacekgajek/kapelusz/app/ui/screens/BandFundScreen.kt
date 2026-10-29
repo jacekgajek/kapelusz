@@ -373,7 +373,7 @@ private fun FundEntryDialog(
                 if (initial == null && refundsCosts) {
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                         listOf(true to Res.string.fund_in, false to Res.string.fund_out).forEachIndexed { index, (value, label) ->
-                            SegmentedButton(selected = incoming == value, onClick = { incoming = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
+                            SegmentedButton(selected = incoming == value, onClick = { incoming = value }, shape = SegmentedButtonDefaults.itemShape(index, 2), icon = {}) {
                                 Text(stringResource(label))
                             }
                         }
