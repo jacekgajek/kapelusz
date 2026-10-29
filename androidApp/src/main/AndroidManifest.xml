@@ -52,6 +52,13 @@
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode_ui" />
+        <!-- Its invisible go-between to Play services' scanner screen comes locked to portrait, which Play flags for
+             large screens (and Android 16 ignores there): unlocked, so nothing in the app restricts orientation. Lint
+             can't see the class, which comes inside Play services' library. -->
+        <activity
+            android:name="com.google.mlkit.vision.codescanner.internal.GmsBarcodeScanningDelegateActivity"
+            tools:ignore="MissingClass"
+            tools:remove="android:screenOrientation" />
         <!-- Google Maps, for picking a place on a map (ITERATION_6 §3). -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
