@@ -44,9 +44,9 @@ No.
 ## Financial features
 
 The declaration lists kinds of financial services. Kapelusz moves no money, gives no loans, holds no accounts and
-trades nothing: it records amounts that people hand over in person or by their own bank's BLIK. Answer **"My app doesn't
-provide any financial features"**, or, if the form offers it, a personal finance / budgeting kind that needs no licence
-(check).
+trades nothing: it records amounts that people hand over in person, or by BLIK or a bank transfer in their own bank's
+app (it only shows the numbers to copy). Answer **"My app doesn't provide any financial features"**, or, if the form
+offers it, a personal finance / budgeting kind that needs no licence (check).
 
 ## Government apps, health, COVID-19
 
@@ -72,7 +72,8 @@ providers, which Play doesn't count as sharing.
 | Personal info › Name | Google account name (sign-in); member names entered in bands | Required | No |
 | Personal info › Email address | Google account email: in the session, shown in Settings, not stored on the server | Required | Yes (check: it is kept in the device's session token) |
 | Personal info › User IDs | Google account identifier | Required | No |
-| Personal info › Phone number | BLIK phone number, if the member enters one | Optional | No |
+| Personal info › Phone number | BLIK phone number, if the member enters one; the band fund's, if its holder or a leader does | Optional | No |
+| Financial info › User payment info | bank account number, if the member enters one; the band fund's, if its holder or a leader does | Optional | No |
 | Financial info › Other financial info | amounts collected, costs, refunds, transfers, the band fund | Required | No |
 | Photos and videos › Photos | receipt photos attached to costs, money or events; the Google profile photo link | Optional | No |
 | Files and docs | PDFs attached to costs, money or events | Optional | No |

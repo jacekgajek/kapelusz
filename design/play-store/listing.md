@@ -30,7 +30,7 @@ MONEY IN, MONEY OUT
 
 WHO PAYS WHOM
 • The app suggests the transfers that settle everyone, and records them when they're done.
-• BLIK phone numbers at hand, so paying a bandmate takes seconds.
+• BLIK phone numbers and bank accounts at hand, so paying a bandmate takes seconds.
 • Two members can settle together, as one household.
 
 FOR THE WHOLE BAND
@@ -70,7 +70,7 @@ PIENIĄDZE: WPŁYWY I WYDATKI
 
 KTO KOMU ODDAJE
 • Aplikacja proponuje przelewy, które rozliczają wszystkich, i zapisuje je, gdy są zrobione.
-• Numery BLIK pod ręką, więc oddanie pieniędzy zajmuje chwilę.
+• Numery BLIK i numery kont pod ręką, więc oddanie pieniędzy zajmuje chwilę.
 • Dwoje członków może rozliczać się razem, jak jedno gospodarstwo.
 
 DLA CAŁEGO ZESPOŁU
