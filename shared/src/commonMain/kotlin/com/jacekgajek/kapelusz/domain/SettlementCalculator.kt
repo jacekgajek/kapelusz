@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.SharePercent
 import com.jacekgajek.kapelusz.model.sumOfMoney
 
 /**
@@ -18,8 +19,14 @@ enum class SettlementProblem {
     /** Income does not cover the fund amount, refunds and fixed shares. */
     LOSS,
 
-    /** There is money to share but every participant without a fixed share has weight 0. */
+    /**
+     * There is money to share but nobody to share it: every participant by weight has weight 0, or there is none and
+     * the percentages (ITERATION_7 §2h) do not add up to 100%.
+     */
     NO_SHARES,
+
+    /** The percentages of the profit, the band fund's included, add up to more than 100% (ITERATION_7 §2h). */
+    OVER_PERCENT,
 
     /** A fund amount is set but nobody holds the band fund. */
     NO_TREASURER,
@@ -27,8 +34,9 @@ enum class SettlementProblem {
 
 /**
  * One party's numbers in an event. [target] is what the party should end up holding. [isFixed]: the [share] is the
- * participant's fixed amount, not a share by [weight] (ITERATION_3 §2.4). [partnerId]: a pair settling together
- * (ITERATION_5 §7), [partyId] and [partnerId] as one, every number the sum of theirs.
+ * participant's fixed amount, not a share by [weight] (ITERATION_3 §2.4); [percent]: their percentage of the profit
+ * (ITERATION_7 §2h). [partnerId]: a pair settling together (ITERATION_5 §7), [partyId] and [partnerId] as one, every
+ * number the sum of theirs.
  */
 data class PartyLine(
     val partyId: Id,
@@ -41,6 +49,7 @@ data class PartyLine(
     val target: Money,
     val isFixed: Boolean = false,
     val partnerId: Id? = null,
+    val percent: Int? = null,
 ) {
     /** The people in this party: one, or the two of a pair. */
     val partyIds: List<Id> get() = listOfNotNull(partyId, partnerId)
@@ -63,6 +72,8 @@ data class Settlement(
     val net: Money,
     /** Sum of the participants' fixed shares, paid out of [net] before the rest is split by weight. */
     val fixedTotal: Money,
+    /** Sum of the participants' percentages of the profit (ITERATION_7 §2h), also paid out of [net] first. */
+    val percentTotal: Money,
     /** Participants in party order, followed by [BAND_FUND] when the event involves the fund; each on their own. */
     val lines: List<PartyLine>,
     /** Between [parties]: a pair is named by its [PartyLine.partyId]. */
@@ -87,8 +98,8 @@ data class Settlement(
     val canArchive: Boolean
         get() = status == EventStatus.SETTLED || (status == EventStatus.DRAFT && refundsTotal.isZero && fundAmount.isZero)
 
-    /** What is left to split by weight after the fixed shares; negative on a [SettlementProblem.LOSS]. */
-    val rest: Money get() = net - fixedTotal
+    /** What is left to split by weight after the fixed shares and percentages; negative on a [SettlementProblem.LOSS]. */
+    val rest: Money get() = net - fixedTotal - percentTotal
 
     /** How much income is missing on a [SettlementProblem.LOSS], or zero. */
     val shortfall: Money get() = if (rest.isNegative) -rest else Money.ZERO
@@ -112,22 +123,41 @@ object SettlementCalculator {
         val refundsTotal = event.refunds.sumOfMoney { it.amount }
         val fund = event.fund
         val net = income - fund - refundsTotal
-        // Fixed shares come off the top; the rest is split by weight among the others (ITERATION_3 §2.4).
+        val participants = order.map { event.participant(it)!! }
+        // Percentages are of the profit, plus what the band fund adds (ITERATION_7 §2h): all of the same base, so they
+        // add up with the fund's own percentage.
+        val percentBase = income - refundsTotal - if (fund.isNegative) fund else Money.ZERO
+        val percentShares = participants.mapNotNull { p -> p.percent?.let { p.partyId to SharePercent.of(it, percentBase) } }.toMap()
+        val percentTotal = percentShares.values.sumOfMoney { it }
+        val percentSum = participants.sumOf { it.percent ?: 0 } + (event.fundPercent ?: 0)
+        // Fixed shares and percentages come off the top; the rest is split by weight among the others (ITERATION_3 §2.4).
         val fixedTotal = event.participants.sumOfMoney { it.fixedShare ?: Money.ZERO }
-        val rest = net - fixedTotal
-        val weighted = order.mapNotNull { partyId -> event.participant(partyId)!!.takeIf { it.fixedShare == null } }
+        val rest = net - fixedTotal - percentTotal
+        val weighted = participants.filter { it.byWeight }
         val totalWeight = weighted.sumOf { it.weight.toLong() }
+        // Everyone on a percentage and 100% in all: what rounding left goes to them, by their percentages.
+        val byPercent = participants.filter { it.percent != null }.takeIf { totalWeight == 0L && percentSum == SharePercent.MAX }.orEmpty()
 
         val problems = buildSet {
-            if (rest.isNegative) add(SettlementProblem.LOSS)
-            if (rest.isPositive && totalWeight == 0L) add(SettlementProblem.NO_SHARES)
+            if (percentSum > SharePercent.MAX) add(SettlementProblem.OVER_PERCENT)
+            // Over 100% short of money only because of the percentages is not a loss; short without them, it still is.
+            if (rest.isNegative && (percentSum <= SharePercent.MAX || (net - fixedTotal).isNegative)) add(SettlementProblem.LOSS)
+            if (rest.isPositive && totalWeight == 0L && byPercent.isEmpty()) add(SettlementProblem.NO_SHARES)
             // Only while money for the fund is still to move: a settled event stays settled after the fund is turned off.
             if (band.treasurerMemberId == null && !BandFund.isHandedOver(event)) add(SettlementProblem.NO_TREASURER)
         }
 
         // A fixed share is owed even at a loss, like a refund: the targets show what the income would have to cover.
         val fixedShares = event.participants.mapNotNull { p -> p.fixedShare?.let { p.partyId to it } }.toMap()
-        val shares = fixedShares + if (rest.isPositive && totalWeight > 0) splitByWeight(rest, weighted, totalWeight) else emptyMap()
+        val restShares = when {
+            !rest.isPositive -> emptyMap()
+            totalWeight > 0 -> splitByWeight(rest, weighted, totalWeight)
+            byPercent.isNotEmpty() -> splitByWeight(rest, byPercent.map { it.copy(weight = it.percent!!) }, byPercent.sumOf { it.percent!!.toLong() })
+            else -> emptyMap()
+        }
+        val shares = (fixedShares.keys + percentShares.keys + restShares.keys).associateWith { id ->
+            (fixedShares[id] ?: Money.ZERO) + (percentShares[id] ?: Money.ZERO) + (restShares[id] ?: Money.ZERO)
+        }
         val refundsByParty = event.refunds.groupBy { band.cost(it.costId)?.memberId }
             .mapValues { (_, refunds) -> refunds.sumOfMoney { it.amount } }
 
@@ -148,6 +178,7 @@ object SettlementCalculator {
                 refunds = refunds,
                 target = if (partyId == BAND_FUND) fund else share + refunds,
                 isFixed = partyId in fixedShares,
+                percent = event.participant(partyId)?.percent,
             )
         }
 
@@ -170,7 +201,7 @@ object SettlementCalculator {
         } else {
             emptyList()
         }
-        return Settlement(income, fund, refundsTotal, net, fixedTotal, lines, suggestions, status, problems, partners)
+        return Settlement(income, fund, refundsTotal, net, fixedTotal, percentTotal, lines, suggestions, status, problems, partners)
     }
 
     /** Roster members in roster order, then guests in the order they were added. */

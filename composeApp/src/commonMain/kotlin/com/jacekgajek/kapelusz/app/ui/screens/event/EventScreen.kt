@@ -89,6 +89,7 @@ import com.jacekgajek.kapelusz.app.generated.event_not_found
 import com.jacekgajek.kapelusz.app.generated.problem_loss
 import com.jacekgajek.kapelusz.app.generated.problem_loss_fixed
 import com.jacekgajek.kapelusz.app.generated.problem_no_shares
+import com.jacekgajek.kapelusz.app.generated.problem_over_percent
 import com.jacekgajek.kapelusz.app.generated.problem_no_treasurer
 import com.jacekgajek.kapelusz.app.generated.total_fund
 import com.jacekgajek.kapelusz.app.generated.total_income
@@ -489,12 +490,17 @@ private fun Problems(context: EventContext) {
             problems.forEach { problem ->
                 Text(
                     when (problem) {
-                        // Fixed shares count towards the loss too (ITERATION_3 §2.4), so lowering them is a way out.
+                        // Fixed shares and percentages count towards the loss too (ITERATION_3 §2.4), so lowering them is a way out.
                         SettlementProblem.LOSS -> stringResource(
-                            if (context.settlement.fixedTotal.isZero) Res.string.problem_loss else Res.string.problem_loss_fixed,
+                            if (context.settlement.fixedTotal.isZero && context.settlement.percentTotal.isZero) Res.string.problem_loss
+                            else Res.string.problem_loss_fixed,
                             formatMoney(context.settlement.shortfall, context.currency, language),
                         )
                         SettlementProblem.NO_SHARES -> stringResource(Res.string.problem_no_shares)
+                        SettlementProblem.OVER_PERCENT -> stringResource(
+                            Res.string.problem_over_percent,
+                            "${context.event.participants.sumOf { it.percent ?: 0 } + (context.event.fundPercent ?: 0)}%",
+                        )
                         SettlementProblem.NO_TREASURER -> stringResource(Res.string.problem_no_treasurer)
                     },
                     color = MaterialTheme.colorScheme.onErrorContainer,

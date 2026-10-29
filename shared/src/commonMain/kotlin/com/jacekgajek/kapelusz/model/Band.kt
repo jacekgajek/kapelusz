@@ -51,9 +51,13 @@ data class Member(
      * operation, not in the history, and ignored by undo.
      */
     val pictureUrl: String? = null,
-    /** Where their share starts in a new event (ITERATION_4 §2.3): a percentage weight, or [shareFixed] when set. */
+    /**
+     * Where their share starts in a new event (ITERATION_4 §2.3): a weight, or [shareFixed] or [sharePercent] (ITERATION_7
+     * §2h) when set.
+     */
     val shareWeight: Int = DEFAULT_WEIGHT,
     val shareFixed: Money? = null,
+    val sharePercent: Int? = null,
     /**
      * Who they settle together with (ITERATION_5 §7): in events where both take part, the two are one party on
      * Settlement and in its transfers, and separate everywhere else. Both members name each other.
@@ -68,7 +72,7 @@ data class Member(
     val blikPhone: String? = null,
 ) {
     /** A participant with this member's default share. */
-    fun asParticipant(addedBy: Id? = null) = Participant(id, shareWeight, addedBy, shareFixed)
+    fun asParticipant(addedBy: Id? = null) = Participant(id, shareWeight, addedBy, shareFixed, sharePercent)
 }
 
 /** Full state of one band; stored as `bands/{id}/state.json`. */

@@ -82,10 +82,28 @@ data class Guest(val id: Id, val name: String)
 /**
  * A member or guest taking part in an event. [weight] is a share in percent: 100 = one normal share. [addedBy] is the
  * member who added them (unknown for events from before version 2). With a [fixedShare] they take exactly that amount
- * off the top instead of a share by weight (ITERATION_3 §2.4); the weight is kept for switching back.
+ * off the top instead of a share by weight (ITERATION_3 §2.4); with a [percent], that percentage of the profit
+ * (ITERATION_7 §2h). Never both; the weight is kept for switching back.
  */
 @Serializable
-data class Participant(val partyId: Id, val weight: Int = DEFAULT_WEIGHT, val addedBy: Id? = null, val fixedShare: Money? = null)
+data class Participant(
+    val partyId: Id,
+    val weight: Int = DEFAULT_WEIGHT,
+    val addedBy: Id? = null,
+    val fixedShare: Money? = null,
+    val percent: Int? = null,
+) {
+    /** A share by weight: neither a fixed amount nor a percentage. */
+    val byWeight: Boolean get() = fixedShare == null && percent == null
+}
+
+/** A participant's percentage of the profit (ITERATION_7 §2h). */
+object SharePercent {
+    const val MAX = 100
+
+    /** [percent] of [base], rounded down to the minor unit; nothing of a loss. */
+    fun of(percent: Int, base: Money): Money = if (!base.isPositive) Money.ZERO else Money(base.minor * percent / 100)
+}
 
 /** The built-in agenda times; shown in the user's language as long as nobody renamed them. */
 @Serializable

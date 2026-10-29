@@ -8,9 +8,12 @@ import com.jacekgajek.kapelusz.model.Participant
 /** A member's default share and the events it may be applied to (ITERATION_4 §2.3). */
 object MemberShares {
 
-    /** The same share: the same fixed amount, or (both by percentage) the same weight. */
-    fun isDefault(member: Member, participant: Participant): Boolean =
-        if (member.shareFixed != null) participant.fixedShare == member.shareFixed else participant.fixedShare == null && participant.weight == member.shareWeight
+    /** The same share: the same fixed amount, the same percentage, or (both by weight) the same weight. */
+    fun isDefault(member: Member, participant: Participant): Boolean = when {
+        member.shareFixed != null -> participant.fixedShare == member.shareFixed
+        member.sharePercent != null -> participant.percent == member.sharePercent
+        else -> participant.byWeight && participant.weight == member.shareWeight
+    }
 
     /** Events a changed default can still be applied to: not archived, not settled, the member in it. */
     fun canApply(band: Band, event: Event, member: Member): Boolean =

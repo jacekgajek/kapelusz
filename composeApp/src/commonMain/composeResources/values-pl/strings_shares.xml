@@ -1,15 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Udział procentowy albo stała kwota (ITERATION_3 §2.4) -->
+    <!-- Udziały albo stała kwota (ITERATION_3 §2.4) -->
     <string name="share_fixed">stała kwota</string>
     <string name="share_fixed_amount">Stała kwota</string>
-    <string name="share_fixed_hint">Wypłacana przed podziałem reszty według procentów. Zwroty własnych kosztów dochodzą do niej.</string>
+    <string name="share_fixed_hint">Wypłacana przed podziałem reszty na udziały. Zwroty własnych kosztów dochodzą do niej.</string>
     <string name="share_by_percent">Procent</string>
     <string name="share_resulting">Udział teraz: %1$s</string>
     <string name="line_payout_fixed">wypłata %1$s = stała kwota %2$s + zwroty %3$s</string>
     <string name="line_payout_fixed_only">wypłata %1$s (stała kwota)</string>
     <string name="h_set_fixed_share">Ustawiono stałą kwotę %2$s dla: %1$s w: %3$s</string>
-    <string name="h_clear_fixed_share">Przywrócono udział procentowy dla: %1$s w: %2$s</string>
-    <string name="h_clear_fixed_share_weight">Przywrócono udział procentowy %2$s dla: %1$s w: %3$s</string>
-    <string name="problem_loss_fixed">Strata %1$s. Zmniejsz stałe kwoty, odłóż część zwrotów, dodaj przychód albo pokryj ją z kasy zespołowej, zanim rozliczysz.</string>
+    <string name="h_clear_fixed_share">Przywrócono udziały dla: %1$s w: %2$s</string>
+    <string name="h_clear_fixed_share_weight">Przywrócono udziały (%2$s) dla: %1$s w: %3$s</string>
+    <string name="problem_loss_fixed">Strata %1$s. Zmniejsz stałe kwoty albo procenty, odłóż część zwrotów, dodaj przychód albo pokryj ją z kasy zespołowej, zanim rozliczysz.</string>
+    <!-- Udziały jako liczba udziałów i procent zysku (ITERATION_7 §2h) -->
+    <string name="share_by_weight">Udziały</string>
+    <string name="share_none">Bez udziału</string>
+    <plurals name="share_count">
+        <item quantity="one">%1$s udział</item>
+        <item quantity="few">%1$s udziały</item>
+        <item quantity="many">%1$s udziałów</item>
+        <item quantity="other">%1$s udziału</item>
+    </plurals>
+    <string name="share_part">%1$s udziału</string>
+    <string name="share_parts">%1$s udziału</string>
+    <string name="share_of_profit">%1$s zysku</string>
+    <string name="share_percent_hint">Z zysku (i dopłaty z kasy), zanim reszta zostanie podzielona na udziały.</string>
+    <string name="share_percent_taken">Inni biorą już %1$s zysku.</string>
+    <string name="share_percent_over">Ponad 100%: inni biorą już %1$s zysku.</string>
+    <string name="share_resulting_one">Udział teraz: %1$s (jeden udział: %2$s)</string>
+    <string name="line_payout_percent">wypłata %1$s = %4$s zysku %2$s + zwroty %3$s</string>
+    <string name="line_payout_percent_only">wypłata %1$s (%2$s zysku)</string>
+    <string name="share_text_percent">%1$s (%2$s zysku)</string>
+    <string name="h_set_percent_share">Ustawiono %2$s zysku dla: %1$s w: %3$s</string>
+    <string name="problem_over_percent">Procenty dają razem %1$s, więcej niż cały zysk. Zmniejsz któreś, zanim rozliczysz.</string>
 </resources>

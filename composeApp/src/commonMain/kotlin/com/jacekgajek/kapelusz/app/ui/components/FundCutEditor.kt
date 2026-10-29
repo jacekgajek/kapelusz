@@ -37,7 +37,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * What a band fund editor holds (ITERATION_7 §2g): a percentage of the profit, or an amount being typed. Its own
- * editor, not a member's share: a share's percentage is a weight among the others, the fund's is of the profit.
+ * editor, not a member's share: no shares, and its percentage stops at 50% in whole units.
  */
 @Stable
 class FundCutEditorState(byPercent: Boolean, percent: Int, amount: String) {
