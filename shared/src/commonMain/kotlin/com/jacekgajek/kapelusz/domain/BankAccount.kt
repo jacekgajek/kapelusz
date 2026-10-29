@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.domain
 
 /**
- * A bank account number (ITERATION_7 §2i): an IBAN, or a Polish NRB (its 26 digits, without `PL`), checked with the
+ * A bank account number (ITERATION_7 §7): an IBAN, or a Polish NRB (its 26 digits, without `PL`), checked with the
  * IBAN checksum so a mistyped digit is caught. A Polish one is stored and copied as the 26 digits, as Polish bank apps
  * take it, and shown `61 1090 1014 0000 0712 1981 2874`; any other with its country code, in fours.
  */

@@ -425,7 +425,7 @@ private fun TotalRow(label: String, amount: Money, currency: String, bold: Boole
 /**
  * How much of this event goes to the band fund, or comes from it to top up the payouts. The direction is a choice
  * rather than a minus sign: phone keyboards for amounts often have no minus key. To the fund, it may be a percentage
- * of the profit instead (ITERATION_7 §2g); from it, always an amount.
+ * of the profit instead (ITERATION_7 §5.2); from it, always an amount.
  */
 @Composable
 private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {

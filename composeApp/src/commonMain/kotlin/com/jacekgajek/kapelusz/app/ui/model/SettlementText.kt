@@ -24,7 +24,7 @@ data class SettlementWords(
     val shareWithRefunds: String,
     /** "%1$s" filled with the amount: a fixed share (ITERATION_3 §2.4). */
     val fixed: String,
-    /** "%1$s" the amount, "%2$s" the percentage: a percentage of the profit (ITERATION_7 §2h). */
+    /** "%1$s" the amount, "%2$s" the percentage: a percentage of the profit (ITERATION_7 §6). */
     val percent: String = "%1\$s (%2\$s)",
     val done: String,
     val stillToPay: String,

@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.filled.Policy
 import com.jacekgajek.kapelusz.app.generated.privacy_policy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -129,7 +130,7 @@ fun SettingsScreen(
     /** Turns the band fund off; null while it holds or owes money ([fundBalance] says how much it holds). */
     onDisableFund: (() -> Unit)?,
     fundBalance: String,
-    /** The fund's default for new events (ITERATION_7 §2g); [fundDefaultSetting] is null for non-leaders. */
+    /** The fund's default for new events (ITERATION_7 §5.2); [fundDefaultSetting] is null for non-leaders. */
     fundDefault: FundCut?,
     fundDefaultSetting: FundDefaultSetting?,
     currency: String,
@@ -162,13 +163,15 @@ fun SettingsScreen(
     /** Your BLIK number in this band (ITERATION_5 §8), as stored; [onBlikPhone] is null for whoever is never paid. */
     blikPhone: String? = null,
     onBlikPhone: ((String?) -> Unit)? = null,
-    /** Your bank account in this band (ITERATION_7 §2i), as [blikPhone]. */
+    /** Your bank account in this band (ITERATION_7 §7), as [blikPhone]. */
     bankAccount: String? = null,
     onBankAccount: ((String?) -> Unit)? = null,
-    /** Where to pay into the band fund (ITERATION_7 §2i); [onFundPayment] for its holder and leads. */
+    /** Where to pay into the band fund (ITERATION_7 §7); [onFundPayment] for its holder and leads. */
     fundBlikPhone: String? = null,
     fundBankAccount: String? = null,
     onFundPayment: ((PaymentKind, String?) -> Unit)? = null,
+    /** While the band is to be deleted (ITERATION_7 §9): its notice, in place of Delete band. */
+    deletionNotice: (@Composable () -> Unit)? = null,
 ) {
     when (page) {
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
@@ -286,8 +289,11 @@ fun SettingsScreen(
                         }
                     }
                 }
-                // Last, set apart: it cannot be undone (ITERATION_2 §7).
-                if (onDeleteBand != null) {
+                // Last, set apart: it cannot be undone (ITERATION_2 §7); asked for already, when it goes and Keep.
+                if (deletionNotice != null) {
+                    HorizontalDivider(Modifier.padding(top = 24.dp))
+                    Box(Modifier.padding(top = 16.dp).bringIntoViewRequester(deleteButton)) { deletionNotice() }
+                } else if (onDeleteBand != null) {
                     HorizontalDivider(Modifier.padding(top = 24.dp))
                     var deleting by remember { mutableStateOf(false) }
                     OutlinedButton(

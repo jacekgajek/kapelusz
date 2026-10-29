@@ -30,7 +30,7 @@ object BandFund {
     /** The event's fund amount has been transferred to (or, if negative, from) the fund in full. */
     fun isHandedOver(event: Event): Boolean = moved(event) == event.fund
 
-    /** Events a changed fund default can still be applied to (ITERATION_7 §2g): not archived, not settled. */
+    /** Events a changed fund default can still be applied to (ITERATION_7 §5.2): not archived, not settled. */
     fun canApplyDefault(band: Band, event: Event): Boolean =
         !event.archived && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
 

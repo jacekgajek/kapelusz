@@ -18,7 +18,7 @@ data class AppSettings(
     val language: String? = null,
     val onlyMyEvents: Boolean = false,
     val showArchived: Boolean = false,
-    /** The band fund's list oldest first (ITERATION_7 §2e); newest first by default. */
+    /** The band fund's list oldest first (ITERATION_7 §5.1); newest first by default. */
     val fundOldestFirst: Boolean = false,
     /**
      * The page each event (`band/event`) was last left on, when not Gig (ITERATION_4 §2.4, ITERATION_5 §4.4); every

@@ -23,7 +23,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Deleting a member added by mistake (ITERATION_7 §2a): only who left no trace in the band. */
+/** Deleting a member added by mistake (ITERATION_7 §3.1): only who left no trace in the band. */
 class MemberDeletionTest {
     private fun band() = Scenario("Alice", "Bob", "Carol", "Dan", "Erin")
 
@@ -99,6 +99,6 @@ class MemberDeletionTest {
     fun whoPaidIntoTheFundStays() {
         val scenario = band().apply(SetTreasurer("alice"))
         scenario.apply(AddFundEntry("fee", DATE, "Membership fee", pln("50"), paidBy = "carol"))
-        assertFalse(MemberDeletion.possible(scenario.band, "carol"), "paid into the fund (ITERATION_7 §2e)")
+        assertFalse(MemberDeletion.possible(scenario.band, "carol"), "paid into the fund (ITERATION_7 §5.1)")
     }
 }

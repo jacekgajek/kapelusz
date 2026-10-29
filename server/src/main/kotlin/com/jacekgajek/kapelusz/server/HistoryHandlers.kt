@@ -138,7 +138,7 @@ internal class HistoryHandlers(
         val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() <= MAX_LOGGED_CHANGES } ?: emptyMap()
         val memberId = band.memberOfUser(user.userId)?.id
         val name = "${monthOf(now)}/$now-${UUID.randomUUID()}.json"
-        // A member's BLIK number and account are shown only to who settles with them (ITERATION_5 §8, ITERATION_7 §2i):
+        // A member's BLIK number and account are shown only to who settles with them (ITERATION_5 §8, ITERATION_7 §7):
         // their changes are not history.
         val pushed = ops.filter { it.op !is SetBlikPhone && it.op !is SetBankAccount }.mapIndexedNotNull { index, envelope ->
             val part = HistoryEntry(user.userId, memberId, now, listOf(envelope), kept[envelope.opId]?.let { mapOf(envelope.opId to it) } ?: emptyMap())
@@ -178,7 +178,7 @@ internal class HistoryHandlers(
 }
 
 /**
- * [BandChange] without members' BLIK numbers and accounts (ITERATION_5 §8, ITERATION_7 §2i): the history keeps no record
+ * [BandChange] without members' BLIK numbers and accounts (ITERATION_5 §8, ITERATION_7 §7): the history keeps no record
  * of who is paid where. The band fund's are the band's, and stay.
  */
 private fun BandChange.withoutBlikPhones(): BandChange {

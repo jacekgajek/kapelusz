@@ -20,7 +20,7 @@ object Artists {
         }
 
     /**
-     * An artist's own transfers still to make in [settlement] (ITERATION_7 §2c): who pays them and whom they hand back
+     * An artist's own transfers still to make in [settlement] (ITERATION_7 §3.2): who pays them and whom they hand back
      * to, between real people; a pair's transfer counts as the artist's part of it. Nobody else's.
      */
     fun ownTransfers(band: Band, settlement: Settlement, memberId: Id): List<SuggestedTransfer> {

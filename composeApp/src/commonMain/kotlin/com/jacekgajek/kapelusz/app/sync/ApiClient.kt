@@ -164,7 +164,7 @@ class ApiClient(
             parameter("session", session)
         }, PlacesResponse.serializer()).places
 
-    /** Where the band's event locations are, for the "Where we played" map (ITERATION_7 §2f); for any member. */
+    /** Where the band's event locations are, for the "Where we played" map (ITERATION_7 §8); for any member. */
     suspend fun locations(bandId: Id): LocationsResponse = parse(send(HttpMethod.Get, "/bands/$bandId/locations") {}, LocationsResponse.serializer())
 
     /** What Location becomes for a picked place: its name and full address (ITERATION_5 §9.1), ending the [session]. */

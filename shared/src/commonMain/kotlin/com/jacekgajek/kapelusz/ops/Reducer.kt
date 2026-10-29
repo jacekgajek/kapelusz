@@ -80,13 +80,19 @@ object Reducer {
                 invalidIf(op.phone != null && phone == null, RejectionReason.INVALID_PHONE) { "Not a phone number" }
                 band.copy(fundBlikPhone = phone)
             }
+            is ScheduleBandDeletion -> {
+                conflictIf(band.deletion != null, RejectionReason.CHANGED_SINCE) { "The band is already to be deleted" }
+                band.copy(deletion = op.deletion)
+            }
+            // Two leaders keeping it at once: the second has nothing left to do.
+            is CancelBandDeletion -> band.copy(deletion = null)
             is SetFundBankAccount -> {
                 invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "The band fund is off" }
                 band.copy(fundBankAccount = account(op.account))
             }
             is DisableBandFund -> {
                 conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
-                // Its default goes, and percentages become the amounts they came to (ITERATION_7 §2g): one still following
+                // Its default goes, and percentages become the amounts they came to (ITERATION_7 §5.2): one still following
                 // income would owe money to a fund that is off, and changes to its event would be refused.
                 band.copy(
                     treasurerMemberId = null,
@@ -198,7 +204,7 @@ object Reducer {
                 }
                 val full = op.amount == awaited.amount
                 // Its files (the contract) go with the money once all of it is in.
-                // Still the lead's record: who received it can't then remove it, or its contract (ITERATION_7 §2d).
+                // Still the lead's record: who received it can't then remove it, or its contract (ITERATION_7 §3.3).
                 val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), awaited.recordedBy ?: ctx.memberId)
                 val rest = if (full) emptyList() else listOf(awaited.copy(amount = awaited.amount - op.amount))
                 event.copy(holdings = event.holdings.flatMap { if (it.id == awaited.id) rest + received else listOf(it) })
@@ -323,7 +329,7 @@ object Reducer {
         conflictIf(member.id == ctx.memberId, RejectionReason.MEMBER_HAS_HISTORY) { "Not yourself; leave the band instead" }
         conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Unlink the user before deleting the member" }
         conflictIf(band.treasurerMemberId == member.id, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }
-        // Only who left no trace (ITERATION_7 §2a): anyone who did take part is archived instead.
+        // Only who left no trace (ITERATION_7 §3.1): anyone who did take part is archived instead.
         conflictIf(!MemberDeletion.possible(band, member.id), RejectionReason.MEMBER_HAS_HISTORY) { "Something in the band refers to this member; archive instead" }
         return band.copy(members = band.members.filterNot { it.id == member.id })
     }
@@ -546,7 +552,7 @@ object Reducer {
         invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
         invalidIf(band.fundEntries.any { it.id == op.entryId }, RejectionReason.DUPLICATE_ID) { "Fund entry ${op.entryId} already exists" }
         invalidIf(op.amount.isZero, RejectionReason.INVALID_AMOUNT) { "Fund entry amount cannot be zero" }
-        // Money leaves the fund only to refund a cost (ITERATION_7 §2e).
+        // Money leaves the fund only to refund a cost (ITERATION_7 §5.1).
         invalidIf(op.amount.isNegative && op.costId == null, RejectionReason.INVALID_INPUT) { "Money out of the fund refunds a cost" }
         op.costId?.let { costId ->
             val cost = band.cost(costId).orNotFound { "Cost $costId" }
@@ -792,7 +798,7 @@ object Reducer {
 
     private fun validateWeight(weight: Int) = invalidIf(weight !in 0..10_000, RejectionReason.INVALID_SHARE) { "Share weight must be between 0 and 10000" }
 
-    /** A share as stored (ITERATION_7 §2h): a weight, a fixed amount or a percentage of the profit. */
+    /** A share as stored (ITERATION_7 §6): a weight, a fixed amount or a percentage of the profit. */
     private data class Share(val weight: Int, val fixed: Money?, val percent: Int?) {
         val byWeight: Boolean get() = fixed == null && percent == null
 

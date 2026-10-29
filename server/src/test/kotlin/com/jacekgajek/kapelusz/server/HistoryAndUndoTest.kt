@@ -224,6 +224,9 @@ class HistoryAndUndoTest {
         push("alice", RenameBand("Gone soon"))
         assertTrue(history.bands.getValue("band1").isNotEmpty())
         assertEquals(204, call("DELETE", "/bands/band1", "alice").status)
+        assertTrue(history.bands.getValue("band1").isNotEmpty(), "kept while the band waits (ITERATION_7 §9)")
+        now += com.jacekgajek.kapelusz.model.BandDeletion.DELAY_MS
+        assertEquals(404, call("GET", "/bands/band1/state", "alice").status)
         assertTrue(history.bands["band1"].isNullOrEmpty())
     }
 

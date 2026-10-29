@@ -61,7 +61,7 @@ class UndoPermissionsTest {
     @Test
     fun aLockedCostTakesMoreReceiptsButKeepsItsFiles() {
         // Refunded in an event with transfers: the owner of the cost can no longer change it nor remove its files, but
-        // still adds a forgotten receipt (ITERATION_7 §2d).
+        // still adds a forgotten receipt (ITERATION_7 §3.3).
         scenario.apply(SetRefund("gig", "c-member", pln("50")))
             .apply(AddHolding("gig", "h", "owner", pln("300"), DOOR))
             .apply(RecordTransfer("gig", "t", "owner", "member", pln("10")))

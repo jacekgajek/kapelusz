@@ -8,7 +8,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** "Where we played" (ITERATION_7 §2f). */
+/** "Where we played" (ITERATION_7 §8). */
 class PlayedPlacesTest {
     private val today = LocalDate(2026, 10, 28)
 

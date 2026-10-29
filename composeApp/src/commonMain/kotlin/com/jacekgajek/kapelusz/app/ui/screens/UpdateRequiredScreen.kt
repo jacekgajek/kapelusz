@@ -46,7 +46,7 @@ fun UpdateRequiredScreen() {
             Text(stringResource(Res.string.update_required_text), style = MaterialTheme.typography.bodyMedium)
             Button(onClick = {
                 // The web reloads into the deployed version; Android updates from Google Play (ITERATION_7 §1.1): its
-                // full-screen update when Play offers one here (§2b), else the listing.
+                // full-screen update when Play offers one here (§4), else the listing.
                 when {
                     reload != null -> reload()
                     store != null -> scope.launch { if (storeUpdates?.updateNow() != true) uriHandler.openUri(store) }

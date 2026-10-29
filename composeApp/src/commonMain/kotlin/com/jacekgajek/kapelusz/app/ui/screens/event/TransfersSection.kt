@@ -322,7 +322,7 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                     partyName(context.band, event, it, fundLabel)
                 }
                 // The recipient's BLIK number and account, if given, when the user hands over their own money (ITERATION_5 §8,
-                // ITERATION_7 §2i).
+                // ITERATION_7 §7).
                 Payees.forHandOver(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }?.let { payee ->
                     PaymentKind.entries.forEach { kind -> PaymentRow(kind, stringResource(kind.title), kind.of(payee), payeeName(payee)) }
                 }

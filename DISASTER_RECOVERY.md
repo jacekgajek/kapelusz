@@ -15,7 +15,10 @@ lost without losing a band, and it isn't backed up. Infrastructure: `my-aws`, `t
 | The bucket policy and `prevent_destroy` | deleting the bucket | |
 | The members' devices | the last resort: each one holds its bands in full | as last synced |
 
-The privacy policy (§6) states both: deleted data kept 30 days, backups a year.
+The privacy policy (§6) states both: deleted data kept 30 days, backups a year. Under GDPR, data erased in the app
+stays in the backups "beyond use": never read, and gone when the backup expires; a restore must not bring it back
+(see the last step of restoring from AWS Backup). Someone asking for erasure is told their data leaves the backups
+within a year.
 
 ## Restoring one band (or a few objects) to a moment in the last 30 days
 
@@ -43,16 +46,35 @@ AWS_PROFILE=... scripts/restore-s3.sh "2026-10-29 10:00 UTC" bands/<bandId>/ --a
 
 ### A deleted band
 
-Deleting a band (Settings › Delete band) deletes `bands/<bandId>/` except `deleted.json`, its **history** (so there
-is no History to read or undo from), its invite codes (`invites/<code>.json`), its event links (`events/<eventId>.json`)
-and the band from its members' records. `deleted.json` lists their user ids (`userIds`).
+Deleting a band waits a week (ITERATION_7 §9): until then any leader keeps it in the app (**Keep the band** on the
+events list), no restore needed. Once deleted, the server has removed `bands/<bandId>/` except `deleted.json`, its
+**history**, its invite codes (`invites/<code>.json`), its event links (`events/<eventId>.json`) and the band from its
+members' records. `deleted.json` lists their user ids (`userIds`) and who asked (`deletedBy`).
 
-1. Restore the band's folder to a moment before the deletion, as above: `deleted.json` is deleted, the state and files
-   come back. Pick the moment from the versions of `state.json`.
-2. Each member's `users/<userId>.json` lost the band id from `bandIds`. Add it back by hand (`aws s3 cp` the file
-   down, add the id to `bandIds`, `aws s3 cp` it back). Don't restore these files with the script: they also hold
-   bands joined or left since and the time of a "Sign out on all devices", which a restore would undo.
-3. Invite codes and event links stay gone: leaders make new invites; old event links show "not found".
+Every state saved while it waited holds `"deletion"` with a time now past: restored as it is, the band is deleted
+again by the first request that loads it (a link card is enough). So the state goes back edited, first:
+
+1. **The state.** Find the last version before the deletion (`aws s3api list-object-versions --bucket
+   jacekgajek-art-split-data --prefix bands/<bandId>/state.json`; the newest that isn't a delete marker), download it
+   (`aws s3api get-object --bucket jacekgajek-art-split-data --key bands/<bandId>/state.json --version-id <id> state.json`),
+   remove `"deletion"` from it, and if needed change the owner (step 2), then upload it
+   (`aws s3 cp state.json s3://jacekgajek-art-split-data/bands/<bandId>/state.json`). Only then:
+   `scripts/restore-s3.sh "<that version's time>" bands/<bandId>/attachments/ bands/<bandId>/invites.json bands/<bandId>/deleted.json --apply`
+   (the files come back; `deleted.json`, which didn't exist then, goes).
+2. **If the owner deleted it against the others' will**, in the same edit: make another leader the owner (`"role":
+   "OWNER"` on a member with a `"userId"`, not `"archived"`, and `"role": "LEAD"` now) and unlink the old owner as
+   `UnlinkUser` does: on their member remove `"userId"`, `"pictureUrl"`, `"blikPhone"` and `"bankAccount"`, and
+   `"role"` (a plain member); if they settled together (`"settlesWith"`, `"invitedToSettle"`), remove those on both
+   members. They keep their name, costs and money in the band, not their access. Skip their `users/` record in step 3.
+3. Each other member's `users/<userId>.json` lost the band id from `bandIds`. Add it back by hand (`aws s3 cp` the
+   file down, add the id to `bandIds`, `aws s3 cp` it back). Don't restore these files with the script: they also
+   hold bands joined or left since and the time of a "Sign out on all devices", which a restore would undo. Their
+   apps load the band again on the next sync.
+4. **The history** (optional; the band works without it, with an empty History): the table `art-split-history` has
+   point-in-time recovery, 35 days. AWS Console › DynamoDB › the table › Backups › Restore to point in time, as of
+   just before the deletion, into a new table (e.g. `art-split-history-restore`); then copy the band's items back
+   (query `band = <bandId>` on the new table, `batch-write-item` into `art-split-history`) and delete the new table.
+5. Invite codes and event links stay gone: leaders make new invites; old event links show "not found".
 
 ## Restoring from AWS Backup (older than 30 days, or the versions are gone)
 
@@ -65,6 +87,10 @@ and the band from its members' records. `deleted.json` lists their user ids (`us
    `aws s3 sync --delete --dryrun` first, read the list, then without `--dryrun`. A deleted band also needs its
    members' records, as above.
 4. Delete the temporary bucket when done.
+5. **Delete again what was erased since that backup** (GDPR: erased data is never brought back by a restore). For the
+   time between the backup and now: users who left a band or their last band (their member unlinked, their photo,
+   BLIK number and account removed, their `users/` record), bands deleted on purpose, and erasure requests answered by
+   email. Restoring only one band's folder limits this to that band and its members.
 
 ## Checks
 

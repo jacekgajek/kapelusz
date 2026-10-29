@@ -130,7 +130,7 @@ Roles form **one cumulative axis**. Every user in a band is linked to a member a
 | Action | Viewer | Member | Lead | Admin | Owner |
 |---|---|---|---|---|---|
 | See all events, finances, band fund, history | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Add/edit/delete **own** costs + attachments (locked once partly refunded; files can still be added, ITERATION_7 §2d) | – | ✔ | ✔ | ✔ | ✔ |
+| Add/edit/delete **own** costs + attachments (locked once partly refunded; files can still be added, ITERATION_7 §3.3) | – | ✔ | ✔ | ✔ | ✔ |
 | Record **own** holdings in events they take part in | – | ✔ | ✔ | ✔ | ✔ |
 | Record/settle transfers **they send or receive**, "Hand over money" | – | ✔ | ✔ | ✔ | ✔ |
 | Create/edit/archive/delete events, participants, guests, shares, refunds, fund amount, fund entries | – | – | ✔ | ✔ | ✔ |
@@ -138,7 +138,7 @@ Roles form **one cumulative axis**. Every user in a band is linked to a member a
 | Edit roster, roles, band name, band fund on/off and holder, invites, unlink users | – | – | – | ✔ | ✔ |
 | Delete band, transfer ownership | – | – | – | – | ✔ |
 
-- The **treasurer** counts as the band fund's party: a treasurer with the Member role may record and settle transfers to or from the band fund, like their own, and (since ITERATION_7 §2d) keep its plain entries.
+- The **treasurer** counts as the band fund's party: a treasurer with the Member role may record and settle transfers to or from the band fund, like their own, and (since ITERATION_7 §3.3) keep its plain entries.
 - There is exactly **one owner**: the band's creator. The owner is always an admin, so there is always at least one admin. Ownership transfer goes to an admin, and the former owner stays an admin.
 - An admin cannot demote the owner. The last-admin rule is satisfied automatically.
 - Permissions are enforced **on the server** (shared code) and mirrored in the UI: actions you can't perform are hidden.
@@ -165,7 +165,7 @@ sees the same tabs; actions their role cannot perform are hidden.
    - Every pending suggested transfer where you're sender or receiver, across events, each with **Settle**.
    - **"Hand over money"**: pick a party; the amount defaults to your whole balance in that event and can be edited.
    - For leads, a second section lists all `OPEN`/`LOSS` events.
-4. **Band fund**, shown only while the band fund is on: balance (red if negative), "not handed over yet", the holder, money from events (handed over or waiting), and other entries (one list by date since ITERATION_7 §2e). Everyone sees it; lead+ adds, edits and removes entries, including refunding a pending cost from the fund. (Since ITERATION_7 §2d the holder keeps the plain entries too; since §2e money in names who paid it, and money out only refunds a cost.)
+4. **Band fund**, shown only while the band fund is on: balance (red if negative), "not handed over yet", the holder, money from events (handed over or waiting), and other entries (one list by date since ITERATION_7 §5.1). Everyone sees it; lead+ adds, edits and removes entries, including refunding a pending cost from the fund. (Since ITERATION_7 §3.3 the holder keeps the plain entries too; since §5.1 money in names who paid it, and money out only refunds a cost.)
 5. **⚙ Cog** in the top bar: band switcher, New band, Join a band, Band members (roster), History, Settings.
    - **Settings:** language (device / English / Polski); for admins the band name and the band fund switch with its holder; for the owner a red **Delete band** button (§4.4); the account and sign-out.
 

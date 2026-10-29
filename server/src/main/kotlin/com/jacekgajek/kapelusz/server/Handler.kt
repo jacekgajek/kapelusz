@@ -181,7 +181,7 @@ class Handler : RequestStreamHandler {
                 sample.events.forEach { SettlementCalculator.settle(sample, it) }
             }
             // As a development build (always allowed), so priming goes past the version check into authentication.
-            api.handle(HttpRequest("GET", "/me", query = mapOf(ApiErrors.APP_VERSION_PARAMETER to "0")))
+            api.handle(HttpRequest("GET", "/me", query = mapOf(ApiErrors.APP_VERSION_PARAMETER to "0")), sweep = false)
         }
 
         override fun afterRestore(context: org.crac.Context<out Resource>?) = Unit

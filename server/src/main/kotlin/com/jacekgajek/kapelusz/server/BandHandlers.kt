@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.BandDeletion
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
 import com.jacekgajek.kapelusz.ops.ApplyResult
@@ -16,6 +17,7 @@ import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 
@@ -31,6 +33,7 @@ internal class BandHandlers(
     private val attachments: AttachmentHandlers,
     private val linkPages: LinkPages,
     private val messenger: SyncMessenger?,
+    private val deletions: BandDeletions,
 ) {
     fun create(user: VerifiedUser, request: CreateBandRequest): HttpResponse {
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
@@ -114,13 +117,15 @@ internal class BandHandlers(
                 // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
                 runCatching { attachments.deleteRemoved(bandId, band, result.band) }
                     .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
+                // A deletion kept by a leader (ITERATION_7 §9) leaves the list of bands waiting.
+                if (result.band.deletion != band.deletion) runCatching { deletions.note(bandId) }
                 // The change is already saved; a failed log write must not make the client retry it.
                 runCatching { history.append(user, band, bandId, envelopes.filter { it.opId in result.accepted }, result.changes) }
                     .onFailure { System.err.println("Could not append history for band $bandId: $it") }
                 // Everyone in the band before or after (a member just removed learns it at once), but this device
                 // (ITERATION_7 §2.2).
                 if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }
-                // Someone's account unlinked (by a leader, or deleting them, ITERATION_7 §2a): as if they had left, after
+                // Someone's account unlinked (by a leader, or deleting them, ITERATION_7 §3.1): as if they had left, after
                 // the message their devices still get (ITERATION_6 §11a).
                 val unlinked = band.members.mapNotNull { it.userId }.toSet() - result.band.members.mapNotNull { it.userId }.toSet()
                 unlinked.forEach { userId ->
@@ -133,26 +138,28 @@ internal class BandHandlers(
     }
 
     /**
-     * Deletes a band for everyone (owner only): its state first, so every member's next request finds it gone, then the
-     * members' band lists, invites, history and attachment files. A small marker tells former members that it was
-     * deleted. Bucket versioning keeps the objects for 30 days, so a mistake can still be undone by hand
-     * (DISASTER_RECOVERY.md).
+     * The owner asks to delete the band (ITERATION_7 §9): it is deleted for everyone a week later ([BandDeletions]),
+     * unless a leader keeps it meanwhile (`CancelBandDeletion`). Done here rather than as a pushed operation, so the
+     * times are the server's; asked again while waiting, nothing changes.
      */
-    fun delete(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse {
-        val (band, _) = bands.loadForMember(user, bandId)
+    fun delete(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+        val (band, etag) = bands.loadForMember(user, bandId)
         val me = band.memberOfUser(user.userId)!!
         if (me.role != Role.OWNER) throw ApiError(403, ApiErrors.FORBIDDEN, "Only the owner can delete the band")
-        val userIds = band.members.mapNotNull { it.userId }
-        store.put(StorageKeys.deleted(bandId), encode(DeletedBand.serializer(), DeletedBand(band.name, me.name, clock(), userIds)))
-        store.delete(StorageKeys.band(bandId))
-        userIds.forEach { runCatching { users.removeBandFromUser(it, bandId) } }
-        invites.loadCodes(bandId).forEach { code -> runCatching { store.delete(StorageKeys.invite(code)) } }
-        store.deleteAll(store.list(StorageKeys.bandPrefix(bandId)).filter { it != StorageKeys.deleted(bandId) })
-        runCatching { linkPages.forget(bandId, band.events.map { it.id }) }
-        runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
-        // The members' apps let go of it at once (ITERATION_7 §2.3); former members' apps did already.
+        if (band.deletion != null) return@retryOnConflict HttpResponse(204)
+        val now = clock()
+        val op = ScheduleBandDeletion(BandDeletion(me.id, now, now + BandDeletion.DELAY_MS))
+        val opId = "delete-$now"
+        val scheduled = when (val result = Engine.apply(band, Actor.System, op, opId, now)) {
+            is ApplyResult.Applied -> result.band
+            is ApplyResult.Rejected -> throw ApiError(409, ApiErrors.CONFLICT, result.rejection.message)
+        }
+        store.put(StorageKeys.band(bandId), encode(Band.serializer(), scheduled), ifMatch = etag)
+        runCatching { deletions.note(bandId) }.onFailure { System.err.println("Could not list band $bandId for deletion: $it") }
+        // With the band as it was, so the entry has who asked as its author.
+        runCatching { history.append(user, band, bandId, listOf(OpEnvelope(opId, "server", 0, now, op)), emptyMap()) }
         runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), from) }
-        return HttpResponse(204)
+        HttpResponse(204)
     }
 
     /**

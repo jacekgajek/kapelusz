@@ -85,7 +85,7 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                 if (isPair) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
             }
             if (line.partyId != BAND_FUND) {
-                // A fixed share says so (ITERATION_3 §2.4): it does not change with the income. A percentage too (§2h).
+                // A fixed share says so (ITERATION_3 §2.4): it does not change with the income. A percentage too (§6).
                 val percent = line.percent?.let { "$it%" }
                 Text(
                     when {

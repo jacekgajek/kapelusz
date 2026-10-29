@@ -25,7 +25,7 @@ data class Event(
      * [fundPercent] is set: then [fund] is worked out from the profit.
      */
     val fundAmount: Money = Money.ZERO,
-    /** The band fund's cut as a percentage of the profit, 1–100 (ITERATION_7 §2g); null: [fundAmount] as it is. */
+    /** The band fund's cut as a percentage of the profit, 1–100 (ITERATION_7 §5.2); null: [fundAmount] as it is. */
     val fundPercent: Int? = null,
     /** Agenda times of the day (ITERATION_2 §4.1), copied from the band's template when the event is created. */
     val agenda: List<AgendaTime> = emptyList(),
@@ -52,7 +52,7 @@ data class Event(
 }
 
 /**
- * The band fund's cut of an event (ITERATION_7 §2g): a fixed [amount] or a [percent] of the profit (income less cost
+ * The band fund's cut of an event (ITERATION_7 §5.2): a fixed [amount] or a [percent] of the profit (income less cost
  * refunds), never both. As a band's default for new events, always money to the fund, never from it.
  */
 @Serializable
@@ -83,7 +83,7 @@ data class Guest(val id: Id, val name: String)
  * A member or guest taking part in an event. [weight] is a share in percent: 100 = one normal share. [addedBy] is the
  * member who added them (unknown for events from before version 2). With a [fixedShare] they take exactly that amount
  * off the top instead of a share by weight (ITERATION_3 §2.4); with a [percent], that percentage of the profit
- * (ITERATION_7 §2h). Never both; the weight is kept for switching back.
+ * (ITERATION_7 §6). Never both; the weight is kept for switching back.
  */
 @Serializable
 data class Participant(
@@ -97,7 +97,7 @@ data class Participant(
     val byWeight: Boolean get() = fixedShare == null && percent == null
 }
 
-/** A participant's percentage of the profit (ITERATION_7 §2h). */
+/** A participant's percentage of the profit (ITERATION_7 §6). */
 object SharePercent {
     const val MAX = 100
 

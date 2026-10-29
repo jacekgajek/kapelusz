@@ -6,10 +6,21 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
 
 /** Loading a band's state, and who may see it; used by every handler that works on a band. */
-internal class BandAccess(private val store: BlobStore) {
+internal class BandAccess(private val store: BlobStore, private val clock: () -> Long = System::currentTimeMillis) {
+    /** Deletes a band whose time to be deleted has come ([BandDeletions.deleteNow]); set once everything is built. */
+    var whenDue: ((Band) -> Unit)? = null
 
-    fun load(bandId: String): Pair<Band, String>? =
-        store.get(StorageKeys.band(bandId))?.let { decode(Band.serializer(), it.content) to it.etag }
+    /**
+     * The band and its ETag; null if there is none, or it was just deleted, its time having come (ITERATION_7 §9).
+     * [deleteIfDue] false reads it as it is: for the deletion itself, and where a deletion would run on a thread pool
+     * it uses too ([LinkPages]).
+     */
+    fun load(bandId: String, deleteIfDue: Boolean = true): Pair<Band, String>? {
+        val loaded = store.get(StorageKeys.band(bandId))?.let { decode(Band.serializer(), it.content) to it.etag } ?: return null
+        val due = whenDue?.takeIf { deleteIfDue && loaded.first.deletion.let { it != null && it.deleteAt <= clock() } } ?: return loaded
+        due(loaded.first)
+        return null
+    }
 
     fun loadForMember(user: VerifiedUser, bandId: String): Pair<Band, String> {
         val loaded = load(bandId) ?: throw gone(user, bandId)

@@ -53,7 +53,7 @@ data class Member(
     val pictureUrl: String? = null,
     /**
      * Where their share starts in a new event (ITERATION_4 §2.3): a weight, or [shareFixed] or [sharePercent] (ITERATION_7
-     * §2h) when set.
+     * §6) when set.
      */
     val shareWeight: Int = DEFAULT_WEIGHT,
     val shareFixed: Money? = null,
@@ -70,7 +70,7 @@ data class Member(
      * only by the member, kept out of the history and of undo, and gone with the linked account.
      */
     val blikPhone: String? = null,
-    /** Their bank account number (ITERATION_7 §2i), as stored by [BankAccount.normalize]; kept like [blikPhone]. */
+    /** Their bank account number (ITERATION_7 §7), as stored by [BankAccount.normalize]; kept like [blikPhone]. */
     val bankAccount: String? = null,
 ) {
     /** A participant with this member's default share. */
@@ -89,11 +89,13 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
-    /** Where to pay into the band fund (ITERATION_7 §2i), as stored by [BlikPhone.normalize]; never the holder's own. */
+    /** Where to pay into the band fund (ITERATION_7 §7), as stored by [BlikPhone.normalize]; never the holder's own. */
     val fundBlikPhone: String? = null,
-    /** The band fund's bank account (ITERATION_7 §2i), as stored by [BankAccount.normalize]. */
+    /** The band fund's bank account (ITERATION_7 §7), as stored by [BankAccount.normalize]. */
     val fundBankAccount: String? = null,
-    /** What new events put into the band fund (ITERATION_7 §2g); null: nothing. */
+    /** The owner asked to delete the band (ITERATION_7 §9): it is deleted then, unless a leader cancels it first. */
+    val deletion: BandDeletion? = null,
+    /** What new events put into the band fund (ITERATION_7 §5.2); null: nothing. */
     val fundDefault: FundCut? = null,
     /** Agenda times new events get (ITERATION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
     val agendaTemplate: List<AgendaTemplateItem>? = null,
@@ -127,6 +129,18 @@ data class Band(
                 currency = currency,
                 members = listOf(Member(ownerMemberId, ownerName, ownerUserId, Role.OWNER)),
             )
+    }
+}
+
+/**
+ * A band waiting to be deleted (ITERATION_7 §9): [requestedBy] (a member id) asked at [requestedAt]; the server deletes
+ * it at [deleteAt], epoch millis by the server's clock.
+ */
+@Serializable
+data class BandDeletion(val requestedBy: Id, val requestedAt: Long, val deleteAt: Long) {
+    companion object {
+        /** How long leaders have to cancel it. */
+        const val DELAY_MS = 7L * 24 * 60 * 60 * 1000
     }
 }
 

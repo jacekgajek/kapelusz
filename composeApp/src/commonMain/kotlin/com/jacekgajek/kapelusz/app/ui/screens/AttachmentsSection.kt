@@ -95,7 +95,7 @@ fun AttachmentsSection(
     onDrafts: (List<PreparedFile>) -> Unit,
     editable: Boolean,
     actions: Actions,
-    /** Saved files may be removed; [editable] alone adds and renames (a locked cost's receipt, ITERATION_7 §2d). */
+    /** Saved files may be removed; [editable] alone adds and renames (a locked cost's receipt, ITERATION_7 §3.3). */
     removable: Boolean = editable,
     max: Int = MAX_ATTACHMENTS,
     hint: StringResource = Res.string.attachment_hint,

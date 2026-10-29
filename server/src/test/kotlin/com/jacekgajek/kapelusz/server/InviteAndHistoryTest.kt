@@ -230,7 +230,7 @@ class InviteAndHistoryTest {
             .entries.flatMap { entry -> entry.ops.map { it.opId } }
         assertEquals(true, "rename" in logged)
         assertEquals(false, "blik" in logged, "who is paid where is not history (ITERATION_5 §8)")
-        assertEquals(false, "account" in logged, "nor their account (ITERATION_7 §2i)")
+        assertEquals(false, "account" in logged, "nor their account (ITERATION_7 §7)")
 
         // Nor in the members' snapshots of other changes.
         now += 1

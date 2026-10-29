@@ -77,7 +77,7 @@ data class PersonTotals(val earned: Money, val refunded: Money) {
 
 /**
  * Money into and out of the band fund in the period, and what it held at the period's end; [intoBy] and [outBy] break
- * them down by who paid in or got a cost refunded (ITERATION_7 §2e), largest first.
+ * them down by who paid in or got a cost refunded (ITERATION_7 §5.1), largest first.
  */
 data class FundTotals(
     val into: Money,

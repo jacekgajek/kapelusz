@@ -41,6 +41,9 @@ object StorageKeys {
     /** The key that signs session tokens (see [SessionTokens]). */
     const val SESSION_KEY = "server/session-key.json"
 
+    /** The bands waiting to be deleted ([ScheduledDeletions], ITERATION_7 §9). */
+    const val SCHEDULED_DELETIONS = "server/scheduled-deletions.json"
+
     /** Read once while priming a SnapStart snapshot; never written. */
     const val PRIMING = "priming/none.json"
 

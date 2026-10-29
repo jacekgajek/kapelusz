@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.domain.PlayedPlaces
 
 /**
- * A map of [places], one marker each; a marker's bubble opens [onPlace] (ITERATION_7 §2f). Only where
+ * A map of [places], one marker each; a marker's bubble opens [onPlace] (ITERATION_7 §8). Only where
  * [mapPickerAvailable]. [bottomInset]: covered by a panel, kept clear of controls and markers.
  */
 @Composable

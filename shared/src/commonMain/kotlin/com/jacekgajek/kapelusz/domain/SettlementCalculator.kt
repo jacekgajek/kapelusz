@@ -21,11 +21,11 @@ enum class SettlementProblem {
 
     /**
      * There is money to share but nobody to share it: every participant by weight has weight 0, or there is none and
-     * the percentages (ITERATION_7 §2h) do not add up to 100%.
+     * the percentages (ITERATION_7 §6) do not add up to 100%.
      */
     NO_SHARES,
 
-    /** The percentages of the profit, the band fund's included, add up to more than 100% (ITERATION_7 §2h). */
+    /** The percentages of the profit, the band fund's included, add up to more than 100% (ITERATION_7 §6). */
     OVER_PERCENT,
 
     /** A fund amount is set but nobody holds the band fund. */
@@ -35,7 +35,7 @@ enum class SettlementProblem {
 /**
  * One party's numbers in an event. [target] is what the party should end up holding. [isFixed]: the [share] is the
  * participant's fixed amount, not a share by [weight] (ITERATION_3 §2.4); [percent]: their percentage of the profit
- * (ITERATION_7 §2h). [partnerId]: a pair settling together (ITERATION_5 §7), [partyId] and [partnerId] as one, every
+ * (ITERATION_7 §6). [partnerId]: a pair settling together (ITERATION_5 §7), [partyId] and [partnerId] as one, every
  * number the sum of theirs.
  */
 data class PartyLine(
@@ -72,7 +72,7 @@ data class Settlement(
     val net: Money,
     /** Sum of the participants' fixed shares, paid out of [net] before the rest is split by weight. */
     val fixedTotal: Money,
-    /** Sum of the participants' percentages of the profit (ITERATION_7 §2h), also paid out of [net] first. */
+    /** Sum of the participants' percentages of the profit (ITERATION_7 §6), also paid out of [net] first. */
     val percentTotal: Money,
     /** Participants in party order, followed by [BAND_FUND] when the event involves the fund; each on their own. */
     val lines: List<PartyLine>,
@@ -124,7 +124,7 @@ object SettlementCalculator {
         val fund = event.fund
         val net = income - fund - refundsTotal
         val participants = order.map { event.participant(it)!! }
-        // Percentages are of the profit, plus what the band fund adds (ITERATION_7 §2h): all of the same base, so they
+        // Percentages are of the profit, plus what the band fund adds (ITERATION_7 §6): all of the same base, so they
         // add up with the fund's own percentage.
         val percentBase = income - refundsTotal - if (fund.isNegative) fund else Money.ZERO
         val percentShares = participants.mapNotNull { p -> p.percent?.let { p.partyId to SharePercent.of(it, percentBase) } }.toMap()

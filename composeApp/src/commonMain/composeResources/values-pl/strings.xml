@@ -518,10 +518,15 @@
     <string name="fund_disable_confirm">Wyłącz</string>
     <string name="h_disable_fund">Wyłączono kasę zespołową</string>
     <string name="reject_fund_not_empty">Kasę zespołową można wyłączyć tylko, gdy jest pusta i nic nie czeka na przekazanie.</string>
-    <string name="band_was_deleted">Zespół %1$s został usunięty przez właściciela. Nie ma go już na tym urządzeniu.</string>
+    <string name="band_was_deleted">Zespół %1$s został usunięty. Nie ma go już na tym urządzeniu.</string>
+    <string name="band_deletion_notice">%1$s chce usunąć ten zespół. Zostanie usunięty dla wszystkich dnia %2$s.</string>
+    <string name="band_deletion_notice_leader">%1$s chce usunąć ten zespół. Zostanie usunięty dla wszystkich dnia %2$s, chyba że któryś lider go zachowa.</string>
+    <string name="band_deletion_keep">Zachowaj zespół</string>
+    <string name="h_schedule_deletion">Zlecono usunięcie zespołu (nastąpi %1$s)</string>
+    <string name="h_cancel_deletion">Zachowano zespół: nie zostanie usunięty</string>
     <string name="delete_band">Usuń zespół</string>
     <string name="delete_band_title">Usunąć zespół %1$s?</string>
-    <string name="delete_band_everything">Wszystkie wydarzenia, koszty, zwroty, przelewy, kasa zespołowa, załączniki i historia zostaną usunięte dla wszystkich.</string>
+    <string name="delete_band_everything">Za 7 dni wszystkie wydarzenia, koszty, zwroty, przelewy, kasa zespołowa, załączniki i historia zostaną usunięte dla wszystkich. Do tego czasu zespół działa jak dotąd, a każdy lider może go zachować.</string>
     <string name="played_title">Gdzie graliśmy</string>
     <string name="played_finding">Szukam miejsc na mapie…</string>
     <string name="played_failed">Brak połączenia z serwerem: widać tylko miejsca znalezione wcześniej.</string>
@@ -560,17 +565,17 @@
         <item quantity="other">%1$d osoby</item>
     </plurals>
     <plurals name="delete_band_members">
-        <item quantity="one">%1$d inny członek od razu straci dostęp.</item>
-        <item quantity="few">%1$d inni członkowie od razu stracą dostęp.</item>
-        <item quantity="many">%1$d innych członków od razu straci dostęp.</item>
-        <item quantity="other">%1$d innych członków od razu straci dostęp.</item>
+        <item quantity="one">%1$d inny członek straci wtedy dostęp.</item>
+        <item quantity="few">%1$d inni członkowie stracą wtedy dostęp.</item>
+        <item quantity="many">%1$d innych członków straci wtedy dostęp.</item>
+        <item quantity="other">%1$d innych członków straci wtedy dostęp.</item>
     </plurals>
     <string name="delete_band_no_members">Nikt inny nie dołączył do zespołu.</string>
     <string name="delete_band_unsynced">Przepadną też zmiany, które nie zostały jeszcze zsynchronizowane z czyichkolwiek urządzeń.</string>
-    <string name="delete_band_final">Tego nie da się cofnąć.</string>
+    <string name="delete_band_final">Potem nie da się tego cofnąć.</string>
     <string name="delete_band_type_name">Wpisz %1$s, aby potwierdzić</string>
-    <string name="delete_band_confirm">Usuń na zawsze</string>
-    <string name="delete_band_failed">Zespół nie został usunięty. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="delete_band_confirm">Usuń za 7 dni</string>
+    <string name="delete_band_failed">Nie udało się zlecić usunięcia zespołu. Sprawdź połączenie i spróbuj ponownie.</string>
     <string name="leave_band">Opuść zespół</string>
     <string name="privacy_policy">Polityka prywatności</string>
     <string name="leave_band_title">Opuścić zespół %1$s?</string>

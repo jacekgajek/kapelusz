@@ -34,7 +34,7 @@ concerns them.
   - Add, edit and delete their own costs, like members: with or without an event; when with an event, only one they
     take part in (already the rule for everyone). Their costs are never included automatically (§1.2).
   - No collected money and no transfers: they cannot record either, and see no "Settle" actions. The payer or a lead
-    records transfers to them. (Superseded by ITERATION_7 §2c: artists see and record their own transfers.)
+    records transfers to them. (Superseded by ITERATION_7 §3.2: artists see and record their own transfers.)
 - **Artists never hold money:**
   - Collected money cannot be recorded on an Artist's line by anyone, leads included (reducer rejection).
   - An Artist cannot be the band fund holder.
@@ -77,7 +77,7 @@ transfers; only costs from elsewhere, or added after money moved, wait in "Pendi
 - Deleting a refused cost from My costs asks for confirmation (artists have no History to undo it).
 - An artist can still end up owing (overpaid, an event reopened after they became one, money from before): a **lead**
   settles it, by "Settle all" or by recording the transfer from the artist; the artist cannot record it (superseded by
-  ITERATION_7 §2c: they record it themselves). Their payout
+  ITERATION_7 §3.2: they record it themselves). Their payout
   card then says "To hand back (a lead settles it)" without naming whom. Undo no longer guards "artists hold no money"
   (ordinary edits don't either). (Changed 2026-10-23.) Resubmitting is explicit (`UpdateCost.resubmit`), so History says "resubmitted".
 - Undo cannot bring back a refund of a refused cost. (It no longer guards "artists hold no money": leads settle an artist's debts.)
@@ -167,7 +167,7 @@ collected money, as today).
   list).
 - **Reminder:** to the lead who recorded the fee (if they are no longer a lead: to the event's leads), 14, 28, 42 and
   56 days after the gig, with the debt reminders' setting: "The organiser still owes 3000 zł". *(Gone since ITERATION_6 §9: no notifications.)*
-- **Who:** leads record awaited fees and mark them received. (Since ITERATION_7 §2d, who it was paid to marks it received too.)
+- **Who:** leads record awaited fees and mark them received. (Since ITERATION_7 §3.3, who it was paid to marks it received too.)
 - **Buttons** (2026-10-23): under the awaited entry, laid out like Include / Refuse: **"Paid" / "Zapłacili"** (the
   Received dialog) and a red **"Welched" / "Wydymali"** (deliberately informal), which removes the entry after a
   confirmation.

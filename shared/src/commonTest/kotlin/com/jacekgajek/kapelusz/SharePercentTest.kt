@@ -25,7 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** A participant's share as a percentage of the profit (ITERATION_7 §2h). */
+/** A participant's share as a percentage of the profit (ITERATION_7 §6). */
 class SharePercentTest {
 
     private fun gig(income: String = "1000") = Scenario("Alice", "Bob", "Carol").apply(SetTreasurer("alice"))

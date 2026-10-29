@@ -154,7 +154,7 @@ When you leave your last band, the server also deletes your photo link, your cal
 messages and your record of invite code attempts; your user record then keeps only your account identifier and the time of your last "Sign out on all
 devices", so sessions you ended then cannot be used again. Invites you created as a leader stop working at once. You
 can't leave a band you own: first make another leader its owner (Band members), or delete the band (Settings › Delete
-band). Your member name, the money you recorded and the band's history of the changes you made (with your account
+band; it is deleted 7 days later, unless one of its leaders keeps it). Your member name, the money you recorded and the band's history of the changes you made (with your account
 identifier) stay with the band, as described in 6.
 
 If you can no longer sign in, write to **privacy@jacekgajek.com** from the email address of your Google account and we

@@ -70,7 +70,7 @@ import androidx.compose.material3.FilledTonalButton
 import org.jetbrains.compose.resources.stringResource
 
 // What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout, their own transfers
-// (ITERATION_7 §2c) and their own costs; none of the band's money.
+// (ITERATION_7 §3.2) and their own costs; none of the band's money.
 
 /** Who plays: names only, no weights or shares. */
 @Composable
@@ -106,7 +106,7 @@ fun ArtistPayout(context: EventContext) {
             PayoutRow(stringResource(Res.string.artist_to_receive), line.target, context.currency)
             PayoutRow(stringResource(Res.string.artist_received), line.received - line.sent, context.currency)
             // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
-            // got too much (or owe from before they were an artist), they hand it back (To settle, ITERATION_7 §2c).
+            // got too much (or owe from before they were an artist), they hand it back (To settle, ITERATION_7 §3.2).
             if (partner != null && kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)
             if (partner != null && heldForPartner.isPositive) PayoutRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner, context.currency)
             if (line.delta > heldForPartner) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, context.currency, bold = true)
@@ -121,7 +121,7 @@ fun ArtistPayout(context: EventContext) {
 }
 
 /**
- * The artist's own transfers still to make (ITERATION_7 §2c): who pays them, or whom they hand back to with that person's
+ * The artist's own transfers still to make (ITERATION_7 §3.2): who pays them, or whom they hand back to with that person's
  * BLIK number and the amount to copy; nobody else's. They mark each paid or received themselves, as members do.
  */
 @Composable

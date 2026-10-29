@@ -132,7 +132,7 @@ class PermissionsTest {
     fun whoRecordedATransferRemovesIt() {
         scenario.apply(RecordTransfer("gig", "mine", "other", "member", pln("10")), member)
         scenario.apply(RecordTransfer("gig", "theirs", "other", "member", pln("10")))
-        assertTrue(allowed(member, RemoveTransfer("gig", "mine")), "a Paid tapped by mistake (ITERATION_7 §2d)")
+        assertTrue(allowed(member, RemoveTransfer("gig", "mine")), "a Paid tapped by mistake (ITERATION_7 §3.3)")
         assertFalse(allowed(member, RemoveTransfer("gig", "theirs")))
         assertTrue(allowed(lead, RemoveTransfer("gig", "mine")))
     }
@@ -142,7 +142,7 @@ class PermissionsTest {
         val entry = AddFundEntry("e", DATE, "Membership fee", pln("40"), paidBy = "other")
         assertFalse(allowed(member, entry))
         scenario.apply(SetTreasurer("member"))
-        assertTrue(allowed(member, entry), "ITERATION_7 §2d")
+        assertTrue(allowed(member, entry), "ITERATION_7 §3.3")
         scenario.apply(entry, member)
         assertTrue(allowed(member, UpdateFundEntry("e", amount = Change(pln("45")))))
         assertTrue(allowed(member, RemoveFundEntry("e")))

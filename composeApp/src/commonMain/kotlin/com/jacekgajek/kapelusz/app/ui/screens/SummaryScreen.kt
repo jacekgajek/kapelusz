@@ -193,7 +193,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
             } else {
                 summaryContent(summary, artist, band.currency, state.me?.id, canInvite) { inviting = it }
             }
-            // Where the period's concerts were (ITERATION_7 §2f), by their locations (Google may merge a few later).
+            // Where the period's concerts were (ITERATION_7 §8), by their locations (Google may merge a few later).
             if (played.isNotEmpty()) item(key = "played") {
                 val count = played.distinctBy { PlayedPlaces.key(it.location!!) }.size
                 Column(Modifier.padding(top = 16.dp)) {
@@ -261,7 +261,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
             if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)
             summary.fund?.let { fund ->
                 SummaryHeader(stringResource(Res.string.band_fund))
-                // Each opens into who paid in, or whose costs it refunded (ITERATION_7 §2e).
+                // Each opens into who paid in, or whose costs it refunded (ITERATION_7 §5.1).
                 FundBreakdownRow(Res.string.summary_fund_in, fund.into, fund.intoBy, Res.string.fund_from_events, currency, 0)
                 FundBreakdownRow(Res.string.summary_fund_out, fund.out, fund.outBy, Res.string.summary_fund_for_events, currency, 1)
                 AmountRow(Res.string.summary_fund_balance, fund.balance, currency, 2)

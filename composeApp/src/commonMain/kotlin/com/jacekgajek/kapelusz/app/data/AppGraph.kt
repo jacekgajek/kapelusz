@@ -63,7 +63,7 @@ class AppGraph(
         onSessionsRevoked = { scope.launch { signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
-    /** Where event locations are, for the map (ITERATION_7 §2f). */
+    /** Where event locations are, for the map (ITERATION_7 §8). */
     val places = PlacesLocator(store, api)
     val sync = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { registerForMessages() })
     val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch, download = { url ->
@@ -251,13 +251,18 @@ class AppGraph(
     }
 
     /**
-     * Deletes the open band for everyone (owner only; needs the server, except for a band never uploaded). Network
-     * errors and refusals surface as exceptions; on success the band is gone from this device too.
+     * Asks to delete the open band for everyone (owner only, ITERATION_7 §9): the server deletes it in a week, unless
+     * a leader keeps it; the next sync brings the notice. A band never uploaded, which nobody else has, goes at once.
+     * Network errors and refusals surface as exceptions.
      */
     suspend fun deleteBand() {
         val bandId = bands.currentBandId ?: return
-        if (bands.local(bandId)?.needsCreate != true) api.deleteBand(bandId)
-        bands.forgetDeleted(bandId)
+        if (bands.local(bandId)?.needsCreate == true) {
+            bands.forgetDeleted(bandId)
+            return
+        }
+        api.deleteBand(bandId)
+        sync.requestSync()
     }
 
     /**

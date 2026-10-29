@@ -146,7 +146,7 @@ Band members (ManageAccounts), Summary (BarChart), History, Settings. Title "Sum
    that add up to it (2026-10-26, after "the numbers don't add up"): Paid to the band (all shares: everyone's Earned),
    Cost refunds (paid at those events), To the band fund (its part of them; negative: the fund covered some; shown with
    a fund). Fund: in (its cut at events, deposits), out (covering
-   events, withdrawals, refunds from it; since ITERATION_7 §2e only refunds, broken down per member), and the balance at the period's end, hidden without a fund. The fund is the
+   events, withdrawals, refunds from it; since ITERATION_7 §5.1 only refunds, broken down per member), and the balance at the period's end, hidden without a fund. The fund is the
    money actually there, as on its page (moved by events, on the event's date, settled or not), so the balance
    matches. No "profit": the money is shared out completely.
 3. **Costs by category:** Total (costs fully refunded in the period, from events or the fund), then a row per category

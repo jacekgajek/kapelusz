@@ -234,7 +234,7 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
 /** The guest being added, in the preview of what their share comes to. */
 private const val NEW_GUEST = "new-guest"
 
-/** What the percentages of everyone but [partyId], the fund's included, already take of the profit (ITERATION_7 §2h). */
+/** What the percentages of everyone but [partyId], the fund's included, already take of the profit (ITERATION_7 §6). */
 private fun percentTaken(event: Event, partyId: String): Int =
     event.participants.filter { it.partyId != partyId }.sumOf { it.percent ?: 0 } + (event.fundPercent ?: 0)
 
@@ -255,7 +255,7 @@ private fun SharePreview(context: EventContext, preview: Event, partyId: String,
 }
 
 /**
- * A participant's share (ITERATION_3 §2.4, ITERATION_7 §2h): shares on a slider in quarters, a percentage of the profit,
+ * A participant's share (ITERATION_3 §2.4, ITERATION_7 §6): shares on a slider in quarters, a percentage of the profit,
  * or a fixed amount. OK applies the change in one operation, so one undo reverts the whole dialog; the weight stays
  * underneath a fixed amount or a percentage, so switching back restores it.
  */
