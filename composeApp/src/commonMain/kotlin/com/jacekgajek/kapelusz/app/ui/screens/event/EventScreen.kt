@@ -446,7 +446,7 @@ private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     listOf(false to Res.string.fund_direction_to, true to Res.string.fund_direction_from).forEachIndexed { index, (value, label) ->
-                        SegmentedButton(selected = fromFund == value, onClick = { fromFund = value }, shape = SegmentedButtonDefaults.itemShape(index, 2)) {
+                        SegmentedButton(selected = fromFund == value, onClick = { fromFund = value }, shape = SegmentedButtonDefaults.itemShape(index, 2), icon = {}) {
                             Text(stringResource(label))
                         }
                     }

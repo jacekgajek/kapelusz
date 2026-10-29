@@ -109,6 +109,7 @@ fun ShareEditor(state: ShareEditorState, currency: String, percentTaken: Int = 0
                     selected = state.mode == mode,
                     onClick = { state.mode = mode },
                     shape = SegmentedButtonDefaults.itemShape(index, modes.size),
+                    icon = {},
                     modifier = Modifier.semantics { contentDescription = description },
                 ) { Text(label) }
             }
