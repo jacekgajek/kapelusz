@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bank accounts, and where to pay into the band fund (ITERATION_7 §2i) -->
+    <string name="account_title">Bank transfer</string>
+    <string name="account_pay_to">Send a bank transfer to the account:</string>
+    <string name="account_numbers">Bank accounts</string>
+    <string name="account_copy">Copy the account of %1$s</string>
+    <string name="account_mine">Your bank account</string>
+    <string name="account_mine_hint">Bandmates who pay you see it next to the transfer, to send you a bank transfer. Only for this band.</string>
+    <string name="account_number">Account number</string>
+    <string name="account_invalid">Not an account number (26 digits or an IBAN)</string>
+    <string name="fund_pay_in">Pay into the fund</string>
+    <string name="fund_pay_in_add_hint">A BLIK number or a bank account everyone can pay into the band fund.</string>
+    <string name="fund_blik">Band fund's BLIK number</string>
+    <string name="fund_account">Band fund's bank account</string>
+    <string name="fund_payment_hint">Everyone in the band sees it on the Band fund tab, and next to transfers to the fund. Set it to where the fund's money is kept.</string>
+    <string name="h_set_fund_blik">Set the band fund's BLIK number to %1$s</string>
+    <string name="h_remove_fund_blik">Removed the band fund's BLIK number</string>
+    <string name="h_set_fund_account">Set the band fund's bank account to %1$s</string>
+    <string name="h_remove_fund_account">Removed the band fund's bank account</string>
+</resources>

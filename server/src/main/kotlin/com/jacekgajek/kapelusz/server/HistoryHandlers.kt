@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.ops.SetBankAccount
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.HistoryResponse
@@ -137,8 +138,9 @@ internal class HistoryHandlers(
         val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() <= MAX_LOGGED_CHANGES } ?: emptyMap()
         val memberId = band.memberOfUser(user.userId)?.id
         val name = "${monthOf(now)}/$now-${UUID.randomUUID()}.json"
-        // A BLIK number is shown only to who settles with its member (ITERATION_5 §8): its changes are not history.
-        val pushed = ops.filter { it.op !is SetBlikPhone }.mapIndexedNotNull { index, envelope ->
+        // A member's BLIK number and account are shown only to who settles with them (ITERATION_5 §8, ITERATION_7 §2i):
+        // their changes are not history.
+        val pushed = ops.filter { it.op !is SetBlikPhone && it.op !is SetBankAccount }.mapIndexedNotNull { index, envelope ->
             val part = HistoryEntry(user.userId, memberId, now, listOf(envelope), kept[envelope.opId]?.let { mapOf(envelope.opId to it) } ?: emptyMap())
             // A record over what the table takes keeps its operation without the change (that one cannot be undone);
             // an operation too large even alone is left out, rather than the whole push failing to be written.
@@ -175,8 +177,11 @@ internal class HistoryHandlers(
     }
 }
 
-/** [BandChange] without members' BLIK numbers (ITERATION_5 §8): the history keeps no record of who is paid where. */
+/**
+ * [BandChange] without members' BLIK numbers and accounts (ITERATION_5 §8, ITERATION_7 §2i): the history keeps no record
+ * of who is paid where. The band fund's are the band's, and stay.
+ */
 private fun BandChange.withoutBlikPhones(): BandChange {
-    fun BandPart.clean() = copy(members = members.mapValues { (_, member) -> member?.copy(blikPhone = null) })
+    fun BandPart.clean() = copy(members = members.mapValues { (_, member) -> member?.copy(blikPhone = null, bankAccount = null) })
     return BandChange(before.clean(), after.clean())
 }

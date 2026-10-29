@@ -86,6 +86,8 @@ import com.jacekgajek.kapelusz.app.generated.description
 import com.jacekgajek.kapelusz.app.generated.fund_add_entry
 import com.jacekgajek.kapelusz.app.generated.fund_balance
 import com.jacekgajek.kapelusz.app.generated.fund_held_by
+import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.generated.fund_in
 import com.jacekgajek.kapelusz.app.generated.fund_no_treasurer
 import com.jacekgajek.kapelusz.app.generated.fund_no_treasurer_admin
@@ -218,6 +220,16 @@ fun BandFundScreen(
                             }
                         }
                         Text(stringResource(Res.string.fund_held_by, treasurer.name), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            // Where to pay in, for everyone, once set (ITERATION_7 §2i): only shown here, set in the fund's settings.
+            if (band.fundBlikPhone != null || band.fundBankAccount != null) item {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp, 8.dp)) {
+                        val fund = stringResource(Res.string.band_fund)
+                        PaymentRow(PaymentKind.BLIK, null, band.fundBlikPhone, fund)
+                        PaymentRow(PaymentKind.ACCOUNT, null, band.fundBankAccount, fund)
                     }
                 }
             }

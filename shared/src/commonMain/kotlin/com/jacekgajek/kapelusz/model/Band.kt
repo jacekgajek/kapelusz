@@ -70,6 +70,8 @@ data class Member(
      * only by the member, kept out of the history and of undo, and gone with the linked account.
      */
     val blikPhone: String? = null,
+    /** Their bank account number (ITERATION_7 §2i), as stored by [BankAccount.normalize]; kept like [blikPhone]. */
+    val bankAccount: String? = null,
 ) {
     /** A participant with this member's default share. */
     fun asParticipant(addedBy: Id? = null) = Participant(id, shareWeight, addedBy, shareFixed, sharePercent)
@@ -87,6 +89,10 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
+    /** Where to pay into the band fund (ITERATION_7 §2i), as stored by [BlikPhone.normalize]; never the holder's own. */
+    val fundBlikPhone: String? = null,
+    /** The band fund's bank account (ITERATION_7 §2i), as stored by [BankAccount.normalize]. */
+    val fundBankAccount: String? = null,
     /** What new events put into the band fund (ITERATION_7 §2g); null: nothing. */
     val fundDefault: FundCut? = null,
     /** Agenda times new events get (ITERATION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */

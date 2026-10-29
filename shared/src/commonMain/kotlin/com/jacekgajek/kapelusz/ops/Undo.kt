@@ -15,13 +15,15 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.ORGANISER
 import kotlinx.serialization.Serializable
 
-/** The band-wide settings an operation may change, as one value. */
+/** The band-wide settings an operation may change, as one value; undo compares and restores them one by one. */
 @Serializable
 data class BandSettings(
     val name: String,
     val treasurerMemberId: Id? = null,
     val agendaTemplate: List<AgendaTemplateItem>? = null,
     val fundDefault: FundCut? = null,
+    val fundBlikPhone: String? = null,
+    val fundBankAccount: String? = null,
 )
 
 /**
@@ -84,10 +86,10 @@ data class BandChange(val before: BandPart, val after: BandPart) {
 
 /**
  * Kinds of changes that cannot be undone: joining by invite, unlinking an account, passing on ownership, and settling
- * together, which is each member's own decision (ITERATION_5 §7).
+ * together and one's own payment details, which are each member's own decision (ITERATION_5 §7, §8).
  */
 fun isUndoable(op: Operation): Boolean = when (op) {
-    is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone,
+    is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone, is SetBankAccount,
     is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
     -> false
     is Undo -> isUndoable(op.original)
@@ -104,7 +106,7 @@ internal object Undoing {
         invalidIf(depth(op) > MAX_DEPTH, RejectionReason.NOT_UNDOABLE) { "Too many undos of undos" }
         invalidIf(!isUndoable(op.original) || op.change.isEmpty || op.change.restoresAttachments, RejectionReason.NOT_UNDOABLE) { "This change cannot be undone" }
         val after = op.change.after
-        val unchanged = (after.settings == null || after.settings == band.settings) &&
+        val unchanged = settingsUnchanged(op.change.before.settings, after.settings, band.settings) &&
             // A photo is not a change of the band (the server updates it at sign-in): undo ignores it. So does it a pair
             // formed or ended since (ITERATION_5 §7), which the undone change didn't touch.
             after.members.all { (id, value) -> band.member(id)?.plain() == value?.plain() } &&
@@ -121,12 +123,14 @@ internal object Undoing {
         conflictIf(!unchanged || !reordered, RejectionReason.CHANGED_SINCE) { "Changed since, can't undo" }
 
         val before = op.change.before
-        val settings = before.settings ?: band.settings
+        val settings = restoreSettings(before.settings, after.settings, band.settings)
         val restored = band.copy(
             name = settings.name,
             treasurerMemberId = settings.treasurerMemberId,
             agendaTemplate = settings.agendaTemplate,
             fundDefault = settings.fundDefault,
+            fundBlikPhone = settings.fundBlikPhone,
+            fundBankAccount = settings.fundBankAccount,
             members = restore(
                 band.members,
                 before.members.mapValues { (id, member) ->
@@ -136,8 +140,9 @@ internal object Undoing {
                     val later = after.members[id]
                     member?.copy(
                         pictureUrl = current?.pictureUrl ?: member.pictureUrl,
-                        // Only ever set by its own operation, which is not undoable (ITERATION_5 §8).
+                        // Only ever set by their own operations, which are not undoable (ITERATION_5 §8, ITERATION_7 §2i).
                         blikPhone = if (current == null) member.blikPhone else current.blikPhone,
+                        bankAccount = if (current == null) member.bankAccount else current.bankAccount,
                         settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith,
                         invitedToSettle = if (current == null || member.invitedToSettle != later?.invitedToSettle) member.invitedToSettle else current.invitedToSettle,
                     )
@@ -205,10 +210,35 @@ internal object Undoing {
     }
 }
 
-private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate, fundDefault)
+/**
+ * Each setting the change made (from [before] to [after]) is still as it left it in [current]; settings it didn't touch
+ * may have changed since, e.g. the fund's account set after a rename (ITERATION_7 §2i).
+ */
+private fun settingsUnchanged(before: BandSettings?, after: BandSettings?, current: BandSettings): Boolean =
+    before == null || after == null || settingFields.all { field -> field(before) == field(after) || field(current) == field(after) }
+
+/** [current] with the settings the change made set back to [before]; the others as they are now. */
+private fun restoreSettings(before: BandSettings?, after: BandSettings?, current: BandSettings): BandSettings {
+    if (before == null || after == null) return before ?: current
+    fun <T> pick(field: (BandSettings) -> T): T = if (field(before) != field(after)) field(before) else field(current)
+    return BandSettings(
+        name = pick { it.name },
+        treasurerMemberId = pick { it.treasurerMemberId },
+        agendaTemplate = pick { it.agendaTemplate },
+        fundDefault = pick { it.fundDefault },
+        fundBlikPhone = pick { it.fundBlikPhone },
+        fundBankAccount = pick { it.fundBankAccount },
+    )
+}
+
+private val settingFields: List<(BandSettings) -> Any?> = listOf(
+    { it.name }, { it.treasurerMemberId }, { it.agendaTemplate }, { it.fundDefault }, { it.fundBlikPhone }, { it.fundBankAccount },
+)
+
+private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate, fundDefault, fundBlikPhone, fundBankAccount)
 
 /** A member as undo compares them: without the photo and the pair, which change on their own. */
-private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null, blikPhone = null)
+private fun Member.plain() = copy(pictureUrl = null, settlesWith = null, invitedToSettle = null, blikPhone = null, bankAccount = null)
 
 private class Diff<T>(val before: Map<Id, T?>, val after: Map<Id, T?>, val order: List<Id>?)
 

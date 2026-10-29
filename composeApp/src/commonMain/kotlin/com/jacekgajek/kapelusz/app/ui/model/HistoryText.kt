@@ -59,6 +59,10 @@ import com.jacekgajek.kapelusz.app.generated.h_set_refund
 import com.jacekgajek.kapelusz.app.generated.h_set_role
 import com.jacekgajek.kapelusz.app.generated.h_set_treasurer
 import com.jacekgajek.kapelusz.app.generated.h_disable_fund
+import com.jacekgajek.kapelusz.app.generated.h_remove_fund_account
+import com.jacekgajek.kapelusz.app.generated.h_remove_fund_blik
+import com.jacekgajek.kapelusz.app.generated.h_set_fund_account
+import com.jacekgajek.kapelusz.app.generated.h_set_fund_blik
 import com.jacekgajek.kapelusz.app.generated.h_set_weight
 import com.jacekgajek.kapelusz.app.generated.h_set_percent_share
 import com.jacekgajek.kapelusz.app.generated.share_of_profit
@@ -74,6 +78,8 @@ import com.jacekgajek.kapelusz.app.generated.h_left_band
 import com.jacekgajek.kapelusz.app.generated.h_unlink_user
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.domain.BankAccount
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
@@ -123,6 +129,8 @@ import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.DisableBandFund
+import com.jacekgajek.kapelusz.ops.SetFundBankAccount
+import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFixedShare
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
@@ -172,6 +180,10 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         is UnlinkUser -> stringResource(if (op.memberId == by) Res.string.h_left_band else Res.string.h_unlink_user, member(op.memberId))
         is SetTreasurer -> stringResource(Res.string.h_set_treasurer, member(op.memberId))
         is DisableBandFund -> stringResource(Res.string.h_disable_fund)
+        is SetFundBlikPhone -> op.phone?.let { stringResource(Res.string.h_set_fund_blik, BlikPhone.normalize(it)?.let(BlikPhone::display) ?: it) }
+            ?: stringResource(Res.string.h_remove_fund_blik)
+        is SetFundBankAccount -> op.account?.let { stringResource(Res.string.h_set_fund_account, BankAccount.normalize(it)?.let(BankAccount::display) ?: it) }
+            ?: stringResource(Res.string.h_remove_fund_account)
         is TransferOwnership -> stringResource(Res.string.h_transfer_ownership, member(op.toMemberId))
         is CreateEvent -> stringResource(Res.string.h_create_event, op.name)
         is UpdateEvent -> stringResource(Res.string.h_edit_event, event(op.eventId))

@@ -562,7 +562,7 @@ Bands settle mostly in cash, sometimes by BLIK to a phone number; the number is 
 - **Settle says which way (2026-10-24):** the button on a suggestion (and in its Part dialog) is "Paid" for who pays
   it, "Received" for who gets it, "Settle" for a lead recording others'; it records the same. Both sides keep it: the
   receiver confirms cash in hand, and a forgetful payer doesn't leave it open.
-- **Pair or fund as recipient:** the fund's holder for the fund; for a pair, both partners with a number, the one the
+- **Pair or fund as recipient:** the fund's own number for the fund (its holder's until ITERATION_7 §2i); for a pair, both partners with a number, the one the
   transfer is recorded to (owed more) first, the other marked "settles together".
 - **Not in:** Share settlement texts, the history (the server doesn't record the operation), undo (not undoable;
   undoing other changes leaves it).

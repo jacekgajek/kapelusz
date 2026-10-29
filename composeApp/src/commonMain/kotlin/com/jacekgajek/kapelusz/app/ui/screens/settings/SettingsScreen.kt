@@ -1,7 +1,14 @@
 package com.jacekgajek.kapelusz.app.ui.screens.settings
 
 import androidx.compose.material.icons.filled.PhoneAndroid
+import com.jacekgajek.kapelusz.app.generated.account_mine
+import com.jacekgajek.kapelusz.app.generated.account_mine_hint
 import com.jacekgajek.kapelusz.app.generated.blik_mine
+import com.jacekgajek.kapelusz.app.generated.blik_mine_hint
+import com.jacekgajek.kapelusz.app.ui.components.PaymentDetailDialog
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.domain.BankAccount
+import androidx.compose.material.icons.filled.AccountBalance
 import com.jacekgajek.kapelusz.app.generated.blik_mine_off
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import androidx.compose.foundation.BorderStroke
@@ -155,10 +162,17 @@ fun SettingsScreen(
     /** Your BLIK number in this band (ITERATION_5 §8), as stored; [onBlikPhone] is null for whoever is never paid. */
     blikPhone: String? = null,
     onBlikPhone: ((String?) -> Unit)? = null,
+    /** Your bank account in this band (ITERATION_7 §2i), as [blikPhone]. */
+    bankAccount: String? = null,
+    onBankAccount: ((String?) -> Unit)? = null,
+    /** Where to pay into the band fund (ITERATION_7 §2i); [onFundPayment] for its holder and leads. */
+    fundBlikPhone: String? = null,
+    fundBankAccount: String? = null,
+    onFundPayment: ((PaymentKind, String?) -> Unit)? = null,
 ) {
     when (page) {
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
-            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance, fundDefault, fundDefaultSetting, currency)
+            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(treasurer, treasurerName, treasurerOptions, onTreasurer, onDisableFund, fundBalance, fundDefault, fundDefaultSetting, currency, fundBlikPhone, fundBankAccount, onFundPayment)
         }
         SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
             if (onAgendaTemplate != null) AgendaTemplateEditor(agendaTemplate, agendaTemplateStored, onAgendaTemplate)
@@ -173,6 +187,7 @@ fun SettingsScreen(
             var choosingLanguage by remember { mutableStateOf(false) }
             var renaming by remember { mutableStateOf(false) }
             var editingBlik by remember { mutableStateOf(false) }
+            var editingAccount by remember { mutableStateOf(false) }
             val languages = listOf(null to Res.string.language_system, "en" to Res.string.language_en, "pl" to Res.string.language_pl)
             // Grouped by whom they affect: the band's settings change things for everyone, the personal ones only for you.
             SectionHeader(stringResource(Res.string.settings_band), Modifier.padding(horizontal = 16.dp))
@@ -186,6 +201,11 @@ fun SettingsScreen(
             if (onBlikPhone != null) {
                 SettingsItem(Icons.Default.PhoneAndroid, stringResource(Res.string.blik_mine), blikPhone?.let(BlikPhone::display) ?: stringResource(Res.string.blik_mine_off)) {
                     editingBlik = true
+                }
+            }
+            if (onBankAccount != null) {
+                SettingsItem(Icons.Default.AccountBalance, stringResource(Res.string.account_mine), bankAccount?.let(BankAccount::display) ?: stringResource(Res.string.blik_mine_off)) {
+                    editingAccount = true
                 }
             }
             if (onAgendaTemplate != null) {
@@ -309,7 +329,12 @@ fun SettingsScreen(
                     confirmButton = { TextButton(onClick = { choosingLanguage = false }) { Text(stringResource(Res.string.cancel)) } },
                 )
             }
-            if (editingBlik && onBlikPhone != null) BlikPhoneDialog(blikPhone, onBlikPhone, onDismiss = { editingBlik = false })
+            if (editingBlik && onBlikPhone != null) {
+                PaymentDetailDialog(PaymentKind.BLIK, stringResource(Res.string.blik_mine), stringResource(Res.string.blik_mine_hint), blikPhone, onBlikPhone, onDismiss = { editingBlik = false })
+            }
+            if (editingAccount && onBankAccount != null) {
+                PaymentDetailDialog(PaymentKind.ACCOUNT, stringResource(Res.string.account_mine), stringResource(Res.string.account_mine_hint), bankAccount, onBankAccount, onDismiss = { editingAccount = false })
+            }
             if (renaming && onRenameBand != null) {
                 TextInputDialog(stringResource(Res.string.band_name), stringResource(Res.string.band_name), bandName, onConfirm = { if (it != bandName) onRenameBand(it) }, onDismiss = { renaming = false })
             }

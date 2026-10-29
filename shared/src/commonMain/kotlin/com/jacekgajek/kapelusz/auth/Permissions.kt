@@ -13,7 +13,10 @@ import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
+import com.jacekgajek.kapelusz.ops.SetBankAccount
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
+import com.jacekgajek.kapelusz.ops.SetFundBankAccount
+import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -137,7 +140,9 @@ object Permissions {
         is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST
 
         // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8).
-        is SetBlikPhone -> Role.ARTIST
+        is SetBlikPhone, is SetBankAccount -> Role.ARTIST
+        // Where to pay into the fund (ITERATION_7 §2i): its holder, who keeps the money, and leads.
+        is SetFundBlikPhone, is SetFundBankAccount -> ownIf(band.treasurerMemberId == me.id)
 
         // Artists too look after their own costs (ITERATION_4 §1.1); money held stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
@@ -160,6 +165,7 @@ object Permissions {
         is DeclineSettleTogether -> op.toMemberId
         is StopSettlingTogether -> op.memberId
         is SetBlikPhone -> op.memberId
+        is SetBankAccount -> op.memberId
         else -> null
     }
 

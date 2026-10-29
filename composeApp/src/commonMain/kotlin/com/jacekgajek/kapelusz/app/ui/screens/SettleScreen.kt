@@ -1,8 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
-import com.jacekgajek.kapelusz.app.ui.components.BlikButton
+import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.domain.BlikPhone
+import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.Arrangement
@@ -145,7 +146,7 @@ fun SettleScreen(
                                     // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
                                     val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
                                         band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
-                                    if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) BlikButton(BlikPhone.recipients(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
+                                    if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
