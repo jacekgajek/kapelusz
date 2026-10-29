@@ -117,8 +117,8 @@ object SettleTogether {
      * - money between the band fund and a pair with the treasurer: always the treasurer, who holds the fund.
      */
     fun split(band: Band, settlement: Settlement, from: Id, to: Id, amount: Money): List<SuggestedTransfer> {
-        val order = settlement.lines.withIndex().associate { (i, line) -> line.partyId to i }
-        fun side(partyId: Id) = listOfNotNull(partyId, settlement.partners[partyId]).sortedBy { order[it] ?: Int.MAX_VALUE }
+        // By id where the two are equal, not by the roster's order (which leaders change at will).
+        fun side(partyId: Id) = listOfNotNull(partyId, settlement.partners[partyId]).sorted()
         fun line(partyId: Id) = settlement.line(partyId)
         val treasurer = band.treasurerMemberId
 

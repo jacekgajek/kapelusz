@@ -217,24 +217,24 @@ object SettlementCalculator {
     }
 
     /**
-     * Splits [net] proportionally to the weights of [participants] (in party order). Each share is rounded down; the
-     * leftover minor units go one by one to the largest fractional remainders, ties broken by party order. The shares
-     * always sum to exactly [net].
+     * Splits [net] proportionally to the weights of [participants]. Each share is rounded down; the leftover minor
+     * units go one by one to the largest fractional remainders, ties broken by party id: never by the roster's order,
+     * which leaders change at will, so moving a member never moves a grosz in a settled event.
      */
     private fun splitByWeight(net: Money, participants: List<Participant>, totalWeight: Long): Map<Id, Money> {
-        class Part(val partyId: Id, val index: Int, val base: Long, val remainder: Long)
+        class Part(val partyId: Id, val base: Long, val remainder: Long)
 
         // net × weight ÷ total, computed without forming net × weight (ITERATION_3 R1): exact, and no overflow even for
         // amounts stored before the limits. With net = q·total + r: net·w / total = q·w + r·w / total.
         val q = net.minor / totalWeight
         val r = net.minor % totalWeight
-        val parts = participants.mapIndexed { index, participant ->
+        val parts = participants.map { participant ->
             val weight = participant.weight.toLong()
-            Part(participant.partyId, index, q * weight + r * weight / totalWeight, r * weight % totalWeight)
+            Part(participant.partyId, q * weight + r * weight / totalWeight, r * weight % totalWeight)
         }
         val leftover = net.minor - parts.sumOf { it.base }
         val bonus = parts
-            .sortedWith(compareByDescending<Part> { it.remainder }.thenBy { it.index })
+            .sortedWith(compareByDescending<Part> { it.remainder }.thenBy { it.partyId })
             .take(leftover.toInt())
             .map { it.partyId }
             .toSet()
@@ -242,11 +242,12 @@ object SettlementCalculator {
     }
 
     /**
-     * Greedy matching of the largest surplus with the largest deficit (ties by party order), which needs at most
-     * n−1 transfers. The treasurer and the fund are paired first, so the treasurer simply keeps the fund's money.
+     * Greedy matching of the largest surplus with the largest deficit, which needs at most n−1 transfers. Ties go by
+     * party id (a pair's smaller one), not by the roster's order, so reordering the roster doesn't change them. The
+     * treasurer and the fund are paired first, so the treasurer simply keeps the fund's money.
      */
     private fun suggestTransfers(lines: List<PartyLine>, treasurerId: Id?): List<SuggestedTransfer> {
-        val index = lines.withIndex().associate { (i, line) -> line.partyId to i }
+        val key = lines.associate { line -> line.partyId to line.partyIds.min() }
         val delta = lines.associate { it.partyId to it.delta.minor }.toMutableMap()
         val result = mutableListOf<SuggestedTransfer>()
 
@@ -266,9 +267,9 @@ object SettlementCalculator {
 
         while (true) {
             val debtor = delta.filterValues { it > 0 }.keys
-                .minWithOrNull(compareByDescending<Id> { delta.getValue(it) }.thenBy { index.getValue(it) }) ?: break
+                .minWithOrNull(compareByDescending<Id> { delta.getValue(it) }.thenBy { key.getValue(it) }) ?: break
             val creditor = delta.filterValues { it < 0 }.keys
-                .minWithOrNull(compareBy<Id> { delta.getValue(it) }.thenBy { index.getValue(it) }) ?: break
+                .minWithOrNull(compareBy<Id> { delta.getValue(it) }.thenBy { key.getValue(it) }) ?: break
             move(debtor, creditor, minOf(delta.getValue(debtor), -delta.getValue(creditor)))
         }
         return result
