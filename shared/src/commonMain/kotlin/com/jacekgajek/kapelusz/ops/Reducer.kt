@@ -60,7 +60,6 @@ object Reducer {
                 band.validFreeName(name, except = op.memberId)
                 band.updateMember(op.memberId) { it.copy(name = name) }
             }
-            is MoveMember -> moveMember(band, op)
             is SetMemberArchived -> setMemberArchived(band, op)
             is DeleteMember -> deleteMember(band, op, ctx)
             is SetMemberRole -> setMemberRole(band, op)
@@ -167,6 +166,8 @@ object Reducer {
                 event.copy(participants = event.participants.map { if (it.partyId == op.partyId) share.applyTo(it) else it })
             }
             is RemoveParticipant -> removeParticipant(band, op)
+            is ChangeLineup -> changeLineup(band, op, ctx)
+            is UnknownOperation -> reject(RejectionCode.INVALID, RejectionReason.INVALID_INPUT, "Unknown operation")
 
             is AddHolding -> band.updateEvent(op.eventId) { event ->
                 invalidIf(event.holdings.any { it.id == op.holdingId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.holdingId} already exists" }
@@ -306,13 +307,6 @@ object Reducer {
     /** Member names are unique, ignoring case, archived members included (ITERATION_5 §12). */
     private fun Band.validFreeName(name: String, except: Id? = null) {
         conflictIf(memberNamed(name, except) != null, RejectionReason.NAME_TAKEN) { "A member is already called $name" }
-    }
-
-    private fun moveMember(band: Band, op: MoveMember): Band {
-        val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
-        invalidIf(op.toIndex !in band.members.indices, RejectionReason.INVALID_INPUT) { "Index ${op.toIndex} out of range" }
-        val others = band.members.filterNot { it.id == op.memberId }
-        return band.copy(members = others.take(op.toIndex) + member + others.drop(op.toIndex))
     }
 
     private fun setMemberArchived(band: Band, op: SetMemberArchived): Band {
@@ -516,6 +510,25 @@ object Reducer {
             guests = event.guests + Guest(op.guestId, op.name.validName("Guest name")),
             participants = event.participants + share.applyTo(Participant(op.guestId)),
         )
+    }
+
+    /**
+     * One by one, as [removeParticipant], [addParticipant] and [addGuest] would; the first refusal refuses all of it.
+     */
+    private fun changeLineup(band: Band, op: ChangeLineup, ctx: OpContext): Band {
+        val ids = op.add.map { it.partyId } + op.remove
+        invalidIf(ids.isEmpty(), RejectionReason.INVALID_INPUT) { "Nothing to change" }
+        invalidIf(ids.toSet().size != ids.size, RejectionReason.INVALID_INPUT) { "Someone is named twice" }
+        invalidIf(ids.size > Limits.MAX_PARTIES_PER_EVENT * 2, RejectionReason.INVALID_INPUT) { "Too many changes" }
+        val guests = op.guests.associateBy { it.id }
+        invalidIf(guests.size != op.guests.size, RejectionReason.DUPLICATE_ID) { "Duplicate guest ids" }
+        invalidIf(guests.keys.any { id -> op.add.none { it.partyId == id } }, RejectionReason.INVALID_INPUT) { "A new guest without a share" }
+        val removed = op.remove.fold(band) { result, partyId -> removeParticipant(result, RemoveParticipant(op.eventId, partyId)) }
+        return op.add.fold(removed) { result, p ->
+            val guest = guests[p.partyId]
+            if (guest != null) addGuest(result, AddGuest(op.eventId, guest.id, guest.name, p.weight, p.fixedShare, p.percent))
+            else addParticipant(result, AddParticipant(op.eventId, p.partyId, p.weight, p.fixedShare, p.percent), ctx)
+        }
     }
 
     private fun removeParticipant(band: Band, op: RemoveParticipant): Band = band.updateEvent(op.eventId) { event ->

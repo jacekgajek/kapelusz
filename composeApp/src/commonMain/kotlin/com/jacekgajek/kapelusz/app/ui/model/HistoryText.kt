@@ -36,7 +36,6 @@ import com.jacekgajek.kapelusz.app.generated.h_edit_event
 import com.jacekgajek.kapelusz.app.generated.h_edit_fund_entry
 import com.jacekgajek.kapelusz.app.generated.h_edit_holding
 import com.jacekgajek.kapelusz.app.generated.h_link_user
-import com.jacekgajek.kapelusz.app.generated.h_move_member
 import com.jacekgajek.kapelusz.app.generated.h_receive_awaited
 import com.jacekgajek.kapelusz.app.generated.h_record_transfer
 import com.jacekgajek.kapelusz.app.generated.h_remove_attachment
@@ -76,6 +75,8 @@ import com.jacekgajek.kapelusz.app.generated.h_settle_all
 import com.jacekgajek.kapelusz.app.generated.h_settle_party
 import com.jacekgajek.kapelusz.app.generated.h_transfer_ownership
 import com.jacekgajek.kapelusz.app.generated.h_unknown
+import com.jacekgajek.kapelusz.app.generated.h_unknown_kind
+import com.jacekgajek.kapelusz.app.generated.h_change_lineup
 import com.jacekgajek.kapelusz.app.generated.h_left_band
 import com.jacekgajek.kapelusz.app.generated.h_unlink_user
 import com.jacekgajek.kapelusz.app.ui.components.label
@@ -109,7 +110,6 @@ import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
@@ -117,6 +117,9 @@ import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
+import com.jacekgajek.kapelusz.ops.ChangeLineup
+import com.jacekgajek.kapelusz.ops.UnknownOperation
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
@@ -171,14 +174,13 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
     fun transferParty(eventId: Id, id: Id, together: Boolean): String {
         val partner = band.member(id)?.settlesWith?.takeIf { together && band.event(eventId)?.participant(it) != null }
             ?: return party(eventId, id)
-        val names = listOf(id, partner).sortedBy { p -> band.members.indexOfFirst { it.id == p } }.map { member(it) }
+        val names = listOf(id, partner).map { member(it) }.sortedByName { it }
         return pairNames.replace("%1\$s", names[0]).replace("%2\$s", names[1])
     }
     val text = when (op) {
         is RenameBand -> stringResource(Res.string.h_rename_band, op.name)
         is AddMember -> stringResource(Res.string.h_add_member, op.name)
         is RenameMember -> stringResource(Res.string.h_rename_member, op.name)
-        is MoveMember -> stringResource(Res.string.h_move_member, member(op.memberId))
         is SetMemberArchived -> stringResource(if (op.archived) Res.string.h_archive_member else Res.string.h_restore_member, member(op.memberId))
         is DeleteMember -> stringResource(Res.string.h_delete_member, member(op.memberId))
         is SetMemberRole -> stringResource(Res.string.h_set_role, member(op.memberId), op.role.label())
@@ -215,6 +217,8 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
             stringResource(Res.string.h_clear_fixed_share_weight, party(op.eventId, op.partyId), sharesText(weight), event(op.eventId))
         } ?: stringResource(Res.string.h_clear_fixed_share, party(op.eventId, op.partyId), event(op.eventId))
         is RemoveParticipant -> stringResource(Res.string.h_remove_participant, party(op.eventId, op.partyId), event(op.eventId))
+        is ChangeLineup -> stringResource(Res.string.h_change_lineup, event(op.eventId), op.add.size, op.remove.size)
+        is UnknownOperation -> stringResource(Res.string.h_unknown_kind)
         is AddHolding -> if (op.partyId == ORGANISER) stringResource(Res.string.h_add_awaited, money(op.amount), event(op.eventId))
             else stringResource(Res.string.h_add_holding, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))
         is ReceiveAwaited -> stringResource(Res.string.h_receive_awaited, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))
@@ -275,7 +279,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
     // A pair ended by an archive, an unlink or a role change says so (ITERATION_5 §7).
     val ended = if (change == null || op is StopSettlingTogether || op is Undo) emptyList() else change.before.members.values.filterNotNull()
         .filter { before -> before.settlesWith != null && change.after.members[before.id]?.settlesWith == null }
-        .map { it.id }.sortedBy { id -> band.members.indexOfFirst { it.id == id } }
+        .map { member(it.id) }.sortedByName { it }
     if (ended.size < 2) return text
-    return stringResource(Res.string.h_pair_ended, text, member(ended[0]), member(ended[1]))
+    return stringResource(Res.string.h_pair_ended, text, ended[0], ended[1])
 }

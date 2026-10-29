@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.data
 
+import com.jacekgajek.kapelusz.ops.UnknownOperation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.CancellationException
 import com.jacekgajek.kapelusz.api.BandSummary
@@ -337,7 +338,7 @@ class BandRepository(
         val key = bandKey(requireUser(), bandId)
         val raw = store.read(key) ?: return null
         return try {
-            KapeluszJson.decodeFromString(LocalBand.serializer(), raw).also { replay(it) }.let { local ->
+            KapeluszJson.decodeFromString(LocalBand.serializer(), raw).let(::withoutUnknown).also { replay(it) }.let { local ->
                 if (local.schema >= CURRENT_SCHEMA) local
                 // Forget the version: the next pull gets the full state instead of "not modified".
                 else local.copy(version = null, schema = CURRENT_SCHEMA).also { dirty += bandId }
@@ -352,6 +353,17 @@ class BandRepository(
             }
             throw UnreadableBand()
         }
+    }
+
+    /**
+     * Unsent operations of a kind this version doesn't know (ITERATION_8 §2), e.g. a `MoveMember` from before it was
+     * removed, are dropped: the server would refuse them anyway.
+     */
+    private fun withoutUnknown(local: LocalBand): LocalBand {
+        val unknown = local.pending.filter { it.op is UnknownOperation }.map { it.opId }.toSet()
+        if (unknown.isEmpty()) return local
+        dirty += local.base.id
+        return local.copy(pending = local.pending.filterNot { it.opId in unknown }, holds = local.holds - unknown)
     }
 
     private suspend fun recoverBands(userId: String, rawIndex: String) {

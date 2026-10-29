@@ -13,7 +13,6 @@ import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
-import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.SetFundAmount
@@ -414,14 +413,14 @@ class SettleTogetherTest {
         assertTrue(com.jacekgajek.kapelusz.domain.SettlementCalculator.settle(stale, stale.event("gig")!!).partners.isEmpty())
     }
 
-    /** Reordering the roster changes neither a pair's suggestions nor how its transfers are split between the two. */
+    /** The members' stored order changes neither a pair's suggestions nor how its transfers are split between the two. */
     @Test
     fun rosterOrderChangesNothingForAPair() {
         fun settled(reorder: Boolean): Pair<List<SuggestedTransfer>, List<Triple<String, String, String>>> {
             val scenario = band().pair()
                 .event("e", "Alice", "Bob", "Carol")
                 .apply(AddHolding("e", "h", "alice", pln("300"), DOOR))
-            if (reorder) scenario.apply(MoveMember("carol", 0))
+            if (reorder) scenario.storeMembersInOrder("carol")
             val suggestions = scenario.settle("e").suggestions
             scenario.apply(SettleSuggestions("e"))
             return suggestions to scenario.band.event("e")!!.transfers.map { Triple(it.from, it.to, it.amount.toString()) }

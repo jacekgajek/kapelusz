@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.Artists
@@ -61,7 +62,7 @@ class Can(private val band: Band, private val userId: String) {
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */
     fun holdingParties(event: Event): List<Id> =
-        if (!open(event)) emptyList() else event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) && allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
+        if (!open(event)) emptyList() else SettlementCalculator.partyOrder(band, event).filter { !Artists.isArtist(band, it) && allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
 
     /** A fee the organiser still owes (ITERATION_4 §2.2): leads record it; who it was paid to marks it received too. */
     fun recordAwaited(event: Event) = open(event) && allowed(AddHolding(event.id, PROBE, ORGANISER, Money(1), IncomeSource.CONTRACT))
@@ -72,7 +73,7 @@ class Can(private val band: Band, private val userId: String) {
      */
     fun receiveParties(event: Event): List<Id> =
         if (!open(event)) emptyList()
-        else (event.participants.map { it.partyId }.filter { !Artists.isArtist(band, it) } + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId != null }))
+        else (SettlementCalculator.partyOrder(band, event).filter { !Artists.isArtist(band, it) } + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId != null }))
             .filter { allowed(ReceiveAwaited(event.id, PROBE, PROBE, it, Money(1))) }
 
     fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))

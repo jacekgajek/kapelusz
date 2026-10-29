@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,8 +27,6 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,7 +34,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -97,8 +93,6 @@ import com.jacekgajek.kapelusz.app.generated.member_share_hint
 import com.jacekgajek.kapelusz.app.generated.member_share_line
 import com.jacekgajek.kapelusz.app.generated.member_share_title
 import com.jacekgajek.kapelusz.app.generated.menu_roster
-import com.jacekgajek.kapelusz.app.generated.move_down
-import com.jacekgajek.kapelusz.app.generated.move_up
 import com.jacekgajek.kapelusz.app.generated.not_linked
 import com.jacekgajek.kapelusz.app.generated.reject_holds_money
 import com.jacekgajek.kapelusz.app.generated.reject_viewer_still_plays
@@ -140,7 +134,6 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.RenameMember
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import androidx.compose.material3.ButtonDefaults
@@ -163,6 +156,12 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
+import com.jacekgajek.kapelusz.app.generated.search_people_none
+import com.jacekgajek.kapelusz.app.ui.components.Crowd
+import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
+import com.jacekgajek.kapelusz.app.ui.components.NameSearchField
+import com.jacekgajek.kapelusz.domain.Names
+import com.jacekgajek.kapelusz.domain.sortedByName
 import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
@@ -191,8 +190,16 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
         }
     }
     LaunchedEffect(band.id, isAdmin) { if (isAdmin) reloadInvites() }
-    // Archived members below, in a section of their own: bands that change players collect many of them.
-    val (archived, active) = band.members.partition { it.archived }
+    // By role, alphabetical within (ITERATION_8 §2); archived members below, in a section of their own: bands that
+    // change players collect many of them.
+    var query by rememberSaveable { mutableStateOf("") }
+    val (allArchived, allActive) = band.members.sortedByName { it.name }.partition { it.archived }
+    val searchable = allActive.size > Crowd.THRESHOLD
+    val (archived, active) = if (searchable && query.isNotBlank()) {
+        allArchived.filter { Names.matches(it.name, query) } to allActive.filter { Names.matches(it.name, query) }
+    } else {
+        allArchived to allActive
+    }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     // Leads set default shares (ITERATION_4 §2.3); leaders also manage the rest of a member in their dialog.
     val canShare = can.setMemberShare()
@@ -224,27 +231,24 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
             if (isAdmin && invitesFailed) {
                 item { Text(stringResource(Res.string.invites_unavailable), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
             }
-            itemsIndexed(active, key = { _, member -> member.id }) { index, member ->
-                // Moves are by roster position, which counts archived members too: next to the neighbour above or below.
-                val up = active.getOrNull(index - 1)?.let { band.members.indexOf(it) }
-                val down = active.getOrNull(index + 1)?.let { band.members.indexOf(it) }
-                val moves: @Composable () -> Unit = {
-                    IconButton(onClick = { up?.let { actions.run(MoveMember(member.id, it)) } }, enabled = up != null) {
-                        Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.move_up) + ": " + member.name)
-                    }
-                    IconButton(onClick = { down?.let { actions.run(MoveMember(member.id, it)) } }, enabled = down != null) {
-                        Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.move_down) + ": " + member.name)
-                    }
+            if (searchable) item(key = "search") { NameSearchField(query, { query = it }, Modifier.padding(16.dp, 8.dp)) }
+            for (group in RoleGroup.entries) {
+                val members = active.filter { group.has(it) }
+                if (members.isEmpty()) continue
+                item(key = "group-${group.name}") { GroupTitle(stringResource(group.title, members.size)) }
+                items(members, key = { it.id }) { member ->
+                    MemberRow(
+                        member,
+                        invites?.firstOrNull { it.memberId == member.id },
+                        band.currency,
+                        onClick = open(member),
+                        isMyPartner = me != null && member.id == me.settlesWith,
+                        namesOnly = namesOnly,
+                    )
                 }
-                MemberRow(
-                    member,
-                    invites?.firstOrNull { it.memberId == member.id },
-                    band.currency,
-                    onClick = open(member),
-                    moves = moves.takeIf { isAdmin },
-                    isMyPartner = me != null && member.id == me.settlesWith,
-                    namesOnly = namesOnly,
-                )
+            }
+            if (searchable && query.isNotBlank() && active.isEmpty() && (archived.isEmpty() || namesOnly)) {
+                item(key = "no-match") { Text(stringResource(Res.string.search_people_none, query.trim()), Modifier.padding(16.dp)) }
             }
             // Not for artists: they only need those they could settle together with (ITERATION_6 §11).
             if (archived.isNotEmpty() && !namesOnly) {
@@ -256,7 +260,8 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
                         trailingContent = { Icon(if (showArchived) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null) },
                     )
                 }
-                if (showArchived) items(archived, key = { it.id }) { member ->
+                // A search reaching former members opens them (ITERATION_8 §2).
+                if (showArchived || (searchable && query.isNotBlank())) items(archived, key = { it.id }) { member ->
                     MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), namesOnly = namesOnly)
                 }
             }
@@ -373,14 +378,24 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
     }
 }
 
-/** A roster row; [moves] are the leader's up/down buttons (only for active members). */
+@Composable
+private fun GroupTitle(text: String) {
+    Text(
+        text,
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    HorizontalDivider()
+}
+
+/** A roster row: the group says the role; only the owner's row says Owner. */
 @Composable
 private fun MemberRow(
     member: Member,
     invite: InviteInfo?,
     currency: String,
     onClick: (() -> Unit)?,
-    moves: (@Composable () -> Unit)? = null,
     /** You settle together with them (ITERATION_5 §7): only your own partner is marked, nobody else's pair. */
     isMyPartner: Boolean = false,
     namesOnly: Boolean = false,
@@ -403,13 +418,14 @@ private fun MemberRow(
         },
         supportingContent = if (namesOnly) null else ({
             Column {
-                Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
+                if (member.userId != null && member.role == Role.OWNER) Text(member.role.label())
+                // Former members have no group of their own role.
+                if (member.archived) Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
                 if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
                 // A normal share goes unsaid: it is everyone's, until changed.
                 shareText(member, currency)?.let { Text(it) }
             }
         }),
-        trailingContent = { if (moves != null) Row { moves() } },
     )
     HorizontalDivider()
 }

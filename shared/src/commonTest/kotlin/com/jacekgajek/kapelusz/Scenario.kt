@@ -49,6 +49,15 @@ class Scenario(vararg memberNames: String) {
         return this
     }
 
+    /**
+     * The members stored in the order of [ids] (the rest after them): no operation does this since the roster has no
+     * order of its own (ITERATION_8 §2), but stored bands have one, which must not matter.
+     */
+    fun storeMembersInOrder(vararg ids: String): Scenario {
+        band = band.copy(members = ids.map { band.member(it)!! } + band.members.filter { it.id !in ids })
+        return this
+    }
+
     fun rejected(op: Operation, actor: Actor = Actor.System): Rejection =
         when (val result = Engine.apply(band, actor, op, "op${nextOp++}", nextOp.toLong())) {
             is ApplyResult.Applied -> fail("Expected $op to be rejected but it was applied")

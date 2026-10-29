@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.clickable
@@ -367,7 +368,7 @@ private fun FundEntryDialog(
     // The description filled in from the picked cost: replaced when another cost is picked, unless the user typed over it.
     var filled by remember { mutableStateOf(refundCost?.let(::costName)) }
     // Who paid it in: members, or null for outside the band. The one adding it by default.
-    val people = band.members.filter { !it.archived && it.role != Role.VIEWER }
+    val people = band.members.filter { !it.archived && it.role != Role.VIEWER }.sortedByName { it.name }
     var payers by remember {
         mutableStateOf(if (initial != null) listOf(initial.paidBy) else listOf(me?.takeIf { id -> people.any { it.id == id } }))
     }

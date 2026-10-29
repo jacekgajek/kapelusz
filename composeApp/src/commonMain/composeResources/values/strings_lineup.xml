@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bigger groups (ITERATION_8): the line-up picker, the members by role, searching people -->
+    <string name="search_people">Search by name</string>
+    <string name="search_by_title">Search by name</string>
+    <string name="search_people_none">Nobody matches “%1$s”.</string>
+    <string name="roster_group_leaders">Leaders (%1$d)</string>
+    <string name="roster_group_members">Members (%1$d)</string>
+    <string name="roster_group_artists">Artists (%1$d)</string>
+    <string name="roster_group_viewers">Viewers (%1$d)</string>
+    <string name="roster_group_not_in_app">Not in the app (%1$d)</string>
+    <string name="participants_count">Participants (%1$d)</string>
+    <string name="participants_show_all">Show all %1$d</string>
+    <string name="lineup_add">Add participants (%1$d)</string>
+    <string name="lineup_not_taking_part">%1$d not taking part</string>
+    <string name="lineup_title">Line-up</string>
+    <string name="lineup_start_from">From an event…</string>
+    <string name="lineup_start_from_title">The line-up of another event</string>
+    <string name="lineup_start_from_none">No other events yet.</string>
+    <string name="lineup_tick_all">Tick all shown</string>
+    <string name="lineup_untick_all">Untick all shown</string>
+    <string name="lineup_count">%1$d of %2$d</string>
+    <string name="lineup_locked">Has money in this event</string>
+    <string name="lineup_discard_title">Discard changes?</string>
+    <string name="lineup_discard">Discard</string>
+    <string name="lineup_keep_editing">Keep editing</string>
+    <string name="lineup_changed">Line-up changed: +%1$d, −%2$d</string>
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Większe zespoły (ITERATION_8): wybór składu, członkowie według ról, szukanie osób -->
+    <string name="search_people">Szukaj po imieniu</string>
+    <string name="search_by_title">Szukaj po nazwie</string>
+    <string name="search_people_none">Nikt nie pasuje do „%1$s”.</string>
+    <string name="roster_group_leaders">Liderzy (%1$d)</string>
+    <string name="roster_group_members">Członkowie (%1$d)</string>
+    <string name="roster_group_artists">Artyści (%1$d)</string>
+    <string name="roster_group_viewers">Obserwatorzy (%1$d)</string>
+    <string name="roster_group_not_in_app">Bez aplikacji (%1$d)</string>
+    <string name="participants_count">Uczestnicy (%1$d)</string>
+    <string name="participants_show_all">Pokaż wszystkich (%1$d)</string>
+    <string name="lineup_add">Dodaj uczestników (%1$d)</string>
+    <string name="lineup_not_taking_part">Nie biorą udziału: %1$d</string>
+    <string name="lineup_title">Skład</string>
+    <string name="lineup_start_from">Z wydarzenia…</string>
+    <string name="lineup_start_from_title">Skład innego wydarzenia</string>
+    <string name="lineup_start_from_none">Nie ma jeszcze innych wydarzeń.</string>
+    <string name="lineup_tick_all">Zaznacz widocznych</string>
+    <string name="lineup_untick_all">Odznacz widocznych</string>
+    <string name="lineup_count">%1$d z %2$d</string>
+    <string name="lineup_locked">Ma pieniądze w tym wydarzeniu</string>
+    <string name="lineup_discard_title">Odrzucić zmiany?</string>
+    <string name="lineup_discard">Odrzuć</string>
+    <string name="lineup_keep_editing">Wróć do edycji</string>
+    <string name="lineup_changed">Zmieniono skład: +%1$d, −%2$d</string>
+</resources>

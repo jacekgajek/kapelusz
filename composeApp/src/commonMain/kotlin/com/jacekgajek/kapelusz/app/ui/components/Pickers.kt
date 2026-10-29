@@ -32,6 +32,9 @@ import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.ok
+import com.jacekgajek.kapelusz.app.generated.search_people
+import org.jetbrains.compose.resources.StringResource
+import com.jacekgajek.kapelusz.domain.Names
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -132,7 +135,10 @@ fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, Local
     }
 }
 
-/** Dropdown choosing one of [options]; [label] renders each option. */
+/**
+ * Dropdown choosing one of [options]; [label] renders each option. With more than [Crowd.THRESHOLD] options its menu
+ * starts with a search field (ITERATION_8 §1.5), saying [searchHint]: people unless the options are events or costs.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> Dropdown(
@@ -141,6 +147,7 @@ fun <T> Dropdown(
     onSelect: (T) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    searchHint: StringResource = Res.string.search_people,
     optionLabel: @Composable (T) -> String,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -153,9 +160,15 @@ fun <T> Dropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        var query by remember { mutableStateOf("") }
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false; query = "" }) {
+            val searchable = options.size > Crowd.THRESHOLD
+            if (searchable) NameSearchField(query, { query = it }, Modifier.padding(horizontal = 8.dp), placeholder = searchHint)
             options.forEach { option ->
-                DropdownMenuItem(text = { Text(optionLabel(option)) }, onClick = { onSelect(option); expanded = false })
+                val text = optionLabel(option)
+                if (!searchable || Names.matches(text, query)) {
+                    DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(option); expanded = false; query = "" })
+                }
             }
         }
     }
