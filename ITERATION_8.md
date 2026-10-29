@@ -14,8 +14,8 @@ screens of chips, and finding one name means reading them all.
 
 ### 1.1 When (Q1)
 
-Up to 12 members not taking part: the chips as they are. Above: in their place one button, **Add participants (n)**,
-which opens the picker. Counted from the members who could take part (current, not viewers), not from the guests.
+Up to 12 members not taking part: the chips as they are. Above: in their place **Add participants (n)**, a chip
+on the actions row (§1.2a), which opens the picker. Counted from the members who could take part (current, not viewers), not from the guests.
 
 ### 1.2 The picker (Q2–Q6, Q10)
 
@@ -24,7 +24,7 @@ Full screen on phones, a dialog about 560 dp wide on tablets and the web.
 - **The whole line-up** (Q3): everyone who can take part (current members, not viewers), those in the event ticked.
   Unticking removes them, except who has money in the event (collected, transfers, refunds): their tick is locked,
   with "has money in this event". Then this event's guests under **Guests** (Q5), ticked; unticking removes them, with
-  the same lock. A new guest is added outside the picker, with **Add guest** beside the button, as today.
+  the same lock. A new guest is added outside the picker, with **Add guest** beside Add participants, as today.
 - **Shares** (Q4) shown on a row when not the default ("1½", "300 zł", "10%"), not editable there: a participant's
   share is changed on their row in the event, as today.
 - **From an event…** (Q2, first called Start from…): an earlier event (newest first, searchable by name) replaces the ticks with its line-up:
@@ -38,8 +38,8 @@ Full screen on phones, a dialog about 560 dp wide on tablets and the web.
   any part of a name, ignoring case and Polish letters ("lukasz" finds "Łukasz"). **Tick all shown** / **Untick all
   shown** beside it: the matches while a search is typed, else everyone; locked rows stay as they are.
 - **Save** with the count, "42 of 58". Back with changes asks **Discard changes?**
-- **Who** (Q10): leaders (as `AddParticipant`). Others, above the threshold, get "16 not taking part" in place of the
-  button, which opens who isn't taking part, read only (search, no ticks, no Save); below it, the greyed chips as
+- **Who** (Q10): leaders (as `AddParticipant`). Others, above the threshold, get "16 not taking part" in place of
+  Add participants, which opens who isn't taking part, read only (search, no ticks, no Save); below it, the greyed chips as
   today.
 - **Former members or viewers** still in the event (archived or made viewers since) are listed too, in their own
   groups, so nothing changes unseen.
@@ -51,7 +51,12 @@ Full screen on phones, a dialog about 560 dp wide on tablets and the web.
 A new event no longer copies the line-up of the latest one: it starts with nobody. While it has no participants, a
 leader gets **From an event…** beside Add guest, for any band size: the same choice as in the picker, applied at once
 (with Undo), so small bands keep "same people as last time" in two taps, from any event, not only the latest. The
-picker's button is called the same (it was Start from…).
+picker's button is called the same (it was Start from…). While there is nobody, **Add participants** (the picker) is
+there too, for any band size; once someone is in, a small band has only its chips and Add guest again. With nobody left to add it
+isn't shown.
+
+The members not taking part (chips) come first; the actions (**From an event…**, **Add participants**, **Add guest**)
+follow on a row of their own, all the same kind of chip with an icon, so a person never looks like a command.
 
 ### 1.3 Saving: `ChangeLineup` (Q8)
 
@@ -67,8 +72,8 @@ One operation, `ChangeLineup(eventId, add: List<Participant>, remove: List<Id>, 
 
 ### 1.4 The participant list in the event (Q7)
 
-The section's title has the count, "Participants (42)". Over 12 participants the first 8 rows, then **Show all 42**,
-open until leaving the event. At 12 or fewer, as today.
+Over 12 participants the section's title has the count, "Participants (42)". All rows are shown, however many: the
+event screen is where one checks who is in (a collapsed list with **Show all** was tried and dropped, 2026-10-29).
 
 ### 1.5 Dropdowns of people (Q9)
 
@@ -105,7 +110,7 @@ a hand-kept order is a chore nobody does; alphabetical is what one searches by.
 - [x] Alphabetical order (Polish letters) for participants, settlement lines, chips, dropdowns, texts
 - [x] The members screen by role, its search
 - [x] The picker (From an event…, search, tick all, locks, Discard changes?) and its read-only form
-- [x] The participant list's count and Show all; Add participants (n) past the threshold
+- [x] The participant list's count; Add participants (n) past the threshold
 - [x] New events start empty; From an event… while there are no participants (§1.2a)
 - [x] Search in `Dropdown` past the threshold
 
