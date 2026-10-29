@@ -10,7 +10,6 @@
     <string name="roster_group_viewers">Viewers (%1$d)</string>
     <string name="roster_group_not_in_app">Not in the app (%1$d)</string>
     <string name="participants_count">Participants (%1$d)</string>
-    <string name="participants_show_all">Show all %1$d</string>
     <string name="lineup_add">Add participants (%1$d)</string>
     <string name="lineup_not_taking_part">%1$d not taking part</string>
     <string name="lineup_title">Line-up</string>

@@ -49,7 +49,6 @@ import com.jacekgajek.kapelusz.app.generated.guest_name
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.generated.participants_count
-import com.jacekgajek.kapelusz.app.generated.participants_show_all
 import com.jacekgajek.kapelusz.app.generated.lineup_add
 import com.jacekgajek.kapelusz.app.generated.lineup_changed
 import com.jacekgajek.kapelusz.app.generated.lineup_start_from
@@ -104,15 +103,13 @@ fun ParticipantsSection(context: EventContext) {
     var picking by remember { mutableStateOf(false) }
     var choosingSource by remember { mutableStateOf(false) }
     var copying by remember { mutableStateOf<ChangeLineup?>(null) }
-    var showAll by remember(event.id) { mutableStateOf(false) }
     // Members, then guests, each alphabetical (ITERATION_8 §2).
     val order = SettlementCalculator.partyOrder(band, event)
     val crowded = order.size > Crowd.THRESHOLD
     SectionTitle(if (crowded) stringResource(Res.string.participants_count, order.size) else stringResource(Res.string.participants))
     // One row each (ITERATION_5 §4.5), guests under their own heading (§12); the share when not the default 100%.
-    // A long list shows its first rows until "Show all" (ITERATION_8 §1.4).
-    val shown = if (crowded && !showAll) order.take(Crowd.COLLAPSED_ROWS) else order
-    val (memberRows, guestRows) = shown.partition { band.member(it) != null }
+    // All of them, however many (ITERATION_8 §1.4).
+    val (memberRows, guestRows) = order.partition { band.member(it) != null }
     @Composable
     fun rows(ids: List<String>) = ids.forEach { partyId ->
         val participant = event.participant(partyId) ?: return@forEach
@@ -129,9 +126,6 @@ fun ParticipantsSection(context: EventContext) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         rows(guestRows)
-    }
-    if (shown.size < order.size) {
-        TextButton(onClick = { showAll = true }) { Text(stringResource(Res.string.participants_show_all, order.size)) }
     }
     // Who could take part but does not: a tap adds them, with their default share; too many for chips, the picker
     // (ITERATION_8 §1.1).

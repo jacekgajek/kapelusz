@@ -67,8 +67,8 @@ One operation, `ChangeLineup(eventId, add: List<Participant>, remove: List<Id>, 
 
 ### 1.4 The participant list in the event (Q7)
 
-The section's title has the count, "Participants (42)". Over 12 participants the first 8 rows, then **Show all 42**,
-open until leaving the event. At 12 or fewer, as today.
+Over 12 participants the section's title has the count, "Participants (42)". All rows are shown, however many: the
+event screen is where one checks who is in (a collapsed list with **Show all** was tried and dropped, 2026-10-29).
 
 ### 1.5 Dropdowns of people (Q9)
 
@@ -105,7 +105,7 @@ a hand-kept order is a chore nobody does; alphabetical is what one searches by.
 - [x] Alphabetical order (Polish letters) for participants, settlement lines, chips, dropdowns, texts
 - [x] The members screen by role, its search
 - [x] The picker (From an event…, search, tick all, locks, Discard changes?) and its read-only form
-- [x] The participant list's count and Show all; Add participants (n) past the threshold
+- [x] The participant list's count; Add participants (n) past the threshold
 - [x] New events start empty; From an event… while there are no participants (§1.2a)
 - [x] Search in `Dropdown` past the threshold
 

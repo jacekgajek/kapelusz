@@ -23,9 +23,6 @@ import org.jetbrains.compose.resources.stringResource
 object Crowd {
     /** More people than this in a list: a search field, the picker instead of chips. */
     const val THRESHOLD = 12
-
-    /** Rows shown of a list longer than [THRESHOLD] until "Show all". */
-    const val COLLAPSED_ROWS = 8
 }
 
 /**

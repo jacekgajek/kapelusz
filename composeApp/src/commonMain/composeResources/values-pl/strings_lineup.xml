@@ -10,7 +10,6 @@
     <string name="roster_group_viewers">Obserwatorzy (%1$d)</string>
     <string name="roster_group_not_in_app">Bez aplikacji (%1$d)</string>
     <string name="participants_count">Uczestnicy (%1$d)</string>
-    <string name="participants_show_all">Pokaż wszystkich (%1$d)</string>
     <string name="lineup_add">Dodaj uczestników (%1$d)</string>
     <string name="lineup_not_taking_part">Nie biorą udziału: %1$d</string>
     <string name="lineup_title">Skład</string>
