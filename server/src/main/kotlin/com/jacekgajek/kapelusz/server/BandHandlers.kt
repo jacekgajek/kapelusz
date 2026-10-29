@@ -135,7 +135,8 @@ internal class BandHandlers(
     /**
      * Deletes a band for everyone (owner only): its state first, so every member's next request finds it gone, then the
      * members' band lists, invites, history and attachment files. A small marker tells former members that it was
-     * deleted. Bucket versioning keeps the objects for 30 days, so a mistake can still be undone by hand.
+     * deleted. Bucket versioning keeps the objects for 30 days, so a mistake can still be undone by hand
+     * (DISASTER_RECOVERY.md).
      */
     fun delete(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse {
         val (band, _) = bands.loadForMember(user, bandId)
