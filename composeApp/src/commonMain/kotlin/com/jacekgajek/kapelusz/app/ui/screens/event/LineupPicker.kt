@@ -56,6 +56,7 @@ import com.jacekgajek.kapelusz.app.generated.lineup_untick_all
 import com.jacekgajek.kapelusz.app.generated.participants_guests
 import com.jacekgajek.kapelusz.app.generated.roster_archived
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.generated.search_by_title
 import com.jacekgajek.kapelusz.app.generated.search_people_none
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
@@ -229,7 +230,7 @@ private fun StartFromDialog(context: EventContext, onDismiss: () -> Unit, onPick
                 if (events.isEmpty()) {
                     Text(stringResource(Res.string.lineup_start_from_none))
                 } else {
-                    if (events.size > 5) NameSearchField(query, { query = it })
+                    if (events.size > 5) NameSearchField(query, { query = it }, placeholder = Res.string.search_by_title)
                     Box(Modifier.heightIn(max = 400.dp)) {
                         LazyColumn {
                             items(shown, key = { it.id }) { event ->

@@ -2,6 +2,7 @@
 <resources>
     <!-- Bigger groups (ITERATION_8): the line-up picker, the members by role, searching people -->
     <string name="search_people">Search by name</string>
+    <string name="search_by_title">Search by name</string>
     <string name="search_people_none">Nobody matches “%1$s”.</string>
     <string name="roster_group_leaders">Leaders (%1$d)</string>
     <string name="roster_group_members">Members (%1$d)</string>

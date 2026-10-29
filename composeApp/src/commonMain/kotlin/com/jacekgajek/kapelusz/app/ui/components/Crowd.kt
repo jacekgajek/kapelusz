@@ -14,6 +14,7 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.search_close
 import com.jacekgajek.kapelusz.app.generated.search_people
 import com.jacekgajek.kapelusz.ops.Limits
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -27,14 +28,17 @@ object Crowd {
     const val COLLAPSED_ROWS = 8
 }
 
-/** Searching people by name ([com.jacekgajek.kapelusz.domain.Names.matches]), with a button clearing it. */
+/**
+ * Searching by name ([com.jacekgajek.kapelusz.domain.Names.matches]), with a button clearing it; people by default,
+ * else what [placeholder] says (in Polish a person's "imię" is not an event's "nazwa").
+ */
 @Composable
-fun NameSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifier = Modifier) {
+fun NameSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifier = Modifier, placeholder: StringResource = Res.string.search_people) {
     OutlinedTextField(
         query,
         { onQuery(it.take(Limits.MAX_NAME)) },
         modifier.fillMaxWidth(),
-        placeholder = { Text(stringResource(Res.string.search_people)) },
+        placeholder = { Text(stringResource(placeholder)) },
         leadingIcon = { Icon(Icons.Default.Search, null) },
         trailingIcon = if (query.isEmpty()) null else ({
             IconButton(onClick = { onQuery("") }) { Icon(Icons.Default.Clear, stringResource(Res.string.search_close)) }

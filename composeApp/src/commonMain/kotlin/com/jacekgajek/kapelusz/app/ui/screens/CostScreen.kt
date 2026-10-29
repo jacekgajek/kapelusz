@@ -57,6 +57,7 @@ import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.category
 import com.jacekgajek.kapelusz.app.generated.cost_date
 import com.jacekgajek.kapelusz.app.generated.cost_event
+import com.jacekgajek.kapelusz.app.generated.search_by_title
 import com.jacekgajek.kapelusz.app.generated.cost_locked
 import com.jacekgajek.kapelusz.app.generated.cost_no_event
 import com.jacekgajek.kapelusz.app.generated.cost_planned_at
@@ -242,7 +243,7 @@ fun CostScreen(
                         label = { Text(stringResource(Res.string.cost_event)) }, modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    Dropdown(eventId, events, { if (editable) eventId = it }, stringResource(Res.string.cost_event)) { id ->
+                    Dropdown(eventId, events, { if (editable) eventId = it }, stringResource(Res.string.cost_event), searchHint = Res.string.search_by_title) { id ->
                         id?.let { band.event(it) }?.let { "${it.name} · ${formatDate(it.date, lang)}" } ?: stringResource(Res.string.cost_no_event)
                     }
                 }
