@@ -736,6 +736,8 @@ class SyncEngineTest {
         repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
         sync.pauseAfterSending()
         eventually("the change went out") { server.bands.getValue(bandId).costs.size == 1 && repository.local(bandId)!!.pending.isEmpty() }
+        // The round that sent it may still be finishing (a CI run counted one more request): counted once it settled.
+        withContext(Dispatchers.Default) { delay(200) }
         val requests = server.requests
         withContext(Dispatchers.Default) { delay(300) }
         assertEquals(requests, server.requests, "then nothing more while hidden")
