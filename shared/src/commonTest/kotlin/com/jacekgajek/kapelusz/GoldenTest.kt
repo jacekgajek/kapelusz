@@ -15,6 +15,7 @@ import com.jacekgajek.kapelusz.model.IncomeSource.SPONSORSHIP
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddHolding
+import com.jacekgajek.kapelusz.ops.MoveMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RejectionCode
@@ -165,14 +166,15 @@ class GoldenTest {
         val s = scenario.settle("riverside")
         assertTrue(s.targets.values.all { it == pln("300") })
         assertEquals(
-            listOf("grace", "dave", "ivan").map { SuggestedTransfer("carol", it, pln("300")) },
+            // Equal amounts: in order of their ids, not the roster's.
+            listOf("dave", "grace", "ivan").map { SuggestedTransfer("carol", it, pln("300")) },
             s.suggestions,
         )
         assertEquals(EventStatus.OPEN, s.status)
         assertEquals(EventStatus.SETTLED, scenario.apply(SettleSuggestions("riverside")).settle("riverside").status)
     }
 
-    /** G8: leftover grosz goes to the first party in roster order. */
+    /** G8: leftover grosz goes to the first party by id (here also the roster's order). */
     @Test
     fun g8Rounding() {
         val s = Scenario("A", "B", "C").event("e", "A", "B", "C")
@@ -181,7 +183,7 @@ class GoldenTest {
         assertEquals(listOf(pln("33.34"), pln("33.33"), pln("33.33")), s.lines.map { it.target })
     }
 
-    /** G9: unequal weights; the leftover grosz goes to the largest remainder (B and C tie, B is first). */
+    /** G9: unequal weights; the leftover grosz goes to the largest remainder (B and C tie, B's id is first). */
     @Test
     fun g9UnequalWeights() {
         val s = Scenario("A", "B", "C")
@@ -243,5 +245,19 @@ class GoldenTest {
             setOf("alice", "carol", "dave", "frank").map { SuggestedTransfer(it, "bob", pln("10")) }.toSet(),
             s.suggestions.toSet(),
         )
+    }
+
+    /** Reordering the roster moves no grosz and no suggested transfer: ties go by party id. */
+    @Test
+    fun rosterOrderChangesNothing() {
+        val scenario = Scenario("A", "B", "C", "D")
+            .event("e", "A", "B", "C", "D")
+            .apply(AddHolding("e", "h", "a", pln("100.01"), DOOR))
+        val before = scenario.settle("e")
+        assertEquals(listOf(pln("25.01"), pln("25"), pln("25"), pln("25")), before.lines.map { it.target })
+        scenario.apply(MoveMember("a", 3)).apply(MoveMember("d", 0))
+        val after = scenario.settle("e")
+        assertEquals(before.lines.associate { it.partyId to it.target }, after.lines.associate { it.partyId to it.target })
+        assertEquals(before.suggestions, after.suggestions)
     }
 }
