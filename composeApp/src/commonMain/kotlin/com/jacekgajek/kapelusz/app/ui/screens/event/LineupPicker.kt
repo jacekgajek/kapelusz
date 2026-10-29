@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,6 +54,7 @@ import com.jacekgajek.kapelusz.app.generated.lineup_tick_all
 import com.jacekgajek.kapelusz.app.generated.lineup_title
 import com.jacekgajek.kapelusz.app.generated.lineup_untick_all
 import com.jacekgajek.kapelusz.app.generated.participants_guests
+import com.jacekgajek.kapelusz.app.generated.roster_archived
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.search_people_none
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
@@ -68,6 +70,7 @@ import com.jacekgajek.kapelusz.domain.Names
 import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
 import org.jetbrains.compose.resources.stringResource
 
@@ -77,32 +80,37 @@ private class PickRow(val id: Id, val name: String, val pictureUrl: String?, val
 /**
  * The line-up picker (ITERATION_8 §1.2): everyone who can take part by role, this event's guests, ticks for who takes
  * part; Start from…, search, tick all; Save sends one [com.jacekgajek.kapelusz.ops.ChangeLineup]. Read only for
- * [readOnly] (who doesn't manage participants): the same list, nothing to change.
+ * [readOnly] (who doesn't manage participants): who isn't taking part, without ticks.
  */
 @Composable
 fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit) {
     val band = context.band
     val event = context.event
-    var draft by remember(event.id) { mutableStateOf(Lineup.Draft.of(event)) }
+    // Changes on top of the event as it is now: one synced meanwhile stays (ITERATION_8 §1.2).
+    var draft by remember(event.id) { mutableStateOf(Lineup.Draft()) }
+    val ticked = draft.ticked(event)
     var query by remember { mutableStateOf("") }
     var choosingSource by remember { mutableStateOf(false) }
     var discarding by remember { mutableStateOf(false) }
     val change = if (readOnly) null else Lineup.change(band, event, draft)
     val close = { if (change != null) discarding = true else onDismiss() }
 
-    val members = Lineup.candidates(band)
-    val guests = (event.guests.filter { event.participant(it.id) != null } + draft.newGuests).sortedByName { it.name }
+    // Who can be added, and who takes part though they no longer could be added (a former member, now a viewer):
+    // shown, so nothing changes unseen. Read only: who isn't taking part.
+    val members = (Lineup.candidates(band) + event.participants.mapNotNull { band.member(it.partyId) }).distinctBy { it.id }
+        .filter { !readOnly || event.participant(it.id) == null }.sortedByName { it.name }
+    val guests = if (readOnly) emptyList() else (event.guests.filter { event.participant(it.id) != null } + draft.newGuests).sortedByName { it.name }
     val shareOf = { id: Id -> event.participant(id) ?: draft.shares[id] ?: band.member(id)?.asParticipant() }
     val shown = { name: String -> query.isBlank() || Names.matches(name, query) }
-    val groups = RoleGroup.entries.map { group ->
-        group to members.filter { group.has(it) && shown(it.name) }
-            .map { PickRow(it.id, it.name, it.pictureUrl, guest = false, notInApp = it.userId == null, share = shareOf(it.id)) }
-    }.filter { it.second.isNotEmpty() }
-    val guestRows = guests.filter { shown(it.name) }.map { PickRow(it.id, it.name, null, guest = true, notInApp = false, share = shareOf(it.id)) }
-    val visible = groups.flatMap { it.second } + guestRows
+    val row = { m: Member -> PickRow(m.id, m.name, m.pictureUrl, guest = false, notInApp = m.userId == null, share = shareOf(m.id)) }
+    val (former, current) = members.filter { shown(it.name) }.partition { it.archived }
+    val groups = RoleGroup.entries.map { group -> stringResource(group.title, current.count(group.has)) to current.filter(group.has).map(row) } +
+        listOf(stringResource(Res.string.roster_archived, former.size) to former.map(row)) +
+        listOf(stringResource(Res.string.participants_guests) to guests.filter { shown(it.name) }.map { PickRow(it.id, it.name, null, guest = true, notInApp = false, share = shareOf(it.id)) })
+    val visible = groups.flatMap { it.second }
     val locked = { id: Id -> event.participant(id) != null && Lineup.locked(band, event, id) }
     val toggleable = visible.filter { !locked(it.id) }
-    val allTicked = toggleable.all { it.id in draft.ticked }
+    val allTicked = toggleable.all { it.id in ticked }
     val total = members.size + guests.size
 
     Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -123,29 +131,29 @@ fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit
                     if (!readOnly && toggleable.isNotEmpty()) {
                         TextButton(
                             onClick = {
-                                val ids = toggleable.map { it.id }
-                                draft = draft.copy(ticked = if (allTicked) draft.ticked - ids.toSet() else draft.ticked + ids)
+                                val ids = toggleable.map { it.id }.toSet()
+                                draft = draft.ticking(event, if (allTicked) ticked - ids else ticked + ids)
                             },
                             modifier = Modifier.padding(horizontal = 8.dp),
                         ) { Text(stringResource(if (allTicked) Res.string.lineup_untick_all else Res.string.lineup_tick_all)) }
                     }
                     LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
-                        for ((group, rows) in groups) {
-                            item(key = "group-${group.name}") { PickHeading(stringResource(group.title, rows.size)) }
-                            items(rows, key = { it.id }) { row -> PickRowItem(context, row, row.id in draft.ticked, readOnly, locked(row.id)) { draft = draft.toggled(row.id) } }
-                        }
-                        if (guestRows.isNotEmpty()) {
-                            item(key = "guests") { PickHeading(stringResource(Res.string.participants_guests)) }
-                            items(guestRows, key = { it.id }) { row -> PickRowItem(context, row, row.id in draft.ticked, readOnly, locked(row.id)) { draft = draft.toggled(row.id) } }
+                        groups.forEachIndexed { index, (title, rows) ->
+                            if (rows.isEmpty()) return@forEachIndexed
+                            item(key = "group-$index") { PickHeading(title) }
+                            items(rows, key = { it.id }) { row ->
+                                PickRowItem(context, row, row.id in ticked, readOnly, locked(row.id)) { draft = draft.toggled(event, row.id) }
+                            }
                         }
                         if (visible.isEmpty()) item(key = "none") { Text(stringResource(Res.string.search_people_none, query.trim()), Modifier.padding(16.dp)) }
                     }
                     HorizontalDivider()
                     Row(Modifier.fillMaxWidth().padding(16.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(Res.string.lineup_count, draft.ticked.size, total), Modifier.weight(1f))
                         if (readOnly) {
+                            Spacer(Modifier.weight(1f))
                             TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) }
                         } else {
+                            Text(stringResource(Res.string.lineup_count, ticked.size, total), Modifier.weight(1f))
                             val message = change?.let { stringResource(Res.string.lineup_changed, it.add.size, it.remove.size) }
                             Button(enabled = change != null, onClick = {
                                 if (change != null && context.actions.runWithUndo(change, message!!)) onDismiss()
@@ -173,8 +181,6 @@ fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit
     }
 }
 
-private fun Lineup.Draft.toggled(id: Id) = copy(ticked = if (id in ticked) ticked - id else ticked + id)
-
 /** A group's heading: quieter than the members screen's, the list is about the ticks. */
 @Composable
 private fun PickHeading(text: String) {
@@ -193,7 +199,8 @@ private fun PickRowItem(context: EventContext, row: PickRow, ticked: Boolean, re
         Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onToggle).padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(ticked, { onToggle() }, enabled = enabled)
+        // Read only: no ticks (ITERATION_8 §1.2), the list is who isn't taking part.
+        if (readOnly) Spacer(Modifier.width(12.dp)) else Checkbox(ticked, { onToggle() }, enabled = enabled)
         if (row.guest) GuestIcon() else if (row.notInApp) NotInAppIcon() else Avatar(row.name, row.pictureUrl, decorative = true)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(row.name)

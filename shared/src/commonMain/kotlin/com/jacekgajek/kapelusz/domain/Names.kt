@@ -11,7 +11,7 @@ object Names {
 
     /** Other accented Latin letters, equal to their plain one in the order and in searches (Müller, José). */
     private const val ACCENTED = "áàâäãåéèêëíìîïòôöõúùûüýÿçñšžčřďťňľĺŕő"
-    private const val ACCENTED_BASE = "aaaaaaeeeeiiiiooooouuuuyycnszcrdtnllro"
+    private const val ACCENTED_BASE = "aaaaaaeeeeiiiioooouuuuyycnszcrdtnllro"
 
     /**
      * Names ignoring case and spaces around them, Polish letters in their place. Names that differ only in accents

@@ -279,7 +279,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
     // A pair ended by an archive, an unlink or a role change says so (ITERATION_5 §7).
     val ended = if (change == null || op is StopSettlingTogether || op is Undo) emptyList() else change.before.members.values.filterNotNull()
         .filter { before -> before.settlesWith != null && change.after.members[before.id]?.settlesWith == null }
-        .map { it.id }.sortedBy { id -> band.members.indexOfFirst { it.id == id } }
+        .map { member(it.id) }.sortedByName { it }
     if (ended.size < 2) return text
-    return stringResource(Res.string.h_pair_ended, text, member(ended[0]), member(ended[1]))
+    return stringResource(Res.string.h_pair_ended, text, ended[0], ended[1])
 }

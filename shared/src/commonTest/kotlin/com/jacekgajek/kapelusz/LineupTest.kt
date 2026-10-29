@@ -94,6 +94,9 @@ class LineupTest {
         assertTrue(Names.matches("Łukasz Żółć", "lukasz zolc"))
         assertTrue(Names.matches("José", "JOSE"))
         assertFalse(Names.matches("Ewa", "ewka"))
+        assertTrue(Names.matches("Dvořák", "dvorak"))
+        assertTrue(Names.matches("Núñez", "nunez"))
+        assertEquals(listOf("Čapek", "Cyryl", "Dora"), listOf("Dora", "Cyryl", "Čapek").sortedWith(Names.order))
     }
 
     @Test
@@ -108,11 +111,13 @@ class LineupTest {
     fun anUnknownOperationIsReadAndNeverApplied() {
         val json = """{"opId":"o","clientId":"c","seq":1,"timestamp":2,"op":{"type":"MoveMember","memberId":"bob","toIndex":0}}"""
         val envelope = KapeluszJson.decodeFromString(OpEnvelope.serializer(), json)
-        assertEquals(UnknownOperation, envelope.op)
+        assertEquals(UnknownOperation(), envelope.op)
         val history = """{"userId":"u","memberId":"m","at":1,"ops":[$json]}"""
-        assertEquals(UnknownOperation, KapeluszJson.decodeFromString(HistoryEntry.serializer(), history).ops.single().op)
-        assertEquals(RejectionReason.INVALID_INPUT, band().rejected(UnknownOperation).reason)
-        assertFalse(isUndoable(UnknownOperation))
+        assertEquals(UnknownOperation(), KapeluszJson.decodeFromString(HistoryEntry.serializer(), history).ops.single().op)
+        val newer = KapeluszJson.decodeFromString(OpEnvelope.serializer(), json.replace("\"memberId\":\"bob\"", "\"eventId\":\"gig\""))
+        assertEquals(UnknownOperation("gig"), newer.op, "an event's History still lists it")
+        assertEquals(RejectionReason.INVALID_INPUT, band().rejected(UnknownOperation()).reason)
+        assertFalse(isUndoable(UnknownOperation()))
     }
 
     @Test
@@ -126,7 +131,7 @@ class LineupTest {
         val gig = band.event("gig")!!
         var next = 0
         val draft = Lineup.startFrom(band, gig, band.event("old")!!) { "g${next++}" }
-        assertEquals(setOf("carol", "dave", "bob", "helper", "g0"), draft.ticked, "Alice out; Bob locked; Helper kept, not doubled")
+        assertEquals(setOf("carol", "dave", "bob", "helper", "g0"), draft.ticked(gig), "Alice out; Bob locked; Helper kept, not doubled")
         assertEquals(listOf(Guest("g0", "Roadie")), draft.newGuests)
 
         val op = Lineup.change(band, gig, draft)!!
@@ -141,10 +146,33 @@ class LineupTest {
     fun saveSendsOnlyWhatChanged() {
         val scenario = band()
         val gig = scenario.band.event("gig")!!
-        assertEquals(null, Lineup.change(scenario.band, gig, Lineup.Draft.of(gig)))
-        val op = Lineup.change(scenario.band, gig, Lineup.Draft(setOf("alice", "carol")))!!
+        assertEquals(null, Lineup.change(scenario.band, gig, Lineup.Draft()))
+        val op = Lineup.change(scenario.band, gig, Lineup.Draft().ticking(gig, setOf("alice", "carol")))!!
         assertEquals(listOf("bob", "helper"), op.remove)
         assertEquals(listOf(Participant("carol")), op.add)
         assertEquals(listOf("alice", "bob", "carol", "dave"), Lineup.candidates(scenario.band).map { it.id })
+    }
+
+    @Test
+    fun aChangeSyncedMeanwhileStays() {
+        val scenario = band()
+        val opened = scenario.band.event("gig")!!
+        val draft = Lineup.Draft().toggled(opened, "carol")
+        // Another leader adds Dave and removes Bob while the picker is open.
+        scenario.apply(ChangeLineup("gig", add = listOf(Participant("dave")), remove = listOf("bob")))
+        val now = scenario.band.event("gig")!!
+        assertEquals(setOf("alice", "helper", "dave", "carol"), draft.ticked(now))
+        val op = Lineup.change(scenario.band, now, draft)!!
+        assertEquals(emptyList(), op.remove)
+        assertEquals(listOf("carol"), op.add.map { it.partyId })
+    }
+
+    @Test
+    fun startFromKeepsWhoCantBeAddedBack() {
+        val scenario = band().apply(SetMemberArchived("bob", true))
+        val gig = scenario.band.event("gig")!!
+        scenario.apply(com.jacekgajek.kapelusz.ops.CreateEvent("old", "old", DATE, participants = listOf(Participant("carol"))))
+        val draft = Lineup.startFrom(scenario.band, gig, scenario.band.event("old")!!) { "g" }
+        assertEquals(setOf("bob", "carol"), draft.ticked(gig), "Bob, a former member, stays; Alice and the guest go")
     }
 }

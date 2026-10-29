@@ -41,10 +41,11 @@ sealed interface Operation {
 
 /**
  * An operation of a kind this version doesn't know (ITERATION_8 §2): one removed since (`MoveMember`), or one from a
- * newer version. Read as this, so History and a phone's unsent changes still load; never applied.
+ * newer version. Read as this, so History and a phone's unsent changes still load; never applied. Keeps the event it
+ * was about, so an event's History still lists it.
  */
 @Serializable @SerialName("Unknown")
-data object UnknownOperation : Operation
+data class UnknownOperation(override val eventId: Id? = null) : Operation
 
 // ---- Band & roster (leader) ----
 

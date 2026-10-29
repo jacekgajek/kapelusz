@@ -45,7 +45,7 @@
     <string name="your_name">Your name</string>
     <string name="currency">Currency</string>
     <string name="new_event">New event</string>
-    <string name="new_event_lineup_hint">Participants are copied from the last event; you can change them next.</string>
+    <string name="new_event_lineup_hint">You start as the only participant; add the others next.</string>
     <string name="event_name">Name</string>
     <string name="event_date">Date</string>
     <string name="event_location">Location (optional)</string>

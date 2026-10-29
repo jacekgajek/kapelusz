@@ -25,18 +25,36 @@ object Lineup {
             event.refunds.any { band.cost(it.costId)?.memberId == partyId }
 
     /**
-     * The picker's state: [ticked] members and guests (this event's, and [newGuests]); [shares] for those not in the
-     * event yet who don't take their default share (from Start from…).
+     * The picker's changes, on top of the event as it is now, so a change synced from elsewhere meanwhile stays: who
+     * the leader [added] and [removed], [shares] for newcomers not taking their default share (from Start from…), and
+     * the [newGuests] Start from… brought.
      */
-    data class Draft(val ticked: Set<Id>, val shares: Map<Id, Participant> = emptyMap(), val newGuests: List<Guest> = emptyList()) {
-        companion object {
-            fun of(event: Event) = Draft(event.participants.map { it.partyId }.toSet())
+    data class Draft(
+        val added: Set<Id> = emptySet(),
+        val removed: Set<Id> = emptySet(),
+        val shares: Map<Id, Participant> = emptyMap(),
+        val newGuests: List<Guest> = emptyList(),
+    ) {
+        /** Who is ticked: the event's participants as they are now, with the changes. */
+        fun ticked(event: Event): Set<Id> = event.participants.map { it.partyId }.toSet() - removed + added
+
+        fun toggled(event: Event, id: Id): Draft {
+            val inEvent = event.participant(id) != null
+            return if (id in ticked(event)) copy(added = added - id, removed = if (inEvent) removed + id else removed)
+            else copy(added = if (inEvent) added else added + id, removed = removed - id)
+        }
+
+        /** The changes that make [ticked] the ticks for [event]. */
+        fun ticking(event: Event, ticked: Set<Id>): Draft {
+            val current = event.participants.map { it.partyId }.toSet()
+            return copy(added = ticked - current, removed = current - ticked)
         }
     }
 
     /**
      * [source]'s line-up in place of the ticks (ITERATION_8 §1.2): its members who can take part, its guests as new
-     * guests (one of the same name already here kept instead), whoever is locked here still ticked. Newcomers take the
+     * guests (one of the same name already here kept instead), whoever is locked here (or can't be added back) still
+     * ticked. Newcomers take the
      * share they had there; who is already here keeps theirs. [newId] names each new guest.
      */
     fun startFrom(band: Band, event: Event, source: Event, newId: () -> Id): Draft {
@@ -64,16 +82,18 @@ object Lineup {
                 }
             }
         }
-        ticked += event.participants.map { it.partyId }.filter { locked(band, event, it) }
-        return Draft(ticked, shares, newGuests)
+        // Locked here, or here though no longer someone who could be added (a former member, now a viewer): stays.
+        ticked += event.participants.map { it.partyId }.filter { locked(band, event, it) || (event.guest(it) == null && it !in candidates) }
+        return Draft(shares = shares, newGuests = newGuests).ticking(event, ticked)
     }
 
     /** What Save sends: who joins (with their share) and who leaves; null when nothing changes. */
     fun change(band: Band, event: Event, draft: Draft): ChangeLineup? {
         val current = event.participants.map { it.partyId }.toSet()
-        val remove = current.filter { it !in draft.ticked && !locked(band, event, it) }
-        val newGuests = draft.newGuests.filter { it.id in draft.ticked }
-        val add = draft.ticked.filter { it !in current }.mapNotNull { id ->
+        val ticked = draft.ticked(event)
+        val remove = current.filter { it !in ticked && !locked(band, event, it) }
+        val newGuests = draft.newGuests.filter { it.id in ticked }
+        val add = ticked.filter { it !in current }.mapNotNull { id ->
             draft.shares[id] ?: band.member(id)?.takeIf { !it.archived && it.role != Role.VIEWER }?.asParticipant()
         }
         if (add.isEmpty() && remove.isEmpty()) return null

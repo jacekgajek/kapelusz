@@ -28,7 +28,8 @@ Full screen on phones, a dialog about 560 dp wide on tablets and the web.
 - **Shares** (Q4) shown on a row when not the default ("1½", "300 zł", "10%"), not editable there: a participant's
   share is changed on their row in the event, as today.
 - **Start from…** (Q2): an earlier event (newest first, searchable by name) replaces the ticks with its line-up:
-  its members who still can take part ticked, everyone else unticked (the locked ones stay); its guests copied in as
+  its members who still can take part ticked, everyone else unticked (the locked ones stay, and so do former members
+  or viewers still in this event, who couldn't be added back); its guests copied in as
   new guests of this event (one of the same name already here is kept, not doubled), this event's other guests
   unticked. Newcomers take the share they had there; who is already here keeps theirs. Then adjust and Save; nothing
   changes before Save.
@@ -38,7 +39,12 @@ Full screen on phones, a dialog about 560 dp wide on tablets and the web.
   shown** beside it: the matches while a search is typed, else everyone; locked rows stay as they are.
 - **Save** with the count, "42 of 58". Back with changes asks **Discard changes?**
 - **Who** (Q10): leaders (as `AddParticipant`). Others, above the threshold, get "16 not taking part" in place of the
-  button, which opens the same list read only (search, no ticks, no Save); below it, the greyed chips as today.
+  button, which opens who isn't taking part, read only (search, no ticks, no Save); below it, the greyed chips as
+  today.
+- **Former members or viewers** still in the event (archived or made viewers since) are listed too, in their own
+  groups, so nothing changes unseen.
+- **A change synced meanwhile stays:** the picker keeps what the leader ticked and unticked on top of the event as it
+  is, not a copy taken when it opened.
 
 ### 1.2a New events start with their creator (2026-10-29)
 
