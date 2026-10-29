@@ -13,7 +13,7 @@ import java.security.MessageDigest
 data class Located(val latitude: Double, val longitude: Double)
 
 /**
- * Coordinates of addresses already looked up (ITERATION_7 §2f), by [key]: present with null when Google knows no such
+ * Coordinates of addresses already looked up (ITERATION_7 §8), by [key]: present with null when Google knows no such
  * place (for [NOT_FOUND_DAYS], then asked again), absent when never asked.
  */
 interface GeocodeCache {

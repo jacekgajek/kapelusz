@@ -56,7 +56,7 @@ class Can(private val band: Band, private val userId: String) {
 
     /** A suggestion's transfer, where a pair settling together is either partner (ITERATION_5 §7). */
     fun settleSuggestion(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1), together = true))
-    /** Leads any; the one who recorded it, their own (ITERATION_7 §2d). */
+    /** Leads any; the one who recorded it, their own (ITERATION_7 §3.3). */
     fun removeTransfer(event: Event, transfer: Transfer) = open(event) && allowed(RemoveTransfer(event.id, transfer.id))
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */
@@ -68,7 +68,7 @@ class Can(private val band: Band, private val userId: String) {
 
     /**
      * Who the user may say an awaited fee was paid to: someone in the event who may hold money, or the band fund when it
-     * is on; for leads anyone, else themselves (and the fund for its holder, ITERATION_7 §2d).
+     * is on; for leads anyone, else themselves (and the fund for its holder, ITERATION_7 §3.3).
      */
     fun receiveParties(event: Event): List<Id> =
         if (!open(event)) emptyList()

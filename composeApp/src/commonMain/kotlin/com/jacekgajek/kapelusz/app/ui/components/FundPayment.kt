@@ -28,7 +28,7 @@ import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Where to pay into the band fund (ITERATION_7 §2i), in its settings: its BLIK number and bank account, each with a copy
+ * Where to pay into the band fund (ITERATION_7 §7), in its settings: its BLIK number and bank account, each with a copy
  * button; with [onSave] (its holder and leads), an edit button each, and the ones not set yet.
  */
 @Composable

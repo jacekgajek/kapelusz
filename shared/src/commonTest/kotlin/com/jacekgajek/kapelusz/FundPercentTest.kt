@@ -29,7 +29,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** The band fund as a percentage of an event's profit, and the band's default for new events (ITERATION_7 §2g). */
+/** The band fund as a percentage of an event's profit, and the band's default for new events (ITERATION_7 §5.2). */
 class FundPercentTest {
 
     private fun band() = Scenario("Alice", "Bob", "Carol").apply(SetTreasurer("alice"))

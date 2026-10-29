@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
+import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -202,6 +204,12 @@ fun EventsScreen(
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // The band is to be deleted (ITERATION_7 §9): said to everyone, kept by a leader.
+            if (!searching && band.deletion != null) {
+                item(key = "deletion") {
+                    BandDeletionNotice(band, { actions.run(CancelBandDeletion); Unit }.takeIf { Can(band, state.userId).allowed(CancelBandDeletion) })
+                }
+            }
             // What the band still lacks, for its leaders (ITERATION_5 §11): until it's there, or (no one in the app) hidden.
             // While searching, only the search and its results: the cards would push them under the keyboard.
             if (!searching) bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
@@ -291,7 +299,7 @@ fun EventsScreen(
                         eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
                         participants = lineupOfLastEvent(band, state.me?.id),
                         agenda = fields.agenda,
-                        // The band's fund default (ITERATION_7 §2g), while the fund is on.
+                        // The band's fund default (ITERATION_7 §5.2), while the fund is on.
                         fund = band.fundDefault.takeIf { band.treasurerMemberId != null },
                     ),
                 )
@@ -368,7 +376,7 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 val number = summary.myNumber
                 when {
                     summary.settlement.status == EventStatus.DRAFT -> {}
-                    // An artist holds no money: only what they got too much is theirs to hand back (V5-M1 C7, ITERATION_7 §2c).
+                    // An artist holds no money: only what they got too much is theirs to hand back (V5-M1 C7, ITERATION_7 §3.2).
                     !showStatus && number is MyNumber.HandOver -> Text(
                         stringResource(Res.string.artist_to_hand_back) + ": " + formatMoney(number.amount, band.currency, language),
                         color = MoneyColors.negative,

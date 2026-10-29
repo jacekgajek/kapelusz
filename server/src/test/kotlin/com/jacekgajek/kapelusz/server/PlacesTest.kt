@@ -137,7 +137,7 @@ class PlacesTest {
 
     private fun locations(user: String, on: Api) = KapeluszJson.decodeFromString(LocationsResponse.serializer(), call(user, emptyMap(), path = "/bands/band1/locations", on = on).body!!)
 
-    /** ITERATION_7 §2f: the band's own locations, each address looked up once ever, pins never. */
+    /** ITERATION_7 §8: the band's own locations, each address looked up once ever, pins never. */
     @Test
     fun locationsAreLookedUpOnceAndCached() {
         val cache = InMemoryGeocodeCache()

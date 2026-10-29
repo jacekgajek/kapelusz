@@ -233,7 +233,7 @@ data class PlaceSuggestion(val placeId: String, val name: String, val address: S
 @Serializable
 data class PlacesResponse(val places: List<PlaceSuggestion>)
 
-/** An event location's coordinates, for the "Where we played" map (ITERATION_7 §2f). */
+/** An event location's coordinates, for the "Where we played" map (ITERATION_7 §8). */
 @Serializable
 data class LocatedPlace(val location: String, val latitude: Double, val longitude: Double)
 

@@ -59,6 +59,8 @@ import com.jacekgajek.kapelusz.app.generated.h_set_refund
 import com.jacekgajek.kapelusz.app.generated.h_set_role
 import com.jacekgajek.kapelusz.app.generated.h_set_treasurer
 import com.jacekgajek.kapelusz.app.generated.h_disable_fund
+import com.jacekgajek.kapelusz.app.generated.h_cancel_deletion
+import com.jacekgajek.kapelusz.app.generated.h_schedule_deletion
 import com.jacekgajek.kapelusz.app.generated.h_remove_fund_account
 import com.jacekgajek.kapelusz.app.generated.h_remove_fund_blik
 import com.jacekgajek.kapelusz.app.generated.h_set_fund_account
@@ -78,6 +80,9 @@ import com.jacekgajek.kapelusz.app.generated.h_left_band
 import com.jacekgajek.kapelusz.app.generated.h_unlink_user
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 import com.jacekgajek.kapelusz.domain.BankAccount
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.model.Band
@@ -129,6 +134,8 @@ import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.DisableBandFund
+import com.jacekgajek.kapelusz.ops.CancelBandDeletion
+import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.SetFundBankAccount
 import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFixedShare
@@ -180,6 +187,11 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         is UnlinkUser -> stringResource(if (op.memberId == by) Res.string.h_left_band else Res.string.h_unlink_user, member(op.memberId))
         is SetTreasurer -> stringResource(Res.string.h_set_treasurer, member(op.memberId))
         is DisableBandFund -> stringResource(Res.string.h_disable_fund)
+        is ScheduleBandDeletion -> stringResource(
+            Res.string.h_schedule_deletion,
+            formatDate(Instant.fromEpochMilliseconds(op.deletion.deleteAt).toLocalDateTime(TimeZone.currentSystemDefault()).date, lang),
+        )
+        is CancelBandDeletion -> stringResource(Res.string.h_cancel_deletion)
         is SetFundBlikPhone -> op.phone?.let { stringResource(Res.string.h_set_fund_blik, BlikPhone.normalize(it)?.let(BlikPhone::display) ?: it) }
             ?: stringResource(Res.string.h_remove_fund_blik)
         is SetFundBankAccount -> op.account?.let { stringResource(Res.string.h_set_fund_account, BankAccount.normalize(it)?.let(BankAccount::display) ?: it) }
@@ -220,7 +232,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
             op.cut?.percent?.let { "$it%" } ?: op.cut?.amount?.let(::money) ?: stringResource(Res.string.fund_default_none),
         )
         is AddFundEntry -> when {
-            // Who paid it in (ITERATION_7 §2e); a refund names its cost's owner on the fund's page.
+            // Who paid it in (ITERATION_7 §5.1); a refund names its cost's owner on the fund's page.
             op.paidBy != null -> stringResource(Res.string.h_add_fund_entry_from, op.description, money(op.amount), member(op.paidBy!!))
             op.amount.isPositive -> stringResource(Res.string.h_add_fund_entry_outside, op.description, money(op.amount))
             else -> stringResource(Res.string.h_add_fund_entry, op.description, money(op.amount))

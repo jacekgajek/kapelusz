@@ -178,7 +178,7 @@ class SettleTogetherTest {
         assertEquals(emptyList(), own.map { Triple(it.from, it.to, it.amount) })
     }
 
-    /** An artist records only their own transfers as themselves: a pair's is split by what each holds (ITERATION_7 §2c). */
+    /** An artist records only their own transfers as themselves: a pair's is split by what each holds (ITERATION_7 §3.2). */
     @Test
     fun anArtistInAPairCannotMoveTheirPartnersMoney() {
         val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")

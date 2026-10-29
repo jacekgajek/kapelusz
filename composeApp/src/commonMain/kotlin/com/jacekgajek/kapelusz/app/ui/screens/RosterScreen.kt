@@ -170,7 +170,7 @@ import org.jetbrains.compose.resources.stringResource
 fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    // Deleting a member can be undone from its snackbar (ITERATION_7 §2a).
+    // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
     val undos = remember { UndoStack() }
     val actions = rememberActions(graph, snackbar, undos)
     val can = Can(band, state.userId)
@@ -578,7 +578,7 @@ private fun MemberDialog(
                         Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
                     }
                 }
-                // Only who left no trace (ITERATION_7 §2a); anyone else is moved to the former members above.
+                // Only who left no trace (ITERATION_7 §3.1); anyone else is moved to the former members above.
                 if (!isOwner && !isMe && can.allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)) {
                     TextButton(
                         onClick = { confirmDelete = true },
@@ -602,7 +602,7 @@ private fun MemberDialog(
             ).joinToString("\n\n"),
             confirmLabel = stringResource(Res.string.delete),
             onConfirm = {
-                // The account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §2a).
+                // The account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §3.1).
                 // The dialog closes, so Undo doesn't bring it back with the member.
                 if ((member.userId == null || actions.run(UnlinkUser(member.id))) && actions.runWithUndo(DeleteMember(member.id), deleted)) onDismiss()
             },

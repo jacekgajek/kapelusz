@@ -27,7 +27,7 @@ class Api(
     maxBandBytes: Int = MAX_BAND_BYTES,
     /** Place suggestions for Location (ITERATION_5 §9); null where no Google key is set up. */
     placeSearch: PlaceSearch? = null,
-    /** Addresses already looked up, for the map (ITERATION_7 §2f); null: none are. */
+    /** Addresses already looked up, for the map (ITERATION_7 §8); null: none are. */
     geocodeCache: GeocodeCache? = null,
     /** The web app's page, for link cards (ITERATION_6 §2); null where it can't be read. */
     webIndex: WebIndex? = null,
@@ -35,7 +35,7 @@ class Api(
     messageSender: MessageSender? = null,
 ) {
     private val revocations = SessionRevocations(store, clock)
-    private val bands = BandAccess(store)
+    private val bands = BandAccess(store, clock)
     private val devices = DeviceRegistry(store, clock)
     private val messenger: SyncMessenger? = messageSender?.let { DeviceMessenger(devices, it) }
     private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands, devices)
@@ -46,9 +46,13 @@ class Api(
     private val calendar = CalendarHandlers(store, clock, bands, users)
     private val places = PlacesHandlers(bands, placeSearch, geocodeCache)
     private val linkPages = LinkPages(store, webIndex, clock, bands)
-    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages, messenger)
+    private val deletions = BandDeletions(store, clock, bands, users, invites, linkPages, history, messenger).also { bands.whenDue = it::deleteNow }
+    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages, messenger, deletions)
 
-    fun handle(request: HttpRequest): HttpResponse = try {
+    /** [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time. */
+    fun handle(request: HttpRequest, sweep: Boolean = true): HttpResponse = try {
+        // Bands whose time to be deleted has come (ITERATION_7 §9), hourly: a failure there is not this request's.
+        if (sweep) runCatching { deletions.sweep() }
         route(request)
     } catch (e: ApiError) {
         error(e.status, e.code, e.message.orEmpty())

@@ -75,7 +75,7 @@ enum class AttachmentKind(val contentType: String, val extension: String, val ma
 }
 
 /**
- * Manual band fund entry (ITERATION_7 §2e): money paid in by [paidBy] (a member; null: from outside the band), or,
+ * Manual band fund entry (ITERATION_7 §5.1): money paid in by [paidBy] (a member; null: from outside the band), or,
  * negative, the refund of [costId] from the fund. Money leaves the fund only to refund a cost.
  */
 @Serializable

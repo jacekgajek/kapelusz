@@ -74,7 +74,7 @@ internal class LinkPages(private val store: BlobStore, private val index: WebInd
         } catch (e: PreconditionFailed) {
             val existing = store.get(key) ?: return@inParallel
             val owner = decode(EventPointer.serializer(), existing.content).bandId
-            if (owner != bandId && bands.load(owner)?.first?.event(eventId) == null) {
+            if (owner != bandId && bands.load(owner, deleteIfDue = false)?.first?.event(eventId) == null) {
                 runCatching { store.put(key, content, ifMatch = existing.etag) }
             }
         }

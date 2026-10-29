@@ -232,7 +232,7 @@ class FundAndEdgeCasesTest {
         assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("d2", true)).reason)
     }
 
-    /** Money comes in from someone (a member, or outside the band) and leaves only to refund a cost (ITERATION_7 §2e). */
+    /** Money comes in from someone (a member, or outside the band) and leaves only to refund a cost (ITERATION_7 §5.1). */
     @Test
     fun fundEntriesHaveAPayerOrACost() {
         val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice"))

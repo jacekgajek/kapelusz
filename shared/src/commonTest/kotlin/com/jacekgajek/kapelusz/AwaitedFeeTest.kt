@@ -90,7 +90,7 @@ class AwaitedFeeTest {
         val alice = scenario.userFor("alice", Role.OWNER)
         scenario.userFor("carol", Role.ARTIST)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddHolding("gig", "f2", ORGANISER, pln("1"), CONTRACT), bob).reason)
-        // Paid to Bob: he says it arrived (ITERATION_7 §2d), but not that someone else got it.
+        // Paid to Bob: he says it arrived (ITERATION_7 §3.3), but not that someone else got it.
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("1")), bob).reason)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1")), bob).reason)
         scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("1")), bob)

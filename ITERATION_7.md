@@ -165,7 +165,11 @@ about 1 % of a battery per hour); every 10 s it never rests (+0.3–0.5 W, about
 services' one connection, shared by all apps: the radio wakes only when something changed and every 5 minutes, about
 +0.01–0.03 W.
 
-## 2a. Deleting members added by mistake (grilled 2026-10-27)
+## 3. V7-M4 — Who records what
+
+Fewer steps through a leader: whoever knows something happened records it.
+
+### 3.1 Deleting members added by mistake (grilled 2026-10-27)
 
 - **When** (Q3): only a member nothing in the band refers to: no costs, never in an event (so no collected money or
   transfers), never named as who recorded a transfer or collected money or added a participant, not holding the band fund, not in a
@@ -182,7 +186,35 @@ services' one connection, shared by all apps: the radio wakes only when somethin
   their account's list, and after their last band what the server kept for them goes too (ITERATION_6 §11a).
 - **Not widened** (Q6): deleting a member who took part by turning them into a guest was considered and left out.
 
-## 2b. Updates from Google Play in the app (2026-10-27)
+### 3.2 Artists see and settle their own transfers (2026-10-27, settling 2026-10-28)
+
+Artists still see none of the band's money. Their Money page shows **To settle** under their payout, with only their
+own transfers: who pays them ("Bob → Robert 200 zł"), and whom they hand back to, with that person's BLIK number and the
+amount to copy. As members do, they mark each **Paid** or **Received** (or a part of it), with Undo. Before, only the
+other side or a lead could, so an artist who paid another artist had to tell someone who then told a lead. This replaces
+ITERATION_4 §1.1's "artists can't record transfers": they still hold no money (the Reducer caps what an artist sends at
+what they were paid too much). A pair's transfer counts as the artist's own part of it (`Artists.ownTransfers`); money a
+partner receives for the pair stays "Kept for you by …" in the payout. The server already sends artists the whole band
+(the app hides the rest), so only the app and the shared permission changed.
+
+### 3.3 Fewer messages to a leader (2026-10-28)
+
+Who knows something happened records it, instead of telling a leader (a search after §3.2; the user picked these four):
+
+1. **Taking back your own transfer.** Whoever recorded a transfer (Paid, Received, Hand over money) may remove it from
+   Recorded transfers, e.g. a Paid tapped by mistake after the Undo is gone; leads any, as before. Undo from History of
+   a transfer still needs a lead (ITERATION_2 §7.2).
+2. **An organiser's fee arriving.** Who it was paid to marks it received (Paid on the awaited fee), and the fund's holder
+   for the fund; leads for anyone, as before. Recording an awaited fee stays with leads (ITERATION_4 §2.2). The money
+   received stays the lead's record: who received it can't edit or remove it, nor its contract (only collected money
+   one recorded oneself is one's own to change).
+3. **The treasurer keeps the fund's ledger.** The fund's holder adds, edits and removes its plain entries (since §5.1
+   only money paid in, e.g. membership fees; money out refunds a cost). Refunding a cost from the fund decides about someone's cost, so it stays with leads, and so do
+   entries that refund one.
+4. **A forgotten receipt.** A cost's owner adds and renames its files after it is locked (refunded at an event with
+   transfers): a file changes no money. Removing one (Undo of adding it too), and changing the cost, stays locked.
+
+## 4. V7-M5 — Updates from Google Play in the app (2026-10-27)
 
 - Play's own automatic updates usually get there first; for when they don't, the app asks Play (its in-app updates
   library, `com.google.android.play:app-update`) whenever it comes to the screen. A newer version available for this
@@ -194,44 +226,18 @@ services' one connection, shared by all apps: the radio wakes only when somethin
   passed and the release reached the phone: hours after a merge, not at once. A version declined in Play's dialog isn't
   offered again (a newer one is); a download that fails or is cancelled is offered again.
 
-## 2c. Artists see and settle their own transfers (2026-10-27, settling 2026-10-28)
+## 5. V7-M6 — The band fund
 
-Artists still see none of the band's money. Their Money page shows **To settle** under their payout, with only their
-own transfers: who pays them ("Bob → Robert 200 zł"), and whom they hand back to, with that person's BLIK number and the
-amount to copy. As members do, they mark each **Paid** or **Received** (or a part of it), with Undo. Before, only the
-other side or a lead could, so an artist who paid another artist had to tell someone who then told a lead. This replaces
-ITERATION_4 §1.1's "artists can't record transfers": they still hold no money (the Reducer caps what an artist sends at
-what they were paid too much). A pair's transfer counts as the artist's own part of it (`Artists.ownTransfers`); money a
-partner receives for the pair stays "Kept for you by …" in the payout. The server already sends artists the whole band
-(the app hides the rest), so only the app and the shared permission changed.
-
-## 2d. Fewer messages to a leader (2026-10-28)
-
-Who knows something happened records it, instead of telling a leader (a search after §2c; the user picked these four):
-
-1. **Taking back your own transfer.** Whoever recorded a transfer (Paid, Received, Hand over money) may remove it from
-   Recorded transfers, e.g. a Paid tapped by mistake after the Undo is gone; leads any, as before. Undo from History of
-   a transfer still needs a lead (ITERATION_2 §7.2).
-2. **An organiser's fee arriving.** Who it was paid to marks it received (Paid on the awaited fee), and the fund's holder
-   for the fund; leads for anyone, as before. Recording an awaited fee stays with leads (ITERATION_4 §2.2). The money
-   received stays the lead's record: who received it can't edit or remove it, nor its contract (only collected money
-   one recorded oneself is one's own to change).
-3. **The treasurer keeps the fund's ledger.** The fund's holder adds, edits and removes its plain entries (since §2e
-   only money paid in, e.g. membership fees; money out refunds a cost). Refunding a cost from the fund decides about someone's cost, so it stays with leads, and so do
-   entries that refund one.
-4. **A forgotten receipt.** A cost's owner adds and renames its files after it is locked (refunded at an event with
-   transfers): a file changes no money. Removing one (Undo of adding it too), and changing the cost, stays locked.
-
-## 2e. Who paid into the band fund (grilled 2026-10-28)
+### 5.1 Who paid into the band fund (grilled 2026-10-28)
 
 - **Entries:** money paid in names who paid it: a member (artists too), or **Outside the band** ("Spoza zespołu", e.g.
   a sponsor). It defaults to whoever adds it. **Money leaves the fund only to refund a cost** (the Reducer refuses a
   plain withdrawal): strings bought from the fund are a member's cost, refunded from it. An entry keeps its direction;
-  its payer can change. Old plain withdrawals stay as they are (deleted, not edited; the Summary counts them under Outside the band). A member who paid in can't be deleted (§2a).
+  its payer can change. Old plain withdrawals stay as they are (deleted, not edited; the Summary counts them under Outside the band). A member who paid in can't be deleted (§3.1).
 - **Adding:** "Paid by" is a dropdown (members, then Outside the band) with a People button beside it: a list to tick
   several people, e.g. this month's membership fee (składka), each then getting their own entry for the same amount
   (the amount is per person; the total is shown). Money out picks a cost waiting for a refund, with a + beside it
-  that adds a cost and comes back to refund it. Leads add both; the treasurer (§2d) only money paid in.
+  that adds a cost and comes back to refund it. Leads add both; the treasurer (§3.3) only money paid in.
 - **The Fund tab:** one list, events' money and entries together, by date (an event's before entries on its day),
   newest first or oldest first by a toggle the device remembers (entries on a day in the order added, either way). Entries say "from Bob", "from outside the band" or
   "refund to Bob".
@@ -239,29 +245,7 @@ Who knows something happened records it, instead of telling a leader (a search a
   and whose costs it refunded (and For events, what it added to an event). "To the band fund" stays as it is. Seen by
   everyone who sees the band's numbers (not artists, ITERATION_4 §1.1).
 
-## 2f. Where we played (grilled 2026-10-28)
-
-- **Where:** Summary's last row, "Where we played · 12 places", for the Summary's period; it opens a map (Android) or
-  a list (the web, which has no map; each place there opens in Google Maps).
-- **Which concerts:** every event of the period already played (date ≤ today), settled or not, archived too, with a
-  location; gigs still to come never (tried as grey pins, dropped the same day). An artist sees only theirs.
-- **Places:** concerts whose coordinates match to about 10 m (4 decimals) are one marker (Google's red pin). A marker is just a pin;
-  tapped, its bubble says the place (the newest concert's location up to its first comma) and "3 concerts", and opens a
-  sheet with the full address and the concerts, each opening its event. Fitted to all markers; one place up close. No
-  clustering.
-- **Coordinates, not in the band:** a location ending in a pin is read as it is. Addresses are looked up by the server
-  (`GET /bands/{id}/locations`, any member; only the band's own locations, so nobody has addresses looked up at its
-  cost) in Google's Geocoding API, each address once ever: cached in DynamoDB (`art-split-geocode`, keyed by the
-  SHA-256 of the normalised text, so no addresses are stored as such). "Not found" is kept 30 days (TTL), then asked
-  again; a failed lookup isn't kept. At most 25 new addresses a call; the app asks again while some are pending, and
-  keeps the coordinates found on the device. Changing an event's address needs nothing: it is another key.
-- **Below the map:** "Finding places…" while lookups run, and "2 concerts not on the map" (Google can't find them),
-  listed to open and fix.
-- **Privacy policy (§4):** event locations go to Google's Geocoding; only their coordinates are kept.
-- **Limits:** a band's own locations only (at most 25 new a call), but no rate limit per user: anyone may create bands
-  full of places. Acceptable for now; failed lookups (quota) aren't kept and are asked again.
-
-## 2g. The band fund as a percentage (grilled 2026-10-28)
+### 5.2 The band fund as a percentage (grilled 2026-10-28)
 
 - **On an event:** "To the fund" is a fixed amount or a **percentage of the profit** (income less cost refunds),
   exactly that share, not a weight among the players: 10% of 5000 zł is 500 zł whoever plays. Rounded **down to whole
@@ -278,7 +262,7 @@ Who knows something happened records it, instead of telling a leader (a search a
   income would owe a fund that is off). A default sent after the fund was turned off elsewhere is dropped, not the event. Nothing is remembered
   per device (tried in the grilling, dropped for the default).
 
-## 2h. Shares in shares, and as a percentage of the profit (grilled 2026-10-29)
+## 6. V7-M7 — Shares in shares, and as a percentage of the profit (grilled 2026-10-29)
 
 - **Shares, not percent:** a share by weight is shown as a number of shares, 100 being one: "1½ shares" / "1½ udziału",
   "¾ share", "No share"; a weight off the quarters as a decimal ("1.1 shares" / "1,1 udziału"). Only the display: the
@@ -301,7 +285,7 @@ Who knows something happened records it, instead of telling a leader (a search a
   1½ and 2, and what one share comes to; the percentage on a slider of 0–100% in 5% steps with "Others already take 10%
   of the profit", in red past 100%. Payout lines and the shared text say "(50% of profit)".
 
-## 2i. Bank accounts, and where to pay into the band fund (grilled 2026-10-29)
+## 7. V7-M8 — Bank accounts, and where to pay into the band fund (grilled 2026-10-29)
 
 - **A member's bank account** (`Member.bankAccount`, `SetBankAccount`), beside their BLIK number and kept exactly like
   it (ITERATION_5 §8): set only by the member, from artists up, in Settings ("Your bank account"); not in the history
@@ -326,7 +310,46 @@ Who knows something happened records it, instead of telling a leader (a search a
   "Hand over money" shows the recipient's account under their BLIK number.
 - **Not in:** shared settlement texts; a transfer title.
 
-## 3. Milestones and task checklist
+## 8. V7-M9 — Where we played (grilled 2026-10-28)
+
+- **Where:** Summary's last row, "Where we played · 12 places", for the Summary's period; it opens a map (Android) or
+  a list (the web, which has no map; each place there opens in Google Maps).
+- **Which concerts:** every event of the period already played (date ≤ today), settled or not, archived too, with a
+  location; gigs still to come never (tried as grey pins, dropped the same day). An artist sees only theirs.
+- **Places:** concerts whose coordinates match to about 10 m (4 decimals) are one marker (Google's red pin). A marker is just a pin;
+  tapped, its bubble says the place (the newest concert's location up to its first comma) and "3 concerts", and opens a
+  sheet with the full address and the concerts, each opening its event. Fitted to all markers; one place up close. No
+  clustering.
+- **Coordinates, not in the band:** a location ending in a pin is read as it is. Addresses are looked up by the server
+  (`GET /bands/{id}/locations`, any member; only the band's own locations, so nobody has addresses looked up at its
+  cost) in Google's Geocoding API, each address once ever: cached in DynamoDB (`art-split-geocode`, keyed by the
+  SHA-256 of the normalised text, so no addresses are stored as such). "Not found" is kept 30 days (TTL), then asked
+  again; a failed lookup isn't kept. At most 25 new addresses a call; the app asks again while some are pending, and
+  keeps the coordinates found on the device. Changing an event's address needs nothing: it is another key.
+- **Below the map:** "Finding places…" while lookups run, and "2 concerts not on the map" (Google can't find them),
+  listed to open and fix.
+- **Privacy policy (§4):** event locations go to Google's Geocoding; only their coordinates are kept.
+- **Limits:** a band's own locations only (at most 25 new a call), but no rate limit per user: anyone may create bands
+  full of places. Acceptable for now; failed lookups (quota) aren't kept and are asked again.
+
+## 9. V7-M10 — Deleting a band takes a week (2026-10-29)
+
+Against an owner who deletes the band in anger: the others get a week to keep it.
+
+- **Asking:** Settings › Delete band (owner only, online, the band's name typed as before) asks the server
+  (`DELETE /bands/{id}`), which records `ScheduleBandDeletion` with its own clock (`Band.deletion`: who asked, when,
+  and `deleteAt` a week later). The operation is never pushed by an app (refused), so nobody sets a time of their own.
+  Asked again while waiting: nothing changes. A band never uploaded goes at once, as before.
+- **Meanwhile** the band works as before. Everyone sees a notice on the events list and in Settings (in place of
+  Delete band): "Alice asked to delete this band. It will be deleted for everyone on 5.11.2026"; leaders (the owner
+  too) get **Keep the band** (`CancelBandDeletion`). Both are in the History, neither can be undone.
+- **Then** the server deletes it as before (state, members' band lists, invites, history, files, event links; the
+  "deleted by" marker names who asked): when someone next loads it, or by an hourly sweep that any request runs, from
+  `server/scheduled-deletions.json`, so a band nobody opens goes too. No new infrastructure.
+- **Not in:** a faster way for the owner; two leaders' approval. An owner who keeps asking is kept by the leaders each
+  time; DISASTER_RECOVERY.md covers what happens anyway.
+
+## 10. Milestones and task checklist
 
 ### V7-M1 — Google Play (§1), branch `play`
 
@@ -355,46 +378,44 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - [x] Tested on the emulator (2026-10-27): a change from another device reached it, which fetched the band about 1 s
   after the change
 
-### Deleting members added by mistake (§2a)
+### V7-M4 — Who records what (§3)
 
-- [x] The shared rule and the server's clean-up after an unlink (with tests); Delete member in Band members, Undo
+- [x] Deleting members (§3.1): the shared rule and the server's clean-up after an unlink (with tests); Delete member in
+  Band members, Undo
+- [x] Artists (§3.2): To settle on their Money page, their own transfers only, with BLIK when they pay; Paid / Received
+  / Part on them; RecordTransfer of one's own from artists up
+- [x] Fewer messages (§3.3): removing one's own transfer; receiving an awaited fee paid to oneself; the treasurer's fund
+  entries; receipts on a locked cost
 
-### Artists see and settle their own transfers (§2c)
-
-- [x] To settle on the artist's Money page, their own transfers only, with BLIK when they pay
-- [x] Paid / Received / Part on them; RecordTransfer of one's own from artists up
-
-### Fewer messages to a leader (§2d)
-
-- [x] Removing one's own transfer; receiving an awaited fee paid to oneself; the treasurer's fund entries; receipts on a locked cost
-
-### Who paid into the band fund (§2e)
-
-- [x] Payer on entries, money out only for a cost; several people at once; one sorted list; the Summary breakdown
-
-### Where we played (§2f)
-
-- [x] The server's cached lookup (DynamoDB, Terraform), the Summary row, the map (Android) and the list (web)
-- [ ] Seen with real lookups once deployed
-
-### The band fund as a percentage (§2g)
-
-- [x] Percentage of the profit on events, the fund editor, the band default with apply-to-unsettled
-
-### Shares in shares, and as a percentage (§2h)
-
-- [x] Shares shown as shares, a percentage of the profit for participants and members' defaults, the three-way editor
-
-### Bank accounts, and the band fund's payment details (§2i)
-
-- [x] Members' accounts, the fund's BLIK and account (its tab and settings), both icons beside transfers
-
-### Updates from Google Play in the app (§2b)
+### V7-M5 — Updates from Google Play in the app (§4)
 
 - [x] The strip (available, downloading, downloaded), Update required's full-screen update
 - [ ] Seen with a real update from Play (needs a Play-installed build and a newer release)
 
-## 4. Decision log
+### V7-M6 — The band fund (§5)
+
+- [x] Who paid in (§5.1): payer on entries, money out only for a cost; several people at once; one sorted list; the
+  Summary breakdown
+- [x] A percentage (§5.2): of the profit on events, the fund editor, the band default with apply-to-unsettled
+
+### V7-M7 — Shares in shares, and as a percentage (§6)
+
+- [x] Shares shown as shares, a percentage of the profit for participants and members' defaults, the three-way editor
+
+### V7-M8 — Bank accounts, and the band fund's payment details (§7)
+
+- [x] Members' accounts, the fund's BLIK and account (its tab and settings), both icons beside transfers
+
+### V7-M9 — Where we played (§8)
+
+- [x] The server's cached lookup (DynamoDB, Terraform), the Summary row, the map (Android) and the list (web)
+- [ ] Seen with real lookups once deployed
+
+### V7-M10 — Deleting a band takes a week (§9)
+
+- [x] The server schedules and deletes when due (on load, hourly sweep); the notice and Keep the band in the app
+
+## 11. Decision log
 
 - 2026-10-27: Both channels, the APK dropped later (Q1), rather than Play only at once: nobody has to do anything now.
 - 2026-10-27: The existing key as Play's app signing key (Q2): moving between channels stays an update.
@@ -415,30 +436,33 @@ Old apps need nothing for V7-M2/M3: they don't register and keep polling every 3
 - 2026-10-27 (bug): an artist paid their share before a refund was accepted at the event owed the difference back, and
   "Settle all" refused it ("artists don't hold money"). An artist now pays back what they were paid too much, never
   more; a single transfer from an artist is held to the same (it wasn't checked at all).
-- 2026-10-27: Artists see their own transfers (§2c), read only; nobody else's, so the rest of the band's money stays
+- 2026-10-27: Artists see their own transfers (§3.2), read only; nobody else's, so the rest of the band's money stays
   hidden from them (ITERATION_4 §1.1).
-- 2026-10-28: Artists record their own transfers (§2c): an artist paying another artist otherwise needed two people to
+- 2026-10-28: Artists record their own transfers (§3.2): an artist paying another artist otherwise needed two people to
   pass the word to a lead.
-- 2026-10-28: Fewer messages to a leader (§2d): four things the person involved knows are theirs to record. Refunding a
+- 2026-10-28: Fewer messages to a leader (§3.3): four things the person involved knows are theirs to record. Refunding a
   cost from the fund, recording an awaited fee and undoing from History stay with leads.
-- 2026-10-28: Money leaves the band fund only to refund a cost (§2e), rather than also as plain withdrawals: every
+- 2026-10-28: Money leaves the band fund only to refund a cost (§5.1), rather than also as plain withdrawals: every
   withdrawal has an owner, so the Summary's breakdown always adds up.
-- 2026-10-28: Several payers through a People list beside the dropdown (§2e), rather than chips: most entries are one
+- 2026-10-28: Several payers through a People list beside the dropdown (§5.1), rather than chips: most entries are one
   person's.
 - 2026-10-28: The web links to joining the closed test (§1.5) rather than showing no app link until production.
-- 2026-10-28: The map's coordinates in a server cache (DynamoDB), not in the band's events (§2f): events stay as they
+- 2026-10-28: The map's coordinates in a server cache (DynamoDB), not in the band's events (§8): events stay as they
   are, nothing to clear when an address changes; DynamoDB rather than S3, a batch read instead of a file per address.
-- 2026-10-28: The server looks up only the band's own locations (§2f), rather than addresses the app sends: no
+- 2026-10-28: The server looks up only the band's own locations (§8), rather than addresses the app sends: no
   lookups at the band's cost for anything else.
-- 2026-10-28: The fund's percentage is of the profit, exactly (§2g), not a weight beside the players': it means what it
+- 2026-10-28: The fund's percentage is of the profit, exactly (§5.2), not a weight beside the players': it means what it
   says whoever plays. Rounded down to whole units: a round sum to hand over, never more than the percentage.
-- 2026-10-28: A band default for the fund (§2g) instead of remembering the last value per device: shared by the band,
+- 2026-10-28: A band default for the fund (§5.2) instead of remembering the last value per device: shared by the band,
   like members' default shares.
-- 2026-10-29: Shares are shown as shares (§2h), "1½", not "150%": a member's "%" and the fund's meant different things.
-- 2026-10-29: Participants' percentages are of the profit plus the fund's top-up (§2h), the same base as the fund's
+- 2026-10-29: Shares are shown as shares (§6), "1½", not "150%": a member's "%" and the fund's meant different things.
+- 2026-10-29: Participants' percentages are of the profit plus the fund's top-up (§6), the same base as the fund's
   percentage, so all percentages add up; a percentage replaces the shares rather than coming on top of them.
-- 2026-10-29: Over 100% and money nobody gets are problems on the event (§2h), not refusals: two phones may set
+- 2026-10-29: Over 100% and money nobody gets are problems on the event (§6), not refusals: two phones may set
   percentages at once, and a refusal would drop one of the changes unseen.
-- 2026-10-29: Transfers to the band fund show only the fund's own payment details (§2i), never its holder's: whose
+- 2026-10-29: Transfers to the band fund show only the fund's own payment details (§7), never its holder's: whose
   money is whose stays clear. Bands that set none see no number for the fund until they do.
-- 2026-10-29: The fund's details are the band's (§2i): in the history and undoable, unlike a member's own.
+- 2026-10-29: The fund's details are the band's (§7): in the history and undoable, unlike a member's own.
+- 2026-10-29: Deleting a band waits a week (§9), any leader can keep it: an angry owner can't take the band from the
+  others. Due deletions run on load and in an hourly sweep piggybacked on requests, rather than a scheduled Lambda: no
+  infrastructure change, and nothing to delete is ever waiting long on a used server.

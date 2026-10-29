@@ -86,10 +86,11 @@ data class BandChange(val before: BandPart, val after: BandPart) {
 
 /**
  * Kinds of changes that cannot be undone: joining by invite, unlinking an account, passing on ownership, and settling
- * together and one's own payment details, which are each member's own decision (ITERATION_5 §7, §8).
+ * together and one's own payment details, which are each member's own decision (ITERATION_5 §7, §8), and deleting the
+ * band or keeping it, whose times are the server's (ITERATION_7 §9).
  */
 fun isUndoable(op: Operation): Boolean = when (op) {
-    is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone, is SetBankAccount,
+    is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone, is SetBankAccount, is ScheduleBandDeletion, is CancelBandDeletion,
     is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
     -> false
     is Undo -> isUndoable(op.original)
@@ -140,7 +141,7 @@ internal object Undoing {
                     val later = after.members[id]
                     member?.copy(
                         pictureUrl = current?.pictureUrl ?: member.pictureUrl,
-                        // Only ever set by their own operations, which are not undoable (ITERATION_5 §8, ITERATION_7 §2i).
+                        // Only ever set by their own operations, which are not undoable (ITERATION_5 §8, ITERATION_7 §7).
                         blikPhone = if (current == null) member.blikPhone else current.blikPhone,
                         bankAccount = if (current == null) member.bankAccount else current.bankAccount,
                         settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith,
@@ -212,7 +213,7 @@ internal object Undoing {
 
 /**
  * Each setting the change made (from [before] to [after]) is still as it left it in [current]; settings it didn't touch
- * may have changed since, e.g. the fund's account set after a rename (ITERATION_7 §2i).
+ * may have changed since, e.g. the fund's account set after a rename (ITERATION_7 §7).
  */
 private fun settingsUnchanged(before: BandSettings?, after: BandSettings?, current: BandSettings): Boolean =
     before == null || after == null || settingFields.all { field -> field(before) == field(after) || field(current) == field(after) }

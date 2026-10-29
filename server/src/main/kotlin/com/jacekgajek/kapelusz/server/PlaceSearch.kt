@@ -42,7 +42,7 @@ interface PlaceSearch {
     /** Where a short Maps link leads (its redirects followed, Google's hosts only); null if it leads nowhere readable. */
     fun follow(url: String): String?
 
-    /** Where an address is (ITERATION_7 §2f); null when Google knows no such place. Throws when it couldn't be asked. */
+    /** Where an address is (ITERATION_7 §8); null when Google knows no such place. Throws when it couldn't be asked. */
     fun locate(address: String): Located? = throw UnsupportedOperationException("No geocoding")
 }
 
@@ -228,7 +228,7 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
     }
 
     /**
-     * `GET /bands/{id}/locations` (ITERATION_7 §2f): where the event locations the user sees are, for any member. Only
+     * `GET /bands/{id}/locations` (ITERATION_7 §8): where the event locations the user sees are, for any member. Only
      * the band's own locations, so nobody has addresses looked up at the band's cost; each address once, ever (cached);
      * at most [MAX_LOOKUPS] new ones a call, the rest pending, asked again by the app.
      */

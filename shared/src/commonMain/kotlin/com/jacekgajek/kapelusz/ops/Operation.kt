@@ -4,6 +4,7 @@ import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.BandDeletion
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.FundCut
@@ -59,7 +60,7 @@ data class SetMemberArchived(val memberId: Id, val archived: Boolean) : Operatio
 data class DeleteMember(val memberId: Id) : Operation
 
 /**
- * A member's default share (ITERATION_4 §2.3): [weight], or [fixedShare] or [percent] (ITERATION_7 §2h) when set. Also
+ * A member's default share (ITERATION_4 §2.3): [weight], or [fixedShare] or [percent] (ITERATION_7 §6) when set. Also
  * applied, in the same step, to their share in [events] (chosen by the user: events not settled where they still had
  * the old default).
  */
@@ -81,7 +82,7 @@ data class UnlinkUser(val memberId: Id) : Operation
 @Serializable @SerialName("SetBlikPhone")
 data class SetBlikPhone(val memberId: Id, val phone: String?) : Operation
 
-/** The member's own bank account number (ITERATION_7 §2i); null removes it. */
+/** The member's own bank account number (ITERATION_7 §7); null removes it. */
 @Serializable @SerialName("SetBankAccount")
 data class SetBankAccount(val memberId: Id, val account: String?) : Operation
 
@@ -92,11 +93,22 @@ data class SetTreasurer(val memberId: Id) : Operation
 @Serializable @SerialName("DisableBandFund")
 data object DisableBandFund : Operation
 
-/** The BLIK number to pay into the band fund (ITERATION_7 §2i); null removes it. */
+/**
+ * The owner's request to delete the band (ITERATION_7 §9), applied only by the server (`DELETE /bands/{id}`), which
+ * sets the times by its own clock.
+ */
+@Serializable @SerialName("ScheduleBandDeletion")
+data class ScheduleBandDeletion(val deletion: BandDeletion) : Operation
+
+/** A leader keeps the band: the deletion asked for doesn't happen (ITERATION_7 §9). */
+@Serializable @SerialName("CancelBandDeletion")
+data object CancelBandDeletion : Operation
+
+/** The BLIK number to pay into the band fund (ITERATION_7 §7); null removes it. */
 @Serializable @SerialName("SetFundBlikPhone")
 data class SetFundBlikPhone(val phone: String?) : Operation
 
-/** The bank account to pay into the band fund (ITERATION_7 §2i); null removes it. */
+/** The bank account to pay into the band fund (ITERATION_7 §7); null removes it. */
 @Serializable @SerialName("SetFundBankAccount")
 data class SetFundBankAccount(val account: String?) : Operation
 
@@ -138,7 +150,7 @@ data class CreateEvent(
     val participants: List<Participant> = emptyList(),
     /** The band's agenda template at creation time, times not set yet (ITERATION_2 §4.1). */
     val agenda: List<AgendaTime> = emptyList(),
-    /** The band's fund default at creation time (ITERATION_7 §2g); null: nothing to the fund. */
+    /** The band's fund default at creation time (ITERATION_7 §5.2); null: nothing to the fund. */
     val fund: FundCut? = null,
 ) : Operation
 
@@ -192,7 +204,7 @@ data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int)
 
 /**
  * A fixed amount the participant takes off the top instead of a share by weight (ITERATION_3 §2.4), or a [percent] of
- * the profit (ITERATION_7 §2h); neither goes back to the weight. [weight], when set, is applied in the same step, so
+ * the profit (ITERATION_7 §6); neither goes back to the weight. [weight], when set, is applied in the same step, so
  * going back to a different weight is one change to undo.
  */
 @Serializable @SerialName("SetFixedShare")
@@ -244,11 +256,11 @@ data class SetFundAmount(
     override val eventId: Id,
     /** Ignored when [percent] is set. */
     val amount: Money,
-    /** A percentage of the profit, 0–100, instead of [amount] (ITERATION_7 §2g); 0 is nothing. */
+    /** A percentage of the profit, 0–100, instead of [amount] (ITERATION_7 §5.2); 0 is nothing. */
     val percent: Int? = null,
 ) : Operation
 
-/** The band's fund default for new events (ITERATION_7 §2g), applied to [events] too, as a member's default share is. */
+/** The band's fund default for new events (ITERATION_7 §5.2), applied to [events] too, as a member's default share is. */
 @Serializable @SerialName("SetFundDefault")
 data class SetFundDefault(val cut: FundCut?, val events: List<Id> = emptyList()) : Operation
 
@@ -259,7 +271,7 @@ data class AddFundEntry(
     val description: String,
     val amount: Money,
     val costId: Id? = null,
-    /** Who paid it in: a member, or null for someone outside the band (ITERATION_7 §2e). */
+    /** Who paid it in: a member, or null for someone outside the band (ITERATION_7 §5.1). */
     val paidBy: Id? = null,
 ) : Operation
 

@@ -26,7 +26,7 @@ data class LocatedPlaces(
 }
 
 /**
- * The coordinates of event locations for the "Where we played" map (ITERATION_7 §2f), from the server's cache of
+ * The coordinates of event locations for the "Where we played" map (ITERATION_7 §8), from the server's cache of
  * Google's answers; those found are kept on the device too, so the map opens at once next time.
  */
 class PlacesLocator(private val store: KeyValueStore, private val api: ApiClient) {

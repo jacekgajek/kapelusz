@@ -141,7 +141,7 @@ fun BandFundScreen(
     onOpenEvent: (String) -> Unit,
     /** The + beside the costs to refund: a new cost, which comes back as [addedCost]. */
     onAddCost: () -> Unit,
-    /** A cost just added from here, to refund (ITERATION_7 §2e); [onAddedCostSeen] once its dialog is open. */
+    /** A cost just added from here, to refund (ITERATION_7 §5.1); [onAddedCostSeen] once its dialog is open. */
     addedCost: String? = null,
     onAddedCostSeen: () -> Unit = {},
 ) {
@@ -192,7 +192,7 @@ fun BandFundScreen(
             }
             return@Scaffold
         }
-        // One list, by date (ITERATION_7 §2e): events' money first on a day, entries in the order they were added.
+        // One list, by date (ITERATION_7 §5.1): events' money first on a day, entries in the order they were added.
         val rows = remember(band, settings.fundOldestFirst) {
             val all = band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
                 band.fundEntries.map { FundRow.OfEntry(it) }
@@ -223,7 +223,7 @@ fun BandFundScreen(
                     }
                 }
             }
-            // Where to pay in, for everyone, once set (ITERATION_7 §2i): only shown here, set in the fund's settings.
+            // Where to pay in, for everyone, once set (ITERATION_7 §7): only shown here, set in the fund's settings.
             if (band.fundBlikPhone != null || band.fundBankAccount != null) item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp, 8.dp)) {
@@ -328,7 +328,7 @@ private sealed interface FundRow {
 }
 
 /**
- * Add or edit an entry (ITERATION_7 §2e): money paid in by someone (a member, several at once, or from outside the band),
+ * Add or edit an entry (ITERATION_7 §5.1): money paid in by someone (a member, several at once, or from outside the band),
  * or the refund of a cost; money leaves the fund only for one. [refund]: a cost to refund, just added with the +.
  */
 @Composable
@@ -336,7 +336,7 @@ private fun FundEntryDialog(
     band: Band,
     initial: FundEntry?,
     me: String?,
-    /** Leads only: refunding a cost decides about it (ITERATION_7 §2d); the treasurer records money paid in. */
+    /** Leads only: refunding a cost decides about it (ITERATION_7 §3.3); the treasurer records money paid in. */
     refundsCosts: Boolean = true,
     refund: String? = null,
     onAddCost: (() -> Unit)? = null,
@@ -476,7 +476,7 @@ private fun FundEntryDialog(
     }
 }
 
-/** Ticking who paid, e.g. everyone's monthly fee (ITERATION_7 §2e). */
+/** Ticking who paid, e.g. everyone's monthly fee (ITERATION_7 §5.1). */
 @Composable
 private fun PeopleDialog(people: List<Member>, initial: Set<String>, onDone: (Set<String>) -> Unit, onDismiss: () -> Unit) {
     var chosen by remember { mutableStateOf(initial) }

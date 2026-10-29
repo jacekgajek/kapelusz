@@ -86,6 +86,8 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.ops.DisableBandFund
 import com.jacekgajek.kapelusz.ops.SetBankAccount
+import com.jacekgajek.kapelusz.ops.CancelBandDeletion
+import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
 import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
@@ -207,7 +209,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     // Otherwise a lead adding a cost for someone else would not see it in "My costs".
                     navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
                 }, onAdded = { costId ->
-                    // From the band fund's +: back there to refund it (ITERATION_7 §2e).
+                    // From the band fund's +: back there to refund it (ITERATION_7 §5.1).
                     navController.previousBackStackEntry?.takeIf { it.destination.hasRoute(FundRoute::class) }?.savedStateHandle?.set(ADDED_COST, costId)
                 })
             }
@@ -273,6 +275,11 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     fundBankAccount = state.band.fundBankAccount,
                     onFundPayment = { kind: PaymentKind, value: String? -> graph.dispatch(fundPaymentOp(kind, value)); Unit }
                         .takeIf { Can(state.band, state.userId).allowed(SetFundBlikPhone(null)) },
+                    deletionNotice = state.band.deletion?.let {
+                        {
+                            BandDeletionNotice(state.band, { graph.dispatch(CancelBandDeletion); Unit }.takeIf { Can(state.band, state.userId).allowed(CancelBandDeletion) })
+                        }
+                    },
                 )
             }
             composable<RosterRoute> { entry ->

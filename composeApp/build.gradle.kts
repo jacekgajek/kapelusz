@@ -136,7 +136,7 @@ kotlin {
             implementation(libs.maps.compose)
             // Sync messages, not notifications (ITERATION_7 §2.3): messaging only, no Analytics.
             implementation(libs.firebase.messaging)
-            // Updates from Google Play offered in the app (ITERATION_7 §2b).
+            // Updates from Google Play offered in the app (ITERATION_7 §4).
             implementation(libs.play.app.update)
         }
         wasmJsMain.dependencies {
