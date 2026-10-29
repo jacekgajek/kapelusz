@@ -276,7 +276,10 @@ object SettlementCalculator {
     }
 }
 
-/** [lines] with each pair of [partners] summed into one line, where the partner first in [lines] is. */
+/**
+ * [lines] with each pair of [partners] summed into one line, where the partner first in [lines] is, named by the
+ * smaller of the two ids: not by the roster's order, so reordering the roster doesn't change the suggestions.
+ */
 internal fun mergePairs(lines: List<PartyLine>, partners: Map<Id, Id>): List<PartyLine> {
     if (partners.isEmpty()) return lines
     val byId = lines.associateBy { it.partyId }
@@ -285,8 +288,9 @@ internal fun mergePairs(lines: List<PartyLine>, partners: Map<Id, Id>): List<Par
         if (line.partyId in seen) return@mapNotNull null
         val partner = partners[line.partyId]?.let { byId[it] } ?: return@mapNotNull line
         seen += partner.partyId
+        val (first, second) = listOf(line.partyId, partner.partyId).sorted()
         PartyLine(
-            partyId = line.partyId,
+            partyId = first,
             weight = line.weight + partner.weight,
             collected = line.collected + partner.collected,
             sent = line.sent + partner.sent,
@@ -294,7 +298,7 @@ internal fun mergePairs(lines: List<PartyLine>, partners: Map<Id, Id>): List<Par
             share = line.share + partner.share,
             refunds = line.refunds + partner.refunds,
             target = line.target + partner.target,
-            partnerId = partner.partyId,
+            partnerId = second,
         )
     }
 }
