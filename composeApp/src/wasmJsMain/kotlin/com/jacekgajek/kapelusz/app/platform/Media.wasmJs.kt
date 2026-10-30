@@ -13,9 +13,9 @@ actual object FileCache : ByteCache {
     private const val MAX_BYTES = 50L * 1024 * 1024
     private val files = LinkedHashMap<String, ByteArray>()
 
-    override suspend fun read(key: String): ByteArray? = files.remove(key)?.also { files[key] = it }
+    actual override suspend fun read(key: String): ByteArray? = files.remove(key)?.also { files[key] = it }
 
-    override suspend fun write(key: String, bytes: ByteArray) {
+    actual override suspend fun write(key: String, bytes: ByteArray) {
         files[key] = bytes
         var total = files.values.sumOf { it.size.toLong() }
         val keys = files.keys.iterator()

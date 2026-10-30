@@ -63,14 +63,14 @@ actual object FileCache : ByteCache {
 
     private fun name(key: String) = key.replace(Regex("[^A-Za-z0-9_-]"), "_")
 
-    override suspend fun read(key: String): ByteArray? = withContext(Dispatchers.IO) {
+    actual override suspend fun read(key: String): ByteArray? = withContext(Dispatchers.IO) {
         val file = dir()?.let { File(it, name(key)) }?.takeIf { it.isFile } ?: return@withContext null
         // Used now: the last to go when room is needed.
         file.setLastModified(System.currentTimeMillis())
         runCatching { file.readBytes() }.getOrNull()
     }
 
-    override suspend fun write(key: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
+    actual override suspend fun write(key: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
         val dir = dir() ?: return@withContext
         val part = File(dir, name(key) + ".part")
         part.writeBytes(bytes)
