@@ -17,7 +17,7 @@
     <string name="share_text_refunds">costs refunded %1$s</string>
     <string name="share_text_to_fund">band fund %1$s</string>
     <string name="share_text_from_fund">from the band fund %1$s</string>
-    <string name="share_text_shares">Shares: %1$s</string>
+    <string name="share_text_shares">Shares:</string>
     <string name="share_text_share_with_refunds">%1$s %2$s (+ %3$s refunds)</string>
     <string name="share_text_fixed">%1$s (fixed)</string>
     <string name="share_text_done">Done:</string>

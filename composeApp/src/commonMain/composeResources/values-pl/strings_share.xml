@@ -17,7 +17,7 @@
     <string name="share_text_refunds">zwroty kosztów %1$s</string>
     <string name="share_text_to_fund">do kasy zespołowej %1$s</string>
     <string name="share_text_from_fund">z kasy zespołowej %1$s</string>
-    <string name="share_text_shares">Udziały: %1$s</string>
+    <string name="share_text_shares">Udziały:</string>
     <string name="share_text_share_with_refunds">%1$s %2$s (+ zwroty %3$s)</string>
     <string name="share_text_fixed">%1$s (stała kwota)</string>
     <string name="share_text_done">Przekazane:</string>

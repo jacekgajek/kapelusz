@@ -188,14 +188,24 @@ Chosen on 2026-10-22; details to be settled (grilling) before building.
   open suggestions). A fully settled event says "All settled". Example:
   ```
   Club gig · Sat 12 Sep
-  Income 1 200 zł · costs refunded 150 zł · band fund 100 zł
-  Shares: Jacek 475 zł (+ 150 zł refunds), Bob 475 zł
+
+  Income 1 200 zł
+  costs refunded 150 zł
+  band fund 100 zł
+
+  Shares:
+  Jacek 475 zł (+ 150 zł refunds),
+  Bob 475 zł
+
   Done:
   Carol → band fund: 50 zł
+
   Still to pay:
   Bob → Jacek: 100 zł
-  Kapelusz · kapelusz.jacekgajek.com
+
+  https://kapelusz.jacekgajek.com/e/…
   ```
+  Blocks one empty line apart, one item a line (since 1.33.1; it was a line per block).
 - **Language:** the sender's app language, with money and dates formatted in it. The footer names the app in that
   language (Kapelusz / Pass the Hat) with the address.
 - **Where and who:** a **Share** icon in the event's top bar and a **Share settlement** button under the Settlement
