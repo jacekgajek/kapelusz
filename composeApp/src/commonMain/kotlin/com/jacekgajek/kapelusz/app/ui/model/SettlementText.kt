@@ -20,6 +20,7 @@ data class SettlementWords(
     val refunds: String,
     val toFund: String,
     val fromFund: String,
+    /** The heading above everyone's share, one a line. */
     val shares: String,
     val shareWithRefunds: String,
     /** "%1$s" filled with the amount: a fixed share (ITERATION_3 §2.4). */
@@ -43,6 +44,7 @@ data class SettlementWords(
 /**
  * A settlement as plain text to send to the band (ITERATION_3 §2.1): the event, the totals, everyone's share, then the
  * recorded transfers ("Done") and the open suggestions ("Still to pay"), or "All settled", or that it is incomplete; a footer names the app.
+ * Each of these a block of its own, one item a line.
  */
 fun settlementText(band: Band, event: Event, settlement: Settlement, language: String, words: SettlementWords): String {
     fun money(amount: Money) = formatMoney(amount, band.currency, language)
@@ -50,37 +52,40 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
     fun transfer(from: Id, to: Id, amount: Money) = "${name(from)} → ${name(to)}: ${money(amount)}"
     // A suggestion is between parties: a pair settling together by both names (ITERATION_5 §7).
     fun party(partyId: Id) = partyName(band, event, settlement, partyId, words.fundLabel, words.pair)
-    return buildList {
-        add("${event.name} · ${formatShortDate(event.date, language)}")
-        add(
-            listOfNotNull(
-                fill(words.income, money(settlement.income)),
-                fill(words.refunds, money(settlement.refundsTotal)).takeUnless { settlement.refundsTotal.isZero },
-                when {
-                    settlement.fundAmount.isPositive -> fill(words.toFund, money(settlement.fundAmount))
-                    settlement.fundAmount.isNegative -> fill(words.fromFund, money(-settlement.fundAmount))
-                    else -> null
-                },
-            ).joinToString(" · "),
-        )
-        if (event.awaited.isPositive) add(fill(words.awaited, money(event.awaited)))
-        val shares = settlement.lines.filter { it.partyId != BAND_FUND }
-        if (shares.isNotEmpty()) add(fill(words.shares, shares.joinToString(", ") { shareText(it, name(it.partyId), ::money, words) }))
-        if (event.transfers.isNotEmpty()) {
-            add(words.done)
-            event.transfers.forEach { add(transfer(it.from, it.to, it.amount)) }
-        }
-        if (settlement.status == EventStatus.SETTLED) {
-            add(words.allSettled)
-        } else if (settlement.problems.isNotEmpty()) {
-            add(words.incomplete)
-        } else if (settlement.suggestions.isNotEmpty()) {
-            add(words.stillToPay)
-            settlement.suggestions.forEach { add("${party(it.from)} → ${party(it.to)}: ${money(it.amount)}") }
-        }
-        if (event.awaited.isPositive && settlement.problems.isEmpty()) add(words.awaitingRest)
-        add(words.footer)
-    }.joinToString("\n")
+    // Blocks apart by an empty line, one item a line: easy to read in a chat.
+    val blocks = mutableListOf<List<String>>()
+    blocks.add(listOf("${event.name} · ${formatShortDate(event.date, language)}"))
+    blocks.add(
+        listOfNotNull(
+            fill(words.income, money(settlement.income)),
+            fill(words.refunds, money(settlement.refundsTotal)).takeUnless { settlement.refundsTotal.isZero },
+            when {
+                settlement.fundAmount.isPositive -> fill(words.toFund, money(settlement.fundAmount))
+                settlement.fundAmount.isNegative -> fill(words.fromFund, money(-settlement.fundAmount))
+                else -> null
+            },
+            fill(words.awaited, money(event.awaited)).takeIf { event.awaited.isPositive },
+        ),
+    )
+    val shares = settlement.lines.filter { it.partyId != BAND_FUND }.map { shareText(it, name(it.partyId), ::money, words) }
+    if (shares.isNotEmpty()) blocks.add(listOf(words.shares) + shares.mapIndexed { index, share -> if (index < shares.lastIndex) "$share," else share })
+    if (event.transfers.isNotEmpty()) blocks.add(listOf(words.done) + event.transfers.map { transfer(it.from, it.to, it.amount) })
+    blocks.add(
+        buildList {
+            if (settlement.status == EventStatus.SETTLED) {
+                add(words.allSettled)
+            } else if (settlement.problems.isNotEmpty()) {
+                add(words.incomplete)
+            } else if (settlement.suggestions.isNotEmpty()) {
+                add(words.stillToPay)
+                settlement.suggestions.forEach { add("${party(it.from)} → ${party(it.to)}: ${money(it.amount)}") }
+            }
+        },
+    )
+    // A closing sentence, apart from the transfers above it.
+    if (event.awaited.isPositive && settlement.problems.isEmpty()) blocks.add(listOf(words.awaitingRest))
+    blocks.add(listOf(words.footer))
+    return blocks.filter { it.isNotEmpty() }.joinToString("\n\n") { it.joinToString("\n") }
 }
 
 /** One party's share, "Jacek 475 zł (+ 150 zł refunds)": kept apart so a fixed amount (§2.4) or a percentage can be worded here. */
