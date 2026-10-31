@@ -19,7 +19,6 @@ import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.rules.Actor
@@ -27,37 +26,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
 
-class ApiTest {
-    private val store = InMemoryBlobStore()
-    private val history = InMemoryHistoryStore()
-
-    /** Tokens are just user ids in tests. */
-    private val api = Api(store, history, { token -> VerifiedUser(token, "$token@example.com", token) }, clock = { 1_790_000_000_000 })
-
-    private fun call(method: String, path: String, user: String? = "alice", body: String? = null, headers: Map<String, String> = emptyMap()) = api.handle(HttpRequest(method, path, headers + listOfNotNull(user?.let { "authorization" to "Bearer $it" }), body))
-
-    private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
-        assertEquals(200, status, body)
-        return KapeluszJson.decodeFromString(serializer, body!!)
-    }
-
-    private fun createBand(user: String = "alice", bandId: String = "band1") = call(
-        "POST",
-        "/bands",
-        user,
-        KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, "Night Owls", "PLN", "m-$user", user.replaceFirstChar { it.uppercase() })),
-    )
-
-    private var seq = 0L
-    private fun push(bandId: String, user: String, vararg ops: Operation, clientId: String = "phone") = call(
-        "POST",
-        "/bands/$bandId/ops",
-        user,
-        KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.map { OpEnvelope("op${++seq}", clientId, seq, seq, it) })),
-    )
-
+class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@example.com", token) }) {
     @Test
     fun requiresValidToken() {
         assertEquals(401, call("GET", "/me", user = null).status)
@@ -119,12 +89,12 @@ class ApiTest {
     fun permissionsAreEnforcedOnTheServer() {
         createBand()
         // Bob joins as a plain member, as if he accepted an invite (a server-internal operation).
-        push("band1", "alice", AddMember("m-bob", "Bob"))
+        push("alice", AddMember("m-bob", "Bob"), bandId = "band1")
         val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         val linked = (Engine.apply(band, Actor.System, LinkUser("m-bob", "bob", Role.MEMBER), "x", 0) as ApplyResult.Applied).band
         store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(Band.serializer(), linked))
 
-        val response = push("band1", "bob", CreateEvent("e", "Gig", LocalDate(2026, 9, 13))).parse(PushResponse.serializer())
+        val response = push("bob", CreateEvent("e", "Gig", LocalDate(2026, 9, 13)), bandId = "band1").parse(PushResponse.serializer())
         assertEquals(RejectionReason.ROLE_REQUIRED, response.rejected.values.single().reason)
         assertTrue(response.band.events.isEmpty())
     }
@@ -196,7 +166,7 @@ class ApiTest {
     @Test
     fun bandsTheAccountLeftDoNotCountTowardsTheLimit() {
         createBand("alice", "shared")
-        push("shared", "alice", com.jacekgajek.kapelusz.ops.AddMember("m-bob", "Bob"))
+        push("alice", com.jacekgajek.kapelusz.ops.AddMember("m-bob", "Bob"), bandId = "shared")
         val invite = call(
             "POST",
             "/bands/shared/invites",
@@ -210,11 +180,12 @@ class ApiTest {
         repeat(Api.MAX_BANDS_PER_USER - 1) { assertEquals(200, createBand("bob", "bob$it").status) }
         assertEquals(409, createBand("bob", "one-more").status)
 
-        push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", true))
+        push("alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", true), bandId = "shared")
         assertTrue(call("GET", "/me", "bob").parse(com.jacekgajek.kapelusz.api.MeResponse.serializer()).bands.none { it.id == "shared" }, "archived: not listed")
         assertEquals(409, createBand("bob", "one-more").status, "archived members can be restored: the band still counts")
 
-        push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", false), com.jacekgajek.kapelusz.ops.UnlinkUser("m-bob"))
+        val restored = com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", false)
+        push("alice", restored, com.jacekgajek.kapelusz.ops.UnlinkUser("m-bob"), bandId = "shared")
         assertEquals(200, createBand("bob", "one-more").status, "unlinked: the band no longer counts")
     }
 
@@ -276,7 +247,7 @@ class ApiTest {
     @Test
     fun adminsGetTheBandFileExactlyAsStored() {
         createBand()
-        push("band1", "alice", AddMember("m-bob", "Bob"), CreateEvent("e", "Gig, \"Łódź\"", LocalDate(2026, 9, 13)))
+        push("alice", AddMember("m-bob", "Bob"), CreateEvent("e", "Gig, \"Łódź\"", LocalDate(2026, 9, 13)), bandId = "band1")
         val band = KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content)
         val linked = (Engine.apply(band, Actor.System, LinkUser("m-bob", "bob", Role.MEMBER), "x", 0) as ApplyResult.Applied).band
         store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(Band.serializer(), linked))
@@ -292,7 +263,7 @@ class ApiTest {
     fun outsidersCannotSeeOrChangeTheBand() {
         createBand()
         assertEquals(404, call("GET", "/bands/band1/state", user = "mallory").status)
-        assertEquals(404, push("band1", "mallory", RenameBand("Hacked")).status)
+        assertEquals(404, push("mallory", RenameBand("Hacked"), bandId = "band1").status)
         assertEquals(404, call("GET", "/bands/nope/state").status)
     }
 

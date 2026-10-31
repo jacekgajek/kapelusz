@@ -18,27 +18,24 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Sync messages (ITERATION_7 §2): who gets them, and the device registry behind them. */
-class SyncMessagesTest {
-    private val store = InMemoryBlobStore()
-    private var now = 1_790_000_000_000
-
-    /** Records what would be sent; tokens in [invalid] are reported as no longer valid. */
-    private class FakeSender : MessageSender {
-        val sent = mutableListOf<Pair<String, String>>()
-        val invalid = mutableSetOf<String>()
-        var ready = true
-        override fun ready() = ready
-        override fun send(tokens: List<String>, data: Map<String, String>) = tokens.associateWith { token ->
-            sent += token to data.getValue("band")
-            if (token in invalid) SendResult.INVALID_TOKEN else SendResult.SENT
-        }
+/** Records what would be sent; tokens in [invalid] are reported as no longer valid. */
+private class FakeSender : MessageSender {
+    val sent = mutableListOf<Pair<String, String>>()
+    val invalid = mutableSetOf<String>()
+    var ready = true
+    override fun ready() = ready
+    override fun send(tokens: List<String>, data: Map<String, String>) = tokens.associateWith { token ->
+        sent += token to data.getValue("band")
+        if (token in invalid) SendResult.INVALID_TOKEN else SendResult.SENT
     }
+}
 
-    private val sender = FakeSender()
-    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now }, messageSender = sender)
+/** Sync messages (ITERATION_7 §2): who gets them, and the device registry behind them. */
+class SyncMessagesTest : ApiHarness(messageSender = FakeSender()) {
+    private val sender get() = messageSender as FakeSender
 
-    private fun call(method: String, path: String, user: String, body: String? = null, installation: String? = null) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, installation?.let { mapOf("installation" to it) }.orEmpty()))
+    /** The request comes from the device [installation]. */
+    private fun from(installation: String) = mapOf("installation" to installation)
 
     /** Whether messages will come, as the server answers the registration. */
     private fun register(user: String, installation: String, token: String = "token-$installation-0123456789"): Boolean {
@@ -47,25 +44,19 @@ class SyncMessagesTest {
         return KapeluszJson.decodeFromString(DeviceRegistrationResponse.serializer(), response.body!!).messaging
     }
 
-    private fun push(user: String, vararg ops: com.jacekgajek.kapelusz.ops.Operation, installation: String? = null, seq: Long = 1) {
+    /** A push from the device [installation], with its own sequence [seq]. */
+    private fun pushFrom(user: String, vararg ops: com.jacekgajek.kapelusz.ops.Operation, installation: String, seq: Long) {
         val envelopes = ops.mapIndexed { i, op -> OpEnvelope("$user-$seq-$i", "phone", seq + i, 1, op) }
-        assertEquals(200, call("POST", "/bands/band1/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes)), installation).status)
-    }
-
-    private fun join(user: String, member: String) {
-        val code = KapeluszJson.decodeFromString(
-            InviteInfo.serializer(),
-            call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(member, Role.LEAD))).body!!,
-        ).code
-        assertEquals(200, call("POST", "/invites/$code/accept", user).status)
+        val body = KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes))
+        assertEquals(200, call("POST", "/bands/band1/ops", user, body, query = from(installation)).status)
     }
 
     /** Alice owns band1; Bob and Carol joined; Dan is a member without the app. Each has devices registered. */
     private fun setup() {
-        call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
+        createBand()
         push("alice", AddMember("m-bob", "Bob"), AddMember("m-carol", "Carol"), AddMember("m-dan", "Dan"))
-        join("bob", "m-bob")
-        join("carol", "m-carol")
+        join("bob", "m-bob", Role.LEAD)
+        join("carol", "m-carol", Role.LEAD)
         register("alice", "alice-phone")
         register("bob", "bob-phone")
         register("bob", "bob-tablet")
@@ -78,7 +69,7 @@ class SyncMessagesTest {
     @Test
     fun aChangeReachesTheOtherDevicesOfTheBandButNotTheOneThatMadeIt() {
         setup()
-        push("bob", RenameBand("Owls"), installation = "bob-phone", seq = 10)
+        pushFrom("bob", RenameBand("Owls"), installation = "bob-phone", seq = 10)
         assertEquals(setOf("alice-phone", "bob-tablet", "carol-phone"), recipients())
         assertTrue(sender.sent.all { it.second == "band1" }, "only the band's id")
     }
@@ -87,31 +78,31 @@ class SyncMessagesTest {
     fun aRefusedOrEmptyPushSendsNothing() {
         setup()
         // A member id that is taken: the push is answered, the change refused.
-        push("alice", AddMember("m-bob", "Bob again"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", AddMember("m-bob", "Bob again"), installation = "alice-phone", seq = 10)
         assertEquals(emptyList(), sender.sent, "refused: nothing to tell")
     }
 
     @Test
     fun aMemberMovedToFormerMembersHearsOfItOnceAndThenNoMore() {
         setup()
-        push("alice", SetMemberArchived("m-carol", true), installation = "alice-phone", seq = 10)
+        pushFrom("alice", SetMemberArchived("m-carol", true), installation = "alice-phone", seq = 10)
         assertTrue("carol-phone" in recipients(), "learns at once that the band is gone for her")
         sender.sent.clear()
-        push("alice", RenameBand("Owls"), installation = "alice-phone", seq = 20)
+        pushFrom("alice", RenameBand("Owls"), installation = "alice-phone", seq = 20)
         assertEquals(setOf("bob-phone", "bob-tablet"), recipients())
     }
 
     @Test
     fun joiningAndLeavingTellTheBand() {
         setup()
-        call("POST", "/bands/band1/leave", "bob", installation = "bob-phone")
+        call("POST", "/bands/band1/leave", "bob", query = from("bob-phone"))
         assertEquals(setOf("alice-phone", "bob-tablet", "carol-phone"), recipients(), "Bob's tablet lets go of the band too")
     }
 
     @Test
     fun deletingTellsEveryone() {
         setup()
-        call("DELETE", "/bands/band1", "alice", installation = "alice-phone")
+        call("DELETE", "/bands/band1", "alice", query = from("alice-phone"))
         assertEquals(setOf("bob-phone", "bob-tablet", "carol-phone"), recipients())
     }
 
@@ -119,7 +110,7 @@ class SyncMessagesTest {
     fun anInvalidTokenIsForgotten() {
         setup()
         sender.invalid += "token-bob-tablet-0123456789"
-        push("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
         val bobs = KapeluszJson.decodeFromString(StoredDevices.serializer(), store.get("users/bob-devices.json")!!.content).devices
         assertEquals(listOf("bob-phone"), bobs.map { it.installationId })
     }
@@ -128,7 +119,7 @@ class SyncMessagesTest {
     fun signingOutOneDeviceOrEverywhere() {
         setup()
         assertEquals(204, call("DELETE", "/me/devices/bob-tablet", "bob").status)
-        push("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
         assertEquals(setOf("bob-phone", "carol-phone"), recipients())
         sender.sent.clear()
         assertEquals(204, call("POST", "/sessions/revoke", "carol").status)
@@ -148,7 +139,7 @@ class SyncMessagesTest {
 
         now += DeviceRegistry.MAX_UNSEEN_MS + 1
         register("carol", "carol-tablet")
-        push("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
         assertEquals(setOf("carol-tablet"), recipients(), "60 days unseen: no messages")
     }
 
@@ -162,7 +153,7 @@ class SyncMessagesTest {
     @Test
     fun aNewMemberJoiningTellsTheBandButNotTheirOwnPhone() {
         setup()
-        push("alice", AddMember("m-erin", "Erin"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", AddMember("m-erin", "Erin"), installation = "alice-phone", seq = 10)
         sender.sent.clear()
         // Erin registered while in another band of hers (her file is there), then joins from her phone.
         call("POST", "/bands", "erin", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band2", "Larks", "PLN", "m-erin2", "Erin")))
@@ -172,21 +163,21 @@ class SyncMessagesTest {
             InviteInfo.serializer(),
             call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest("m-erin", Role.MEMBER))).body!!,
         ).code
-        assertEquals(200, call("POST", "/invites/$code/accept", "erin", installation = "erin-phone").status)
+        assertEquals(200, call("POST", "/invites/$code/accept", "erin", query = from("erin-phone")).status)
         assertEquals(setOf("alice-phone", "bob-phone", "bob-tablet", "carol-phone", "erin-tablet"), recipients())
     }
 
     @Test
     fun aMemberUnlinkedByALeaderHearsOfIt() {
         setup()
-        push("alice", UnlinkUser("m-carol"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", UnlinkUser("m-carol"), installation = "alice-phone", seq = 10)
         assertTrue("carol-phone" in recipients())
     }
 
     @Test
     fun anotherUsersInstallationIdDoesNotSilenceTheirDevice() {
         setup()
-        push("bob", RenameBand("Owls"), installation = "carol-phone", seq = 10)
+        pushFrom("bob", RenameBand("Owls"), installation = "carol-phone", seq = 10)
         assertTrue("carol-phone" in recipients(), "only the caller's own device is skipped")
     }
 
@@ -198,7 +189,7 @@ class SyncMessagesTest {
         assertEquals(true, register("bob", "bob-phone"))
         sender.ready = false
         assertEquals(false, register("bob", "bob-phone"), "no key: the app looks for news itself")
-        push("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
+        pushFrom("alice", RenameBand("Owls"), installation = "alice-phone", seq = 10)
         assertEquals(emptyList(), sender.sent)
     }
 
@@ -213,7 +204,7 @@ class SyncMessagesTest {
     @Test
     fun leavingTheLastBandForgetsTheDevices() {
         setup()
-        call("POST", "/bands/band1/leave", "carol", installation = "carol-phone")
+        call("POST", "/bands/band1/leave", "carol", query = from("carol-phone"))
         assertNull(store.get("users/carol-devices.json"))
     }
 }

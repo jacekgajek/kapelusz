@@ -2,8 +2,6 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.BandStateResponse
-import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.HistoryResponse
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.InvitePreview
@@ -28,27 +26,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.serialization.KSerializer
 
-class InviteAndHistoryTest {
-    private val store = InMemoryBlobStore()
-    private var now = 1_790_000_000_000
-    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now })
-
-    private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap()) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
-
-    private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
-        assertEquals(200, status, body)
-        return KapeluszJson.decodeFromString(serializer, body!!)
-    }
-
+class InviteAndHistoryTest : ApiHarness() {
     /** Alice owns the band; Bob is an unlinked roster member. */
     private fun setup() {
-        call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
-        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op1", "phone", 1, 1, AddMember("m-bob", "Bob"))))))
+        createBand()
+        push("alice", AddMember("m-bob", "Bob"))
     }
-
-    private fun invite(memberId: String = "m-bob", role: Role = Role.MEMBER, by: String = "alice") = call("POST", "/bands/band1/invites", by, KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(memberId, role)))
 
     @Test
     fun inviteLifecycle() {
@@ -74,10 +58,16 @@ class InviteAndHistoryTest {
     @Test
     fun anArtistInviteWaitsUntilTheirMoneyIsSettled() {
         setup()
-        fun push(id: String, seq: Long, op: com.jacekgajek.kapelusz.ops.Operation) = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope(id, "phone", seq, 1, op)))))
+        fun pushRaw(id: String, seq: Long, op: com.jacekgajek.kapelusz.ops.Operation): HttpResponse {
+            val request = PushRequest(listOf(OpEnvelope(id, "phone", seq, 1, op)))
+            return call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), request))
+        }
         val artist = invite(role = Role.ARTIST).parse(InviteInfo.serializer())
-        push("e", 2, com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", kotlinx.datetime.LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice"), com.jacekgajek.kapelusz.model.Participant("m-bob"))))
-        push("h", 3, com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-bob", com.jacekgajek.kapelusz.model.Money(10000), com.jacekgajek.kapelusz.model.IncomeSource.DOOR))
+        val players = listOf("m-alice", "m-bob").map { com.jacekgajek.kapelusz.model.Participant(it) }
+        val gig = com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", kotlinx.datetime.LocalDate(2026, 10, 1), participants = players)
+        pushRaw("e", 2, gig)
+        val door = com.jacekgajek.kapelusz.model.IncomeSource.DOOR
+        pushRaw("h", 3, com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-bob", com.jacekgajek.kapelusz.model.Money(10000), door))
 
         val refused = call("POST", "/invites/${artist.code}/accept", "bob")
         assertEquals(409, refused.status)
@@ -266,10 +256,10 @@ class InviteAndHistoryTest {
     @Test
     fun undoRestoresWhatTheLogRecordedNotWhatTheClientSays() {
         setup()
-        fun push(vararg envelopes: OpEnvelope) = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())))
+        fun pushRaw(vararg envelopes: OpEnvelope) = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())))
             .parse(PushResponse.serializer())
         now += 1
-        push(OpEnvelope("rename", "phone", 10, 0, RenameBand("New name")))
+        pushRaw(OpEnvelope("rename", "phone", 10, 0, RenameBand("New name")))
         val entry = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer()).entries.first()
         val change = entry.changes.getValue("rename")
         assertEquals("New name", change.after.settings?.name)
@@ -278,17 +268,17 @@ class InviteAndHistoryTest {
         val forged = change.copy(before = change.before.copy(settings = change.before.settings!!.copy(name = "Hacked")))
         now += 1
         assertEquals(400, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("same", "phone", 20, 0, RenameBand("a")), OpEnvelope("same", "phone", 21, 0, RenameBand("b")))))).status, "op ids are unique in a push")
-        val undone = push(OpEnvelope("undo", "phone", 11, 0, Undo("rename", RenameBand("whatever"), forged, entry.id)))
+        val undone = pushRaw(OpEnvelope("undo", "phone", 11, 0, Undo("rename", RenameBand("whatever"), forged, entry.id)))
         assertEquals(listOf("undo"), undone.accepted)
         assertEquals("Night Owls", undone.band.name)
 
         // An undo of something the log does not know is refused.
         now += 1
-        val unknown = push(OpEnvelope("undo2", "phone", 12, 0, Undo("nope", RenameBand("x"), forged, entry.id)))
+        val unknown = pushRaw(OpEnvelope("undo2", "phone", 12, 0, Undo("nope", RenameBand("x"), forged, entry.id)))
         assertEquals(RejectionReason.NOT_UNDOABLE, unknown.rejected.getValue("undo2").reason)
         // Not in a log entry of this band: nothing to undo.
         now += 1
-        val elsewhere = push(OpEnvelope("undo3", "phone", 13, 0, Undo("rename", RenameBand("x"), forged, "../../other/state.json")))
+        val elsewhere = pushRaw(OpEnvelope("undo3", "phone", 13, 0, Undo("rename", RenameBand("x"), forged, "../../other/state.json")))
         assertEquals(RejectionReason.NOT_UNDOABLE, elsewhere.rejected.getValue("undo3").reason)
     }
 

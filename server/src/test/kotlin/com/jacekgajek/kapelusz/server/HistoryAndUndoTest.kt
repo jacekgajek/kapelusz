@@ -2,13 +2,8 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
-import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.HistoryResponse
-import com.jacekgajek.kapelusz.api.PushRequest
-import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.engine.ApplyResult
-import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.KapeluszJson
@@ -24,65 +19,29 @@ import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.Undo
-import com.jacekgajek.kapelusz.rules.Actor
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
 
 /** The history byte budget, logs without changes, and how the server resolves undos from its log (ITERATION_3 R14). */
-class HistoryAndUndoTest {
-    private val store = InMemoryBlobStore()
-
+class HistoryAndUndoTest : ApiHarness() {
     /** In 2026-09; every push one millisecond later, so the log's order is the order of the pushes. */
-    private var now = 1_790_000_000_000
-    private val history = InMemoryHistoryStore()
-    private val api = Api(store, history, { token -> VerifiedUser(token, null, null) }, clock = { now })
-    private var seq = 0L
-
-    private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap(), api: Api = this.api) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
-
-    private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
-        assertEquals(200, status, body)
-        return KapeluszJson.decodeFromString(serializer, body!!)
-    }
-
-    private fun push(user: String, vararg ops: Operation, bandId: String = "band1"): PushResponse {
+    override fun push(user: String, vararg ops: Operation, bandId: String, clientId: String): HttpResponse {
         now++
-        val request = PushRequest(
-            ops.map {
-                seq++
-                OpEnvelope("op$seq", "phone", seq, 0, it)
-            },
-        )
-        return call("POST", "/bands/$bandId/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), request)).parse(PushResponse.serializer())
+        return super.push(user, *ops, bandId = bandId, clientId = clientId)
     }
 
-    private fun createBand(bandId: String = "band1") = call(
-        "POST",
-        "/bands",
-        "alice",
-        KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, "Night Owls", "PLN", "m-alice", "Alice")),
-    ).parse(com.jacekgajek.kapelusz.api.BandStateResponse.serializer())
-
-    /** Links [userId] to [memberId] the way an accepted invite does. */
-    private fun link(memberId: String, userId: String, role: Role) {
-        val blob = store.get(StorageKeys.band("band1"))!!
-        val band = KapeluszJson.decodeFromString(Band.serializer(), blob.content)
-        val linked = (Engine.apply(band, Actor.System, LinkUser(memberId, userId, role), "link-$memberId", 0) as ApplyResult.Applied).band
-        store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(Band.serializer(), linked), ifMatch = blob.etag)
+    private fun log(user: String = "alice", month: String = "2026-09", before: String? = null, api: Api = this.api): HistoryResponse {
+        val query = mapOfNotNull("month" to month, before?.let { "before" to it })
+        return call("GET", "/bands/band1/log", user, query = query, on = api).parse(HistoryResponse.serializer())
     }
-
-    private fun log(user: String = "alice", month: String = "2026-09", before: String? = null, api: Api = this.api) = call("GET", "/bands/band1/log", user, query = mapOfNotNull("month" to month, before?.let { "before" to it }), api = api)
-        .parse(HistoryResponse.serializer())
 
     private fun mapOfNotNull(vararg pairs: Pair<String, String>?) = pairs.filterNotNull().toMap()
 
@@ -192,7 +151,7 @@ class HistoryAndUndoTest {
     @Test
     fun aPushComesBackAsOneEntryAndAnUnreadableOperationLeavesOutOnlyItself() {
         createBand()
-        push("alice", RenameBand("One"), RenameBand("Two"), RenameBand("Three"))
+        pushed("alice", RenameBand("One"), RenameBand("Two"), RenameBand("Three"))
         val entry = log().entries.first()
         assertEquals(listOf("One", "Two", "Three"), entry.ops.map { (it.op as RenameBand).name }, "in the order pushed")
         assertEquals(entry.ops.map { it.opId }.toSet(), entry.changes.keys)
@@ -201,7 +160,7 @@ class HistoryAndUndoTest {
         band["${entry.id}#001"] = "{not json"
         assertEquals(listOf("One", "Three"), log().entries.first().ops.map { (it.op as RenameBand).name })
         val last = entry.ops.last()
-        assertTrue(push("alice", Undo(last.opId, last.op, BandChange(BandPart(), BandPart()), entry.id)).rejected.isEmpty())
+        assertTrue(pushed("alice", Undo(last.opId, last.op, BandChange(BandPart(), BandPart()), entry.id)).rejected.isEmpty())
     }
 
     @Test
@@ -227,7 +186,7 @@ class HistoryAndUndoTest {
     @Test
     fun deletingTheBandDeletesItsHistory() {
         createBand()
-        push("alice", RenameBand("Gone soon"))
+        pushed("alice", RenameBand("Gone soon"))
         assertTrue(history.bands.getValue("band1").isNotEmpty())
         assertEquals(204, call("DELETE", "/bands/band1", "alice").status)
         assertTrue(history.bands.getValue("band1").isNotEmpty(), "kept while the band waits (ITERATION_7 §9)")
@@ -245,18 +204,18 @@ class HistoryAndUndoTest {
         val events = (1..Api.MAX_OPS_PER_PUSH).map { i ->
             CreateEvent("e$i", "Gig $i".padEnd(100, '.'), LocalDate(2026, 9, 1), location = "l".repeat(500), notes = "n".repeat(2000))
         }
-        val pushed = push("alice", *events.toTypedArray())
-        assertEquals(Api.MAX_OPS_PER_PUSH, pushed.accepted.size)
-        assertTrue(KapeluszJson.encodeToString(Band.serializer(), pushed.band).length > HistoryHandlers.MAX_LOGGED_CHANGES)
+        val result = pushed("alice", *events.toTypedArray())
+        assertEquals(Api.MAX_OPS_PER_PUSH, result.accepted.size)
+        assertTrue(KapeluszJson.encodeToString(Band.serializer(), result.band).length > HistoryHandlers.MAX_LOGGED_CHANGES)
         val entry = log().entries.first()
         assertEquals(Api.MAX_OPS_PER_PUSH, entry.ops.size, "the operations are still listed")
         assertTrue(entry.changes.isEmpty(), "but not what they changed")
 
-        val undone = push("alice", Undo("op1", events.first(), BandChange(BandPart(), BandPart()), entry.id))
+        val undone = pushed("alice", Undo("op1", events.first(), BandChange(BandPart(), BandPart()), entry.id))
         assertEquals(RejectionReason.NOT_UNDOABLE, undone.rejected.values.single().reason)
 
         // A small push afterwards is logged with its change again.
-        push("alice", RenameBand("Small"))
+        pushed("alice", RenameBand("Small"))
         assertTrue(log().entries.first().changes.isNotEmpty())
     }
 
@@ -265,8 +224,8 @@ class HistoryAndUndoTest {
     @Test
     fun undosOfMalformedOrMissingEntriesAreRefused() {
         createBand()
-        push("alice", RenameBand("New name")) // op1
-        push("alice", RenameBand("Newer name")) // op2, the one undone below
+        pushed("alice", RenameBand("New name")) // op1
+        pushed("alice", RenameBand("Newer name")) // op2, the one undone below
         val real = log().entries.first { entry -> entry.ops.any { it.opId == "op2" } }
         val realName = real.id!!
         val realEntry = HistoryEntry(real.userId, real.memberId, real.at, real.ops, real.changes)
@@ -276,7 +235,7 @@ class HistoryAndUndoTest {
         val twice = "2026-09/1790000000002-${UUID.randomUUID()}.json"
         KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry).let { record("band1", twice, it, it) }
         // The same entry, but in another band's log: an undo only reads its own band's.
-        createBand("band2")
+        createBand(bandId = "band2")
         val elsewhere = "2026-09/1790000000003-${UUID.randomUUID()}.json"
         record("band2", elsewhere, KapeluszJson.encodeToString(HistoryEntry.serializer(), realEntry))
 
@@ -300,34 +259,34 @@ class HistoryAndUndoTest {
             elsewhere,
         )
         for (name in refused) {
-            val result = push("alice", undo(name))
+            val result = pushed("alice", undo(name))
             assertEquals(RejectionReason.NOT_UNDOABLE, result.rejected.values.single().reason, "entry $name")
             assertEquals("Newer name", result.band.name)
         }
         // The real entry still works: the refusals took nothing away.
-        assertEquals("New name", push("alice", undo(realName)).band.name)
+        assertEquals("New name", pushed("alice", undo(realName)).band.name)
     }
 
     @Test
     fun anUndoIsPermittedByTheRecordedOperationNotTheClaimedOne() {
         createBand()
-        push("alice", AddMember("m-bob", "Bob"), AddMember("m-vera", "Vera"))
+        pushed("alice", AddMember("m-bob", "Bob"), AddMember("m-vera", "Vera"))
         link("m-bob", "bob", Role.MEMBER)
         link("m-vera", "vera", Role.VIEWER)
-        push("alice", RenameBand("Alice's name")) // op3: admins only
+        pushed("alice", RenameBand("Alice's name")) // op3: admins only
         val rename = log().entries.first().id
         // Bob claims the entry holds his own cost (which he may undo); the server reads the rename from the log.
         val claimed = Undo("op3", AddCost("c-bob", "m-bob", Money(100), LocalDate(2026, 9, 1)), BandChange(BandPart(), BandPart()), rename)
-        assertEquals(RejectionReason.ROLE_REQUIRED, push("bob", claimed).rejected.values.single().reason)
-        assertEquals(RejectionReason.ROLE_REQUIRED, push("vera", undo(rename, "op3")).rejected.values.single().reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, pushed("bob", claimed).rejected.values.single().reason)
+        assertEquals(RejectionReason.ROLE_REQUIRED, pushed("vera", undo(rename, "op3")).rejected.values.single().reason)
 
         // Bob's own cost he may undo; Alice's he may not.
-        push("bob", AddCost("c-bob", "m-bob", Money(100), LocalDate(2026, 9, 1))) // op6
+        pushed("bob", AddCost("c-bob", "m-bob", Money(100), LocalDate(2026, 9, 1))) // op6
         val bobsCost = log().entries.first().id
-        push("alice", AddCost("c-alice", "m-alice", Money(100), LocalDate(2026, 9, 1))) // op7
+        pushed("alice", AddCost("c-alice", "m-alice", Money(100), LocalDate(2026, 9, 1))) // op7
         val alicesCost = log().entries.first().id
-        assertEquals(RejectionReason.ROLE_REQUIRED, push("bob", undo(alicesCost, "op7")).rejected.values.single().reason)
-        val undone = push("bob", undo(bobsCost, "op6"))
+        assertEquals(RejectionReason.ROLE_REQUIRED, pushed("bob", undo(alicesCost, "op7")).rejected.values.single().reason)
+        val undone = pushed("bob", undo(bobsCost, "op6"))
         assertTrue(undone.rejected.isEmpty(), undone.rejected.toString())
         assertNull(undone.band.cost("c-bob"))
         assertTrue(undone.band.cost("c-alice") != null)
@@ -338,19 +297,19 @@ class HistoryAndUndoTest {
     @Test
     fun attachmentFilesFollowTheRolesAndArchivedMembersLoseAccess() {
         createBand()
-        push("alice", AddMember("m-bob", "Bob"), AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 9, 1)))
+        pushed("alice", AddMember("m-bob", "Bob"), AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 9, 1)))
         link("m-bob", "bob", Role.MEMBER)
         val photo = Attachment("a1", AttachmentKind.IMAGE, "receipt.jpg", 1000)
         // The operation follows the cost's rules: Bob may not attach to Alice's cost ...
-        assertEquals(RejectionReason.ROLE_REQUIRED, push("bob", AddAttachment("c1", photo)).rejected.values.single().reason)
-        push("alice", AddAttachment("c1", photo))
+        assertEquals(RejectionReason.ROLE_REQUIRED, pushed("bob", AddAttachment("c1", photo)).rejected.values.single().reason)
+        pushed("alice", AddAttachment("c1", photo))
         // ... but any member may upload the file of a listed attachment (the operation was the check).
         fun upload(user: String) = call("POST", "/bands/band1/attachments", user, KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest("a1")))
         assertEquals(200, upload("bob").status)
         store.files += StorageKeys.attachment("band1", photo)
         assertEquals(200, call("GET", "/bands/band1/attachments/a1", "bob").status)
 
-        push("alice", SetMemberArchived("m-bob", true))
+        pushed("alice", SetMemberArchived("m-bob", true))
         for (response in listOf(upload("bob"), call("GET", "/bands/band1/attachments/a1", "bob"))) {
             assertEquals(404, response.status)
             assertTrue(ApiErrors.BAND_NOT_FOUND in response.body!!)

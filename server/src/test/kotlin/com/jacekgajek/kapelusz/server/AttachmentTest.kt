@@ -4,11 +4,7 @@ import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
 import com.jacekgajek.kapelusz.api.AttachmentUploadResponse
 import com.jacekgajek.kapelusz.api.AttachmentUrlResponse
-import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.api.PushRequest
-import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.history.KapeluszJson
-import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.Money
@@ -18,43 +14,14 @@ import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.DeleteCost
-import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
 
-class AttachmentTest {
-    private val store = InMemoryBlobStore()
-    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
-    private var seq = 0L
-
-    private fun call(method: String, path: String, user: String, body: String? = null) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
-
-    private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
-        assertEquals(200, status, body)
-        return KapeluszJson.decodeFromString(serializer, body!!)
-    }
-
-    private fun push(user: String, vararg ops: Operation) = call(
-        "POST",
-        "/bands/band1/ops",
-        user,
-        KapeluszJson.encodeToString(
-            PushRequest.serializer(),
-            PushRequest(
-                ops.map {
-                    seq++
-                    OpEnvelope("op$seq", "phone", seq, 1, it)
-                },
-            ),
-        ),
-    ).parse(PushResponse.serializer())
-
+class AttachmentTest : ApiHarness() {
     private fun upload(user: String, attachmentId: String = "a1") = call(
         "POST",
         "/bands/band1/attachments",
@@ -66,12 +33,10 @@ class AttachmentTest {
 
     /** Alice owns the band and has a cost with one photo; Bob is a linked viewer. */
     private fun setup() {
-        call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
-        push("alice", AddMember("m-bob", "Bob"), AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 9, 1)), AddAttachment("c1", photo))
+        createBand()
+        pushed("alice", AddMember("m-bob", "Bob"), AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 9, 1)), AddAttachment("c1", photo))
         // A viewer, linked the way an accepted invite would do it.
-        val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }
-        val linked = (com.jacekgajek.kapelusz.engine.Engine.apply(band, com.jacekgajek.kapelusz.rules.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.engine.ApplyResult.Applied).band
-        store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), linked), ifMatch = etag)
+        link("m-bob", "bob", Role.VIEWER)
     }
 
     @Test
@@ -104,21 +69,22 @@ class AttachmentTest {
     fun removingDeletesTheFile() {
         setup()
         store.files += "bands/band1/attachments/a1.jpg"
-        push("alice", RemoveAttachment("c1", "a1"))
+        pushed("alice", RemoveAttachment("c1", "a1"))
         assertFalse(store.exists("bands/band1/attachments/a1.jpg"))
 
-        push("alice", AddAttachment("c1", Attachment("a2", AttachmentKind.PDF, "invoice.pdf", 2_000_000)))
+        pushed("alice", AddAttachment("c1", Attachment("a2", AttachmentKind.PDF, "invoice.pdf", 2_000_000)))
         store.files += "bands/band1/attachments/a2.pdf"
-        push("alice", DeleteCost("c1"))
+        pushed("alice", DeleteCost("c1"))
         assertFalse(store.exists("bands/band1/attachments/a2.pdf"), "deleting the cost deletes its files")
     }
 
     @Test
     fun sizeIsRequiredAndLimited() {
         setup()
-        val tooLarge = push("alice", AddAttachment("c1", Attachment("big", AttachmentKind.IMAGE, "x.jpg", AttachmentKind.IMAGE.maxBytes + 1)))
+        val big = Attachment("big", AttachmentKind.IMAGE, "x.jpg", AttachmentKind.IMAGE.maxBytes + 1)
+        val tooLarge = pushed("alice", AddAttachment("c1", big))
         assertEquals(RejectionReason.ATTACHMENT_TOO_LARGE, tooLarge.rejected.values.single().reason)
-        val noSize = push("alice", AddAttachment("c1", Attachment("nosize", AttachmentKind.PDF, "x.pdf")))
+        val noSize = pushed("alice", AddAttachment("c1", Attachment("nosize", AttachmentKind.PDF, "x.pdf")))
         assertEquals(RejectionReason.INVALID_INPUT, noSize.rejected.values.single().reason)
     }
 
@@ -128,7 +94,7 @@ class AttachmentTest {
         setup()
         val entry = com.jacekgajek.kapelusz.model.AttachmentOwner.OfHolding("gig", "h")
         val gig = com.jacekgajek.kapelusz.model.AttachmentOwner.OfEvent("gig")
-        push(
+        pushed(
             "alice",
             com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice"))),
             com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-alice", Money(200000), com.jacekgajek.kapelusz.model.IncomeSource.CONTRACT),
@@ -140,9 +106,9 @@ class AttachmentTest {
         store.files += "bands/band1/attachments/rider.pdf"
         assertEquals("memory://get/bands/band1/attachments/rider.pdf", call("GET", "/bands/band1/attachments/rider", "bob").parse(AttachmentUrlResponse.serializer()).url)
 
-        push("alice", com.jacekgajek.kapelusz.ops.RemoveHolding("gig", "h"))
+        pushed("alice", com.jacekgajek.kapelusz.ops.RemoveHolding("gig", "h"))
         assertFalse(store.exists("bands/band1/attachments/contract.pdf"), "removing the entry deletes its files")
-        push("alice", com.jacekgajek.kapelusz.ops.DeleteEvent("gig"))
+        pushed("alice", com.jacekgajek.kapelusz.ops.DeleteEvent("gig"))
         assertFalse(store.exists("bands/band1/attachments/rider.pdf"), "deleting the event deletes its files")
     }
 }

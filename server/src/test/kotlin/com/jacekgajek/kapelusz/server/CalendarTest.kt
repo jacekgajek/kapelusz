@@ -2,7 +2,6 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.CalendarSubscription
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
-import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
@@ -19,15 +18,18 @@ import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
-class CalendarTest {
-    private val store = InMemoryBlobStore()
-
-    // 2026-10-21 12:00 UTC
-    private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_792_584_000_000 })
-
-    private fun call(method: String, path: String, user: String?, body: String? = null) = api.handle(
-        HttpRequest(method, path, listOfNotNull("host" to "api.test", user?.let { "authorization" to "Bearer $it" }).toMap(), body),
-    )
+// 2026-10-21 12:00 UTC
+class CalendarTest : ApiHarness(now = 1_792_584_000_000) {
+    /** On the app's host, as CloudFront forwards it. */
+    override fun call(
+        method: String,
+        path: String,
+        user: String?,
+        body: String?,
+        query: Map<String, String>,
+        headers: Map<String, String>,
+        on: Api,
+    ): HttpResponse = super.call(method, path, user, body, query, headers + ("host" to "api.test"), on)
 
     private fun subscription(user: String, change: CalendarSubscriptionChange? = null): CalendarSubscription {
         val response = if (change == null) {
@@ -42,7 +44,7 @@ class CalendarTest {
     private fun feed(url: String) = call("GET", url.removePrefix("https://kapelusz.jacekgajek.com"), null)
 
     private fun setup() {
-        call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
+        createBand()
         val ops = listOf(
             AddMember("m-bob", "Bob"),
             CreateEvent(

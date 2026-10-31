@@ -12,19 +12,13 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class SessionTest {
-    private val store = InMemoryBlobStore()
-    private var now = 1_790_000_000_000
-
-    // "Google" accepts any token that looks like a Google one: "google-<sub>", or "google-<sub>@<issued at>".
-    private val api = Api(store, InMemoryHistoryStore(), { token ->
+// "Google" accepts any token that looks like a Google one: "google-<sub>", or "google-<sub>@<issued at>".
+class SessionTest :
+    ApiHarness(verifier = { token ->
         token.removePrefix("google-").takeIf { token.startsWith("google-") }?.split('@')?.let { parts ->
             VerifiedUser(parts[0], "${parts[0]}@example.com", parts[0], issuedAt = parts.getOrNull(1)?.toLong())
         }
-    }, clock = { now })
-
-    private fun call(method: String, path: String, bearer: String) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $bearer")))
-
+    }) {
     private fun session(bearer: String): SessionResponse {
         val response = call("POST", "/session", bearer)
         assertEquals(200, response.status, response.body)
