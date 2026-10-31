@@ -105,8 +105,8 @@ class SyncEngine(
     fun stop() = send(SyncInput.Stop)
 
     /**
-     * The web app's tab was hidden (ITERATION_7 §2.6): what waits to be sent goes first (with backoff while offline,
-     * and after Undo's hold), then nothing more until [start] when it is shown again.
+     * The web app's tab was hidden (ITERATION_7 §2.6): what waits to be sent goes first (with backoff while offline;
+     * a held operation is waited for), then nothing more until [start] when it is shown again.
      */
     fun pauseAfterSending() = send(SyncInput.Hide)
 
