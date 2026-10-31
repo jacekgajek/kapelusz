@@ -10,7 +10,7 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.ChangeLineup
 import com.jacekgajek.kapelusz.text.sortedByName
 
-/** The line-up picker (ITERATION_8 §1): who can be picked, what From an event… does, what Save sends. */
+/** The line-up picker: who can be picked, what From an event… does, what Save sends. */
 object Lineup {
 
     /** Who can take part: current members, not viewers, in alphabetical order. */
@@ -55,7 +55,7 @@ object Lineup {
     }
 
     /**
-     * [source]'s line-up in place of the ticks (ITERATION_8 §1.2): its members who can take part, its guests as new
+     * [source]'s line-up in place of the ticks: its members who can take part, its guests as new
      * guests (one of the same name already here kept instead), whoever is locked here (or can't be added back) still
      * ticked. Newcomers take the
      * share they had there; who is already here keeps theirs. [newId] names each new guest.

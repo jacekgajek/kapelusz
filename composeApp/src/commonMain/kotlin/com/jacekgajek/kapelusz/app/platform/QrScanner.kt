@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.app.platform
 
-/** How a scan ended (ITERATION_6 §10). */
+/** How a scan ended. */
 sealed interface QrScan {
     data class Scanned(val text: String) : QrScan
 

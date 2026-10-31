@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Udziały albo stała kwota (ITERATION_3 §2.4) -->
+    <!-- Udziały albo stała kwota -->
     <string name="share_fixed_amount">Stała kwota</string>
     <string name="share_fixed_hint">Wypłacana przed podziałem reszty na udziały. Zwroty własnych kosztów dochodzą do niej.</string>
     <string name="share_by_percent">Procent</string>
@@ -11,7 +11,7 @@
     <string name="h_clear_fixed_share">Przywrócono udziały dla: %1$s w: %2$s</string>
     <string name="h_clear_fixed_share_weight">Przywrócono udziały (%2$s) dla: %1$s w: %3$s</string>
     <string name="problem_loss_fixed">Strata %1$s. Zmniejsz stałe kwoty albo procenty, odłóż część zwrotów, dodaj przychód albo pokryj ją z kasy zespołowej, zanim rozliczysz.</string>
-    <!-- Udziały jako liczba udziałów i procent zysku (ITERATION_7 §6) -->
+    <!-- Udziały jako liczba udziałów i procent zysku -->
     <string name="share_by_weight">Udziały</string>
     <string name="share_none">Bez udziału</string>
     <plurals name="share_count">

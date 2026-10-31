@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Bank accounts, and where to pay into the band fund (ITERATION_7 §7) -->
+    <!-- Bank accounts, and where to pay into the band fund -->
     <string name="account_title">Bank transfer</string>
     <string name="account_pay_to">Send a bank transfer to the account:</string>
     <string name="account_numbers">Bank accounts</string>

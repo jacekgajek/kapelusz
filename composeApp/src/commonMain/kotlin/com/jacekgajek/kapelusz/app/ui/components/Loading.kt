@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * A progress indicator while the app loads, instead of a blank screen (ITERATION_3 R13). It appears after a moment, so
+ * A progress indicator while the app loads, instead of a blank screen. It appears after a moment, so
  * a quick start does not flash it.
  */
 @Composable

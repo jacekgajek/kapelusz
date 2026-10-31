@@ -19,7 +19,7 @@ internal fun badRequestIf(condition: Boolean, message: () -> String) {
 }
 
 /**
- * The read–modify–conditional-write loop (ITERATION_3 R12): runs [attempt] (which reads, then writes with `ifMatch`
+ * The read–modify–conditional-write loop: runs [attempt] (which reads, then writes with `ifMatch`
  * or `ifNoneMatch`) again whenever a write finds the data changed meanwhile, at most [Api.MAX_ATTEMPTS] times; then
  * gives up with [exhausted]. A write that should not be retried must not throw [PreconditionFailed] out of [attempt].
  */
@@ -56,5 +56,5 @@ internal fun <T> decode(serializer: KSerializer<T>, text: String) = KapeluszJson
 /** The UTC month (`yyyy-MM`) of [millis]: history is stored per month. */
 internal fun monthOf(millis: Long): String = DateTimeFormatter.ofPattern("yyyy-MM").withZone(ZoneOffset.UTC).format(Instant.ofEpochMilli(millis))
 
-/** Size in UTF-8 bytes: what storage and the response limit count, unlike [String.length] (V5-M1 A2). */
+/** Size in UTF-8 bytes: what storage and the response limit count, unlike [String.length]. */
 internal fun String.utf8Size(): Int = encodeToByteArray().size

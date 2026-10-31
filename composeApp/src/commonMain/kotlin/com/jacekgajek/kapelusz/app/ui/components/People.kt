@@ -56,7 +56,7 @@ fun Avatar(name: String, pictureUrl: String? = null, size: Dp = 28.dp, decorativ
 }
 
 /**
- * In place of the avatar of a member without an app account, who can't see the band (ITERATION_5 §12). Described for
+ * In place of the avatar of a member without an app account, who can't see the band. Described for
  * screen readers when [description] is given (when it can be tapped).
  */
 @Composable
@@ -115,6 +115,6 @@ fun FormerMember(member: Member, actions: Actions, onRestored: () -> Unit) {
     }
 }
 
-/** A member's name is free: null, or why not (a member already has it; ITERATION_5 §12). */
+/** A member's name is free: null, or why not (a member already has it). */
 @Composable
 fun nameTakenError(band: Band, name: String, except: String? = null): String? = band.memberNamed(name, except)?.takeIf { name.isNotBlank() }?.let { stringResource(Res.string.name_taken, it.name) }

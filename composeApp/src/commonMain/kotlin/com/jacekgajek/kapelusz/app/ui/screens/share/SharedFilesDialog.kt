@@ -95,7 +95,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Photos or PDFs shared to Kapelusz (Android, ITERATION_6 §1), in a bottom sheet: "Attach to…" one of the events of
+ * Photos or PDFs shared to Kapelusz (Android), in a bottom sheet: "Attach to…" one of the events of
  * the user's bands, then what in it: a new cost or received money (its form opens with the files), the event's files
  * or an existing entry (attached at once, Undo on the event). A target without room for all the files is shown, but
  * dimmed, with why.

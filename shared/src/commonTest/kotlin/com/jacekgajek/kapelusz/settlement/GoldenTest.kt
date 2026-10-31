@@ -32,7 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Golden cases from ITERATION_1 §2.6, based on the (anonymized) spreadsheets. */
+/** Golden cases from, based on the (anonymized) spreadsheets. */
 class GoldenTest {
 
     private fun firstBand() = Scenario("Alice", "Bob", "Carol", "Dave", "Eve", "Frank")
@@ -237,7 +237,7 @@ class GoldenTest {
         val scenario = g1().apply(SettleSuggestions("oakfield"))
         val recorded = scenario.band.event("oakfield")!!.transfers
 
-        // Money has moved: the cost only remembers the gig (ITERATION_3 R2) and the gig stays settled ...
+        // Money has moved: the cost only remembers the gig and the gig stays settled...
         scenario.apply(AddCost("c-bob", "bob", pln("50"), DATE, incurredForEventId = "oakfield"))
         assertEquals(EventStatus.SETTLED, scenario.settle("oakfield").status)
         // ... until a lead includes the refund, which reopens it.

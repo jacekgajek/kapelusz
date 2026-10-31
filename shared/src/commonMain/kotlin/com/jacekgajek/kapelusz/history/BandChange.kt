@@ -38,7 +38,7 @@ data class BandPart(
     val fundEntryOrder: List<Id>? = null,
 )
 
-/** What one operation changed (ITERATION_2 §7.2): the touched parts of the band before and after it. */
+/** What one operation changed: the touched parts of the band before and after it. */
 @Serializable
 data class BandChange(val before: BandPart, val after: BandPart) {
     val isEmpty: Boolean get() = before == BandPart() && after == BandPart()

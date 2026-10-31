@@ -29,7 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 
-/** ITERATION_5 §9: place suggestions for Location, through the server. */
+/** Place suggestions for Location, through the server. */
 class PlacesTest {
     private val store = InMemoryBlobStore()
     private val asked = mutableListOf<Pair<String, String?>>()
@@ -141,7 +141,7 @@ class PlacesTest {
 
     private fun locations(user: String, on: Api) = KapeluszJson.decodeFromString(LocationsResponse.serializer(), call(user, emptyMap(), path = "/bands/band1/locations", on = on).body!!)
 
-    /** ITERATION_7 §8: the band's own locations, each address looked up once ever, pins never. */
+    /** The band's own locations, each address looked up once ever, pins never. */
     @Test
     fun locationsAreLookedUpOnceAndCached() {
         val cache = InMemoryGeocodeCache()

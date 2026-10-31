@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.app.platform
 
-/** What the web page knows about where it runs (ITERATION_3 §2.3). */
+/** What the web page knows about where it runs. */
 data class BrowserFacts(
     val userAgent: String,
     /** iPadOS Safari reports itself as a Mac; touch points tell them apart. */

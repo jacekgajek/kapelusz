@@ -8,7 +8,7 @@ import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.Role
 import kotlinx.serialization.Serializable
 
-/** Request and response bodies of the HTTP API (ITERATION_1 §5.3), shared by the server and the apps. */
+/** Request and response bodies of the HTTP API, shared by the server and the apps. */
 
 @Serializable
 data class BandSummary(val id: Id, val name: String, val memberName: String, val role: Role)
@@ -62,7 +62,7 @@ object ApiErrors {
     const val APP_VERSION_PARAMETER = "appVersion"
 
     /**
-     * Query parameter carrying the Android app's installation id (ITERATION_7 §2.4) on changes, so the server doesn't
+     * Query parameter carrying the Android app's installation id on changes, so the server doesn't
      * send that device a sync message about its own change. A parameter rather than a header, as for the version.
      */
     const val INSTALLATION_PARAMETER = "installation"
@@ -82,10 +82,10 @@ object ApiErrors {
     /** The owner asked to leave their band (`409`): ownership goes to another leader first, or the band is deleted. */
     const val OWNER_CANNOT_LEAVE = "owner_cannot_leave"
 
-    /** An artist invite for someone who still holds band money (ITERATION_4 §1.1): settle it first (`409`). */
+    /** An artist invite for someone who still holds band money: settle it first (`409`). */
     const val HOLDS_MONEY = "holds_money"
 
-    /** A viewer invite for someone still playing in an unsettled event or holding the band fund (V5-M1 B2) (`409`). */
+    /** A viewer invite for someone still playing in an unsettled event or holding the band fund (`409`). */
     const val STILL_PLAYS = "still_plays"
 
     /**
@@ -106,7 +106,7 @@ object ApiErrors {
      */
     const val SESSIONS_REVOKED = "sessions_revoked"
 
-    // The generic codes (ITERATION_3 R12: every code the server sends is listed here).
+    // The generic codes (every code the server sends is listed here).
 
     /** The request is malformed or breaks a limit (`400`). */
     const val BAD_REQUEST = "bad_request"
@@ -189,7 +189,7 @@ data class InvitePreview(val code: String, val bandId: Id, val bandName: String,
 
 /**
  * One accepted push: who made it and the operations it contained, with what each of them changed ([changes] by opId,
- * for undo; missing in entries from before V2-M7).
+ * for undo; missing in entries from before).
  */
 @Serializable
 data class HistoryEntry(
@@ -207,7 +207,7 @@ data class HistoryEntry(
 data class HistoryResponse(val month: String, val entries: List<HistoryEntry>, val next: String? = null)
 
 /**
- * PUT /me/devices/{installationId} (ITERATION_7 §2.4): this installation's Firebase token, so the server can tell it
+ * PUT /me/devices/{installationId}: this installation's Firebase token, so the server can tell it
  * when one of the user's bands changed. A new token for the same installation replaces the old one.
  */
 @Serializable
@@ -215,7 +215,7 @@ data class DeviceRegistration(val token: String)
 
 /**
  * The answer to a [DeviceRegistration]: whether sync messages will come ([messaging]: the server can send them, and
- * keeps this device because the user is in a band). Without them the app looks for news more often (ITERATION_7 §2.3).
+ * keeps this device because the user is in a band). Without them the app looks for news more often.
  */
 @Serializable
 data class DeviceRegistrationResponse(val messaging: Boolean)
@@ -224,7 +224,7 @@ data class DeviceRegistrationResponse(val messaging: Boolean)
 @Serializable
 data class PictureRequest(val googleToken: String)
 
-// ---- place search (ITERATION_5 §9) ----
+// ---- place search ----
 
 /** A place Google suggests for what was typed in Location: its [name] and, apart, its [address] (may be absent). */
 @Serializable
@@ -233,7 +233,7 @@ data class PlaceSuggestion(val placeId: String, val name: String, val address: S
 @Serializable
 data class PlacesResponse(val places: List<PlaceSuggestion>)
 
-/** An event location's coordinates, for the "Where we played" map (ITERATION_7 §8). */
+/** An event location's coordinates, for the "Where we played" map. */
 @Serializable
 data class LocatedPlace(val location: String, val latitude: Double, val longitude: Double)
 
@@ -248,7 +248,7 @@ data class LocationsResponse(
     val pending: List<String> = emptyList(),
 )
 
-/** What Location becomes for a picked suggestion or a Google Maps link (ITERATION_5 §9.1). */
+/** What Location becomes for a picked suggestion or a Google Maps link. */
 @Serializable
 data class PlaceText(val text: String)
 

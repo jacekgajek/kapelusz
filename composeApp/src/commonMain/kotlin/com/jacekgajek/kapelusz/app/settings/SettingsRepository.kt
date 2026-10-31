@@ -19,17 +19,17 @@ data class AppSettings(
     val language: String? = null,
     val onlyMyEvents: Boolean = false,
     val showArchived: Boolean = false,
-    /** The band fund's list oldest first (ITERATION_7 §5.1); newest first by default. */
+    /** The band fund's list oldest first; newest first by default. */
     val fundOldestFirst: Boolean = false,
     /**
-     * The page each event (`band/event`) was last left on, when not Gig (ITERATION_4 §2.4, ITERATION_5 §4.4); every
+     * The page each event (`band/event`) was last left on, when not Gig; every
      * other event opens on Gig. The most recent last, at most [MAX_EVENT_TABS].
      */
     val eventTabs: Map<String, EventTab> = emptyMap(),
-    /** Bands (ids) whose "no one else uses the app" hint was hidden on this device (ITERATION_5 §11). */
+    /** Bands (ids) whose "no one else uses the app" hint was hidden on this device. */
     val hiddenNoAppHints: Set<String> = emptySet(),
     /**
-     * Per band (id), the period its summary was last shown for (ITERATION_6 §7), as JSON text: one that can't be read
+     * Per band (id), the period its summary was last shown for, as JSON text: one that can't be read
      * (e.g. stored by a newer version) is just forgotten, not the end of all the settings.
      */
     val summaryPeriods: Map<String, String> = emptyMap(),
@@ -48,7 +48,7 @@ data class AppSettings(
     }
 }
 
-/** The event screen's pages (ITERATION_5 §4.4): what the gig is, the money that came in and goes out, and who gets what. */
+/** The event screen's pages: what the gig is, the money that came in and goes out, and who gets what. */
 @Serializable
 enum class EventTab { GIG, MONEY, SETTLEMENT }
 
@@ -61,7 +61,7 @@ class SettingsRepository(private val store: KeyValueStore, private val scope: Co
         // Unreadable settings are not worth keeping: fall back to the defaults.
         store.read(KEY)?.let { raw ->
             runCatching { KapeluszJson.decodeFromString(AppSettings.serializer(), raw) }.onSuccess { stored ->
-                // A language this version does not offer (e.g. stored by a newer one) follows the device (ITERATION_3 R13).
+                // A language this version does not offer (e.g. stored by a newer one) follows the device.
                 _settings.value = stored.copy(language = stored.language?.takeIf { it in SUPPORTED_LANGUAGES })
             }
         }

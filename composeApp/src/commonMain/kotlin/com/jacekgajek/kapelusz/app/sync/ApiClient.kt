@@ -70,7 +70,7 @@ open class NeedsSignInException(message: String = "Sign in again") : RuntimeExce
 
 /**
  * The user chose "sign out on all devices" (on this or another device): the server refuses every token from before,
- * Google's included. Nothing is renewed silently; the app signs out (ITERATION_3 R6).
+ * Google's included. Nothing is renewed silently; the app signs out.
  */
 class SessionsRevokedException : NeedsSignInException("Signed out on all devices")
 
@@ -99,7 +99,7 @@ class ApiClient(
 
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
 
-    /** This installation's Firebase token (ITERATION_7 §2.4); the answer says whether sync messages will come. */
+    /** This installation's Firebase token; the answer says whether sync messages will come. */
     override suspend fun registerDevice(installationId: String, token: String): Boolean = call(
         HttpMethod.Put,
         "/me/devices/$installationId",
@@ -112,7 +112,7 @@ class ApiClient(
         transport.text(send(HttpMethod.Delete, "/me/devices/$installationId") {})
     }
 
-    /** Hands the server the Google sign-in token this device kept, for the photo in it (ITERATION_2 §7.4). */
+    /** Hands the server the Google sign-in token this device kept, for the photo in it. */
     suspend fun sendPicture(googleToken: String) {
         val body = KapeluszJson.encodeToString(PictureRequest.serializer(), PictureRequest(googleToken))
         transport.text(send(HttpMethod.Post, "/me/picture") { setBody(TextContent(body, ContentType.Application.Json)) })
@@ -128,7 +128,7 @@ class ApiClient(
         body = KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), change),
     )
 
-    /** "Sign out on all devices" (ITERATION_3 R6): the server refuses every session of the user begun before now. */
+    /** "Sign out on all devices": the server refuses every session of the user begun before now. */
     suspend fun revokeSessions() {
         transport.text(send(HttpMethod.Post, "/sessions/revoke") {})
     }
@@ -154,10 +154,10 @@ class ApiClient(
         transport.text(send(HttpMethod.Post, "/bands/$bandId/leave") {})
     }
 
-    /** The band's file exactly as stored on the server, for leaders (ITERATION_2 §7.1). */
+    /** The band's file exactly as stored on the server, for leaders. */
     override suspend fun rawState(bandId: Id): String = transport.text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
-    /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */
+    /** Places Google suggests for what was typed in Location, in [language]; for leads up. */
     override suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> = transport.parse(
         send(HttpMethod.Get, "/bands/$bandId/places") {
             parameter("q", query)
@@ -167,13 +167,13 @@ class ApiClient(
         PlacesResponse.serializer(),
     ).places
 
-    /** Where the band's event locations are, for the "Where we played" map (ITERATION_7 §8); for any member. */
+    /** Where the band's event locations are, for the "Where we played" map; for any member. */
     suspend fun locations(bandId: Id): LocationsResponse {
         val response = send(HttpMethod.Get, "/bands/$bandId/locations") {}
         return transport.parse(response, LocationsResponse.serializer())
     }
 
-    /** What Location becomes for a picked place: its name and full address (ITERATION_5 §9.1), ending the [session]. */
+    /** What Location becomes for a picked place: its name and full address, ending the [session]. */
     override suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String = transport.parse(
         send(HttpMethod.Get, "/bands/$bandId/places/${placeId.encodeURLPathPart()}") {
             parameter("lang", language)
@@ -182,7 +182,7 @@ class ApiClient(
         PlaceText.serializer(),
     ).text
 
-    /** What Location becomes for a Google Maps link: the place and its address, or a pin's coordinates (ITERATION_5 §9.1). */
+    /** What Location becomes for a Google Maps link: the place and its address, or a pin's coordinates. */
     override suspend fun resolveMapLink(bandId: Id, url: String, language: String): String = transport.parse(
         send(HttpMethod.Post, "/bands/$bandId/places/resolve") {
             parameter("lang", language)

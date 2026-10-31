@@ -17,7 +17,7 @@ import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.allAttachments
 
 /**
- * Limits on everything that comes into a band (ITERATION_3 R1), checked after every operation on the band it
+ * Limits on everything that comes into a band, checked after every operation on the band it
  * produced, so client and server, and undo, enforce the same. Only what the operation changed is checked: data from
  * before the limits keeps working.
  */
@@ -41,7 +41,7 @@ object Limits {
     const val MAX_PARTIES_PER_EVENT = 200
     const val MAX_ITEMS_PER_EVENT = 500
 
-    /** Undos in one push: each one reads history from storage (ITERATION_3 R6). Clients split their pushes to keep to it. */
+    /** Undos in one push: each one reads history from storage. Clients split their pushes to keep to it. */
     const val MAX_UNDOS_PER_PUSH = 20
 
     private val ID = Regex("[A-Za-z0-9_-]{1,64}")
@@ -57,7 +57,7 @@ object Limits {
         count(before.events.size, after.events.size, MAX_EVENTS, "events")?.let { return it }
         count(before.costs.size, after.costs.size, MAX_COSTS, "costs")?.let { return it }
         count(before.fundEntries.size, after.fundEntries.size, MAX_FUND_ENTRIES, "band fund entries")?.let { return it }
-        // Files cost storage: a budget per band (ITERATION_3 R6), checked only when attachments change.
+        // Files cost storage: a budget per band, checked only when attachments change.
         if (after.costs !== before.costs || after.events !== before.events) {
             count(before.allAttachments().size, after.allAttachments().size, MAX_BAND_ATTACHMENTS, "attachments")?.let { return it }
         }

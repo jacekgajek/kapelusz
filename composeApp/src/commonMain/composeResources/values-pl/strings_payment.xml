@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Numery kont i dane do wpłat do kasy zespołowej (ITERATION_7 §7) -->
+    <!-- Numery kont i dane do wpłat do kasy zespołowej -->
     <string name="account_title">Przelew</string>
     <string name="account_pay_to">Wyślij przelew na numer konta:</string>
     <string name="account_numbers">Numery kont</string>

@@ -109,7 +109,7 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
                                 Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         TransferParties(from, to, Modifier.weight(1f))
-                                        // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
+                                        // Only where you pay; none when the fund's holder keeps it.
                                         val keepsForFund = Settling.keepsForFund(band, settlement, suggestion)
                                         if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
                                     }

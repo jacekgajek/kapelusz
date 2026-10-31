@@ -17,8 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * One event's screen (ITERATION_5 §4.4): the event and its settlement as the band is now, the pages the user gets,
- * the dialog open, and what the screen was opened with ([carry]: files shared to the app, ITERATION_6 §1). Scoped to
+ * One event's screen: the event and its settlement as the band is now, the pages the user gets,
+ * the dialog open, and what the screen was opened with ([carry]: files shared to the app). Scoped to
  * the screen's back-stack entry; the pager and the lists' scroll positions stay in the screen, as they are its own.
  */
 class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Carry? = null) : ViewModel() {
@@ -28,7 +28,7 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Ca
         viewModelScope.launch { bands.collect { ready = it as? BandState.Ready } }
     }
 
-    /** Artists see only their own events and pages (ITERATION_4 §1.1). */
+    /** Artists see only their own events and pages. */
     val artist: Boolean by derivedStateOf { ready?.let { it.band.isArtist(it.userId) } ?: false }
 
     /** The event, unless gone or hidden from an artist not playing it (archived ones too). */

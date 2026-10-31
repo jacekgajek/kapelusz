@@ -18,7 +18,7 @@ internal object HoldingReducer {
     fun apply(band: Band, op: HoldingOp, ctx: OpContext): Band = when (op) {
         is AddHolding -> band.updateEvent(op.eventId) { event ->
             invalidIf(event.holdings.any { it.id == op.holdingId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.holdingId} already exists" }
-            // Or the organiser: a fee agreed but not paid yet (ITERATION_4 §2.2).
+            // Or the organiser: a fee agreed but not paid yet.
             invalidIf(op.partyId != ORGANISER && event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
             invalidIf(Artists.isArtist(band, op.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
             validatePositive(op.amount, "Holding amount")
@@ -54,7 +54,7 @@ internal object HoldingReducer {
             }
             val full = op.amount == awaited.amount
             // Its files (the contract) go with the money once all of it is in.
-            // Still the lead's record: who received it can't then remove it, or its contract (ITERATION_7 §3.3).
+            // Still the lead's record: who received it can't then remove it, or its contract.
             val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), awaited.recordedBy ?: ctx.memberId)
             val rest = if (full) emptyList() else listOf(awaited.copy(amount = awaited.amount - op.amount))
             event.copy(holdings = event.holdings.flatMap { if (it.id == awaited.id) rest + received else listOf(it) })

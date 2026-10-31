@@ -1,4 +1,4 @@
-# Store listing (ITERATION_7 §1.4)
+# Store listing
 
 Paste into Play Console › Grow › Store presence › Main store listing; Polish as a translation (Polski – pl-PL),
 English (en-US) as the default. Limits: title 30, short description 80, full description 4000 characters. Each paragraph and bullet

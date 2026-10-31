@@ -126,7 +126,7 @@ import org.jetbrains.compose.resources.stringResource
 fun BandFundScreen(
     session: BandSession,
     nav: FundNav,
-    /** A cost just added from here (the + beside the costs to refund), to refund (ITERATION_7 §5.1); [onAddedCostSeen] once its dialog is open. */
+    /** A cost just added from here (the + beside the costs to refund), to refund; [onAddedCostSeen] once its dialog is open. */
     addedCost: String? = null,
     onAddedCostSeen: () -> Unit = {},
     entries: FundEntryViewModel,
@@ -142,7 +142,7 @@ fun BandFundScreen(
     val actions = rememberActions(changes, messages, undos = null)
     val can = session.can
     val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
-    // Leads only: refunding a cost decides about it (ITERATION_7 §3.3); the treasurer records money paid in.
+    // Leads only: refunding a cost decides about it; the treasurer records money paid in.
     val refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(-1), costId = "probe"))
     val settings by preferences.settings.collectAsState()
     val lang = language
@@ -184,7 +184,7 @@ fun BandFundScreen(
             }
             return@AppScaffold
         }
-        // One list, by date (ITERATION_7 §5.1): events' money first on a day, entries in the order they were added.
+        // One list, by date: events' money first on a day, entries in the order they were added.
         val rows = remember(band, settings.fundOldestFirst) {
             val all = band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
                 band.fundEntries.map { FundRow.OfEntry(it) }
@@ -215,7 +215,7 @@ fun BandFundScreen(
                     }
                 }
             }
-            // Where to pay in, for everyone, once set (ITERATION_7 §7): only shown here, set in the fund's settings.
+            // Where to pay in, for everyone, once set: only shown here, set in the fund's settings.
             if (band.fundBlikPhone != null || band.fundBankAccount != null) {
                 item {
                     Card(Modifier.fillMaxWidth()) {
@@ -242,7 +242,7 @@ fun BandFundScreen(
                 when (row) {
                     is FundRow.OfEvent -> {
                         val event = row.event
-                        // Counts a fee paid straight to the fund too (ITERATION_4 §2.2).
+                        // Counts a fee paid straight to the fund too.
                         val handedOver = BandFund.isHandedOver(event)
                         Row(Modifier.fillMaxWidth().clickable { onOpenEvent(event.id) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -440,7 +440,7 @@ private fun CostField(form: FundEntryForm, band: Band, onAddCost: (() -> Unit)?)
     }
 }
 
-/** Ticking who paid, e.g. everyone's monthly fee (ITERATION_7 §5.1). */
+/** Ticking who paid, e.g. everyone's monthly fee. */
 @Composable
 private fun PeopleDialog(people: List<Member>, initial: Set<String>, onDone: (Set<String>) -> Unit, onDismiss: () -> Unit) {
     var chosen by remember { mutableStateOf(initial) }

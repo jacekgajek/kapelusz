@@ -31,7 +31,7 @@ sealed interface RosterOp : Operation {
     val memberId: Id
 }
 
-/** Settling together (ITERATION_5 §7): each member for themselves. */
+/** Settling together: each member for themselves. */
 @Serializable
 sealed interface PairOp : Operation
 
@@ -84,7 +84,7 @@ sealed interface AttachmentOp : Operation {
 }
 
 /**
- * An operation of a kind this version doesn't know (ITERATION_8 §2): one removed since (`MoveMember`), or one from a
+ * An operation of a kind this version doesn't know: one removed since (`MoveMember`), or one from a
  * newer version. Read as this, so History and a phone's unsent changes still load; never applied. Keeps the event it
  * was about, so an event's History still lists it.
  */

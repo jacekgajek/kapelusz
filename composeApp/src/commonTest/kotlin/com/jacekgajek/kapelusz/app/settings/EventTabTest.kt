@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.app.settings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** ITERATION_4 §2.4: each event opens on the tab last used there. */
+/** Each event opens on the tab last used there. */
 class EventTabTest {
 
     @Test

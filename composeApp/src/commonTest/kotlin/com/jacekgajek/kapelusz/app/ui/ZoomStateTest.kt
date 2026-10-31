@@ -6,7 +6,7 @@ import com.jacekgajek.kapelusz.app.ui.components.ZoomState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** The viewer's zoom (ITERATION_5 §4.3): bounded, kept on the picture, and never broken by a missing centre. */
+/** The viewer's zoom: bounded, kept on the picture, and never broken by a missing centre. */
 class ZoomStateTest {
     private val size = IntSize(1000, 2000)
 

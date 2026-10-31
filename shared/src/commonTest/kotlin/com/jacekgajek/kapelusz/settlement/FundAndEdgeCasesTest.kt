@@ -158,7 +158,7 @@ class FundAndEdgeCasesTest {
         assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(DisableBandFund).reason)
     }
 
-    /** ITERATION_3 R10: with the fund off, nothing may leave it holding or owing money. */
+    /** With the fund off, nothing may leave it holding or owing money. */
     @Test
     fun aDisabledFundCannotBeChangedBackIntoUse() {
         val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice")).event("e", "Alice", "Bob")
@@ -178,7 +178,7 @@ class FundAndEdgeCasesTest {
         assertEquals("Van", scenario.band.fundEntries.single().description, "changes that keep it empty are fine")
     }
 
-    /** ITERATION_3 R10: an event the fund pays for, with nothing collected, can be settled. */
+    /** An event the fund pays for, with nothing collected, can be settled. */
     @Test
     fun anEventPaidOnlyByTheFundIsNotADraft() {
         val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice")).event("e", "Alice", "Bob")
@@ -193,7 +193,7 @@ class FundAndEdgeCasesTest {
         assertEquals(EventStatus.SETTLED, scenario.settle("e").status)
     }
 
-    /** ITERATION_3 R10: archived events are read-only, except restoring and deleting them. */
+    /** Archived events are read-only, except restoring and deleting them. */
     @Test
     fun archivedEventsAreReadOnly() {
         val scenario = Scenario("Alice", "Bob").event("e", "Alice", "Bob")
@@ -237,7 +237,7 @@ class FundAndEdgeCasesTest {
         assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("d2", true)).reason)
     }
 
-    /** Money comes in from someone (a member, or outside the band) and leaves only to refund a cost (ITERATION_7 §5.1). */
+    /** Money comes in from someone (a member, or outside the band) and leaves only to refund a cost. */
     @Test
     fun fundEntriesHaveAPayerOrACost() {
         val scenario = Scenario("Alice", "Bob").apply(SetTreasurer("alice"))

@@ -4,7 +4,7 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.text.Names
 
 /**
- * Searching the event list (ITERATION_6 §6): each typed word somewhere in an event's name or Location, in any order,
+ * Searching the event list: each typed word somewhere in an event's name or Location, in any order,
  * ignoring case and diacritics ("lodz" finds "Łódź").
  */
 class EventSearch(summaries: List<EventSummary>) {

@@ -19,7 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.datetime.LocalDate
 
-/** The treasurer's line keeps the fund's part rather than handing it over (ITERATION_6 §8). */
+/** The treasurer's line keeps the fund's part rather than handing it over. */
 class FundKeptTest {
 
     private fun Band.apply(vararg ops: Operation): Band = ops.fold(this) { band, op ->

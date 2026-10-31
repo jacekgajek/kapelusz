@@ -44,14 +44,14 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The private calendar feed (ITERATION_2 §6): fetched on request (it needs the server), then copy, add to Google
+ * The private calendar feed: fetched on request (it needs the server), then copy, add to Google
  * Calendar, include the whole band, or make a new link.
  */
 @Composable
 internal fun CalendarSection(
     calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
     showTitle: Boolean = true,
-    /** Artists' feeds have only the events they play (ITERATION_4 §1.1). */
+    /** Artists' feeds have only the events they play. */
     showIncludeAll: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
@@ -82,7 +82,7 @@ internal fun CalendarSection(
             OutlinedButton(onClick = { scope.launch { copied = copy(current.url) } }) { Text(stringResource(if (copied) Res.string.link_copied else Res.string.copy_link)) }
         }
         // Google Calendar subscribes only on a computer, and the phone app then shows the calendar only once its sync
-        // is on: the steps, and Google's own help (ITERATION_6 §9).
+        // is on: the steps, and Google's own help.
         Text(stringResource(Res.string.calendar_add_on_computer), style = MaterialTheme.typography.bodySmall)
         val lang = language
         TextButton(onClick = { uriHandler.openUri("https://support.google.com/calendar/answer/37100?hl=$lang") }) {

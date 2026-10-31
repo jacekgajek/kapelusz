@@ -22,7 +22,7 @@ class CostChoices(private val view: BandView, private val can: Capabilities) {
         .sortedByName { it.name }
 
     /**
-     * Events a cost paid by [paidBy] may be "incurred for" (ITERATION_3 R2): only ones they take part in, not archived
+     * Events a cost paid by [paidBy] may be "incurred for": only ones they take part in, not archived
      * (unless it is the cost's current one); the cost's own event stays listed while it is still its owner's. `null`
      * (no event) comes first.
      */
@@ -37,7 +37,7 @@ class CostChoices(private val view: BandView, private val can: Capabilities) {
     }
 }
 
-/** The costs an event's Refunds section lists as waiting (ITERATION_4 §1.2). */
+/** The costs an event's Refunds section lists as waiting. */
 object Refunds {
     /** Outstanding costs of the event's participants a lead may include here, oldest first; none for anyone else. */
     fun pending(view: BandView, event: Event, canEdit: Boolean): List<Cost> {

@@ -7,7 +7,7 @@ import com.jacekgajek.kapelusz.settlement.SettledEvents
 object Viewers {
 
     /**
-     * The member may become a viewer (V5-M1 B2): they don't play in an event not settled yet (whose money they could not
+     * The member may become a viewer: they don't play in an event not settled yet (whose money they could not
      * pass on) and don't hold the band fund.
      */
     fun mayBecome(view: SettledEvents, memberId: Id): Boolean = view.band.treasurerMemberId != memberId && view.band.events.none { event ->

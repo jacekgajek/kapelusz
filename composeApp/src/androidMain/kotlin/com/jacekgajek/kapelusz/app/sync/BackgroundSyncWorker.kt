@@ -13,8 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Changes still on this device when the app leaves the screen go out as soon as there is a network (ITERATION_3 R4):
- * the foreground sync stops there. The app has no notifications any more (ITERATION_6 §9), so nothing else runs in
+ * Changes still on this device when the app leaves the screen go out as soon as there is a network:
+ * the foreground sync stops there. The app has no notifications any more, so nothing else runs in
  * the background.
  */
 class BackgroundSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {

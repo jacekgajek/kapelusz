@@ -12,7 +12,7 @@ import com.jacekgajek.kapelusz.ops.PairOp
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.settlement.SettleTogether
 
-/** Settling together (ITERATION_5 §7): invitations and pairs. Pure state transitions and their validation; see [Reducer]. */
+/** Settling together: invitations and pairs. Pure state transitions and their validation; see [Reducer]. */
 internal object PairReducer {
     fun apply(band: Band, op: PairOp): Band = when (op) {
         is InviteToSettleTogether -> {
@@ -28,7 +28,7 @@ internal object PairReducer {
             band.dropInvite(op.fromMemberId, op.toMemberId)
                 .updateMember(op.fromMemberId) { it.copy(settlesWith = op.toMemberId) }
                 .updateMember(op.toMemberId) { it.copy(settlesWith = op.fromMemberId) }
-                // Both still may settle together (§7.2).
+                // Both still may settle together.
                 .also { conflictIf(SettleTogether.tidy(it) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
         }
 

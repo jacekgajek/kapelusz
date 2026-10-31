@@ -54,14 +54,14 @@ internal class CalendarHandlers(
             }
             secret to updated
         }
-        // On the app's own domain, which passes /calendar/* to this API (ITERATION_6 §10); links given out earlier on the
+        // On the app's own domain, which passes /calendar/* to this API; links given out earlier on the
         // API's own address keep working.
         return ok(CalendarSubscription.serializer(), CalendarSubscription("$webUrl/calendar/$secret.ics", updated.includeAll))
     }
 
     /**
      * A feed that isn't (any more): 410 Gone, not 404. On the app's domain CloudFront turns 403/404/5xx into the web
-     * app's page with a 200 (ITERATION_6 §10); a 410 reaches the calendar app as it is.
+     * app's page with a 200; a 410 reaches the calendar app as it is.
      */
     fun feed(secret: String): HttpResponse {
         val owner = store.get(StorageKeys.calendarSecret(secret))?.let { decode(CalendarOwner.serializer(), it.content) }

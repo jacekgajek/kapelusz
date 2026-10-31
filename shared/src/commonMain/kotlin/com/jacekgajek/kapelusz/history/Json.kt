@@ -13,7 +13,7 @@ val KapeluszJson = Json {
     // of making the whole band unreadable.
     coerceInputValues = true
     encodeDefaults = false
-    // An operation of a kind this version doesn't know (ITERATION_8 §2) is read as such, not an unreadable history.
+    // An operation of a kind this version doesn't know is read as such, not an unreadable history.
     serializersModule = SerializersModule {
         polymorphic(Operation::class) { defaultDeserializer { UnknownOperation.serializer() } }
     }

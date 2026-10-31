@@ -48,7 +48,7 @@ data class LocalBand(
      */
     val schema: Int = 0,
     /**
-     * Operations held back from syncing while their Undo snackbar shows (ITERATION_5 §2): op id → until when (epoch
+     * Operations held back from syncing while their Undo snackbar shows: op id → until when (epoch
      * ms). Nothing from the first held one on is sent; past its time a hold no longer counts (e.g. the app was closed).
      */
     val holds: Map<Id, Long> = emptyMap(),
@@ -118,7 +118,7 @@ class BandRepository(
         val rawIndex = store.readIndex(userId)
         val index = rawIndex?.let { raw -> runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
             ?: BandIndex(userId).also {
-                // Never lose the only copy (ITERATION_3 R4).
+                // Never lose the only copy.
                 if (rawIndex != null) store.backupIndex(userId, rawIndex)
             }
         _index.value = index
@@ -190,8 +190,8 @@ class BandRepository(
     suspend fun storeFromServer(band: Band, version: String) {
         val owner = userId ?: return
         if (band.id in locals) return
-        // Already on the device (e.g. missing from an unreadable index): its unsent changes must not be overwritten
-        // (ITERATION_3 R4); the regular sync rebases them on the server's state.
+        // Already on the device (e.g. missing from an unreadable index): its unsent changes must not be overwritten; the regular sync
+        // rebases them on the server's state.
         val stored = runSuspendCatching { readLocal(band.id, reportUnreadable = false) }.getOrNull()
         locals[band.id] = stored ?: LocalBand(base = band, version = version, clientId = idGenerator(), userId = owner, schema = CURRENT_SCHEMA)
         if (stored == null) persist(band.id)
@@ -294,7 +294,7 @@ class BandRepository(
     }
 
     /**
-     * Drops the band's unsent changes, e.g. ones the server always refuses (ITERATION_3 R9); they are kept under a
+     * Drops the band's unsent changes, e.g. ones the server always refuses; they are kept under a
      * backup key first, as when access is lost. Sequence numbers go on from where they were. Returns the dropped
      * operations: only those in the backup, not ones made while it was being written.
      */
@@ -306,7 +306,7 @@ class BandRepository(
         return local.pending
     }
 
-    /** The band's unsent changes as readable JSON, for the user to keep (ITERATION_3 R9). */
+    /** The band's unsent changes as readable JSON, for the user to keep. */
     fun pendingAsJson(bandId: Id): String = PrettyJson.encodeToString(ListSerializer(OpEnvelope.serializer()), locals[bandId]?.pending.orEmpty())
 
     /** Forgets a band deleted on purpose (nothing is kept) and opens another of the user's bands, if any. */
@@ -360,7 +360,7 @@ class BandRepository(
     }
 
     /**
-     * Unsent operations of a kind this version doesn't know (ITERATION_8 §2), e.g. a `MoveMember` from before it was
+     * Unsent operations of a kind this version doesn't know, e.g. a `MoveMember` from before it was
      * removed, are dropped: the server would refuse them anyway.
      */
     private fun withoutUnknown(local: LocalBand): LocalBand {
@@ -406,7 +406,7 @@ class BandRepository(
     private class UnreadableBand : RuntimeException()
 
     companion object {
-        /** Raise when the band model gains fields an older app would drop (V2-M3: agenda times). */
+        /** Raise when the band model gains fields an older app would drop (agenda times). */
         const val CURRENT_SCHEMA = 3
 
         private val PrettyJson = Json(from = KapeluszJson) { prettyPrint = true }

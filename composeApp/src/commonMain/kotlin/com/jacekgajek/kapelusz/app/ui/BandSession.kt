@@ -40,7 +40,7 @@ class BandSession(val state: BandState.Ready, private val runtime: AppRuntime) {
     /** What the user may do in this band state. */
     val can: Capabilities = Capabilities(band, userId)
 
-    /** Sees only their own events, costs and payouts (ITERATION_4 §1.1). */
+    /** Sees only their own events, costs and payouts. */
     val artist: Boolean = band.isArtist(userId)
 
     val changes: Changes get() = runtime.changes
@@ -58,7 +58,7 @@ class BandSession(val state: BandState.Ready, private val runtime: AppRuntime) {
     val calendarApi: CalendarApi get() = runtime.api
     val rawStateApi: RawStateApi get() = runtime.api
 
-    /** Where event locations are, for the map (ITERATION_7 §8). */
+    /** Where event locations are, for the map. */
     val locations: PlacesLocator get() = runtime.locations
 
     /** A round of sync now, e.g. before reading the server's history, so it has what this device changed. */

@@ -19,7 +19,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** The period a summary covers (ITERATION_6 §7): presets move with time, a custom range is fixed. */
+/** The period a summary covers: presets move with time, a custom range is fixed. */
 @Serializable
 sealed interface SummaryPeriod {
     /** First and last day, both included; null: no limit. */
@@ -69,7 +69,7 @@ data class PersonTotals(val earned: Money, val refunded: Money) {
 
 /**
  * Money into and out of the band fund in the period, and what it held at the period's end; [intoBy] and [outBy] break
- * them down by who paid in or got a cost refunded (ITERATION_7 §5.1), largest first.
+ * them down by who paid in or got a cost refunded, largest first.
  */
 data class FundTotals(
     val into: Money,
@@ -122,7 +122,7 @@ data class PeriodSummary(
 }
 
 /**
- * The summary of [band] from [from] to [to] (both included; null: no limit), as ITERATION_6 §7 counts it: settled
+ * The summary of [band] from [from] to [to] (both included; null: no limit), as counts it: settled
  * events' money on the event's date, fund entries on their own, each refund payment on its date, costs once fully
  * refunded on the date that happened. [onlyEventsOf]: an artist's id, naming only their unsettled events. Settles every
  * event, the costly part, and [pause]s between them.

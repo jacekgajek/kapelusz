@@ -14,7 +14,7 @@ sealed interface PickResult {
 
 /**
  * Opens the platform's pickers; results (not cancellations) arrive in the callback given to [rememberAttachmentPicker],
- * one per chosen file: several can be picked at once (ITERATION_5 §4.7), the camera takes one.
+ * one per chosen file: several can be picked at once, the camera takes one.
  */
 interface AttachmentPicker {
     /** Photos from the gallery or PDFs from files, one or several. */

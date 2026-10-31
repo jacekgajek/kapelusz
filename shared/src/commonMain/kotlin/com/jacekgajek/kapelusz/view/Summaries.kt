@@ -27,8 +27,8 @@ data class EventSummary(val event: Event, val settlement: Settlement, val myNumb
 }
 
 /**
- * As a party of the settlement: with a partner settling together, the pair's number (ITERATION_5 §7). An artist sees only
- * their own, what their partner keeps for them counting as received (ITERATION_6 §11).
+ * As a party of the settlement: with a partner settling together, the pair's number. An artist sees only
+ * their own, what their partner keeps for them counting as received.
  */
 fun myNumber(event: Event, settlement: Settlement, me: Member?): MyNumber {
     if (me == null || event.participant(me.id) == null) return MyNumber.NotParticipating
@@ -65,7 +65,7 @@ fun eventSummaries(view: BandView, me: Member?, showArchived: Boolean, onlyMyEve
 internal val EVENT_ORDER: Comparator<EventSummary> = compareByDescending<EventSummary> { it.event.date }.thenByDescending { it.event.updatedAt }
 
 /**
- * Of what [line] still has to hand over, the part its party keeps as the band fund's holder (ITERATION_6 §8): the
+ * Of what [line] still has to hand over, the part its party keeps as the band fund's holder: the
  * fund's share not handed over yet, up to what they hold too much. Zero for anyone but the treasurer (or their pair).
  */
 fun fundKeptBy(band: Band, settlement: Settlement, line: PartyLine): Money {
@@ -81,8 +81,8 @@ fun partyName(band: Band, event: Event?, partyId: Id, fundLabel: String): String
 }
 
 /**
- * Display name of a settlement party (ITERATION_5 §7): a pair settling together as both names, joined by [pairPattern]
- * (`%1$s and %2$s`), in alphabetical order (ITERATION_8 §2); anyone else as [partyName].
+ * Display name of a settlement party: a pair settling together as both names, joined by [pairPattern]
+ * (`%1$s and %2$s`), in alphabetical order; anyone else as [partyName].
  */
 fun partyName(band: Band, event: Event?, settlement: Settlement, partyId: Id, fundLabel: String, pairPattern: String): String {
     val ids = settlement.party(partyId)?.partyIds ?: listOf(partyId)
@@ -94,7 +94,7 @@ fun partyName(band: Band, event: Event?, settlement: Settlement, partyId: Id, fu
 fun initials(name: String): String = name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
 
 /**
- * The "Continue" card (ITERATION_2 §3.1): the most recent unsettled event, i.e. not archived and open, at a loss, or a
+ * The "Continue" card: the most recent unsettled event, i.e. not archived and open, at a loss, or a
  * draft whose date has passed (a gig with no money entered yet). Future events are not "unsettled business". Latest
  * date first; on the same date, the one edited last.
  */
@@ -102,7 +102,7 @@ fun unsettledEvent(view: BandView, today: LocalDate): Event? = view.band.events
     .filter { !it.archived && it.date <= today }
     .filter { event ->
         when (view.settlement(event).status) {
-            // Awaiting payment too: the organiser still owes (ITERATION_4 §2.2).
+            // Awaiting payment too: the organiser still owes.
             EventStatus.OPEN, EventStatus.LOSS, EventStatus.AWAITING -> true
 
             EventStatus.DRAFT -> event.date < today
@@ -113,7 +113,7 @@ fun unsettledEvent(view: BandView, today: LocalDate): Event? = view.band.events
     .maxWithOrNull(compareBy<Event> { it.date }.thenBy { it.updatedAt })
 
 /**
- * The "Upcoming" card (ITERATION_2 §3.2): the nearest non-archived event from [today] on that [me] takes part in, or,
+ * The "Upcoming" card: the nearest non-archived event from [today] on that [me] takes part in, or,
  * if there is none, the nearest band event.
  */
 fun upcomingEvent(band: Band, me: Member?, today: LocalDate, except: Id? = null): Event? {

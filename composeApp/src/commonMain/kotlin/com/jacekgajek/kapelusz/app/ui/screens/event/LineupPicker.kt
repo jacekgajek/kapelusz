@@ -79,7 +79,7 @@ import org.jetbrains.compose.resources.stringResource
 private class PickRow(val id: Id, val name: String, val pictureUrl: String?, val guest: Boolean, val notInApp: Boolean, val share: Participant?)
 
 /**
- * The line-up picker (ITERATION_8 §1.2): everyone who can take part by role, this event's guests, ticks for who takes
+ * The line-up picker: everyone who can take part by role, this event's guests, ticks for who takes
  * part; From an event…, search, tick all; Save sends one [com.jacekgajek.kapelusz.ops.ChangeLineup]. Read only for
  * [readOnly] (who doesn't manage participants): who isn't taking part, without ticks.
  */
@@ -87,7 +87,7 @@ private class PickRow(val id: Id, val name: String, val pictureUrl: String?, val
 fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit) {
     val band = context.band
     val event = context.event
-    // Changes on top of the event as it is now: one synced meanwhile stays (ITERATION_8 §1.2).
+    // Changes on top of the event as it is now: one synced meanwhile stays.
     var draft by remember(event.id) { mutableStateOf(Lineup.Draft()) }
     val ticked = draft.ticked(event)
     var query by remember { mutableStateOf("") }
@@ -209,7 +209,7 @@ private fun PickRowItem(context: EventContext, row: PickRow, ticked: Boolean, re
         Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onToggle).padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Read only: no ticks (ITERATION_8 §1.2), the list is who isn't taking part.
+        // Read only: no ticks, the list is who isn't taking part.
         if (readOnly) Spacer(Modifier.width(12.dp)) else Checkbox(ticked, { onToggle() }, enabled = enabled)
         if (row.guest) {
             GuestIcon()
@@ -220,7 +220,7 @@ private fun PickRowItem(context: EventContext, row: PickRow, ticked: Boolean, re
         }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(row.name)
-            // The share only when not the default (ITERATION_8 §1.2); changed on the participant's row in the event.
+            // The share only when not the default; changed on the participant's row in the event.
             row.share?.let { shareText(it.weight, it.fixedShare, it.percent, context.currency) }?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

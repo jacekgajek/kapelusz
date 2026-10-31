@@ -14,7 +14,7 @@ sealed interface SyncState {
     /** A round runs; [backoff]: carried from before. */
     data class Running(val backoff: Long = 0) : SyncState
 
-    /** The web tab was hidden (ITERATION_7 §2.6): what waits goes first, with [backoff] while offline, then [Stopped]. */
+    /** The web tab was hidden: what waits goes first, with [backoff] while offline, then [Stopped]. */
     data class Draining(val backoff: Long, val running: Boolean) : SyncState
 
     /** No round until the user acts: signed in again, or updated the app. [loopWanted]: the loop goes on afterwards. */

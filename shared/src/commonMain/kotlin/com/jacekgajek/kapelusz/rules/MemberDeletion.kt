@@ -5,7 +5,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Role
 
 /**
- * Deleting a member added by mistake (ITERATION_7 §3.1): only while nothing in the band refers to them, so nothing else
+ * Deleting a member added by mistake: only while nothing in the band refers to them, so nothing else
  * changes. Who did take part is moved to the former members instead. An app account is unlinked first (a separate,
  * not undoable change), so the member itself can be brought back by Undo, without the account.
  */

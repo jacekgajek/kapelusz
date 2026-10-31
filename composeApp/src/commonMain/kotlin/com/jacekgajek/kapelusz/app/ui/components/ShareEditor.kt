@@ -46,7 +46,7 @@ import org.jetbrains.compose.resources.stringResource
 enum class ShareMode { WEIGHT, PERCENT, FIXED }
 
 /**
- * What a share editor holds (ITERATION_3 §2.4, ITERATION_7 §6): a weight, a percentage of the profit, or a fixed
+ * What a share editor holds: a weight, a percentage of the profit, or a fixed
  * amount being typed. The weight stays whatever the slider says in every mode: it is kept underneath for switching back.
  */
 @Stable
@@ -90,8 +90,8 @@ fun rememberShareEditorState(weight: Int, fixedShare: Money?, percent: Int?): Sh
 }
 
 /**
- * A share as a number of shares on a slider in quarters, a percentage of the profit in 5% steps (ITERATION_7 §6), or a
- * fixed amount: in an event (ITERATION_3 §2.4) and as a member's default (ITERATION_4 §2.3). [below] shows under the
+ * A share as a number of shares on a slider in quarters, a percentage of the profit in 5% steps, or a
+ * fixed amount: in an event and as a member's default. [below] shows under the
  * slider, e.g. what the share comes to; [percentTaken] is what the others' percentages and the fund's already take.
  */
 @Composable
@@ -175,7 +175,7 @@ fun sharesNumber(weight: Int, language: String): String {
     return if (whole == 0 && part != 0) quarter else "$whole$quarter"
 }
 
-/** "1½ shares", "1 share", "No share": a weight in words (ITERATION_7 §6). */
+/** "1½ shares", "1 share", "No share": a weight in words. */
 @Composable
 fun sharesText(weight: Int): String {
     val number = sharesNumber(weight, language)

@@ -29,7 +29,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 data class LostBand(val name: String, val deleted: Boolean)
 
 /**
- * A band whose push the server refuses as a whole (ITERATION_3 R9), e.g. too many devices or a band grown too large:
+ * A band whose push the server refuses as a whole, e.g. too many devices or a band grown too large:
  * sending it again cannot help. [message] is the server's.
  */
 data class StuckPush(val status: Int, val code: String, val message: String)
@@ -71,7 +71,7 @@ class SyncEngine(
     val lostAccess: SharedFlow<LostBand> get() = round.lostAccess
 
     /**
-     * Bands whose unsent changes the server refuses as a whole (ITERATION_3 R9): their push is not retried until the
+     * Bands whose unsent changes the server refuses as a whole: their push is not retried until the
      * user discards them or the app starts again; pulls go on. Shown with an export or discard choice.
      */
     val stuck: StateFlow<Map<Id, StuckPush>> get() = round.stuck
@@ -88,7 +88,7 @@ class SyncEngine(
     private val blocked: Boolean get() = _state.value is SyncState.Blocked
 
     /**
-     * The server will send this device a message when one of the user's bands changes (ITERATION_7 §2.3): the loop then
+     * The server will send this device a message when one of the user's bands changes: the loop then
      * looks for news itself only every [MESSAGED_INTERVAL], in case a message got lost.
      */
     private var messaged: Boolean = false
@@ -105,7 +105,7 @@ class SyncEngine(
     fun stop() = send(SyncInput.Stop)
 
     /**
-     * The web app's tab was hidden (ITERATION_7 §2.6): what waits to be sent goes first (with backoff while offline;
+     * The web app's tab was hidden: what waits to be sent goes first (with backoff while offline;
      * a held operation is waited for), then nothing more until [start] when it is shown again.
      */
     fun pauseAfterSending() = send(SyncInput.Hide)
@@ -147,7 +147,7 @@ class SyncEngine(
     }
 
     /**
-     * A message said [bandId] changed (ITERATION_7 §2.3). Only while the app is on screen (the loop runs); ignored
+     * A message said [bandId] changed. Only while the app is on screen (the loop runs); ignored
      * otherwise, as coming back to the screen syncs anyway. The open band syncs in a round of its own; another is
      * fetched quietly, downloaded if it isn't here yet, or let go of if it is gone for the user.
      */
@@ -286,14 +286,14 @@ class SyncEngine(
     }
 
     /**
-     * What a background round may show. Not "sign in again" (V5-M1 A6): in the background a token can't be renewed
+     * What a background round may show. Not "sign in again": in the background a token can't be renewed
      * (that needs the app on screen), and the foreground would then stop syncing until the user signs in by hand
      * although its own silent renewal would work.
      */
     private fun backgroundShown(result: SyncStatus): SyncStatus = if (result == SyncStatus.NEEDS_SIGN_IN) _status.value else result
 
     /**
-     * Drops the unsent changes of a [stuck] band (a backup stays on the device, ITERATION_3 R9) and shows the band as
+     * Drops the unsent changes of a [stuck] band (a backup stays on the device) and shows the band as
      * the server has it; new changes are pushed again.
      */
     suspend fun discardStuck(bandId: Id) {
@@ -340,7 +340,7 @@ class SyncEngine(
     companion object {
         const val DEBOUNCE = 1_000L
 
-        /** How often the app on screen looks for news itself when messages tell it about changes (ITERATION_7 §2.3). */
+        /** How often the app on screen looks for news itself when messages tell it about changes. */
         const val MESSAGED_INTERVAL = 5 * 60_000L
     }
 }

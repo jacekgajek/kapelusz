@@ -149,7 +149,7 @@ fun CostScreen(session: BandSession, nav: CostNav, form: CostViewModel) {
                             selected = form.draft.category == option,
                             onClick = { form.category(option) },
                             label = { Text(option.label()) },
-                            // Kept when selected (the chip's fill says so): the same icon as in the lists (ITERATION_6 §4).
+                            // Kept when selected (the chip's fill says so): the same icon as in the lists.
                             leadingIcon = { Icon(option.icon(), null, Modifier.size(FilterChipDefaults.IconSize)) },
                         )
                     }
@@ -190,7 +190,7 @@ fun CostScreen(session: BandSession, nav: CostNav, form: CostViewModel) {
 
 /** The screen's [CostViewModel], scoped to its back-stack entry: the band's services it needs, and the typed amount's language. */
 internal fun costViewModel(session: BandSession, route: CostRoute, language: String): CreationExtras.() -> CostViewModel = {
-    // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1): taken once, when the form opens.
+    // Photos or PDFs shared to Kapelusz for a new cost of this event: taken once, when the form opens.
     val shared = route.carryId?.let { session.intents.takeCarry(it) as? Carry.NewCost }
     CostViewModel(
         route,

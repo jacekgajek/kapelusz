@@ -80,7 +80,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Photos and PDFs of a cost, a collected entry or an event (ITERATION_4 §2.1). For a saved one ([owner] set) a picked
+ * Photos and PDFs of a cost, a collected entry or an event. For a saved one ([owner] set) a picked
  * file is attached right away; for a new one the files wait in [drafts] until it is saved.
  */
 @Composable
@@ -92,12 +92,12 @@ fun AttachmentsSection(
     onDrafts: (List<PreparedFile>) -> Unit,
     editable: Boolean,
     actions: Actions,
-    /** Saved files may be removed; [editable] alone adds and renames (a locked cost's receipt, ITERATION_7 §3.3). */
+    /** Saved files may be removed; [editable] alone adds and renames (a locked cost's receipt). */
     removable: Boolean = editable,
     max: Int = MAX_ATTACHMENTS,
     hint: StringResource = Res.string.attachment_hint,
     title: String? = stringResource(Res.string.attachments),
-    /** Removing applies at once with Undo in the snackbar (ITERATION_5 §2); not inside a dialog, which would hide it. */
+    /** Removing applies at once with Undo in the snackbar; not inside a dialog, which would hide it. */
     undoRemoval: Boolean = false,
 ) {
     // Inside a dialog, the dialog's [DialogNotice] shows these; the screen's snackbar would be hidden behind it.
@@ -146,7 +146,7 @@ fun AttachmentsSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (title != null) Text(title, style = MaterialTheme.typography.labelLarge)
-        // Images as thumbnails, PDFs as rows (ITERATION_5 §4.2); tapping one opens the viewer on it, swiping through
+        // Images as thumbnails, PDFs as rows; tapping one opens the viewer on it, swiping through
         // the rest. On the web the viewer has the images only: PDFs open in the browser, as before.
         val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
         val images = attachments.filter { it.kind == AttachmentKind.IMAGE }

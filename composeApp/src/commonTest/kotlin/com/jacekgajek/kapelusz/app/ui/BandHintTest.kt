@@ -8,7 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** ITERATION_5 §11: what a band still lacks, for its leaders. */
+/** What a band still lacks, for its leaders. */
 class BandHintTest {
     private val solo = Band.create(id = "b", name = "Band", currency = "PLN", ownerMemberId = "o", ownerName = "Olga", ownerUserId = "u-o")
     private val owner = solo.member("o")!!

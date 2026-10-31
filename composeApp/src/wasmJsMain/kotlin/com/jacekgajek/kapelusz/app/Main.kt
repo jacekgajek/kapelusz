@@ -49,12 +49,12 @@ private fun exposeVersion(label: String) {
 fun main() {
     exposeVersion(AppConfig.VERSION_LABEL)
     val runtime = AppRuntime(WebPlatform())
-    // A hidden tab sends what waits, then stops looking for news; shown again, it syncs at once (ITERATION_7 §2.6).
+    // A hidden tab sends what waits, then stops looking for news; shown again, it syncs at once.
     document.addEventListener("visibilitychange", {
         if (documentHidden()) runtime.onHidden() else runtime.onForeground()
     })
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
-    // keeps it; an event link likewise, until it is opened (ITERATION_5 §10).
+    // keeps it; an event link likewise, until it is opened.
     (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { runtime.intents.offer(AppIntent.Join(it)) }
     (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { runtime.intents.offer(AppIntent.OpenEvent(it)) }
     MainScope().launch {
@@ -72,7 +72,7 @@ fun main() {
         LaunchedEffect(Unit) {
             phase = if (TabLock.acquire(steal = false)) {
                 runtime.load()
-                // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                // Opened or restored in the background: no looking for news until it is shown.
                 if (documentHidden()) runtime.onHidden()
                 Phase.READY
             } else {
@@ -93,10 +93,10 @@ fun main() {
                         OtherTabScreen(onUseHere = {
                             scope.launch {
                                 TabLock.acquire(steal = true)
-                                // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
+                                // Give the other tab a moment to finish its last write before reading the data.
                                 delay(1500)
                                 runtime.load()
-                                // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                                // Opened or restored in the background: no looking for news until it is shown.
                                 if (documentHidden()) runtime.onHidden()
                                 phase = Phase.READY
                             }
@@ -123,7 +123,7 @@ private suspend fun forgetScreenWhenSignedOut(runtime: AppRuntime) {
     runtime.state.collect { if (it is AppState.SignedOut) window.history.replaceState(null, "", "/") }
 }
 
-/** An event link (`/e/<eventId>`, ITERATION_5 §10): taken once, the address reset to the app root like a join link. */
+/** An event link (`/e/<eventId>`): taken once, the address reset to the app root like a join link. */
 private fun takeEventLinkFromUrl(): String? {
     val eventId = EventLinks.eventId(window.location.pathname) ?: return null
     window.history.replaceState(null, "", "/" + window.location.hash)

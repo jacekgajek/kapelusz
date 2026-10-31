@@ -45,7 +45,7 @@ class ReducerTest {
         val scenario = gig()
             .apply(AddCost("bob-cost", "bob", pln("40"), DATE, incurredForEventId = "gig"))
         assertEquals(listOf(Refund("bob-cost", pln("40"))), scenario.band.event("gig")!!.refunds)
-        // Only for an event its owner takes part in (ITERATION_3 R2).
+        // Only for an event its owner takes part in.
         assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig")).reason)
 
         scenario.apply(AddParticipant("gig", "carol"))
@@ -198,7 +198,7 @@ class ReducerTest {
         assertEquals(null, scenario.band.event("gig")!!.refundOf("late"), "money moved: a lead decides")
         scenario.apply(com.jacekgajek.kapelusz.ops.SetEventArchived("gig", true))
         scenario.apply(AddCost("later", "bob", pln("20"), DATE))
-        // Archived events are read-only (ITERATION_3 R10): not even a cost can be assigned to one.
+        // Archived events are read-only: not even a cost can be assigned to one.
         assertEquals(
             com.jacekgajek.kapelusz.model.RejectionReason.ARCHIVED_EVENT,
             scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason,

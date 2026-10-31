@@ -6,7 +6,7 @@ import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** The Undo snackbars' rules (ITERATION_5 §2): at most three, each change released or undone once. */
+/** The Undo snackbars' rules: at most three, each change released or undone once. */
 class UndoStackTest {
     private val events = mutableListOf<String>()
 

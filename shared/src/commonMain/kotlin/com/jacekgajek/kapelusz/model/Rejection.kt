@@ -26,19 +26,19 @@ enum class RejectionReason {
     TREASURER_MUST_STAY,
     ARCHIVED_MEMBER,
 
-    /** Archived events are read-only: restore it first (ITERATION_3 R10). */
+    /** Archived events are read-only: restore it first. */
     ARCHIVED_EVENT,
 
     /** Only settled events and drafts can be archived. */
     EVENT_UNSETTLED,
 
-    /** Artists never hold money: no collected money, no band fund (ITERATION_4 §1.1). */
+    /** Artists never hold money: no collected money, no band fund. */
     ARTIST_HOLDS_NO_MONEY,
 
     /** Viewers see the band's money but take no part in events. */
     VIEWER_NOT_PARTICIPANT,
 
-    /** Someone still playing in an unsettled event, or holding the band fund, cannot become a viewer (V5-M1 B2). */
+    /** Someone still playing in an unsettled event, or holding the band fund, cannot become a viewer. */
     VIEWER_STILL_PLAYS,
 
     /** Someone holding money in an unsettled event, or the band fund, cannot become an artist. */
@@ -68,7 +68,7 @@ enum class RejectionReason {
     /** The device could not store it (full, or its storage failed); only ever reported locally. */
     STORAGE_FAILED,
 
-    /** Someone in a pair or with an invitation waiting, or who can't settle together (ITERATION_5 §7). */
+    /** Someone in a pair or with an invitation waiting, or who can't settle together. */
     CANNOT_SETTLE_TOGETHER,
 }
 

@@ -43,7 +43,7 @@ class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@exa
 
     @Test
     fun eventLinksAreNotFoundWithoutTheWebPage() {
-        // CloudFront then shows the web app's page (ITERATION_6 §2), which it cannot do for a 401.
+        // CloudFront then shows the web app's page, which it cannot do for a 401.
         assertEquals(404, call("GET", "/e/0199aaaa-bbbb-7ccc-8ddd-eeeeffff0000", user = null).status)
     }
 
@@ -168,7 +168,7 @@ class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@exa
         assertEquals(409, createBand(bandId = "one-more").status)
     }
 
-    /** Only bands the account is still in count; an archived member is not shown the band (ITERATION_3 R6, R9). */
+    /** Only bands the account is still in count; an archived member is not shown the band (R9). */
     @Test
     fun bandsTheAccountLeftDoNotCountTowardsTheLimit() {
         createBand("alice", "shared")
@@ -232,7 +232,7 @@ class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@exa
         assertTrue(store.objects.getValue(StorageKeys.band("band1")).content.length < 4_000)
     }
 
-    /** V5-M1 A2: the cap counts bytes; text in other scripts takes up to 3 bytes a character. */
+    /** The cap counts bytes; text in other scripts takes up to 3 bytes a character. */
     @Test
     fun theSizeCapCountsBytes() {
         val verifier = TokenVerifier { token -> VerifiedUser(token, null, null) }

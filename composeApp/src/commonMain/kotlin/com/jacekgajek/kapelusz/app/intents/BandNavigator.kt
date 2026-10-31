@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.first
 
 /**
  * The one object that both opens bands and sets up their screens (REFACTORING.md 3.6). Any other band shown than the
- * last one (also after having none: access lost, then one opened, created or joined) starts on its event list (V5-M1
- * C2b), as the navigation host keeps its back stack meanwhile and the old band's screens would come back; not the
+ * last one (also after having none: access lost, then one opened, created or joined) starts on its event list,
+ * as the navigation host keeps its back stack meanwhile and the old band's screens would come back; not the
  * app's first band, as a web address must survive. [shownBandId] is whose screens are up, saved over recreation.
  */
 class BandNavigator(

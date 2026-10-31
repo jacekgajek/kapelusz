@@ -29,7 +29,7 @@ fun interface TokenVerifier {
     fun verify(token: String): VerifiedUser?
 
     /**
-     * The photo in a Google sign-in token of [userId] that may have expired (ITERATION_2 §7.4): the app keeps the one
+     * The photo in a Google sign-in token of [userId] that may have expired: the app keeps the one
      * from its first sign-in. Signed by Google for this app and this user is enough, since it only sets their own photo.
      */
     fun pictureOf(token: String, userId: String): String? = null

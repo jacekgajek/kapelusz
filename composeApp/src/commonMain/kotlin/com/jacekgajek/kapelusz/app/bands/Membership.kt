@@ -30,7 +30,7 @@ class Membership(
     }
 
     /**
-     * Asks to delete the open band for everyone (owner only, ITERATION_7 §9): the server deletes it in a week, unless
+     * Asks to delete the open band for everyone (owner only): the server deletes it in a week, unless
      * a leader keeps it; the next sync brings the notice. A band never uploaded, which nobody else has, goes at once.
      * Network errors and refusals surface as exceptions.
      */
@@ -55,7 +55,7 @@ class Membership(
     }
 
     /**
-     * Discards the unsent changes of a band the server refuses them for (ITERATION_3 R9); in the app scope, since the
+     * Discards the unsent changes of a band the server refuses them for; in the app scope, since the
      * banner asking for it leaves as soon as the band is no longer stuck.
      */
     fun discardStuck(bandId: String) {

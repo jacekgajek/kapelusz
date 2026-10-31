@@ -171,7 +171,7 @@ class Handler : RequestStreamHandler {
             placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
             geocodeCache = DynamoGeocodeCache(System.getenv("GEOCODE_TABLE") ?: "art-split-geocode", dbTimer, dynamo),
             webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it, s3) } ?: NoWebIndex,
-            // Sync messages (ITERATION_7 §2.5): the key is read on the first one, not into the SnapStart snapshot.
+            // Sync messages: the key is read on the first one, not into the SnapStart snapshot.
             messageSender = FcmSender(StoredServiceAccount(store)),
             config = ServerConfig(
                 minAppVersion = Api.MIN_APP_VERSION,

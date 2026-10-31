@@ -11,7 +11,7 @@ import com.jacekgajek.kapelusz.model.Role
 // What a screen may ask the server, as small interfaces (REFACTORING.md 3.7): a screen names what it needs, and only
 // [ApiClient] knows the whole API. Each call throws when it cannot (offline, refused, signing in again needed).
 
-/** Google's place services for an event's Location (ITERATION_5 §9), through the server. */
+/** Google's place services for an event's Location, through the server. */
 interface PlacesApi {
     /** Suggestions for [query] in [language]; [session] groups a search with the details picked from it for Google's billing. */
     suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion>
@@ -23,7 +23,7 @@ interface PlacesApi {
     suspend fun resolveMapLink(bandId: Id, url: String, language: String): String
 }
 
-/** The band's invites (ITERATION_5 §12), for its roster. */
+/** The band's invites, for its roster. */
 interface InvitesApi {
     suspend fun invites(bandId: Id): InvitesResponse
 
@@ -32,20 +32,20 @@ interface InvitesApi {
     suspend fun revokeInvite(bandId: Id, code: String)
 }
 
-/** The band's history of changes (ITERATION_2 §7.2), by month, newest first. */
+/** The band's history of changes, by month, newest first. */
 interface HistoryApi {
     /** [months] back from [month]; [before]: the page after the one that ended there. */
     suspend fun history(bandId: Id, month: String, before: String? = null, months: Int = 1): HistoryPage
 }
 
-/** The user's calendar subscription (ITERATION_7 §7). */
+/** The user's calendar subscription. */
 interface CalendarApi {
     suspend fun calendar(): CalendarSubscription
 
     suspend fun changeCalendar(change: CalendarSubscriptionChange): CalendarSubscription
 }
 
-/** The band as the server stores it, for the secret menu (ITERATION_2 §7.1). */
+/** The band as the server stores it, for the secret menu. */
 interface RawStateApi {
     suspend fun rawState(bandId: Id): String
 }

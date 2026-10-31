@@ -30,8 +30,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * A quiet strip above the bottom bar: on the web the install hints ([WebInstallHint], shown again each time the
- * [eventList] opens); in the Android app a newer version on Google Play, downloaded and installed from here
- * (ITERATION_7 §4).
+ * [eventList] opens); in the Android app a newer version on Google Play, downloaded and installed from here.
  */
 @Composable
 fun AppBanner(eventList: Boolean, modifier: Modifier = Modifier) {

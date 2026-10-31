@@ -20,7 +20,7 @@ data class AddHolding(
 ) : HoldingOp
 
 /**
- * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, in full or [amount] of it (ITERATION_4 §2.2):
+ * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, in full or [amount] of it:
  * that much becomes [partyId]'s collected money, as entry [receivedId]; the rest stays awaited.
  */
 @Serializable

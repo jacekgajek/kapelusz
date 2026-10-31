@@ -58,11 +58,11 @@ internal object CostReducer {
         val moves = op.incurredForEventId != null && op.incurredForEventId.value != cost.eventId
         val ownEvent = cost.eventId?.takeUnless { moves }?.let { band.event(it) }
         val ownRefund = ownEvent?.refundOf(cost.id)
-        // Only while the event is open (ITERATION_3 R2): once money moved or it is archived, refunds are a lead's decision.
+        // Only while the event is open: once money moved or it is archived, refunds are a lead's decision.
         if (ownEvent != null && ownRefund != null && newAmount != cost.amount && !ownEvent.archived && ownEvent.transfers.isEmpty()) {
             val refundedElsewhere = CostLedger.refunded(band, cost.id) - ownRefund.amount
             if (ownRefund.amount == cost.amount - refundedElsewhere) {
-                // Only a lead's edit raises the refund; anyone else's raise waits for a lead (ITERATION_4 §1.2).
+                // Only a lead's edit raises the refund; anyone else's raise waits for a lead.
                 val adjusted = (newAmount - refundedElsewhere)
                     .let { if (ctx.actsAsLead(band) || it < ownRefund.amount) it else ownRefund.amount }
                 invalidIf(adjusted.isNegative, RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }
@@ -84,7 +84,7 @@ internal object CostReducer {
     private fun deleteCost(band: Band, op: DeleteCost, ctx: OpContext): Band {
         val cost = band.cost(op.costId).orNotFound { "Cost ${op.costId}" }
         conflictIf(band.fundEntries.any { it.costId == cost.id }, RejectionReason.COST_REFUNDED_FROM_FUND) { "Cost was refunded from the band fund" }
-        // Its refund in an archived event would change that event (ITERATION_3 R10).
+        // Its refund in an archived event would change that event.
         conflictIf(band.events.any { it.archived && it.refundOf(cost.id) != null }, RejectionReason.ARCHIVED_EVENT) { "Cost is refunded by an archived event" }
         return band.copy(
             costs = band.costs.filterNot { it.id == cost.id },
@@ -98,7 +98,7 @@ internal object CostReducer {
         )
     }
 
-    /** A cost can be incurred only for an event its owner takes part in (ITERATION_3 R2): only there it is refunded. */
+    /** A cost can be incurred only for an event its owner takes part in: only there it is refunded. */
     private fun validateCostEvent(band: Band, eventId: Id, memberId: Id) {
         val event = band.event(eventId).orNotFound { "Event $eventId" }
         invalidIf(event.participant(memberId) == null, RejectionReason.NOT_A_PARTICIPANT) { "The cost's owner does not take part in the event" }
@@ -106,9 +106,9 @@ internal object CostReducer {
     }
 
     /**
-     * A cost a lead enters (theirs or anyone's) for an event is included there in full, while the event is still open
-     * (ITERATION_3 R2): once money moved (transfers recorded) or it is archived, refunds are decided one by one. Costs
-     * others enter wait for a lead's Refund here (ITERATION_4 §1.2).
+     * A cost a lead enters (theirs or anyone's) for an event is included there in full, while the event is still open: once money moved
+     * (transfers recorded) or it is archived, refunds are decided one by one. Costs
+     * others enter wait for a lead's Refund here.
      */
     private fun includeByLead(band: Band, eventId: Id, costId: Id, ctx: OpContext): Band {
         if (!ctx.actsAsLead(band)) return band

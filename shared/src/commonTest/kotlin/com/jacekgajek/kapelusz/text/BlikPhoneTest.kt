@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-/** ITERATION_5 §8: a member's BLIK phone number. */
+/** A member's BLIK phone number. */
 class BlikPhoneTest {
 
     @Test

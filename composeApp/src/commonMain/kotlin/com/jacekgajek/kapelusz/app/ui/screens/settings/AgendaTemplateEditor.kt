@@ -39,7 +39,7 @@ import com.jacekgajek.kapelusz.model.AgendaTime
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The agenda times new events get (leaders, ITERATION_2 §4.1): rename, reorder, add, remove. Built-in entries keep
+ * The agenda times new events get (leaders): rename, reorder, add, remove. Built-in entries keep
  * following the user's language until renamed. Changes apply to events created from now on.
  */
 @Composable
@@ -55,7 +55,7 @@ internal fun AgendaTemplateEditor(template: List<AgendaTemplateItem>, storedOwnL
             OutlinedTextField(
                 draft.text,
                 { value -> drafts = drafts.toMutableList().also { it[index] = draft.copy(text = value.take(AgendaTime.MAX_LABEL)) } },
-                // A label, so screen readers say what the field is for (ITERATION_3 R13).
+                // A label, so screen readers say what the field is for.
                 label = { Text(stringResource(Res.string.agenda_label)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp),

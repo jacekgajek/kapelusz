@@ -7,10 +7,10 @@ import kotlinx.serialization.Serializable
 /** Files on one cost or one collected entry. */
 const val MAX_ATTACHMENTS = 5
 
-/** Files on an event itself (ITERATION_4 §2.1). */
+/** Files on an event itself. */
 const val MAX_EVENT_ATTACHMENTS = 10
 
-/** What an attachment belongs to (ITERATION_4 §2.1): a cost's receipt, a collected entry's contract, or the gig's files. */
+/** What an attachment belongs to: a cost's receipt, a collected entry's contract, or the gig's files. */
 @Serializable
 sealed interface AttachmentOwner {
     /** The event it is part of, if any: archived events are read-only. */
@@ -46,7 +46,7 @@ data class Cost(
     val memberId: Id,
     val amount: Money,
     val date: LocalDate,
-    /** Event the cost was incurred for, if any. A lead's cost is pre-included there (ITERATION_4 §1.2). */
+    /** Event the cost was incurred for, if any. A lead's cost is pre-included there. */
     val eventId: Id? = null,
     val category: CostCategory? = null,
     val description: String? = null,
@@ -77,7 +77,7 @@ enum class AttachmentKind(val contentType: String, val extension: String, val ma
 }
 
 /**
- * Manual band fund entry (ITERATION_7 §5.1): money paid in by [paidBy] (a member; null: from outside the band), or,
+ * Manual band fund entry: money paid in by [paidBy] (a member; null: from outside the band), or,
  * negative, the refund of [costId] from the fund. Money leaves the fund only to refund a cost.
  */
 @Serializable

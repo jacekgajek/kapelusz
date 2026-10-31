@@ -10,7 +10,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * Tells devices that a band changed, so they sync it (ITERATION_7 §2.2): only the band's id, no notification. Best
+ * Tells devices that a band changed, so they sync it: only the band's id, no notification. Best
  * effort within about a second; the apps' fallback polling catches up with anything lost.
  */
 interface SyncMessenger {
@@ -69,7 +69,7 @@ internal class DeviceMessenger(
             val counts = results.values.groupingBy { it }.eachCount()
             if (counts.keys != setOf(SendResult.SENT)) println("SYNC band $bandId: $counts")
         }
-        // Devices unseen for 60 days go when found, not only when their user registers again (ITERATION_7 §2.4).
+        // Devices unseen for 60 days go when found, not only when their user registers again.
         stored.filter { (_, devices) -> devices.any { !registry.fresh(it) } }.forEach { (userId, _) -> runCatching { registry.prune(userId) } }
     }
 
