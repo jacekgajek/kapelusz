@@ -31,6 +31,8 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
     @Serializable
     private data class StoredKey(val key: String)
 
+    private fun BlobStore.sessionKey() = Document(this, StorageKeys.SESSION_KEY, StoredKey.serializer())
+
     @Volatile
     private var key: ByteArray? = null
 
@@ -64,9 +66,10 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
 
     // A precondition failure: another instance created it first, so the next attempt uses theirs.
     private fun loadOrCreateKey(): ByteArray = retryOnConflict(exhausted = { error("Could not load the session key") }) {
-        store.get(StorageKeys.SESSION_KEY)?.let { return@retryOnConflict Base64.getDecoder().decode(KapeluszJson.decodeFromString(StoredKey.serializer(), it.content).key) }
+        val document = store.sessionKey()
+        document.get()?.let { return@retryOnConflict Base64.getDecoder().decode(it.key) }
         val fresh = ByteArray(32).also { random.nextBytes(it) }
-        store.put(StorageKeys.SESSION_KEY, KapeluszJson.encodeToString(StoredKey.serializer(), StoredKey(Base64.getEncoder().encodeToString(fresh))), ifNoneMatch = true)
+        document.create(StoredKey(Base64.getEncoder().encodeToString(fresh)))
         fresh
     }
 
@@ -107,17 +110,13 @@ class SessionRevocations(private val store: BlobStore, private val clock: () -> 
 
     /** Every session of [userId] begun before now stops working. */
     fun revoke(userId: String) {
-        val key = StorageKeys.user(userId)
         val now = clock()
-        val validFrom = retryOnConflict(exhausted = { throw busy("Could not update the user record") }) {
-            val blob = store.get(key)
-            val record = blob?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
+        val record = store.userRecord(userId).update { stored ->
+            val record = stored ?: UserRecord(userId)
             // Never earlier than a revoke already stored (e.g. another device's, a moment later by its clock).
-            if (record.sessionsValidFrom >= now) return@retryOnConflict record.sessionsValidFrom
-            store.put(key, encode(UserRecord.serializer(), record.copy(sessionsValidFrom = now)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
-            now
+            if (stored != null && record.sessionsValidFrom >= now) record else record.copy(sessionsValidFrom = now)
         }
-        cache[userId] = Cached(validFrom, now)
+        cache[userId] = Cached(record!!.sessionsValidFrom, now)
     }
 
     private fun validFrom(userId: String): Long {

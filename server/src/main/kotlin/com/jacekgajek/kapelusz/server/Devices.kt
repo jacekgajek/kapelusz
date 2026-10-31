@@ -54,13 +54,10 @@ internal class DeviceRegistry(private val store: BlobStore, private val clock: (
      * is written empty rather than deleted: a delete can't be conditional, and would remove a device registered meanwhile.
      */
     private fun update(userId: String, change: (List<StoredDevice>) -> List<StoredDevice>) {
-        val key = StorageKeys.devices(userId)
-        retryOnConflict(exhausted = { throw busy("Could not update the devices") }) {
-            val loaded = load(userId)
-            val before = loaded?.first?.devices.orEmpty()
+        store.devices(userId).update(exhausted = { throw busy("Could not update the devices") }) { stored ->
+            val before = stored?.devices.orEmpty()
             val after = change(before.filter(::fresh))
-            if (after == before || (after.isEmpty() && loaded == null)) return@retryOnConflict
-            store.put(key, encode(StoredDevices.serializer(), StoredDevices(after)), ifMatch = loaded?.second, ifNoneMatch = loaded == null)
+            if (after == before || (after.isEmpty() && stored == null)) stored else StoredDevices(after)
         }
     }
 

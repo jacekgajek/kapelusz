@@ -60,15 +60,10 @@ internal class UserHandlers(
     /** Keeps [picture] with the user and puts it on their member in each of their bands (a Google photo only). */
     private fun rememberPicture(userId: String, picture: String) {
         val url = picture.takeIf { Api.isGooglePhoto(it) } ?: return
-        val key = StorageKeys.user(userId)
-        retryOnConflict(exhausted = {}) {
-            val blob = store.get(key)
-            val record = blob?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
-            if (record.pictureUrl != url) {
-                store.put(key, encode(UserRecord.serializer(), record.copy(pictureUrl = url)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
-            }
-            record.bandIds.forEach { bandId -> runCatching { bands.setMemberPicture(bandId, userId, url) } }
+        val record = store.userRecord(userId).update(exhausted = { null }) { stored ->
+            (stored ?: UserRecord(userId)).copy(pictureUrl = url)
         }
+        record?.bandIds?.forEach { bandId -> runCatching { bands.setMemberPicture(bandId, userId, url) } }
     }
 
     /** At most [Api.MAX_BANDS_PER_USER] bands (ITERATION_3 R6); joining or creating one more is refused. */
@@ -85,12 +80,9 @@ internal class UserHandlers(
     }
 
     fun addBandToUser(userId: String, bandId: String) {
-        val key = StorageKeys.user(userId)
-        retryOnConflict(exhausted = { throw busy("Could not update the user record") }) {
-            val blob = store.get(key)
-            val record = blob?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
-            if (bandId in record.bandIds) return@retryOnConflict
-            store.put(key, encode(UserRecord.serializer(), record.copy(bandIds = record.bandIds + bandId)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+        store.userRecord(userId).update { stored ->
+            val record = stored ?: UserRecord(userId)
+            if (bandId in record.bandIds) record else record.copy(bandIds = record.bandIds + bandId)
         }
     }
 
@@ -100,13 +92,12 @@ internal class UserHandlers(
      * stay, so sessions ended then don't work again.
      */
     fun forgetIfNoBands(userId: String) {
-        val key = StorageKeys.user(userId)
+        val document = store.userRecord(userId)
         val forgotten = retryOnConflict(exhausted = { false }) {
-            val blob = store.get(key) ?: return@retryOnConflict false
-            val record = decode(UserRecord.serializer(), blob.content)
+            val (record, etag) = document.read() ?: return@retryOnConflict false
             // Still in a band (archived too, it can be restored): nothing goes.
             if (record.bandIds.any { id -> bands.load(id)?.first?.memberOfUser(userId) != null }) return@retryOnConflict false
-            store.put(key, encode(UserRecord.serializer(), UserRecord(userId, sessionsValidFrom = record.sessionsValidFrom)), ifMatch = blob.etag)
+            document.write(UserRecord(userId, sessionsValidFrom = record.sessionsValidFrom), etag)
             true
         }
         if (!forgotten) return
@@ -119,12 +110,8 @@ internal class UserHandlers(
     }
 
     fun removeBandFromUser(userId: String, bandId: String) {
-        val key = StorageKeys.user(userId)
-        retryOnConflict(exhausted = {}) {
-            val blob = store.get(key) ?: return@retryOnConflict
-            val record = decode(UserRecord.serializer(), blob.content)
-            if (bandId !in record.bandIds) return@retryOnConflict
-            store.put(key, encode(UserRecord.serializer(), record.copy(bandIds = record.bandIds - bandId)), ifMatch = blob.etag)
+        store.userRecord(userId).update(exhausted = { null }) { record ->
+            record?.let { if (bandId !in it.bandIds) it else it.copy(bandIds = it.bandIds - bandId) }
         }
     }
 }

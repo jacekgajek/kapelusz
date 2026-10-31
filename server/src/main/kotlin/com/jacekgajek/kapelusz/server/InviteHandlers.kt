@@ -142,14 +142,11 @@ internal class InviteHandlers(
     }
 
     private fun reserveJoinAttempt(userId: String) {
-        val key = StorageKeys.joinAttempts(userId)
         // Exhausted: parallel requests kept counting first, so there are plenty of attempts in this hour anyway.
-        retryOnConflict(exhausted = { throw tooManyAttempts() }) {
-            val blob = store.get(key)
-            val current = blob?.let { decode(JoinAttempts.serializer(), it.content) }?.takeIf { clock() - it.windowStart < Api.ATTEMPT_WINDOW_MS }
+        store.joinAttempts(userId).update(exhausted = { throw tooManyAttempts() }) { stored ->
+            val current = stored?.takeIf { clock() - it.windowStart < Api.ATTEMPT_WINDOW_MS }
             if (current != null && current.failures >= Api.MAX_JOIN_ATTEMPTS) throw tooManyAttempts()
-            val updated = current?.copy(failures = current.failures + 1) ?: JoinAttempts(clock(), 1)
-            store.put(key, encode(JoinAttempts.serializer(), updated), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+            current?.copy(failures = current.failures + 1) ?: JoinAttempts(clock(), 1)
         }
     }
 
@@ -160,14 +157,11 @@ internal class InviteHandlers(
     private fun load(code: String): StoredInvite? = store.get(StorageKeys.invite(code))?.let { decode(StoredInvite.serializer(), it.content) }
 
     /** The band's invite codes, active or not. */
-    fun loadCodes(bandId: String): List<String> = store.get(StorageKeys.bandInvites(bandId))?.let { decode(InviteCodes.serializer(), it.content).codes } ?: emptyList()
+    fun loadCodes(bandId: String): List<String> = store.inviteCodes(bandId).get()?.codes ?: emptyList()
 
     private fun updateCodes(bandId: String, change: (List<String>) -> List<String>) {
-        val key = StorageKeys.bandInvites(bandId)
-        retryOnConflict(exhausted = { throw busy("Could not update invites") }) {
-            val blob = store.get(key)
-            val codes = blob?.let { decode(InviteCodes.serializer(), it.content).codes } ?: emptyList()
-            store.put(key, encode(InviteCodes.serializer(), InviteCodes(change(codes))), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+        store.inviteCodes(bandId).update(exhausted = { throw busy("Could not update invites") }) { stored ->
+            InviteCodes(change(stored?.codes.orEmpty()))
         }
     }
 
