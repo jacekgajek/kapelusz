@@ -25,8 +25,7 @@ internal class InviteHandlers(
     private val bands: BandAccess,
     private val users: UserRecords,
     private val codes: Invites,
-    private val history: HistoryLog,
-    private val messenger: SyncMessenger?,
+    private val changed: BandChanged,
 ) {
     fun list(user: VerifiedUser, bandId: String): HttpResponse {
         bands.loadForLeader(user, bandId)
@@ -96,9 +95,8 @@ internal class InviteHandlers(
             }
             val newEtag = store.put(StorageKeys.band(band.id), encode(Band.serializer(), linked), ifMatch = etag)
             finishJoin(user, band.id, invite.memberId)
-            runCatching { history.append(user, linked, band.id, listOf(OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role))), emptyMap()) }
-            // Bandmates see the new member at once (ITERATION_7 §2.2).
-            runCatching { messenger?.bandChanged(band.id, linked.messagedUsers(), from) }
+            val joined = OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role))
+            changed.after(user, band.id, band, linked, listOf(joined), emptyMap(), from)
             ok(BandStateResponse.serializer(), BandStateResponse(newEtag, linked))
         }
     }

@@ -4,7 +4,6 @@ import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.OpEnvelope
-import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetBankAccount
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
@@ -90,13 +89,13 @@ internal class HistoryLog(private val records: HistoryStore, private val clock: 
         return op.copy(original = original, change = change)
     }
 
-    fun append(user: VerifiedUser, band: Band, bandId: String, ops: List<OpEnvelope>, changes: Map<String, BandChange>) {
+    /** Records the push of [ops] by [user] (their member [memberId] in the band) with the [changes] that can be undone. */
+    fun append(user: VerifiedUser, memberId: String?, bandId: String, ops: List<OpEnvelope>, changes: Map<String, BandChange>) {
         val now = clock()
         // Nor are numbers in the members' snapshots of other changes (undo keeps the current number anyway).
         val recorded = changes.filterKeys { id -> ops.any { it.opId == id } }.mapValues { (_, change) -> change.withoutBlikPhones() }
         // A huge offline batch is logged without its changes (it cannot be undone), so history pages stay small.
         val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() <= MAX_LOGGED_CHANGES } ?: emptyMap()
-        val memberId = band.memberOfUser(user.userId)?.id
         val name = "${monthOf(now)}/$now-${UUID.randomUUID()}.json"
         // A member's BLIK number and account are shown only to who settles with them (ITERATION_5 §8, ITERATION_7 §7):
         // their changes are not history.
