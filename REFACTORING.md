@@ -282,7 +282,7 @@ interleave where no arrow connects them. Steps are numbered for reference in the
 | 0.0 | This PR: the plan, the appendices, the paused `deploy` job, `PRO.md` untracked and ignored (it is on `main` since #124; its content stays in history) | done 2026-10-31 |
 | 0.1 | Restore the `ANDROID_SERIAL` guard in `scripts/local-dev.sh` | `installDebug` otherwise installs on every connected device |
 | 0.2 | `WireFormatTest` + fixtures in `shared/commonTest` (full `Band` JSON, one envelope per operation type, `HistoryEntry` with `BandChange`, op-log replay golden) | the only thing that proves "stored shape unchanged" through every later step |
-| 0.3 | Server `ApiHarness`; migrate the 13 test files to it | every server step then has one harness to extend |
+| 0.3 | Server `ApiHarness`; migrate the 13 test files to it. Deferred to just before Phase 5 (decision 1: server work after the app) | every server step then has one harness to extend |
 | 0.4 | Delete dead code: `awaitPushed`, `LOCAL_USER_ID`, `settingsForBackground`, the legacy migrations and their two tests, four dead string keys; fix the three doubled doc comments; replace the nine hand-written `CancellationException` rethrows with `runSuspendCatching` | behaviour-neutral, shrinks what the next steps touch |
 
 ### Phase 1: shared (the foundation the UI needs)

@@ -1,0 +1,51 @@
+package com.jacekgajek.kapelusz.ops
+
+import com.jacekgajek.kapelusz.model.AgendaTemplateItem
+import com.jacekgajek.kapelusz.model.AgendaTime
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.BandDeletion
+import com.jacekgajek.kapelusz.model.CostCategory
+import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
+import com.jacekgajek.kapelusz.model.FundCut
+import com.jacekgajek.kapelusz.model.Guest
+import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.IncomeSource
+import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.Role
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+// Money handed between parties to settle an event.
+
+/**
+ * A manual transfer or hand-over between parties (or a single settled suggestion). [together]: a suggestion's parties,
+ * where a pair settling together is either partner; recorded between real people as
+ * [com.jacekgajek.kapelusz.domain.SettleTogether.split] says, against the state it is applied to, as [transferId] and
+ * `transferId-1` (ITERATION_5 §7).
+ */
+@Serializable
+@SerialName("RecordTransfer")
+data class RecordTransfer(
+    override val eventId: Id,
+    val transferId: Id,
+    val from: Id,
+    val to: Id,
+    val amount: Money,
+    val note: String? = null,
+    val together: Boolean = false,
+) : TransferOp
+
+/**
+ * Records the event's current suggested transfers, computed against the state the op is applied to.
+ * [partyId] `null` = Settle All; otherwise only suggestions involving that party.
+ */
+@Serializable
+@SerialName("SettleSuggestions")
+data class SettleSuggestions(override val eventId: Id, val partyId: Id? = null) : TransferOp
+
+@Serializable
+@SerialName("RemoveTransfer")
+data class RemoveTransfer(override val eventId: Id, val transferId: Id) : TransferOp
