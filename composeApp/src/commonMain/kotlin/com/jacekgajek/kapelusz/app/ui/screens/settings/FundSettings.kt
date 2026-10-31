@@ -66,75 +66,64 @@ class FundDefaultSetting(val stillDefault: List<Pair<String, String>>, val onSav
 
 /** The band fund page: what it is, whether it is on, who holds it and its default for new events (leaders change it). */
 @Composable
-internal fun FundSettings(
-    treasurer: String?,
-    treasurerName: String?,
-    treasurerOptions: List<Pair<String, String>>,
-    onTreasurer: ((String) -> Unit)?,
-    onDisableFund: (() -> Unit)?,
-    fundBalance: String,
-    fundDefault: FundCut?,
-    fundDefaultSetting: FundDefaultSetting?,
-    currency: String,
-    fundBlikPhone: String?,
-    fundBankAccount: String?,
-    onFundPayment: ((PaymentKind, String?) -> Unit)?,
-) {
-    Text(stringResource(Res.string.fund_explanation), style = MaterialTheme.typography.bodyMedium)
-    val names = treasurerOptions.toMap()
-    if (onTreasurer == null) {
-        SectionHeader(stringResource(Res.string.fund_status))
-        Text(treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off))
-        if (treasurer != null) FundPaymentItems(fundBlikPhone, fundBankAccount, onFundPayment)
-        return
-    }
-    // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
-    var enabling by remember { mutableStateOf(false) }
-    var confirmDisable by remember { mutableStateOf(false) }
-    val enabled = treasurer != null
-    Row(
-        Modifier.fillMaxWidth().padding(top = 16.dp)
-            .toggleable(
-                value = enabled || enabling,
-                enabled = !enabled || onDisableFund != null,
-                role = Role.Switch,
-                onValueChange = { on -> if (on) enabling = true else if (enabled) confirmDisable = true else enabling = false },
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(stringResource(Res.string.fund_enable), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = enabled || enabling, onCheckedChange = null, enabled = !enabled || onDisableFund != null)
-    }
-    if (enabled || enabling) {
-        Dropdown(
-            treasurer,
-            treasurerOptions.map { it.first },
-            {
-                it?.let(onTreasurer)
-                enabling = false
-            },
-            stringResource(Res.string.fund_treasurer),
-            Modifier.fillMaxWidth().padding(top = 8.dp),
-        ) { id -> id?.let { names[it] } ?: stringResource(Res.string.fund_treasurer_choose) }
-        Text(stringResource(Res.string.fund_treasurer_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-        if (enabled && onDisableFund == null) {
-            Text(stringResource(Res.string.fund_cannot_disable, fundBalance), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+internal fun FundSettings(fund: BandFundSettings) {
+    with(fund) {
+        Text(stringResource(Res.string.fund_explanation), style = MaterialTheme.typography.bodyMedium)
+        val names = treasurerOptions.toMap()
+        if (onTreasurer == null) {
+            SectionHeader(stringResource(Res.string.fund_status))
+            Text(treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off))
+            if (treasurer != null) FundPaymentItems(blikPhone, bankAccount, onPayment)
+            return
         }
-        if (enabled) {
-            FundDefaultItem(fundDefault, fundDefaultSetting, currency)
-            FundPaymentItems(fundBlikPhone, fundBankAccount, onFundPayment)
+        // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
+        var enabling by remember { mutableStateOf(false) }
+        var confirmDisable by remember { mutableStateOf(false) }
+        val enabled = treasurer != null
+        Row(
+            Modifier.fillMaxWidth().padding(top = 16.dp)
+                .toggleable(
+                    value = enabled || enabling,
+                    enabled = !enabled || onDisable != null,
+                    role = Role.Switch,
+                    onValueChange = { on -> if (on) enabling = true else if (enabled) confirmDisable = true else enabling = false },
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(Res.string.fund_enable), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Switch(checked = enabled || enabling, onCheckedChange = null, enabled = !enabled || onDisable != null)
         }
-    } else {
-        Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-    }
-    if (confirmDisable && onDisableFund != null) {
-        ConfirmDialog(
-            title = stringResource(Res.string.fund_disable_title),
-            text = stringResource(Res.string.fund_disable_text),
-            confirmLabel = stringResource(Res.string.fund_disable_confirm),
-            onConfirm = onDisableFund,
-            onDismiss = { confirmDisable = false },
-        )
+        if (enabled || enabling) {
+            Dropdown(
+                treasurer,
+                treasurerOptions.map { it.first },
+                {
+                    it?.let(onTreasurer)
+                    enabling = false
+                },
+                stringResource(Res.string.fund_treasurer),
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) { id -> id?.let { names[it] } ?: stringResource(Res.string.fund_treasurer_choose) }
+            Text(stringResource(Res.string.fund_treasurer_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+            if (enabled && onDisable == null) {
+                Text(stringResource(Res.string.fund_cannot_disable, balance), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+            }
+            if (enabled) {
+                FundDefaultItem(default, defaultSetting, currency)
+                FundPaymentItems(blikPhone, bankAccount, onPayment)
+            }
+        } else {
+            Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+        }
+        if (confirmDisable && onDisable != null) {
+            ConfirmDialog(
+                title = stringResource(Res.string.fund_disable_title),
+                text = stringResource(Res.string.fund_disable_text),
+                confirmLabel = stringResource(Res.string.fund_disable_confirm),
+                onConfirm = onDisable,
+                onDismiss = { confirmDisable = false },
+            )
+        }
     }
 }
 

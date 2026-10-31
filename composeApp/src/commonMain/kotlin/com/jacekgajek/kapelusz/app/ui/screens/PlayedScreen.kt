@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.PlacesLocator
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import androidx.compose.foundation.clickable
 import com.jacekgajek.kapelusz.app.generated.played_unplaced_hint
 import com.jacekgajek.kapelusz.app.generated.played_unplaced
@@ -47,7 +49,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.LocatedPlaces
 import com.jacekgajek.kapelusz.app.data.today
@@ -78,13 +79,13 @@ import org.jetbrains.compose.resources.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayedScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, onOpenEvent: (String) -> Unit) {
+fun PlayedScreen(preferences: SettingsRepository, locator: PlacesLocator, state: BandState.Ready, onBack: () -> Unit, onOpenEvent: (String) -> Unit) {
     val band = state.band
     val today = today()
-    val (from, to) = graph.settings.settings.collectAsState().value.summaryPeriod(band.id).range(today)
+    val (from, to) = preferences.settings.collectAsState().value.summaryPeriod(band.id).range(today)
     val events = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     // Null until the coordinates this device already knows are read (a moment): the map opens on those, not on Poland.
-    val first by produceState<LocatedPlaces?>(null, band.id) { graph.places.locate(band.id).collect { value = it } }
+    val first by produceState<LocatedPlaces?>(null, band.id) { locator.locate(band.id).collect { value = it } }
     val located = first ?: LocatedPlaces(pending = -1)
     val (places, missing) = remember(events, located) { PlayedPlaces.places(events) { located.coordinates[PlayedPlaces.key(it)] } }
     // Not found: Google said so. The rest without coordinates: still being looked up, or not placed (offline, not sent yet).

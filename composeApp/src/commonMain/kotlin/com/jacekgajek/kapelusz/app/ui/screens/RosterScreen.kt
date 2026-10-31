@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
 import com.jacekgajek.kapelusz.app.ui.components.FormerMember
@@ -58,7 +60,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -166,12 +167,12 @@ import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
 @Composable
-fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
+fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
     val undos = remember { UndoStack() }
-    val actions = rememberActions(graph, snackbar, undos)
+    val actions = rememberActions(changes, snackbar, undos)
     val can = Can(band, state.userId)
     val isAdmin = can.manageRoster()
     // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
@@ -184,7 +185,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
     val scope = rememberCoroutineScope()
     val reloadInvites: () -> Unit = {
         scope.launch {
-            runSuspendCatching { graph.api.invites(band.id).invites }
+            runSuspendCatching { api.invites(band.id).invites }
                 .onSuccess { invites = it; invitesFailed = false }
                 .onFailure { invitesFailed = true }
         }
@@ -299,7 +300,7 @@ fun RosterScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, op
     }
     selected?.let { id -> band.member(id) }?.takeIf { isAdmin }?.let { member ->
         MemberDialog(
-            graph = graph,
+            api = api,
             band = band,
             member = member,
             myUserId = state.userId,
@@ -437,7 +438,7 @@ private fun expiryText(invite: InviteInfo): String =
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MemberDialog(
-    graph: AppGraph,
+    api: ApiClient,
     band: Band,
     member: Member,
     myUserId: String,
@@ -539,7 +540,7 @@ private fun MemberDialog(
                                     OutlinedButton(enabled = !inviteBusy, onClick = {
                                         inviteBusy = true
                                         scope.launch {
-                                            runSuspendCatching { graph.api.revokeInvite(band.id, current.code) }
+                                            runSuspendCatching { api.revokeInvite(band.id, current.code) }
                                                 .onSuccess { shownInvite = null; onInvitesChanged() }
                                                 .onFailure { message = failedText }
                                             inviteBusy = false
@@ -569,7 +570,7 @@ private fun MemberDialog(
                             }
                             inviteBusy = true
                             scope.launch {
-                                runSuspendCatching { graph.api.createInvite(band.id, member.id, inviteRole) }
+                                runSuspendCatching { api.createInvite(band.id, member.id, inviteRole) }
                                     .onSuccess { shownInvite = it; onInvitesChanged() }
                                     .onFailure { message = failedText }
                                 inviteBusy = false

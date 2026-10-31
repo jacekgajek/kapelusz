@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.Attachments
 import androidx.compose.foundation.clickable
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
@@ -44,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.attachment_limit_partial
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
@@ -88,7 +88,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun AttachmentsSection(
-    graph: AppGraph,
+    fileStore: Attachments,
     owner: AttachmentOwner?,
     attachments: List<Attachment>,
     drafts: List<PreparedFile>,
@@ -115,7 +115,7 @@ fun AttachmentsSection(
     val say = { message: String -> if (inDialog) notice = message else actions.say(message) }
     val scope = rememberCoroutineScope()
     val open = rememberUrlOpener()
-    val pending by graph.uploads.pending.collectAsState()
+    val pending by fileStore.pending.collectAsState()
     var removing by remember { mutableStateOf<Attachment?>(null) }
     var renaming by remember { mutableStateOf<Attachment?>(null) }
     val tooLarge = stringResource(Res.string.attachment_too_large)
@@ -129,7 +129,7 @@ fun AttachmentsSection(
         // As many as there is room for, in the order chosen; the rest is said, not silently dropped.
         val files = results.filterIsInstance<PickResult.Picked>().map { it.file }
         val taken = files.take((max - count).coerceAtLeast(0))
-        if (owner == null) onDrafts(drafts + taken) else scope.launch { taken.forEach { actions.show(graph.attachments.attach(owner, it)) } }
+        if (owner == null) onDrafts(drafts + taken) else scope.launch { taken.forEach { actions.show(fileStore.attach(owner, it)) } }
         val problem = results.firstOrNull { it !is PickResult.Picked }
         when {
             taken.size < files.size -> say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))
@@ -147,7 +147,7 @@ fun AttachmentsSection(
     }
     val openInBrowser = { attachment: Attachment ->
         open {
-            graph.attachments.url(attachment.id).getOrElse { error ->
+            fileStore.url(attachment.id).getOrElse { error ->
                 val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
                 say(if (notUploaded) notAvailable else openFailed)
                 null
@@ -168,7 +168,7 @@ fun AttachmentsSection(
                     key(attachment.id) {
                         // Removed by its X in the corner, as the photos not saved yet (opening it first was a detour).
                         Box {
-                            AttachmentThumbnail(graph, attachment, THUMBNAIL) { viewing = viewable.indexOf(attachment) }
+                            AttachmentThumbnail(fileStore, attachment, THUMBNAIL) { viewing = viewable.indexOf(attachment) }
                             if (removable) ThumbnailRemoveButton(attachment.fileName ?: attachment.id, Modifier.align(Alignment.TopEnd)) { remove(attachment) }
                         }
                     }
@@ -217,7 +217,7 @@ fun AttachmentsSection(
     viewing?.let { start ->
         val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
         AttachmentViewer(
-            graph, viewable, start,
+            fileStore, viewable, start,
             onRename = { attachment: Attachment -> renaming = attachment }.takeIf { editable },
             onRemove = { attachment: Attachment -> remove(attachment) }.takeIf { removable },
             onOpenElsewhere = openInBrowser,
@@ -229,7 +229,7 @@ fun AttachmentsSection(
             title = stringResource(Res.string.attachment_remove_title),
             text = stringResource(Res.string.attachment_remove_confirm, attachment.fileName ?: attachment.id),
             confirmLabel = stringResource(Res.string.remove),
-            onConfirm = { owner?.let { actions.show(graph.attachments.remove(it, attachment.id)) } },
+            onConfirm = { owner?.let { actions.show(fileStore.remove(it, attachment.id)) } },
             onDismiss = { removing = null },
         )
     }
@@ -238,7 +238,7 @@ fun AttachmentsSection(
             title = stringResource(Res.string.attachment_rename),
             label = stringResource(Res.string.attachment_file_name),
             initial = attachment.fileName.orEmpty(),
-            onConfirm = { name -> if (name != attachment.fileName) owner?.let { actions.show(graph.attachments.rename(it, attachment.id, name)) } },
+            onConfirm = { name -> if (name != attachment.fileName) owner?.let { actions.show(fileStore.rename(it, attachment.id, name)) } },
             onDismiss = { renaming = null },
         )
     }

@@ -131,7 +131,7 @@ fun CollectedSection(context: EventContext) {
         // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
         if (holding.attachments.isNotEmpty()) {
             AttachmentsSection(
-                context.graph, AttachmentOwner.OfHolding(event.id, holding.id), holding.attachments,
+                context.fileStore, AttachmentOwner.OfHolding(event.id, holding.id), holding.attachments,
                 drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
             )
         }
@@ -172,12 +172,12 @@ fun CollectedSection(context: EventContext) {
 
     // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): its dialog, with them.
     var sharedDrafts by remember { mutableStateOf(listOf<PreparedFile>()) }
-    val handover by context.graph.incoming.sharedHandover.collectAsState()
+    val handover by context.incoming.sharedHandover.collectAsState()
     // Only on the screen in front: one on its way out (the same event opened again) would take them along.
     val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
     LaunchedEffect(handover, resumed) {
         if (handover?.let { it.eventId == event.id && !it.toCost } != true || !resumed) return@LaunchedEffect
-        sharedDrafts = context.graph.incoming.takeSharedFiles(event.id, toCost = false)
+        sharedDrafts = context.incoming.takeSharedFiles(event.id, toCost = false)
         // One dialog at a time: the new entry's.
         editing = null
         adding = true
@@ -234,7 +234,7 @@ private fun HoldingDialog(
                 Dropdown(source, IncomeSource.entries, { source = it }, stringResource(Res.string.source)) { it.label() }
                 OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 AttachmentsSection(
-                    context.graph,
+                    context.fileStore,
                     owner = current?.let { AttachmentOwner.OfHolding(event.id, it.id) },
                     attachments = current?.attachments.orEmpty(),
                     drafts = drafts,
@@ -252,7 +252,7 @@ private fun HoldingDialog(
                 val ok = if (initial == null) {
                     val id = newId()
                     context.actions.run(AddHolding(event.id, id, partyId, parsed!!, source, note.ifBlank { null }))
-                        .also { if (it) context.graph.attachments.attachAfterSave(AttachmentOwner.OfHolding(event.id, id), drafts) }
+                        .also { if (it) context.fileStore.attachAfterSave(AttachmentOwner.OfHolding(event.id, id), drafts) }
                 } else {
                     context.actions.run(
                         UpdateHolding(

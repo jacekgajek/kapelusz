@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.Attachments
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -46,7 +47,6 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.attachment_open_in_app
 import com.jacekgajek.kapelusz.app.generated.attachment_rename
@@ -80,11 +80,11 @@ private sealed interface Loaded {
 
 /** The file of [attachment], from the device or downloaded once ([com.jacekgajek.kapelusz.app.data.Attachments.bytes]). */
 @Composable
-private fun rememberFile(graph: AppGraph, attachment: Attachment): Loaded {
+private fun rememberFile(fileStore: Attachments, attachment: Attachment): Loaded {
     val loaded by produceState<Loaded>(Loaded.Loading, attachment.id) {
         // Not there yet (a bandmate's upload still going, or offline): asked again now and then while shown.
         while (true) {
-            val bytes = graph.attachments.bytes(attachment.id)
+            val bytes = fileStore.bytes(attachment.id)
             if (bytes != null) {
                 value = Loaded.File(bytes)
                 break
@@ -100,9 +100,9 @@ private const val RETRY_MS = 10_000L
 
 /** An image attachment as a square thumbnail (ITERATION_5 §4.2); the image icon while it loads or when it cannot. */
 @Composable
-fun AttachmentThumbnail(graph: AppGraph, attachment: Attachment, size: Dp, onClick: () -> Unit) {
+fun AttachmentThumbnail(fileStore: Attachments, attachment: Attachment, size: Dp, onClick: () -> Unit) {
     val name = attachment.fileName ?: attachment.id
-    when (val file = rememberFile(graph, attachment)) {
+    when (val file = rememberFile(fileStore, attachment)) {
         is Loaded.File -> ThumbnailBox(size, onClick, name) { BytesImage(file.bytes, attachment.id, ContentScale.Crop, Modifier.fillMaxSize()) }
         else -> ThumbnailBox(size, onClick, name) { Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
@@ -134,7 +134,7 @@ fun BytesImage(bytes: ByteArray, key: String, scale: ContentScale, modifier: Mod
  */
 @Composable
 fun AttachmentViewer(
-    graph: AppGraph,
+    fileStore: Attachments,
     attachments: List<Attachment>,
     start: Int,
     onRename: ((Attachment) -> Unit)?,
@@ -161,7 +161,7 @@ fun AttachmentViewer(
             HorizontalPager(pager, Modifier.fillMaxSize(), key = { attachments[it].id }) { page ->
                 val attachment = attachments[page]
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    when (val file = rememberFile(graph, attachment)) {
+                    when (val file = rememberFile(fileStore, attachment)) {
                         Loaded.Loading -> CircularProgressIndicator()
                         Loaded.Unavailable -> Text(stringResource(Res.string.attachment_unavailable), color = Color.White, modifier = Modifier.padding(32.dp))
                         is Loaded.File -> {

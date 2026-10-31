@@ -1,11 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.model.Can
@@ -21,7 +22,8 @@ import kotlinx.coroutines.launch
  */
 @Stable
 class HistoryController(
-    private val graph: AppGraph,
+    private val bands: BandRepository,
+    private val sync: SyncEngine,
     private val bandId: Id,
     private val userId: String,
     private val memberId: String?,
@@ -44,7 +46,7 @@ class HistoryController(
             .onSuccess {
                 lines = it
                 failed = false
-                pending = stillPending(pending, graph.bands.local(bandId)?.pending.orEmpty().map { op -> op.opId }.toSet())
+                pending = stillPending(pending, bands.local(bandId)?.pending.orEmpty().map { op -> op.opId }.toSet())
             }
             .onFailure { failed = true }
     }
@@ -78,8 +80,8 @@ class HistoryController(
         UndoDialog(band, undo, onDismiss = { confirming = null }, onConfirm = {
             confirming = null
             if (actions.run(undo)) {
-                graph.bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, userId, memberId) }
-                scope.launch { graph.sync.syncNow(); reload++ }
+                bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, userId, memberId) }
+                scope.launch { sync.syncNow(); reload++ }
             }
         })
     }

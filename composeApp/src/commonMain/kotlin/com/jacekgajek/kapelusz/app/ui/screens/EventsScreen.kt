@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
 import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
@@ -95,7 +98,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
@@ -137,7 +139,9 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EventsScreen(
-    graph: AppGraph,
+    changes: Changes,
+    api: ApiClient,
+    preferences: SettingsRepository,
     state: BandState.Ready,
     settings: AppSettings,
     onOpenEvent: (String) -> Unit,
@@ -146,7 +150,7 @@ fun EventsScreen(
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
+    val actions = rememberActions(changes, snackbar)
     var creating by remember { mutableStateOf(false) }
     // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
     // (ITERATION_4 §1.1).
@@ -215,7 +219,7 @@ fun EventsScreen(
             // While searching, only the search and its results: the cards would push them under the keyboard.
             if (!searching) bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
                 item(key = "band-hint") {
-                    BandHintCard(hint, onRoster, onHide = { graph.settings.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
+                    BandHintCard(hint, onRoster, onHide = { preferences.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
                 }
             }
             // Until answered (ITERATION_5 §7): there are no pushes, and nobody visits the roster to check.
@@ -257,12 +261,12 @@ fun EventsScreen(
                     // Artists only ever see their own events: no "only mine" to switch.
                     if (!artist) FilterChip(
                         selected = settings.onlyMyEvents,
-                        onClick = { graph.settings.update { it.copy(onlyMyEvents = !it.onlyMyEvents) } },
+                        onClick = { preferences.update { it.copy(onlyMyEvents = !it.onlyMyEvents) } },
                         label = { Text(stringResource(Res.string.filter_only_mine)) },
                     )
                     FilterChip(
                         selected = settings.showArchived,
-                        onClick = { graph.settings.update { it.copy(showArchived = !it.showArchived) } },
+                        onClick = { preferences.update { it.copy(showArchived = !it.showArchived) } },
                         label = { Text(stringResource(Res.string.filter_show_archived)) },
                     )
                 }
@@ -291,7 +295,7 @@ fun EventsScreen(
     if (creating) {
         NewEventDialog(
             band,
-            places = rememberPlaceLookup(graph, band, state.userId),
+            places = rememberPlaceLookup(api, band, state.userId),
             onDismiss = { creating = false },
             onCreate = { fields ->
                 val eventId = newId()

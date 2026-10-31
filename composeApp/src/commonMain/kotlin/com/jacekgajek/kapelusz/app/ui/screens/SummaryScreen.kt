@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,7 +55,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -122,10 +122,10 @@ import org.jetbrains.compose.resources.stringResource
 /** What a period brought (ITERATION_6 §7): you, the band, costs by category, members. Nothing to tap but invites. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, onInviteMember: (String) -> Unit, onOpenPlayed: () -> Unit) {
+fun SummaryScreen(preferences: SettingsRepository, state: BandState.Ready, onBack: () -> Unit, onInviteMember: (String) -> Unit, onOpenPlayed: () -> Unit) {
     val band = state.band
     val artist = band.isArtist(state.userId)
-    val period = graph.settings.settings.collectAsState().value.summaryPeriod(band.id)
+    val period = preferences.settings.collectAsState().value.summaryPeriod(band.id)
     val today = today()
     val (from, to) = period.range(today)
     // Settling every event is costly: in the background, again when the band changes (the old numbers stay meanwhile);
@@ -140,7 +140,7 @@ fun SummaryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit, o
     var choosingRange by remember { mutableStateOf(false) }
     var inviting by remember { mutableStateOf<Member?>(null) }
     val canInvite = Can(band, state.userId).manageRoster()
-    fun choose(period: SummaryPeriod) = graph.settings.update { it.withSummaryPeriod(band.id, period) }
+    fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
 
     Scaffold(
         topBar = {
