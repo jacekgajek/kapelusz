@@ -25,12 +25,12 @@ data class CreateEvent(
     val agenda: List<AgendaTime> = emptyList(),
     /** The band's fund default at creation time (ITERATION_7 §5.2); null: nothing to the fund. */
     val fund: FundCut? = null,
-) : EventOp
+) : EventDetailsOp
 
 /** Replaces an event's agenda times (lead+); last write wins, like other event details. */
 @Serializable
 @SerialName("SetEventAgenda")
-data class SetEventAgenda(override val eventId: Id, val agenda: List<AgendaTime>) : EventOp
+data class SetEventAgenda(override val eventId: Id, val agenda: List<AgendaTime>) : EventDetailsOp
 
 @Serializable
 @SerialName("UpdateEvent")
@@ -40,12 +40,12 @@ data class UpdateEvent(
     val date: Change<LocalDate>? = null,
     val location: Change<String?>? = null,
     val notes: Change<String?>? = null,
-) : EventOp
+) : EventDetailsOp
 
 @Serializable
 @SerialName("SetEventArchived")
-data class SetEventArchived(override val eventId: Id, val archived: Boolean) : EventOp
+data class SetEventArchived(override val eventId: Id, val archived: Boolean) : EventDetailsOp
 
 @Serializable
 @SerialName("DeleteEvent")
-data class DeleteEvent(override val eventId: Id) : EventOp
+data class DeleteEvent(override val eventId: Id) : EventDetailsOp

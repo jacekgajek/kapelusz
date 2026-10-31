@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.ops
 
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -80,11 +82,16 @@ class RejectedException(val rejection: Rejection) : Exception(rejection.message)
 
 internal fun reject(code: RejectionCode, reason: RejectionReason, message: String): Nothing = throw RejectedException(Rejection(code, message, reason))
 
+/** Throws when [condition] holds; so after it returns, the condition is known to be false (a `null` check smart-casts). */
+@OptIn(ExperimentalContracts::class)
 internal fun invalidIf(condition: Boolean, reason: RejectionReason, message: () -> String) {
+    contract { returns() implies !condition }
     if (condition) reject(RejectionCode.INVALID, reason, message())
 }
 
+@OptIn(ExperimentalContracts::class)
 internal fun conflictIf(condition: Boolean, reason: RejectionReason, message: () -> String) {
+    contract { returns() implies !condition }
     if (condition) reject(RejectionCode.CONFLICT, reason, message())
 }
 

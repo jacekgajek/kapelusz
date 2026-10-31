@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 /** Sets how much of a cost this event refunds; zero removes the refund (defers the cost). */
 @Serializable
 @SerialName("SetRefund")
-data class SetRefund(override val eventId: Id, val costId: Id, val amount: Money) : EventOp
+data class SetRefund(override val eventId: Id, val costId: Id, val amount: Money) : EventMoneyOp
 
 @Serializable
 @SerialName("SetFundAmount")
@@ -20,4 +20,4 @@ data class SetFundAmount(
     val amount: Money,
     /** A percentage of the profit, 0–100, instead of [amount] (ITERATION_7 §5.2); 0 is nothing. */
     val percent: Int? = null,
-) : EventOp
+) : EventMoneyOp
