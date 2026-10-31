@@ -26,8 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -75,14 +73,14 @@ import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
-import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
-import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
@@ -124,9 +122,8 @@ fun CostScreen(
     onOpenEvent: (String) -> Unit = {},
 ) {
     val band = state.band
-    val snackbar = remember { SnackbarHostState() }
-    val undos = remember { UndoStack() }
-    val actions = rememberActions(changes, snackbar, undos)
+    val messages = rememberMessages()
+    val actions = rememberActions(changes, messages)
     val existing = costId?.let { band.cost(it) }
     val lang = language
 
@@ -206,12 +203,7 @@ fun CostScreen(
                 TextButton(onClick = ::save, enabled = canSave) { Text(stringResource(Res.string.save)) }
             }
         },
-        snackbarHost = {
-            Column {
-                UndoSnackbars(undos)
-                SnackbarHost(snackbar)
-            }
-        },
+        snackbarHost = { MessageHost(messages) },
     ) { padding ->
         if (costId != null && existing == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(stringResource(Res.string.cost_not_found)) }

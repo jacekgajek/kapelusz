@@ -16,15 +16,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -41,7 +38,6 @@ import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.Membership
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.sync_refused
 import com.jacekgajek.kapelusz.app.generated.tab_events
 import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
@@ -60,9 +56,11 @@ import com.jacekgajek.kapelusz.app.ui.SettingsRoute
 import com.jacekgajek.kapelusz.app.ui.SettleRoute
 import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.components.AppBanner
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.StuckPushBanner
-import com.jacekgajek.kapelusz.app.ui.components.labelRes
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.screens.BandFundScreen
 import com.jacekgajek.kapelusz.app.ui.screens.CostScreen
 import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
@@ -77,7 +75,6 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
-import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.rules.isArtist
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -261,11 +258,9 @@ internal fun NavHostController.resetTo(route: Any) {
 private fun MainScaffold(navController: NavHostController, sync: SyncEngine, bands: BandRepository, membership: Membership, bandId: String, tabs: List<Tab>, content: @Composable () -> Unit) {
     val entry by navController.currentBackStackEntryAsState()
     // Changes the server refused during sync (e.g. a role changed meanwhile).
-    val snackbar = remember { SnackbarHostState() }
-    val reasonTexts = RejectionReason.entries.associateWith { stringResource(it.labelRes()) }
-    val refusedPrefix = stringResource(Res.string.sync_refused)
+    val messages = rememberMessages()
     LaunchedEffect(sync) {
-        sync.rejections.collect { snackbar.showSnackbar("$refusedPrefix ${reasonTexts.getValue(it.reason)}") }
+        sync.rejections.collect { messages.post(UiMessage.SyncRefused(it.reason)) }
     }
     val current = Tab.entries.firstOrNull { tab -> entry?.destination?.hasRoute(tab.route::class) == true }
     // Changes the server refuses as a whole (ITERATION_3 R9).
@@ -279,11 +274,16 @@ private fun MainScaffold(navController: NavHostController, sync: SyncEngine, ban
     BoxWithConstraints {
         val wide = maxWidth >= 600.dp
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbar) },
+            snackbarHost = { MessageHost(messages) },
             bottomBar = {
                 Column {
                     if (current != null && stuck != null) {
-                        StuckPushBanner(stuck, { bands.pendingAsJson(bandId) }, { membership.discardStuck(bandId) }, { snackbar.showSnackbar(it) })
+                        StuckPushBanner(
+                            stuck,
+                            { bands.pendingAsJson(bandId) },
+                            { membership.discardStuck(bandId) },
+                            { messages.snackbar.showSnackbar(it) },
+                        )
                     }
                     if (current != null) AppBanner(eventList = current == Tab.EVENTS)
                     if (!wide && current != null) {

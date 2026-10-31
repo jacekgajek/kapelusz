@@ -32,8 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -117,6 +115,7 @@ import com.jacekgajek.kapelusz.app.ui.components.Crowd
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.FormerMember
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.NameSearchField
 import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.QrCode
@@ -124,14 +123,13 @@ import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
 import com.jacekgajek.kapelusz.app.ui.components.RolePicker
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
-import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
-import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
@@ -168,10 +166,9 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
     val band = state.band
-    val snackbar = remember { SnackbarHostState() }
+    val messages = rememberMessages()
     // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
-    val undos = remember { UndoStack() }
-    val actions = rememberActions(changes, snackbar, undos)
+    val actions = rememberActions(changes, messages)
     val can = Capabilities(band, state.userId)
     val isAdmin = can.manageRoster()
     // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
@@ -216,12 +213,7 @@ fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBac
 
     Scaffold(
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
-        snackbarHost = {
-            Column {
-                UndoSnackbars(undos)
-                SnackbarHost(snackbar)
-            }
-        },
+        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (isAdmin) {
                 ExtendedFloatingActionButton(
@@ -473,7 +465,6 @@ private fun MemberDialog(
     var name by remember(member.id) { mutableStateOf(member.name) }
     var inviteRole by remember(member.id) { mutableStateOf(if (member.role == Role.OWNER) Role.MEMBER else member.role) }
     var shownInvite by remember(member.id) { mutableStateOf(invite) }
-    var message by remember { mutableStateOf<String?>(null) }
     var confirmUnlink by remember { mutableStateOf(false) }
     var confirmOwner by remember { mutableStateOf(false) }
     var confirmOwnRole by remember { mutableStateOf<Role?>(null) }
@@ -546,10 +537,10 @@ private fun MemberDialog(
                                 QrCode(link, stringResource(Res.string.invite_qr), Modifier.align(Alignment.CenterHorizontally))
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     FilledTonalButton(onClick = {
-                                        scope.launch { if (share(text) == ShareResult.COPIED) message = copied }
+                                        scope.launch { if (share(text) == ShareResult.COPIED) actions.say(copied) }
                                     }) { Text(stringResource(Res.string.share_invite)) }
                                     OutlinedButton(onClick = {
-                                        scope.launch { message = if (copy(link)) linkCopied else failedText }
+                                        scope.launch { actions.say(if (copy(link)) linkCopied else failedText) }
                                     }) { Text(stringResource(Res.string.copy_link)) }
                                     OutlinedButton(enabled = !inviteBusy, onClick = {
                                         inviteBusy = true
@@ -559,7 +550,7 @@ private fun MemberDialog(
                                                     shownInvite = null
                                                     onInvitesChanged()
                                                 }
-                                                .onFailure { message = failedText }
+                                                .onFailure { actions.say(failedText) }
                                             inviteBusy = false
                                         }
                                     }) { Text(stringResource(Res.string.revoke_invite)) }
@@ -578,12 +569,12 @@ private fun MemberDialog(
                             // Told before asking the server, which refuses for the same reasons.
                             when (RoleChanges.refusal(BandView(band), member.id, inviteRole)) {
                                 RejectionReason.HOLDS_MONEY -> {
-                                    message = holdsMoneyText
+                                    actions.say(holdsMoneyText)
                                     return@FilledTonalButton
                                 }
 
                                 RejectionReason.VIEWER_STILL_PLAYS -> {
-                                    message = stillPlaysText
+                                    actions.say(stillPlaysText)
                                     return@FilledTonalButton
                                 }
 
@@ -596,7 +587,7 @@ private fun MemberDialog(
                                         shownInvite = it
                                         onInvitesChanged()
                                     }
-                                    .onFailure { message = failedText }
+                                    .onFailure { actions.say(failedText) }
                                 inviteBusy = false
                             }
                         }) { Text(stringResource(Res.string.create_invite)) }
@@ -629,7 +620,6 @@ private fun MemberDialog(
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) { Text(stringResource(Res.string.delete_member)) }
                 }
-                message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
                 DialogNotice(actions)
             }
         },

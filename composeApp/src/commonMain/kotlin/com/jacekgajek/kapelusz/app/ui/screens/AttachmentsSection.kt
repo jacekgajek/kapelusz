@@ -25,7 +25,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -69,6 +68,7 @@ import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.removeLabel
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
@@ -77,7 +77,6 @@ import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -102,28 +101,14 @@ fun AttachmentsSection(
     title: String? = stringResource(Res.string.attachments),
     /** Removing applies at once with Undo in the snackbar (ITERATION_5 §2); not inside a dialog, which would hide it. */
     undoRemoval: Boolean = false,
-    /** Shown inside a dialog: messages go under the buttons, as the screen's snackbar is hidden behind the dialog. */
-    inDialog: Boolean = false,
 ) {
-    var notice by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(notice) {
-        if (notice != null) {
-            delay(NOTICE_MS)
-            notice = null
-        }
-    }
-    val say = { message: String -> if (inDialog) notice = message else actions.say(message) }
+    // Inside a dialog, the dialog's [DialogNotice] shows these; the screen's snackbar would be hidden behind it.
+    val say: (UiMessage) -> Unit = actions::say
     val scope = rememberCoroutineScope()
     val open = rememberUrlOpener()
     val pending by fileStore.pending.collectAsState()
     var removing by remember { mutableStateOf<Attachment?>(null) }
     var renaming by remember { mutableStateOf<Attachment?>(null) }
-    val tooLarge = stringResource(Res.string.attachment_too_large)
-    val unsupported = stringResource(Res.string.attachment_unsupported)
-    val failed = stringResource(Res.string.attachment_failed)
-    val notAvailable = stringResource(Res.string.attachment_not_available)
-    val openFailed = stringResource(Res.string.attachment_open_failed)
-    val partialText = stringResource(Res.string.attachment_limit_partial)
     val count = attachments.size + drafts.size
     val picker = rememberAttachmentPicker { results ->
         // As many as there is room for, in the order chosen; the rest is said, not silently dropped.
@@ -132,27 +117,27 @@ fun AttachmentsSection(
         if (owner == null) onDrafts(drafts + taken) else scope.launch { taken.forEach { actions.show(fileStore.attach(owner, it)) } }
         val problem = results.firstOrNull { it !is PickResult.Picked }
         when {
-            taken.size < files.size -> say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))
-            problem == PickResult.TooLarge -> say(tooLarge)
-            problem == PickResult.Unsupported -> say(unsupported)
-            problem == PickResult.Failed -> say(failed)
+            taken.size < files.size -> say(UiMessage.Text(Res.string.attachment_limit_partial, listOf(taken.size, files.size, max)))
+            problem == PickResult.TooLarge -> say(UiMessage.Text(Res.string.attachment_too_large))
+            problem == PickResult.Unsupported -> say(UiMessage.Text(Res.string.attachment_unsupported))
+            problem == PickResult.Failed -> say(UiMessage.Text(Res.string.attachment_failed))
         }
     }
     var viewing by remember { mutableStateOf<Int?>(null) }
-    val removedText = stringResource(Res.string.attachment_removed)
     // At once with Undo where the screen shows the snackbar, else asked first (in a dialog, which would hide it).
     val remove = { attachment: Attachment ->
         if (!undoRemoval) {
             removing = attachment
         } else if (owner != null) {
-            actions.runWithUndo(RemoveAttachment(owner, attachment.id), removedText.replace("%1\$s", attachment.fileName ?: attachment.id))
+            val removed = UiMessage.Text(Res.string.attachment_removed, listOf(attachment.fileName ?: attachment.id))
+            actions.runWithUndo(RemoveAttachment(owner, attachment.id), removed)
         }
     }
     val openInBrowser = { attachment: Attachment ->
         open {
             fileStore.url(attachment.id).getOrElse { error ->
                 val notUploaded = (error as? ApiException)?.code == ApiErrors.ATTACHMENT_NOT_UPLOADED
-                say(if (notUploaded) notAvailable else openFailed)
+                say(UiMessage.Text(if (notUploaded) Res.string.attachment_not_available else Res.string.attachment_open_failed))
                 null
             }
         }
@@ -216,7 +201,6 @@ fun AttachmentsSection(
             }
             Text(stringResource(hint, max), style = MaterialTheme.typography.bodySmall)
         }
-        notice?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
     }
 
     viewing?.let { start ->
@@ -304,9 +288,6 @@ private fun ThumbnailRemoveButton(name: String, modifier: Modifier, onRemove: ()
 }
 
 private val THUMBNAIL = 96.dp
-
-/** How long a message stays under the buttons in a dialog. */
-private const val NOTICE_MS = 6_000L
 
 private fun formatSize(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "${(bytes * 10 / (1024 * 1024)) / 10.0} MB"

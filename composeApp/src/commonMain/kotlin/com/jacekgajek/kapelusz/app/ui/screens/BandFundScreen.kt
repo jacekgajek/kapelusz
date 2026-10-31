@@ -32,8 +32,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -96,6 +94,7 @@ import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
@@ -107,6 +106,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
@@ -147,8 +147,8 @@ fun BandFundScreen(
     onAddedCostSeen: () -> Unit = {},
 ) {
     val band = state.band
-    val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(changes, snackbar)
+    val messages = rememberMessages()
+    val actions = rememberActions(changes, messages, undos = null)
     val can = Capabilities(band, state.userId)
     val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
     var editing by remember { mutableStateOf<FundEntry?>(null) }
@@ -170,7 +170,7 @@ fun BandFundScreen(
 
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_fund), onSettings, onRoster) },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (canEdit) {
                 ExtendedFloatingActionButton(

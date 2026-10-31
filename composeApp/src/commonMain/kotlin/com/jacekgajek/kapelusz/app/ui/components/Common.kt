@@ -27,17 +27,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,54 +93,38 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Rejection
-import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.settlement.EventStatus
 import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.text.BlikPhone
 import com.jacekgajek.kapelusz.view.initials
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Language code of the current UI locale (`en`, `pl`), for formatting. */
 val language: String @Composable get() = Locale.current.language
 
-/** Applies operations; a rejection is shown in the snackbar. */
-class Actions(
-    private val changes: Changes,
-    private val snackbar: SnackbarHostState,
-    private val scope: CoroutineScope,
-    private val reasonTexts: Map<RejectionReason, String>,
-    /** The screen's Undo snackbars; without them [runWithUndo] just runs. */
-    private val undos: UndoStack? = null,
-    private val tooLate: String = "",
-) {
-    /** Open dialogs showing messages themselves ([DialogNotice]), newest last: a dialog hides the screen's snackbar. */
-    internal val dialogs = mutableListOf<(String) -> Unit>()
-
+/** Applies operations; a rejection is told through [messages]. */
+class Actions(private val changes: Changes, val messages: Messages, private val undos: UndoStack? = messages.undos) {
     fun run(op: Operation): Boolean = show(changes.dispatch(op))
 
-    /** Shows [rejection] (if any) in the snackbar; true when there was none. */
+    /** Tells [rejection] (if any); true when there was none. */
     fun show(rejection: Rejection?): Boolean {
         if (rejection == null) return true
-        say(reasonTexts.getValue(rejection.reason))
+        messages.post(UiMessage.Rejected(rejection.reason))
         return false
     }
 
-    fun say(message: String) {
-        dialogs.lastOrNull()?.let { return it(message) }
-        scope.launch { snackbar.showSnackbar(message) }
-    }
+    fun say(message: UiMessage) = messages.post(message)
+
+    fun say(text: String) = messages.post(text)
 
     /**
      * Runs [op] with Undo in a snackbar saying [message] (ITERATION_5 §2): it is held back from syncing while the
      * snackbar shows, and Undo takes it back as if it was never made.
      */
-    fun runWithUndo(op: Operation, message: String): Boolean {
+    fun runWithUndo(op: Operation, message: UiMessage): Boolean {
         val stack = undos ?: return run(op)
         return show(
             changes.dispatchHeld(op, stack.timeout + HOLD_MARGIN) { held ->
@@ -151,13 +132,15 @@ class Actions(
                     // Its hold ran out first (e.g. the device slept): it may be on its way, so only the history can undo it.
                     if (!changes.withdraw(held)) {
                         changes.release(held)
-                        say(tooLate)
+                        messages.post(UiMessage.Text(Res.string.undo_too_late))
                     }
                 }
                 stack.add(UndoItem(message, undo = undo, gone = { changes.release(held) }))
             },
         )
     }
+
+    fun runWithUndo(op: Operation, message: String): Boolean = runWithUndo(op, UiMessage.Plain(message))
 
     companion object {
         /**
@@ -168,39 +151,13 @@ class Actions(
     }
 }
 
-/**
- * Inside a dialog: what [actions] say while it is open (e.g. a refusal), shown here rather than in the snackbar behind
- * it, for a while.
- */
+/** Inside a dialog: what [actions] say while it is open, shown here rather than in the snackbar behind it. */
 @Composable
-fun DialogNotice(actions: Actions) {
-    var message by remember { mutableStateOf<String?>(null) }
-    DisposableEffect(actions) {
-        val show = { text: String -> message = text }
-        actions.dialogs += show
-        onDispose { actions.dialogs -= show }
-    }
-    LaunchedEffect(message) {
-        if (message != null) {
-            delay(DIALOG_NOTICE_MS)
-            message = null
-        }
-    }
-    message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-}
+fun DialogNotice(actions: Actions) = DialogNotice(actions.messages)
 
-/** How long a [DialogNotice] stays. */
-private const val DIALOG_NOTICE_MS = 8_000L
-
+/** The screen's [Actions]: changes told through its [Messages]; without Undo snackbars when [undos] is null. */
 @Composable
-fun rememberActions(changes: Changes, snackbar: SnackbarHostState, undos: UndoStack? = null): Actions {
-    val scope = rememberCoroutineScope()
-    // Resolved during composition so they follow the in-app language; a non-composable getString() would use the
-    // system language on the web.
-    val reasonTexts = RejectionReason.entries.associateWith { stringResource(it.labelRes()) }
-    val tooLate = stringResource(Res.string.undo_too_late)
-    return remember(changes, snackbar, reasonTexts, undos, tooLate) { Actions(changes, snackbar, scope, reasonTexts, undos, tooLate) }
-}
+fun rememberActions(changes: Changes, messages: Messages, undos: UndoStack? = messages.undos): Actions = remember(changes, messages, undos) { Actions(changes, messages, undos) }
 
 @Composable
 fun MoneyText(
