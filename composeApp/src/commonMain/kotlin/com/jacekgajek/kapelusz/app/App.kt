@@ -29,6 +29,7 @@ import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.intents.AppIntent
 import com.jacekgajek.kapelusz.app.intents.BandNavigator
 import com.jacekgajek.kapelusz.app.intents.IntentRouter
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
 import com.jacekgajek.kapelusz.app.ui.LocalAppLocale
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
@@ -58,7 +59,7 @@ fun App(runtime: AppRuntime, onNavHostReady: suspend (NavController) -> Unit = {
     // after signing out and in again the app starts on the event list instead of restoring the old back stack.
     val navController = key((state as? AppState.SignedIn)?.session?.userId) { rememberNavController() }
     LaunchedEffect(navController) { onNavHostReady(navController) }
-    CompositionLocalProvider(LocalAppLocale provides settings.language) {
+    CompositionLocalProvider(LocalAppLocale provides settings.language, LocalPlatform provides runtime.platform) {
         key(settings.language) {
             KapeluszTheme {
                 Surface(Modifier.fillMaxSize()) {

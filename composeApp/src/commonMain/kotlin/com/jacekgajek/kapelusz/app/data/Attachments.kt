@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.platform.ByteCache
-import com.jacekgajek.kapelusz.app.platform.FileCache
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
@@ -31,9 +30,10 @@ class Attachments(
     private val sync: SyncEngine,
     private val scope: CoroutineScope,
     private val dispatch: (Operation) -> Rejection?,
+    /** Attachment files kept on the device (the platform's). */
+    private val cache: ByteCache,
     /** Downloads a file from a presigned URL (no app credentials: S3 refuses a second kind of authorisation). */
-    private val download: suspend (url: String) -> ByteArray = { error("No downloads here") },
-    private val cache: ByteCache = FileCache,
+    private val download: suspend (url: String) -> ByteArray,
 ) {
     /** Files still waiting to be uploaded. */
     val pending get() = uploads.pending

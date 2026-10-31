@@ -26,8 +26,6 @@ import com.jacekgajek.kapelusz.model.AttachmentKind
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.Base64
 import java.util.UUID
 import kotlin.math.max
@@ -176,23 +174,6 @@ private fun compress(bytes: ByteArray): ByteArray? {
         output.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream)
         output.recycle()
         stream.toByteArray()
-    }
-}
-
-actual suspend fun uploadFile(url: String, headers: Map<String, String>, base64: String): Int = withContext(Dispatchers.IO) {
-    val bytes = Base64.getDecoder().decode(base64)
-    val connection = URL(url).openConnection() as HttpURLConnection
-    try {
-        connection.requestMethod = "PUT"
-        connection.doOutput = true
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 60_000
-        connection.setFixedLengthStreamingMode(bytes.size)
-        headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
-        connection.outputStream.use { it.write(bytes) }
-        connection.responseCode
-    } finally {
-        connection.disconnect()
     }
 }
 

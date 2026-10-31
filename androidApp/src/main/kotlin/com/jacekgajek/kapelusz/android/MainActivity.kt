@@ -22,7 +22,6 @@ import androidx.compose.runtime.setValue
 import com.jacekgajek.kapelusz.app.AndroidAppRuntime
 import com.jacekgajek.kapelusz.app.App
 import com.jacekgajek.kapelusz.app.AppLoading
-import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
 import java.lang.ref.WeakReference
 
@@ -33,7 +32,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         // The screen in front is the one Google's sign-in UI uses (also after another one was closed).
-        AndroidGoogleAuth.activity = WeakReference(this)
+        AndroidAppRuntime.platform(this).google.activity = WeakReference(this)
         runtime.onForeground()
     }
 

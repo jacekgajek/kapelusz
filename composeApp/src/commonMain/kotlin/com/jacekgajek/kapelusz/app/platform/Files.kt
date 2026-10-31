@@ -28,9 +28,6 @@ interface AttachmentPicker {
 @Composable
 expect fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker
 
-/** PUTs the file to a presigned [url] with exactly the signed [headers]; returns the HTTP status. */
-expect suspend fun uploadFile(url: String, headers: Map<String, String>, base64: String): Int
-
 /**
  * Returns a function that opens the URL [resolve] produces (a presigned download) in the browser or system viewer.
  * On the web the window is opened right away, while the click still counts as a user action, so it is not blocked as a

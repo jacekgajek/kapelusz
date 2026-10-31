@@ -55,37 +55,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-actual object FileCache : ByteCache {
-    /** Above this the files used longest ago go (ITERATION_5 §4.2). */
-    private const val MAX_BYTES = 100L * 1024 * 1024
-
-    private fun dir(): File? = AndroidPlatform.context?.let { File(it.cacheDir, "attachments").apply { mkdirs() } }
-
-    private fun name(key: String) = key.replace(Regex("[^A-Za-z0-9_-]"), "_")
-
-    actual override suspend fun read(key: String): ByteArray? = withContext(Dispatchers.IO) {
-        val file = dir()?.let { File(it, name(key)) }?.takeIf { it.isFile } ?: return@withContext null
-        // Used now: the last to go when room is needed.
-        file.setLastModified(System.currentTimeMillis())
-        runCatching { file.readBytes() }.getOrNull()
-    }
-
-    actual override suspend fun write(key: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
-        val dir = dir() ?: return@withContext
-        val part = File(dir, name(key) + ".part")
-        part.writeBytes(bytes)
-        // Whole or not at all: a crash halfway leaves a .part, never a broken file under the key.
-        part.renameTo(File(dir, name(key)))
-        val files = dir.listFiles()?.filter { it.isFile && !it.name.endsWith(".part") }.orEmpty().sortedBy { it.lastModified() }
-        var total = files.sumOf { it.length() }
-        for (file in files) {
-            if (total <= MAX_BYTES) break
-            total -= file.length()
-            file.delete()
-        }
-    }
-}
-
 /** [bytes] in a file in the cache's [folder] under [fileName] (made safe, with [extension]), for another app to read. */
 private fun shareable(context: Context, folder: String, fileName: String, extension: String, bytes: ByteArray): android.net.Uri {
     val dir = File(context.cacheDir, folder).apply { mkdirs() }
@@ -302,8 +271,13 @@ internal class PdfZoom(private val scrollList: (Float) -> Float) : ZoomTarget {
     }
 }
 
-actual suspend fun pdfPagePng(bytes: ByteArray, page: Int): ByteArray? {
-    val context = AndroidPlatform.context ?: return null
+@Composable
+actual fun rememberPdfPagePng(): suspend (bytes: ByteArray, page: Int) -> ByteArray? {
+    val context = LocalContext.current.applicationContext
+    return remember(context) { { bytes, page -> pdfPagePng(context, bytes, page) } }
+}
+
+private suspend fun pdfPagePng(context: Context, bytes: ByteArray, page: Int): ByteArray? {
     val document = PdfDocument.open(context, bytes) ?: return null
     return try {
         val bitmap = document.render(page.coerceIn(0, document.pageCount - 1), PAGE_WIDTH) ?: return null

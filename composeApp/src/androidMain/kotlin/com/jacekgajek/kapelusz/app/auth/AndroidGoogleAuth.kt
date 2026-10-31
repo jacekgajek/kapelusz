@@ -25,7 +25,6 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.sign_in_google
-import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -34,7 +33,7 @@ import org.jetbrains.compose.resources.stringResource
  * Google sign-in through Android Credential Manager. Tokens are requested with the *web* client id as
  * `serverClientId`, so their audience is the one the server accepts.
  */
-object AndroidGoogleAuth : GoogleAuth {
+class AndroidGoogleAuth(private val app: Context) : GoogleAuth {
     /** Credential Manager shows its UI on top of an activity; MainActivity registers itself here. */
     var activity: WeakReference<Activity> = WeakReference(null)
 
@@ -52,22 +51,28 @@ object AndroidGoogleAuth : GoogleAuth {
     override suspend fun signOut() {
         // Without an activity too (e.g. signed out from all devices during a background sync): otherwise the next
         // sign-in would auto-select the account again.
-        val context = activity.get() ?: AndroidPlatform.context ?: return
+        val context = activity.get() ?: app
         CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
     }
 
-    internal suspend fun signIn(activity: Activity): String? = requestToken(activity, GetSignInWithGoogleOption.Builder(AppConfig.GOOGLE_WEB_CLIENT_ID).build())
+    companion object {
+        internal suspend fun signIn(activity: Activity): String? {
+            val option = GetSignInWithGoogleOption.Builder(AppConfig.GOOGLE_WEB_CLIENT_ID).build()
+            return requestToken(activity, option)
+        }
 
-    private suspend fun requestToken(activity: Activity, option: CredentialOption): String? = try {
-        val result = CredentialManager.create(activity).getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())
-        val credential = result.credential
-        if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-            GoogleIdTokenCredential.createFrom(credential.data).idToken
-        } else {
+        private suspend fun requestToken(activity: Activity, option: CredentialOption): String? = try {
+            val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+            val result = CredentialManager.create(activity).getCredential(activity, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                GoogleIdTokenCredential.createFrom(credential.data).idToken
+            } else {
+                null
+            }
+        } catch (ignored: GetCredentialCancellationException) {
             null
         }
-    } catch (e: GetCredentialCancellationException) {
-        null
     }
 }
 

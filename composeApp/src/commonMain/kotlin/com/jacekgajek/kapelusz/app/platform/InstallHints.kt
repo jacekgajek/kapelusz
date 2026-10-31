@@ -32,9 +32,6 @@ sealed interface WebHint {
     data object HomeScreen : WebHint
 }
 
-/** The web's state for the hints; null in the Android app. */
-expect suspend fun webInstallState(): WebInstallState?
-
 private val otherIosBrowsers = Regex("CriOS|FxiOS|EdgiOS|OPiOS|OPT/|YaBrowser|DuckDuckGo|GSA/|Brave|FBAN|FBAV|Instagram")
 
 /** iPhone, iPod or iPad, including iPadOS, which reports itself as a Mac with a touch screen. */

@@ -22,9 +22,10 @@ import com.jacekgajek.kapelusz.app.generated.store_update_available
 import com.jacekgajek.kapelusz.app.generated.store_update_downloading
 import com.jacekgajek.kapelusz.app.generated.store_update_ready
 import com.jacekgajek.kapelusz.app.generated.store_update_restart
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
+import com.jacekgajek.kapelusz.app.platform.PlatformKind
 import com.jacekgajek.kapelusz.app.platform.StoreUpdateState
 import com.jacekgajek.kapelusz.app.platform.StoreUpdates
-import com.jacekgajek.kapelusz.app.platform.isAndroidApp
 import com.jacekgajek.kapelusz.app.platform.rememberStoreUpdates
 import org.jetbrains.compose.resources.stringResource
 
@@ -35,7 +36,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun AppBanner(eventList: Boolean, modifier: Modifier = Modifier) {
-    if (!isAndroidApp()) {
+    if (LocalPlatform.current.kind == PlatformKind.WEB) {
         WebInstallHint(eventList, modifier)
         return
     }

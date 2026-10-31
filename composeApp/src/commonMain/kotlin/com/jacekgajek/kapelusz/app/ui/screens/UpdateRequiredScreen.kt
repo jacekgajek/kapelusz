@@ -20,9 +20,8 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.update_required_button
 import com.jacekgajek.kapelusz.app.generated.update_required_text
 import com.jacekgajek.kapelusz.app.generated.update_required_title
-import com.jacekgajek.kapelusz.app.platform.appReloader
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.rememberStoreUpdates
-import com.jacekgajek.kapelusz.app.platform.storeListing
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import com.jacekgajek.kapelusz.app.ui.components.formWidth
 import kotlinx.coroutines.launch
@@ -34,8 +33,9 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun UpdateRequiredScreen() {
-    val reload = appReloader()
-    val store = storeListing()
+    val platform = LocalPlatform.current
+    val reload = platform.reload
+    val store = platform.storeListing
     val storeUpdates = rememberStoreUpdates()
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
