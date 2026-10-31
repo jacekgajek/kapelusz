@@ -23,6 +23,7 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.UpdateCost
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -116,7 +117,7 @@ class ArtistAndWaitingCostsTest {
         scenario.apply(AddCost("bobs", "bob", pln("40"), DATE, incurredForEventId = "gig"), bob)
         assertEquals(null, scenario.band.event("gig")!!.refundOf("bobs"), "a member's cost waits")
         assertEquals(listOf("bobs"), CostLedger.pendingFromEarlier(scenario.band, scenario.band.event("gig")!!).map { it.id })
-        assertEquals(CostStatus.PENDING, CostLedger.status(scenario.band, scenario.band.cost("bobs")!!))
+        assertEquals(CostStatus.PENDING, BandView(scenario.band).costStatuses.status(scenario.band.cost("bobs")!!))
 
         scenario.apply(AddCost("for-carol", "carol", pln("30"), DATE, incurredForEventId = "gig"), alice)
         assertEquals(pln("30"), scenario.band.event("gig")!!.refundOf("for-carol")!!.amount, "a lead's entry, even for someone else")

@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.SettleTogether
+import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -24,7 +25,7 @@ internal object TransferReducer {
                 validateTransferParty(band, event, op.to)
                 invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
                 validatePositive(op.amount, "Transfer amount")
-                validateArtistsPaid(band, event, listOf(SuggestedTransfer(op.from, op.to, op.amount)))
+                validateArtistsPaid(band, SettlementCalculator.settle(band, event), listOf(SuggestedTransfer(op.from, op.to, op.amount)))
                 event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
             }
         }
@@ -47,13 +48,14 @@ internal object TransferReducer {
         var result = band
         suggestions.forEachIndexed { index, suggestion ->
             val now = result.event(event.id)!!
-            val parts = SettleTogether.split(result, SettlementCalculator.settle(result, now), suggestion.from, suggestion.to, suggestion.amount)
+            val nowSettled = SettlementCalculator.settle(result, now)
+            val parts = SettleTogether.split(result, nowSettled, suggestion.from, suggestion.to, suggestion.amount)
             val transfers = parts.mapIndexed { part, it ->
                 Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId)
             }
             // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
             invalidIf(transfers.any { t -> now.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
-            validateArtistsPaid(result, now, parts)
+            validateArtistsPaid(result, nowSettled, parts)
             result = result.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
         }
         return result
@@ -72,7 +74,7 @@ internal object TransferReducer {
             Transfer(if (index == 0) op.transferId else "${op.transferId}-$index", part.from, part.to, part.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId)
         }
         invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
-        validateArtistsPaid(band, event, parts)
+        validateArtistsPaid(band, settlement, parts)
         return band.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
     }
 
@@ -80,8 +82,7 @@ internal object TransferReducer {
      * An artist is paid what they are owed, never more, and pays only what they were paid too much (ITERATION_4 §1.1):
      * e.g. paid their share, which a refund accepted later made smaller (2026-10-27). They hold no money either way.
      */
-    private fun validateArtistsPaid(band: Band, event: Event, parts: List<SuggestedTransfer>) {
-        val settlement = SettlementCalculator.settle(band, event)
+    private fun validateArtistsPaid(band: Band, settlement: Settlement, parts: List<SuggestedTransfer>) {
         parts.forEach { part ->
             if (Artists.isArtist(band, part.from)) {
                 val owes = settlement.line(part.from)?.delta?.takeIf { it.isPositive } ?: Money.ZERO

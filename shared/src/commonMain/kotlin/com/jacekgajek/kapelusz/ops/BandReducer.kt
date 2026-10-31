@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.view.BandView
 
 /** The band itself: name, fund settings and payment details, agenda template, ownership, deletion. Pure state transitions and their validation; see [Reducer]. */
 internal object BandReducer {
@@ -100,8 +101,9 @@ internal object BandReducer {
         invalidIf(cut != null && band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
         var result = band.copy(fundDefault = cut)
         // As with a member's default share: events changed since the user chose them (settled, archived, gone) stay as they are.
+        val view = BandView(band)
         for (eventId in op.events.distinct()) {
-            band.event(eventId)?.takeIf { BandFund.canApplyDefault(band, it) } ?: continue
+            band.event(eventId)?.takeIf { BandFund.canApplyDefault(view, it) } ?: continue
             result = result.updateEvent(eventId) {
                 it.copy(fundAmount = cut?.amount ?: Money.ZERO, fundPercent = cut?.percent, updatedAt = ctx.timestamp)
             }

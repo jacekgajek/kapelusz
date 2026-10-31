@@ -25,6 +25,7 @@ import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UpdateHolding
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -109,12 +110,16 @@ class FundPercentTest {
         gig(scenario, "open")
         gig(scenario, "done").apply(AddHolding("done", "h", "alice", pln("100"), DOOR)).apply(SettleSuggestions("done"))
         gig(scenario, "other").apply(SetFundAmount("other", pln("40")))
-        assertEquals(listOf("open"), BandFund.stillDefault(scenario.band).map { it.id }, "settled and changed events are not offered")
+        assertEquals(
+            listOf("open"),
+            BandFund.stillDefault(BandView(scenario.band)).map { it.id },
+            "settled and changed events are not offered",
+        )
 
         scenario.apply(SetFundDefault(FundCut(percent = 10), events = listOf("open", "done", "gone")))
         assertEquals(10, scenario.band.event("open")!!.fundPercent)
         assertNull(scenario.band.event("done")!!.fundPercent, "settled since it was chosen: left alone")
-        assertEquals(listOf("open"), BandFund.stillDefault(scenario.band).map { it.id })
+        assertEquals(listOf("open"), BandFund.stillDefault(BandView(scenario.band)).map { it.id })
 
         scenario.apply(SetFundDefault(FundCut(percent = 0)))
         assertNull(scenario.band.fundDefault, "0% is no default")

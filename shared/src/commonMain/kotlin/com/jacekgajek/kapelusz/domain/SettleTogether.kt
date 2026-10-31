@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.view.BandView
 
 /**
  * Two members settling together (ITERATION_5 §7): in an event where both take part they are one party on Settlement
@@ -67,9 +68,10 @@ object SettleTogether {
      * a pair never reopens a settled event.
      */
     fun keepSettled(band: Band, a: Id, b: Id, before: Band = band): Band {
+        val settledBefore = BandView(before)
         val pair = listOf(a, b).sorted()
         val settled = before.events
-            .filter { event -> partners(before, event)[a] == b && SettlementCalculator.settle(before, event).status == EventStatus.SETTLED }
+            .filter { event -> partners(before, event)[a] == b && settledBefore.isSettled(event) }
             .map { it.id }.toSet()
         return band.copy(
             events = band.events.map { event ->
@@ -83,9 +85,9 @@ object SettleTogether {
     }
 
     /** Events not settled yet where [a] and [b] both play: ending their pair splits them up again there. */
-    fun openEventsTogether(band: Band, a: Id, b: Id): Int = band.events.count { event ->
+    fun openEventsTogether(view: BandView, a: Id, b: Id): Int = view.band.events.count { event ->
         !event.archived && event.participant(a) != null && event.participant(b) != null &&
-            SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
+            !view.isSettled(event)
     }
 
     /** The pairs settling together in [event]: both partners take part. Each member maps to the other. */

@@ -46,6 +46,7 @@ import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
+import com.jacekgajek.kapelusz.view.BandView
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -98,7 +99,11 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
     stopping?.let { other ->
         ConfirmDialog(
             title = stringResource(Res.string.settle_together_stop),
-            text = stringResource(Res.string.settle_together_stop_text, other.name, SettleTogether.openEventsTogether(band, me.id, other.id).toString()),
+            text = stringResource(
+                Res.string.settle_together_stop_text,
+                other.name,
+                SettleTogether.openEventsTogether(BandView(band), me.id, other.id).toString(),
+            ),
             confirmLabel = stringResource(Res.string.settle_together_stop),
             onConfirm = { actions.run(StopSettlingTogether(me.id, other.id)) },
             onDismiss = { stopping = null },
@@ -155,5 +160,6 @@ fun pairEndsWarningNeeded(member: Member, role: Role): Boolean = member.settlesW
 fun pairEndsWarning(band: Band, member: Member, role: Role? = null): String? {
     val partner = member.settlesWith?.let { band.member(it) } ?: return null
     if (role != null && !pairEndsWarningNeeded(member, role)) return null
-    return stringResource(Res.string.settle_together_ends, member.name, partner.name, SettleTogether.openEventsTogether(band, member.id, partner.id).toString())
+    val openTogether = SettleTogether.openEventsTogether(BandView(band), member.id, partner.id)
+    return stringResource(Res.string.settle_together_ends, member.name, partner.name, openTogether.toString())
 }

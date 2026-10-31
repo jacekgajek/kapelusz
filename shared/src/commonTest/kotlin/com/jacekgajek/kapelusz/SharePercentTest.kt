@@ -20,6 +20,7 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -162,7 +163,7 @@ class SharePercentTest {
         scenario.apply(SetMemberShare("bob", 100, null, events = listOf("a"), percent = 20))
         assertEquals(20, scenario.band.member("bob")!!.sharePercent)
         assertEquals(20, scenario.band.event("a")!!.participant("bob")!!.percent)
-        assertEquals(listOf("a"), MemberShares.stillDefault(scenario.band, scenario.band.member("bob")!!).map { it.id })
+        assertEquals(listOf("a"), MemberShares.stillDefault(BandView(scenario.band), scenario.band.member("bob")!!).map { it.id })
         scenario.apply(AddParticipant("b", "bob", 100, percent = 20))
         assertEquals(20, scenario.band.member("bob")!!.asParticipant().percent)
 
