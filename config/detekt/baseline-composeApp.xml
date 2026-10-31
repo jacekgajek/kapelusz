@@ -151,6 +151,12 @@
     <ID>MaxLineLength:EventsScreen.kt:if (results?.isEmpty() == true) item { Text(stringResource(Res.string.search_no_results, query.trim()), Modifier.padding(vertical = 32.dp)) }</ID>
     <ID>MaxLineLength:EventsScreen.kt:listOfNotNull(formatDate(event.date, language), event.setTimes().firstOrNull()?.let(::formatAgendaTime), event.location)</ID>
     <ID>MaxLineLength:EventsScreen.kt:private</ID>
+    <ID>MaxLineLength:FakeServer.kt:FakeServer$bands[bandId] = ops.fold(bands.getValue(bandId)) { band, op -> (Engine.apply(band, Actor.System, op, "srv", 0) as ApplyResult.Applied).band }</ID>
+    <ID>MaxLineLength:FakeServer.kt:FakeServer$fun &lt;T> ok</ID>
+    <ID>MaxLineLength:FakeServer.kt:FakeServer$ok(AttachmentUploadResponse.serializer(), AttachmentUploadResponse("https://s3.test/${upload.attachmentId}", mapOf("content-type" to "image/jpeg")))</ID>
+    <ID>MaxLineLength:FakeServer.kt:FakeServer$ok(PushResponse.serializer(), PushResponse("v${++version}", result.band, result.accepted, result.rejected, result.duplicates))</ID>
+    <ID>MaxLineLength:FakeServer.kt:FakeServer$path.endsWith("/attachments") &amp;&amp; !attachmentsRoute -> respond("""{"error":"not_found","message":"No route"}""", HttpStatusCode.NotFound, json)</ID>
+    <ID>MaxLineLength:FakeServer.kt:FakeServer$return@addHandler respond("""{"error":"update_required","message":"Too old"}""", HttpStatusCode.UpgradeRequired, headersOf(HttpHeaders.ContentType, "application/json"))</ID>
     <ID>MaxLineLength:Files.android.kt:private suspend</ID>
     <ID>MaxLineLength:Files.android.kt:suspend</ID>
     <ID>MaxLineLength:Files.android.kt:val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null</ID>
@@ -292,12 +298,6 @@
     <ID>MaxLineLength:SyncEngine.kt:SyncEngine$if</ID>
     <ID>MaxLineLength:SyncEngine.kt:SyncEngine$private</ID>
     <ID>MaxLineLength:SyncEngine.kt:SyncEngine$val ids = (bands.index.value?.bands.orEmpty().map { it.id } + bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()</ID>
-    <ID>MaxLineLength:SyncEngineTest.kt:FakeServer$bands[bandId] = ops.fold(bands.getValue(bandId)) { band, op -> (Engine.apply(band, Actor.System, op, "srv", 0) as ApplyResult.Applied).band }</ID>
-    <ID>MaxLineLength:SyncEngineTest.kt:FakeServer$fun &lt;T> ok</ID>
-    <ID>MaxLineLength:SyncEngineTest.kt:FakeServer$ok(AttachmentUploadResponse.serializer(), AttachmentUploadResponse("https://s3.test/${upload.attachmentId}", mapOf("content-type" to "image/jpeg")))</ID>
-    <ID>MaxLineLength:SyncEngineTest.kt:FakeServer$ok(PushResponse.serializer(), PushResponse("v${++version}", result.band, result.accepted, result.rejected, result.duplicates))</ID>
-    <ID>MaxLineLength:SyncEngineTest.kt:FakeServer$path.endsWith("/attachments") &amp;&amp; !attachmentsRoute -> respond("""{"error":"not_found","message":"No route"}""", HttpStatusCode.NotFound, json)</ID>
-    <ID>MaxLineLength:SyncEngineTest.kt:FakeServer$return@MockEngine respond("""{"error":"update_required","message":"Too old"}""", HttpStatusCode.UpgradeRequired, headersOf(HttpHeaders.ContentType, "application/json"))</ID>
     <ID>MaxLineLength:SyncEngineTest.kt:SyncEngineTest$val api = ApiClient(server.client, "https://api.test") { refused -> if (refused != null) "alice:${++tokenCount}" else "alice:$tokenCount" }</ID>
     <ID>MaxLineLength:SyncMessaging.android.kt:if (task.isSuccessful) continuation.resume(task.result) else continuation.resumeWithException(task.exception ?: IllegalStateException("Task failed"))</ID>
     <ID>MaxLineLength:TopBars.kt:if (wrongAccount) Text(stringResource(Res.string.sign_in_again_wrong_account, accountEmail.orEmpty()), color = MaterialTheme.colorScheme.error)</ID>
