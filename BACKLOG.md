@@ -1,141 +1,165 @@
 # Backlog
 
-What is known to be wrong, risky or missing, and was deliberately left alone during the refactoring (REFACTORING.md,
-decision 12). Nothing here is fixed; an item leaves this file by a pull request that fixes it or a decision that it
-stays. Grouped by module; ⚠ marks what a user can see. File pointers are to the code as it is after the refactoring
-and may drift; the symbol names are the stable part.
+What is known to be wrong, risky or missing. Nothing here is fixed; an item leaves this file by a pull request that
+fixes it or a decision that it stays. Grouped by module; ⚠ marks what a user can see. File pointers are to the code as
+it is today and will drift; the symbol names are the stable part.
 
-## Hygiene
-
-- `PRO.md` was tracked from f003fcc and reached `main` through #124; untracked and ignored in step 0.0 (its content
-  remains in the repository history).
-- `scripts/local-dev.sh:21-25` has the `ANDROID_SERIAL` guard commented out, so `installDebug` installs on every
-  connected device.
+Noticed during the refactoring of 2026-10-31 and left alone on purpose (REFACTORING.md, decision 12); re-checked
+against the restructured code at its end: of 72 items, 13 were fixed by the restructuring and are gone, 10 shrank and
+say so, the remaining 59 hold.
 
 ## UI (`composeApp/.../app/ui`)
 
-1. ⚠ `CostScreen.kt:153`: shared photos for a new cost are consumed inside `remember {}` and are not saveable; an
-   Android rotation of the form loses them.
-2. ⚠ `EventDialogs.kt:102-111`: one Save can emit `UpdateEvent` + `SetEventAgenda`, so History shows two lines and
-   Undo needs two taps.
-3. ⚠ `SettingsWiring.kt:61-63` + `FundSettings.kt:101-103`: rejections are discarded; a refused `SetTreasurer` silently
-   flips the switch back.
-4. ⚠ `RosterScreen.kt:277` + `Common.kt:433`: `TextInputDialog` always dismisses after confirm, so a refused `AddMember`
-   loses the typed name.
-5. `EventScreen.kt:184`: `tabs.associateWith { rememberLazyListState() }` calls a composable in a loop; when the tab
-   list shrinks (role becomes Artist while open) the remaining tabs take the wrong scroll states.
-6. `HistorySection.kt:42` passes `me?.userId.orEmpty()` where `HistoryScreen.kt:109` passes `state.userId`; for an
-   unlinked user the pending undo line is attributed to user `""`.
-7. `SettleScreen.kt:86-111`, `EventScreen.kt:176,250,270`, `HistoryScreen.kt:162`, `Common.kt:200`,
-   `Navigation.kt:261`: settlement, `Can` and 43 rejection strings recomputed per recomposition (performance).
-8. `EventsScreen.kt:161`: event summaries (settles every visible event) run on the main thread on every band change.
-9. `RosterScreen.kt:462,605`: `MemberDialog.message` is never auto-cleared; stale messages stack.
-10. `RosterScreen.kt:562-570`: client pre-checks duplicate server rules with their own copies of the rejection texts.
-11. `AttachmentsSection.kt:162,218`: `viewable` computed twice; editing one opens the viewer on the wrong index.
-12. `WebInstallHint.kt:43`: process-global mutable state survives sign-out/sign-in.
-13. `JoinDialog.kt:84`: a second join link arriving while the dialog is open changes `initialCode` but not `code`.
-14. `CostScreen.kt:165`: after the payer list shrinks to one *other* member, `paidBy` can point at someone not offered
-    and the dropdown shows a blank label.
-15. `BandFundScreen.kt:448-450`: after a partial failure among several payers, editing the amount before retrying can
-    double-post the entries that succeeded.
-16. `ParticipantsSection.kt:182-188`: `ChangeLineup` is dispatched from a `LaunchedEffect` one frame after the dialog
-    closes, only to resolve its message; a fast Back could drop it.
-17. `App.kt:175-189`: `TopBarState` is a new object on every sync-status tick, recomposing every tab's top bar.
+1. ⚠ `event/EventDialogs.kt` (`actions.run` twice in Save): one Save can emit `UpdateEvent` + `SetEventAgenda`, so
+   History shows two lines and Undo needs two taps.
+2. ⚠ `components/Dialogs.kt` (`TextInputDialog` calls `onConfirm` then `onDismiss` unconditionally) +
+   `RosterScreen.kt` (the add-member dialog) + `AttachmentsSection.kt` (the rename dialog): a refused `AddMember` or
+   rename loses the typed text. A snackbar now says why, and a taken name is blocked before the dialog closes; other
+   refusals (permissions, a change made meanwhile) still lose it.
+3. `event/EventScreen.kt` (`tabs.associateWith { rememberLazyListState() }`): a composable called in a loop. Harmless
+   today, as an artist's tab list is a prefix of the full one, but fragile if tabs are ever reordered or inserted.
+4. `event/HistorySection.kt` passes `context.me?.userId.orEmpty()` where the band history passes `session.userId`;
+   for an unlinked user the event history's pending undo line is attributed to user `""` (`HistoryUndo.kt`).
+5. `components/Messages.kt` (`messageTexts`): every `RejectionReason` string is resolved on each composition of
+   `MessageHost`, `DialogNotice` and `UndoSnackbars` (performance; `Capabilities` and settlements are now cached in
+   `BandSession`, `EventViewModel` and `BandView`).
+6. `EventsScreen.kt` (`eventSummaries` inside `remember`): every visible event is settled on the main thread on every
+   band change; only the search index moved to a background dispatcher (`EventsViewModel.prepare`).
+7. `RosterScreen.kt` (`InviteSection.tell`): hand-maps `HOLDS_MONEY` and `VIEWER_STILL_PLAYS` to texts and says
+   "invite failed" for every other reason, instead of the central `labelRes()` (`components/Labels.kt`). The role
+   rules themselves are shared now (`RoleChanges.refusal`).
+8. `AttachmentsSection.kt`: `viewable` computed twice (the tap index from one snapshot, the viewer list from the
+   next); a wrong index needs a sync landing between tap and recomposition, so low impact.
+9. `components/WebInstallHint.kt` (`dismissedThisVisit`): process-global state that survives sign-out; cleared when
+   the event list opens, so visible only between a sign-out and the next sign-in.
+10. `JoinDialog.kt` (`code` remembered without `key(initialCode)`): a second join link arriving while the dialog is
+    open changes `initialCode` but not `code`; the new link is ignored.
+11. `CostViewModel.kt` (`takeOnlyPayer`, `canSave`): nothing prunes `payerId` when the payer list shrinks; a payer no
+    longer offered stays selected and `AddCost` is sent for them (shown refused). Blank only if the member is gone.
+12. `event/ParticipantsSection.kt` (`LaunchedEffect(op)`): `ChangeLineup` is dispatched one composition after the
+    dialog closes, only to resolve its message; a fast Back or tab change cancels the effect and drops the change
+    without a word.
+13. `App.kt` (`LocalTopBarState provides TopBarState(...)` inline) + `components/TopBars.kt`: `TopBarState` has no
+    `equals` and the local is static, so every sync-status tick makes a new instance and invalidates the whole
+    `Navigation` content, not only the top bars.
 
-## App core (`composeApp/.../app/{data,sync,auth}`)
+## App core (`composeApp/.../app/{bands,auth,sync,runtime,attachments,devices,settings,storage}`)
 
-1. ⚠ `BandRepository.kt:206`: `_state.value as BandState.Ready` unchecked; `readLocal` sets `currentBandId` and
-   `Unreadable` together, so a dispatch from a still-visible screen in that window throws.
-2. ⚠ `Account.kt:70-75`: sign-out clears only `pendingOpenEvent`; `sharedFiles`, `sharedHandover`, `sharedAttached`,
-   `pendingEventSection` survive and can be delivered to the next account's band.
-3. `Account.kt:96`: `pictureSent` never reset on sign-out; a second account in the same process never sends its photo.
-4. `Session.kt:96-118` + `ApiClient.kt:189`: `refreshLock` is held across Google UI and the network exchange; every API
-   request waits on it.
-5. `EventLinkOpener.kt:26` + `SyncEngine.kt:264,285`: the foreground event-link flow uses `syncAll`, whose background
-   presentation hides `NEEDS_SIGN_IN`; the user sees "offline" instead of "sign in again".
-6. `SyncEngine.kt:154-173`: `bandChanged` launches a round that `stop()` does not cancel; it can run with the Android
-   app in the background.
-7. `SyncMessaging.android.kt:60-62`: `onNewToken` in a cold process registers nothing until the next `onStart`.
-8. `PlacesLocator.kt:64`: the only persisted key without a user id; a second account inherits the first one's cache.
-9. `BandRepository.kt:434,439`: every change launches a new `flush()` coroutine; a burst queues N flushes.
-10. `MainActivity.kt:21`: `hasUnsentWork()` reads `bands.locals`, not cleared on sign-out; a background sync can be
-    scheduled for a signed-out user (exits early).
-11. `AttachmentUploads.kt:100`: the whole base64 file is held in memory for the upload; no size guard on this path.
-12. `AppGraph.kt:38,50,56`: forward references inside lambdas; safe only while nothing invokes them during construction.
-13. `BandStore.flush` (3.4) captures the user once but reads the repository's objects live: a `load()` of another user
-   while a write is suspended could write the new user's data under the old keys (pre-existing shape). Same family:
-   `loseAccess`/`startOver` remove a file outside `writeLock`, so an in-flight write can re-create it. Fix: check the
-   user per write and run `remove` under the lock, once the sync state machine (3.5) settles.
+1. ⚠ `bands/BandRepository.kt` (`dispatch`: `locals.getValue` then `as BandState.Ready`): `readLocal` sets
+   `currentBandId` and `Unreadable` together, so a dispatch from a still-visible screen in that window throws;
+   `Changes.dispatch` does not guard.
+2. `intents/IntentInbox.kt` (`signedOut`): sign-out clears the carries and the `OpenEvent` intents with a band, but a
+   pending `ShareFiles` stays and is offered to whoever signs in next, once a band is open (`IntentRouter`).
+3. `auth/Account.kt` (`pictureSent`): never reset on sign-out; a second account in the same process never sends its
+   photo.
+4. `auth/Session.kt` (`validToken` holds `refreshLock` across `google.refresh()` and the network exchange) +
+   `sync/ApiClient.kt` (`token(...)` on every request): every API request waits on it.
+5. `bands/EventLinkOpener.kt` (`sync.syncAll()`) + `sync/SyncEngine.kt` (`backgroundShown`): the foreground
+   event-link flow hides `NEEDS_SIGN_IN`, returns false, and `IntentRouter` shows "offline" instead of "sign in
+   again"; the loop is not blocked either, as `syncAll` sends no `RoundDone`.
+6. `sync/SyncEngine.kt` (`bandChanged`: a bare `scope.launch` with no `Job`): `stop()` cancels only `roundJob`, so a
+   message arriving just before `onBackground` runs a round with the Android app off screen.
+7. `androidMain/.../sync/SyncMessaging.android.kt` (`onNewToken`) + `devices/DeviceRegistration.kt`: in a process the
+   service just created, the session and index are empty, so nothing registers until the next app load.
+8. `bands/PlacesLocator.kt` (`KEY = "kapelusz-places"`): the only persisted key without a user id; a second account
+   inherits the first one's cache (coordinates by place text, so low impact).
+9. `bands/BandStore.kt` (`markDirty`, `markIndexDirty`): every change launches a `flush()` coroutine; a burst queues N,
+   serialised by `writeLock` and cheap no-ops after the first.
+10. `androidApp/.../MainActivity.kt` + `runtime/AppRuntime.kt` (`hasUnsentWork`): sign-out never clears the loaded
+    bands or the uploads, so a background sync can be scheduled for a signed-out user (it exits early).
+11. `attachments/AttachmentUploads.kt` (`store.read(fileKey)` then `put`): the whole base64 file is held in memory for
+    the upload; the pickers cap the size, the upload path itself does not.
+12. `bands/BandStore.kt` (`flush`, `writeChanged`): the user is read once per flush and the band objects live; a flush
+    suspended in `write()` can carry on after `load(newUser)` and, for a band id both users have, write the new user's
+    band under the old user's key. Same family: `remove`, `BandRepository.loseAccess` and `startOver` run outside
+    `writeLock`, so a write in flight can re-create a removed file.
 
 ## Shared
 
-1. ⚠ `SettleTogether.kt:142-143`: with two artists paired, the leftover goes to an artist and `validateArtistsPaid`
-   refuses the whole transfer; a pair of two artists can never settle a surplus (`canPair` allows two artists).
-2. ⚠ `SettleTogether.kt:52-54`: `tidy` drops an invitation when the invitee has any other pending one, so two
-   concurrent invitations to the same person cancel both silently.
-3. `SettleTogether.kt:73-76`: `keepSettled` does not stamp `updatedAt`, unlike every other event mutation.
-4. `Reducer.kt:286-289` + `Undo.kt:115`: a no-op operation (e.g. same weight again) stamps `updatedAt` and thereby
-   blocks a later undo of an earlier change on that event.
-5. `Reducer.kt:323`: "not yourself; leave instead" reported as `MEMBER_HAS_HISTORY`; `Reducer.kt:122,294`: missing
-   pair reported with code `CONFLICT` and reason `NOT_FOUND`.
-6. `Reducer.kt:606-661`: `settleSuggestions` settles the same event three times per suggestion; `recordTogether`
-   twice; `SettlementCalculator.kt:90,187`: `parties` computed twice (performance).
-7. `CostLedger.kt:30-35`: `paid/unpaid/status` each settle the whole band (O(costs × events × settle)).
-8. `SettlementCalculator.kt:139,155`: with percentages at exactly 100 % including the fund's, rounding leftovers go to
-   participants only; the fund never gets its leftover grosze (probably intended; worth stating).
-9. `Limits.kt:52-59`: relies on `!==` list identity; a future early-return no-op would skip limit checks.
-10. `Limits.kt:38` vs `Reducer.kt:264`: the attachment-id regex twice with different rejection reasons.
-11. `Permissions.kt:137`: a viewer who was a participant before becoming a viewer is refused `AddHolding` by role,
-    consistent but a hole in "viewers take no part" (`Viewers.mayBecome` checks only unsettled events).
-12. `Engine.kt:75`: more than 20 rejected ops in one lost response come back as plain duplicates with no reason.
-13. `Names.kt:13-14` vs app `EventSearch.kt:56-75`: two divergent accent-folding tables (sort and search disagree on
-    `ß`, `ā`, `ø`, `ő`).
+1. ⚠ `settlement/SettleTogether.kt` (`split`: the leftover goes to the first non-artist, index 0 when both are
+   artists): `validateArtistsPaid` (`engine/TransferReducer.kt`) then refuses the whole transfer; a pair of two
+   artists can never settle a surplus (`canPair` allows two artists).
+2. ⚠ `settlement/SettleTogether.kt` (`tidy`: keeps an invitation only if the invitee has exactly one): two concurrent
+   invitations to the same person cancel both silently.
+3. `settlement/SettleTogether.kt` (`keepSettled`): does not stamp `updatedAt`; the generic stamp in `engine/Reducer.kt`
+   covers only the op's own event, and `Undo` never stamps.
+4. `engine/Reducer.kt` (the `updatedAt` stamp for every op with an `eventId`, no change check) + `engine/Undo.kt`
+   (compares the whole event): a no-op operation (e.g. the same weight again, `LineupReducer`) blocks a later undo of an
+   earlier change on that event with `CHANGED_SINCE`.
+5. `engine/RosterReducer.kt`: "not yourself; leave instead" reported as `MEMBER_HAS_HISTORY`; `engine/PairReducer.kt`:
+   a missing pair or invitation reported with code `CONFLICT` and reason `NOT_FOUND`, while a true not-found has code
+   `NOT_FOUND`.
+6. `engine/TransferReducer.kt` (`settleSuggestions`): the event is settled once up front and once per suggestion;
+   `settlement/SettlementCalculator.kt`: `parties` computed twice (`mergePairs` inside `settle` and the lazy
+   `Settlement.parties`). Performance only.
+7. `settlement/SettlementCalculator.kt` (`restShares`): with percentages at exactly 100 % including the fund's, rounding
+   leftovers go to participants only; the fund never gets its leftover grosze (probably intended; worth a comment).
+8. `engine/Limits.kt`: relies on `!==` list identity; a reducer branch that returns the same list skips the limit
+   checks, one that rebuilds an equal list runs them. Documented only by a comment.
+9. `engine/Limits.kt` (`ID`) and `engine/AttachmentReducer.kt`: the same id pattern written twice; they now check
+   different ids and both reject with `INVALID_INPUT`, so mostly cosmetic.
+10. `rules/Viewers.kt` (`mayBecome` looks at unsettled events only) + `rules/Permissions.kt` (own `AddHolding` needs
+    `MEMBER`): a viewer who took part in a settled event is refused by role, consistent but a hole in "viewers take no
+    part"; `validateNotViewer` runs only when participants are added.
+11. `engine/Engine.kt` (`REMEMBERED_REJECTIONS = 20`): more than 20 rejected ops in one lost response come back as
+    plain duplicates with no reason.
 
 ## Server
 
-1. ⚠ `InviteHandlers.kt:48-53`: the invite is written before the band's code list; if `updateCodes` exhausts its
-   retries the invite stays valid for 72 h but is invisible to `list`, `revokeFor` and `deleteNow`.
-2. `BandAccess.kt:18-23` + `LinkPages.kt:57`: any read, including anonymous `/e/{id}` and calendar fetches, can execute
-   a full band deletion in-request; the `deleteIfDue=false` convention is the only thing preventing a self-deadlock
-   from the `writers` pool.
-3. `BandHandlers.kt:123-124`: a failed history append is logged and dropped with no later repair; a DynamoDB outage
-   leaves permanent gaps undo cannot see.
-4. `BandHandlers.kt:78,83`: the band is loaded twice per push (two S3 reads even without undos); `:43,46`:
-   `Band.create` built twice.
-5. `UserHandlers.kt:66-73`: `rememberPicture` repeats every band update on each conflict retry.
-6. `HistoryHandlers.kt:48-56`: history pages are fetched before the membership check; `reader` is a JVM-wide pool of 3.
-7. `Handler.kt:146,151`: hard-coded production bucket/table fallbacks; a misconfigured environment silently talks to
-   production.
-8. `Api.kt:133-137`: `appVersion=0` is always accepted, so the minimum-version gate is advisory (fine for forcing
-   updates, not for retiring a format).
-9. `Sessions.kt:104`: the revocation cache grows without bound (unbounded in `localServer`).
-10. `places/PlacesHandlers.kt` (`locations`): `LocalDate.now()` instead of the injected clock; untestable with fixed clocks.
-11. `LinkPages.kt:92-96`: `inParallel` blocks on each future with no timeout.
-12. `ApiModels.kt:50`: `ApiErrors.BAND_TOO_LARGE` is in the contract but never sent.
-13. `LocalServerTest.kt:134` sends `?v=0` while the parameter is `appVersion`; passes only because local has no minimum.
-14. `devices/DeviceRegistry.kt` (`prune`): lazily pruned band ids can keep accepting registrations for a user who left their last band.
-15. `BandChanged.kt:46-47`: `pointers.pointTo`/`forget` are the only consequences not in `runCatching`; a DynamoDB
-    failure there answers the push with 500 although the band is saved, so the device pushes the batch again (all
-    duplicates).
-16. `BandChanged.kt:59-65`: the sync message goes to an unlinked user's devices before `removeBandFromUser`; a device
-    that reacts at once can still see the band in `GET /me` (it learns `band_not_found` from the band itself anyway).
+1. ⚠ `invites/Invites.kt` (the invite blob is written, then `updateCodes`): if `updateCodes` exhausts its retries the
+   invite stays valid for 72 h but is missing from the band's code list, so `list`, `revokeFor` and `delete` never
+   see it.
+2. `bands/BandAccess.kt` (`load()` defaults to `deleteIfDue = true` and calls `whenDue`): any read, including the
+   anonymous `/e/{id}` (`links/LinkPages.kt`) and calendar fetches, can execute a full band deletion in-request; the
+   `deleteIfDue = false` convention (`EventPointers`, `BandDeletions`) is the only thing preventing a self-deadlock on
+   the `writers` pool.
+3. `bands/BandChanged.kt` (`history.append` in `runCatching`): a failed history append is logged and dropped with no
+   later repair; a DynamoDB outage leaves permanent gaps undo cannot see.
+4. `bands/BandHandlers.kt` (`push`): the band is loaded twice per push (two S3 reads); `Band.create` is built twice in
+   `create`.
+5. `history/HistoryHandlers.kt` (`history`): the pages are submitted to `reader` before `loadForMember` runs, and only
+   cancelled on a failed check; `reader` is a JVM-wide pool of 3 shared by all requests.
+6. `lambda/Handler.kt`: hard-coded production bucket and table fallbacks; a misconfigured environment silently talks
+   to production (the environment is now read only there and in `LocalServer.main`).
+7. `Api.kt` (`appSupported`): `appVersion=0` is always accepted, so the minimum-version gate is advisory (documented as
+   deliberate; fine for forcing updates, not for retiring a format).
+8. `auth/Sessions.kt` (`SessionRevocations.cache`): grows without bound, never evicted; the same class serves the local
+   server.
+9. `places/PlacesHandlers.kt` (`locations`): `LocalDate.now(UTC)`, no clock injected at all; untestable with a fixed
+   clock.
+10. `links/EventPointers.kt` (`inParallel`): blocks on each future with no timeout, on the shared `writers` pool.
+11. `shared/.../api/ApiModels.kt` (`ApiErrors.BAND_TOO_LARGE`): in the contract but never sent; a too-large push is
+    refused per operation with `LIMIT_REACHED`.
+12. `localServer/.../LocalServerTest.kt` sends `?v=0` while the parameter is `appVersion`; passes only because the local
+    server has no minimum, so the version gate is not exercised.
+13. `devices/DeviceHandlers.kt` (`register`: `inBand` from `bandIds.isNotEmpty()`, no existence check): a stale band
+    id left by a failed `removeBandFromUser` keeps registrations accepted for a user who left their last band (the
+    record is otherwise cleaned eagerly now).
+14. `bands/BandChanged.kt` (`pointers.pointTo`/`forget` not in `runCatching`): their writes are wrapped inside
+    `EventPointers`, so a failure no longer fails the push; a failed pointer is only logged and never repaired, so
+    that event's link card stays generic.
+15. `bands/BandChanged.kt` (the sync message before `removeBandFromUser`, intentional): a device that reacts at once
+    can still ask `GET /me` before the band is gone from the user's list; `UserHandlers.me` filters out bands whose
+    member is archived or missing, so the window shows nothing today.
 
 ## Platform, build, tests
 
-1. `androidApp/build.gradle.kts:20-21` vs `composeApp/build.gradle.kts:18-20`: a Maps key in `local.properties` yields
-   `HAS_MAPS_KEY = true` with an empty manifest placeholder (blank map); default version code 1 vs 0.
-2. `AppLocale.android.kt:19-27`: `Locale.setDefault` and `updateConfiguration` run in the composable body on every
-   recomposition; a later system-language change is ignored until restart.
-3. `Media.android.kt:306` reads `AndroidPlatform.context` (null before the graph exists) while `PdfPages` uses
-   `LocalContext` in the same file.
-4. `Share.android.kt:16-18`: `rememberShare` always reports `SHARED`; the chooser `startActivity` is unguarded.
-5. `StoreUpdates.android.kt:32`: `LocalContext.current as? Activity` is null inside a `Dialog`.
-6. `SyncEngineTest.kt:705-707,739-758`: wall-clock polling and sleeps with a documented CI flake;
-   `FcmSenderTest.kt:33`: a 5 s sleep in every run.
-7. `composeApp/build.gradle.kts:85-90`: wasm browser tests silently skip without Chrome; CI has no explicit setup.
-8. `KeyValueStore.kt:10`: `InMemoryStore` (a test double) ships in the app.
-9. `platform/Updates.kt:26`: `PLAY_PUBLIC = false` must be flipped by hand at the production release; README is silent.
-10. `InstallHints.wasmJs.kt:28-31` and `ApkLeftovers.kt`: migration code that runs forever; both are backward-compat
-    code the no-backward-compat rule says not to carry.
-11. `AppGraph.kt:35`, `BandRepository.kt:493`: `println` logging; in a release build on Android nobody sees unhandled
-    coroutine failures or storage write failures.
+1. `androidApp/build.gradle.kts` vs `composeApp/build.gradle.kts` (`setting()`): a Maps key set only in
+   `local.properties` yields `HAS_MAPS_KEY = true` with an empty manifest placeholder (a blank map); the default version
+   code is 1 in one and 0 in the other.
+2. `androidMain/.../platform/AndroidLocale.kt` (`provideAndroidLocale`): `Locale.setDefault` and `updateConfiguration`
+   run in the composable body on every recomposition; `defaultLocale` is captured once, so a later system-language
+   change is ignored until restart.
+3. `androidMain/.../platform/AndroidSharing.kt` (`rememberShare`): always reports `SHARED` and the chooser
+   `startActivity` is unguarded; `ShareResult.COPIED`/`FAILED` are never returned here.
+4. `androidMain/.../platform/PlayUpdates.kt` (`LocalContext.current as? Activity`): null inside a `Dialog`'s context
+   wrapper; whether a caller (`AppBanner`, `UpdateRequiredScreen`) ever sits in one is unconfirmed.
+5. `server/.../FcmSenderTest.kt`: the slow-answer test still spends about 2 s of real time waiting out the sender's
+   deadline; the app tests run on virtual time now.
+6. `composeApp/build.gradle.kts` (`testTask.enabled = chrome != null`): the browser tests, now including the screen
+   smoke tests, skip silently without Chrome; CI relies on the runner image having one, with no setup step.
+7. `platform/PlayStore.kt` (`PLAY_PUBLIC = false`): flipped by hand at the production release; the README is silent
+   about it.
+8. `runtime/AppRuntime.kt` (the `CoroutineExceptionHandler`) and `bands/BandStore.kt` (`println` on a failed write):
+   the only logging in the app is `println`; in a release build on Android nobody sees unhandled coroutine failures
+   or storage write failures.
