@@ -188,7 +188,7 @@ class SyncEngineTest {
         assertTrue(store.values.keys.any { it.startsWith(BandStore.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
     }
 
-    /** ITERATION_5 §2: a change held for its Undo snackbar is not sent, nor anything after it; Undo takes it back. */
+    /** I5 §2: a change held for its Undo snackbar is not sent, nor anything after it; Undo takes it back. */
     @Test
     fun aHeldChangeWaitsForItsSnackbarAndUndoTakesItBack() = runTest {
         val server = FakeServer()
@@ -231,7 +231,7 @@ class SyncEngineTest {
         assertTrue(repository.local(bandId)!!.holds.isEmpty(), "holds of sent changes are dropped")
     }
 
-    /** ITERATION_5 §2: once sent, a change is never taken back by an Undo, even if the clock then goes back. */
+    /** I5 §2: once sent, a change is never taken back by an Undo, even if the clock then goes back. */
     @Test
     fun aSentChangeCannotBeWithdrawnWhenTheClockGoesBack() = runTest {
         val server = FakeServer()
@@ -255,7 +255,7 @@ class SyncEngineTest {
         assertEquals("Sent", server.bands.getValue(bandId).name)
     }
 
-    /** ITERATION_3 R9: a band the list no longer shows is asked for, and dropped when it is gone, though it is not open. */
+    /** I3 R9: a band the list no longer shows is asked for, and dropped when it is gone, though it is not open. */
     @Test
     fun aBandRemovedWhileAnotherIsOpenIsFoundFromTheList() = runTest {
         val server = FakeServer()
@@ -275,7 +275,7 @@ class SyncEngineTest {
         assertEquals(listOf("Kept Band"), repository.index.value!!.bands.map { it.name })
     }
 
-    /** ITERATION_3 R9: an answer the app cannot read is an error, not "offline". */
+    /** I3 R9: an answer the app cannot read is an error, not "offline". */
     @Test
     fun anUnreadableAnswerIsAnError() = runTest {
         val server = FakeServer()
@@ -286,7 +286,7 @@ class SyncEngineTest {
         assertEquals(SyncStatus.ERROR, sync.status.value)
     }
 
-    /** ITERATION_3 R9: a token renewed by a parallel request is used, not renewed once more. */
+    /** I3 R9: a token renewed by a parallel request is used, not renewed once more. */
     @Test
     fun aTokenRenewedMeanwhileIsReused() = runTest {
         val server = FakeServer()
@@ -308,7 +308,7 @@ class SyncEngineTest {
         assertEquals(listOf(null, "alice:1"), refusals.take(2), "the refused token is named, so the session can tell it was renewed")
     }
 
-    /** ITERATION_3 R6: the server takes at most 20 undos per push; more go in the next one. */
+    /** I3 R6: the server takes at most 20 undos per push; more go in the next one. */
     @Test
     fun pushesSplitBeforeTooManyUndos() {
         fun envelope(n: Int, op: Operation) = OpEnvelope("op$n", "c", n.toLong(), 0, op)
@@ -633,7 +633,7 @@ class SyncEngineTest {
         assertEquals(setOf("Open band", "Joined elsewhere"), repository.allBands().map { it.name }.toSet())
     }
 
-    /** ITERATION_3 R9: a push the server always refuses is reported, not retried, and can be discarded. */
+    /** I3 R9: a push the server always refuses is reported, not retried, and can be discarded. */
     @Test
     fun aPushRefusedAsAWholeIsStuckUntilDiscarded() = runTest {
         val server = FakeServer()

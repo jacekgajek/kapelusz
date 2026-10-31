@@ -13,7 +13,7 @@ import com.jacekgajek.kapelusz.model.sumOfMoney
 object BandFund {
 
     /**
-     * Money the fund actually has: recorded event transfers to/from the fund, fees paid straight to it (ITERATION_4
+     * Money the fund actually has: recorded event transfers to/from the fund, fees paid straight to it (I4
      * §2.2) and manual entries.
      */
     fun balance(band: Band): Money = transferredFromEvents(band) + band.events.sumOfMoney(::heldBy) + band.fundEntries.sumOfMoney { it.amount }
@@ -30,7 +30,7 @@ object BandFund {
     /** The event's fund amount has been transferred to (or, if negative, from) the fund in full. */
     fun isHandedOver(event: Event): Boolean = moved(event) == event.fund
 
-    /** Events a changed fund default can still be applied to (ITERATION_7 §5.2): not archived, not settled. */
+    /** Events a changed fund default can still be applied to (I7 §5.2): not archived, not settled. */
     fun canApplyDefault(view: SettledEvents, event: Event): Boolean = !event.archived && !view.isSettled(event)
 
     /** Events that still have the band's fund default, to offer a new one to (as a member's default share is). */
@@ -39,7 +39,7 @@ object BandFund {
     /** Money the event has actually moved into the fund so far (negative: out of it): transfers and fees paid to it. */
     fun moved(event: Event): Money = transferred(event.transfers) + heldBy(event)
 
-    /** A fee paid straight to the band's account: the fund collected it for the event (ITERATION_4 §2.2). */
+    /** A fee paid straight to the band's account: the fund collected it for the event (I4 §2.2). */
     private fun heldBy(event: Event): Money = event.holdings.filter { it.partyId == BAND_FUND }.sumOfMoney { it.amount }
 
     private fun transferred(transfers: List<Transfer>): Money = transfers.map {

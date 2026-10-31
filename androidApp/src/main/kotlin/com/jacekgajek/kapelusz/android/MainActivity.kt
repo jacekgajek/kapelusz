@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Photos or PDFs shared to Kapelusz (ITERATION_6 §1): prepared (photos shrunk) while the permission to read them
+     * Photos or PDFs shared to Kapelusz (I6 §1): prepared (photos shrunk) while the permission to read them
      * lasts, then offered for "Attach to…".
      */
     private fun takeSharedFiles(intent: Intent?) {
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * A join link (https://kapelusz.jacekgajek.com/join/CODE) opened the app: offer to join with its code. An event link
-     * (…/e/EVENT_ID, ITERATION_5 §10): open that event.
+     * (…/e/EVENT_ID, I5 §10): open that event.
      */
     private fun takeJoinCode(intent: Intent?) {
         val path = intent?.data?.path ?: return
@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Only on a real launch: after a rotation Android re-delivers the same intent, which must not reopen a dismissed join.
-        // Nor when started again from Recents (e.g. after a reboot): that is the task's old intent (V5-M1 D7).
+        // Nor when started again from Recents (e.g. after a reboot): that is the task's old intent (I5 D7).
         val fromRecents = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
         if (savedInstanceState == null && !fromRecents) {
             takeJoinCode(intent)

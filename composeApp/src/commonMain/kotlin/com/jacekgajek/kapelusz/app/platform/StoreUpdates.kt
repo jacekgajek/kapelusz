@@ -2,7 +2,7 @@ package com.jacekgajek.kapelusz.app.platform
 
 import kotlinx.coroutines.flow.StateFlow
 
-/** Where an update from Google Play stands (ITERATION_7 §4). */
+/** Where an update from Google Play stands (I7 §4). */
 enum class StoreUpdateState {
     /** Nothing newer on Play for this phone (or not installed from Play, e.g. a debug build). */
     NONE,
@@ -18,7 +18,7 @@ enum class StoreUpdateState {
 }
 
 /**
- * Google Play's in-app updates (ITERATION_7 §4): the app learns that Play has a newer version, downloads it in the
+ * Google Play's in-app updates (I7 §4): the app learns that Play has a newer version, downloads it in the
  * background on a tap, and installs it with a restart. Only for apps installed from Play; none on the web.
  */
 interface StoreUpdates {

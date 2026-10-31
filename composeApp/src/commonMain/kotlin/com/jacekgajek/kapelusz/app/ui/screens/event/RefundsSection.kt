@@ -129,7 +129,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
         }
     }
 
-    // A cost for this event, its refund included here (ITERATION_2 §7).
+    // A cost for this event, its refund included here (I2 §7).
     if (mine.isNotEmpty()) MyWaitingCosts(context, mine, onOpenCost)
     if (context.can.addCostIn(event)) {
         TextButton(onClick = onAddCost) {
@@ -151,7 +151,7 @@ private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifie
 @Composable
 private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (String) -> Unit, onDismiss: () -> Unit) {
     val event = context.event
-    // As it is now: its amount may have changed meanwhile, or it may be gone (V5-M1 C4d).
+    // As it is now: its amount may have changed meanwhile, or it may be gone (I5 C4d).
     val cost = resolved(context.band.cost(opened.id), onDismiss) ?: return
     val max = CostLedger.maxRefundAt(context.band, cost, event)
     val lang = language
@@ -220,7 +220,7 @@ private fun MyWaitingCosts(context: EventContext, costs: List<Cost>, onOpenCost:
 
 /**
  * A cost's files (receipts) under it, to check before including it: thumbnails and PDFs, opened in the viewer; changed
- * on the cost's own screen (ITERATION_5 §4.8).
+ * on the cost's own screen (I5 §4.8).
  */
 @Composable
 private fun CostFiles(context: EventContext, cost: Cost) {

@@ -27,7 +27,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Who may undo what, and who may add or remove attachments (ITERATION_3 R14). */
+/** Who may undo what, and who may add or remove attachments (I3 R14). */
 class UndoPermissionsTest {
     private val scenario = Scenario("Owner", "Lead", "Member", "Viewer")
         .event("gig", "Owner", "Lead", "Member")
@@ -65,7 +65,7 @@ class UndoPermissionsTest {
     @Test
     fun aLockedCostTakesMoreReceiptsButKeepsItsFiles() {
         // Refunded in an event with transfers: the owner of the cost can no longer change it nor remove its files, but
-        // still adds a forgotten receipt (ITERATION_7 §3.3).
+        // still adds a forgotten receipt (I7 §3.3).
         scenario.apply(SetRefund("gig", "c-member", pln("50")))
             .apply(AddHolding("gig", "h", "owner", pln("300"), DOOR))
             .apply(RecordTransfer("gig", "t", "owner", "member", pln("10")))

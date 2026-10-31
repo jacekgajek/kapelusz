@@ -47,7 +47,7 @@ internal object TransferReducer {
         val settlement = SettlementCalculator.settle(band, event)
         conflictIf(!settlement.canSettle, RejectionReason.CANNOT_SETTLE) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }
         val suggestions = op.partyId?.let { settlement.suggestionsFor(it) } ?: settlement.suggestions
-        // A pair's transfer is recorded between real people, maybe as two (ITERATION_5 §7), each split against what the
+        // A pair's transfer is recorded between real people, maybe as two (I5 §7), each split against what the
         // ones before it left: who holds what, who is still owed.
         var result = band
         suggestions.forEachIndexed { index, suggestion ->
@@ -57,7 +57,7 @@ internal object TransferReducer {
             val transfers = parts.mapIndexed { part, it ->
                 Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId)
             }
-            // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (V5-M1 B3c).
+            // Ids made from the op's id: an op id seen before (a resent op) must not make two transfers one id (I5 B3c).
             invalidIf(transfers.any { t -> now.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }
             validateArtistsPaid(result, nowSettled, parts)
             result = result.updateEvent(event.id) { it.copy(transfers = it.transfers + transfers) }
@@ -65,7 +65,7 @@ internal object TransferReducer {
         return result
     }
 
-    /** A suggestion's transfer, settled or in part, where a pair is either partner (ITERATION_5 §7). */
+    /** A suggestion's transfer, settled or in part, where a pair is either partner (I5 §7). */
     private fun recordTogether(band: Band, op: RecordTransfer, ctx: OpContext): Band {
         val event = band.event(op.eventId).orNotFound { "Event ${op.eventId}" }
         validateTransferParty(band, event, op.from)
@@ -83,7 +83,7 @@ internal object TransferReducer {
     }
 
     /**
-     * An artist is paid what they are owed, never more, and pays only what they were paid too much (ITERATION_4 §1.1):
+     * An artist is paid what they are owed, never more, and pays only what they were paid too much (I4 §1.1):
      * e.g. paid their share, which a refund accepted later made smaller (2026-10-27). They hold no money either way.
      */
     private fun validateArtistsPaid(band: Band, settlement: Settlement, parts: List<SuggestedTransfer>) {

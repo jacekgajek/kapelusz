@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
 /**
- * The events tab's state that outlives a recomposition: the search (ITERATION_6 §6) and the new event dialog. The
+ * The events tab's state that outlives a recomposition: the search (I6 §6) and the new event dialog. The
  * list itself is a query of the band ([eventSummaries]) and stays in the screen. Scoped to the tab's back-stack entry.
  */
 class EventsViewModel(bands: StateFlow<BandState>, private val background: CoroutineDispatcher = Dispatchers.Default) : ViewModel() {

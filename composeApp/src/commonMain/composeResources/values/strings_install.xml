@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Web install hints (ITERATION_3 §2.3). -->
+    <!-- Web install hints (I3 §2.3). -->
     <string name="install_home_screen_text">Add Pass the Hat to your Home Screen: tap Share, then Add to Home Screen.</string>
     <string name="install_not_now">Not now</string>
 </resources>

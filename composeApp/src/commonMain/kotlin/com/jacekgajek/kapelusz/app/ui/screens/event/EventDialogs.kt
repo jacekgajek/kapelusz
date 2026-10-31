@@ -57,7 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceLookup?, onDismiss: () -> Unit) {
-    // Compared with the event as it was when the dialog opened: only what the user changed is sent (ITERATION_3 R8).
+    // Compared with the event as it was when the dialog opened: only what the user changed is sent (I3 R8).
     val opened = remember { event }
     var fields by remember {
         mutableStateOf(
@@ -65,7 +65,7 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceL
                 name = event.name,
                 date = event.date,
                 location = event.location.orEmpty(),
-                // Events from before agenda times get the band's template, all unset (ITERATION_2 §4.1).
+                // Events from before agenda times get the band's template, all unset (I2 §4.1).
                 agenda = event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) } },
             ),
         )
@@ -95,7 +95,7 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceL
 }
 
 /**
- * Overflow menu: Copy link (ITERATION_5 §10), and for who may ([manage]) archive (only settled events and drafts) /
+ * Overflow menu: Copy link (I5 §10), and for who may ([manage]) archive (only settled events and drafts) /
  * restore, delete (only events without recorded transfers can be deleted).
  */
 @Composable

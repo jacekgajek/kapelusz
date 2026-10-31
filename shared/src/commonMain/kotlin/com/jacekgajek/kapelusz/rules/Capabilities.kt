@@ -49,7 +49,7 @@ class Capabilities(private val band: Band, private val userId: String) {
 
     fun allowed(op: Operation): Boolean = Permissions.isAllowed(band, actor, op)
 
-    /** Sees only their own events, costs and payouts (ITERATION_4 §1.1). */
+    /** Sees only their own events, costs and payouts (I4 §1.1). */
     val artist: Boolean get() = band.isArtist(userId)
     fun setMemberShare() = allowed(SetMemberShare(PROBE, DEFAULT_WEIGHT, null))
 
@@ -61,21 +61,21 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun settleAll(event: Event) = open(event) && allowed(SettleSuggestions(event.id))
     fun recordTransfer(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1)))
 
-    /** A suggestion's transfer, where a pair settling together is either partner (ITERATION_5 §7). */
+    /** A suggestion's transfer, where a pair settling together is either partner (I5 §7). */
     fun settleSuggestion(event: Event, from: Id, to: Id) = open(event) && allowed(RecordTransfer(event.id, PROBE, from, to, Money(1), together = true))
 
-    /** Leads any; the one who recorded it, their own (ITERATION_7 §3.3). */
+    /** Leads any; the one who recorded it, their own (I7 §3.3). */
     fun removeTransfer(event: Event, transfer: Transfer) = open(event) && allowed(RemoveTransfer(event.id, transfer.id))
 
     /** Parties the user may record collected money for in this event (themselves, or anyone for leads). */
     fun holdingParties(event: Event): List<Id> = if (!open(event)) emptyList() else SettlementCalculator.partyOrder(band, event).filter { !Artists.isArtist(band, it) && allowed(AddHolding(event.id, PROBE, it, Money(1), IncomeSource.OTHER)) }
 
-    /** A fee the organiser still owes (ITERATION_4 §2.2): leads record it; who it was paid to marks it received too. */
+    /** A fee the organiser still owes (I4 §2.2): leads record it; who it was paid to marks it received too. */
     fun recordAwaited(event: Event) = open(event) && allowed(AddHolding(event.id, PROBE, ORGANISER, Money(1), IncomeSource.CONTRACT))
 
     /**
      * Who the user may say an awaited fee was paid to: someone in the event who may hold money, or the band fund when it
-     * is on; for leads anyone, else themselves (and the fund for its holder, ITERATION_7 §3.3).
+     * is on; for leads anyone, else themselves (and the fund for its holder, I7 §3.3).
      */
     fun receiveParties(event: Event): List<Id> = if (!open(event)) {
         emptyList()
@@ -87,7 +87,7 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))
     fun addCost() = meId != null && allowed(AddCost(PROBE, meId, Money(1), PROBE_DATE))
 
-    /** A cost paid by [memberId]: their own for members and artists, anyone's for leads (ITERATION_4 §1.1). */
+    /** A cost paid by [memberId]: their own for members and artists, anyone's for leads (I4 §1.1). */
     fun addCostFor(memberId: Id) = allowed(AddCost(PROBE, memberId, Money(1), PROBE_DATE))
 
     /** A cost for this event: some active participant the user may add a cost for (leads: anyone in it; members: themselves). */
@@ -97,13 +97,13 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun editCost(cost: Cost) = allowed(UpdateCost(cost.id))
     fun deleteCost(cost: Cost) = allowed(DeleteCost(cost.id))
 
-    /** Adding (or renaming) a file to what [owner] names; a locked cost's owner still may (ITERATION_7 §3.3). */
+    /** Adding (or renaming) a file to what [owner] names; a locked cost's owner still may (I7 §3.3). */
     fun attachTo(owner: AttachmentOwner) = allowed(AddAttachment(owner, PROBE_ATTACHMENT))
     fun detachFrom(owner: AttachmentOwner) = allowed(RemoveAttachment(owner, PROBE))
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
 
-    /** Archived events are read-only until restored (ITERATION_3 R10). */
+    /** Archived events are read-only until restored (I3 R10). */
     private fun open(event: Event) = !event.archived
 
     private companion object {

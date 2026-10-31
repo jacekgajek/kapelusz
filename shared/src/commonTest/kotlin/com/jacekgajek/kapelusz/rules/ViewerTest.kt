@@ -36,7 +36,7 @@ class ViewerTest {
         )
     }
 
-    /** V5-M1 B2: a viewer records no transfers, so they can't be left playing with money, or holding the band fund. */
+    /** I5 B2: a viewer records no transfers, so they can't be left playing with money, or holding the band fund. */
     @Test
     fun aViewerCantBeLeftHoldingMoneyOrTheFund() {
         val scenario = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob").apply(AddHolding("gig", "h", "bob", pln("300"), DOOR))
@@ -49,14 +49,14 @@ class ViewerTest {
         assertEquals(RejectionReason.VIEWER_STILL_PLAYS, scenario.rejected(SetMemberRole("carol", Role.VIEWER)).reason, "the fund holder")
     }
 
-    /** V5-M1 B3a: ownership never goes to an archived leader. */
+    /** I5 B3a: ownership never goes to an archived leader. */
     @Test
     fun noArchivedOwner() {
         val scenario = Scenario("Alice", "Bob").apply(LinkUser("bob", "user-bob", Role.LEAD)).apply(SetMemberArchived("bob", true))
         assertEquals(RejectionReason.ARCHIVED_MEMBER, scenario.rejected(TransferOwnership("bob")).reason)
     }
 
-    /** V5-M1 B3c: a settle op whose id was seen before can't make two transfers with one id. */
+    /** I5 B3c: a settle op whose id was seen before can't make two transfers with one id. */
     @Test
     fun aRepeatedSettleOpIdIsRefused() {
         val band = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol").apply(AddHolding("gig", "h", "alice", pln("300"), DOOR)).band

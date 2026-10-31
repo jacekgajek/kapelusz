@@ -24,7 +24,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 
-/** The band fund's entry form (ITERATION_7 §5.1), without a dialog. */
+/** The band fund's entry form (I7 §5.1), without a dialog. */
 class FundEntryFormTest {
     private val today = LocalDate(2026, 10, 31)
     private var nextId = 0

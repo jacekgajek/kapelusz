@@ -97,7 +97,7 @@ class ZoomState : ZoomTarget {
 }
 
 /**
- * Pinch to zoom, drag to move while zoomed in, double tap to zoom in or back (ITERATION_5 §4.3). One finger at the
+ * Pinch to zoom, drag to move while zoomed in, double tap to zoom in or back (I5 §4.3). One finger at the
  * whole size is left alone, so the pages around still scroll and swipe.
  */
 fun Modifier.zoomable(state: ZoomState): Modifier = this

@@ -50,7 +50,7 @@ import com.jacekgajek.kapelusz.view.BandView
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Settling together (ITERATION_5 §7) in [member]'s dialog, as seen by [me]: invite them, the invitation waiting either
+ * Settling together (I5 §7) in [member]'s dialog, as seen by [me]: invite them, the invitation waiting either
  * way, their pair, or yours with them. Shown where [hasSettleTogether].
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -111,7 +111,7 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
     }
 }
 
-/** What settling together means for [me]: an artist sees only their own money (ITERATION_6 §11). */
+/** What settling together means for [me]: an artist sees only their own money (I6 §11). */
 @Composable
 private fun SettleTogetherHint(me: Member) {
     val hint = if (me.role == Role.ARTIST) Res.string.settle_together_hint_artist else Res.string.settle_together_hint
@@ -127,7 +127,7 @@ fun hasSettleTogether(band: Band, me: Member, member: Member): Boolean = when {
     else -> SettleTogether.mayInvite(band, me, member)
 }
 
-/** On top of the events list while someone's invitation to settle together waits for [me] (ITERATION_5 §7). */
+/** On top of the events list while someone's invitation to settle together waits for [me] (I5 §7). */
 @Composable
 fun SettleTogetherInvitationCard(band: Band, me: Member?, actions: Actions) {
     val from = me?.let { SettleTogether.inviterOf(band, it.id) } ?: return
@@ -149,12 +149,12 @@ private fun InvitationAnswer(from: Member, me: Member, actions: Actions) {
     }
 }
 
-/** A new [role] for [member] ends their pair: a viewer (ITERATION_5 §7.2; artists pair too since ITERATION_6 §11). */
+/** A new [role] for [member] ends their pair: a viewer (I5 §7.2; artists pair too since I6 §11). */
 fun pairEndsWarningNeeded(member: Member, role: Role): Boolean = member.settlesWith != null && role == Role.VIEWER
 
 /**
  * The line a confirmation adds when archiving, unlinking or a new [role] (null: not a role change) ends [member]'s pair
- * (ITERATION_5 §7); null when it doesn't.
+ * (I5 §7); null when it doesn't.
  */
 @Composable
 fun pairEndsWarning(band: Band, member: Member, role: Role? = null): String? {

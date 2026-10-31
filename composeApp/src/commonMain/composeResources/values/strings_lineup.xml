@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Bigger groups (ITERATION_8): the line-up picker, the members by role, searching people -->
+    <!-- Bigger groups (I8): the line-up picker, the members by role, searching people -->
     <string name="search_people">Search by name</string>
     <string name="search_by_title">Search by name</string>
     <string name="search_people_none">Nobody matches “%1$s”.</string>

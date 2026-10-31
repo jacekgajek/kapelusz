@@ -18,6 +18,6 @@ data class SetFundAmount(
     override val eventId: Id,
     /** Ignored when [percent] is set. */
     val amount: Money,
-    /** A percentage of the profit, 0–100, instead of [amount] (ITERATION_7 §5.2); 0 is nothing. */
+    /** A percentage of the profit, 0–100, instead of [amount] (I7 §5.2); 0 is nothing. */
     val percent: Int? = null,
 ) : EventMoneyOp

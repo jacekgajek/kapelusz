@@ -39,7 +39,7 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
         return ok(PlacesResponse.serializer(), PlacesResponse(search.suggest(query, request.language(), request.session())))
     }
 
-    /** What Location becomes for a picked suggestion: its name and full address (ITERATION_5 §9.1). */
+    /** What Location becomes for a picked suggestion: its name and full address (I5 §9.1). */
     fun details(call: Call): HttpResponse {
         val request = call.request
         val placeId = call.param("placeId")
@@ -51,7 +51,7 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
     }
 
     /**
-     * What Location becomes for a Google Maps link (ITERATION_5 §9.1): a place's name and the address at its pin, a
+     * What Location becomes for a Google Maps link (I5 §9.1): a place's name and the address at its pin, a
      * dropped pin's coordinates, or the searched text. 422 when the link points at nothing readable.
      */
     fun resolve(call: Call): HttpResponse {
@@ -87,7 +87,7 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
     }
 
     /**
-     * `GET /bands/{id}/locations` (ITERATION_7 §8): where the event locations the user sees are, for any member. Only
+     * `GET /bands/{id}/locations` (I7 §8): where the event locations the user sees are, for any member. Only
      * the band's own locations, so nobody has addresses looked up at the band's cost; each address once, ever (cached);
      * at most [MAX_LOOKUPS] new ones a call, the rest pending, asked again by the app.
      */

@@ -62,7 +62,7 @@ class CostChoicesTest {
 
     @Test
     fun waitingCostsAreTheLeadsToIncludeAndTheOwnersToSee() {
-        // Bob's own cost waits; a lead's for an open event would be included at once (ITERATION_4 §1.2).
+        // Bob's own cost waits; a lead's for an open event would be included at once (I4 §1.2).
         val withCosts = scenario
             .apply(AddCost("bobs", "bob", pln("30"), DATE, incurredForEventId = "gig"), Actor.User("user-bob"))
             .apply(AddCost("alices", "alice", pln("10"), DATE), Actor.User("user-alice"))

@@ -28,7 +28,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The band is to be deleted (ITERATION_7 §9): who asked and when it goes, for everyone; with [onKeep] (leaders), the
+ * The band is to be deleted (I7 §9): who asked and when it goes, for everyone; with [onKeep] (leaders), the
  * button that keeps it. Nothing while it isn't.
  */
 @Composable

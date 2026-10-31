@@ -153,11 +153,11 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
     val state = session.state
     val band = state.band
     val messages = rememberMessages()
-    // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
+    // Deleting a member can be undone from its snackbar (I7 §3.1).
     val actions = rememberActions(session.changes, messages)
     val can = session.can
     val isAdmin = can.manageRoster()
-    // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
+    // Artists see names only: no roles or shares, only settling together behind a tap (I6 §11).
     val namesOnly = can.artist
     LaunchedEffect(band.id, isAdmin) { if (isAdmin) roster.reloadInvites() }
     LaunchedEffect(roster.invites) { roster.invitesLoaded() }
@@ -165,9 +165,9 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
     LaunchedEffect(routeMember) { roster.openFromRoute(routeMember, state.userId) }
     val (active, archived, searchable) = roster.lists(band)
     val query = roster.query
-    // Leads set default shares (ITERATION_4 §2.3); leaders also manage the rest of a member in their dialog.
+    // Leads set default shares (I4 §2.3); leaders also manage the rest of a member in their dialog.
     val canShare = can.setMemberShare()
-    // Everyone else gets a smaller dialog: the default share for leads, settling together (ITERATION_5 §7) for all.
+    // Everyone else gets a smaller dialog: the default share for leads, settling together (I5 §7) for all.
     val me = state.me
     val open: (Member) -> (() -> Unit)? = { member ->
         val pair = me != null && hasSettleTogether(band, me, member)
@@ -210,7 +210,7 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
             if (searchable && query.isNotBlank() && active.isEmpty() && (archived.isEmpty() || namesOnly)) {
                 item(key = "no-match") { Text(stringResource(Res.string.search_people_none, query.trim()), Modifier.padding(16.dp)) }
             }
-            // Not for artists: they only need those they could settle together with (ITERATION_6 §11).
+            // Not for artists: they only need those they could settle together with (I6 §11).
             if (archived.isNotEmpty() && !namesOnly) {
                 // Collapsed at first: only a count, so a long list of past players doesn't bury the band.
                 item(key = "archived-title") {
@@ -220,7 +220,7 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
                         trailingContent = { Icon(if (roster.showArchived) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null) },
                     )
                 }
-                // A search reaching former members opens them (ITERATION_8 §2).
+                // A search reaching former members opens them (I8 §2).
                 if (roster.showArchived || (searchable && query.isNotBlank())) {
                     items(archived, key = { it.id }) { member ->
                         MemberRow(member, roster.inviteOf(member.id), band.currency, onClick = open(member), namesOnly = namesOnly)
@@ -297,7 +297,7 @@ private fun SmallMemberDialog(
     )
 }
 
-/** "1½ shares", "20% of profit" or "300 zł (fixed)": a member's default share (ITERATION_4 §2.3); null for a normal one. */
+/** "1½ shares", "20% of profit" or "300 zł (fixed)": a member's default share (I4 §2.3); null for a normal one. */
 @Composable
 private fun shareText(member: Member, currency: String): String? = shareText(member.shareWeight, member.shareFixed, member.sharePercent, currency)
 
@@ -306,7 +306,7 @@ private fun shareText(member: Member, currency: String): String? = shareText(mem
 private fun shareLine(member: Member, currency: String): String = stringResource(Res.string.member_share_line, shareText(member, currency) ?: sharesText(member.shareWeight))
 
 /**
- * A member's default share (ITERATION_4 §2.3). Saving it offers to use it in their events not settled yet where they
+ * A member's default share (I4 §2.3). Saving it offers to use it in their events not settled yet where they
  * still have the old one; settled and archived events are never changed.
  */
 @Composable
@@ -375,14 +375,14 @@ private fun MemberRow(
     invite: InviteInfo?,
     currency: String,
     onClick: (() -> Unit)?,
-    /** You settle together with them (ITERATION_5 §7): only your own partner is marked, nobody else's pair. */
+    /** You settle together with them (I5 §7): only your own partner is marked, nobody else's pair. */
     isMyPartner: Boolean = false,
     namesOnly: Boolean = false,
 ) {
     ListItem(
         modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
-        // Decorative: the name follows right after it (ITERATION_3 R13).
-        // Without an app account: can't see the band (ITERATION_5 §12).
+        // Decorative: the name follows right after it (I3 R13).
+        // Without an app account: can't see the band (I5 §12).
         leadingContent = { MemberAvatar(member, 40.dp) },
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -431,7 +431,7 @@ private fun MemberDialog(
     can: Capabilities,
     actions: Actions,
     invitesFailed: Boolean,
-    /** Opens the default share (ITERATION_4 §2.3); null for those who may not change it. */
+    /** Opens the default share (I4 §2.3); null for those who may not change it. */
     onEditShare: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
@@ -498,13 +498,13 @@ private fun MemberActions(form: MemberForm, member: Member, band: Band, can: Cap
         if (can.transferOwnership() && member.userId != null && member.role == Role.LEAD) {
             OutlinedButton(onClick = { form.ask(MemberQuestion.ConfirmOwner) }) { Text(stringResource(Res.string.make_owner)) }
         }
-        // Not yourself: an archived member can do nothing in the band, so you could not undo it (V5-M1 C5).
+        // Not yourself: an archived member can do nothing in the band, so you could not undo it (I5 C5).
         if (!isOwner && !isMe) {
             OutlinedButton(onClick = { form.toggleArchived(member)?.let { actions.run(it) } }) {
                 Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
             }
         }
-        // Only who left no trace (ITERATION_7 §3.1); anyone else is moved to the former members above.
+        // Only who left no trace (I7 §3.1); anyone else is moved to the former members above.
         if (!isOwner && !isMe && can.allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)) {
             TextButton(
                 onClick = { form.ask(MemberQuestion.ConfirmDelete) },
@@ -593,7 +593,7 @@ private fun MemberQuestions(form: MemberForm, member: Member, band: Band, action
                 ).joinToString("\n\n"),
                 confirmLabel = stringResource(Res.string.delete),
                 onConfirm = {
-                    // The account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §3.1).
+                    // The account first, for good (not undoable); Undo then brings the member back without it (I7 §3.1).
                     // The dialog closes, so Undo doesn't bring it back with the member.
                     val (unlink, delete) = form.deletion(member)
                     if ((unlink == null || actions.run(unlink)) && actions.runWithUndo(delete, deleted)) onDismiss()

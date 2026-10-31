@@ -75,13 +75,13 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
             deletionNotice = band.deletion?.let {
                 { BandDeletionNotice(band, { dispatch(CancelBandDeletion) }.takeIf { can.allowed(CancelBandDeletion) }) }
             },
-            // The secret menu (ITERATION_2 §7.1), for the band's leaders.
+            // The secret menu (I2 §7.1), for the band's leaders.
             rawData = suspend { rawStateApi.rawState(band.id) }.takeIf { me?.role?.atLeast(Role.LEAD) == true },
         ),
         fund = BandFundSettings(
             treasurer = band.treasurerMemberId,
             treasurerName = band.treasurerMemberId?.let { band.member(it)?.name },
-            // Artists hold no money and viewers record no transfers: neither can hold the fund (V5-M1 C6a).
+            // Artists hold no money and viewers record no transfers: neither can hold the fund (I5 C6a).
             treasurerOptions = band.members.filter { !it.archived && it.role != Role.ARTIST && it.role != Role.VIEWER }.sortedByName { it.name }.map { it.id to it.name },
             onTreasurer = { id: String -> dispatch(SetTreasurer(id)) }.takeIf { can.allowed(SetTreasurer("probe")) },
             onDisable = { dispatch(DisableBandFund) }.takeIf { can.allowed(DisableBandFund) && BandFund.canDisable(band) },

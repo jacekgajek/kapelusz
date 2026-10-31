@@ -30,14 +30,14 @@ import com.jacekgajek.kapelusz.app.generated.undo
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
-/** How long an Undo snackbar shows (ITERATION_5 §2). */
+/** How long an Undo snackbar shows (I5 §2). */
 const val UNDO_TIME = 10_000L
 
 /** One Undo snackbar: [message]; [undo] takes the change back; [gone] lets it sync. */
 class UndoItem(val message: UiMessage, val undo: () -> Unit, val gone: () -> Unit)
 
 /**
- * Undo snackbars shown together, each with its own time (ITERATION_5 §2): at most [MAX_UNDOS]; a new one pushes out
+ * Undo snackbars shown together, each with its own time (I5 §2): at most [MAX_UNDOS]; a new one pushes out
  * the oldest, whose change then syncs.
  */
 @Stable

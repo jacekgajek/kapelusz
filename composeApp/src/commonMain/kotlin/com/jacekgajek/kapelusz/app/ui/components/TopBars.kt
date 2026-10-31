@@ -70,7 +70,7 @@ class TopBarState(
     val syncStatus: SyncStatus,
     val bands: List<BandSummary>,
     val currentBandId: String?,
-    /** Bands whose unsent changes the server refuses (ITERATION_3 R9): marked in the switcher, open them to decide. */
+    /** Bands whose unsent changes the server refuses (I3 R9): marked in the switcher, open them to decide. */
     val stuckBandIds: Set<String>,
     val onSelectBand: (String) -> Unit,
     val onNewBand: () -> Unit,
@@ -78,13 +78,13 @@ class TopBarState(
     val onHistory: () -> Unit,
     val onSettings: () -> Unit,
     val onRoster: () -> Unit,
-    /** The period summary (ITERATION_6 §7). */
+    /** The period summary (I6 §7). */
     val onSummary: () -> Unit,
     val onSyncNow: () -> Unit,
     /** Signs in again with a fresh Google token; returns false if it was a different account. */
     val onReauthenticate: suspend (String) -> Boolean,
     val accountEmail: String?,
-    /** Artists have no history (ITERATION_4 §1.1); their roster shows names only (ITERATION_6 §11). */
+    /** Artists have no history (I4 §1.1); their roster shows names only (I6 §11). */
     val artist: Boolean = false,
 )
 
@@ -142,7 +142,7 @@ fun TabTopBar(title: String, extraActions: @Composable () -> Unit = {}) {
                     )
                     HorizontalDivider()
                 }
-                // Icons for easier hunting (ITERATION_6 §7). Artists too: names only, to settle together (ITERATION_6 §11).
+                // Icons for easier hunting (I6 §7). Artists too: names only, to settle together (I6 §11).
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.menu_roster)) },
                     leadingIcon = { Icon(Icons.Default.ManageAccounts, null) },

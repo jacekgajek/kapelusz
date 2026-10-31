@@ -34,7 +34,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 
-/** The history byte budget, logs without changes, and how the server resolves undos from its log (ITERATION_3 R14). */
+/** The history byte budget, logs without changes, and how the server resolves undos from its log (I3 R14). */
 class HistoryAndUndoTest : ApiHarness() {
     /** In 2026-09; every push one millisecond later, so the log's order is the order of the pushes. */
     override fun push(user: String, vararg ops: Operation, bandId: String, clientId: String): HttpResponse {
@@ -193,7 +193,7 @@ class HistoryAndUndoTest : ApiHarness() {
         pushed("alice", RenameBand("Gone soon"))
         assertTrue(history.bands.getValue("band1").isNotEmpty())
         assertEquals(204, call("DELETE", "/bands/band1", "alice").status)
-        assertTrue(history.bands.getValue("band1").isNotEmpty(), "kept while the band waits (ITERATION_7 §9)")
+        assertTrue(history.bands.getValue("band1").isNotEmpty(), "kept while the band waits (I7 §9)")
         now += com.jacekgajek.kapelusz.model.BandDeletion.DELAY_MS
         assertEquals(404, call("GET", "/bands/band1/state", "alice").status)
         assertTrue(history.bands["band1"].isNullOrEmpty())

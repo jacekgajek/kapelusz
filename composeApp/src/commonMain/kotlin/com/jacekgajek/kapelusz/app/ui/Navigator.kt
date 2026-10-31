@@ -36,7 +36,7 @@ interface EventNav : BackNav {
 
     fun openCost(costId: String)
 
-    /** Band members at [memberId]'s dialog, to invite them (ITERATION_5 §12). */
+    /** Band members at [memberId]'s dialog, to invite them (I5 §12). */
     fun inviteMember(memberId: String)
 }
 
@@ -47,7 +47,7 @@ interface CostNav : BackNav {
     /** A lead added a cost for someone else: "My costs" shows everyone's, so they see it. */
     fun addedForOther()
 
-    /** Added from the band fund's +: back there to refund it (ITERATION_7 §5.1). */
+    /** Added from the band fund's +: back there to refund it (I7 §5.1). */
     fun added(costId: String)
 }
 

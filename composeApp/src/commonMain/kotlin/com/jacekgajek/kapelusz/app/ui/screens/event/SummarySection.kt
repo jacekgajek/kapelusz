@@ -51,7 +51,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Per party: what they should end up with (share + refunds), what they hold now, and the difference. A pair settling
- * together is one row, opened to show each partner's numbers (ITERATION_5 §7).
+ * together is one row, opened to show each partner's numbers (I5 §7).
  */
 @Composable
 fun SummarySection(context: EventContext) {
@@ -85,7 +85,7 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                 if (isPair) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
             }
             if (line.partyId != BAND_FUND) {
-                // A fixed share says so (ITERATION_3 §2.4): it does not change with the income. A percentage too (§6).
+                // A fixed share says so (I3 §2.4): it does not change with the income. A percentage too (§6).
                 val percent = line.percent?.let { "$it%" }
                 Text(
                     when {
@@ -133,7 +133,7 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                 }
             }
         }
-        // Information only (ITERATION_2 §7.4): transfers are recorded in To settle, one "X → Y" at a time or all at once.
+        // Information only (I2 §7.4): transfers are recorded in To settle, one "X → Y" at a time or all at once.
         Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {
             DeltaLabel(context, line)
         }

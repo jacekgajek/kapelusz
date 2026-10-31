@@ -96,7 +96,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** The settings that open a page of their own (ITERATION_2 §8). */
+/** The settings that open a page of their own (I2 §8). */
 enum class SettingsPage { FUND, AGENDA, CALENDAR }
 
 private const val SUPPORT_URL = "https://buymeacoffee.com/jacekgajek"
@@ -148,7 +148,7 @@ fun SettingsScreen(
             }
         }
 
-        // The app's own notifications are gone (ITERATION_6 §9): gigs reach the phone through the calendar.
+        // The app's own notifications are gone (I6 §9): gigs reach the phone through the calendar.
         SettingsPage.CALENDAR -> SettingsPageScaffold(stringResource(Res.string.calendar_title), onBack, messages) {
             CalendarSection(personal.calendar, showTitle = false, showIncludeAll = !artist)
         }
@@ -200,7 +200,7 @@ fun SettingsScreen(
             }
 
             val uriHandler = LocalUriHandler.current
-            // Not in the Google Play build: a tip link outside Play's billing (ITERATION_7 §1.1).
+            // Not in the Google Play build: a tip link outside Play's billing (I7 §1.1).
             if (LocalPlatform.current.storeListing == null) {
                 SettingsItem(Icons.Default.VolunteerActivism, stringResource(Res.string.support_me), SUPPORT_URL.removePrefix("https://")) {
                     uriHandler.openUri(SUPPORT_URL)
@@ -266,7 +266,7 @@ fun SettingsScreen(
                         }
                     }
                 }
-                // Last, set apart: it cannot be undone (ITERATION_2 §7); asked for already, when it goes and Keep.
+                // Last, set apart: it cannot be undone (I2 §7); asked for already, when it goes and Keep.
                 if (band.deletionNotice != null) {
                     HorizontalDivider(Modifier.padding(top = 24.dp))
                     Box(Modifier.padding(top = 16.dp).bringIntoViewRequester(deleteButton)) { band.deletionNotice() }
@@ -285,7 +285,7 @@ fun SettingsScreen(
                         DeleteBandDialog(band.name, band.otherMembers, band.onDelete, onDismiss = screen::dismiss)
                     }
                 }
-                // A tap on the version opens the secret menu for leaders (ITERATION_2 §7.1); for others it is just text.
+                // A tap on the version opens the secret menu for leaders (I2 §7.1); for others it is just text.
                 val secret = if (band.rawData != null) Modifier.clickable { screen.open(SettingsDialog.SECRET_MENU) } else Modifier
                 VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(secret))
                 if (dialog == SettingsDialog.SECRET_MENU && band.rawData != null) {

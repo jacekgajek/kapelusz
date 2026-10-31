@@ -26,19 +26,19 @@ interface Platform {
     /** The app's own persisted data (bands, session, settings). */
     val store: KeyValueStore
 
-    /** Attachment files kept on the device by attachment id (ITERATION_5 §4.2). */
+    /** Attachment files kept on the device by attachment id (I5 §4.2). */
     val fileCache: ByteCache
 
     val google: GoogleAuth
 
-    /** Firebase sync messages (ITERATION_7 §2.3); null on the web. */
+    /** Firebase sync messages (I7 §2.3); null on the web. */
     val messages: MessageChannel?
 
     /** Reloads the app from the server (the web's way to update); null where updating works differently (Android). */
     val reload: (() -> Unit)?
 
     /**
-     * The Android app's page on Google Play, which updates it and is the only place it comes from (ITERATION_7 §1.1,
+     * The Android app's page on Google Play, which updates it and is the only place it comes from (I7 §1.1,
      * Play only since 2026-10-27); null on the web.
      */
     val storeListing: String?
@@ -47,13 +47,13 @@ interface Platform {
 
     val sharing: Sharing
 
-    /** Maps to pick a place on and of where the band played (ITERATION_6 §3, ITERATION_7 §8); null on the web, and without a Maps key. */
+    /** Maps to pick a place on and of where the band played (I6 §3, I7 §8); null on the web, and without a Maps key. */
     val maps: Maps?
 
     /** PDFs shown in the app (Android renders them); null where the browser shows them. */
     val pdf: PdfRenderer?
 
-    /** A camera QR scanner (ITERATION_6 §10); null on the web, where a phone's own camera opens the invite link anyway. */
+    /** A camera QR scanner (I6 §10); null on the web, where a phone's own camera opens the invite link anyway. */
     val qrScanner: QrScanner?
 
     /** PUTs the file to a presigned [url] with exactly the signed [headers]; returns the HTTP status. */
@@ -62,7 +62,7 @@ interface Platform {
     /** The web's state for the install hints; null in the Android app. */
     suspend fun webInstallState(): WebInstallState?
 
-    /** Google Play's in-app updates (ITERATION_7 §4); null on the web, and where Play can't be asked. */
+    /** Google Play's in-app updates (I7 §4); null on the web, and where Play can't be asked. */
     @Composable
     fun rememberStoreUpdates(): StoreUpdates?
 
@@ -121,7 +121,7 @@ interface Sharing {
     fun rememberShare(): suspend (text: String) -> ShareResult
 }
 
-/** Google Maps (ITERATION_6 §3, ITERATION_7 §8). */
+/** Google Maps (I6 §3, I7 §8). */
 interface Maps {
     /**
      * A full-screen map to pick a place on, e.g. in the middle of a forest: a tap puts the pin (a place on the map: its
@@ -147,7 +147,7 @@ interface Maps {
     )
 }
 
-/** PDFs rendered by the app (ITERATION_5 §4.3). */
+/** PDFs rendered by the app (I5 §4.3). */
 interface PdfRenderer {
     /** The pages of a PDF, one under another, each zoomable; [onPage] gets the page mostly in view. */
     @Composable
@@ -162,7 +162,7 @@ interface PdfRenderer {
     fun rememberOpen(): suspend (bytes: ByteArray, fileName: String) -> Boolean
 }
 
-/** Scans a QR code with the camera (ITERATION_6 §10), e.g. an invite's. */
+/** Scans a QR code with the camera (I6 §10), e.g. an invite's. */
 interface QrScanner {
     @Composable
     fun rememberScan(): suspend () -> QrScan

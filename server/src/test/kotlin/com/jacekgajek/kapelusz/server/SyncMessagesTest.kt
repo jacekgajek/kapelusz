@@ -35,7 +35,7 @@ private class FakeSender : MessageSender {
     }
 }
 
-/** Sync messages (ITERATION_7 §2): who gets them, and the device registry behind them. */
+/** Sync messages (I7 §2): who gets them, and the device registry behind them. */
 class SyncMessagesTest : ApiHarness(messageSender = FakeSender()) {
     private val sender get() = messageSender as FakeSender
 

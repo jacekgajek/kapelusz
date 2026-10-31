@@ -7,7 +7,7 @@ import com.jacekgajek.kapelusz.model.Role
 import kotlin.math.round
 import kotlinx.datetime.LocalDate
 
-/** "Where we played" (ITERATION_7 §8): the places of a band's concerts, for a map or a list. */
+/** "Where we played" (I7 §8): the places of a band's concerts, for a map or a list. */
 object PlayedPlaces {
     /** An address as looked up and cached: case and spacing don't make it another place. */
     fun key(location: String): String = location.trim().replace(Regex("\\s+"), " ").lowercase()

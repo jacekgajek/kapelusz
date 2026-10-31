@@ -93,7 +93,7 @@ class PeriodSummaryTest {
                 into = zl(600),
                 out = zl(300),
                 balance = zl(300),
-                // Who paid in, and whose costs it refunded (ITERATION_7 §5.1).
+                // Who paid in, and whose costs it refunded (I7 §5.1).
                 intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100)),
                 outBy = listOf(FundSource.Of(bob) to zl(300)),
             ),

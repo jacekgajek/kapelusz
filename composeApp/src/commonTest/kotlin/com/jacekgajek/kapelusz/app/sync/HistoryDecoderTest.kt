@@ -8,7 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.serialization.json.JsonElement
 
-/** The lenient reading of history entries (ITERATION_3 R12). */
+/** The lenient reading of history entries (I3 R12). */
 class HistoryDecoderTest {
     private fun json(text: String): JsonElement = KapeluszJson.parseToJsonElement(text)
 

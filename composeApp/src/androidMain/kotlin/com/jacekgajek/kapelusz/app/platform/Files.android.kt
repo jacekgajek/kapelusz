@@ -81,7 +81,7 @@ internal fun rememberAndroidAttachmentPicker(onResult: (List<PickResult>) -> Uni
 }
 
 /**
- * Files shared to Kapelusz (ITERATION_6 §1), prepared like picked ones, one after another. Only content URIs (no
+ * Files shared to Kapelusz (I6 §1), prepared like picked ones, one after another. Only content URIs (no
  * `file://` paths into the app's own files); [sharedType] is the share's type, for providers that don't tell one.
  */
 suspend fun prepareShared(context: Context, uris: List<Uri>, sharedType: String?): List<PickResult> = uris.map { uri -> if (uri.scheme == "content") prepare(context, uri, fallbackType = sharedType) else PickResult.Failed }

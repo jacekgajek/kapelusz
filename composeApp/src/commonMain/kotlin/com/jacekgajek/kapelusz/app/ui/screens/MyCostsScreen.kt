@@ -65,7 +65,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 fun CostStatus.labelRes(): StringResource = when (this) {
-    // Not included anywhere yet, or included in an event not settled yet: either way the owner waits (ITERATION_4 §1.2).
+    // Not included anywhere yet, or included in an event not settled yet: either way the owner waits (I4 §1.2).
     CostStatus.PENDING, CostStatus.REFUND_PLANNED -> Res.string.cost_status_pending
 
     CostStatus.PARTLY_REFUNDED -> Res.string.cost_status_partly
@@ -75,7 +75,7 @@ fun CostStatus.labelRes(): StringResource = when (this) {
 
 /**
  * A cost's status as its owner reads it. Part of it approved but not paid yet still waits, with how much was approved:
- * "Waiting · approved 100 zł" (ITERATION_4 §1.2).
+ * "Waiting · approved 100 zł" (I4 §1.2).
  */
 @Composable
 fun costStatusText(band: Band, cost: Cost, status: CostStatus): String {

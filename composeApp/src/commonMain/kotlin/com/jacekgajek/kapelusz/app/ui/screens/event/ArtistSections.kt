@@ -68,8 +68,8 @@ import com.jacekgajek.kapelusz.settlement.SuggestedTransfer
 import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 
-// What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout, their own transfers
-// (ITERATION_7 §3.2) and their own costs; none of the band's money.
+// What an artist sees of an event they play (I4 §1.1): who plays, their own payout, their own transfers
+// (I7 §3.2) and their own costs; none of the band's money.
 
 /** Who plays: names only, no weights or shares. */
 @Composable
@@ -87,7 +87,7 @@ fun ArtistLineup(context: EventContext) {
 
 /**
  * What the artist gets from this event (their share and refunds), how much came, how much is still to come; from whom is
- * [ArtistTransfers]. Settling together (ITERATION_6 §11), what their partner holds for them, but none of the partner's own numbers.
+ * [ArtistTransfers]. Settling together (I6 §11), what their partner holds for them, but none of the partner's own numbers.
  */
 @Composable
 fun ArtistPayout(context: EventContext) {
@@ -103,8 +103,8 @@ fun ArtistPayout(context: EventContext) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             AmountRow(stringResource(Res.string.artist_to_receive), line.target)
             AmountRow(stringResource(Res.string.artist_received), line.received - line.sent)
-            // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
-            // got too much (or owe from before they were an artist), they hand it back (To settle, ITERATION_7 §3.2).
+            // Artists hold no money (I4 §1.1), so what is still owed to them is just the negative delta. If they
+            // got too much (or owe from before they were an artist), they hand it back (To settle, I7 §3.2).
             if (partner != null && kept.isPositive) AmountRow(stringResource(Res.string.artist_kept_by_partner, partner), kept)
             if (partner != null && heldForPartner.isPositive) {
                 AmountRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner)
@@ -114,7 +114,7 @@ fun ArtistPayout(context: EventContext) {
             } else {
                 AmountRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), bold = true)
             }
-            // A pair kept by an event settled together before it ended (ITERATION_5 §7) is told in the past.
+            // A pair kept by an event settled together before it ended (I5 §7) is told in the past.
             if (partner != null) {
                 val text = if (me.settlesWith == partnerId) Res.string.artist_settles_with else Res.string.artist_settled_with
                 Text(stringResource(text, partner), style = MaterialTheme.typography.bodySmall)
@@ -124,7 +124,7 @@ fun ArtistPayout(context: EventContext) {
 }
 
 /**
- * The artist's own transfers still to make (ITERATION_7 §3.2): who pays them, or whom they hand back to with that person's
+ * The artist's own transfers still to make (I7 §3.2): who pays them, or whom they hand back to with that person's
  * BLIK number and the amount to copy; nobody else's. They mark each paid or received themselves, as members do.
  */
 @Composable
@@ -149,7 +149,7 @@ private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTran
     val fundLabel = stringResource(Res.string.band_fund)
     val from = partyName(band, context.event, part.from, fundLabel)
     val to = partyName(band, context.event, part.to, fundLabel)
-    // Only to the one who pays (ITERATION_5 §8), as in To settle.
+    // Only to the one who pays (I5 §8), as in To settle.
     val pays = part.from == me
     val label = if (pays) Res.string.settle_paid else Res.string.settle_received
     var partial by remember { mutableStateOf(false) }

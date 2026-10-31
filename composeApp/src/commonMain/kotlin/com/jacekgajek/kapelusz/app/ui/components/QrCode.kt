@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import qrcode.raw.QRCodeProcessor
 
 /**
- * [text] as a QR code (ITERATION_6 §8): the library only encodes; the squares are drawn here. Black on white whatever
+ * [text] as a QR code (I6 §8): the library only encodes; the squares are drawn here. Black on white whatever
  * the theme, with a white margin: scanners need the contrast and the quiet zone.
  */
 @Composable

@@ -27,7 +27,7 @@ import kotlinx.serialization.json.put
 /** A place's address as Google gives it: the [name] (for a place), the full [address], and its [country] to leave out. */
 data class PlaceAddress(val name: String?, val address: String?, val country: String?)
 
-/** Google's place services for an event's Location (ITERATION_5 §9). */
+/** Google's place services for an event's Location (I5 §9). */
 interface PlaceSearch {
     /** Places for what was typed; [session] groups a search with the details of the place picked. */
     fun suggest(query: String, language: String?, session: String?): List<PlaceSuggestion>
@@ -41,7 +41,7 @@ interface PlaceSearch {
     /** Where a short Maps link leads (its redirects followed, Google's hosts only); null if it leads nowhere readable. */
     fun follow(url: String): String?
 
-    /** Where an address is (ITERATION_7 §8); null when Google knows no such place. Throws when it couldn't be asked. */
+    /** Where an address is (I7 §8); null when Google knows no such place. Throws when it couldn't be asked. */
     fun locate(address: String): Located? = throw UnsupportedOperationException("No geocoding")
 }
 

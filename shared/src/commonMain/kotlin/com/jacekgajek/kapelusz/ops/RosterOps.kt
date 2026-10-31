@@ -25,7 +25,7 @@ data class SetMemberArchived(override val memberId: Id, val archived: Boolean) :
 data class DeleteMember(override val memberId: Id) : RosterOp
 
 /**
- * A member's default share (ITERATION_4 §2.3): [weight], or [fixedShare] or [percent] (ITERATION_7 §6) when set. Also
+ * A member's default share (I4 §2.3): [weight], or [fixedShare] or [percent] (I7 §6) when set. Also
  * applied, in the same step, to their share in [events] (chosen by the user: events not settled where they still had
  * the old default).
  */
@@ -52,12 +52,12 @@ data class LinkUser(override val memberId: Id, val userId: String, val role: Rol
 @SerialName("UnlinkUser")
 data class UnlinkUser(override val memberId: Id) : RosterOp
 
-/** The member's own BLIK phone number (ITERATION_5 §8); null removes it. */
+/** The member's own BLIK phone number (I5 §8); null removes it. */
 @Serializable
 @SerialName("SetBlikPhone")
 data class SetBlikPhone(override val memberId: Id, val phone: String?) : RosterOp
 
-/** The member's own bank account number (ITERATION_7 §7); null removes it. */
+/** The member's own bank account number (I7 §7); null removes it. */
 @Serializable
 @SerialName("SetBankAccount")
 data class SetBankAccount(override val memberId: Id, val account: String?) : RosterOp

@@ -46,7 +46,7 @@ AWS_PROFILE=... scripts/restore-s3.sh "2026-10-29 10:00 UTC" bands/<bandId>/ --a
 
 ### A deleted band
 
-Deleting a band waits a week (ITERATION_7 §9): until then any leader keeps it in the app (**Keep the band** on the
+Deleting a band waits a week (I7 §9): until then any leader keeps it in the app (**Keep the band** on the
 events list), no restore needed. Once deleted, the server has removed `bands/<bandId>/` except `deleted.json`, its
 **history**, its invite codes (`invites/<code>.json`), its event links (`events/<eventId>.json`) and the band from its
 members' records. `deleted.json` lists their user ids (`userIds`) and who asked (`deletedBy`).

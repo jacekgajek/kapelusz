@@ -112,7 +112,7 @@ fun CollectedSection(context: EventContext) {
             MoneyText(holding.amount)
             if (context.can.editHolding(event, holding)) EditButton(onClick = edit)
         }
-        // A fee the organiser still owes (ITERATION_4 §2.2): paid (whoever got it takes it over), or never paid (it goes).
+        // A fee the organiser still owes (I4 §2.2): paid (whoever got it takes it over), or never paid (it goes).
         // Laid out like Refund here under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
@@ -126,7 +126,7 @@ fun CollectedSection(context: EventContext) {
                 }
             }
         }
-        // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
+        // Its files (e.g. the contract, I4 §2.1), for everyone who sees the money to open; changed in its dialog.
         if (holding.attachments.isNotEmpty()) {
             AttachmentsSection(
                 context.fileStore,
@@ -152,7 +152,7 @@ fun CollectedSection(context: EventContext) {
             Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
         }
     }
-    // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): the new entry's dialog, with them.
+    // Photos or PDFs shared to Kapelusz for new received money here (I6 §1): the new entry's dialog, with them.
     LaunchedEffect(Unit) { context.takeCollectedFiles()?.let { dialog = CollectedDialog.Adding(it) } }
     val close = { dialog = null }
     when (val open = dialog) {
@@ -197,7 +197,7 @@ private sealed interface CollectedDialog {
     data class Welching(val holding: Holding) : CollectedDialog
 }
 
-/** An awaited fee that will never come (ITERATION_4 §2.2): asked first, as its files (the contract) go with it. */
+/** An awaited fee that will never come (I4 §2.2): asked first, as its files (the contract) go with it. */
 @Composable
 private fun WelchedDialog(context: EventContext, holding: Holding, onDismiss: () -> Unit) {
     val files = holding.attachments.size
@@ -222,14 +222,14 @@ private fun HoldingDialog(
     initialDrafts: List<PreparedFile> = emptyList(),
 ) {
     val event = context.event
-    // Gone meanwhile (removed, or an awaited fee received on another phone): nothing left to edit (V5-M1 C4d).
+    // Gone meanwhile (removed, or an awaited fee received on another phone): nothing left to edit (I5 C4d).
     if (initial != null) resolved(event.holdings.firstOrNull { it.id == initial.id }, onDismiss) ?: return
     val lang = language
     var partyId by remember { mutableStateOf(defaultParty) }
     var amount by remember { mutableStateOf(initial?.let { formatMoneyInput(it.amount, lang) } ?: "") }
     var source by remember { mutableStateOf(initial?.source ?: if (defaultParty == ORGANISER) IncomeSource.CONTRACT else IncomeSource.DOOR) }
     var note by remember { mutableStateOf(initial?.note.orEmpty()) }
-    // Files picked before a new entry is saved; attached right after it (ITERATION_4 §2.1).
+    // Files picked before a new entry is saved; attached right after it (I4 §2.1).
     var drafts by remember { mutableStateOf(initialDrafts) }
     var confirmDelete by remember { mutableStateOf(false) }
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
@@ -311,7 +311,7 @@ private fun HoldingDialog(
     }
 }
 
-/** "Received…" on an awaited fee (ITERATION_4 §2.2): who got it, and how much of it (all, by default). */
+/** "Received…" on an awaited fee (I4 §2.2): who got it, and how much of it (all, by default). */
 @Composable
 private fun ReceiveDialog(context: EventContext, awaited: Holding, parties: List<String>, onDismiss: () -> Unit) {
     val event = context.event

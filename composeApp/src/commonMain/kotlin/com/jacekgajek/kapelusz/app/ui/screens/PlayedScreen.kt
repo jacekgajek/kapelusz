@@ -70,7 +70,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Where we played" (ITERATION_7 §8): the concerts of the Summary's period on a map, one marker per place; a list on
+ * "Where we played" (I7 §8): the concerts of the Summary's period on a map, one marker per place; a list on
  * the web, which has no map. Below, what is still being found and what Google can't find.
  */
 @OptIn(ExperimentalMaterial3Api::class)

@@ -192,7 +192,7 @@ class SessionRepositoryTest {
         assertEquals(0, refreshCalls)
     }
 
-    /** ITERATION_3 R9: a 401 for a token another request already replaced keeps the new session. */
+    /** I3 R9: a 401 for a token another request already replaced keeps the new session. */
     @Test
     fun aRefusalOfAnOldTokenKeepsTheRenewedSession() = runTest {
         val sessions = withSessions()
@@ -225,7 +225,7 @@ class SessionRepositoryTest {
         return sessions to api
     }
 
-    /** ITERATION_3 R6: after "sign out on all devices" elsewhere, a refused session is not replaced behind the user's back. */
+    /** I3 R6: after "sign out on all devices" elsewhere, a refused session is not replaced behind the user's back. */
     @Test
     fun aRevokedSessionSignsOutWithoutRenewing() = runTest {
         val store = InMemoryStore()

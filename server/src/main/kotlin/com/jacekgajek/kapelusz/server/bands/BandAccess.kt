@@ -19,7 +19,7 @@ internal class BandAccess(private val store: BlobStore, private val clock: () ->
     var whenDue: ((Band) -> Unit)? = null
 
     /**
-     * The band and its ETag; null if there is none, or it was just deleted, its time having come (ITERATION_7 §9).
+     * The band and its ETag; null if there is none, or it was just deleted, its time having come (I7 §9).
      * [deleteIfDue] false reads it as it is: for the deletion itself, and where a deletion would run on a thread pool
      * it uses too ([EventPointers]).
      */

@@ -77,7 +77,7 @@ fun App(runtime: AppRuntime, onNavHostReady: suspend (NavController) -> Unit = {
     }
 }
 
-/** Shown while the app loads its data, before [App]: a progress indicator, not a blank screen (ITERATION_3 R13). */
+/** Shown while the app loads its data, before [App]: a progress indicator, not a blank screen (I3 R13). */
 @Composable
 fun AppLoading() {
     KapeluszTheme { Surface(Modifier.fillMaxSize()) { LoadingScreen() } }

@@ -31,7 +31,7 @@ internal object FundReducer {
         invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }
         invalidIf(band.fundEntries.any { it.id == op.entryId }, RejectionReason.DUPLICATE_ID) { "Fund entry ${op.entryId} already exists" }
         invalidIf(op.amount.isZero, RejectionReason.INVALID_AMOUNT) { "Fund entry amount cannot be zero" }
-        // Money leaves the fund only to refund a cost (ITERATION_7 §5.1).
+        // Money leaves the fund only to refund a cost (I7 §5.1).
         invalidIf(op.amount.isNegative && op.costId == null, RejectionReason.INVALID_INPUT) { "Money out of the fund refunds a cost" }
         op.costId?.let { costId ->
             val cost = band.cost(costId).orNotFound { "Cost $costId" }

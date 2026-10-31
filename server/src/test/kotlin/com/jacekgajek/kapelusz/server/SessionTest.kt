@@ -86,7 +86,7 @@ class SessionTest :
         assertEquals(200, call("POST", "/session", "google-alice").status, "a fresh Google sign-in starts a new chain")
     }
 
-    /** ITERATION_3 R6: "sign out on all devices" ends every session begun before it, for this user only. */
+    /** I3 R6: "sign out on all devices" ends every session begun before it, for this user only. */
     @Test
     fun revokingEndsEverySessionOfTheUserButNotNewSignIns() {
         val phone = session("google-alice").token

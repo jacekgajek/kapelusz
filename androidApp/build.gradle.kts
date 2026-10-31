@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
-    // Firebase's configuration (google-services.json) for sync messages (ITERATION_7 §2.5).
+    // Firebase's configuration (google-services.json) for sync messages (I7 §2.5).
     alias(libs.plugins.google.services)
 }
 
@@ -20,13 +20,13 @@ android {
         // CI passes an increasing number (its run number + 10); Android only installs updates with a higher one.
         versionCode = providers.environmentVariable("KAPELUSZ_VERSION_CODE").orNull?.toInt() ?: 1
         versionName = providers.gradleProperty("kapelusz.versionName").get()
-        // Google Maps for picking a place (ITERATION_6 §3); restricted to this app's package and signing certificates.
+        // Google Maps for picking a place (I6 §3); restricted to this app's package and signing certificates.
         manifestPlaceholders["googleMapsKey"] = providers.environmentVariable("KAPELUSZ_GOOGLE_MAPS_ANDROID_KEY").filter { it.isNotBlank() }
             .orElse(providers.gradleProperty("kapelusz.googleMapsAndroidKey")).orElse("").get()
     }
 
     // The release is signed with the upload key from the environment (CI secrets), and Google Play re-signs it with the
-    // app's key (ITERATION_7 §1.2); without it the release build is unsigned. Google Play is the only way the app is
+    // app's key (I7 §1.2); without it the release build is unsigned. Google Play is the only way the app is
     // handed out (2026-10-27): no APK on the website any more.
     val uploadKeystore = providers.environmentVariable("ANDROID_UPLOAD_KEYSTORE_PATH").orNull
     signingConfigs {

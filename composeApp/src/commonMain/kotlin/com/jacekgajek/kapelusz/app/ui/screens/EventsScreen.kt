@@ -135,7 +135,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages, undos = null)
     // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
-    // (ITERATION_4 §1.1).
+    // (I4 §1.1).
     val artist = session.artist
     val onlyMine = artist || settings.onlyMyEvents
     // Settling every event is costly: again only when the band or a filter changes, not on each redraw (e.g. a key
@@ -143,7 +143,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
     val summaries = remember(band, state.me, onlyMine, settings.showArchived) {
         eventSummaries(state.view, state.me, settings.showArchived, onlyMine)
     }
-    // Searching (ITERATION_6 §6) is the ViewModel's: prepared in the background once opened.
+    // Searching (I6 §6) is the ViewModel's: prepared in the background once opened.
     val searching = events.searching
     val query = events.query
     val words = events.words
@@ -174,7 +174,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // The band is to be deleted (ITERATION_7 §9): said to everyone, kept by a leader.
+            // The band is to be deleted (I7 §9): said to everyone, kept by a leader.
             if (!searching && band.deletion != null) {
                 item(key = "deletion") {
                     BandDeletionNotice(
@@ -186,7 +186,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
                     )
                 }
             }
-            // What the band still lacks, for its leaders (ITERATION_5 §11): until it's there, or (no one in the app) hidden.
+            // What the band still lacks, for its leaders (I5 §11): until it's there, or (no one in the app) hidden.
             // While searching, only the search and its results: the cards would push them under the keyboard.
             if (!searching) {
                 bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
@@ -195,7 +195,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
                     }
                 }
             }
-            // Until answered (ITERATION_5 §7): there are no pushes, and nobody visits the roster to check.
+            // Until answered (I5 §7): there are no pushes, and nobody visits the roster to check.
             if (!searching && state.me?.let { SettleTogether.inviterOf(band, it.id) } != null) {
                 item(key = "settle-together") { SettleTogetherInvitationCard(band, state.me, actions) }
             }
@@ -286,9 +286,9 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
                         fields.name.trim(),
                         fields.date,
                         fields.location.ifBlank { null },
-                        // Nobody yet (ITERATION_8 §1.2a): the event offers another event's line-up, or one by one.
+                        // Nobody yet (I8 §1.2a): the event offers another event's line-up, or one by one.
                         agenda = fields.agenda,
-                        // The band's fund default (ITERATION_7 §5.2), while the fund is on.
+                        // The band's fund default (I7 §5.2), while the fund is on.
                         fund = band.fundDefault.takeIf { band.treasurerMemberId != null },
                     ),
                 )
@@ -354,7 +354,7 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 when {
                     summary.settlement.status == EventStatus.DRAFT -> {}
 
-                    // An artist holds no money: only what they got too much is theirs to hand back (V5-M1 C7, ITERATION_7 §3.2).
+                    // An artist holds no money: only what they got too much is theirs to hand back (I5 C7, I7 §3.2).
                     !showStatus && number is MyNumber.HandOver -> Text(
                         stringResource(Res.string.artist_to_hand_back) + ": " + formatMoney(number.amount, band.currency, language),
                         color = MoneyColors.negative,
@@ -397,7 +397,7 @@ private fun NewEventDialog(band: Band, places: PlaceLookup?, onDismiss: () -> Un
                 name = "",
                 date = today(),
                 location = "",
-                // The band's agenda template, to fill in now or later (ITERATION_2 §4.3).
+                // The band's agenda template, to fill in now or later (I2 §4.3).
                 agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
             ),
         )
@@ -435,7 +435,7 @@ private fun EventCard(icon: ImageVector, text: String, color: Color, onClick: ()
 }
 
 /**
- * Everyone's avatars in the room left beside the card's text (ITERATION_5 §3): the same size, overlapping more as room
+ * Everyone's avatars in the room left beside the card's text (I5 §3): the same size, overlapping more as room
  * runs out; when even then a third of each would not show, the first ones and "+N" for the rest.
  */
 @Composable

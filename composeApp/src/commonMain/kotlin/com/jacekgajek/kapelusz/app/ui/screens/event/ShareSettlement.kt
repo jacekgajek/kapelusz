@@ -62,7 +62,7 @@ private fun settlementWords(eventId: String?) = SettlementWords(
     stillToPay = stringResource(Res.string.share_text_still_to_pay),
     allSettled = stringResource(Res.string.share_text_all_settled),
     incomplete = stringResource(Res.string.share_text_incomplete),
-    // The event's own link, opening it in the app (ITERATION_5 §10).
+    // The event's own link, opening it in the app (I5 §10).
     footer = eventId?.let { EventLinks.url(AppConfig.WEB_URL, it) } ?: AppConfig.WEB_URL,
     awaited = stringResource(Res.string.share_awaited),
     awaitingRest = stringResource(Res.string.share_text_awaiting_rest),
@@ -70,7 +70,7 @@ private fun settlementWords(eventId: String?) = SettlementWords(
 )
 
 /**
- * Shares the settlement as text (ITERATION_3 §2.1): the share sheet on Android and where the browser has Web Share,
+ * Shares the settlement as text (I3 §2.1): the share sheet on Android and where the browser has Web Share,
  * otherwise the clipboard, said in the snackbar. Null while there is nothing to share (no event, or a draft).
  */
 @Composable

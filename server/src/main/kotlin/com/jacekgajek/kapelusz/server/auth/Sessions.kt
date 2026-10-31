@@ -48,7 +48,7 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
     fun issue(user: VerifiedUser): Pair<String, Long> {
         val now = clock()
         val since = user.sessionSince ?: now
-        // A renewed token ends with the session too: at most [MAX_AGE_MS] after the Google sign-in (ITERATION_3 R6).
+        // A renewed token ends with the session too: at most [MAX_AGE_MS] after the Google sign-in (I3 R6).
         val expiresAt = minOf(now + LIFETIME_MS, since + MAX_AGE_MS)
         val claims = Claims(user.userId, user.email, user.name, expiresAt, since = since)
         val payload = encoder.encodeToString(KapeluszJson.encodeToString(Claims.serializer(), claims).toByteArray())
@@ -86,7 +86,7 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
         const val LIFETIME_MS = 30L * 24 * 3600 * 1000
 
         /**
-         * Renewing a session keeps it alive at most this long after the Google sign-in (ITERATION_3 R6): a stolen
+         * Renewing a session keeps it alive at most this long after the Google sign-in (I3 R6): a stolen
          * token cannot be kept alive for ever; then the app asks Google again.
          */
         const val MAX_AGE_MS = 90L * 24 * 3600 * 1000
@@ -98,7 +98,7 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
 }
 
 /**
- * "Signed out everywhere" (ITERATION_3 R6): session tokens whose chain began ([VerifiedUser.sessionSince]) before the
+ * "Signed out everywhere" (I3 R6): session tokens whose chain began ([VerifiedUser.sessionSince]) before the
  * user's [UserRecord.sessionsValidFrom] are refused, on every request and on renewal. A Google sign-in afterwards
  * starts a new chain (its `since` is the time of that sign-in), so it works again.
  *

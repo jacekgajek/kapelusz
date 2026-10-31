@@ -16,7 +16,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
 /**
- * A user's gigs as an iCalendar feed (ITERATION_2 §6), built from the current band data on every fetch so calendar apps
+ * A user's gigs as an iCalendar feed (I2 §6), built from the current band data on every fetch so calendar apps
  * follow changes on their next refresh. Times are "floating" (no time zone): a gig at 20:00 shows at 20:00 in the
  * calendar's own zone, which is right for local gigs. Entries carry no money.
  */
@@ -39,7 +39,7 @@ object CalendarFeed {
             val me = band.memberOfUser(userId)?.takeUnless { it.archived } ?: continue
             for (event in band.events) {
                 if (event.archived || event.date < from) continue
-                // Artists get only the events they play, whatever they chose (ITERATION_4 §1.1).
+                // Artists get only the events they play, whatever they chose (I4 §1.1).
                 if ((!includeAll || me.role == Role.ARTIST) && event.participant(me.id) == null) continue
                 lines += eventLines(band, event, webUrl, stamp)
             }
@@ -80,13 +80,13 @@ object CalendarFeed {
 
     private fun commonLines(band: Band, event: Event, times: List<AgendaTime>, webUrl: String): List<String> {
         val agenda = times.joinToString("\n") { listOf(label(it), hhmm(it.time!!)).filter(String::isNotBlank).joinToString(" ") }
-        // The event's own link, opening it in the app (ITERATION_5 §10).
+        // The event's own link, opening it in the app (I5 §10).
         val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · ${EventLinks.url(webUrl, event.id)}").joinToString("\n\n")
         return listOfNotNull(
             "SUMMARY:${text(event.name)}",
             event.location?.let { "LOCATION:${text(it)}" },
             "DESCRIPTION:${text(description)}",
-            // Calendar apps open directions to the place from here (ITERATION_5 §9.1); the location also shows on their map.
+            // Calendar apps open directions to the place from here (I5 §9.1); the location also shows on their map.
             Places.navigateUrl(event)?.let { "URL:$it" },
         )
     }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Większe zespoły (ITERATION_8): wybór składu, członkowie według ról, szukanie osób -->
+    <!-- Większe zespoły (I8): wybór składu, członkowie według ról, szukanie osób -->
     <string name="search_people">Szukaj po imieniu</string>
     <string name="search_by_title">Szukaj po nazwie</string>
     <string name="search_people_none">Nikt nie pasuje do „%1$s”.</string>

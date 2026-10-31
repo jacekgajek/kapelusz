@@ -15,7 +15,7 @@ import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.CostStatus
 import kotlinx.datetime.LocalDate
 
-/** Where files shared to Kapelusz can go (ITERATION_6 §1): one of these, in an event of one of the user's bands. */
+/** Where files shared to Kapelusz can go (I6 §1): one of these, in an event of one of the user's bands. */
 sealed interface ShareTarget {
     /** How many more files it takes. */
     val room: Int
@@ -41,7 +41,7 @@ object ShareTargets {
     fun events(bands: List<Band>, userId: String, today: LocalDate): List<ShareEvent> {
         val all = bands.map(::BandView).flatMap { view ->
             val band = view.band
-            // Artists see only the events they play (ITERATION_4 §1.1), even with an own cost in another.
+            // Artists see only the events they play (I4 §1.1), even with an own cost in another.
             val me = band.memberOfUser(userId)?.id
             val artist = band.isArtist(userId)
             band.events

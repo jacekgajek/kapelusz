@@ -30,8 +30,8 @@ import com.jacekgajek.kapelusz.settlement.SettleTogether
 
 /**
  * Kinds of changes that cannot be undone: joining by invite, unlinking an account, passing on ownership, and settling
- * together and one's own payment details, which are each member's own decision (ITERATION_5 §7, §8), and deleting the
- * band or keeping it, whose times are the server's (ITERATION_7 §9); and a kind this version doesn't know (ITERATION_8 §2).
+ * together and one's own payment details, which are each member's own decision (I5 §7, I5 §8), and deleting the
+ * band or keeping it, whose times are the server's (I7 §9); and a kind this version doesn't know (I8 §2).
  */
 fun isUndoable(op: Operation): Boolean = when (op) {
     is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone, is SetBankAccount, is ScheduleBandDeletion, is CancelBandDeletion,
@@ -56,7 +56,7 @@ internal object Undoing {
         val after = op.change.after
         val unchanged = settingsUnchanged(op.change.before.settings, after.settings, band.settings) &&
             // A photo is not a change of the band (the server updates it at sign-in): undo ignores it. So does it a pair
-            // formed or ended since (ITERATION_5 §7), which the undone change didn't touch.
+            // formed or ended since (I5 §7), which the undone change didn't touch.
             after.members.all { (id, value) -> band.member(id)?.plain() == value?.plain() } &&
             after.events.all { (id, value) -> band.event(id) == value } &&
             after.costs.all { (id, value) -> band.cost(id) == value } &&
@@ -88,7 +88,7 @@ internal object Undoing {
                     val later = after.members[id]
                     member?.copy(
                         pictureUrl = current?.pictureUrl ?: member.pictureUrl,
-                        // Only ever set by their own operations, which are not undoable (ITERATION_5 §8, ITERATION_7 §7).
+                        // Only ever set by their own operations, which are not undoable (I5 §8, I7 §7).
                         blikPhone = if (current == null) member.blikPhone else current.blikPhone,
                         bankAccount = if (current == null) member.bankAccount else current.bankAccount,
                         settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith,
@@ -113,10 +113,10 @@ internal object Undoing {
         val memberIds = band.members.map { it.id }.toSet()
         val costs = band.costs.associateBy { it.id }
         band.treasurerMemberId?.let { id -> if (band.member(id)?.archived != false) add("treasurer $id") }
-        // Names are unique (ITERATION_5 §12): e.g. a deleted member brought back after another took their name.
+        // Names are unique (I5 §12): e.g. a deleted member brought back after another took their name.
         band.members.filter { member -> band.members.any { it !== member && it.name.trim().equals(member.name.trim(), ignoreCase = true) } }
             .forEach { add("name ${it.name.trim().lowercase()}") }
-        // A pair or invitation that no longer holds, e.g. one partner settling with someone else since (ITERATION_5 §7).
+        // A pair or invitation that no longer holds, e.g. one partner settling with someone else since (I5 §7).
         if (SettleTogether.tidy(band) != band) add("settling together")
         // The fund is off only when it is empty and every event handed over its part (as DisableBandFund requires).
         if (band.treasurerMemberId == null && !BandFund.canDisable(band)) add("band fund in use without a treasurer")
@@ -160,7 +160,7 @@ internal object Undoing {
 
 /**
  * Each setting the change made (from [before] to [after]) is still as it left it in [current]; settings it didn't touch
- * may have changed since, e.g. the fund's account set after a rename (ITERATION_7 §7).
+ * may have changed since, e.g. the fund's account set after a rename (I7 §7).
  */
 private fun settingsUnchanged(before: BandSettings?, after: BandSettings?, current: BandSettings): Boolean = before == null || after == null || settingFields.all { field -> field(before) == field(after) || field(current) == field(after) }
 

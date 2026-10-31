@@ -10,13 +10,13 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.rules.Artists
 
 /**
- * Two members settling together (ITERATION_5 §7): in an event where both take part they are one party on Settlement
+ * Two members settling together (I5 §7): in an event where both take part they are one party on Settlement
  * and in its transfers; everywhere else, what they collected, hold, spent and earned stays their own.
  */
 object SettleTogether {
 
     /**
-     * May be in a pair at all: on the roster, with an account (to answer), from artists up (ITERATION_6 §11). Not viewers,
+     * May be in a pair at all: on the roster, with an account (to answer), from artists up (I6 §11). Not viewers,
      * who play in no event. An artist still holds no money: their partner keeps or receives their share.
      */
     fun canPair(member: Member): Boolean = !member.archived && member.userId != null && member.role.atLeast(Role.ARTIST)
@@ -64,7 +64,7 @@ object SettleTogether {
     }
 
     /**
-     * Before the pair of [a] and [b] ends: the events they settled together keep them together (ITERATION_5 §7), so ending
+     * Before the pair of [a] and [b] ends: the events they settled together keep them together (I5 §7), so ending
      * a pair never reopens a settled event.
      */
     fun keepSettled(band: Band, a: Id, b: Id, before: Band = band): Band {
@@ -105,7 +105,7 @@ object SettleTogether {
     }
 
     /**
-     * Of what [memberId] is still owed in [settlement], the part their partner holds for them (ITERATION_6 §11): what the
+     * Of what [memberId] is still owed in [settlement], the part their partner holds for them (I6 §11): what the
      * partner holds over their own target, up to what [memberId] is owed. Zero without a partner here.
      */
     fun keptByPartner(settlement: Settlement, memberId: Id): Money {
@@ -116,7 +116,7 @@ object SettleTogether {
 
     /**
      * What recording [amount] from [from] to [to] (parties of a suggestion, either partner standing for a pair) records
-     * between real people (ITERATION_5 §7.3):
+     * between real people (I5 §7.3):
      * - a pair passing money on: each pays out of what they hold, the bigger holder first (anything over that is the
      *   bigger holder's);
      * - a pair receiving: the one owed more gets it;
@@ -135,7 +135,7 @@ object SettleTogether {
             to == BAND_FUND && treasurer in senders -> listOf(treasurer!! to amount.minor)
 
             else -> {
-                // An artist holds no money (ITERATION_4 §1.1), but pays back what they were paid too much (e.g. a refund
+                // An artist holds no money (I4 §1.1), but pays back what they were paid too much (e.g. a refund
                 // accepted after their payout made their share smaller): that, and no more, is theirs to send.
                 fun holds(id: Id) = if (Artists.isArtist(band, id)) {
                     (line(id)?.delta?.minor ?: 0).coerceAtLeast(0)

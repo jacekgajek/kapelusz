@@ -119,7 +119,7 @@ fun CostCategory.label(): String = stringResource(
     },
 )
 
-/** An icon in a tinted circle, as tall as a two-line row: a cost's category, received money (ITERATION_6 §1). */
+/** An icon in a tinted circle, as tall as a two-line row: a cost's category, received money (I6 §1). */
 @Composable
 fun IconCircle(icon: ImageVector, modifier: Modifier = Modifier, contentDescription: String? = null) {
     Box(modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
@@ -127,7 +127,7 @@ fun IconCircle(icon: ImageVector, modifier: Modifier = Modifier, contentDescript
     }
 }
 
-/** A cost's category as an icon (ITERATION_6 §1); a cost without one: a receipt, like Other. */
+/** A cost's category as an icon (I6 §1); a cost without one: a receipt, like Other. */
 fun CostCategory?.icon(): ImageVector = when (this) {
     CostCategory.TRAVEL -> Icons.Default.DirectionsCar
     CostCategory.ACCOMMODATION -> Icons.Default.Hotel

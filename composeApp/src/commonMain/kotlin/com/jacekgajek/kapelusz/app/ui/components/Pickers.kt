@@ -81,7 +81,7 @@ fun DateField(date: LocalDate, onDate: (LocalDate) -> Unit, label: String, modif
     }
 }
 
-/** A date range in a dialog (e.g. a summary's period, ITERATION_6 §7): OK once both ends are picked. */
+/** A date range in a dialog (e.g. a summary's period, I6 §7): OK once both ends are picked. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, LocalDate) -> Unit, onDismiss: () -> Unit) {
@@ -137,7 +137,7 @@ fun DateRangeDialog(from: LocalDate?, to: LocalDate?, onRange: (LocalDate, Local
 
 /**
  * Dropdown choosing one of [options]; [label] renders each option. With more than [Crowd.THRESHOLD] options its menu
- * starts with a search field (ITERATION_8 §1.5), saying [searchHint]: people unless the options are events or costs.
+ * starts with a search field (I8 §1.5), saying [searchHint]: people unless the options are events or costs.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

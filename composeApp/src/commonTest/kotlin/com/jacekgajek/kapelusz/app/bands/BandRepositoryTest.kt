@@ -57,7 +57,7 @@ class BandRepositoryTest {
         assertEquals(listOf("The Band"), reloaded.index.value!!.bands.map { it.name })
     }
 
-    /** V5-M1 A1: a change made while the band is being written is written too, not taken as saved with the old copy. */
+    /** I5 A1: a change made while the band is being written is written too, not taken as saved with the old copy. */
     @Test
     fun aChangeMadeDuringAWriteIsWrittenToo() = runTest {
         val inner = InMemoryStore()
@@ -246,7 +246,7 @@ class BandRepositoryTest {
         assertEquals(BandRepository.CURRENT_SCHEMA, saved.schema)
     }
 
-    /** ITERATION_8 §2: an unsent change of a kind this version doesn't know (a MoveMember) is dropped, the rest kept. */
+    /** I8 §2: an unsent change of a kind this version doesn't know (a MoveMember) is dropped, the rest kept. */
     @Test
     fun anUnsentChangeOfAnUnknownKindIsDropped() = runTest {
         val store = InMemoryStore()

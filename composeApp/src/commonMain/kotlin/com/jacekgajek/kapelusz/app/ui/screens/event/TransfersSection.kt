@@ -115,7 +115,7 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
                 }
             }
         }
-        // One tap with Undo in the snackbar (ITERATION_5 §4.1), as Settle and Part are.
+        // One tap with Undo in the snackbar (I5 §4.1), as Settle and Part are.
         val settledAll = stringResource(Res.string.settled_all)
         if (context.can.settleAll(event)) {
             Button(
@@ -198,7 +198,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val band = context.band
     val fundLabel = stringResource(Res.string.band_fund)
     val settlement = context.settlement
-    // The treasurer keeps it, also for a pair they settle in (ITERATION_5 §7).
+    // The treasurer keeps it, also for a pair they settle in (I5 §7).
     val keepsForFund = Settling.keepsForFund(band, settlement, suggestion)
     var partial by remember { mutableStateOf(false) }
     val lang = language
@@ -209,7 +209,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     // "Recorded: Ania → Bartek 250,00 zł", said with Undo.
     fun recorded(amount: Money) = UiMessage.Text(Res.string.transfer_recorded, listOf(from, to, formatMoney(amount, context.currency, lang)))
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
-    // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
+    // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (I2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         val settles = context.can.settleSuggestion(context.event, suggestion.from, suggestion.to)
         val label = settleLabel(band, settlement, context.me?.id, suggestion.from, suggestion.to)
@@ -217,7 +217,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
             Box(Modifier.weight(1f)) {
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }
             }
-            // Only to who pays it (ITERATION_5 §8): the recipient would read the icon as owing; the fund's holder keeping it pays nobody.
+            // Only to who pays it (I5 §8): the recipient would read the icon as owing; the fund's holder keeping it pays nobody.
             if (settles && !keepsForFund && BlikPhone.pays(band, settlement, context.me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -253,7 +253,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
 
 /**
  * An icon that copies the amount alone, as typed into a bank app (`2304,45` in Polish, no currency), e.g. for a transfer
- * (ITERATION_5 §3).
+ * (I5 §3).
  */
 @Composable
 internal fun CopyAmountButton(context: EventContext, amount: Money) {
@@ -312,8 +312,8 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
                 Dropdown(to, handOver.recipients(from), { to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)
                 }
-                // The recipient's BLIK number and account, if given, when the user hands over their own money (ITERATION_5 §8,
-                // ITERATION_7 §7).
+                // The recipient's BLIK number and account, if given, when the user hands over their own money (I5 §8,
+                // I7 §7).
                 Payees.forHandOver(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }?.let { payee ->
                     PaymentKind.entries.forEach { kind -> PaymentRow(kind, stringResource(kind.title), kind.of(payee), payeeName(payee)) }
                 }
@@ -325,7 +325,7 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(enabled = parsed != null && from != to, onClick = {
-                // Recorded with Undo in the snackbar (ITERATION_5 §4.6), as Settle is.
+                // Recorded with Undo in the snackbar (I5 §4.6), as Settle is.
                 val recorded = UiMessage.Text(
                     Res.string.transfer_recorded,
                     listOf(
@@ -358,5 +358,5 @@ private fun SuggestionText(context: EventContext, suggestion: SuggestedTransfer,
     }
 }
 
-/** Records [amount] of a suggestion; a pair's is recorded between the real people (ITERATION_5 §7). */
+/** Records [amount] of a suggestion; a pair's is recorded between the real people (I5 §7). */
 private fun settleOp(context: EventContext, suggestion: SuggestedTransfer, amount: Money) = RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, amount, together = true)

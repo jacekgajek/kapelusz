@@ -49,7 +49,7 @@ internal class BandHandlers(
         val user = call.user
         val request = call.body(CreateBandRequest.serializer())
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
-        // The same limits as every change (ITERATION_3 R1): ids that become storage keys, names of sensible length.
+        // The same limits as every change (I3 R1): ids that become storage keys, names of sensible length.
         StorageKeys.safe(request.bandId)
         users.requireRoomForBand(user.userId, request.bandId)
         val draft = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
@@ -96,7 +96,7 @@ internal class BandHandlers(
         // Members only, before any work on their behalf (undo lookups read the log), and a bounded number of undos.
         bands.loadForMember(user, bandId)
         badRequestIf(request.ops.count { it.op is Undo } > Api.MAX_UNDOS_PER_PUSH) { "At most ${Api.MAX_UNDOS_PER_PUSH} undos per push" }
-        // An undo restores what the server recorded, not what the client says was there (ITERATION_2 §7.2).
+        // An undo restores what the server recorded, not what the client says was there (I2 §7.2).
         val envelopes = request.ops.map { it.copy(clientId = "${user.userId}/${it.clientId}", op = history.recordedUndo(bandId, it.op)) }
         return retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
             val (band, etag) = bands.loadForMember(user, bandId)
@@ -108,9 +108,9 @@ internal class BandHandlers(
             var result = Engine.applyBatch(band, Actor.User(user.userId), envelopes)
             var encoded = if (result.band == band) null else encode(Band.serializer(), result.band)
             // A band must stay loadable: its state goes back in every response, and a Lambda response has 6 MB at most.
-            // Too large: the batch again, refusing just the operations that would grow it past the cap (ITERATION_3 R1),
+            // Too large: the batch again, refusing just the operations that would grow it past the cap (I3 R1),
             // so the rest goes through and the device's queue does not get stuck.
-            // Measured in UTF-8 bytes, what the response limit counts (V5-M1 A2): characters undercount other scripts.
+            // Measured in UTF-8 bytes, what the response limit counts (I5 A2): characters undercount other scripts.
             if (encoded != null && encoded.utf8Size() > maxBandBytes) {
                 result = Engine.applyBatch(band, Actor.User(user.userId), envelopes) { before, after ->
                     val size = encode(Band.serializer(), after).utf8Size()
@@ -132,7 +132,7 @@ internal class BandHandlers(
     }
 
     /**
-     * The owner asks to delete the band (ITERATION_7 §9): it is deleted for everyone a week later ([BandDeletions]),
+     * The owner asks to delete the band (I7 §9): it is deleted for everyone a week later ([BandDeletions]),
      * unless a leader keeps it meanwhile (`CancelBandDeletion`). Done here rather than as a pushed operation, so the
      * times are the server's; asked again while waiting, nothing changes.
      */
@@ -181,7 +181,7 @@ internal class BandHandlers(
         HttpResponse(204)
     }
 
-    /** The band's file exactly as stored, for leaders (ITERATION_2 §7.1): putting it back changes nothing. */
+    /** The band's file exactly as stored, for leaders (I2 §7.1): putting it back changes nothing. */
     fun raw(call: Call): HttpResponse {
         val user = call.user
         val bandId = call.param("bandId")

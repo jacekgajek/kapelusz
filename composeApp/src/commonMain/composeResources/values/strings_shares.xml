@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Shares by weight or a fixed amount (ITERATION_3 §2.4) -->
+    <!-- Shares by weight or a fixed amount (I3 §2.4) -->
     <string name="share_fixed_amount">Fixed amount</string>
     <string name="share_fixed_hint">Paid out before the rest is split by shares. Refunds of own costs come on top.</string>
     <string name="share_by_percent">Percentage</string>
@@ -11,7 +11,7 @@
     <string name="h_clear_fixed_share">Set the share of %1$s back to shares in %2$s</string>
     <string name="h_clear_fixed_share_weight">Set the share of %1$s back to %2$s in %3$s</string>
     <string name="problem_loss_fixed">Loss of %1$s. Lower the fixed amounts or percentages, defer some refunds, add income or let the band fund cover it before settling.</string>
-    <!-- Shares by weight, shown as a number of shares, and as a percentage of the profit (ITERATION_7 §6) -->
+    <!-- Shares by weight, shown as a number of shares, and as a percentage of the profit (I7 §6) -->
     <string name="share_by_weight">Shares</string>
     <string name="share_none">No share</string>
     <plurals name="share_count">

@@ -38,7 +38,7 @@ import com.jacekgajek.kapelusz.app.platform.WebInstallState
 import com.jacekgajek.kapelusz.app.platform.webHint
 import org.jetbrains.compose.resources.stringResource
 
-/** Hints dismissed with "Not now" since the event list last opened; kept in memory only (ITERATION_3 §2.3). */
+/** Hints dismissed with "Not now" since the event list last opened; kept in memory only (I3 §2.3). */
 private var dismissedThisVisit by mutableStateOf(emptySet<WebHint>())
 
 /**
@@ -78,7 +78,7 @@ internal fun WebInstallHint(eventList: Boolean, modifier: Modifier = Modifier) {
             when (hint) {
                 is WebHint.NewVersion -> if (reload != null) TextButton(onClick = reload) { Text(stringResource(Res.string.app_update_download)) }
 
-                // From Google Play only (ITERATION_7 §1.1).
+                // From Google Play only (I7 §1.1).
                 WebHint.AndroidApp -> TextButton(onClick = { uriHandler.openUri(PLAY_INSTALL) }) { Text(stringResource(Res.string.app_banner_download)) }
 
                 WebHint.HomeScreen -> Unit

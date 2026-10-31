@@ -31,7 +31,7 @@ internal class UserHandlers(
         val record = users.load(user.userId)
         val list = record.bandIds.mapNotNull { id ->
             val band = bands.load(id)?.first ?: return@mapNotNull null
-            // Archived members are not shown the band (the app then finds it gone, ITERATION_3 R9); restoring them shows it again.
+            // Archived members are not shown the band (the app then finds it gone, I3 R9); restoring them shows it again.
             val member = band.memberOfUser(user.userId)?.takeIf { !it.archived } ?: return@mapNotNull null
             BandSummary(band.id, band.name, member.name, member.role)
         }
@@ -40,7 +40,7 @@ internal class UserHandlers(
 
     fun picture(call: Call): HttpResponse {
         val user = call.user
-        // The Google token the app kept from signing in: the photo in it is the user's (ITERATION_2 §7.4).
+        // The Google token the app kept from signing in: the photo in it is the user's (I2 §7.4).
         val token = call.body(PictureRequest.serializer()).googleToken
         val picture = verifier.pictureOf(token, user.userId) ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "Not a Google sign-in token of this user")
         users.rememberPicture(user.userId, picture)
@@ -52,13 +52,13 @@ internal class UserHandlers(
         val user = call.user
         // A renewal that would keep a session alive too long: the app signs in with Google again.
         user.sessionSince?.let { since -> if (clock() - since > SessionTokens.MAX_AGE_MS) throw ApiError(401, ApiErrors.UNAUTHORIZED, "Sign in again") }
-        // Signing in with Google brings the current photo (ITERATION_2 §7.4); a failure must not stop the sign-in.
+        // Signing in with Google brings the current photo (I2 §7.4); a failure must not stop the sign-in.
         user.picture?.let { picture -> runCatching { users.rememberPicture(user.userId, picture) }.onFailure { System.err.println("Could not update the photo: $it") } }
         val (token, expiresAt) = sessions.issue(user)
         return ok(SessionResponse.serializer(), SessionResponse(token, expiresAt))
     }
 
-    /** "Sign out on all devices" (ITERATION_3 R6): every session of the user so far, this one included, stops working. */
+    /** "Sign out on all devices" (I3 R6): every session of the user so far, this one included, stops working. */
     fun revokeSessions(call: Call): HttpResponse {
         val user = call.user
         revocations.revoke(user.userId)

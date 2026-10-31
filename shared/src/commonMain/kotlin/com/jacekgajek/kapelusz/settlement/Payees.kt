@@ -7,15 +7,15 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 
 /**
- * Where to send money (ITERATION_5 §8, ITERATION_7 §7): a member's own BLIK number and bank account, or the band fund's
+ * Where to send money (I5 §8, I7 §7): a member's own BLIK number and bank account, or the band fund's
  * ([member] null), whichever were given.
  */
 data class Payee(val member: Member?, val blikPhone: String?, val bankAccount: String?)
 
 object Payees {
     /**
-     * Who to send a suggested transfer to: the band fund's own details for the fund (never its holder's: ITERATION_7
-     * §7); for a pair, the partner it is recorded to (owed more) first, then the other (ITERATION_5 §8). With [payer], the one that person pays comes first (a paying pair's part may go to each partner).
+     * Who to send a suggested transfer to: the band fund's own details for the fund (never its holder's: I7
+     * §7); for a pair, the partner it is recorded to (owed more) first, then the other (I5 §8). With [payer], the one that person pays comes first (a paying pair's part may go to each partner).
      */
     fun forTransfer(band: Band, settlement: Settlement, from: Id, to: Id, amount: Money, payer: Id? = null): List<Payee> {
         if (to == BAND_FUND) return listOfNotNull(fund(band))

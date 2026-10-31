@@ -18,7 +18,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Bigger groups (ITERATION_8): what changes with size appears only past [THRESHOLD], so a small band sees no change.
+ * Bigger groups (I8): what changes with size appears only past [THRESHOLD], so a small band sees no change.
  */
 object Crowd {
     /** More people than this in a list: a search field, the picker instead of chips. */

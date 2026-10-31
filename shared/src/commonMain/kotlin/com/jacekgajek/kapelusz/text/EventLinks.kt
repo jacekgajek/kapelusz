@@ -6,7 +6,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Role
 
 /**
- * Links to an event (ITERATION_5 §10): `<web>/e/<eventId>`. Event ids are unique across bands, so the link needs no
+ * Links to an event (I5 §10): `<web>/e/<eventId>`. Event ids are unique across bands, so the link needs no
  * band: the app finds the event among the user's bands. On Android a verified App Link opens the app; elsewhere the
  * web app opens it.
  */

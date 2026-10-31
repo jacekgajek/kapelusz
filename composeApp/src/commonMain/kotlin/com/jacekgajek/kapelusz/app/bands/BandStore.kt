@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
  * is lost, and writing what changed: soon after each change, now when the sync asks, and again later when the device
  * was full. [BandRepository] keeps the bands in memory and tells the store what changed; the store reads the
  * repository's current objects through its [Source] when it writes, so a change made during a write is not taken as
- * saved (V5-M1 A1).
+ * saved (I5 A1).
  */
 class BandStore(private val store: KeyValueStore, private val scope: CoroutineScope, private val clock: () -> Long = ::nowMillis) {
     /** What is written: the repository's objects as they are now. */
@@ -39,7 +39,7 @@ class BandStore(private val store: KeyValueStore, private val scope: CoroutineSc
 
     suspend fun readIndex(userId: String): String? = store.read(indexKey(userId))
 
-    /** Never lose the only copy (ITERATION_3 R4): the index as it was before it is replaced. */
+    /** Never lose the only copy (I3 R4): the index as it was before it is replaced. */
     suspend fun backupIndex(userId: String, raw: String) = store.write("${indexKey(userId)}-backup-${clock()}", raw)
 
     suspend fun readBand(userId: String, bandId: Id): String? = store.read(bandKey(userId, bandId))
@@ -102,7 +102,7 @@ class BandStore(private val store: KeyValueStore, private val scope: CoroutineSc
 
     /**
      * One pass over what changed. Each is unmarked only once written, and only if it didn't change again during its write
-     * (V5-M1 A1): otherwise that newer change would count as saved. False when a write failed.
+     * (I5 A1): otherwise that newer change would count as saved. False when a write failed.
      */
     private suspend fun writeChanged(source: Source, user: String): Boolean {
         var ok = true

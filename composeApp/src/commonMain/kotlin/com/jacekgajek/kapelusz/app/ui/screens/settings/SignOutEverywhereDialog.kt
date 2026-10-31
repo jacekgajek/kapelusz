@@ -16,7 +16,7 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberTask
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Sign out on all devices" (ITERATION_3 R6), confirmed first: it needs the server, so offline it says so and this
+ * "Sign out on all devices" (I3 R6), confirmed first: it needs the server, so offline it says so and this
  * device stays signed in.
  */
 @Composable

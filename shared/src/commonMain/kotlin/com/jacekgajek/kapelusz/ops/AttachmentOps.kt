@@ -6,9 +6,9 @@ import com.jacekgajek.kapelusz.model.Id
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Files on costs, received-money entries and events (ITERATION_4 §2.1).
+// Files on costs, received-money entries and events (I4 §2.1).
 
-/** Attaches a file to a cost, a collected entry or an event ([owner], ITERATION_4 §2.1). */
+/** Attaches a file to a cost, a collected entry or an event ([owner], I4 §2.1). */
 @Serializable
 @SerialName("AddAttachment")
 data class AddAttachment(override val owner: AttachmentOwner, val attachment: Attachment) : AttachmentOp {
@@ -21,7 +21,7 @@ data class RemoveAttachment(override val owner: AttachmentOwner, val attachmentI
     constructor(costId: Id, attachmentId: Id) : this(AttachmentOwner.OfCost(costId), attachmentId)
 }
 
-/** Gives an attachment another file name (ITERATION_4 §2.1). */
+/** Gives an attachment another file name (I4 §2.1). */
 @Serializable
 @SerialName("RenameAttachment")
 data class RenameAttachment(override val owner: AttachmentOwner, val attachmentId: Id, val fileName: String) : AttachmentOp

@@ -8,7 +8,7 @@ import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** ITERATION_5 §12: member names are unique, ignoring case, archived members included. */
+/** I5 §12: member names are unique, ignoring case, archived members included. */
 class MemberNamesTest {
     @Test
     fun aNameInUseIsRefusedWhenAddingOrRenaming() {

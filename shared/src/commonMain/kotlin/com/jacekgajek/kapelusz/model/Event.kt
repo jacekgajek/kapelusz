@@ -25,16 +25,16 @@ data class Event(
      * [fundPercent] is set: then [fund] is worked out from the profit.
      */
     val fundAmount: Money = Money.ZERO,
-    /** The band fund's cut as a percentage of the profit, 1–100 (ITERATION_7 §5.2); null: [fundAmount] as it is. */
+    /** The band fund's cut as a percentage of the profit, 1–100 (I7 §5.2); null: [fundAmount] as it is. */
     val fundPercent: Int? = null,
-    /** Agenda times of the day (ITERATION_2 §4.1), copied from the band's template when the event is created. */
+    /** Agenda times of the day (I2 §4.1), copied from the band's template when the event is created. */
     val agenda: List<AgendaTime> = emptyList(),
-    /** Files about the gig, not tied to any money: contract, rider, stage plan (ITERATION_4 §2.1). */
+    /** Files about the gig, not tied to any money: contract, rider, stage plan (I4 §2.1). */
     val attachments: List<Attachment> = emptyList(),
     /** Epoch millis of the last operation touching this event. */
     val updatedAt: Long = 0,
     /**
-     * Pairs that settled this event together and have ended since (ITERATION_5 §7): here they stay one party, so the
+     * Pairs that settled this event together and have ended since (I5 §7): here they stay one party, so the
      * event stays settled. Each is the two member ids.
      */
     val settledTogether: List<List<Id>> = emptyList(),
@@ -47,12 +47,12 @@ data class Event(
     /** What goes to the band fund (negative: comes from it): the fixed [fundAmount], or [fundPercent] of the profit. */
     val fund: Money get() = fundPercent?.let { FundCut.ofProfit(it, income - refunds.sumOfMoney { r -> r.amount }) } ?: fundAmount
 
-    /** Part of [income] the organiser still owes (ITERATION_4 §2.2). */
+    /** Part of [income] the organiser still owes (I4 §2.2). */
     val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.amount }
 }
 
 /**
- * The band fund's cut of an event (ITERATION_7 §5.2): a fixed [amount] or a [percent] of the profit (income less cost
+ * The band fund's cut of an event (I7 §5.2): a fixed [amount] or a [percent] of the profit (income less cost
  * refunds), never both. As a band's default for new events, always money to the fund, never from it.
  */
 @Serializable
@@ -81,8 +81,8 @@ data class Guest(val id: Id, val name: String)
 /**
  * A member or guest taking part in an event. [weight] is a share in percent: 100 = one normal share. [addedBy] is the
  * member who added them (unknown for events from before version 2). With a [fixedShare] they take exactly that amount
- * off the top instead of a share by weight (ITERATION_3 §2.4); with a [percent], that percentage of the profit
- * (ITERATION_7 §6). Never both; the weight is kept for switching back.
+ * off the top instead of a share by weight (I3 §2.4); with a [percent], that percentage of the profit
+ * (I7 §6). Never both; the weight is kept for switching back.
  */
 @Serializable
 data class Participant(
@@ -96,7 +96,7 @@ data class Participant(
     val byWeight: Boolean get() = fixedShare == null && percent == null
 }
 
-/** A participant's percentage of the profit (ITERATION_7 §6). */
+/** A participant's percentage of the profit (I7 §6). */
 object SharePercent {
     const val MAX = 100
 
@@ -149,9 +149,9 @@ data class Holding(
     val amount: Money,
     val source: IncomeSource,
     val note: String? = null,
-    /** E.g. the contract this money was paid under (ITERATION_4 §2.1). */
+    /** E.g. the contract this money was paid under (I4 §2.1). */
     val attachments: List<Attachment> = emptyList(),
-    /** Who recorded it; for an awaited fee ([ORGANISER]), the lead reminded to chase it (ITERATION_4 §2.2). */
+    /** Who recorded it; for an awaited fee ([ORGANISER]), the lead reminded to chase it (I4 §2.2). */
     val recordedBy: Id? = null,
 ) {
     val awaited: Boolean get() = partyId == ORGANISER

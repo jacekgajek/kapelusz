@@ -7,7 +7,7 @@ import com.jacekgajek.kapelusz.server.bands.BandAccess
 import java.util.Locale
 import kotlinx.datetime.number
 /**
- * Event links as web pages (ITERATION_6 §2): the web app's page, with a card for link readers (WhatsApp, Messenger,
+ * Event links as web pages (I6 §2): the web app's page, with a card for link readers (WhatsApp, Messenger,
  * Slack) in its `og:` tags: the event's name and date; an unknown or deleted one keeps the page's own, generic tags.
  * Nothing else about the band is given away: anyone with a link sees the card. Join links keep the generic card: one
  * naming the band would tell anyone, unsigned and without the app's limit on guesses, whether a code is valid.
@@ -17,7 +17,7 @@ internal class LinkPages(private val index: WebIndex, private val bands: BandAcc
         val card = runCatching {
             val bandId = pointers.bandOf(eventId)
             val event = bandId?.let { bands.load(it)?.first?.event(eventId) }
-            // Numbers only: link readers don't say the reader's language (ITERATION_6 §2).
+            // Numbers only: link readers don't say the reader's language (I6 §2).
             event?.let { Card(it.name, String.format(Locale.ROOT, "%02d.%02d.%04d", it.date.day, it.date.month.number, it.date.year)) }
         }.getOrNull()
         return page(card)

@@ -15,7 +15,7 @@ import com.jacekgajek.kapelusz.server.ok
 /** Files of attachments: the band's state lists them, the bucket holds them ([AttachmentFiles]), uploaded and opened by presigned URLs. */
 internal class AttachmentHandlers(private val bands: BandAccess, private val files: AttachmentFiles) {
     /**
-     * A URL to upload the file of an attachment already listed on its cost, collected entry or event (ITERATION_4
+     * A URL to upload the file of an attachment already listed on its cost, collected entry or event (I4
      * §2.1). Any member who can add costs may upload
      * (the attachment op itself was permission-checked); the URL can only create the file, never replace it, and is
      * signed for exactly the declared size.

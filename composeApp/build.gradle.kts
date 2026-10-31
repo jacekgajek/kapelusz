@@ -8,10 +8,10 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
 }
 
-// API URL and Google client id compiled into the app (ITERATION_1 §6.3): environment variables win over this machine's
+// API URL and Google client id compiled into the app (I1 §6.3): environment variables win over this machine's
 // local.properties (e.g. the local server for the IDE's Run and Debug, LOCAL_DEVELOPMENT.md), which wins over
 // gradle.properties. A blank variable counts as missing: CI sets an empty one for an unset repository variable
-// (ITERATION_3 R5).
+// (I3 R5).
 val localProperties = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties")).asText
     .map { text -> Properties().apply { load(text.reader()) } }
 
@@ -72,7 +72,7 @@ val generateAppConfig = tasks.register("generateAppConfig") {
             |    const val VERSION_NAME = "${versionName.get()}"
             |    const val VERSION_CODE = ${versionCode.get().toInt()}
             |
-            |    /** Whether the Android app has a Google Maps key (ITERATION_6 §3), so a place can be picked on a map. */
+            |    /** Whether the Android app has a Google Maps key (I6 §3), so a place can be picked on a map. */
             |    const val HAS_MAPS_KEY = ${mapsKey.get().isNotBlank()}
             |
             |    /** Sign-in as a made-up user instead of Google's, for the local server (LOCAL_DEVELOPMENT.md). */
@@ -106,7 +106,7 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
             }
-            // In headless Chrome (ITERATION_3 R14), e.g. for the IndexedDB storage: CHROME_BIN, else a Chrome on the PATH
+            // In headless Chrome (I3 R14), e.g. for the IndexedDB storage: CHROME_BIN, else a Chrome on the PATH
             // (CI) or one installed by Playwright. Skipped where there is none; commonTest also runs as Android host tests.
             testTask {
                 val chrome = headlessChrome()
@@ -137,14 +137,14 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
-            // Google photos of members (ITERATION_2 §7.4).
+            // Google photos of members (I2 §7.4).
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
-            // The invite's QR code (ITERATION_6 §8): only the encoder; it's drawn in Compose.
+            // The invite's QR code (I6 §8): only the encoder; it's drawn in Compose.
             implementation(libs.qrcode.kotlin)
         }
         androidMain.dependencies {
-            // Scanning an invite's QR code in Join band (ITERATION_6 §10): Play services' own scanner, no camera permission.
+            // Scanning an invite's QR code in Join band (I6 §10): Play services' own scanner, no camera permission.
             implementation(libs.play.services.code.scanner)
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.activity.compose)
@@ -153,11 +153,11 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services)
             implementation(libs.googleid)
-            // Picking a place on a map for Location (ITERATION_6 §3).
+            // Picking a place on a map for Location (I6 §3).
             implementation(libs.maps.compose)
-            // Sync messages, not notifications (ITERATION_7 §2.3): messaging only, no Analytics.
+            // Sync messages, not notifications (I7 §2.3): messaging only, no Analytics.
             implementation(libs.firebase.messaging)
-            // Updates from Google Play offered in the app (ITERATION_7 §4).
+            // Updates from Google Play offered in the app (I7 §4).
             implementation(libs.play.app.update)
         }
         wasmJsMain.dependencies {

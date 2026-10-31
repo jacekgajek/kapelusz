@@ -78,7 +78,7 @@ Console.
 - [BACKLOG.md](BACKLOG.md) — what is known to be wrong or missing.
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md), [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md) — working offline; restoring data.
 - [REFACTORING.md](REFACTORING.md) — the 2026-10-31 restructuring: plan, progress, reviews under `docs/refactoring/`.
-- [docs/history/](docs/history/) — the planning iterations as they were written (`ITERATION_1` to `ITERATION_8`), the
+- [docs/history/](docs/history/) — the planning iterations as they were written (`I1` to `I8`), the
   record of how each decision was reached; `SPEC.md` cites them.
 
 The app was called Art Split until 1.0 (and Split Art for a few hours). The S3 buckets (`jacekgajek-art-split-*`) and the Lambda (`art-split-api`)

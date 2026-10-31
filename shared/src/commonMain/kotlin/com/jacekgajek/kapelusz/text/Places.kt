@@ -12,7 +12,7 @@ data class SharedPlace(val name: String?, val url: String)
  */
 data class MapTarget(val name: String?, val pin: Pair<String, String>?, val query: String?)
 
-/** Google Maps links (ITERATION_2 §4.4): reading a link copied in Maps, and the links Kapelusz opens. */
+/** Google Maps links (I2 §4.4): reading a link copied in Maps, and the links Kapelusz opens. */
 object Places {
     /** The longest Maps link read from a shared or pasted text; longer ones are not taken for links. */
     const val MAX_URL = 1000
@@ -57,7 +57,7 @@ object Places {
     const val MAX_QUERY = 100
 
     /**
-     * What a picked suggestion puts in Location (ITERATION_5 §9): the name and its town, which is the part of the
+     * What a picked suggestion puts in Location (I5 §9): the name and its town, which is the part of the
      * address before the country ("Stodoła, Warszawa"), or before a state code ("Nashville, TN, USA"), without postal
      * codes; just the name when there is no such part.
      */
@@ -70,7 +70,7 @@ object Places {
     }
 
     /**
-     * Location for a place with its full [address] (ITERATION_5 §9.1): "Ołówek, Legnicka 36, 53-673 Wrocław", without
+     * Location for a place with its full [address] (I5 §9.1): "Ołówek, Legnicka 36, 53-673 Wrocław", without
      * the [country] at its end, and without the name twice when the address starts with it (a street address picked).
      */
     fun placeText(name: String, address: String?, country: String?): String {
@@ -113,7 +113,7 @@ object Places {
     private val viewport = Regex("""^@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)""")
 
     /**
-     * What a full Google Maps link (after its short link's redirects) points at (ITERATION_5 §9.1): a place's name with
+     * What a full Google Maps link (after its short link's redirects) points at (I5 §9.1): a place's name with
      * its exact pin (`!3d…!4d…`, else the map's centre `@…`), a dropped pin (its coordinates as the name, in degrees
      * or decimal), or a searched text (`?q=`); null for anything else.
      */

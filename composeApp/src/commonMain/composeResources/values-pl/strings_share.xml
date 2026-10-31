@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Udostępnianie rozliczenia jako tekstu (ITERATION_3 §2.1) -->
+    <!-- Udostępnianie rozliczenia jako tekstu (I3 §2.1) -->
     <string name="share_settlement">Udostępnij rozliczenie</string>
     <string name="share_settlement_copied">Skopiowano rozliczenie do schowka</string>
     <string name="share_settlement_failed">Nie udało się udostępnić rozliczenia.</string>

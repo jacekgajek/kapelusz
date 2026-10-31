@@ -5,7 +5,7 @@ import androidx.compose.ui.unit.IntSize
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** A zoomed PDF reaches its bottom (ITERATION_5 §4.3), also a single page the list cannot scroll at all. */
+/** A zoomed PDF reaches its bottom (I5 §4.3), also a single page the list cannot scroll at all. */
 class PdfZoomTest {
     private val size = IntSize(1000, 2000)
 

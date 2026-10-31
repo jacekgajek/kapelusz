@@ -12,7 +12,7 @@ import com.jacekgajek.kapelusz.ops.PairOp
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.settlement.SettleTogether
 
-/** Settling together (ITERATION_5 §7): invitations and pairs. Pure state transitions and their validation; see [Reducer]. */
+/** Settling together (I5 §7): invitations and pairs. Pure state transitions and their validation; see [Reducer]. */
 internal object PairReducer {
     fun apply(band: Band, op: PairOp): Band = when (op) {
         is InviteToSettleTogether -> {

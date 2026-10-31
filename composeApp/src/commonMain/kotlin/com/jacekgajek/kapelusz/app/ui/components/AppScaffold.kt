@@ -30,7 +30,7 @@ fun EmptyState(text: String, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text) }
 }
 
-/** The widest a list grows: on tablets it stays readable, centred (ITERATION_3 R13). */
+/** The widest a list grows: on tablets it stays readable, centred (I3 R13). */
 val MAX_LIST_WIDTH = 600.dp
 
 /** Caps a list (after its size modifiers) at [MAX_LIST_WIDTH], centred in the space it was given. */

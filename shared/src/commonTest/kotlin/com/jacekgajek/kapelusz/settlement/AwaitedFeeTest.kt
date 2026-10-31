@@ -29,7 +29,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** ITERATION_4 §2.2: a fee the organiser has not paid yet. */
+/** I4 §2.2: a fee the organiser has not paid yet. */
 class AwaitedFeeTest {
 
     /** Bob took 2000 at the door; the 3000 contract is awaited; three equal shares of 1666.67 (rounding aside). */
@@ -93,7 +93,7 @@ class AwaitedFeeTest {
         val alice = scenario.userFor("alice", Role.OWNER)
         scenario.userFor("carol", Role.ARTIST)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddHolding("gig", "f2", ORGANISER, pln("1"), CONTRACT), bob).reason)
-        // Paid to Bob: he says it arrived (ITERATION_7 §3.3), but not that someone else got it.
+        // Paid to Bob: he says it arrived (I7 §3.3), but not that someone else got it.
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("1")), bob).reason)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1")), bob).reason)
         scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("1")), bob)

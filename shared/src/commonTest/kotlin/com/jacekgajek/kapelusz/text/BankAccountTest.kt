@@ -30,7 +30,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** ITERATION_7 §7: members' bank accounts, and where to pay into the band fund. */
+/** I7 §7: members' bank accounts, and where to pay into the band fund. */
 class BankAccountTest {
 
     @Test

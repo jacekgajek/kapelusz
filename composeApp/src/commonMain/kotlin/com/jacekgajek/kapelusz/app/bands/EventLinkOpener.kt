@@ -5,7 +5,7 @@ import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.text.EventLinks
 
-/** Where an event link leads (ITERATION_5 §10). */
+/** Where an event link leads (I5 §10). */
 internal sealed interface LinkedEvent {
     data class Found(val bandId: Id) : LinkedEvent
 

@@ -30,7 +30,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Roles a leader can give, from the least to the most a role may change; ownership only changes by transfer. Viewer is
- * apart: it sees everything but changes nothing (ITERATION_4), so it is not a step below the others.
+ * apart: it sees everything but changes nothing (I4), so it is not a step below the others.
  */
 val ASSIGNABLE_ROLES = listOf(Role.ARTIST, Role.MEMBER, Role.LEAD, Role.VIEWER)
 

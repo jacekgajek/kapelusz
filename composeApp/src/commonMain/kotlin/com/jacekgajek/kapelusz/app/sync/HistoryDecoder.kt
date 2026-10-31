@@ -12,7 +12,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Reads a page of the server's history leniently (ITERATION_3 R12): the page and each entry are decoded with the
+ * Reads a page of the server's history leniently (I3 R12): the page and each entry are decoded with the
  * shape of [HistoryEntry], but operations and changes stay JSON until read one by one. So a change made by a newer
  * app version (an operation this one does not know) shows as such instead of failing the whole page, and a broken
  * entry is skipped.

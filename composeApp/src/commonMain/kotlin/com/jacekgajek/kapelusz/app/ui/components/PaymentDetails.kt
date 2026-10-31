@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** A way to be paid (ITERATION_5 §8, ITERATION_7 §7): by BLIK to a phone number, or a transfer to a bank account. */
+/** A way to be paid (I5 §8, I7 §7): by BLIK to a phone number, or a transfer to a bank account. */
 enum class PaymentKind(
     val icon: ImageVector,
     val title: StringResource,
@@ -85,8 +85,8 @@ enum class PaymentKind(
 }
 
 /**
- * The phone and bank icons beside a transfer, each shown when a recipient gave a number of that kind (ITERATION_5 §8,
- * ITERATION_7 §7); each opens [PaymentDialog]. The caller shows them only to who may settle or record that transfer.
+ * The phone and bank icons beside a transfer, each shown when a recipient gave a number of that kind (I5 §8,
+ * I7 §7); each opens [PaymentDialog]. The caller shows them only to who may settle or record that transfer.
  */
 @Composable
 fun PaymentButtons(payees: List<Payee>) {
@@ -105,7 +105,7 @@ private fun PaymentButton(kind: PaymentKind, payees: List<Payee>, recordedTo: Pa
 
 /**
  * The recipients' numbers of one kind, each copied with its own button; any but [recordedTo], whom the transfer is
- * recorded to, is marked as their partner (ITERATION_5 §8), also when only the partner gave a number of this kind.
+ * recorded to, is marked as their partner (I5 §8), also when only the partner gave a number of this kind.
  */
 @Composable
 fun PaymentDialog(kind: PaymentKind, payees: List<Payee>, recordedTo: Payee?, onDismiss: () -> Unit) {

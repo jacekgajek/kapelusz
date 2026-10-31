@@ -49,7 +49,7 @@ class CapabilitiesTest {
 
         assertTrue(member.addCost())
         assertFalse(viewer.addCost())
-        assertTrue(lead.manageRoster(), "leaders manage the band's members (ITERATION_5 §11)")
+        assertTrue(lead.manageRoster(), "leaders manage the band's members (I5 §11)")
         assertFalse(member.manageRoster())
         assertFalse(lead.transferOwnership())
         assertTrue(Capabilities(band, "u-owner").transferOwnership())

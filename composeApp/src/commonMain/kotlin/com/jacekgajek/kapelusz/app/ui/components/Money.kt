@@ -73,7 +73,7 @@ fun MoneyField(
 fun parseMoney(text: String): Money? = runCatching { Money.parse(withoutGrouping(text.filterNot { it.isWhitespace() || it == '\u00A0' || it == '\u202F' })) }.getOrNull()
 
 /**
- * Drops thousands separators in either style (ITERATION_3 R8): "1,000", "1.000", "1,000.50", "1.000,50". Money has at
+ * Drops thousands separators in either style (I3 R8): "1,000", "1.000", "1,000.50", "1.000,50". Money has at
  * most 2 decimals, so a separator followed by exactly 3 digits, or one that repeats, or the first of two different
  * ones, groups thousands; what is left is the decimal separator.
  */

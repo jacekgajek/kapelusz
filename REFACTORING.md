@@ -353,7 +353,7 @@ interleave where no arrow connects them. Steps are numbered for reference in the
 | # | Step | Depends on | Effort |
 |---|---|---|---|
 | 6.1 | `BACKLOG.md` first, with every §8 item (decision 12); then `SPEC.md` seeded from [`docs/refactoring/06-spec-from-iterations.md`](docs/refactoring/06-spec-from-iterations.md) (its Part 1 and Part 3), `ARCHITECTURE.md`, `DECISIONS.md`, `BACKLOG.md`; `ITERATION_*.md` to `docs/history/`; README updated (**done**: the four documents at the root, the iterations under `docs/history/`, README's Documents section) | — | L |
-| 6.2 | Comment rewrite, gradually ("a touched file loses its pointers"); resource key renaming to `<area>_` with the dead-key test (decision 9), last (**in progress**: the key check `checkStringKeys` runs in `check`; no dead keys were left) | 6.1 | L spread over time |
+| 6.2 | Comment rewrite, gradually ("a touched file loses its pointers"); resource key renaming to `<area>_` with the dead-key test (decision 9), last (**in progress**: the key check `checkStringKeys` runs in `check`, no dead keys were left; every `ITERATION_n §x` pointer outside the history and the four documents is the short citation `In §x` that `SPEC.md` cites inline, so a search there finds the behaviour; a mapping to spec sections by citation frequency was tried and dropped, a third of a sample pointed at the wrong section) | 6.1 | L spread over time |
 
 **Recommended order** if one person does this sequentially: 0 → 1.1–1.6 → 2.1–2.4 → 3.1–3.4 → 2.5–2.6 → 3.5–3.7 →
 4.2–4.3 → 5 → the rest. After 0, 1.1–1.6 and 2.1–2.4 the code already reads as "screens are thin, logic is in shared,

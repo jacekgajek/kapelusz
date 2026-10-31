@@ -7,7 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.datetime.LocalDate
 
-/** The shared gig info (ITERATION_5 §3): parts apart by a blank line, missing ones left out, the address last. */
+/** The shared gig info (I5 §3): parts apart by a blank line, missing ones left out, the address last. */
 class EventInfoTextTest {
     private val words = InfoWords("Data", "Miejsce", "Mapa", "Plan", "Skład", "kapelusz.jacekgajek.com")
 

@@ -96,7 +96,7 @@ private fun rememberFile(fileStore: Attachments, attachment: Attachment): Loaded
 
 private const val RETRY_MS = 10_000L
 
-/** An image attachment as a square thumbnail (ITERATION_5 §4.2); the image icon while it loads or when it cannot. */
+/** An image attachment as a square thumbnail (I5 §4.2); the image icon while it loads or when it cannot. */
 @Composable
 fun AttachmentThumbnail(fileStore: Attachments, attachment: Attachment, size: Dp, onClick: () -> Unit) {
     val name = attachment.fileName ?: attachment.id
@@ -126,7 +126,7 @@ fun BytesImage(bytes: ByteArray, key: String, scale: ContentScale, modifier: Mod
 }
 
 /**
- * The attachments of one cost, received money or event, full screen (ITERATION_5 §4.3): swipe between them, pinch to
+ * The attachments of one cost, received money or event, full screen (I5 §4.3): swipe between them, pinch to
  * zoom; copy on top, and rename and remove for who may edit. A PDF shows its pages where the platform renders them,
  * with "Open in app". Removing closes it first, so the Undo snackbar (or the confirmation) shows on the screen below.
  */

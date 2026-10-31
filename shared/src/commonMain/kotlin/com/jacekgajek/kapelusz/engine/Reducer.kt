@@ -42,7 +42,7 @@ data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?) {
 object Reducer {
 
     fun apply(band: Band, op: Operation, ctx: OpContext): Band {
-        // Archived events are read-only (ITERATION_3 R10): restoring and deleting them are the only changes.
+        // Archived events are read-only (I3 R10): restoring and deleting them are the only changes.
         op.eventId?.let { band.event(it) }?.let { event ->
             conflictIf(event.archived && op !is SetEventArchived && op !is DeleteEvent, RejectionReason.ARCHIVED_EVENT) { "Event ${event.id} is archived" }
         }
@@ -61,12 +61,12 @@ object Reducer {
             is Undo -> Undoing.apply(band, op)
             is UnknownOperation -> reject(RejectionCode.INVALID, RejectionReason.INVALID_INPUT, "Unknown operation")
         }
-        // While the fund is off (ITERATION_3 R10), a change may not leave it holding or owing money: that needs a treasurer.
+        // While the fund is off (I3 R10), a change may not leave it holding or owing money: that needs a treasurer.
         conflictIf(
             result.treasurerMemberId == null && band.treasurerMemberId == null && BandFund.canDisable(band) && !BandFund.canDisable(result),
             RejectionReason.NO_TREASURER,
         ) { "Choose a treasurer before using the band fund" }
-        // Archiving, unlinking or a role change can end a pair or an invitation (ITERATION_5 §7); an undo is checked instead.
+        // Archiving, unlinking or a role change can end a pair or an invitation (I5 §7); an undo is checked instead.
         val tidied = if (op is Undo) result else SettleTogether.tidy(result, band)
         return op.eventId
             ?.takeIf { op !is DeleteEvent }

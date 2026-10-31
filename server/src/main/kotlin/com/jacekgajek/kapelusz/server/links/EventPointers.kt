@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class EventPointer(val bandId: String)
 
-/** The pointers from events to their bands (ITERATION_6 §2), kept as pushes create and delete events; read by [LinkPages]. */
+/** The pointers from events to their bands (I6 §2), kept as pushes create and delete events; read by [LinkPages]. */
 internal class EventPointers(private val store: BlobStore, private val bands: BandAccess) {
     /** The band [eventId] is in, as far as the pointers say. */
     fun bandOf(eventId: String): String? {

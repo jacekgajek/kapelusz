@@ -90,7 +90,7 @@ class PresentationTest {
 
     @Test
     fun aPairedArtistSeesOnlyTheirOwnNumber() {
-        // ITERATION_6 §11: Carol, an artist, settles together with Bob. Three shares of 100.
+        // I6 §11: Carol, an artist, settles together with Bob. Three shares of 100.
         // [before] is applied while Carol is still a member.
         fun band(holder: String, vararg before: Operation) = Band.create("b", "Band", "PLN", "alice", "Alice", "u").apply(
             AddMember("bob", "Bob"),

@@ -139,7 +139,7 @@ class CalendarTest : ApiHarness(now = 1_792_584_000_000) {
         assertFalse(ics.lines().any { it.startsWith("URL:https://evil") }, ics)
     }
 
-    /** ITERATION_4 §1.1: an artist's feed has only the events they play, even with "include all" on. */
+    /** I4 §1.1: an artist's feed has only the events they play, even with "include all" on. */
     @Test
     fun anArtistsFeedHasOnlyTheirGigs() {
         val band = com.jacekgajek.kapelusz.model.Band.create("b", "Night Owls", "PLN", "m", "Alice", "alice").let { b ->

@@ -24,9 +24,9 @@ data class SettlementWords(
     /** The heading above everyone's share, one a line. */
     val shares: String,
     val shareWithRefunds: String,
-    /** "%1$s" filled with the amount: a fixed share (ITERATION_3 §2.4). */
+    /** "%1$s" filled with the amount: a fixed share (I3 §2.4). */
     val fixed: String,
-    /** "%1$s" the amount, "%2$s" the percentage: a percentage of the profit (ITERATION_7 §6). */
+    /** "%1$s" the amount, "%2$s" the percentage: a percentage of the profit (I7 §6). */
     val percent: String = "%1\$s (%2\$s)",
     val done: String,
     val stillToPay: String,
@@ -34,16 +34,16 @@ data class SettlementWords(
     /** Instead of "Still to pay" while the event has a problem to sort out first (a loss, no shares, no treasurer). */
     val incomplete: String,
     val footer: String,
-    /** "%1$s" filled with what the organiser still owes (ITERATION_4 §2.2). */
+    /** "%1$s" filled with what the organiser still owes (I4 §2.2). */
     val awaited: String = "",
     /** Closes the text while the organiser still owes part of the income. */
     val awaitingRest: String = "",
-    /** "%1$s and %2$s": a pair settling together (ITERATION_5 §7). */
+    /** "%1$s and %2$s": a pair settling together (I5 §7). */
     val pair: String = "%1\$s & %2\$s",
 )
 
 /**
- * A settlement as plain text to send to the band (ITERATION_3 §2.1): the event, the totals, everyone's share, then the
+ * A settlement as plain text to send to the band (I3 §2.1): the event, the totals, everyone's share, then the
  * recorded transfers ("Done") and the open suggestions ("Still to pay"), or "All settled", or that it is incomplete; a footer names the app.
  * Each of these a block of its own, one item a line.
  */
@@ -52,7 +52,7 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
     fun name(partyId: Id) = partyName(band, event, partyId, words.fundLabel)
     fun transfer(from: Id, to: Id, amount: Money) = "${name(from)} → ${name(to)}: ${money(amount)}"
 
-    // A suggestion is between parties: a pair settling together by both names (ITERATION_5 §7).
+    // A suggestion is between parties: a pair settling together by both names (I5 §7).
     fun party(partyId: Id) = partyName(band, event, settlement, partyId, words.fundLabel, words.pair)
     // Blocks apart by an empty line, one item a line: easy to read in a chat.
     val blocks = mutableListOf<List<String>>()

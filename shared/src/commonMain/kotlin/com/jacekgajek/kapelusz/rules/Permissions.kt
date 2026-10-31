@@ -77,7 +77,7 @@ sealed interface Actor {
 }
 
 /**
- * The role matrix (ITERATION_1 §3). Runs on clients (to hide actions) and on the server (to enforce them).
+ * The role matrix (I1 §3). Runs on clients (to hide actions) and on the server (to enforce them).
  * Data validity is not checked here; that is the reducer's job.
  */
 object Permissions {
@@ -87,9 +87,9 @@ object Permissions {
         val me = band.memberOfUser((actor as Actor.User).userId)?.takeIf { !it.archived }
             ?: return forbidden(RejectionReason.NOT_A_MEMBER, "You are not an active member of this band")
         if (op is LinkUser) return forbidden(RejectionReason.INVITE_ONLY, "Users are linked only by accepting an invite")
-        // Its times are the server's: asked for with DELETE /bands/{id} (ITERATION_7 §9), never pushed.
+        // Its times are the server's: asked for with DELETE /bands/{id} (I7 §9), never pushed.
         if (op is ScheduleBandDeletion) return forbidden(RejectionReason.ROLE_REQUIRED, "Only the owner deletes the band, through the server")
-        // Settling together is everyone's own decision (ITERATION_5 §7), and where one is paid their own (§8): nobody,
+        // Settling together is everyone's own decision (I5 §7), and where one is paid their own (§8): nobody,
         // leaders included, decides it for others.
         settlesFor(op)?.let { if (it != me.id) return forbidden(RejectionReason.ROLE_REQUIRED, "Only for yourself") }
 
@@ -101,18 +101,18 @@ object Permissions {
 
     /** Lowest role allowed to perform [op] for this actor; "own" exceptions lower it to MEMBER (or ARTIST). */
     private fun requiredRole(band: Band, me: Member, op: Operation): Role = when (op) {
-        // Undo is allowed to whoever may make the original change (ITERATION_2 §7.2), and the reverse one where that
+        // Undo is allowed to whoever may make the original change (I2 §7.2), and the reverse one where that
         // needs more: a member may record their own transfer, but only leads remove transfers.
         is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(band, me, op.original))
 
-        // Never applied (ITERATION_8 §2); the reducer refuses it for anyone.
+        // Never applied (I8 §2); the reducer refuses it for anyone.
         is UnknownOperation -> Role.OWNER
 
         is BandOp -> bandRole(band, me, op)
 
         is RosterOp -> rosterRole(op)
 
-        // Only for oneself (checked in [check]), from artists up (ITERATION_6 §11).
+        // Only for oneself (checked in [check]), from artists up (I6 §11).
         is PairOp -> Role.ARTIST
 
         is EventDetailsOp, is LineupOp, is EventMoneyOp -> Role.LEAD
@@ -131,19 +131,19 @@ object Permissions {
     private fun bandRole(band: Band, me: Member, op: BandOp): Role = when (op) {
         is TransferOwnership -> Role.OWNER
 
-        // Asking for the deletion is the owner's, through the server; any leader keeps the band (ITERATION_7 §9).
+        // Asking for the deletion is the owner's, through the server; any leader keeps the band (I7 §9).
         is ScheduleBandDeletion -> Role.OWNER
 
         is CancelBandDeletion -> Role.LEAD
 
-        // Where to pay into the fund (ITERATION_7 §7): its holder, who keeps the money, and leads.
+        // Where to pay into the fund (I7 §7): its holder, who keeps the money, and leads.
         is SetFundBlikPhone, is SetFundBankAccount -> ownIf(band.treasurerMemberId == me.id)
 
         is RenameBand, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is SetFundDefault -> Role.LEAD
     }
 
     private fun rosterRole(op: RosterOp): Role = when (op) {
-        // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8). Only for
+        // Artists are paid too, so they give their number as well; viewers are never paid (I5 §8). Only for
         // oneself (checked in [check]).
         is SetBlikPhone, is SetBankAccount -> Role.ARTIST
 
@@ -155,15 +155,15 @@ object Permissions {
     private fun holdingRole(band: Band, me: Member, op: HoldingOp): Role = when (op) {
         is AddHolding -> ownIf(op.partyId == me.id && band.event(op.eventId)?.participant(me.id) != null)
 
-        // An organiser's fee paid to someone: they say it arrived (ITERATION_7 §3.3), the treasurer for the fund.
+        // An organiser's fee paid to someone: they say it arrived (I7 §3.3), the treasurer for the fund.
         is ReceiveAwaited -> ownIf(ownsParty(band, me, op.partyId))
 
         is UpdateHolding, is RemoveHolding -> ownIf(ownHolding(band, me, op.eventId, op.holdingId))
     }
 
     private fun transferRole(band: Band, me: Member, op: TransferOp): Role = when (op) {
-        // Either partner settles a pair's transfer (ITERATION_5 §7). Artists too mark their own as paid or received
-        // (ITERATION_7 §3.2), only as themselves: a pair's transfer is split by what each holds, so it could move their
+        // Either partner settles a pair's transfer (I5 §7). Artists too mark their own as paid or received
+        // (I7 §3.2), only as themselves: a pair's transfer is split by what each holds, so it could move their
         // partner's money.
         is RecordTransfer -> ownIf(
             ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together && partnerIn(band, me, op.eventId).let { it != null && (it == op.from || it == op.to) }),
@@ -172,19 +172,19 @@ object Permissions {
 
         is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))
 
-        // Who recorded a transfer takes it back, e.g. a Paid tapped by mistake (ITERATION_7 §3.3); leads any.
+        // Who recorded a transfer takes it back, e.g. a Paid tapped by mistake (I7 §3.3); leads any.
         is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null && it == me.id }, Role.ARTIST)
     }
 
     private fun costRole(band: Band, me: Member, op: CostOp): Role = when (op) {
-        // Artists too look after their own costs (ITERATION_4 §1.1); money held stays from members up.
+        // Artists too look after their own costs (I4 §1.1); money held stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
 
         is UpdateCost, is DeleteCost -> ownCost(band, me, op.costId)
     }
 
     /**
-     * The treasurer keeps the fund's ledger (ITERATION_7 §3.3): they hold its money. Refunding a cost from it decides
+     * The treasurer keeps the fund's ledger (I7 §3.3): they hold its money. Refunding a cost from it decides
      * about someone's cost, so stays with leads.
      */
     private fun fundRole(band: Band, me: Member, op: FundOp): Role = when (op) {
@@ -199,7 +199,7 @@ object Permissions {
         is RemoveAttachment -> ownAttachments(band, me, op.owner)
     }
 
-    /** Whom [me] settles together with in this event: only where both take part (ITERATION_5 §7). */
+    /** Whom [me] settles together with in this event: only where both take part (I5 §7). */
     private fun partnerIn(band: Band, me: Member, eventId: String): String? = band.event(eventId)?.let { SettleTogether.partners(band, it)[me.id] }
 
     /** The member a settling-together operation is for: the only one who may perform it. */
@@ -217,7 +217,7 @@ object Permissions {
     private fun reverseRole(band: Band, me: Member, op: Operation): Role = when (op) {
         is RecordTransfer, is SettleSuggestions -> Role.LEAD
 
-        // Taking a file back removes it: a locked cost's owner adds receipts but removes none (ITERATION_7 §3.3).
+        // Taking a file back removes it: a locked cost's owner adds receipts but removes none (I7 §3.3).
         is AddAttachment -> requiredRole(band, me, RemoveAttachment(op.owner, op.attachment.id))
 
         is Undo -> reverseRole(band, me, op.original)
@@ -232,7 +232,7 @@ object Permissions {
 
     /**
      * Money [me] holds and recorded (or nobody did, before that was kept): not what a lead recorded for them, e.g. a fee
-     * they received, which keeps the lead's record and its contract (ITERATION_7 §3.3).
+     * they received, which keeps the lead's record and its contract (I7 §3.3).
      */
     private fun ownHolding(band: Band, me: Member, eventId: Id, holdingId: Id): Boolean = band.event(eventId)?.holdings?.firstOrNull { it.id == holdingId }?.let { it.partyId == me.id && (it.recordedBy == null || it.recordedBy == me.id) } == true
 
@@ -240,9 +240,9 @@ object Permissions {
     private fun fundEntry(band: Band, me: Member, costId: Id?) = ownIf(band.treasurerMemberId == me.id && costId == null)
 
     /**
-     * Files follow what they belong to (ITERATION_4 §2.1): a cost's as the cost, a collected entry's as the entry (its
+     * Files follow what they belong to (I4 §2.1): a cost's as the cost, a collected entry's as the entry (its
      * holder, or leads), the event's as the event (leads). [adding] (or renaming) a receipt to one's own cost stays
-     * allowed once it is locked (ITERATION_7 §3.3): a file changes no money; removing one doesn't.
+     * allowed once it is locked (I7 §3.3): a file changes no money; removing one doesn't.
      */
     private fun ownAttachments(band: Band, me: Member, owner: AttachmentOwner, adding: Boolean = false): Role = when (owner) {
         is AttachmentOwner.OfCost -> if (adding && band.cost(owner.costId)?.memberId == me.id) Role.ARTIST else ownCost(band, me, owner.costId)

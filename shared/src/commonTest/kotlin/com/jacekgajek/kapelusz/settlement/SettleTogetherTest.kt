@@ -38,7 +38,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** ITERATION_5 §7: two members settling together; artists too (ITERATION_6 §11). */
+/** I5 §7: two members settling together; artists too (I6 §11). */
 class SettleTogetherTest {
 
     /** Alice owns the band; Bob and Carol are members with accounts, Dave has none. */
@@ -112,7 +112,7 @@ class SettleTogetherTest {
 
     @Test
     fun artistsSettleTogetherViewersDoNot() {
-        // ITERATION_6 §11: artists invite and answer too.
+        // I6 §11: artists invite and answer too.
         val scenario = band()
         scenario.apply(SetMemberRole("carol", Role.ARTIST))
         scenario.apply(InviteToSettleTogether("carol", "bob"), scenario.userFor("carol", Role.ARTIST))
@@ -178,12 +178,12 @@ class SettleTogetherTest {
         val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
         scenario.apply(SetMemberRole("carol", Role.ARTIST))
         scenario.apply(AddHolding("gig", "h", "alice", pln("400"), DOOR))
-        // Alice pays the pair, recorded to Bob (ITERATION_5 §7.3): Carol's payout says Bob keeps hers; Alice → Dave isn't hers.
+        // Alice pays the pair, recorded to Bob (I5 §7.3): Carol's payout says Bob keeps hers; Alice → Dave isn't hers.
         val own = Artists.ownTransfers(scenario.band, scenario.settle("gig"), "carol")
         assertEquals(emptyList(), own.map { Triple(it.from, it.to, it.amount) })
     }
 
-    /** An artist records only their own transfers as themselves: a pair's is split by what each holds (ITERATION_7 §3.2). */
+    /** An artist records only their own transfers as themselves: a pair's is split by what each holds (I7 §3.2). */
     @Test
     fun anArtistInAPairCannotMoveTheirPartnersMoney() {
         val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")

@@ -18,7 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** FCM's HTTP v1 calls (ITERATION_7 §2.5) against a local server: results, the deadline, the cached access token. */
+/** FCM's HTTP v1 calls (I7 §2.5) against a local server: results, the deadline, the cached access token. */
 class FcmSenderTest {
     private val tokenCalls = AtomicInteger()
     private var refuseSignIn = false

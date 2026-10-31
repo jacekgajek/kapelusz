@@ -23,8 +23,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * Attaching files to costs, collected entries and events (ITERATION_4 §2.1), renaming, removing and opening them (moved
- * out of [AppRuntime], ITERATION_3 R12).
+ * Attaching files to costs, collected entries and events (I4 §2.1), renaming, removing and opening them (moved
+ * out of [AppRuntime], I3 R12).
  */
 class Attachments(
     private val bands: BandRepository,
@@ -48,7 +48,7 @@ class Attachments(
     suspend fun attach(owner: AttachmentOwner, file: PreparedFile, attachmentId: Id = newId()): Rejection? {
         val bandId = bands.currentBandId ?: return null
         val attachment = Attachment(attachmentId, file.kind, file.fileName, file.sizeBytes)
-        // The file first, then the attachment (ITERATION_3 R4).
+        // The file first, then the attachment (I3 R4).
         try {
             runSuspendCatching { uploads.enqueue(PendingUpload(bandId, attachment.id), file.base64) }.onFailure { e ->
                 return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
@@ -79,7 +79,7 @@ class Attachments(
     }
 
     /**
-     * Removes an attachment. Its waiting file stays until the server agrees (V5-M1 A8): if it refuses the removal, the
+     * Removes an attachment. Its waiting file stays until the server agrees (I5 A8): if it refuses the removal, the
      * attachment stays and still needs that file; once the attachment is gone there, the upload queue drops it.
      */
     fun remove(owner: AttachmentOwner, attachmentId: Id): Rejection? = dispatch(RemoveAttachment(owner, attachmentId))
@@ -87,7 +87,7 @@ class Attachments(
     fun rename(owner: AttachmentOwner, attachmentId: Id, fileName: String): Rejection? = dispatch(RenameAttachment(owner, attachmentId, fileName))
 
     /**
-     * The file of an attachment (ITERATION_5 §4.2): the local copy while it waits for its upload, else the one kept on
+     * The file of an attachment (I5 §4.2): the local copy while it waits for its upload, else the one kept on
      * the device, else downloaded once and kept (an attachment's file never changes). Null when it cannot be had now
      * (offline, or not uploaded yet by whoever added it).
      */

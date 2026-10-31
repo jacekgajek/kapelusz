@@ -30,7 +30,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** ITERATION_8: the line-up picker's operation, alphabetical order, operations this version doesn't know. */
+/** I8: the line-up picker's operation, alphabetical order, operations this version doesn't know. */
 class LineupTest {
 
     private fun band() = Scenario("Alice", "Bob", "Carol", "Dave").event("gig", "Alice", "Bob", guests = listOf("Helper" to 100))

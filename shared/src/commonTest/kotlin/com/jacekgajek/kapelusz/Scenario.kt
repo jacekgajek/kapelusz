@@ -51,7 +51,7 @@ class Scenario(vararg memberNames: String) {
 
     /**
      * The members stored in the order of [ids] (the rest after them): no operation does this since the roster has no
-     * order of its own (ITERATION_8 §2), but stored bands have one, which must not matter.
+     * order of its own (I8 §2), but stored bands have one, which must not matter.
      */
     fun storeMembersInOrder(vararg ids: String): Scenario {
         band = band.copy(members = ids.map { band.member(it)!! } + band.members.filter { it.id !in ids })

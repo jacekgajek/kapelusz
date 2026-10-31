@@ -4,7 +4,9 @@ What Kapelusz (Pass the Hat) does, as it is today: one place instead of eight it
 `ITERATION_1` to `ITERATION_8` (now under [docs/history/](docs/history/)) on 2026-10-31; a citation such as `I5 §7.3`
 or `I2 DL 2026-10-21` points at the iteration and section, or its decision log, where the behaviour was decided and the
 reasons are; other codes are the item labels inside an iteration (`R8`: a review item of I3; `V2-M3`: a milestone of
-I2; `A9a`, `B2`, `C2`, `E1`: the lettered work items of I5). A **Superseded** note lists what an older iteration said that no longer holds.
+I2; `A9a`, `B2`, `C2`, `E1`: the lettered work items of I5). The code's comments cite the same codes (`I5 §7`,
+`I3 R12`): search this file for the citation to find the behaviour it stands for, or open the iteration under
+[docs/history/](docs/history/). A **Superseded** note lists what an older iteration said that no longer holds.
 
 How it is built is in [ARCHITECTURE.md](ARCHITECTURE.md); why, in [DECISIONS.md](DECISIONS.md). When the behaviour
 changes, change it here in the same pull request.

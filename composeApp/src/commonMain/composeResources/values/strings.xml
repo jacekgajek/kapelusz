@@ -635,7 +635,7 @@
     <string name="reject_storage_failed">Could not save it on this device (is the storage full?).</string>
     <string name="loading">Loading…</string>
 
-    <!-- Settling together (ITERATION_5 §7) -->
+    <!-- Settling together (I5 §7) -->
     <string name="pair_names">%1$s and %2$s</string>
     <string name="pair_breakdown">%1$s: payout %2$s · holds %3$s</string>
     <string name="settle_together_title">Settle together</string>

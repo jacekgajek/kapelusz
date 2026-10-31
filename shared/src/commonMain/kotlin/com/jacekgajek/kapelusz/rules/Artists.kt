@@ -9,7 +9,7 @@ import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.settlement.SuggestedTransfer
 import com.jacekgajek.kapelusz.text.BlikPhone
 
-/** Artists never hold money (ITERATION_4 §1.1): no collected money, no payments out, no band fund. */
+/** Artists never hold money (I4 §1.1): no collected money, no payments out, no band fund. */
 object Artists {
 
     fun isArtist(band: Band, partyId: Id): Boolean = band.member(partyId)?.role == Role.ARTIST
@@ -23,7 +23,7 @@ object Artists {
     }
 
     /**
-     * An artist's own transfers still to make in [settlement] (ITERATION_7 §3.2): who pays them and whom they hand back
+     * An artist's own transfers still to make in [settlement] (I7 §3.2): who pays them and whom they hand back
      * to, between real people; a pair's transfer counts as the artist's part of it. Nobody else's.
      */
     fun ownTransfers(band: Band, settlement: Settlement, memberId: Id): List<SuggestedTransfer> {

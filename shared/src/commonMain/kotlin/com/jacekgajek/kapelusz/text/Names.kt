@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.text
 
 /**
- * People in alphabetical order (ITERATION_8 §2), and finding them by name (§1.2). Without a platform collator: the
+ * People in alphabetical order (I8 §2), and finding them by name (§1.2). Without a platform collator: the
  * same order on the JVM, Android and the web.
  */
 object Names {
@@ -72,5 +72,5 @@ object Names {
     }
 }
 
-/** [this] in alphabetical order of [name] (ITERATION_8 §2). */
+/** [this] in alphabetical order of [name] (I8 §2). */
 fun <T> Iterable<T>.sortedByName(name: (T) -> String): List<T> = sortedWith { a, b -> Names.order.compare(name(a), name(b)) }

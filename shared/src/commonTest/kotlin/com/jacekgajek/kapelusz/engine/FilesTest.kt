@@ -22,7 +22,7 @@ import com.jacekgajek.kapelusz.pln
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** ITERATION_4 §2.1: files on collected entries and on events. */
+/** I4 §2.1: files on collected entries and on events. */
 class FilesTest {
     private val entry = AttachmentOwner.OfHolding("gig", "h")
     private val gigFiles = AttachmentOwner.OfEvent("gig")

@@ -33,7 +33,7 @@ internal object BandReducer {
 
         is DisableBandFund -> {
             conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
-            // Its default goes, and percentages become the amounts they came to (ITERATION_7 §5.2): one still following
+            // Its default goes, and percentages become the amounts they came to (I7 §5.2): one still following
             // income would owe money to a fund that is off, and changes to its event would be refused.
             band.copy(
                 treasurerMemberId = null,
@@ -82,7 +82,7 @@ internal object BandReducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(member.archived, RejectionReason.ARCHIVED_MEMBER) { "An archived member cannot hold the band fund" }
         invalidIf(Artists.isArtist(band, member.id), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "An artist cannot hold the band fund" }
-        // The holder records the fund's transfers, which a viewer may not (V5-M1 B2).
+        // The holder records the fund's transfers, which a viewer may not (I5 B2).
         invalidIf(member.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "A viewer cannot hold the band fund" }
         return band.copy(treasurerMemberId = member.id)
     }
@@ -90,7 +90,7 @@ internal object BandReducer {
     private fun transferOwnership(band: Band, op: TransferOwnership): Band {
         val target = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
         invalidIf(target.userId == null || target.role != Role.LEAD, RejectionReason.OWNERSHIP_NEEDS_LEADER) { "Ownership can only go to a linked leader" }
-        // An archived owner could do nothing at all, the band included (V5-M1 B3a).
+        // An archived owner could do nothing at all, the band included (I5 B3a).
         invalidIf(target.archived, RejectionReason.ARCHIVED_MEMBER) { "Ownership cannot go to an archived member" }
         val currentOwner = band.owner
         return band.copy(
@@ -98,7 +98,7 @@ internal object BandReducer {
                 when (it.id) {
                     target.id -> it.copy(role = Role.OWNER)
 
-                    // The previous owner keeps every right but ownership (ITERATION_5 §11).
+                    // The previous owner keeps every right but ownership (I5 §11).
                     currentOwner?.id -> it.copy(role = Role.LEAD)
 
                     else -> it

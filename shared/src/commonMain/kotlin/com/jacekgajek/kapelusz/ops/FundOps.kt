@@ -16,7 +16,7 @@ data class AddFundEntry(
     val description: String,
     val amount: Money,
     val costId: Id? = null,
-    /** Who paid it in: a member, or null for someone outside the band (ITERATION_7 §5.1). */
+    /** Who paid it in: a member, or null for someone outside the band (I7 §5.1). */
     val paidBy: Id? = null,
 ) : FundOp
 

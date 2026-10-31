@@ -178,3 +178,6 @@ lambda/       the API Gateway adapter and SnapStart priming
 - The data model and the stored JSON do not change without a `WireFormatTest` update, and the server refuses what it
   does not understand (`UnknownOperation`).
 - ktlint and detekt run in `check`; the baselines in `config/detekt/` hold what predates them and are only shrunk.
+- A comment explains *what* in place; where it cites the reason for a behaviour it uses the short history citation
+  `SPEC.md`'s preface defines (`I5 §7`, `I3 R12`): searching `SPEC.md` for it finds the behaviour, and
+  `docs/history/ITERATION_5.md` §7 the discussion. A touched comment loses the citation for an explanation.

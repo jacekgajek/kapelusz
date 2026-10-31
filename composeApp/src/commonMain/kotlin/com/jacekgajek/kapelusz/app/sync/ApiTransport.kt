@@ -25,11 +25,11 @@ import kotlinx.serialization.KSerializer
 class ApiTransport(
     private val http: HttpClient,
     private val baseUrl: String,
-    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (ITERATION_2 §2). */
+    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (I2 §2). */
     private val appVersion: Int = 0,
     /**
      * The Android installation's id, sent with every request (`installation`), so the server doesn't send this device a
-     * sync message about its own changes (ITERATION_7 §2.4); null on the web.
+     * sync message about its own changes (I7 §2.4); null on the web.
      */
     private val installation: String? = null,
 ) {
@@ -82,9 +82,9 @@ class ApiTransport(
 
 /** A signal from the server about this app as a whole, not an answer to one request. */
 sealed interface ApiSignal {
-    /** The server no longer serves this app version (ITERATION_2 §2). */
+    /** The server no longer serves this app version (I2 §2). */
     data object UpdateRequired : ApiSignal
 
-    /** The user signed out on all devices (ITERATION_3 R6); the request that learnt it threw [SessionsRevokedException]. */
+    /** The user signed out on all devices (I3 R6); the request that learnt it threw [SessionsRevokedException]. */
     data object SessionsRevoked : ApiSignal
 }

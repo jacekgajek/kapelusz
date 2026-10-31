@@ -127,7 +127,7 @@ import org.jetbrains.compose.resources.stringResource
 class EventContext(
     /** The attachment files of the event, its costs and collected money. */
     val fileStore: Attachments,
-    /** Files shared to the app for new received money here (ITERATION_6 §1), once; null when none. */
+    /** Files shared to the app for new received money here (I6 §1), once; null when none. */
     val takeCollectedFiles: () -> List<PreparedFile>?,
     val view: BandView,
     val event: Event,
@@ -135,7 +135,7 @@ class EventContext(
     val me: Member?,
     val actions: Actions,
     val can: Capabilities,
-    /** Opens Band members at [memberId]'s dialog, to invite them (ITERATION_5 §12). */
+    /** Opens Band members at [memberId]'s dialog, to invite them (I5 §12). */
     val onInviteMember: (memberId: String) -> Unit = {},
 ) {
     val band: Band get() = view.band
@@ -165,7 +165,7 @@ fun EventScreen(
     val event = screen.event
     val settlement = screen.settlement
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, messages.snackbar)
-    // Pages (ITERATION_5 §4.4). Each event opens on the page last used there; swiping or the tabs switch, and each page
+    // Pages (I5 §4.4). Each event opens on the page last used there; swiping or the tabs switch, and each page
     // keeps its own scroll position.
     val bandId = state.band.id
     val tabs = screen.tabs
@@ -194,7 +194,7 @@ fun EventScreen(
         if (!artist) scrollTo(section) else section.tabs.firstOrNull { it in tabs }?.let { pagerState.scrollToPage(tabs.indexOf(it)) }
         sectionShown()
     }
-    // Files shared to the app (ITERATION_6 §1) attached to something here: a snackbar offers to take them off again.
+    // Files shared to the app (I6 §1) attached to something here: a snackbar offers to take them off again.
     val attached = screen.attached
     val attachedText = attached?.let { pluralStringResource(Res.plurals.share_attached, it.attachmentIds.size, it.attachmentIds.size) }
     val attachFailed = stringResource(Res.string.share_attach_failed)
@@ -319,7 +319,7 @@ fun EventScreen(
     }
 }
 
-/** The pages' tabs (ITERATION_5 §4.4): text and the underline, no checkmark or borders, so three labels fit a phone. */
+/** The pages' tabs (I5 §4.4): text and the underline, no checkmark or borders, so three labels fit a phone. */
 @Composable
 private fun EventTabs(tabs: List<EventTab>, pagerState: PagerState) {
     val scope = rememberCoroutineScope()
@@ -342,7 +342,7 @@ private fun EventTab.label() = when (this) {
 
 /**
  * The top of the gig page: date and place with Navigate beside them, then the set times. Changed in place like the
- * sections under it (ITERATION_5 §4.9): its ✎ opens the event's dialog (also its name); what is not set yet is offered.
+ * sections under it (I5 §4.9): its ✎ opens the event's dialog (also its name); what is not set yet is offered.
  */
 @Composable
 private fun WhenAndWhere(context: EventContext, onEdit: (() -> Unit)?) {
@@ -390,7 +390,7 @@ private fun Totals(context: EventContext) {
     Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             AmountRow(stringResource(Res.string.total_income), s.income)
-            // Part of the income is a fee the organiser has not paid yet (ITERATION_4 §2.2).
+            // Part of the income is a fee the organiser has not paid yet (I4 §2.2).
             if (event.awaited.isPositive) AmountRow(stringResource(Res.string.total_awaited), event.awaited)
             val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
             if (!s.fundAmount.isZero || event.fundPercent != null || canSetFund) {
@@ -411,7 +411,7 @@ private fun Totals(context: EventContext) {
 /**
  * How much of this event goes to the band fund, or comes from it to top up the payouts. The direction is a choice
  * rather than a minus sign: phone keyboards for amounts often have no minus key. To the fund, it may be a percentage
- * of the profit instead (ITERATION_7 §5.2); from it, always an amount.
+ * of the profit instead (I7 §5.2); from it, always an amount.
  */
 @Composable
 private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
@@ -474,7 +474,7 @@ private fun Problems(context: EventContext) {
             problems.forEach { problem ->
                 Text(
                     when (problem) {
-                        // Fixed shares and percentages count towards the loss too (ITERATION_3 §2.4), so lowering them is a way out.
+                        // Fixed shares and percentages count towards the loss too (I3 §2.4), so lowering them is a way out.
                         SettlementProblem.LOSS -> stringResource(
                             if (context.settlement.fixedTotal.isZero && context.settlement.percentTotal.isZero) {
                                 Res.string.problem_loss
@@ -501,7 +501,7 @@ private fun Problems(context: EventContext) {
 }
 
 /**
- * The gig's own files (ITERATION_4 §2.1): contract, rider, stage plan. Leads add, rename and remove them; everyone,
+ * The gig's own files (I4 §2.1): contract, rider, stage plan. Leads add, rename and remove them; everyone,
  * artists too, can open them.
  */
 @Composable

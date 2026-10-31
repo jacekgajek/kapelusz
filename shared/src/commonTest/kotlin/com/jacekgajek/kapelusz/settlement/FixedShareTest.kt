@@ -37,7 +37,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Shares as a percentage or a fixed amount (ITERATION_3 §2.4). */
+/** Shares as a percentage or a fixed amount (I3 §2.4). */
 class FixedShareTest {
 
     private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")

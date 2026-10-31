@@ -33,8 +33,8 @@ internal class BandChanged(
      * this order: the invites of members unlinked or gone go (no leftover code links someone a leader unlinked); the
      * events' link pointers follow the events; the files of attachments that are gone; the list of bands waiting to be
      * deleted; the history entry; then the sync message to everyone in the band before or after, but the device that
-     * made the change (ITERATION_7 §2.2); and last the band lists of users whose account was unlinked, whose devices
-     * still got that message (ITERATION_6 §11a) before they are forgotten.
+     * made the change (I7 §2.2); and last the band lists of users whose account was unlinked, whose devices
+     * still got that message (I6 §11a) before they are forgotten.
      */
     fun after(
         user: VerifiedUser,
@@ -57,7 +57,7 @@ internal class BandChanged(
         // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
         runCatching { attachments.deleteRemoved(bandId, before, after) }
             .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
-        // A deletion asked for, or kept by a leader (ITERATION_7 §9), changes the list of bands waiting.
+        // A deletion asked for, or kept by a leader (I7 §9), changes the list of bands waiting.
         if (after.deletion != before.deletion) {
             runCatching { deletions.note(bandId) }.onFailure { System.err.println("Could not list band $bandId for deletion: $it") }
         }
@@ -66,7 +66,7 @@ internal class BandChanged(
         runCatching { history.append(user, memberId, bandId, accepted, changes) }
             .onFailure { System.err.println("Could not append history for band $bandId: $it") }
         if (after != before) runCatching { messenger.bandChanged(bandId, before.messagedUsers() + after.messagedUsers(), from) }
-        // Someone's account unlinked (by a leader, deleting them, or leaving, ITERATION_7 §3.1): as if they had left.
+        // Someone's account unlinked (by a leader, deleting them, or leaving, I7 §3.1): as if they had left.
         val unlinked = before.members.mapNotNull { it.userId }.toSet() - after.members.mapNotNull { it.userId }.toSet()
         unlinked.forEach { userId ->
             runCatching { users.removeBandFromUser(userId, bandId) }

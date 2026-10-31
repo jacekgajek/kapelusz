@@ -52,7 +52,7 @@ class AppRuntime(
     private val store = platform.store
     private val messageChannel = platform.messages
 
-    // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
+    // A failure in the app's own background work is logged, never a crash (I3 R4).
     private val unhandled = CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + unhandled)
     val settings = SettingsRepository(store, scope)
@@ -66,12 +66,12 @@ class AppRuntime(
     val sessions: SessionRepository = SessionRepository(store, platform.google, ::nowMillis, SessionApi(transport)::createSession)
     val bands = BandRepository(BandStore(store, scope))
 
-    /** The server no longer serves this app version (ITERATION_2 §2); part of [state]. */
+    /** The server no longer serves this app version (I2 §2); part of [state]. */
     private val updateRequired = MutableStateFlow(false)
     val api: ApiClient = ApiClient(transport) { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) }
     val uploads = AttachmentUploads(store, api, bands, platform::uploadFile)
 
-    /** Where event locations are, for the map (ITERATION_7 §8). */
+    /** Where event locations are, for the map (I7 §8). */
     val locations = PlacesLocator(store, api)
 
     val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads)
@@ -142,17 +142,17 @@ class AppRuntime(
     /** The app left the screen (Android): the loop stops; a background job sends what waits ([hasUnsentWork]). */
     fun onBackground() = sync.stop()
 
-    /** The web tab was hidden (ITERATION_7 §2.6): what waits is sent, then nothing until [onForeground]. */
+    /** The web tab was hidden (I7 §2.6): what waits is sent, then nothing until [onForeground]. */
     fun onHidden() = sync.pauseAfterSending()
 
-    /** A sync message said [bandId] changed (ITERATION_7 §2.3). */
+    /** A sync message said [bandId] changed (I7 §2.3). */
     fun onMessage(bandId: Id) = sync.bandChanged(bandId)
 
     /** Firebase gave this device a new token. */
     fun onNewToken() = devices.tokenChanged()
 
     /**
-     * A background job's round over every band of the user (ITERATION_3 R4), with what it needs loaded first; false
+     * A background job's round over every band of the user (I3 R4), with what it needs loaded first; false
      * when it should be retried. Nothing to do while signed out.
      */
     suspend fun syncInBackground(): Boolean {

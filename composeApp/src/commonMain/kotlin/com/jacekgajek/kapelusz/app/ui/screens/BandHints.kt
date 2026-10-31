@@ -25,7 +25,7 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Role
 import org.jetbrains.compose.resources.stringResource
 
-/** What a band still lacks, said to its leaders on the events list (ITERATION_5 §11). */
+/** What a band still lacks, said to its leaders on the events list (I5 §11). */
 enum class BandHint {
     /** Nobody but [me] on the roster: no one to play or settle with. Can't be hidden. */
     NO_MEMBERS,
