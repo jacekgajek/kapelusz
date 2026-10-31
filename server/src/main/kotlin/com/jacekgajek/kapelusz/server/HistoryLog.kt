@@ -89,7 +89,7 @@ internal class HistoryLog(private val records: HistoryStore, private val clock: 
         return op.copy(original = original, change = change)
     }
 
-    /** Records the push of [ops] by [user] (their member [memberId] in the band) with the [changes] that can be undone. */
+    /** Records a change of band [bandId] by [user] (their member [memberId] in it): the accepted [ops] with the [changes] that can be undone. */
     fun append(user: VerifiedUser, memberId: String?, bandId: String, ops: List<OpEnvelope>, changes: Map<String, BandChange>) {
         val now = clock()
         // Nor are numbers in the members' snapshots of other changes (undo keeps the current number anyway).

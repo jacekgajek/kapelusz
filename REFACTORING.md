@@ -541,6 +541,11 @@ reviews; the full lists with context are in the appendices. Items marked ⚠ loo
 12. `ApiModels.kt:50`: `ApiErrors.BAND_TOO_LARGE` is in the contract but never sent.
 13. `LocalServerTest.kt:134` sends `?v=0` while the parameter is `appVersion`; passes only because local has no minimum.
 14. `Devices.kt:91`: lazily pruned band ids can keep accepting registrations for a user who left their last band.
+15. `BandChanged.kt:46-47`: `pointers.pointTo`/`forget` are the only consequences not in `runCatching`; a DynamoDB
+    failure there answers the push with 500 although the band is saved, so the device pushes the batch again (all
+    duplicates).
+16. `BandChanged.kt:59-65`: the sync message goes to an unlinked user's devices before `removeBandFromUser`; a device
+    that reacts at once can still see the band in `GET /me` (it learns `band_not_found` from the band itself anyway).
 
 ### 8.6 Platform, build, tests
 
