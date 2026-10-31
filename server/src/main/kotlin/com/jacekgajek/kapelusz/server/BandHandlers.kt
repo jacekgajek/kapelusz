@@ -28,11 +28,7 @@ internal class BandHandlers(
     private val bands: BandAccess,
     private val users: UserRecords,
     private val history: HistoryLog,
-    private val invites: Invites,
-    private val attachments: AttachmentFiles,
-    private val pointers: EventPointers,
-    private val messenger: SyncMessenger?,
-    private val deletions: BandDeletions,
+    private val changed: BandChanged,
 ) {
     fun create(user: VerifiedUser, request: CreateBandRequest): HttpResponse {
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
@@ -105,34 +101,7 @@ internal class BandHandlers(
             // A precondition failure here: changed meanwhile, the whole batch again on the new state.
             val newEtag = if (encoded == null) etag else store.put(StorageKeys.band(bandId), encoded, ifMatch = etag)
             if (result.accepted.isNotEmpty()) {
-                // A member whose account was unlinked, or who is gone (deleted, also by a redo), keeps no invite
-                // (Invites.revokeFor).
-                val unlinkedMembers = envelopes.filter { it.opId in result.accepted }.map { it.op }.mapNotNull { (it as? UnlinkUser)?.memberId }
-                val goneMembers = band.members.map { it.id } - result.band.members.map { it.id }.toSet()
-                (unlinkedMembers + goneMembers).distinct().forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
-                // New events (also one brought back by an undo): where their links find them; deleted ones: not anymore.
-                val before = band.events.map { it.id }.toSet()
-                val after = result.band.events.map { it.id }.toSet()
-                pointers.pointTo(bandId, after - before)
-                pointers.forget(bandId, before - after)
-                // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
-                runCatching { attachments.deleteRemoved(bandId, band, result.band) }
-                    .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }
-                // A deletion kept by a leader (ITERATION_7 §9) leaves the list of bands waiting.
-                if (result.band.deletion != band.deletion) runCatching { deletions.note(bandId) }
-                // The change is already saved; a failed log write must not make the client retry it.
-                runCatching { history.append(user, band, bandId, envelopes.filter { it.opId in result.accepted }, result.changes) }
-                    .onFailure { System.err.println("Could not append history for band $bandId: $it") }
-                // Everyone in the band before or after (a member just removed learns it at once), but this device
-                // (ITERATION_7 §2.2).
-                if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }
-                // Someone's account unlinked (by a leader, or deleting them, ITERATION_7 §3.1): as if they had left, after
-                // the message their devices still get (ITERATION_6 §11a).
-                val unlinked = band.members.mapNotNull { it.userId }.toSet() - result.band.members.mapNotNull { it.userId }.toSet()
-                unlinked.forEach { userId ->
-                    runCatching { users.removeBandFromUser(userId, bandId) }
-                    runCatching { users.forgetIfNoBands(userId) }
-                }
+                changed.after(user, bandId, band, result.band, envelopes.filter { it.opId in result.accepted }, result.changes, from)
             }
             ok(PushResponse.serializer(), PushResponse(newEtag, result.band, result.accepted, result.rejected, result.duplicates))
         }
@@ -156,10 +125,7 @@ internal class BandHandlers(
             is ApplyResult.Rejected -> throw ApiError(409, ApiErrors.CONFLICT, result.rejection.message)
         }
         store.put(StorageKeys.band(bandId), encode(Band.serializer(), scheduled), ifMatch = etag)
-        runCatching { deletions.note(bandId) }.onFailure { System.err.println("Could not list band $bandId for deletion: $it") }
-        // With the band as it was, so the entry has who asked as its author.
-        runCatching { history.append(user, band, bandId, listOf(OpEnvelope(opId, "server", 0, now, op)), emptyMap()) }
-        runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), from) }
+        changed.after(user, bandId, band, scheduled, listOf(OpEnvelope(opId, "server", 0, now, op)), emptyMap(), from)
         HttpResponse(204)
     }
 
@@ -181,13 +147,7 @@ internal class BandHandlers(
         }
         // The commit point: what follows is tidying up, which a failure must not report as a failed leave.
         store.put(StorageKeys.band(bandId), encode(Band.serializer(), left), ifMatch = etag)
-        runCatching { users.removeBandFromUser(user.userId, bandId) }
-        runCatching { invites.revokeFor(bandId, me.id) }
-        // With the band as it was, so the entry has who left as its author.
-        runCatching { history.append(user, band, bandId, listOf(OpEnvelope(opId, "server", 0, clock(), op)), emptyMap()) }
-        // Before the user's devices are forgotten: their other devices let go of the band too (ITERATION_7 §2.2).
-        runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), from) }
-        runCatching { users.forgetIfNoBands(user.userId) }
+        changed.after(user, bandId, band, left, listOf(OpEnvelope(opId, "server", 0, clock(), op)), emptyMap(), from)
         HttpResponse(204)
     }
 

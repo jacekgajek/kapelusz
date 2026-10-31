@@ -176,7 +176,7 @@ class HistoryAndUndoTest : ApiHarness() {
             "small" to BandChange(BandPart(), BandPart()),
             "large" to BandChange(BandPart(events = mapOf("e1" to null)), BandPart(events = mapOf("e1" to event))),
         )
-        historyLog.append(VerifiedUser("alice", null, null), band, "band1", listOf(small, large), changes)
+        historyLog.append(VerifiedUser("alice", null, null), "m-alice", "band1", listOf(small, large), changes)
         assertTrue(history.bands.getValue("band1").values.all { it.length <= HistoryLog.MAX_RECORD_BYTES })
         val entry = log().entries.single()
         assertEquals(listOf("small", "large"), entry.ops.map { it.opId }, "both operations are listed")

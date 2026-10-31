@@ -49,13 +49,13 @@ class Api(
     private val deviceHandlers = DeviceHandlers(devices, records) { messageSender?.ready() == true }
     private val history = HistoryHandlers(clock, bands, log)
     private val attachments = AttachmentHandlers(bands, files)
-    private val invites = InviteHandlers(store, clock, bands, records, codes, log, messenger)
+    private val deletions = BandDeletions(store, clock, bands, records, codes, pointers, log, messenger).also { bands.whenDue = it::deleteNow }
+    private val changed = BandChanged(records, codes, pointers, files, deletions, log, messenger)
+    private val invites = InviteHandlers(store, clock, bands, records, codes, changed)
     private val calendar = CalendarHandlers(store, clock, bands, records)
     private val places = PlacesHandlers(bands, placeSearch, geocodeCache)
     private val linkPages = LinkPages(webIndex, bands, pointers)
-    private val deletions = BandDeletions(store, clock, bands, records, codes, pointers, log, messenger).also { bands.whenDue = it::deleteNow }
-    private val bandHandlers =
-        BandHandlers(store, clock, maxBandBytes, bands, records, log, codes, files, pointers, messenger, deletions)
+    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, records, log, changed)
 
     /** [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time. */
     fun handle(request: HttpRequest, sweep: Boolean = true): HttpResponse = try {
