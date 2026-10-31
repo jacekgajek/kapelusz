@@ -54,6 +54,7 @@ import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.Incoming
+import com.jacekgajek.kapelusz.app.data.OpenEvent
 import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.data.SharedFiles
 import com.jacekgajek.kapelusz.app.data.SharedHandover
@@ -80,6 +81,7 @@ import com.jacekgajek.kapelusz.app.generated.share_skipped_unsupported
 import com.jacekgajek.kapelusz.app.generated.share_title
 import com.jacekgajek.kapelusz.app.generated.share_upcoming
 import com.jacekgajek.kapelusz.app.platform.PickResult
+import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
@@ -383,10 +385,9 @@ private suspend fun deliver(incoming: Incoming, bands: BandRepository, fileStore
     }
     val section = when (target) {
         is ShareTarget.NewCost -> null
-        is ShareTarget.NewCollected, is ShareTarget.ExistingCollected -> "COLLECTED"
-        is ShareTarget.EventFiles -> "FILES"
-        is ShareTarget.ExistingCost -> "REFUNDS"
+        is ShareTarget.NewCollected, is ShareTarget.ExistingCollected -> EventSection.COLLECTED
+        is ShareTarget.EventFiles -> EventSection.FILES
+        is ShareTarget.ExistingCost -> EventSection.REFUNDS
     }
-    incoming.pendingEventSection.value = section?.let { eventId to it }
-    incoming.pendingOpenEvent.value = bandId to eventId
+    incoming.pendingOpenEvent.value = OpenEvent(bandId, eventId, section)
 }

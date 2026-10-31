@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -86,6 +87,7 @@ import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.when_where
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.EventNav
+import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
@@ -143,7 +145,7 @@ class EventContext(
 }
 
 @Composable
-fun EventScreen(session: BandSession, eventId: String, nav: EventNav) {
+fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: EventSection? = null, onSectionShow: () -> Unit = {}) {
     val state = session.state
     val changes = session.changes
     val api = session.api
@@ -185,20 +187,17 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav) {
         snapshotFlow { list.layoutInfo.totalItemsCount }.first { it == sections.size }
         list.scrollToItem(sections.indexOf(section))
     }
-    // Files shared to Kapelusz (ITERATION_6 §1): the section they went to, or on to the new cost that takes them. Only
-    // by the screen in front: one on its way out (the same event opened again) would take them along.
-    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
-    val sharedSection by incoming.pendingEventSection.collectAsState()
-    LaunchedEffect(sharedSection, event != null, resumed) {
-        val (sectionEvent, name) = sharedSection ?: return@LaunchedEffect
-        if (sectionEvent != eventId || !resumed) return@LaunchedEffect
-        val section = EventSection.entries.firstOrNull { it.name == name }
+    // Opened at, or asked to show, one of its sections (where shared files went, the refund a cost is in): once each.
+    val sectionShown by rememberUpdatedState(onSectionShow)
+    LaunchedEffect(section, event != null) {
+        if (section == null || event == null) return@LaunchedEffect
         // Artists' pages have other sections: just the page (e.g. Money, from a cost's form).
-        if (event != null && section != null) {
-            if (!artist) scrollTo(section) else section.tabs.firstOrNull { it in tabs }?.let { pagerState.scrollToPage(tabs.indexOf(it)) }
-        }
-        incoming.pendingEventSection.value = null
+        if (!artist) scrollTo(section) else section.tabs.firstOrNull { it in tabs }?.let { pagerState.scrollToPage(tabs.indexOf(it)) }
+        sectionShown()
     }
+    // Files shared to Kapelusz (ITERATION_6 §1) on their way to the new cost that takes them. Only by the screen in
+    // front: one on its way out (the same event opened again) would take them along.
+    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
     val handover by incoming.sharedHandover.collectAsState()
     LaunchedEffect(handover, event != null, resumed) {
         if (handover?.eventId != eventId || !resumed) return@LaunchedEffect
@@ -315,31 +314,6 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav) {
             }
         }
         if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceLookup(api, state.band, state.userId), onDismiss = { editing = false })
-    }
-}
-
-/**
- * The event screen's sections in list order, each on the pages ([tabs]) it shows on. One list item each, so a section is
- * found by its index on its page (e.g. where shared files were attached).
- */
-private enum class EventSection(vararg val tabs: EventTab) {
-    WHEN(EventTab.GIG),
-    DETAILS(EventTab.GIG),
-    FILES(EventTab.GIG),
-    PARTICIPANTS(EventTab.GIG),
-    SHARE_INFO(EventTab.GIG),
-    STATUS(EventTab.MONEY, EventTab.SETTLEMENT),
-    TOTALS(EventTab.MONEY),
-    COLLECTED(EventTab.MONEY),
-    REFUNDS(EventTab.MONEY),
-    PROBLEMS(EventTab.SETTLEMENT),
-    SUMMARY(EventTab.SETTLEMENT),
-    TO_SETTLE(EventTab.SETTLEMENT),
-    HISTORY(EventTab.SETTLEMENT),
-    ;
-
-    companion object {
-        fun on(tab: EventTab) = entries.filter { tab in it.tabs }
     }
 }
 
