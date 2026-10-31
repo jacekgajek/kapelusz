@@ -60,70 +60,78 @@ class Api(
         error(400, ApiErrors.BAD_REQUEST, e.message.orEmpty())
     }
 
-    private fun route(request: HttpRequest): HttpResponse {
+    private fun route(request: HttpRequest): HttpResponse = when {
         // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
         // need a 2xx answer; API Gateway adds the CORS headers.
-        if (request.method == "OPTIONS") return HttpResponse(204)
+        request.method == "OPTIONS" -> HttpResponse(204)
         // The calendar feed is fetched by calendar apps: no sign-in, no app version; the secret in the path is the key.
-        val calendarFeed = Regex("^/calendar/([A-Za-z0-9_-]{20,64})\\.ics$").find(request.path)
-        if ((request.method == "GET" || request.method == "HEAD") && calendarFeed != null) {
-            return calendar.feed(calendarFeed.groupValues[1]).let { if (request.method == "HEAD") it.copy(body = null) else it }
-        }
-        // Event links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in: the web app's
-        // page with the event's card. A 404 lets CloudFront answer with the plain page.
-        if (request.path.startsWith("/e/")) {
-            if (request.method != "GET" && request.method != "HEAD") throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
-            val page = Regex("^/e/([A-Za-z0-9_-]{1,64})/?$").find(request.path)?.let { linkPages.event(it.groupValues[1]) }
-                ?: throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
-            return if (request.method == "HEAD") page.copy(body = null) else page
-        }
-        if (!appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER])) {
+        request.isRead && CALENDAR_FEED.matches(request.path) -> calendarFeed(request)
+        // Event links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in.
+        request.path.startsWith("/e/") -> eventLinkPage(request)
+        !appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER]) ->
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of the app is too old; update it")
-        }
+        else -> signedIn(request)
+    }
+
+    private fun calendarFeed(request: HttpRequest): HttpResponse {
+        val secret = request.path.removePrefix("/calendar/").removeSuffix(".ics")
+        return calendar.feed(secret).answering(request)
+    }
+
+    /** The web app's page with the event's card. A 404 lets CloudFront answer with the plain page. */
+    private fun eventLinkPage(request: HttpRequest): HttpResponse {
+        val eventId = EVENT_LINK.matchEntire(request.path)?.groupValues?.get(1)?.takeIf { request.isRead }
+            ?: throw ApiError(404, ApiErrors.NOT_FOUND, "Not an API path")
+        return linkPages.event(eventId).answering(request)
+    }
+
+    /** The API proper: every other request needs a signed-in user. */
+    private fun signedIn(request: HttpRequest): HttpResponse {
         val user = authenticate(request)
-        val segments = request.path.trim('/').split('/').filter { it.isNotEmpty() }
-        val method = request.method
-        // bands/{id}/{what}
-        val bandPath = segments.size == 3 && segments[0] == "bands"
         // The Android device making a change: no sync message for it about its own change (ITERATION_7 §2.4).
         val installation = request.query[ApiErrors.INSTALLATION_PARAMETER]?.takeIf { DeviceHandlers.INSTALLATION_ID.matches(it) }
             ?.let { SenderDevice(user.userId, it) }
-        return when {
-            method == "GET" && segments == listOf("me") -> users.me(user)
-            method == "POST" && segments == listOf("me", "picture") -> users.picture(user, request)
-            method == "PUT" && segments.size == 3 && segments[0] == "me" && segments[1] == "devices" ->
-                deviceHandlers.register(user, segments[2], parse(request, DeviceRegistration.serializer()))
-            method == "DELETE" && segments.size == 3 && segments[0] == "me" && segments[1] == "devices" -> deviceHandlers.remove(user, segments[2])
-            method == "GET" && segments == listOf("me", "calendar") -> calendar.subscription(user, CalendarSubscriptionChange())
-            method == "POST" && segments == listOf("me", "calendar") ->
-                calendar.subscription(user, parse(request, CalendarSubscriptionChange.serializer()))
-            method == "POST" && segments == listOf("session") -> users.session(user)
-            method == "POST" && segments == listOf("sessions", "revoke") -> users.revokeSessions(user)
-            method == "POST" && segments == listOf("bands") -> bandHandlers.create(user, parse(request, CreateBandRequest.serializer()))
-            method == "GET" && bandPath && segments[2] == "state" -> bandHandlers.state(user, segments[1], request.header("if-none-match"))
-            method == "POST" && bandPath && segments[2] == "ops" -> bandHandlers.push(user, segments[1], parse(request, PushRequest.serializer()), installation)
-            method == "DELETE" && segments.size == 2 && segments[0] == "bands" -> bandHandlers.delete(user, segments[1], installation)
-            method == "POST" && bandPath && segments[2] == "leave" -> bandHandlers.leave(user, segments[1], installation)
-            method == "GET" && bandPath && segments[2] == "raw" -> bandHandlers.raw(user, segments[1])
-            method == "GET" && bandPath && segments[2] == "log" -> history.history(user, segments[1], request.query["month"], request.query["before"], request.query["months"])
-            method == "GET" && bandPath && segments[2] == "invites" -> invites.list(user, segments[1])
-            method == "GET" && bandPath && segments[2] == "places" -> places.suggest(user, segments[1], request)
-            method == "GET" && bandPath && segments[2] == "locations" -> places.locations(user, segments[1])
-            method == "POST" && segments.size == 4 && segments[0] == "bands" && segments[2] == "places" && segments[3] == "resolve" ->
-                places.resolve(user, segments[1], request, parse(request, MapLinkRequest.serializer()))
-            method == "GET" && segments.size == 4 && segments[0] == "bands" && segments[2] == "places" -> places.details(user, segments[1], segments[3], request)
-            method == "POST" && bandPath && segments[2] == "invites" ->
-                invites.create(user, segments[1], parse(request, CreateInviteRequest.serializer()))
-            method == "DELETE" && segments.size == 4 && segments[0] == "bands" && segments[2] == "invites" ->
-                invites.revoke(user, segments[1], segments[3])
-            method == "POST" && bandPath && segments[2] == "attachments" ->
-                attachments.upload(user, segments[1], parse(request, AttachmentUploadRequest.serializer()))
-            method == "GET" && segments.size == 4 && segments[0] == "bands" && segments[2] == "attachments" ->
-                attachments.download(user, segments[1], segments[3])
-            method == "GET" && segments.size == 2 && segments[0] == "invites" -> invites.preview(user, segments[1])
-            method == "POST" && segments.size == 3 && segments[0] == "invites" && segments[2] == "accept" -> invites.accept(user, segments[1], installation)
-            else -> throw ApiError(404, ApiErrors.NOT_FOUND, "No route for ${request.method} ${request.path}")
-        }
+        return routes(request) {
+            // The user: account, devices, calendar subscription, sessions.
+            get("me") { users.me(user) }
+            post("me/picture") { users.picture(user, request) }
+            put("me/devices/{installationId}") { (installationId) ->
+                deviceHandlers.register(user, installationId, body(DeviceRegistration.serializer()))
+            }
+            delete("me/devices/{installationId}") { (installationId) -> deviceHandlers.remove(user, installationId) }
+            get("me/calendar") { calendar.subscription(user, CalendarSubscriptionChange()) }
+            post("me/calendar") { calendar.subscription(user, body(CalendarSubscriptionChange.serializer())) }
+            post("session") { users.session(user) }
+            post("sessions/revoke") { users.revokeSessions(user) }
+
+            // A band: its file, changes to it, membership, history.
+            post("bands") { bandHandlers.create(user, body(CreateBandRequest.serializer())) }
+            get("bands/{bandId}/state") { (bandId) -> bandHandlers.state(user, bandId, request.header("if-none-match")) }
+            post("bands/{bandId}/ops") { (bandId) -> bandHandlers.push(user, bandId, body(PushRequest.serializer()), installation) }
+            delete("bands/{bandId}") { (bandId) -> bandHandlers.delete(user, bandId, installation) }
+            post("bands/{bandId}/leave") { (bandId) -> bandHandlers.leave(user, bandId, installation) }
+            get("bands/{bandId}/raw") { (bandId) -> bandHandlers.raw(user, bandId) }
+            get("bands/{bandId}/log") { (bandId) ->
+                history.history(user, bandId, request.query["month"], request.query["before"], request.query["months"])
+            }
+
+            // Places: suggestions while typing a location, the map's addresses.
+            get("bands/{bandId}/places") { (bandId) -> places.suggest(user, bandId, request) }
+            post("bands/{bandId}/places/resolve") { (bandId) -> places.resolve(user, bandId, request, body(MapLinkRequest.serializer())) }
+            get("bands/{bandId}/places/{placeId}") { (bandId, placeId) -> places.details(user, bandId, placeId, request) }
+            get("bands/{bandId}/locations") { (bandId) -> places.locations(user, bandId) }
+
+            // Attachments: presigned addresses for uploading and downloading files.
+            post("bands/{bandId}/attachments") { (bandId) -> attachments.upload(user, bandId, body(AttachmentUploadRequest.serializer())) }
+            get("bands/{bandId}/attachments/{attachmentId}") { (bandId, attachmentId) -> attachments.download(user, bandId, attachmentId) }
+
+            // Invites: a band's, and joining one by its code.
+            get("bands/{bandId}/invites") { (bandId) -> invites.list(user, bandId) }
+            post("bands/{bandId}/invites") { (bandId) -> invites.create(user, bandId, body(CreateInviteRequest.serializer())) }
+            delete("bands/{bandId}/invites/{code}") { (bandId, code) -> invites.revoke(user, bandId, code) }
+            get("invites/{code}") { (code) -> invites.preview(user, code) }
+            post("invites/{code}/accept") { (code) -> invites.accept(user, code, installation) }
+        } ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No route for ${request.method} ${request.path}")
     }
 
     /**
@@ -151,6 +159,9 @@ class Api(
     }
 
     companion object {
+        private val CALENDAR_FEED = Regex("/calendar/[A-Za-z0-9_-]{20,64}\\.ics")
+        private val EVENT_LINK = Regex("/e/([A-Za-z0-9_-]{1,64})/?")
+
         /**
          * The oldest app version (its version code: the run number of the CI run that deployed it, plus 10 since
          * 2026-10-27; before 2026-10-25, the separate Deploy workflow's run number) the server still serves; older apps
@@ -193,3 +204,9 @@ class Api(
         const val ATTEMPT_WINDOW_MS = 3600 * 1000L
     }
 }
+
+/** GET or HEAD: the requests the pages without a sign-in answer. */
+private val HttpRequest.isRead get() = method == "GET" || method == "HEAD"
+
+/** This page, without its body when [request] is a HEAD. */
+private fun HttpResponse.answering(request: HttpRequest) = if (request.method == "HEAD") copy(body = null) else this
