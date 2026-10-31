@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import java.util.Base64
 import java.util.zip.GZIPInputStream
@@ -28,7 +29,10 @@ class HandlerTest {
         val event = """{"rawPath":"/bands/b1/log","rawQueryString":"month=%zz","requestContext":{"http":{"method":"GET"}}}"""
         val output = java.io.ByteArrayOutputStream()
         Handler().handleRequest(event.byteInputStream(), output, null)
-        assertEquals(400, KapeluszJson.decodeFromString(ApiGatewayResponse.serializer(), output.toString()).statusCode)
+        val response = KapeluszJson.decodeFromString(ApiGatewayResponse.serializer(), output.toString())
+        assertEquals(400, response.statusCode)
+        assertEquals("application/json", response.headers["content-type"])
+        assertTrue(ApiErrors.BAD_REQUEST in response.body.orEmpty() && "Malformed query string" in response.body.orEmpty(), response.body)
     }
 
     private val bigJson = HttpResponse(200, """{"events":[${(1..200).joinToString(",") { "\"event $it\"" }}]}""", mapOf("content-type" to "application/json"))
