@@ -30,7 +30,9 @@ internal class BandHandlers(
     private val history: HistoryLog,
     private val changed: BandChanged,
 ) {
-    fun create(user: VerifiedUser, request: CreateBandRequest): HttpResponse {
+    fun create(call: Call): HttpResponse {
+        val user = call.user
+        val request = call.body(CreateBandRequest.serializer())
         badRequestIf(request.name.isBlank() || request.ownerName.isBlank()) { "Band and member names are required" }
         // The same limits as every change (ITERATION_3 R1): ids that become storage keys, names of sensible length.
         StorageKeys.safe(request.bandId)
@@ -53,13 +55,20 @@ internal class BandHandlers(
         return ok(BandStateResponse.serializer(), BandStateResponse(etag, band))
     }
 
-    fun state(user: VerifiedUser, bandId: String, ifNoneMatch: String?): HttpResponse {
+    fun state(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val ifNoneMatch = call.header("if-none-match")
         val (band, etag) = bands.loadForMember(user, bandId)
         if (ifNoneMatch == etag) return HttpResponse(304, headers = mapOf("etag" to etag))
         return ok(BandStateResponse.serializer(), BandStateResponse(etag, band), mapOf("etag" to etag))
     }
 
-    fun push(user: VerifiedUser, bandId: String, request: PushRequest, from: SenderDevice? = null): HttpResponse {
+    fun push(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val request = call.body(PushRequest.serializer())
+        val from = call.installation
         badRequestIf(request.ops.size > Api.MAX_OPS_PER_PUSH) { "At most ${Api.MAX_OPS_PER_PUSH} operations per push" }
         // One push comes from one device. Device ids are short, and each user has a bounded number of them, so no
         // member (not even a viewer, whose ops are all refused) can bloat the band's state.
@@ -112,7 +121,10 @@ internal class BandHandlers(
      * unless a leader keeps it meanwhile (`CancelBandDeletion`). Done here rather than as a pushed operation, so the
      * times are the server's; asked again while waiting, nothing changes.
      */
-    fun delete(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+    fun delete(call: Call): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val from = call.installation
         val (band, etag) = bands.loadForMember(user, bandId)
         val me = band.memberOfUser(user.userId)!!
         if (me.role != Role.OWNER) throw ApiError(403, ApiErrors.FORBIDDEN, "Only the owner can delete the band")
@@ -135,7 +147,10 @@ internal class BandHandlers(
      * deleted. Done here rather than as a pushed operation, so it either happens on the server or fails for the app to
      * say so, and the member's invites and the user's band list follow at once.
      */
-    fun leave(user: VerifiedUser, bandId: String, from: SenderDevice? = null): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+    fun leave(call: Call): HttpResponse = retryOnConflict(exhausted = { throw busy("Too many concurrent changes, try again") }) {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val from = call.installation
         val (band, etag) = bands.loadForMember(user, bandId)
         val me = band.memberOfUser(user.userId)!!
         if (me.role == Role.OWNER) throw ApiError(409, ApiErrors.OWNER_CANNOT_LEAVE, "Hand the band to another leader or delete it first")
@@ -152,7 +167,9 @@ internal class BandHandlers(
     }
 
     /** The band's file exactly as stored, for leaders (ITERATION_2 §7.1): putting it back changes nothing. */
-    fun raw(user: VerifiedUser, bandId: String): HttpResponse {
+    fun raw(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
         bands.loadForLeader(user, bandId, "Only band leaders see the raw data")
         val blob = store.get(StorageKeys.band(bandId)) ?: throw bands.gone(user, bandId)
         return HttpResponse(200, blob.content, mapOf("content-type" to "application/json; charset=utf-8"))

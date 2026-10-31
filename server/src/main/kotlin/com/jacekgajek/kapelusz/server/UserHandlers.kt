@@ -16,7 +16,8 @@ internal class UserHandlers(
     private val devices: DeviceRegistry,
     private val users: UserRecords,
 ) {
-    fun me(user: VerifiedUser): HttpResponse {
+    fun me(call: Call): HttpResponse {
+        val user = call.user
         val record = users.load(user.userId)
         val list = record.bandIds.mapNotNull { id ->
             val band = bands.load(id)?.first ?: return@mapNotNull null
@@ -27,16 +28,18 @@ internal class UserHandlers(
         return ok(MeResponse.serializer(), MeResponse(user.userId, user.email, user.name, list))
     }
 
-    fun picture(user: VerifiedUser, request: HttpRequest): HttpResponse {
+    fun picture(call: Call): HttpResponse {
+        val user = call.user
         // The Google token the app kept from signing in: the photo in it is the user's (ITERATION_2 §7.4).
-        val token = parse(request, PictureRequest.serializer()).googleToken
+        val token = call.body(PictureRequest.serializer()).googleToken
         val picture = verifier.pictureOf(token, user.userId) ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "Not a Google sign-in token of this user")
         users.rememberPicture(user.userId, picture)
         return HttpResponse(204)
     }
 
     /** A new session for a Google ID token, or a renewed one for a current session (sliding expiry). */
-    fun session(user: VerifiedUser): HttpResponse {
+    fun session(call: Call): HttpResponse {
+        val user = call.user
         // A renewal that would keep a session alive too long: the app signs in with Google again.
         user.sessionSince?.let { since -> if (clock() - since > SessionTokens.MAX_AGE_MS) throw ApiError(401, ApiErrors.UNAUTHORIZED, "Sign in again") }
         // Signing in with Google brings the current photo (ITERATION_2 §7.4); a failure must not stop the sign-in.
@@ -46,7 +49,8 @@ internal class UserHandlers(
     }
 
     /** "Sign out on all devices" (ITERATION_3 R6): every session of the user so far, this one included, stops working. */
-    fun revokeSessions(user: VerifiedUser): HttpResponse {
+    fun revokeSessions(call: Call): HttpResponse {
+        val user = call.user
         revocations.revoke(user.userId)
         // Signed out everywhere: no device of theirs gets sync messages until it signs in again and registers.
         runCatching { devices.clear(user.userId) }

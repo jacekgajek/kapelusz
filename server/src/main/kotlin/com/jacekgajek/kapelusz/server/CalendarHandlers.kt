@@ -15,8 +15,13 @@ internal class CalendarHandlers(
     private val bands: BandAccess,
     private val users: UserRecords,
 ) {
-    /** The user's feed link, created on first use; [change] can switch "include all" or make a new link. */
-    fun subscription(user: VerifiedUser, change: CalendarSubscriptionChange): HttpResponse {
+    /** The user's feed link, created on first use. */
+    fun subscription(call: Call): HttpResponse = subscription(call.user, CalendarSubscriptionChange())
+
+    /** The user's feed link, with [CalendarSubscriptionChange] switching "include all" or making a new link. */
+    fun changeSubscription(call: Call): HttpResponse = subscription(call.user, call.body(CalendarSubscriptionChange.serializer()))
+
+    private fun subscription(user: VerifiedUser, change: CalendarSubscriptionChange): HttpResponse {
         val key = StorageKeys.calendar(user.userId)
         val (secret, updated) = retryOnConflict(exhausted = { throw busy("Try again") }) {
             val blob = store.get(key)

@@ -15,7 +15,10 @@ internal class AttachmentHandlers(private val bands: BandAccess, private val fil
      * (the attachment op itself was permission-checked); the URL can only create the file, never replace it, and is
      * signed for exactly the declared size.
      */
-    fun upload(user: VerifiedUser, bandId: String, request: AttachmentUploadRequest): HttpResponse {
+    fun upload(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val request = call.body(AttachmentUploadRequest.serializer())
         val (band, _) = bands.loadForMember(user, bandId)
         if (!band.memberOfUser(user.userId)!!.role.atLeast(Role.ARTIST)) throw ApiError(403, ApiErrors.FORBIDDEN, "Viewers cannot upload")
         val attachment = band.allAttachments().firstOrNull { it.id == request.attachmentId }
@@ -27,7 +30,10 @@ internal class AttachmentHandlers(private val bands: BandAccess, private val fil
     }
 
     /** A URL to open an attachment; anyone who sees what it belongs to (every member) may. */
-    fun download(user: VerifiedUser, bandId: String, attachmentId: String): HttpResponse {
+    fun download(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val attachmentId = call.param("attachmentId")
         val (band, _) = bands.loadForMember(user, bandId)
         val attachment = band.allAttachments().firstOrNull { it.id == attachmentId }
             ?: throw ApiError(404, ApiErrors.ATTACHMENT_NOT_FOUND, "No such attachment")

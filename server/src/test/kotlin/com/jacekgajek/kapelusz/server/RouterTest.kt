@@ -4,16 +4,23 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class RoutesTest {
-    private fun answer(method: String, path: String) = routes(HttpRequest(method, path)) {
-        get("me") { HttpResponse(200, "me") }
-        get("bands/{bandId}/places/{placeId}") { (bandId, placeId) -> HttpResponse(200, "details $bandId $placeId") }
-        post("bands/{bandId}/places/resolve") { (bandId) -> HttpResponse(200, "resolve $bandId") }
-        get("bands/{bandId}/places/resolve") { HttpResponse(200, "never: an earlier route matches") }
-    }?.body
+class RouterTest {
+    private val router = Router(
+        listOf(
+            Route("GET", "me") { HttpResponse(200, "me") },
+            Route("GET", "bands/{bandId}/places/{placeId}") { HttpResponse(200, "details ${it.param("bandId")} ${it.param("placeId")}") },
+            Route("POST", "bands/{bandId}/places/resolve") { HttpResponse(200, "resolve ${it.param("bandId")}") },
+            Route("GET", "bands/{bandId}/places/resolve") { HttpResponse(200, "never: an earlier route matches") },
+        ),
+    )
+
+    private fun answer(method: String, path: String): String? {
+        val request = HttpRequest(method, path)
+        return router.handle(request) { params -> Call(request, VerifiedUser("u1", null, null), params, null) }?.body
+    }
 
     @Test
-    fun parametersAreHandedOverInOrder() {
+    fun parametersAreHandedOverByName() {
         assertEquals("details b1 p2", answer("GET", "/bands/b1/places/p2"))
     }
 

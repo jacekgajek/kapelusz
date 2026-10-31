@@ -1,13 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
-import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
-import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.api.CreateInviteRequest
-import com.jacekgajek.kapelusz.api.DeviceRegistration
-import com.jacekgajek.kapelusz.api.MapLinkRequest
-import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.engine.Limits
 import kotlinx.serialization.SerializationException
 
@@ -100,51 +93,47 @@ class Api(
     /** The API proper: every other request needs a signed-in user. */
     private fun signedIn(request: HttpRequest): HttpResponse {
         val user = authenticate(request)
-        // The Android device making a change: no sync message for it about its own change (ITERATION_7 §2.4).
         val installation = request.query[ApiErrors.INSTALLATION_PARAMETER]?.takeIf { DeviceHandlers.INSTALLATION_ID.matches(it) }
             ?.let { SenderDevice(user.userId, it) }
-        return routes(request) {
-            // The user: account, devices, calendar subscription, sessions.
-            get("me") { users.me(user) }
-            post("me/picture") { users.picture(user, request) }
-            put("me/devices/{installationId}") { (installationId) ->
-                deviceHandlers.register(user, installationId, body(DeviceRegistration.serializer()))
-            }
-            delete("me/devices/{installationId}") { (installationId) -> deviceHandlers.remove(user, installationId) }
-            get("me/calendar") { calendar.subscription(user, CalendarSubscriptionChange()) }
-            post("me/calendar") { calendar.subscription(user, body(CalendarSubscriptionChange.serializer())) }
-            post("session") { users.session(user) }
-            post("sessions/revoke") { users.revokeSessions(user) }
-
-            // A band: its file, changes to it, membership, history.
-            post("bands") { bandHandlers.create(user, body(CreateBandRequest.serializer())) }
-            get("bands/{bandId}/state") { (bandId) -> bandHandlers.state(user, bandId, request.header("if-none-match")) }
-            post("bands/{bandId}/ops") { (bandId) -> bandHandlers.push(user, bandId, body(PushRequest.serializer()), installation) }
-            delete("bands/{bandId}") { (bandId) -> bandHandlers.delete(user, bandId, installation) }
-            post("bands/{bandId}/leave") { (bandId) -> bandHandlers.leave(user, bandId, installation) }
-            get("bands/{bandId}/raw") { (bandId) -> bandHandlers.raw(user, bandId) }
-            get("bands/{bandId}/log") { (bandId) ->
-                history.history(user, bandId, request.query["month"], request.query["before"], request.query["months"])
-            }
-
-            // Places: suggestions while typing a location, the map's addresses.
-            get("bands/{bandId}/places") { (bandId) -> places.suggest(user, bandId, request) }
-            post("bands/{bandId}/places/resolve") { (bandId) -> places.resolve(user, bandId, request, body(MapLinkRequest.serializer())) }
-            get("bands/{bandId}/places/{placeId}") { (bandId, placeId) -> places.details(user, bandId, placeId, request) }
-            get("bands/{bandId}/locations") { (bandId) -> places.locations(user, bandId) }
-
-            // Attachments: presigned addresses for uploading and downloading files.
-            post("bands/{bandId}/attachments") { (bandId) -> attachments.upload(user, bandId, body(AttachmentUploadRequest.serializer())) }
-            get("bands/{bandId}/attachments/{attachmentId}") { (bandId, attachmentId) -> attachments.download(user, bandId, attachmentId) }
-
-            // Invites: a band's, and joining one by its code.
-            get("bands/{bandId}/invites") { (bandId) -> invites.list(user, bandId) }
-            post("bands/{bandId}/invites") { (bandId) -> invites.create(user, bandId, body(CreateInviteRequest.serializer())) }
-            delete("bands/{bandId}/invites/{code}") { (bandId, code) -> invites.revoke(user, bandId, code) }
-            get("invites/{code}") { (code) -> invites.preview(user, code) }
-            post("invites/{code}/accept") { (code) -> invites.accept(user, code, installation) }
-        } ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No route for ${request.method} ${request.path}")
+        return router.handle(request) { params -> Call(request, user, params, installation) }
+            ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No route for ${request.method} ${request.path}")
     }
+
+    private val router = Router(
+        listOf(
+            // The user: account, devices, calendar subscription, sessions.
+            Route("GET", "me", users::me),
+            Route("POST", "me/picture", users::picture),
+            Route("PUT", "me/devices/{installationId}", deviceHandlers::register),
+            Route("DELETE", "me/devices/{installationId}", deviceHandlers::remove),
+            Route("GET", "me/calendar", calendar::subscription),
+            Route("POST", "me/calendar", calendar::changeSubscription),
+            Route("POST", "session", users::session),
+            Route("POST", "sessions/revoke", users::revokeSessions),
+            // A band: its file, changes to it, membership, history.
+            Route("POST", "bands", bandHandlers::create),
+            Route("GET", "bands/{bandId}/state", bandHandlers::state),
+            Route("POST", "bands/{bandId}/ops", bandHandlers::push),
+            Route("DELETE", "bands/{bandId}", bandHandlers::delete),
+            Route("POST", "bands/{bandId}/leave", bandHandlers::leave),
+            Route("GET", "bands/{bandId}/raw", bandHandlers::raw),
+            Route("GET", "bands/{bandId}/log", history::history),
+            // Places: suggestions while typing a location, the map's addresses.
+            Route("GET", "bands/{bandId}/places", places::suggest),
+            Route("POST", "bands/{bandId}/places/resolve", places::resolve),
+            Route("GET", "bands/{bandId}/places/{placeId}", places::details),
+            Route("GET", "bands/{bandId}/locations", places::locations),
+            // Attachments: presigned addresses for uploading and downloading files.
+            Route("POST", "bands/{bandId}/attachments", attachments::upload),
+            Route("GET", "bands/{bandId}/attachments/{attachmentId}", attachments::download),
+            // Invites: a band's, and joining one by its code.
+            Route("GET", "bands/{bandId}/invites", invites::list),
+            Route("POST", "bands/{bandId}/invites", invites::create),
+            Route("DELETE", "bands/{bandId}/invites/{code}", invites::revoke),
+            Route("GET", "invites/{code}", invites::preview),
+            Route("POST", "invites/{code}/accept", invites::accept),
+        ),
+    )
 
     /**
      * Apps send their version code; a version below [minAppVersion] must update first. Apps from before version 2 send

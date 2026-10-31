@@ -80,7 +80,10 @@ internal class DeviceHandlers(
      * (ITERATION_6 §11a), and an app starting again doesn't bring it back. The answer says whether messages will come,
      * so the app knows how often to look for news itself.
      */
-    fun register(user: VerifiedUser, installationId: String, request: DeviceRegistration): HttpResponse {
+    fun register(call: Call): HttpResponse {
+        val user = call.user
+        val installationId = call.param("installationId")
+        val request = call.body(DeviceRegistration.serializer())
         validInstallation(installationId)
         // Firebase tokens are long, but not that long, and have no spaces or quotes.
         badRequestIf(request.token.length !in 20..MAX_TOKEN_CHARS || !request.token.matches(Regex("[A-Za-z0-9_:.-]+"))) { "Invalid token" }
@@ -89,7 +92,9 @@ internal class DeviceHandlers(
         return ok(DeviceRegistrationResponse.serializer(), DeviceRegistrationResponse(messaging = inBand && runCatching { messaging() }.getOrDefault(false)))
     }
 
-    fun remove(user: VerifiedUser, installationId: String): HttpResponse {
+    fun remove(call: Call): HttpResponse {
+        val user = call.user
+        val installationId = call.param("installationId")
         validInstallation(installationId)
         registry.remove(user.userId, installationId)
         return HttpResponse(204)

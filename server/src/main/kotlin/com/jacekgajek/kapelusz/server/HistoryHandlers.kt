@@ -9,12 +9,17 @@ import java.util.concurrent.Future
 /** `GET /bands/{bandId}/log`: pages of the band's history ([HistoryLog]), a few months at a time. */
 internal class HistoryHandlers(private val clock: () -> Long, private val bands: BandAccess, private val log: HistoryLog) {
     /**
-     * One page of a month's history, newest first. [before] is the `next` cursor of the previous page.
+     * One page of a month's history, newest first; `before` is the `next` cursor of the previous page.
      *
-     * With [months] above 1, the first page of that many months back from [month] in one answer (no `next`): one
+     * With `months` above 1, the first page of that many months back from `month` in one answer (no `next`): one
      * request instead of one per month, so the app does not wake a new server instance for each month.
      */
-    fun history(user: VerifiedUser, bandId: String, month: String?, before: String?, months: String? = null): HttpResponse {
+    fun history(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val month = call.query("month")
+        val before = call.query("before")
+        val months = call.query("months")
         val selected = month ?: monthOf(clock())
         badRequestIf(!selected.matches(Regex("\\d{4}-\\d{2}"))) { "month must be yyyy-MM" }
         val first = runCatching { YearMonth.parse(selected) }.getOrNull()

@@ -183,16 +183,19 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
     private val language = Regex("[a-z]{2}(-[A-Z]{2})?")
     private val token = Regex("[A-Za-z0-9_-]{1,300}")
 
-    fun suggest(user: VerifiedUser, bandId: String, request: HttpRequest): HttpResponse {
-        val search = ready(user, bandId)
+    fun suggest(call: Call): HttpResponse {
+        val request = call.request
+        val search = ready(call.user, call.param("bandId"))
         val query = request.query["q"].orEmpty().trim()
         badRequestIf(query.length !in Places.MIN_QUERY..Places.MAX_QUERY) { "Type ${Places.MIN_QUERY} to ${Places.MAX_QUERY} characters" }
         return ok(PlacesResponse.serializer(), PlacesResponse(search.suggest(query, request.language(), request.session())))
     }
 
     /** What Location becomes for a picked suggestion: its name and full address (ITERATION_5 §9.1). */
-    fun details(user: VerifiedUser, bandId: String, placeId: String, request: HttpRequest): HttpResponse {
-        val search = ready(user, bandId)
+    fun details(call: Call): HttpResponse {
+        val request = call.request
+        val placeId = call.param("placeId")
+        val search = ready(call.user, call.param("bandId"))
         badRequestIf(!token.matches(placeId)) { "Not a place" }
         val place = search.details(placeId, request.language(), request.session()) ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No such place")
         val name = place.name ?: place.address ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No such place")
@@ -203,8 +206,10 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
      * What Location becomes for a Google Maps link (ITERATION_5 §9.1): a place's name and the address at its pin, a
      * dropped pin's coordinates, or the searched text. 422 when the link points at nothing readable.
      */
-    fun resolve(user: VerifiedUser, bandId: String, request: HttpRequest, link: MapLinkRequest): HttpResponse {
-        val search = ready(user, bandId)
+    fun resolve(call: Call): HttpResponse {
+        val request = call.request
+        val link = call.body(MapLinkRequest.serializer())
+        val search = ready(call.user, call.param("bandId"))
         val url = link.url.trim()
         badRequestIf(url.length > MAX_LINK || !Places.isMapLink(url)) { "Not a Google Maps link" }
         // A full link is read as it is; a short one (the app's Share) is followed to the full one first.
@@ -238,7 +243,9 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
      * the band's own locations, so nobody has addresses looked up at the band's cost; each address once, ever (cached);
      * at most [MAX_LOOKUPS] new ones a call, the rest pending, asked again by the app.
      */
-    fun locations(user: VerifiedUser, bandId: String): HttpResponse {
+    fun locations(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
         val (band, _) = bands.loadForMember(user, bandId)
         // Only concerts already played (a day's slack for time zones): the map shows no gigs to come.
         val tomorrow = kotlinx.datetime.LocalDate.parse(java.time.LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1).toString())
