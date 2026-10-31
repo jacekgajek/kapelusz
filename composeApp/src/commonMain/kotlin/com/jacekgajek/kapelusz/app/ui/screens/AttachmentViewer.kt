@@ -59,9 +59,9 @@ import com.jacekgajek.kapelusz.app.generated.image_copied
 import com.jacekgajek.kapelusz.app.generated.image_copy
 import com.jacekgajek.kapelusz.app.generated.remove
 import com.jacekgajek.kapelusz.app.platform.PdfPages
-import com.jacekgajek.kapelusz.app.platform.pdfPagePng
 import com.jacekgajek.kapelusz.app.platform.rememberCopyImage
 import com.jacekgajek.kapelusz.app.platform.rememberOpenPdf
+import com.jacekgajek.kapelusz.app.platform.rememberPdfPagePng
 import com.jacekgajek.kapelusz.app.ui.components.ZoomState
 import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.zoomable
@@ -148,6 +148,7 @@ fun AttachmentViewer(
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val copyImage = rememberCopyImage()
+    val pdfPagePng = rememberPdfPagePng()
     val openPdf = rememberOpenPdf()
     // The PDF page mostly in view, per attachment: copy copies that page.
     val pdfPages = remember { mutableStateMapOf<String, Int>() }

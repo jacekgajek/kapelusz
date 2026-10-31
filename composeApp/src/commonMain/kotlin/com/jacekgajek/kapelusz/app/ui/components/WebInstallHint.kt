@@ -31,12 +31,11 @@ import com.jacekgajek.kapelusz.app.generated.app_update_download
 import com.jacekgajek.kapelusz.app.generated.app_update_text
 import com.jacekgajek.kapelusz.app.generated.install_home_screen_text
 import com.jacekgajek.kapelusz.app.generated.install_not_now
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.PLAY_INSTALL
 import com.jacekgajek.kapelusz.app.platform.WebHint
 import com.jacekgajek.kapelusz.app.platform.WebInstallState
-import com.jacekgajek.kapelusz.app.platform.appReloader
 import com.jacekgajek.kapelusz.app.platform.webHint
-import com.jacekgajek.kapelusz.app.platform.webInstallState
 import org.jetbrains.compose.resources.stringResource
 
 /** Hints dismissed with "Not now" since the event list last opened; kept in memory only (ITERATION_3 §2.3). */
@@ -48,14 +47,15 @@ private var dismissedThisVisit by mutableStateOf(emptySet<WebHint>())
  */
 @Composable
 internal fun WebInstallHint(eventList: Boolean, modifier: Modifier = Modifier) {
+    val platform = LocalPlatform.current
     var state by remember { mutableStateOf<WebInstallState?>(null) }
     LaunchedEffect(eventList) {
         if (eventList) dismissedThisVisit = emptySet()
-        if (eventList || state == null) state = webInstallState()
+        if (eventList || state == null) state = platform.webInstallState()
     }
     val hint = state?.let { webHint(it, dismissedThisVisit) } ?: return
     val uriHandler = LocalUriHandler.current
-    val reload = appReloader()
+    val reload = platform.reload
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             val icon = when (hint) {

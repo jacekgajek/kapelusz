@@ -9,14 +9,12 @@ import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.app.data.AttachmentUploads
-import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.BandStore
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
 import com.jacekgajek.kapelusz.app.data.PendingUpload
-import com.jacekgajek.kapelusz.app.platform.ByteCache
 import com.jacekgajek.kapelusz.engine.ApplyResult
 import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.engine.Limits
@@ -72,7 +70,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.KSerializer
 
 /** A tiny in-memory server running the real shared [Engine], behind Ktor's mock HTTP engine. */
-private class FakeServer {
+internal class FakeServer {
     val bands = mutableMapOf<String, Band>()
     var version = 0
     var unauthorizedOnce = false
@@ -550,49 +548,6 @@ class SyncEngineTest {
         assertTrue(uploads.pending.value.isEmpty())
         assertEquals(null, store.read(AttachmentUploads.fileKey("alice", "a1")))
         assertEquals(null, store.read(AttachmentUploads.fileKey("alice", "gone")))
-    }
-
-    /** ITERATION_5 §4.2: an attachment's file is the local copy while it uploads, then downloaded once and kept. */
-    @Test
-    fun anAttachmentsFileComesFromTheDeviceOrIsDownloadedOnce() = runTest {
-        val server = FakeServer()
-        val store = InMemoryStore()
-        val repository = BandRepository(store, this, { "id${nextId++}" })
-        val api = ApiClient(server.client, "https://api.test") { "alice:0" }
-        val uploads = AttachmentUploads(store, api, repository) { _, _, _ -> 200 }
-        val sync = SyncEngine(api, repository, this, uploads = uploads)
-        val downloads = mutableListOf<String>()
-        var online = true
-        val kept = mutableMapOf<String, ByteArray>()
-        val cache = object : ByteCache {
-            override suspend fun read(key: String) = kept[key]
-            override suspend fun write(key: String, bytes: ByteArray) {
-                kept[key] = bytes
-            }
-        }
-        val attachments = Attachments(repository, uploads, api, sync, this, repository::dispatch, download = { url ->
-            check(online) { "offline" }
-            downloads += url
-            byteArrayOf(9, 9)
-        }, cache = cache)
-        repository.load("alice")
-        uploads.load("alice")
-        repository.createBand("Night Owls", "PLN", "Alice")
-        val me = (repository.state.value as BandState.Ready).me!!.id
-        repository.dispatch(AddCost("c1", me, Money(5000), LocalDate(2026, 9, 1)))
-        repository.dispatch(AddAttachment("c1", Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 3)))
-        uploads.enqueue(PendingUpload(repository.currentBandId!!, "a1"), "AQID")
-        uploads.published("a1")
-
-        assertTrue(byteArrayOf(1, 2, 3).contentEquals(attachments.bytes("a1")), "still uploading: the local copy")
-        assertTrue(sync.syncNow())
-        assertTrue(byteArrayOf(9, 9).contentEquals(attachments.bytes("a1")), "uploaded: downloaded")
-        assertTrue(byteArrayOf(9, 9).contentEquals(attachments.bytes("a1")))
-        assertEquals(listOf("https://s3.test/get/a1"), downloads, "once: then from the device")
-
-        online = false
-        kept.clear()
-        assertEquals(null, attachments.bytes("a1"), "offline and not kept: nothing to show")
     }
 
     @Test

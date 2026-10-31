@@ -1,10 +1,9 @@
 package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.auth.GoogleAuth
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
 import com.jacekgajek.kapelusz.app.intents.IntentInbox
-import com.jacekgajek.kapelusz.app.platform.MessageChannel
+import com.jacekgajek.kapelusz.app.platform.Platform
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiSignal
 import com.jacekgajek.kapelusz.app.sync.ApiTransport
@@ -35,12 +34,13 @@ import kotlinx.coroutines.sync.withLock
  * [intents] holds links and shared files for the UI.
  */
 class AppRuntime(
-    store: KeyValueStore,
-    google: GoogleAuth,
+    /** Where the app runs: what it needs from the device, and what screens ask through `LocalPlatform`. */
+    val platform: Platform,
     http: HttpClient = HttpClient(),
-    /** Firebase sync messages (ITERATION_7 §2.3); null on the web. */
-    messageChannel: MessageChannel? = null,
 ) {
+    private val store = platform.store
+    private val messageChannel = platform.messages
+
     // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
     private val unhandled = CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + unhandled)
@@ -52,13 +52,13 @@ class AppRuntime(
         appVersion = AppConfig.VERSION_CODE,
         installation = messageChannel?.installationId,
     )
-    val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis, SessionApi(transport)::createSession)
+    val sessions: SessionRepository = SessionRepository(store, platform.google, ::nowMillis, SessionApi(transport)::createSession)
     val bands = BandRepository(BandStore(store, scope))
 
     /** The server no longer serves this app version (ITERATION_2 §2); part of [state]. */
     private val updateRequired = MutableStateFlow(false)
     val api: ApiClient = ApiClient(transport) { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) }
-    val uploads = AttachmentUploads(store, api, bands)
+    val uploads = AttachmentUploads(store, api, bands, platform::uploadFile)
 
     /** Where event locations are, for the map (ITERATION_7 §8). */
     val locations = PlacesLocator(store, api)
@@ -73,7 +73,7 @@ class AppRuntime(
     val intents = IntentInbox()
     val account: Account = Account(scope, sessions, api, bands, uploads, sync, devices, intents)
     val membership = Membership(scope, api, bands, sync)
-    val attachments = Attachments(bands, uploads, api, sync, scope, changes::dispatch, download = { url ->
+    val attachments = Attachments(bands, uploads, api, sync, scope, changes::dispatch, cache = platform.fileCache, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.
         val response = http.get(url)
         check(response.status.isSuccess()) { "Download failed: ${response.status}" }

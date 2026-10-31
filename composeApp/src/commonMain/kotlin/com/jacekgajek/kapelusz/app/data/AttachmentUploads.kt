@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.app.platform.uploadFile
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.history.KapeluszJson
@@ -29,7 +28,8 @@ class AttachmentUploads(
     private val store: KeyValueStore,
     private val api: ApiClient,
     private val bands: BandRepository,
-    private val put: suspend (url: String, headers: Map<String, String>, base64: String) -> Int = ::uploadFile,
+    /** PUTs a file to its presigned URL (the platform's). */
+    private val put: suspend (url: String, headers: Map<String, String>, base64: String) -> Int,
 ) {
     private val lock = Mutex()
     private var userId: String? = null

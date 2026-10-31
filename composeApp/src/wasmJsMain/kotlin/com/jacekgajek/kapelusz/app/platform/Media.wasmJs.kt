@@ -8,26 +8,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.Promise
 import kotlinx.coroutines.await
 
-/** For the session only: the browser has no file cache the app could use for this, and a reload starts over. */
-actual object FileCache : ByteCache {
-    private const val MAX_BYTES = 50L * 1024 * 1024
-    private val files = LinkedHashMap<String, ByteArray>()
-
-    actual override suspend fun read(key: String): ByteArray? = files.remove(key)?.also { files[key] = it }
-
-    actual override suspend fun write(key: String, bytes: ByteArray) {
-        files[key] = bytes
-        var total = files.values.sumOf { it.size.toLong() }
-        val keys = files.keys.iterator()
-        while (total > MAX_BYTES && keys.hasNext()) {
-            val oldest = keys.next()
-            if (oldest == key) continue
-            total -= files[oldest]?.size ?: 0
-            keys.remove()
-        }
-    }
-}
-
 /**
  * Writes the image to the clipboard as a PNG, the one image type browsers accept there (a JPEG is redrawn first).
  * The clipboard is asked at once with a promise of the image, so it still counts as the tap (Safari requires that).
@@ -71,7 +51,8 @@ actual val pdfInViewer: Boolean = false
 @Composable
 actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit) = Unit
 
-actual suspend fun pdfPagePng(bytes: ByteArray, page: Int): ByteArray? = null
+@Composable
+actual fun rememberPdfPagePng(): suspend (bytes: ByteArray, page: Int) -> ByteArray? = { _, _ -> null }
 
 @Composable
 actual fun rememberOpenPdf(): suspend (bytes: ByteArray, fileName: String) -> Boolean = remember { { _, _ -> false } }

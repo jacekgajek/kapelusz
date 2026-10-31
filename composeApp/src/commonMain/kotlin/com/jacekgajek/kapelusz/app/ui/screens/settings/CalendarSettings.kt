@@ -35,7 +35,8 @@ import com.jacekgajek.kapelusz.app.generated.calendar_reset_title
 import com.jacekgajek.kapelusz.app.generated.calendar_title
 import com.jacekgajek.kapelusz.app.generated.copy_link
 import com.jacekgajek.kapelusz.app.generated.link_copied
-import com.jacekgajek.kapelusz.app.platform.isAndroidApp
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
+import com.jacekgajek.kapelusz.app.platform.PlatformKind
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -74,7 +75,7 @@ internal fun CalendarSection(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Google Calendar adds a calendar by URL only on its website; on a phone that page cannot, so the app says
             // where to add it instead. The https address (not webcal://, which Google may fetch over plain http).
-            if (!isAndroidApp()) {
+            if (LocalPlatform.current.kind == PlatformKind.WEB) {
                 Button(onClick = { uriHandler.openUri("https://calendar.google.com/calendar/r?cid=" + urlEncode(current.url)) }) {
                     Text(stringResource(Res.string.calendar_add_google))
                 }

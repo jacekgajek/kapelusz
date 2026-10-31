@@ -28,7 +28,7 @@ private fun fetchVersion(): Promise<JsString?> = js("fetch('/download/version.js
 private val json = Json { ignoreUnknownKeys = true }
 
 // Read again on every visit to the event list: a tab open for days still learns of a new deploy.
-actual suspend fun webInstallState(): WebInstallState? {
+internal suspend fun readWebInstallState(): WebInstallState {
     val published = runSuspendCatching {
         fetchVersion().await<JsString?>()?.toString()?.let { json.decodeFromString<PublishedVersion>(it) }
     }.getOrNull()

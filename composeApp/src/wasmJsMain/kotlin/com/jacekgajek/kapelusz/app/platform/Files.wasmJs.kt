@@ -121,7 +121,7 @@ private fun putBase64(url: String, headersJson: String, base64: String): Promise
 })()""",
 )
 
-actual suspend fun uploadFile(url: String, headers: Map<String, String>, base64: String): Int {
+internal suspend fun putFile(url: String, headers: Map<String, String>, base64: String): Int {
     val json = headers.entries.joinToString(",", "{", "}") { (key, value) -> "${jsonString(key)}:${jsonString(value)}" }
     return putBase64(url, json, base64).await<JsNumber>().toInt()
 }

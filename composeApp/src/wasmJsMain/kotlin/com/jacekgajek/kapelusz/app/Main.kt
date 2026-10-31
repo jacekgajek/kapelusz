@@ -14,14 +14,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.window.ComposeViewport
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.bindToNavigation
-import com.jacekgajek.kapelusz.app.auth.WebGoogleAuth
 import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.data.AppState
-import com.jacekgajek.kapelusz.app.data.IndexedDbStore
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.fallback_symbols
 import com.jacekgajek.kapelusz.app.generated.fallback_text
 import com.jacekgajek.kapelusz.app.intents.AppIntent
+import com.jacekgajek.kapelusz.app.platform.WebPlatform
 import com.jacekgajek.kapelusz.app.ui.screens.OtherTabScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
 import com.jacekgajek.kapelusz.text.EventLinks
@@ -49,7 +48,7 @@ private fun exposeVersion(label: String) {
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
     exposeVersion(AppConfig.VERSION_LABEL)
-    val runtime = AppRuntime(IndexedDbStore(), WebGoogleAuth)
+    val runtime = AppRuntime(WebPlatform())
     // A hidden tab sends what waits, then stops looking for news; shown again, it syncs at once (ITERATION_7 §2.6).
     document.addEventListener("visibilitychange", {
         if (documentHidden()) runtime.onHidden() else runtime.onForeground()
