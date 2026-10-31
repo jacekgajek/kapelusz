@@ -11,7 +11,6 @@ import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.DeviceRegistration
 import com.jacekgajek.kapelusz.api.DeviceRegistrationResponse
-import com.jacekgajek.kapelusz.api.ErrorResponse
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.InvitePreview
@@ -25,7 +24,6 @@ import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Id
@@ -34,7 +32,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
-import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -44,9 +41,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.encodeURLPathPart
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
 
@@ -78,20 +73,24 @@ open class NeedsSignInException(message: String = "Sign in again") : RuntimeExce
  */
 class SessionsRevokedException : NeedsSignInException("Signed out on all devices")
 
-/** Typed client for the Kapelusz API. [token] returns an ID token; `true` forces a refresh. */
+/** Typed client for the Kapelusz API, sending the user's session token. */
 class ApiClient(
-    private val http: HttpClient,
-    private val baseUrl: String,
-    /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (ITERATION_2 §2). */
-    private val appVersion: Int = 0,
-    /**
-     * The Android installation's id, sent with every request (`installation`), so the server doesn't send this device a
-     * sync message about its own changes (ITERATION_7 §2.4); null on the web.
-     */
-    private val installation: String? = null,
+    internal val transport: ApiTransport,
     /** The token to send; [refused] is the one the server just refused (null: the current one is wanted). */
     private val token: suspend (refused: String?) -> String?,
 ) {
+    /** Its own transport, for tests and tools; the app shares one with [SessionApi]. */
+    constructor(
+        http: HttpClient,
+        baseUrl: String,
+        appVersion: Int = 0,
+        installation: String? = null,
+        token: suspend (refused: String?) -> String?,
+    ) : this(ApiTransport(http, baseUrl, appVersion, installation), token)
+
+    /** The server's signals, see [ApiTransport.signals]. */
+    val signals: SharedFlow<ApiSignal> get() = transport.signals
+
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
 
     /** This installation's Firebase token (ITERATION_7 §2.4); the answer says whether sync messages will come. */
@@ -104,12 +103,13 @@ class ApiClient(
 
     /** No more sync messages for this installation (signing out). */
     suspend fun removeDevice(installationId: String) {
-        text(send(HttpMethod.Delete, "/me/devices/$installationId") {})
+        transport.text(send(HttpMethod.Delete, "/me/devices/$installationId") {})
     }
 
     /** Hands the server the Google sign-in token this device kept, for the photo in it (ITERATION_2 §7.4). */
     suspend fun sendPicture(googleToken: String) {
-        text(send(HttpMethod.Post, "/me/picture") { setBody(TextContent(KapeluszJson.encodeToString(PictureRequest.serializer(), PictureRequest(googleToken)), ContentType.Application.Json)) })
+        val body = KapeluszJson.encodeToString(PictureRequest.serializer(), PictureRequest(googleToken))
+        transport.text(send(HttpMethod.Post, "/me/picture") { setBody(TextContent(body, ContentType.Application.Json)) })
     }
 
     /** The user's private calendar feed link (created on first use). */
@@ -122,12 +122,9 @@ class ApiClient(
         body = KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), change),
     )
 
-    /** A new Kapelusz session for [bearer] (a Google ID token or the current session); bypasses the token provider. */
-    suspend fun createSession(bearer: String): SessionResponse = parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
-
     /** "Sign out on all devices" (ITERATION_3 R6): the server refuses every session of the user begun before now. */
     suspend fun revokeSessions() {
-        text(send(HttpMethod.Post, "/sessions/revoke") {})
+        transport.text(send(HttpMethod.Post, "/sessions/revoke") {})
     }
 
     suspend fun createBand(request: CreateBandRequest): BandStateResponse = call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = KapeluszJson.encodeToString(CreateBandRequest.serializer(), request))
@@ -136,26 +133,26 @@ class ApiClient(
     suspend fun state(bandId: Id, knownVersion: String?): BandStateResponse? {
         val response = send(HttpMethod.Get, "/bands/$bandId/state") { if (knownVersion != null) header(HttpHeaders.IfNoneMatch, knownVersion) }
         if (response.status == HttpStatusCode.NotModified) return null
-        return parse(response, BandStateResponse.serializer())
+        return transport.parse(response, BandStateResponse.serializer())
     }
 
     suspend fun push(bandId: Id, ops: List<OpEnvelope>): PushResponse = call(HttpMethod.Post, "/bands/$bandId/ops", PushResponse.serializer(), body = KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
 
     /** Deletes the band for everyone (owner only). */
     suspend fun deleteBand(bandId: Id) {
-        text(send(HttpMethod.Delete, "/bands/$bandId") {})
+        transport.text(send(HttpMethod.Delete, "/bands/$bandId") {})
     }
 
     /** Unlinks the caller's account from the band (not its owner, who gets [ApiErrors.OWNER_CANNOT_LEAVE]). */
     suspend fun leaveBand(bandId: Id) {
-        text(send(HttpMethod.Post, "/bands/$bandId/leave") {})
+        transport.text(send(HttpMethod.Post, "/bands/$bandId/leave") {})
     }
 
     /** The band's file exactly as stored on the server, for leaders (ITERATION_2 §7.1). */
-    suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
+    suspend fun rawState(bandId: Id): String = transport.text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */
-    suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> = parse(
+    suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> = transport.parse(
         send(HttpMethod.Get, "/bands/$bandId/places") {
             parameter("q", query)
             parameter("lang", language)
@@ -165,10 +162,13 @@ class ApiClient(
     ).places
 
     /** Where the band's event locations are, for the "Where we played" map (ITERATION_7 §8); for any member. */
-    suspend fun locations(bandId: Id): LocationsResponse = parse(send(HttpMethod.Get, "/bands/$bandId/locations") {}, LocationsResponse.serializer())
+    suspend fun locations(bandId: Id): LocationsResponse {
+        val response = send(HttpMethod.Get, "/bands/$bandId/locations") {}
+        return transport.parse(response, LocationsResponse.serializer())
+    }
 
     /** What Location becomes for a picked place: its name and full address (ITERATION_5 §9.1), ending the [session]. */
-    suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String = parse(
+    suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String = transport.parse(
         send(HttpMethod.Get, "/bands/$bandId/places/${placeId.encodeURLPathPart()}") {
             parameter("lang", language)
             parameter("session", session)
@@ -177,7 +177,7 @@ class ApiClient(
     ).text
 
     /** What Location becomes for a Google Maps link: the place and its address, or a pin's coordinates (ITERATION_5 §9.1). */
-    suspend fun resolveMapLink(bandId: Id, url: String, language: String): String = parse(
+    suspend fun resolveMapLink(bandId: Id, url: String, language: String): String = transport.parse(
         send(HttpMethod.Post, "/bands/$bandId/places/resolve") {
             parameter("lang", language)
             setBody(TextContent(KapeluszJson.encodeToString(MapLinkRequest.serializer(), MapLinkRequest(url)), ContentType.Application.Json))
@@ -195,7 +195,7 @@ class ApiClient(
     )
 
     suspend fun revokeInvite(bandId: Id, code: String) {
-        text(send(HttpMethod.Delete, "/bands/$bandId/invites/$code") {})
+        transport.text(send(HttpMethod.Delete, "/bands/$bandId/invites/$code") {})
     }
 
     suspend fun previewInvite(code: String): InvitePreview = call(HttpMethod.Get, "/invites/$code", InvitePreview.serializer())
@@ -223,7 +223,10 @@ class ApiClient(
     /** A short-lived URL to open an attachment. */
     suspend fun attachmentUrl(bandId: Id, attachmentId: Id): String = call(HttpMethod.Get, "/bands/$bandId/attachments/$attachmentId", AttachmentUrlResponse.serializer()).url
 
-    private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T = parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)
+    private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T {
+        val response = send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }
+        return transport.parse(response, serializer)
+    }
 
     /**
      * Sends with the current token; on 401 refreshes the token once and retries. Not after "signed out on all
@@ -231,62 +234,15 @@ class ApiClient(
      */
     private suspend fun send(method: HttpMethod, path: String, configure: HttpRequestBuilder.() -> Unit): HttpResponse {
         val bearer = token(null) ?: throw NeedsSignInException()
-        var response = attempt(method, path, bearer, configure)
+        var response = transport.attempt(method, path, bearer, configure)
         if (response.status == HttpStatusCode.Unauthorized) {
-            checkRevoked(errorOf(response.bodyAsText())?.error)
-            response = attempt(method, path, token(bearer) ?: throw NeedsSignInException(), configure)
+            transport.checkRevoked(transport.errorOf(response.bodyAsText())?.error)
+            response = transport.attempt(method, path, token(bearer) ?: throw NeedsSignInException(), configure)
             if (response.status == HttpStatusCode.Unauthorized) {
-                checkRevoked(errorOf(response.bodyAsText())?.error)
+                transport.checkRevoked(transport.errorOf(response.bodyAsText())?.error)
                 throw NeedsSignInException()
             }
         }
         return response
     }
-
-    private val _signals = MutableSharedFlow<ApiSignal>(extraBufferCapacity = 16)
-
-    /** What the server told this app besides answers: it is outdated, or signed out on all devices. */
-    val signals: SharedFlow<ApiSignal> = _signals.asSharedFlow()
-
-    private suspend fun checkRevoked(code: String?) {
-        if (code == ApiErrors.SESSIONS_REVOKED) {
-            _signals.emit(ApiSignal.SessionsRevoked)
-            throw SessionsRevokedException()
-        }
-    }
-
-    private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) = http.request("$baseUrl$path") {
-        this.method = method
-        // A query parameter, not a header: a new header would need the API's CORS allow-list changed.
-        parameter(ApiErrors.APP_VERSION_PARAMETER, appVersion)
-        installation?.let { parameter(ApiErrors.INSTALLATION_PARAMETER, it) }
-        header(HttpHeaders.Authorization, "Bearer $bearer")
-        configure()
-    }
-
-    private suspend fun <T> parse(response: HttpResponse, serializer: KSerializer<T>): T = KapeluszJson.decodeFromString(serializer, text(response))
-
-    private fun errorOf(body: String) = runCatching { KapeluszJson.decodeFromString(ErrorResponse.serializer(), body) }.getOrNull()
-
-    /** The body of a successful response; otherwise the server's error as an [ApiException]. */
-    private suspend fun text(response: HttpResponse): String {
-        val text = response.bodyAsText()
-        if (response.status.value !in 200..299) {
-            val error = errorOf(text)
-            if (error?.error == ApiErrors.UPDATE_REQUIRED) _signals.emit(ApiSignal.UpdateRequired)
-            // E.g. exchanging a token for a session (which bypasses [send]).
-            checkRevoked(error?.error)
-            throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
-        }
-        return text
-    }
-}
-
-/** A signal from the server about this app as a whole, not an answer to one request. */
-sealed interface ApiSignal {
-    /** The server no longer serves this app version (ITERATION_2 §2). */
-    data object UpdateRequired : ApiSignal
-
-    /** The user signed out on all devices (ITERATION_3 R6); the request that learnt it threw [SessionsRevokedException]. */
-    data object SessionsRevoked : ApiSignal
 }
