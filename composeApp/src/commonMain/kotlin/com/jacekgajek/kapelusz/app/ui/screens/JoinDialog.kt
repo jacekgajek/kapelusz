@@ -45,8 +45,8 @@ import com.jacekgajek.kapelusz.app.generated.join_scan_failed
 import com.jacekgajek.kapelusz.app.generated.join_scan_qr
 import com.jacekgajek.kapelusz.app.generated.join_still_plays
 import com.jacekgajek.kapelusz.app.generated.join_too_many_attempts
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.QrScan
-import com.jacekgajek.kapelusz.app.platform.rememberQrScanner
 import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.components.label
 import kotlinx.coroutines.launch
@@ -83,7 +83,7 @@ fun JoinDialog(membership: Membership, initialCode: String?, onJoined: () -> Uni
     // A code from a join link is checked right away.
     LaunchedEffect(Unit) { if (code.length == CODE_LENGTH) check() }
     // An invite's QR code (ITERATION_6 §10): its join link, or a bare code; checked right away too.
-    val scanQr = rememberQrScanner()
+    val scanQr = LocalPlatform.current.qrScanner?.rememberScan()
     var scanning by remember { mutableStateOf(false) }
     fun scan(scanner: suspend () -> QrScan) = scope.launch {
         scanning = true

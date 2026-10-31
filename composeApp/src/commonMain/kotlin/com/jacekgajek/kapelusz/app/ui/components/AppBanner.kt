@@ -26,7 +26,6 @@ import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.PlatformKind
 import com.jacekgajek.kapelusz.app.platform.StoreUpdateState
 import com.jacekgajek.kapelusz.app.platform.StoreUpdates
-import com.jacekgajek.kapelusz.app.platform.rememberStoreUpdates
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -40,7 +39,7 @@ fun AppBanner(eventList: Boolean, modifier: Modifier = Modifier) {
         WebInstallHint(eventList, modifier)
         return
     }
-    rememberStoreUpdates()?.let { StoreUpdateStrip(it, modifier) }
+    LocalPlatform.current.rememberStoreUpdates()?.let { StoreUpdateStrip(it, modifier) }
 }
 
 @Composable

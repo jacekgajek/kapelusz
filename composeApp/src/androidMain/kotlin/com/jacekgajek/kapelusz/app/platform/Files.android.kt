@@ -37,7 +37,7 @@ private const val MAX_EDGE = 1600
 private const val JPEG_QUALITY = 80
 
 @Composable
-actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
+internal fun rememberAndroidAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     val callback = rememberUpdatedState(onResult)
@@ -178,7 +178,7 @@ private fun compress(bytes: ByteArray): ByteArray? {
 }
 
 @Composable
-actual fun rememberUrlOpener(): (resolve: suspend () -> String?) -> Unit {
+internal fun rememberAndroidUrlOpener(): (resolve: suspend () -> String?) -> Unit {
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     return remember(uriHandler) {

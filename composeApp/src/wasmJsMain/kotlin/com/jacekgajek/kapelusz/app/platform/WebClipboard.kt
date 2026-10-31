@@ -2,11 +2,16 @@ package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.Promise
 import kotlinx.coroutines.await
+
+private fun copyToClipboard(text: String): Promise<JsBoolean> = js("navigator.clipboard.writeText(text).then(() => true, () => false)")
+
+// The browser asks the user once whether the site may read the clipboard.
+private fun readClipboard(): Promise<JsString?> = js("navigator.clipboard.readText().then((t) => t, () => null)")
 
 /**
  * Writes the image to the clipboard as a PNG, the one image type browsers accept there (a JPEG is redrawn first).
@@ -35,24 +40,25 @@ private fun copyImageJs(base64: String, type: String): Promise<JsAny?> = js(
     })()""",
 )
 
-@OptIn(ExperimentalEncodingApi::class)
-@Composable
-actual fun rememberCopyImage(): suspend (bytes: ByteArray, fileName: String) -> Boolean = remember {
-    { bytes, _ ->
-        val png = bytes.size > 4 && bytes[0] == 0x89.toByte() && bytes[1] == 'P'.code.toByte()
-        val copied = copyImageJs(Base64.encode(bytes), if (png) "image/png" else "image/jpeg")
-        runCatching { (copied.await<JsAny?>() as? JsBoolean)?.toBoolean() == true }.getOrDefault(false)
+/** The browser's clipboard (the Clipboard API). */
+object WebClipboard : Clipboard {
+    @Composable
+    override fun rememberCopy(): suspend (text: String) -> Boolean = remember {
+        { text -> runSuspendCatching { copyToClipboard(text).await<JsBoolean>().toBoolean() }.getOrDefault(false) }
+    }
+
+    @Composable
+    override fun rememberPaste(): suspend () -> String? = remember {
+        { runSuspendCatching { readClipboard().await<JsString?>()?.toString() }.getOrNull() }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    @Composable
+    override fun rememberCopyImage(): suspend (bytes: ByteArray, fileName: String) -> Boolean = remember {
+        { bytes, _ ->
+            val png = bytes.size > 4 && bytes[0] == 0x89.toByte() && bytes[1] == 'P'.code.toByte()
+            val copied = copyImageJs(Base64.encode(bytes), if (png) "image/png" else "image/jpeg")
+            runCatching { (copied.await<JsAny?>() as? JsBoolean)?.toBoolean() == true }.getOrDefault(false)
+        }
     }
 }
-
-/** The browser shows PDFs itself: they open there, as before. */
-actual val pdfInViewer: Boolean = false
-
-@Composable
-actual fun PdfPages(bytes: ByteArray, modifier: Modifier, onPage: (Int) -> Unit) = Unit
-
-@Composable
-actual fun rememberPdfPagePng(): suspend (bytes: ByteArray, page: Int) -> ByteArray? = { _, _ -> null }
-
-@Composable
-actual fun rememberOpenPdf(): suspend (bytes: ByteArray, fileName: String) -> Boolean = remember { { _, _ -> false } }

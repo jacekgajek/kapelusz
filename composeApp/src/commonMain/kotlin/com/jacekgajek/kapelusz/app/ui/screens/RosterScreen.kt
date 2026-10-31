@@ -98,9 +98,8 @@ import com.jacekgajek.kapelusz.app.generated.share_invite_text
 import com.jacekgajek.kapelusz.app.generated.unarchive
 import com.jacekgajek.kapelusz.app.generated.unlink
 import com.jacekgajek.kapelusz.app.generated.unlink_confirm
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.ShareResult
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
-import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.BackNav
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.Actions
@@ -520,8 +519,8 @@ private fun MemberActions(form: MemberForm, member: Member, band: Band, can: Cap
 @Composable
 private fun InviteSection(form: MemberForm, band: Band, view: BandView, invitesFailed: Boolean, actions: Actions) {
     val scope = rememberCoroutineScope()
-    val share = rememberShare()
-    val copy = rememberCopy()
+    val share = LocalPlatform.current.sharing.rememberShare()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     // In the app's language (a non-composable getString would use the browser's on the web).
     val failedText = stringResource(Res.string.invite_failed)
     val holdsMoneyText = stringResource(Res.string.reject_holds_money)

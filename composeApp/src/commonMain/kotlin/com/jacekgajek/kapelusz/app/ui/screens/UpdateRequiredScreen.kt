@@ -21,7 +21,6 @@ import com.jacekgajek.kapelusz.app.generated.update_required_button
 import com.jacekgajek.kapelusz.app.generated.update_required_text
 import com.jacekgajek.kapelusz.app.generated.update_required_title
 import com.jacekgajek.kapelusz.app.platform.LocalPlatform
-import com.jacekgajek.kapelusz.app.platform.rememberStoreUpdates
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import com.jacekgajek.kapelusz.app.ui.components.formWidth
 import kotlinx.coroutines.launch
@@ -36,7 +35,7 @@ fun UpdateRequiredScreen() {
     val platform = LocalPlatform.current
     val reload = platform.reload
     val store = platform.storeListing
-    val storeUpdates = rememberStoreUpdates()
+    val storeUpdates = platform.rememberStoreUpdates()
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     // Clear of the system bars (edge to edge on Android 15+).

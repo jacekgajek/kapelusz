@@ -90,11 +90,6 @@ val generateAppConfig = tasks.register("generateAppConfig") {
 kotlin {
     jvmToolchain(libs.versions.jvm.target.get().toInt())
 
-    compilerOptions {
-        // LocalAppLocale is an expect object; expect/actual classes are Beta and warn without this flag (ITERATION_3 R13).
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
-
     android {
         namespace = "com.jacekgajek.kapelusz.app"
         compileSdk = libs.versions.android.compileSdk.get().toInt()

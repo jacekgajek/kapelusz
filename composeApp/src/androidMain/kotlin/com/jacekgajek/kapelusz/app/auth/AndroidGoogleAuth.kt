@@ -76,8 +76,9 @@ class AndroidGoogleAuth(private val app: Context) : GoogleAuth {
     }
 }
 
+/** Credential Manager's "Sign in with Google", on the activity in front. */
 @Composable
-actual fun GoogleSignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier) {
+internal fun AndroidSignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier = Modifier) {
     // Inside a dialog the context is a ContextThemeWrapper around the activity, not the activity itself.
     val activity = LocalContext.current.findActivity()
     val scope = rememberCoroutineScope()

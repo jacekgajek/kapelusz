@@ -56,9 +56,7 @@ import com.jacekgajek.kapelusz.app.generated.map_paste
 import com.jacekgajek.kapelusz.app.generated.map_reading
 import com.jacekgajek.kapelusz.app.generated.map_unreadable
 import com.jacekgajek.kapelusz.app.generated.places_powered_by_google
-import com.jacekgajek.kapelusz.app.platform.MapPickerDialog
-import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
-import com.jacekgajek.kapelusz.app.platform.rememberPaste
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.sync.PlacesApi
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
@@ -119,7 +117,7 @@ data class EventFieldsState(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFieldsState) -> Unit) {
-    val paste = rememberPaste()
+    val paste = LocalPlatform.current.clipboard.rememberPaste()
     val scope = rememberCoroutineScope()
     // The paste finishes later (the browser may ask for permission), so it must apply to the fields as they are then.
     val current by rememberUpdatedState(state)
@@ -200,6 +198,7 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
  */
 @Composable
 private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState: (EventFieldsState) -> Unit) {
+    val maps = LocalPlatform.current.maps
     // Only what the user types is searched: not the text the dialog opened with, nor a picked place.
     var typed by remember { mutableStateOf<String?>(null) }
     var suggestions by remember { mutableStateOf(emptyList<PlaceSuggestion>()) }
@@ -233,11 +232,13 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
             }
         },
         label = { Text(stringResource(Res.string.event_location)) },
-        trailingIcon = if (state.location.isNotEmpty() || mapPickerAvailable) {
+        trailingIcon = if (state.location.isNotEmpty() || maps != null) {
             {
                 Row {
                     // Any spot, also one without an address (ITERATION_6 §3).
-                    if (mapPickerAvailable) IconButton(onClick = { picking = true }) { Icon(Icons.Default.Place, stringResource(Res.string.location_pick_map)) }
+                    if (maps != null) {
+                        IconButton(onClick = { picking = true }) { Icon(Icons.Default.Place, stringResource(Res.string.location_pick_map)) }
+                    }
                     if (state.location.isNotEmpty()) {
                         IconButton(onClick = {
                             typed = null
@@ -253,7 +254,7 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
         modifier = Modifier.fillMaxWidth(),
     )
     if (picking) {
-        MapPickerDialog(
+        maps?.PickerDialog(
             start = Places.pinIn(state.location),
             onPick = { latitude, longitude, name ->
                 picking = false

@@ -92,7 +92,7 @@ private fun toResult(picked: PickedJs): PickResult = when (picked.error) {
 }
 
 @Composable
-actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
+internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
     val scope = rememberCoroutineScope()
     val callback = rememberUpdatedState(onResult)
     return remember {
@@ -140,7 +140,7 @@ private fun closeWindow(target: JsAny?) {
 }
 
 @Composable
-actual fun rememberUrlOpener(): (resolve: suspend () -> String?) -> Unit {
+internal fun rememberWebUrlOpener(): (resolve: suspend () -> String?) -> Unit {
     val scope = rememberCoroutineScope()
     return remember {
         { resolve ->

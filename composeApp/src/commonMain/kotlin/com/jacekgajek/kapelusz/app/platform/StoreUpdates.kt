@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import androidx.compose.runtime.Composable
 import kotlinx.coroutines.flow.StateFlow
 
 /** Where an update from Google Play stands (ITERATION_7 §4). */
@@ -37,7 +36,3 @@ interface StoreUpdates {
     /** Play's full-screen update, for an app too old for the server; false when Play has none to offer. */
     suspend fun updateNow(): Boolean
 }
-
-/** Null on the web, and where Play can't be asked. */
-@Composable
-expect fun rememberStoreUpdates(): StoreUpdates?

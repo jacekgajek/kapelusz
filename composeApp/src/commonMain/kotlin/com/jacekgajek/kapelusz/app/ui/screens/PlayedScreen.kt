@@ -55,8 +55,7 @@ import com.jacekgajek.kapelusz.app.generated.played_show_on_map
 import com.jacekgajek.kapelusz.app.generated.played_title
 import com.jacekgajek.kapelusz.app.generated.played_unplaced
 import com.jacekgajek.kapelusz.app.generated.played_unplaced_hint
-import com.jacekgajek.kapelusz.app.platform.PlacesMap
-import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.PlayedNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
@@ -103,13 +102,15 @@ fun PlayedScreen(session: BandSession, nav: PlayedNav) {
             Text(stringResource(Res.string.played_empty), Modifier.padding(padding).padding(16.dp))
             return@Scaffold
         }
-        if (mapPickerAvailable) {
+        val maps = LocalPlatform.current.maps
+        if (maps != null) {
             Box(Modifier.fillMaxSize().padding(padding)) {
                 // The panel only when it has something to say; the map keeps its controls and the fit clear of it.
                 val hasStatus = finding || located.failed || notFound.isNotEmpty() || unplaced.isNotEmpty()
                 var panel by remember { mutableStateOf(0) }
                 val density = LocalDensity.current
-                if (first != null) PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })
+                val inset = with(density) { (if (hasStatus) panel else 0).toDp() }
+                if (first != null) maps.PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = inset)
                 if (hasStatus) {
                     Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { panel = it.height }, tonalElevation = 3.dp) {
                         // At most a third of the map: the list of missing concerts scrolls.
@@ -175,7 +176,7 @@ private fun PlaceDetails(place: PlayedPlaces.Place, onOpenEvent: (String) -> Uni
         Text(place.title, style = MaterialTheme.typography.titleMedium)
         Text(place.address, style = MaterialTheme.typography.bodySmall)
         Text(pluralStringResource(Res.plurals.played_concerts, place.events.size, place.events.size), Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelLarge)
-        if (!mapPickerAvailable) {
+        if (LocalPlatform.current.maps == null) {
             TextButton(onClick = { uri.openUri("https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}") }) {
                 Text(stringResource(Res.string.played_show_on_map))
             }
