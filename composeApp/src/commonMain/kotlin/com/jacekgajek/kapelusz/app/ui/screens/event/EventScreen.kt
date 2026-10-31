@@ -104,17 +104,14 @@ import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
 import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
 import com.jacekgajek.kapelusz.app.ui.model.agendaLine
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SettlementProblem
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
@@ -126,6 +123,7 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.math.abs
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -138,7 +136,7 @@ class EventContext(
     val fileStore: Attachments,
     /** Shared files on their way to a new collected entry. */
     val incoming: Incoming,
-    val band: Band,
+    val view: BandView,
     val event: Event,
     val settlement: Settlement,
     val me: Member?,
@@ -147,6 +145,7 @@ class EventContext(
     /** Opens Band members at [memberId]'s dialog, to invite them (ITERATION_5 §12). */
     val onInviteMember: (memberId: String) -> Unit = {},
 ) {
+    val band: Band get() = view.band
     val currency: String get() = band.currency
 }
 
@@ -173,7 +172,7 @@ fun EventScreen(
     val artist = state.band.isArtist(state.userId)
     val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
     var editing by remember { mutableStateOf(false) }
-    val settlement = event?.let { SettlementCalculator.settle(state.band, it) }
+    val settlement = event?.let { state.view.settlement(it) }
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
     // Pages (ITERATION_5 §4.4): the gig, its money, and who gets what; artists see the gig and their own money. Each
     // event opens on the page last used there; swiping or the tabs switch, and each page keeps its own scroll position.
@@ -271,7 +270,7 @@ fun EventScreen(
         val context = EventContext(
             fileStore,
             incoming,
-            state.band,
+            state.view,
             event,
             settlement ?: return@Scaffold,
             state.me,

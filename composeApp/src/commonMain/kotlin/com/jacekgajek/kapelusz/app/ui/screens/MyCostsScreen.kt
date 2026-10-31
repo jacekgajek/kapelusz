@@ -70,7 +70,6 @@ import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
 import com.jacekgajek.kapelusz.rules.Capabilities
-import com.jacekgajek.kapelusz.view.CostStatuses
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -132,7 +131,7 @@ fun MyCostsScreen(
     val viewer = state.me?.role == Role.VIEWER
     val showAll = viewer || (isLead && everyone)
     val mine = band.costs.filter { showAll || it.memberId == state.me?.id }.sortedByDescending { it.date }
-    val statuses = remember(band) { CostStatuses(band) }
+    val statuses = state.view.costStatuses
     val shown = mine.filter { filter.matches(statuses.status(it)) }
     val unpaid = mine.sumOfMoney { statuses.unpaid(it) }
 

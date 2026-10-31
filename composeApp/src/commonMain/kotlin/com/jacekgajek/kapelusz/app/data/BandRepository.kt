@@ -14,6 +14,7 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.UnknownOperation
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.view.BandView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,8 +65,11 @@ sealed interface BandState {
     /** Saved data could not be read; it was copied to [backupKey] before anything else happened. */
     data class Unreadable(val backupKey: String) : BandState
 
-    /** [band] is what the UI shows: [LocalBand.base] with all pending operations applied. */
-    data class Ready(val band: Band, val userId: String) : BandState {
+    /** [band] is what the UI shows: [LocalBand.base] with all pending operations applied; [view] derives from it once. */
+    data class Ready(val view: BandView, val userId: String) : BandState {
+        constructor(band: Band, userId: String) : this(BandView(band), userId)
+
+        val band: Band get() = view.band
         val me: Member? get() = band.memberOfUser(userId)
     }
 }

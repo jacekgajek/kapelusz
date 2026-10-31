@@ -9,10 +9,6 @@ object Names {
     private const val POLISH = "ąćęłńóśźż"
     private const val POLISH_BASE = "acelnoszz"
 
-    /** Other accented Latin letters, equal to their plain one in the order and in searches (Müller, José). */
-    private const val ACCENTED = "áàâäãåéèêëíìîïòôöõúùûüýÿçñšžčřďťňľĺŕő"
-    private const val ACCENTED_BASE = "aaaaaaeeeeiiiioooouuuuyycnszcrdtnllro"
-
     /**
      * Names ignoring case and spaces around them, Polish letters in their place. Names that differ only in accents
      * other than Polish ones, or in case, keep a fixed order by the exact text.
@@ -21,6 +17,22 @@ object Names {
 
     /** [name] matches a search for [query]: any part of it, ignoring case and accents ("lukasz" finds "Łukasz"). */
     fun matches(name: String, query: String): Boolean = fold(name).contains(fold(query.trim()))
+
+    /**
+     * Lower case without diacritics, for searching and ordering: a table for Polish and common Latin letters, as Kotlin's
+     * common library has no Unicode normalisation; combining marks (text pasted in decomposed form, e.g. from a Mac) are
+     * dropped, and any whitespace (a tab, a non-breaking space) is a space.
+     */
+    fun fold(text: String): String = buildString(text.length) {
+        for (c in text.lowercase()) {
+            if (c in '\u0300'..'\u036F') continue
+            if (c.isWhitespace()) {
+                append(' ')
+                continue
+            }
+            append(plain(c))
+        }
+    }
 
     private fun sortKey(name: String): String = buildString {
         for (c in name.trim().lowercase()) {
@@ -34,14 +46,30 @@ object Names {
         }
     }
 
-    private fun fold(text: String): String = buildString {
-        for (c in text.lowercase()) {
-            val polish = POLISH.indexOf(c)
-            append(if (polish >= 0) POLISH_BASE[polish] else plain(c))
-        }
-    }
+    /** The plain letters a letter stands for; Polish letters and the rest of the table alike. */
+    private fun plain(c: Char): String = FOLDS[c] ?: c.toString()
 
-    private fun plain(c: Char): Char = ACCENTED.indexOf(c).let { if (it >= 0) ACCENTED_BASE[it] else c }
+    private val FOLDS: Map<Char, String> = buildMap {
+        fun fold(chars: String, to: String) = chars.forEach { put(it, to) }
+        fold("ąáàâäãåā", "a")
+        fold("ćçč", "c")
+        fold("ďđ", "d")
+        fold("ęéèêëěē", "e")
+        fold("íìîïīı", "i")
+        fold("łľĺ", "l")
+        fold("ńňñ", "n")
+        fold("óòôöõøōő", "o")
+        fold("řŕ", "r")
+        fold("śšşș", "s")
+        fold("ťţț", "t")
+        fold("úùûüůūű", "u")
+        fold("ýÿ", "y")
+        fold("ğ", "g")
+        fold("źżž", "z")
+        put('ß', "ss")
+        put('æ', "ae")
+        put('œ', "oe")
+    }
 }
 
 /** [this] in alphabetical order of [name] (ITERATION_8 §2). */

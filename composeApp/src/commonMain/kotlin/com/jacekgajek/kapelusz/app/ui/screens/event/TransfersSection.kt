@@ -82,7 +82,6 @@ import com.jacekgajek.kapelusz.app.ui.components.payeeName
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.EventStatus
@@ -95,6 +94,7 @@ import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import com.jacekgajek.kapelusz.view.partyName
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 

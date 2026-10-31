@@ -41,12 +41,12 @@ import com.jacekgajek.kapelusz.app.generated.summary
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.fundKeptBy
-import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.model.BAND_FUND
+import com.jacekgajek.kapelusz.view.fundKeptBy
+import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 
 /**

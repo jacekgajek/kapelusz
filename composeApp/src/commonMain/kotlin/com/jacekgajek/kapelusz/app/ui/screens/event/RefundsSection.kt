@@ -65,7 +65,6 @@ import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.SetRefund
-import com.jacekgajek.kapelusz.view.CostStatuses
 import org.jetbrains.compose.resources.stringResource
 
 /** Costs repaid out of this event: included ones, and outstanding costs of participants that could be. */
@@ -226,7 +225,7 @@ private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (Strin
 @Composable
 private fun MyWaitingCosts(context: EventContext, costs: List<Cost>, onOpenCost: (String) -> Unit) {
     val band = context.band
-    val statuses = remember(band) { CostStatuses(band) }
+    val statuses = context.view.costStatuses
     Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
     costs.forEach { cost ->
         val status = statuses.status(cost)

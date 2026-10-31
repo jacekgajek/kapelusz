@@ -1,16 +1,10 @@
 package com.jacekgajek.kapelusz.app.ui
 
-import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.app.ui.model.MyNumber
 import com.jacekgajek.kapelusz.app.ui.model.TemplateDraft
-import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
-import com.jacekgajek.kapelusz.app.ui.model.initials
 import com.jacekgajek.kapelusz.app.ui.model.toItem
-import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
-import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Band
@@ -27,6 +21,12 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.view.BandView
+import com.jacekgajek.kapelusz.view.MyNumber
+import com.jacekgajek.kapelusz.view.eventSummaries
+import com.jacekgajek.kapelusz.view.initials
+import com.jacekgajek.kapelusz.view.unsettledEvent
+import com.jacekgajek.kapelusz.view.upcomingEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.datetime.LocalDate
@@ -75,17 +75,17 @@ class PresentationTest {
         )
         val alice = band.member("alice")
 
-        val all = eventSummaries(band, alice, AppSettings())
+        val all = eventSummaries(BandView(band), alice, showArchived = false, onlyMyEvents = false)
         assertEquals(listOf("gig", "old"), all.map { it.event.id })
         assertEquals(MyNumber.Get(Money(5000)), all.first().myNumber)
         assertEquals(MyNumber.NotParticipating, all.last().myNumber)
 
-        assertEquals(listOf("gig"), eventSummaries(band, alice, AppSettings(onlyMyEvents = true)).map { it.event.id })
+        assertEquals(listOf("gig"), eventSummaries(BandView(band), alice, showArchived = false, onlyMyEvents = true).map { it.event.id })
         assertEquals(
             listOf("gig", "archived", "old"),
-            eventSummaries(band, alice, AppSettings(showArchived = true)).map { it.event.id },
+            eventSummaries(BandView(band), alice, showArchived = true, onlyMyEvents = false).map { it.event.id },
         )
-        assertEquals(MyNumber.HandOver(Money(5000)), eventSummaries(band, band.member("bob"), AppSettings()).first().myNumber)
+        assertEquals(MyNumber.HandOver(Money(5000)), eventSummaries(BandView(band), band.member("bob"), showArchived = false, onlyMyEvents = false).first().myNumber)
     }
 
     @Test
@@ -109,7 +109,7 @@ class PresentationTest {
                 },
             )
         }
-        fun number(band: Band, id: String) = eventSummaries(band, band.member(id), AppSettings()).single().myNumber
+        fun number(band: Band, id: String) = eventSummaries(BandView(band), band.member(id), showArchived = false, onlyMyEvents = false).single().myNumber
 
         val bobHolds = band("bob")
         assertEquals(MyNumber.Even, number(bobHolds, "carol"), "Bob keeps her 100")
@@ -129,10 +129,11 @@ class PresentationTest {
         val draftPast = CreateEvent("draft", "Past draft", LocalDate(2026, 10, 1), participants = listOf(Participant("me")))
         val future = CreateEvent("future", "Future", LocalDate(2026, 11, 1), participants = listOf(Participant("me")))
         val band = base.apply(open, AddHolding("open", "h", "me", Money(1000), IncomeSource.DOOR), draftPast, future)
-        assertEquals("draft", unsettledEvent(band, today)?.id, "a past draft is unfinished business, and newer than the open gig")
-        assertEquals("open", unsettledEvent(band.apply(SetEventArchived("draft", true)), today)?.id)
-        assertEquals(null, unsettledEvent(base.apply(future), today), "future events are not unsettled business")
-        assertEquals(null, unsettledEvent(base.apply(CreateEvent("today", "Tonight", today)), today), "a draft today is not overdue yet")
+        assertEquals("draft", unsettledEvent(BandView(band), today)?.id, "a past draft is unfinished business, and newer than the open gig")
+        assertEquals("open", unsettledEvent(BandView(band.apply(SetEventArchived("draft", true))), today)?.id)
+        assertEquals(null, unsettledEvent(BandView(base.apply(future)), today), "future events are not unsettled business")
+        val draftToday = BandView(base.apply(CreateEvent("today", "Tonight", today)))
+        assertEquals(null, unsettledEvent(draftToday, today), "a draft today is not overdue yet")
     }
 
     @Test
@@ -160,7 +161,7 @@ class PresentationTest {
             CreateEvent("tonight", "Tonight", today, participants = listOf(Participant("me"), Participant("bob"))),
             AddHolding("tonight", "h", "me", Money(100), IncomeSource.DOOR),
         )
-        val unsettled = unsettledEvent(tonight, today)
+        val unsettled = unsettledEvent(BandView(tonight), today)
         assertEquals("tonight", unsettled?.id, "open tonight: unsettled business")
         assertEquals(null, upcomingEvent(tonight, tonight.member("me"), today, except = unsettled?.id), "not also upcoming")
 
@@ -168,7 +169,7 @@ class PresentationTest {
         val sameDay = LocalDate(2026, 10, 1)
         val twoDrafts = base.apply(CreateEvent("a", "A", sameDay), CreateEvent("b", "B", sameDay))
         val edited = twoDrafts.copy(events = twoDrafts.events.map { if (it.id == "a") it.copy(updatedAt = 99) else it })
-        assertEquals("a", unsettledEvent(edited, today)?.id)
+        assertEquals("a", unsettledEvent(BandView(edited), today)?.id)
     }
 
     @Test

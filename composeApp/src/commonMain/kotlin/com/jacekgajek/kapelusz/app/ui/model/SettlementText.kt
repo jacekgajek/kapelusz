@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.view.partyName
 import kotlinx.datetime.LocalDate
 
 /**

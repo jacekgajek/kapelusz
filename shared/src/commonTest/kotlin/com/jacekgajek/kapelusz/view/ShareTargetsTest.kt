@@ -1,7 +1,5 @@
-package com.jacekgajek.kapelusz.app.ui
+package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.app.ui.model.ShareTarget
-import com.jacekgajek.kapelusz.app.ui.model.ShareTargets
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.Band
@@ -23,6 +21,9 @@ import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.view.BandView
+import com.jacekgajek.kapelusz.view.ShareTarget
+import com.jacekgajek.kapelusz.view.ShareTargets
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -79,14 +80,14 @@ class ShareTargetsTest {
             AddHolding("today", "door", "member", Money(5000), IncomeSource.DOOR),
         )
         val event = withEntries.event("today")!!
-        val member = ShareTargets.targets(withEntries, "u-member", event)
+        val member = ShareTargets.targets(BandView(withEntries), "u-member", event)
         assertEquals(
             listOf(ShareTarget.NewCost::class, ShareTarget.NewCollected::class, ShareTarget.ExistingCost::class, ShareTarget.ExistingCollected::class),
             member.map { it::class },
         )
         assertEquals("mine", (member[2] as ShareTarget.ExistingCost).cost.id)
 
-        val lead = ShareTargets.targets(withEntries, "u-lead", event)
+        val lead = ShareTargets.targets(BandView(withEntries), "u-lead", event)
         assertTrue(lead.any { it is ShareTarget.EventFiles }, "leaders attach the event's own files")
         assertEquals(setOf("mine", "theirs"), lead.filterIsInstance<ShareTarget.ExistingCost>().map { it.cost.id }.toSet())
     }
@@ -100,7 +101,7 @@ class ShareTargetsTest {
             SetRefund("today", "paid", Money.ZERO),
             AddFundEntry("refund", today, "Strings", Money(-1000), costId = "paid"),
         )
-        val targets = ShareTargets.targets(refunded, "u-lead", refunded.event("today")!!)
+        val targets = ShareTargets.targets(BandView(refunded), "u-lead", refunded.event("today")!!)
         assertTrue(targets.none { it is ShareTarget.ExistingCost })
     }
 
@@ -111,7 +112,7 @@ class ShareTargetsTest {
             AddAttachment("c", Attachment("a1", AttachmentKind.IMAGE, "a1.jpg", 100)),
             AddAttachment("c", Attachment("a2", AttachmentKind.IMAGE, "a2.jpg", 100)),
         )
-        val cost = ShareTargets.targets(withFiles, "u-member", withFiles.event("today")!!).filterIsInstance<ShareTarget.ExistingCost>().single()
+        val cost = ShareTargets.targets(BandView(withFiles), "u-member", withFiles.event("today")!!).filterIsInstance<ShareTarget.ExistingCost>().single()
         assertEquals(3, cost.room)
     }
 }

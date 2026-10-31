@@ -1,15 +1,6 @@
-package com.jacekgajek.kapelusz.app.ui
+package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.app.ui.model.FundSource
-import com.jacekgajek.kapelusz.app.ui.model.FundTotals
-import com.jacekgajek.kapelusz.app.ui.model.PersonTotals
-import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
-import com.jacekgajek.kapelusz.app.ui.model.periodSummary
-import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
-import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.domain.BandFund
-import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.CostCategory
@@ -32,6 +23,12 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.view.BandView
+import com.jacekgajek.kapelusz.view.FundSource
+import com.jacekgajek.kapelusz.view.FundTotals
+import com.jacekgajek.kapelusz.view.PersonTotals
+import com.jacekgajek.kapelusz.view.SummaryPeriod
+import com.jacekgajek.kapelusz.view.periodSummary
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -81,7 +78,7 @@ class PeriodSummaryTest {
 
     @Test
     fun allTime() = runTest {
-        val summary = periodSummary(band, me, null, null)
+        val summary = periodSummary(BandView(band), me, null, null)
         assertEquals(1, summary.events, "only settled events")
         assertEquals(zl(1000), summary.collected)
         assertEquals(zl(700), summary.paidOut)
@@ -110,13 +107,13 @@ class PeriodSummaryTest {
 
     @Test
     fun eachOnItsOwnDate() = runTest {
-        val y2025 = periodSummary(band, me, LocalDate(2025, 1, 1), LocalDate(2025, 12, 31))
+        val y2025 = periodSummary(BandView(band), me, LocalDate(2025, 1, 1), LocalDate(2025, 12, 31))
         assertEquals(1, y2025.events)
         assertEquals(zl(200), y2025.costs)
         assertEquals(FundTotals(into = zl(600), out = Money.ZERO, balance = zl(600), intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100))), y2025.fund)
         assertEquals(emptyList(), y2025.unsettled)
 
-        val y2026 = periodSummary(band, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
+        val y2026 = periodSummary(BandView(band), me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
         assertEquals(0, y2026.events)
         assertEquals(listOf(CostCategory.FOOD to zl(300)), y2026.categories)
         assertEquals(FundTotals(into = Money.ZERO, out = zl(300), balance = zl(300), outBy = listOf(FundSource.Of(bob) to zl(300))), y2026.fund)
@@ -135,7 +132,7 @@ class PeriodSummaryTest {
             AddHolding("spring", "h3", "me", zl(100), IncomeSource.DOOR),
             SetRefund("spring", "c3", zl(50)),
         )
-        val summary = periodSummary(partly, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
+        val summary = periodSummary(BandView(partly), me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
         assertEquals(zl(300), summary.costs)
         assertEquals(PersonTotals(zl(50), zl(50)), summary.me, "the part paid back counts as refunded")
         assertEquals(zl(50), summary.myWaiting)
@@ -149,11 +146,11 @@ class PeriodSummaryTest {
             SetFundAmount("covered", zl(-100)),
             RecordTransfer("covered", "t4", BAND_FUND, "bob", zl(100)),
         )
-        val y2026 = periodSummary(covered, me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
+        val y2026 = periodSummary(BandView(covered), me, LocalDate(2026, 1, 1), LocalDate(2026, 12, 31))
         assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200), outBy = listOf(FundSource.Of(bob) to zl(300), FundSource.Events to zl(100))), y2026.fund)
         assertEquals(zl(-100), y2026.toFund, "the fund covered part of the event")
         assertEquals(y2026.collected, y2026.paidOut + y2026.refundedAtEvents + y2026.toFund)
-        assertEquals(BandFund.balance(covered), periodSummary(covered, me, null, null).fund?.balance)
+        assertEquals(BandFund.balance(covered), periodSummary(BandView(covered), me, null, null).fund?.balance)
     }
 
     @Test
@@ -164,17 +161,17 @@ class PeriodSummaryTest {
             SetRefund("spring", "c3", zl(50)),
             AddFundEntry("e2", LocalDate(2026, 5, 1), "Rest", zl(-50), costId = "c3"),
         )
-        assertEquals(emptyList(), periodSummary(finished, me, LocalDate(2026, 3, 1), LocalDate(2026, 4, 30)).categories)
+        assertEquals(emptyList(), periodSummary(BandView(finished), me, LocalDate(2026, 3, 1), LocalDate(2026, 4, 30)).categories)
         assertEquals(
             listOf(CostCategory.EQUIPMENT to zl(100)),
-            periodSummary(finished, me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31)).categories,
+            periodSummary(BandView(finished), me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31)).categories,
         )
-        assertEquals(Money.ZERO, periodSummary(finished, me, null, null).myWaiting)
+        assertEquals(Money.ZERO, periodSummary(BandView(finished), me, null, null).myWaiting)
     }
 
     @Test
     fun onlyWaitingIsStillAnEmptyPeriod() = runTest {
-        val summary = periodSummary(band, me, LocalDate(2024, 1, 1), LocalDate(2024, 12, 31))
+        val summary = periodSummary(BandView(band), me, LocalDate(2024, 1, 1), LocalDate(2024, 12, 31))
         assertEquals(true, summary.isEmpty)
         assertEquals(zl(100), summary.myWaiting)
     }
@@ -187,18 +184,8 @@ class PeriodSummaryTest {
             AddMember("ann", "Ann"),
             AddParticipant("bobs", "ann"),
         )
-        assertEquals(listOf("open", "bobs"), periodSummary(withBobs, me, null, null).unsettled.map { it.id })
-        assertEquals(listOf("open"), periodSummary(withBobs, me, null, null, onlyEventsOf = "me").unsettled.map { it.id })
-    }
-
-    @Test
-    fun periodsAreRememberedPerBandAndAnUnreadableOneIsForgotten() {
-        val custom = SummaryPeriod.Custom(LocalDate(2025, 9, 1), LocalDate(2026, 8, 31))
-        val settings = AppSettings().withSummaryPeriod("b", custom)
-        val stored = KapeluszJson.decodeFromString(AppSettings.serializer(), KapeluszJson.encodeToString(AppSettings.serializer(), settings))
-        assertEquals(custom, stored.summaryPeriod("b"))
-        assertEquals(SummaryPeriod.Last12Months, stored.summaryPeriod("other"))
-        assertEquals(SummaryPeriod.Last12Months, AppSettings(summaryPeriods = mapOf("b" to "{\"type\":\"season\"}")).summaryPeriod("b"))
+        assertEquals(listOf("open", "bobs"), periodSummary(BandView(withBobs), me, null, null).unsettled.map { it.id })
+        assertEquals(listOf("open"), periodSummary(BandView(withBobs), me, null, null, onlyEventsOf = "me").unsettled.map { it.id })
     }
 
     @Test
@@ -212,7 +199,7 @@ class PeriodSummaryTest {
             SetRefund("gig", "c", Money(1_000)),
             SettleSuggestions("gig"),
         )
-        val summary = periodSummary(odd, odd.member("me"), null, null)
+        val summary = periodSummary(BandView(odd), odd.member("me"), null, null)
         assertEquals(1, summary.events, "settled by the suggested transfers")
         assertEquals(Money(100_001), summary.collected)
         assertEquals(summary.collected, summary.paidOut + summary.refundedAtEvents + summary.toFund)
@@ -229,7 +216,7 @@ class PeriodSummaryTest {
             RecordTransfer("next", "t6", "me", BAND_FUND, zl(100)),
             at = LocalDate(2026, 10, 26).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds() + 3_600_000,
         )
-        val untilToday = periodSummary(early, me, LocalDate(2026, 1, 1), LocalDate(2026, 10, 26), timeZone = TimeZone.UTC).fund
+        val untilToday = periodSummary(BandView(early), me, LocalDate(2026, 1, 1), LocalDate(2026, 10, 26), timeZone = TimeZone.UTC).fund
         assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400), intoBy = listOf(FundSource.Events to zl(100)), outBy = listOf(FundSource.Of(bob) to zl(300))), untilToday)
         assertEquals(BandFund.balance(early), untilToday?.balance, "as on the fund's page")
     }
@@ -243,11 +230,11 @@ class PeriodSummaryTest {
             SetFundAmount("may", zl(-100)),
         ).apply(RecordTransfer("may", "t7", BAND_FUND, "bob", zl(100)), at = at(LocalDate(2026, 6, 2)))
         // Out of the fund on 2 June, though the gig was in May.
-        val may = periodSummary(late, me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31), timeZone = TimeZone.UTC).fund
+        val may = periodSummary(BandView(late), me, LocalDate(2026, 5, 1), LocalDate(2026, 5, 31), timeZone = TimeZone.UTC).fund
         assertEquals(FundTotals(into = Money.ZERO, out = Money.ZERO, balance = zl(300)), may)
-        val june = periodSummary(late, me, LocalDate(2026, 6, 1), LocalDate(2026, 6, 30), timeZone = TimeZone.UTC).fund
+        val june = periodSummary(BandView(late), me, LocalDate(2026, 6, 1), LocalDate(2026, 6, 30), timeZone = TimeZone.UTC).fund
         assertEquals(FundTotals(into = Money.ZERO, out = zl(100), balance = zl(200), outBy = listOf(FundSource.Events to zl(100))), june)
-        assertEquals(BandFund.balance(late), periodSummary(late, me, null, null).fund?.balance)
+        assertEquals(BandFund.balance(late), periodSummary(BandView(late), me, null, null).fund?.balance)
     }
 
     @Test
@@ -261,15 +248,15 @@ class PeriodSummaryTest {
             SetFundAmount("gig2", zl(100)),
         ).apply(RecordTransfer("gig2", "t8", "me", BAND_FUND, zl(100)), at = atNight)
         val june = LocalDate(2026, 6, 1) to LocalDate(2026, 6, 30)
-        assertEquals(zl(100), periodSummary(night, me, june.first, june.second, timeZone = UtcOffset(hours = 2).asTimeZone()).fund?.into)
-        assertEquals(Money.ZERO, periodSummary(night, me, june.first, june.second, timeZone = TimeZone.UTC).fund?.into)
+        assertEquals(zl(100), periodSummary(BandView(night), me, june.first, june.second, timeZone = UtcOffset(hours = 2).asTimeZone()).fund?.into)
+        assertEquals(Money.ZERO, periodSummary(BandView(night), me, june.first, june.second, timeZone = TimeZone.UTC).fund?.into)
     }
 
     @Test
     fun noFundNoFundTotals() = runTest {
         val noFund = Band.create("b", "Band", "PLN", "me", "Me", "u")
-        assertNull(periodSummary(noFund, noFund.member("me"), null, null).fund)
-        assertEquals(true, periodSummary(noFund, noFund.member("me"), null, null).isEmpty)
+        assertNull(periodSummary(BandView(noFund), noFund.member("me"), null, null).fund)
+        assertEquals(true, periodSummary(BandView(noFund), noFund.member("me"), null, null).isEmpty)
     }
 
     @Test

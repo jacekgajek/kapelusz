@@ -72,7 +72,6 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Holding
@@ -83,6 +82,7 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 
 /** "Where the money sits": who collected how much, from which source. */

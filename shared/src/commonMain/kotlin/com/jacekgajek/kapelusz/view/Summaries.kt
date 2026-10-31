@@ -1,11 +1,9 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
@@ -54,13 +52,13 @@ fun myNumber(event: Event, settlement: Settlement, me: Member?): MyNumber {
 }
 
 /** Event list rows, newest first, filtered by the user's list settings. */
-fun eventSummaries(band: Band, me: Member?, settings: AppSettings): List<EventSummary> = band.events
-    .filter { settings.showArchived || !it.archived }
+fun eventSummaries(view: BandView, me: Member?, showArchived: Boolean, onlyMyEvents: Boolean): List<EventSummary> = view.band.events
+    .filter { showArchived || !it.archived }
     .map { event ->
-        val settlement = SettlementCalculator.settle(band, event)
+        val settlement = view.settlement(event)
         EventSummary(event, settlement, myNumber(event, settlement, me))
     }
-    .filter { !settings.onlyMyEvents || it.isMine }
+    .filter { !onlyMyEvents || it.isMine }
     .sortedWith(EVENT_ORDER)
 
 /** The event list's order: newest first. */
@@ -100,10 +98,10 @@ fun initials(name: String): String = name.split(' ').filter { it.isNotBlank() }.
  * draft whose date has passed (a gig with no money entered yet). Future events are not "unsettled business". Latest
  * date first; on the same date, the one edited last.
  */
-fun unsettledEvent(band: Band, today: LocalDate): Event? = band.events
+fun unsettledEvent(view: BandView, today: LocalDate): Event? = view.band.events
     .filter { !it.archived && it.date <= today }
     .filter { event ->
-        when (SettlementCalculator.settle(band, event).status) {
+        when (view.settlement(event).status) {
             // Awaiting payment too: the organiser still owes (ITERATION_4 §2.2).
             EventStatus.OPEN, EventStatus.LOSS, EventStatus.AWAITING -> true
 

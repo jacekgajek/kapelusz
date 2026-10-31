@@ -84,17 +84,17 @@ import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.ShareEvent
-import com.jacekgajek.kapelusz.app.ui.model.ShareTarget
-import com.jacekgajek.kapelusz.app.ui.model.ShareTargets
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMonthShort
-import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.DraftThumbnail
 import com.jacekgajek.kapelusz.app.ui.screens.ThumbnailBox
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.view.ShareEvent
+import com.jacekgajek.kapelusz.view.ShareTarget
+import com.jacekgajek.kapelusz.view.ShareTargets
+import com.jacekgajek.kapelusz.view.partyName
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.pluralStringResource
@@ -248,8 +248,9 @@ private fun DateBlock(date: LocalDate) {
 
 @Composable
 private fun TargetChoices(chosen: ShareEvent, userId: String, shared: SharedFiles, enabled: Boolean, onChoose: (ShareTarget) -> Unit) {
-    val (band, event) = chosen
-    val targets = ShareTargets.targets(band, userId, event)
+    val (view, event) = chosen
+    val band = view.band
+    val targets = ShareTargets.targets(view, userId, event)
     val needed = shared.files.size
 
     @Composable

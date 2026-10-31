@@ -98,13 +98,8 @@ import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.ui.model.FundSource
-import com.jacekgajek.kapelusz.app.ui.model.PeriodSummary
-import com.jacekgajek.kapelusz.app.ui.model.PersonTotals
-import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.periodSummary
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
@@ -113,8 +108,14 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.view.FundSource
+import com.jacekgajek.kapelusz.view.PeriodSummary
+import com.jacekgajek.kapelusz.view.PersonTotals
+import com.jacekgajek.kapelusz.view.SummaryPeriod
+import com.jacekgajek.kapelusz.view.periodSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -134,7 +135,9 @@ fun SummaryScreen(preferences: SettingsRepository, state: BandState.Ready, onBac
     LaunchedEffect(band, state.me, period, today) {
         val me = state.me
         // An artist sees only their own events and money (ITERATION_4 §1.1).
-        shown = period to withContext(Dispatchers.Default) { periodSummary(band, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) }
+        shown = period to withContext(Dispatchers.Default) {
+            periodSummary(state.view, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) { yield() }
+        }
     }
     val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     var choosingRange by remember { mutableStateOf(false) }

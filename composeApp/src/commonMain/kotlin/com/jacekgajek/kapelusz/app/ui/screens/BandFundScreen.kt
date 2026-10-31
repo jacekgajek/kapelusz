@@ -113,7 +113,6 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.sortedByName
-import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
@@ -122,7 +121,6 @@ import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.model.sumOfMoney
 import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.Operation

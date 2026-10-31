@@ -102,7 +102,6 @@ import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.rules.Permissions
-import com.jacekgajek.kapelusz.view.CostStatuses
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
@@ -308,7 +307,7 @@ fun CostScreen(
 private fun RefundInfo(state: BandState.Ready, cost: Cost, onOpenEvent: (String) -> Unit) {
     val band = state.band
     val lang = language
-    val statuses = remember(band) { CostStatuses(band) }
+    val statuses = state.view.costStatuses
     val refundedAt = band.events.mapNotNull { event -> event.refundOf(cost.id)?.let { Triple(event, it.amount, statuses.isSettled(event)) } }
     val fundRefund = band.fundEntries.filter { it.costId == cost.id }
     Card(Modifier.fillMaxWidth()) {

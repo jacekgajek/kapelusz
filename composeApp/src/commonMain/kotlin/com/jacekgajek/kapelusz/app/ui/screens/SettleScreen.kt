@@ -54,17 +54,16 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything the current user still has to pay, receive or hand over, across events. */
@@ -83,7 +82,7 @@ fun SettleScreen(
     val fundLabel = stringResource(Res.string.band_fund)
     val lang = language
 
-    val active = band.events.filter { !it.archived }.sortedByDescending { it.date }.map { it to SettlementCalculator.settle(band, it) }
+    val active = band.events.filter { !it.archived }.sortedByDescending { it.date }.map { it to state.view.settlement(it) }
     val can = Capabilities(band, state.userId)
     // Only transfers the user may record (a viewer may not, e.g. one added to an event before that was refused); a
     // pair's are both partners' (ITERATION_5 §7).

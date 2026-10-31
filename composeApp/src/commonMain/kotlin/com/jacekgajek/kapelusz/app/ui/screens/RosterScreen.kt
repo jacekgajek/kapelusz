@@ -136,7 +136,6 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.MemberShares
@@ -145,7 +144,6 @@ import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
-import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
@@ -161,7 +159,6 @@ import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.RoleChanges
 import com.jacekgajek.kapelusz.view.BandView
 import kotlin.time.Instant
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
