@@ -1,7 +1,11 @@
 package com.jacekgajek.kapelusz.rules
 
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Holding
@@ -11,20 +15,24 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.Transfer
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
+import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.ops.UpdateHolding
 import com.jacekgajek.kapelusz.rules.Artists
@@ -79,10 +87,19 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun editHolding(event: Event, holding: Holding) = open(event) && allowed(UpdateHolding(event.id, holding.id))
     fun addCost() = meId != null && allowed(AddCost(PROBE, meId, Money(1), PROBE_DATE))
 
+    /** A cost paid by [memberId]: their own for members and artists, anyone's for leads (ITERATION_4 §1.1). */
+    fun addCostFor(memberId: Id) = allowed(AddCost(PROBE, memberId, Money(1), PROBE_DATE))
+
     /** A cost for this event: some active participant the user may add a cost for (leads: anyone in it; members: themselves). */
     fun addCostIn(event: Event) = open(event) && event.participants.any { participant ->
         band.member(participant.partyId)?.archived == false && allowed(AddCost(PROBE, participant.partyId, Money(1), PROBE_DATE))
     }
+    fun editCost(cost: Cost) = allowed(UpdateCost(cost.id))
+    fun deleteCost(cost: Cost) = allowed(DeleteCost(cost.id))
+
+    /** Adding (or renaming) a file to what [owner] names; a locked cost's owner still may (ITERATION_7 §3.3). */
+    fun attachTo(owner: AttachmentOwner) = allowed(AddAttachment(owner, PROBE_ATTACHMENT))
+    fun detachFrom(owner: AttachmentOwner) = allowed(RemoveAttachment(owner, PROBE))
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
 
@@ -92,5 +109,6 @@ class Capabilities(private val band: Band, private val userId: String) {
     private companion object {
         const val PROBE = "probe"
         val PROBE_DATE = LocalDate(2000, 1, 1)
+        val PROBE_ATTACHMENT = Attachment(PROBE, AttachmentKind.IMAGE)
     }
 }

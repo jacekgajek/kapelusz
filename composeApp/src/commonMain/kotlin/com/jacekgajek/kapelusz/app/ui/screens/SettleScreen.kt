@@ -32,7 +32,6 @@ import com.jacekgajek.kapelusz.app.generated.events_to_settle
 import com.jacekgajek.kapelusz.app.generated.nothing_to_settle
 import com.jacekgajek.kapelusz.app.generated.open_event
 import com.jacekgajek.kapelusz.app.generated.pair_names
-import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.settle_part
 import com.jacekgajek.kapelusz.app.generated.tab_settle
 import com.jacekgajek.kapelusz.app.generated.you_hold
@@ -54,14 +53,10 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.model.BAND_FUND
-import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.settlement.EventStatus
 import com.jacekgajek.kapelusz.settlement.Payees
-import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.text.BlikPhone
+import com.jacekgajek.kapelusz.view.Settling
 import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 
@@ -78,33 +73,8 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
     val fundLabel = stringResource(Res.string.band_fund)
     val lang = language
 
-    val active = band.events.filter { !it.archived }.sortedByDescending { it.date }.map { it to state.view.settlement(it) }
-    val can = session.can
-    // Only transfers the user may record (a viewer may not, e.g. one added to an event before that was refused); a
-    // pair's are both partners' (ITERATION_5 §7).
-    val mine = active.mapNotNull { (event, settlement) ->
-        val myParties = (me?.let { settlement.party(it.id)?.partyIds } ?: listOfNotNull(me?.id)) +
-            listOfNotNull(BAND_FUND.takeIf { me != null && band.treasurerMemberId == me.id })
-        val suggestions = settlement.suggestions.filter { (it.from in myParties || it.to in myParties) && can.settleSuggestion(event, it.from, it.to) }
-        if (settlement.canSettle && suggestions.isNotEmpty()) Triple(event, settlement, suggestions) else null
-    }
-
-    // What the user holds is their own, also in a pair; only what the pair still has to pass on counts (§7).
-    fun held(settlement: Settlement): Money? {
-        val own = settlement.line(me?.id ?: "")?.delta?.takeIf { it.isPositive } ?: return null
-        val pair = settlement.party(me!!.id)?.delta?.takeIf { it.isPositive } ?: return null
-        return minOf(own, pair)
-    }
-    val holding = active.filter { (event, settlement) ->
-        settlement.status == EventStatus.OPEN && mine.none { it.first.id == event.id } && held(settlement) != null
-    }
+    val settling = remember(state, me) { Settling(state.view, me, session.can, today()) }
     val pair = stringResource(Res.string.pair_names)
-    val forLeads = if (me?.role?.atLeast(Role.LEAD) == true) {
-        // A booked gig with its fee entered is not business yet: awaiting payment counts once the gig is over.
-        active.filter { (event, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS || (s.status == EventStatus.AWAITING && event.date <= today()) }
-    } else {
-        emptyList()
-    }
 
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_settle)) },
@@ -115,11 +85,11 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
             contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (mine.isEmpty() && holding.isEmpty() && forLeads.isEmpty()) {
+            if (settling.isEmpty) {
                 item { Text(stringResource(Res.string.nothing_to_settle), Modifier.padding(vertical = 32.dp)) }
             }
-            if (mine.isNotEmpty()) item { SectionTitle(stringResource(Res.string.your_transfers)) }
-            items(mine, key = { "mine-${it.first.id}" }) { (event, settlement, suggestions) ->
+            if (settling.mine.isNotEmpty()) item { SectionTitle(stringResource(Res.string.your_transfers)) }
+            items(settling.mine, key = { "mine-${it.event.id}" }) { (event, settlement, suggestions) ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,8 +111,7 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         TransferParties(from, to, Modifier.weight(1f))
                                         // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
-                                        val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
-                                            band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
+                                        val keepsForFund = Settling.keepsForFund(band, settlement, suggestion)
                                         if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -163,20 +132,20 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
                     }
                 }
             }
-            items(holding, key = { "holding-${it.first.id}" }) { (event, settlement) ->
+            items(settling.holding, key = { "holding-${it.event.id}" }) { (event, settlement) ->
                 Card(onClick = { onOpenEvent(event.id) }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(
                             Res.string.you_hold,
-                            formatMoney(held(settlement)!!, band.currency, lang),
+                            formatMoney(settling.held(settlement)!!, band.currency, lang),
                             event.name,
                         ),
                         Modifier.padding(16.dp),
                     )
                 }
             }
-            if (forLeads.isNotEmpty()) item { SectionTitle(stringResource(Res.string.events_to_settle)) }
-            items(forLeads, key = { "lead-${it.first.id}" }) { (event, settlement) ->
+            if (settling.forLeads.isNotEmpty()) item { SectionTitle(stringResource(Res.string.events_to_settle)) }
+            items(settling.forLeads, key = { "lead-${it.event.id}" }) { (event, settlement) ->
                 Card(onClick = { onOpenEvent(event.id) }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
