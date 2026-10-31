@@ -5,6 +5,9 @@ import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteEvent
+import com.jacekgajek.kapelusz.server.links.LinkPages
+import com.jacekgajek.kapelusz.server.links.WebIndex
+import com.jacekgajek.kapelusz.server.store.StorageKeys
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.local
 
-import com.jacekgajek.kapelusz.server.Blob
-import com.jacekgajek.kapelusz.server.BlobStore
-import com.jacekgajek.kapelusz.server.PreconditionFailed
-import com.jacekgajek.kapelusz.server.PresignedRequest
+import com.jacekgajek.kapelusz.server.store.Blob
+import com.jacekgajek.kapelusz.server.store.BlobStore
+import com.jacekgajek.kapelusz.server.store.PreconditionFailed
+import com.jacekgajek.kapelusz.server.store.PresignedRequest
 import java.net.URLEncoder
 import java.nio.file.Files
 import java.nio.file.Path

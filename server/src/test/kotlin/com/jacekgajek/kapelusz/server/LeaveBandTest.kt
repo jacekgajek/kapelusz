@@ -14,6 +14,7 @@ import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import com.jacekgajek.kapelusz.server.store.UserRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

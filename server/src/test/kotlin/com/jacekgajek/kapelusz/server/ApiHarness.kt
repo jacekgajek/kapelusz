@@ -14,6 +14,16 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.server.auth.TokenVerifier
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.links.NoWebIndex
+import com.jacekgajek.kapelusz.server.links.WebIndex
+import com.jacekgajek.kapelusz.server.messaging.MessageSender
+import com.jacekgajek.kapelusz.server.messaging.NoopMessageSender
+import com.jacekgajek.kapelusz.server.places.PlaceSearch
+import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
+import com.jacekgajek.kapelusz.server.store.StorageKeys
 import kotlin.test.assertEquals
 import kotlinx.serialization.KSerializer
 

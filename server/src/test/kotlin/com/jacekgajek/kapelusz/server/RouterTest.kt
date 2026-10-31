@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

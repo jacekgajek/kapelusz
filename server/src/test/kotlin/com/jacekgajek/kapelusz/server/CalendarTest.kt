@@ -10,6 +10,8 @@ import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.server.calendar.CalendarFeed
+import com.jacekgajek.kapelusz.server.store.StorageKeys
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

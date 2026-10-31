@@ -1,8 +1,8 @@
 package com.jacekgajek.kapelusz.local
 
 import com.jacekgajek.kapelusz.history.KapeluszJson
-import com.jacekgajek.kapelusz.server.TokenVerifier
-import com.jacekgajek.kapelusz.server.VerifiedUser
+import com.jacekgajek.kapelusz.server.auth.TokenVerifier
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
 import java.util.Base64
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject

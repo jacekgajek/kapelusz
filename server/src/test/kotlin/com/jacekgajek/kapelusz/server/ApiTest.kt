@@ -22,6 +22,12 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.server.auth.TokenVerifier
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.store.BlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
+import com.jacekgajek.kapelusz.server.store.PreconditionFailed
+import com.jacekgajek.kapelusz.server.store.StorageKeys
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -20,6 +20,14 @@ import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.store.BlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
+import com.jacekgajek.kapelusz.server.store.InviteCodes
+import com.jacekgajek.kapelusz.server.store.JoinAttempts
+import com.jacekgajek.kapelusz.server.store.StorageKeys
+import com.jacekgajek.kapelusz.server.store.StoredInvite
+import com.jacekgajek.kapelusz.server.store.joinAttempts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

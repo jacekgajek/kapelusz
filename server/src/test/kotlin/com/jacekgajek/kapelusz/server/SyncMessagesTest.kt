@@ -13,6 +13,11 @@ import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import com.jacekgajek.kapelusz.server.devices.DeviceRegistry
+import com.jacekgajek.kapelusz.server.messaging.MessageSender
+import com.jacekgajek.kapelusz.server.messaging.SendResult
+import com.jacekgajek.kapelusz.server.store.StoredDevices
+import com.jacekgajek.kapelusz.server.store.devices
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

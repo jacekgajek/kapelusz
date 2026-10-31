@@ -16,6 +16,9 @@ import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
+import com.jacekgajek.kapelusz.server.bands.BandDeletions
+import com.jacekgajek.kapelusz.server.store.ScheduledDeletions
+import com.jacekgajek.kapelusz.server.store.StorageKeys
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

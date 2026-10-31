@@ -23,6 +23,10 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.history.HistoryLog
+import com.jacekgajek.kapelusz.server.store.HistoryRecord
+import com.jacekgajek.kapelusz.server.store.StorageKeys
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
