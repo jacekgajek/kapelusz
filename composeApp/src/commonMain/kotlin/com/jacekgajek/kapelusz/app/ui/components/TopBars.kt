@@ -75,6 +75,8 @@ class TopBarState(
     val onNewBand: () -> Unit,
     val onJoinBand: () -> Unit,
     val onHistory: () -> Unit,
+    val onSettings: () -> Unit,
+    val onRoster: () -> Unit,
     /** The period summary (ITERATION_6 §7). */
     val onSummary: () -> Unit,
     val onSyncNow: () -> Unit,
@@ -90,10 +92,12 @@ val LocalTopBarState = staticCompositionLocalOf<TopBarState?> { null }
 /** Top bar of a tab screen: sync indicator and the cog menu (band switcher, band members, settings). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extraActions: @Composable () -> Unit = {}) {
+fun TabTopBar(title: String, extraActions: @Composable () -> Unit = {}) {
     val onHistory = LocalTopBarState.current?.onHistory
+    val bar = checkNotNull(LocalTopBarState.current) { "TabTopBar is for the tab screens of an open band" }
+    val onSettings = bar.onSettings
+    val onRoster = bar.onRoster
     var menuOpen by remember { mutableStateOf(false) }
-    val bar = LocalTopBarState.current
     TopAppBar(
         title = { Text(title) },
         actions = {

@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
 import com.jacekgajek.kapelusz.app.generated.cost_approved_part
@@ -52,6 +51,8 @@ import com.jacekgajek.kapelusz.app.generated.filter_pending
 import com.jacekgajek.kapelusz.app.generated.filter_refunded
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.CostsNav
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
@@ -66,7 +67,6 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
-import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.settlement.CostLedger
 import com.jacekgajek.kapelusz.settlement.CostStatus
 import org.jetbrains.compose.resources.StringResource
@@ -113,17 +113,12 @@ private enum class CostFilter(val label: StringResource) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MyCostsScreen(
-    state: BandState.Ready,
-    everyone: Boolean,
-    onEveryone: (Boolean) -> Unit,
-    onOpenCost: (String?) -> Unit,
-    onSettings: () -> Unit,
-    onRoster: () -> Unit,
-) {
+fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean) -> Unit, nav: CostsNav) {
+    val state = session.state
+    val onOpenCost: (String?) -> Unit = { if (it == null) nav.addCost() else nav.openCost(it) }
     val band = state.band
     val messages = rememberMessages()
-    val can = Capabilities(band, state.userId)
+    val can = session.can
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
     // A viewer sees everything, costs included, and has none of their own to switch to.
@@ -135,7 +130,7 @@ fun MyCostsScreen(
     val unpaid = mine.sumOfMoney { statuses.unpaid(it) }
 
     Scaffold(
-        topBar = { TabTopBar(stringResource(Res.string.tab_my_costs), onSettings, onRoster) },
+        topBar = { TabTopBar(stringResource(Res.string.tab_my_costs)) },
         snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (can.addCost()) {

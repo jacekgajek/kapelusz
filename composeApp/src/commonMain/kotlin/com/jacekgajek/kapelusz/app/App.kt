@@ -44,6 +44,8 @@ import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
 import com.jacekgajek.kapelusz.app.ui.LocalAppLocale
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
+import com.jacekgajek.kapelusz.app.ui.RosterRoute
+import com.jacekgajek.kapelusz.app.ui.SettingsRoute
 import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.components.LoadingScreen
 import com.jacekgajek.kapelusz.app.ui.components.LocalTopBarState
@@ -190,6 +192,8 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onNewBand = { navController.navigate(NewBandRoute) },
                 onJoinBand = { joining = true },
                 onHistory = { navController.navigate(HistoryRoute) },
+                onSettings = { navController.navigate(SettingsRoute()) },
+                onRoster = { navController.navigate(RosterRoute()) },
                 onSummary = { navController.navigate(SummaryRoute) },
                 onSyncNow = { graph.sync.syncAsked() },
                 onReauthenticate = reauthenticate,

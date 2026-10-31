@@ -49,8 +49,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
@@ -88,6 +86,8 @@ import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_unsettled
 import com.jacekgajek.kapelusz.app.generated.summary_waiting
 import com.jacekgajek.kapelusz.app.generated.summary_you
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.SummaryNav
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.DateRangeDialog
 import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
@@ -105,8 +105,6 @@ import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.rules.Capabilities
-import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.text.PlayedPlaces
 import com.jacekgajek.kapelusz.view.FundSource
 import com.jacekgajek.kapelusz.view.PeriodSummary
@@ -123,9 +121,14 @@ import org.jetbrains.compose.resources.stringResource
 /** What a period brought (ITERATION_6 §7): you, the band, costs by category, members. Nothing to tap but invites. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SummaryScreen(preferences: SettingsRepository, state: BandState.Ready, onBack: () -> Unit, onInviteMember: (String) -> Unit, onOpenPlayed: () -> Unit) {
+fun SummaryScreen(session: BandSession, nav: SummaryNav) {
+    val state = session.state
+    val preferences = session.settings
+    val onBack: () -> Unit = nav::back
+    val onInviteMember: (String) -> Unit = nav::inviteMember
+    val onOpenPlayed: () -> Unit = nav::played
     val band = state.band
-    val artist = band.isArtist(state.userId)
+    val artist = session.artist
     val period = preferences.settings.collectAsState().value.summaryPeriod(band.id)
     val today = today()
     val (from, to) = period.range(today)
@@ -142,7 +145,7 @@ fun SummaryScreen(preferences: SettingsRepository, state: BandState.Ready, onBac
     val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     var choosingRange by remember { mutableStateOf(false) }
     var inviting by remember { mutableStateOf<Member?>(null) }
-    val canInvite = Capabilities(band, state.userId).manageRoster()
+    val canInvite = session.can.manageRoster()
     fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
 
     Scaffold(

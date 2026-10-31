@@ -35,9 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -51,10 +48,10 @@ import com.jacekgajek.kapelusz.app.generated.next_month
 import com.jacekgajek.kapelusz.app.generated.previous_month
 import com.jacekgajek.kapelusz.app.generated.redo
 import com.jacekgajek.kapelusz.app.generated.undo
-import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.HistoryItem
 import com.jacekgajek.kapelusz.app.sync.ReadOp
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.ui.BackNav
+import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -67,7 +64,6 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMonth
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.rules.Capabilities
 import kotlin.time.Instant
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
@@ -98,7 +94,13 @@ fun HistoryItem.toLines(): List<HistoryLine> = ops.asReversed().map { op ->
 
 /** Band-wide history, one month at a time, newest first. */
 @Composable
-fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync: SyncEngine, state: BandState.Ready, onBack: () -> Unit) {
+fun HistoryScreen(session: BandSession, nav: BackNav) {
+    val state = session.state
+    val changes = session.changes
+    val api = session.api
+    val bands = session.bands
+    val sync = session.sync
+    val onBack: () -> Unit = nav::back
     var offset by remember { mutableStateOf(0) }
     var next by remember { mutableStateOf<String?>(null) }
     var loadingMore by remember { mutableStateOf(false) }
@@ -162,7 +164,7 @@ fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync:
 
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Undo steps back from the newest change, redo forward (ITERATION_2 §7.2); both only from this month.
-                    val arrows = history.arrows(loaded, Capabilities(state.band, state.userId), enabled = offset == 0)
+                    val arrows = history.arrows(loaded, session.can, enabled = offset == 0)
                     items(loaded, key = { it.opId }) { line ->
                         history.LineRow(state.band, line, arrows)
                         HorizontalDivider()

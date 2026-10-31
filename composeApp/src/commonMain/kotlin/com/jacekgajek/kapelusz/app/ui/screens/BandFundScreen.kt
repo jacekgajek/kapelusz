@@ -45,9 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -89,6 +86,8 @@ import com.jacekgajek.kapelusz.app.generated.open_settings
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.FundNav
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
@@ -123,7 +122,6 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
-import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.CostLedger
 import com.jacekgajek.kapelusz.text.sortedByName
@@ -134,22 +132,22 @@ import org.jetbrains.compose.resources.stringResource
 /** The band fund ("Kasa zespołowa"): balance, contributions from events, and manual entries. */
 @Composable
 fun BandFundScreen(
-    changes: Changes,
-    preferences: SettingsRepository,
-    state: BandState.Ready,
-    onSettings: () -> Unit,
-    onRoster: () -> Unit,
-    onOpenEvent: (String) -> Unit,
-    /** The + beside the costs to refund: a new cost, which comes back as [addedCost]. */
-    onAddCost: () -> Unit,
-    /** A cost just added from here, to refund (ITERATION_7 §5.1); [onAddedCostSeen] once its dialog is open. */
+    session: BandSession,
+    nav: FundNav,
+    /** A cost just added from here (the + beside the costs to refund), to refund (ITERATION_7 §5.1); [onAddedCostSeen] once its dialog is open. */
     addedCost: String? = null,
     onAddedCostSeen: () -> Unit = {},
 ) {
+    val state = session.state
+    val changes = session.changes
+    val preferences = session.settings
+    val onOpenEvent: (String) -> Unit = nav::openEvent
+    val onAddCost: () -> Unit = nav::addCost
+    val onSettings: () -> Unit = nav::settings
     val band = state.band
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages, undos = null)
-    val can = Capabilities(band, state.userId)
+    val can = session.can
     val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
     var editing by remember { mutableStateOf<FundEntry?>(null) }
     var adding by remember { mutableStateOf(false) }
@@ -169,7 +167,7 @@ fun BandFundScreen(
     val lang = language
 
     Scaffold(
-        topBar = { TabTopBar(stringResource(Res.string.tab_fund), onSettings, onRoster) },
+        topBar = { TabTopBar(stringResource(Res.string.tab_fund)) },
         snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (canEdit) {
@@ -484,7 +482,12 @@ private fun FundEntryDialog(
         },
     )
     if (choosingPeople) {
-        PeopleDialog(people, payers.filterNotNull().toSet(), onDone = { chosen -> if (chosen.isNotEmpty()) payers = people.map { it.id }.filter { it in chosen } }, onDismiss = { choosingPeople = false })
+        PeopleDialog(
+            people = people,
+            initial = payers.filterNotNull().toSet(),
+            onDone = { chosen -> if (chosen.isNotEmpty()) payers = people.map { it.id }.filter { it in chosen } },
+            onDismiss = { choosingPeople = false },
+        )
     }
 }
 

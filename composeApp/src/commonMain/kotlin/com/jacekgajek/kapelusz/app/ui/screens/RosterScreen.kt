@@ -49,8 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -107,6 +105,8 @@ import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.ui.BackNav
+import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
@@ -164,12 +164,16 @@ import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
 @Composable
-fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBack: () -> Unit, openMember: String? = null) {
+fun RosterScreen(session: BandSession, nav: BackNav, openMember: String? = null) {
+    val state = session.state
+    val changes = session.changes
+    val api = session.api
+    val onBack: () -> Unit = nav::back
     val band = state.band
     val messages = rememberMessages()
     // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
     val actions = rememberActions(changes, messages)
-    val can = Capabilities(band, state.userId)
+    val can = session.can
     val isAdmin = can.manageRoster()
     // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
     val namesOnly = can.artist

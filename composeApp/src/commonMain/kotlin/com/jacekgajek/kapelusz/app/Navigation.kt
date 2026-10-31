@@ -21,7 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -43,6 +43,7 @@ import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.tab_settle
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.ui.AppNavigator
 import com.jacekgajek.kapelusz.app.ui.CostRoute
 import com.jacekgajek.kapelusz.app.ui.EventRoute
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
@@ -61,6 +62,7 @@ import com.jacekgajek.kapelusz.app.ui.components.StuckPushBanner
 import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
+import com.jacekgajek.kapelusz.app.ui.rememberBandSession
 import com.jacekgajek.kapelusz.app.ui.screens.BandFundScreen
 import com.jacekgajek.kapelusz.app.ui.screens.CostScreen
 import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
@@ -131,15 +133,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     }
     LaunchedEffect(state.me?.pictureUrl) { graph.account.sendPictureIfMissing(state.me) }
     SharedFilesDialog(graph.incoming, graph.bands, graph.attachments, state)
-    val toSettings = { navController.navigate(SettingsRoute()) }
-    val toRoster = { navController.navigate(RosterRoute()) }
-    // Only from a screen that is fully shown, and never past the first one: a second quick tap during the fade-out
-    // would pop the list too and leave a blank screen.
-    val back: () -> Unit = {
-        if (navController.previousBackStackEntry != null && navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == true) {
-            navController.popBackStack()
-        }
-    }
+    val session = rememberBandSession(state, graph)
+    val navigator = remember(navController, graph) { AppNavigator(navController, graph.incoming) }
 
     // The band fund tab appears once someone holds the fund (leaders choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null
@@ -153,44 +148,25 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     MainScaffold(navController, graph.sync, graph.bands, graph.membership, state.band.id, tabs) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
             composable<EventsRoute> {
-                EventsScreen(graph.changes, graph.api, graph.settings, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
+                EventsScreen(session, settings, navigator)
             }
             composable<MyCostsRoute> { entry ->
-                val everyone by entry.savedStateHandle.getStateFlow(SHOW_EVERYONE, false).collectAsState()
-                MyCostsScreen(state, everyone, { entry.savedStateHandle[SHOW_EVERYONE] = it }, { navController.navigate(CostRoute(it)) }, toSettings, toRoster)
+                val everyone by entry.savedStateHandle.getStateFlow(AppNavigator.SHOW_EVERYONE, false).collectAsState()
+                MyCostsScreen(session, everyone, { entry.savedStateHandle[AppNavigator.SHOW_EVERYONE] = it }, navigator)
             }
             composable<SettleRoute> {
-                if (artist) BackToEvents(navController) else SettleScreen(graph.changes, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)
+                if (artist) BackToEvents(navController) else SettleScreen(session, navigator)
             }
             composable<FundRoute> { entry ->
-                val addedCost by entry.savedStateHandle.getStateFlow<String?>(ADDED_COST, null).collectAsState()
+                val addedCost by entry.savedStateHandle.getStateFlow<String?>(AppNavigator.ADDED_COST, null).collectAsState()
                 if (artist) {
                     BackToEvents(navController)
                 } else {
-                    BandFundScreen(
-                        graph.changes, graph.settings, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) },
-                        onAddCost = { navController.navigate(CostRoute()) },
-                        addedCost = addedCost,
-                        onAddedCostSeen = { entry.savedStateHandle[ADDED_COST] = null },
-                    )
+                    BandFundScreen(session, navigator, addedCost = addedCost) { entry.savedStateHandle[AppNavigator.ADDED_COST] = null }
                 }
             }
             composable<EventRoute> { entry ->
-                EventScreen(
-                    changes = graph.changes,
-                    api = graph.api,
-                    bands = graph.bands,
-                    sync = graph.sync,
-                    preferences = graph.settings,
-                    incoming = graph.incoming,
-                    fileStore = graph.attachments,
-                    state = state,
-                    eventId = entry.toRoute<EventRoute>().eventId,
-                    onBack = back,
-                    onAddCost = { navController.navigate(CostRoute(forEventId = it)) },
-                    onOpenCost = { navController.navigate(CostRoute(it)) },
-                    onInviteMember = { navController.navigate(RosterRoute(it)) },
-                )
+                EventScreen(session, entry.toRoute<EventRoute>().eventId, navigator)
             }
             composable<CostRoute> { entry ->
                 val route = entry.toRoute<CostRoute>()
@@ -199,58 +175,34 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     BackToEvents(navController)
                     return@composable
                 }
-                CostScreen(graph.changes, graph.incoming, graph.attachments, state, route.costId, back, forEventId = route.forEventId, onOpenEvent = { eventId ->
-                    // At its Money page, where the refund is.
-                    graph.incoming.pendingEventSection.value = eventId to "REFUNDS"
-                    navController.navigate(EventRoute(eventId))
-                }, onAddedForOther = {
-                    // Otherwise a lead adding a cost for someone else would not see it in "My costs".
-                    navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
-                }, onAdded = { costId ->
-                    // From the band fund's +: back there to refund it (ITERATION_7 §5.1).
-                    navController.previousBackStackEntry?.takeIf { it.destination.hasRoute(FundRoute::class) }?.savedStateHandle?.set(ADDED_COST, costId)
-                })
+                CostScreen(session, route, navigator)
             }
             composable<SettingsRoute> { entry ->
                 val page = entry.toRoute<SettingsRoute>().page?.let { name -> SettingsPage.entries.firstOrNull { it.name == name } }
                 SettingsScreen(
-                    settingsFor(state, graph.changes, graph.account, graph.membership, graph.api, graph.settings, onBandGone = { navController.resetTo(EventsRoute) }),
+                    settingsFor(session, onBandGone = navigator::bandGone),
                     page,
                     // Only from the list while it is on screen, so a double tap does not open the page twice.
                     onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) },
-                    onOpenMembers = { navController.navigate(RosterRoute()) },
-                    onBack = back,
+                    onOpenMembers = navigator::members,
+                    onBack = navigator::back,
                 )
             }
             composable<RosterRoute> { entry ->
-                RosterScreen(graph.changes, graph.api, state, back, openMember = entry.toRoute<RosterRoute>().memberId)
+                RosterScreen(session, navigator, openMember = entry.toRoute<RosterRoute>().memberId)
             }
-            composable<SummaryRoute> { SummaryScreen(graph.settings, state, back, onInviteMember = { navController.navigate(RosterRoute(it)) }, onOpenPlayed = { navController.navigate(PlayedRoute) }) }
-            composable<PlayedRoute> { PlayedScreen(graph.settings, graph.places, state, back, onOpenEvent = { navController.navigate(EventRoute(it)) }) }
-            composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph.changes, graph.api, graph.bands, graph.sync, state, back) }
+            composable<SummaryRoute> { SummaryScreen(session, navigator) }
+            composable<PlayedRoute> { PlayedScreen(session, navigator) }
+            composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(session, navigator) }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
                     graph.bands.createBand(name, currency, yourName)
                     graph.sync.requestSync()
                     navController.resetTo(EventsRoute)
-                }, onBack = back)
+                }, onBack = navigator::back)
             }
         }
     }
-}
-
-/** Saved state key of the "everyone's costs" switch on the costs tab. */
-private const val SHOW_EVERYONE = "showEveryone"
-
-/** Saved state key of a cost added from the band fund's +, to refund from the fund. */
-private const val ADDED_COST = "addedCost"
-
-/** Navigates to [route] and drops everything else from the back stack. */
-internal fun NavHostController.resetTo(route: Any) {
-    // The tabs' saved back stacks too (V5-M1 C2a): after a band switch, a tab must not bring back an event or a cost
-    // of the band before.
-    Tab.entries.forEach { clearBackStack(it.route) }
-    navigate(route) { popUpTo(graph.id) { inclusive = true } }
 }
 
 /** Bottom navigation on phones, a rail on wide screens; shown only on the tab screens. */
@@ -318,4 +270,12 @@ private fun MainScaffold(navController: NavHostController, sync: SyncEngine, ban
             }
         }
     }
+}
+
+/** Navigates to [route] and drops everything else from the back stack. */
+internal fun NavHostController.resetTo(route: Any) {
+    // The tabs' saved back stacks too (V5-M1 C2a): after a band switch, a tab must not bring back an event or a cost
+    // of the band before.
+    Tab.entries.forEach { clearBackStack(it.route) }
+    navigate(route) { popUpTo(graph.id) { inclusive = true } }
 }

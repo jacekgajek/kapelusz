@@ -65,9 +65,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -92,7 +89,8 @@ import com.jacekgajek.kapelusz.app.generated.search_no_results
 import com.jacekgajek.kapelusz.app.generated.search_placeholder
 import com.jacekgajek.kapelusz.app.generated.tab_events
 import com.jacekgajek.kapelusz.app.generated.upcoming_event
-import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.TabNav
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
 import com.jacekgajek.kapelusz.app.ui.components.MessageHost
@@ -116,8 +114,6 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.rules.Capabilities
-import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.EventStatus
 import com.jacekgajek.kapelusz.settlement.SettleTogether
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
@@ -137,23 +133,20 @@ import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun EventsScreen(
-    changes: Changes,
-    api: ApiClient,
-    preferences: SettingsRepository,
-    state: BandState.Ready,
-    settings: AppSettings,
-    onOpenEvent: (String) -> Unit,
-    onSettings: () -> Unit,
-    onRoster: () -> Unit,
-) {
+fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
+    val state = session.state
+    val changes = session.changes
+    val api = session.api
+    val preferences = session.settings
+    val onOpenEvent: (String) -> Unit = nav::openEvent
+    val onRoster: () -> Unit = nav::roster
     val band = state.band
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages, undos = null)
     var creating by remember { mutableStateOf(false) }
     // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
     // (ITERATION_4 §1.1).
-    val artist = band.isArtist(state.userId)
+    val artist = session.artist
     val onlyMine = artist || settings.onlyMyEvents
     // Settling every event is costly: again only when the band or a filter changes, not on each redraw (e.g. a key
     // typed in the search).
@@ -193,10 +186,10 @@ fun EventsScreen(
     }
 
     Scaffold(
-        topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
+        topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }) },
         snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
-            if (Capabilities(band, state.userId).createEvent()) {
+            if (session.can.createEvent()) {
                 ExtendedFloatingActionButton(
                     onClick = { creating = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -218,7 +211,7 @@ fun EventsScreen(
                         {
                             actions.run(CancelBandDeletion)
                             Unit
-                        }.takeIf { Capabilities(band, state.userId).allowed(CancelBandDeletion) },
+                        }.takeIf { session.can.allowed(CancelBandDeletion) },
                     )
                 }
             }
@@ -298,7 +291,7 @@ fun EventsScreen(
                     artist -> Res.string.events_empty_artist
 
                     // "Create the first one!" only to those who can.
-                    band.events.isEmpty() && Capabilities(band, state.userId).createEvent() -> Res.string.events_empty
+                    band.events.isEmpty() && session.can.createEvent() -> Res.string.events_empty
 
                     band.events.isEmpty() -> Res.string.events_empty_cannot_create
 
