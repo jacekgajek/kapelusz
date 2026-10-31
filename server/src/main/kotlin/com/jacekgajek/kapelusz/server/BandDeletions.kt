@@ -50,13 +50,13 @@ internal class BandDeletions(
      * Brings the band's entry in the list of bands waiting up to date with its state, read now: its time when it is to
      * be deleted, none when not (kept, or gone). From the state, so two requests noting in either order agree.
      */
-    fun note(bandId: String) = retryOnConflict(exhausted = {}) {
-        val deleteAt = bands.load(bandId, deleteIfDue = false)?.first?.deletion?.deleteAt
-        val blob = store.get(StorageKeys.SCHEDULED_DELETIONS)
-        val waiting = blob?.let { decode(ScheduledDeletions.serializer(), it.content).bands }.orEmpty()
-        val updated = if (deleteAt == null) waiting - bandId else waiting + (bandId to deleteAt)
-        if (updated == waiting) return@retryOnConflict
-        store.put(StorageKeys.SCHEDULED_DELETIONS, encode(ScheduledDeletions.serializer(), ScheduledDeletions(updated)), ifMatch = blob?.etag, ifNoneMatch = blob == null)
+    fun note(bandId: String) {
+        store.scheduledDeletions().update(exhausted = { null }) { stored ->
+            val deleteAt = bands.load(bandId, deleteIfDue = false)?.first?.deletion?.deleteAt
+            val waiting = stored?.bands.orEmpty()
+            val updated = if (deleteAt == null) waiting - bandId else waiting + (bandId to deleteAt)
+            if (updated == waiting) stored else ScheduledDeletions(updated)
+        }
     }
 
     /**
@@ -67,8 +67,7 @@ internal class BandDeletions(
         val now = clock()
         if (now - lastSweep < SWEEP_EVERY_MS) return
         lastSweep = now
-        val waiting = runCatching { store.get(StorageKeys.SCHEDULED_DELETIONS) }.getOrNull()
-            ?.let { decode(ScheduledDeletions.serializer(), it.content).bands }.orEmpty()
+        val waiting = runCatching { store.scheduledDeletions().get() }.getOrNull()?.bands.orEmpty()
         val due = waiting.filterValues { it <= now }.keys
         due.take(BANDS_PER_SWEEP).forEach { bandId ->
             runCatching {
