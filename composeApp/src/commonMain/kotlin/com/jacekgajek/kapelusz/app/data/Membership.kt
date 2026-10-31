@@ -11,7 +11,6 @@ class Membership(
     private val api: ApiClient,
     private val bands: BandRepository,
     private val sync: SyncEngine,
-    private val messages: DeviceMessages,
 ) {
     /** Makes a band on this device, with the user as its owner named [yourName], and opens it; the server gets it at the next sync. */
     fun createBand(name: String, currency: String, yourName: String) {
@@ -27,8 +26,6 @@ class Membership(
         val joined = api.acceptInvite(code)
         bands.adoptFromServer(joined.band, joined.version)
         sync.requestSync()
-        // Possibly a first band: the server keeps the device only while the user is in one.
-        messages.register()
     }
 
     /**
@@ -54,8 +51,6 @@ class Membership(
     suspend fun leaveBand() {
         val bandId = bands.currentBandId ?: return
         scope.detached { sync.leave(bandId) }
-        // Maybe the last band: the server then forgot this device, and the answer says no messages come.
-        messages.register()
     }
 
     /**

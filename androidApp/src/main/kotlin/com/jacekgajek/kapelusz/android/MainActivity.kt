@@ -35,8 +35,6 @@ class MainActivity : ComponentActivity() {
         // The screen in front is the one Google's sign-in UI uses (also after another one was closed).
         AndroidGoogleAuth.activity = WeakReference(this)
         if (graph.sessions.session.value != null) graph.sync.start()
-        // A first band may have been made since: the server keeps the device only while the user is in one.
-        graph.messages.register()
     }
 
     override fun onStop() {

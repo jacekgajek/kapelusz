@@ -24,6 +24,7 @@ import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
+import com.jacekgajek.kapelusz.app.data.DevicesApi
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Id
@@ -82,7 +83,8 @@ class ApiClient(
     InvitesApi,
     HistoryApi,
     CalendarApi,
-    RawStateApi {
+    RawStateApi,
+    DevicesApi {
     /** Its own transport, for tests and tools; the app shares one with [SessionApi]. */
     constructor(
         http: HttpClient,
@@ -98,7 +100,7 @@ class ApiClient(
     suspend fun me(): MeResponse = call(HttpMethod.Get, "/me", MeResponse.serializer())
 
     /** This installation's Firebase token (ITERATION_7 §2.4); the answer says whether sync messages will come. */
-    suspend fun registerDevice(installationId: String, token: String): Boolean = call(
+    override suspend fun registerDevice(installationId: String, token: String): Boolean = call(
         HttpMethod.Put,
         "/me/devices/$installationId",
         DeviceRegistrationResponse.serializer(),
@@ -106,7 +108,7 @@ class ApiClient(
     ).messaging
 
     /** No more sync messages for this installation (signing out). */
-    suspend fun removeDevice(installationId: String) {
+    override suspend fun removeDevice(installationId: String) {
         transport.text(send(HttpMethod.Delete, "/me/devices/$installationId") {})
     }
 
