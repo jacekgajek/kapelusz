@@ -17,7 +17,6 @@ import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.net.URLDecoder
 import java.util.Base64
 import java.util.zip.GZIPOutputStream
 import kotlinx.datetime.LocalDate
@@ -104,26 +103,22 @@ class Handler : RequestStreamHandler {
 
     private fun handle(event: ApiGatewayRequest, path: String): HttpResponse {
         val body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it }
-        val request = try {
-            HttpRequest(
-                method = event.requestContext.http.method,
-                path = event.rawPath,
-                headers = event.headers.mapKeys { it.key.lowercase() },
-                body = body,
-                query = event.rawQueryString.split('&').filter { '=' in it }.associate {
-                    val (key, value) = it.split('=', limit = 2)
-                    URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
-                },
-            )
-        } catch (e: IllegalArgumentException) {
-            // A malformed %-escape in the query string.
-            return error(400, ApiErrors.BAD_REQUEST, "Malformed query string")
+        val query = try {
+            parseQuery(event.rawQueryString)
+        } catch (ignored: IllegalArgumentException) {
+            return malformedQuery()
         }
+        val request = HttpRequest(
+            method = event.requestContext.http.method,
+            path = event.rawPath,
+            headers = event.headers.mapKeys { it.key.lowercase() },
+            body = body,
+            query = query,
+        )
         return try {
             api.handle(request)
         } catch (e: Exception) {
-            System.err.println("Unhandled error for ${request.method} $path: ${e.stackTraceToString()}")
-            error(500, ApiErrors.INTERNAL, "Internal error")
+            unhandled(request.method, path, e)
         }
     }
 

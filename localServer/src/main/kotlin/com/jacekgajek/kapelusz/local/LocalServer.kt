@@ -1,17 +1,16 @@
 package com.jacekgajek.kapelusz.local
 
-import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.api.ErrorResponse
-import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.server.Api
 import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
 import com.jacekgajek.kapelusz.server.InMemoryGeocodeCache
+import com.jacekgajek.kapelusz.server.malformedQuery
+import com.jacekgajek.kapelusz.server.parseQuery
+import com.jacekgajek.kapelusz.server.unhandled
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.Executors
@@ -56,12 +55,12 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
             exchange.requestHeaders.getFirst("host")?.let { requestBase.set("http://$it") }
             // A malformed %-escape in the query string, as the Lambda's Handler answers it.
             val query = try {
-                query(exchange)
-            } catch (e: IllegalArgumentException) {
+                parseQuery(exchange.requestURI.rawQuery)
+            } catch (ignored: IllegalArgumentException) {
                 null
             }
             when {
-                query == null -> Reply.error(400, ApiErrors.BAD_REQUEST, "Malformed query string")
+                query == null -> Reply.of(malformedQuery())
 
                 // CORS preflight from the web app: answered here, as API Gateway does in front of the Lambda.
                 method == "OPTIONS" -> Reply(204)
@@ -71,8 +70,7 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
                 else -> Reply.of(api.handle(request(exchange, query)))
             }
         } catch (e: Exception) {
-            System.err.println("Unhandled error for $method $path: ${e.stackTraceToString()}")
-            Reply.error(500, ApiErrors.INTERNAL, "Internal error")
+            Reply.of(unhandled(method, path, e))
         }
         println("$method $path ${response.status}")
         send(exchange, response, method)
@@ -85,11 +83,6 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
         body = exchange.requestBody.readBytes().takeIf { it.isNotEmpty() }?.decodeToString(),
         query = query,
     )
-
-    private fun query(exchange: HttpExchange): Map<String, String> = exchange.requestURI.rawQuery.orEmpty().split('&').filter { '=' in it }.associate {
-        val (key, value) = it.split('=', limit = 2)
-        URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
-    }
 
     private fun send(exchange: HttpExchange, response: Reply, method: String) {
         val headers = exchange.responseHeaders
@@ -115,13 +108,6 @@ class Reply(val status: Int, val body: ByteArray? = null, val headers: Map<Strin
         fun of(response: HttpResponse) = Reply(response.status, response.body?.toByteArray(), response.headers)
 
         fun text(status: Int, message: String) = Reply(status, message.toByteArray(), mapOf("content-type" to "text/plain; charset=utf-8"))
-
-        /** The API's own error body, as the Lambda sends it. */
-        fun error(status: Int, code: String, message: String) = Reply(
-            status,
-            KapeluszJson.encodeToString(ErrorResponse.serializer(), ErrorResponse(code, message)).toByteArray(),
-            mapOf("content-type" to "application/json"),
-        )
     }
 }
 
