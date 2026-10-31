@@ -7,7 +7,6 @@ import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -120,18 +119,14 @@ class SessionRepository(
     private fun exchangeAllowed(now: Long) = lastExchangeFailure?.let { now - it >= REFRESH_RETRY_MS } ?: true
 
     /** A new session for [bearer], saved into [current]; null (and no retry for a while) if that failed. */
-    private suspend fun exchangeFor(current: Session, bearer: String): String? = try {
+    private suspend fun exchangeFor(current: Session, bearer: String): String? = runSuspendCatching {
         val response = exchange(bearer)
         lastExchangeFailure = null
         save(current.copy(apiToken = response.token, apiExpiresAt = response.expiresAt))
         response.token
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: SessionsRevokedException) {
+    }.getOrElse { e ->
         // Signed out on all devices: no falling back to the Google token, which the server refuses too.
-        throw e
-    } catch (e: Throwable) {
-        // Throwable: on the web, network errors are JsException.
+        if (e is SessionsRevokedException) throw e
         lastExchangeFailure = clock()
         null
     }

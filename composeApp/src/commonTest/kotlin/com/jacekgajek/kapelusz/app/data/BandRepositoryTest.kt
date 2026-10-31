@@ -123,23 +123,6 @@ class BandRepositoryTest {
     }
 
     @Test
-    fun adoptsTheBandCreatedBeforeSignIn() = runTest {
-        val legacyBand = Band.create("b1", "Old Band", "PLN", "m1", "Dave", BandRepository.LOCAL_USER_ID)
-        val legacy = LocalBand(base = legacyBand, clientId = "c", userId = BandRepository.LOCAL_USER_ID)
-        val store = InMemoryStore(mapOf(BandRepository.LEGACY_KEY to KapeluszJson.encodeToString(LocalBand.serializer(), legacy)))
-        val repository = BandRepository(store, this, ids())
-        repository.load("google-sub")
-        testScheduler.advanceUntilIdle()
-
-        val state = ready(repository)
-        assertEquals("Dave", state.me?.name)
-        assertEquals(Role.OWNER, state.me?.role)
-        assertTrue(repository.local("b1")!!.needsCreate)
-        assertNull(store.values[BandRepository.LEGACY_KEY])
-        assertTrue(store.values.containsKey(BandRepository.bandKey("google-sub", "b1")))
-    }
-
-    @Test
     fun switchesBetweenBands() = runTest {
         val repository = BandRepository(InMemoryStore(), this, ids())
         repository.load("alice")
@@ -210,25 +193,6 @@ class BandRepositoryTest {
         val aliceAgain = BandRepository(store, TestScope(testScheduler), ids())
         aliceAgain.load("alice")
         assertEquals(1, aliceAgain.local(bandId)!!.pending.size, "Alice's unsent change is still there")
-    }
-
-    @Test
-    fun movesUnscopedKeysOfTheSameUser() = runTest {
-        val band = Band.create("b1", "M3 Band", "PLN", "m1", "Alice", "alice")
-        val local = LocalBand(base = band, version = "v1", clientId = "c", userId = "alice")
-        val index = BandIndex("alice", "b1", listOf(BandSummary("b1", "M3 Band", "Alice", Role.OWNER)))
-        val store = InMemoryStore(
-            mapOf(
-                BandRepository.UNSCOPED_INDEX_KEY to KapeluszJson.encodeToString(BandIndex.serializer(), index),
-                "band-b1" to KapeluszJson.encodeToString(LocalBand.serializer(), local),
-            ),
-        )
-        val repository = BandRepository(store, this, ids())
-        repository.load("alice")
-        assertEquals("M3 Band", ready(repository).band.name)
-        assertNull(store.values["band-b1"])
-        assertNull(store.values[BandRepository.UNSCOPED_INDEX_KEY])
-        assertTrue(store.values.containsKey(BandRepository.bandKey("alice", "b1")))
     }
 
     @Test

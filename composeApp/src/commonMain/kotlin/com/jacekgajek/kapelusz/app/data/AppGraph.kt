@@ -108,12 +108,6 @@ class AppGraph(
         sessions.session.value?.userId
     }
 
-    /** Settings for a background job, which may run without the app having started (loads them if needed). */
-    suspend fun settingsForBackground(): AppSettings {
-        if (!loaded) settings.load()
-        return settings.settings.value
-    }
-
     /** Changes or attachment files still waiting to be sent to the server. */
     fun hasUnsentWork(): Boolean = bands.bandsToPush().isNotEmpty() || uploads.pending.value.isNotEmpty()
 }

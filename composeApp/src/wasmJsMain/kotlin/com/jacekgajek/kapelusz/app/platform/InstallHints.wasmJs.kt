@@ -25,16 +25,10 @@ private fun androidAppInstalled(): Promise<JsBoolean> = js(
 // Resolves to the text of version.json (written by every deploy), or null when it can't be read (offline).
 private fun fetchVersion(): Promise<JsString?> = js("fetch('/download/version.json', { cache: 'no-cache' }).then((r) => r.ok ? r.text() : null, () => null)")
 
-// Earlier versions hid the Android app hint for good after "Don't show again".
-private fun forgetStoredDismissal() {
-    js("(() => { try { localStorage.removeItem('kapelusz-app-banner-dismissed'); } catch (e) {} })()")
-}
-
 private val json = Json { ignoreUnknownKeys = true }
 
 // Read again on every visit to the event list: a tab open for days still learns of a new deploy.
 actual suspend fun webInstallState(): WebInstallState? {
-    forgetStoredDismissal()
     val published = runSuspendCatching {
         fetchVersion().await<JsString?>()?.toString()?.let { json.decodeFromString<PublishedVersion>(it) }
     }.getOrNull()

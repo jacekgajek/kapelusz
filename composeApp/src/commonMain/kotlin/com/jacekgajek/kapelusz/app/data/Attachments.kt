@@ -17,7 +17,6 @@ import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RenameAttachment
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -48,11 +47,7 @@ class Attachments(
         val attachment = Attachment(attachmentId, file.kind, file.fileName, file.sizeBytes)
         // The file first, then the attachment (ITERATION_3 R4).
         try {
-            try {
-                uploads.enqueue(PendingUpload(bandId, attachment.id), file.base64)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
+            runSuspendCatching { uploads.enqueue(PendingUpload(bandId, attachment.id), file.base64) }.onFailure { e ->
                 return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
             }
             // Another band opened meanwhile (the file was being stored): this attachment belongs to the first one.

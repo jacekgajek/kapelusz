@@ -58,6 +58,4 @@ android {
 dependencies {
     implementation(project(":composeApp"))
     implementation(libs.androidx.activity.compose)
-    // Only to cancel what the website APK's updater left scheduled (ApkLeftovers).
-    implementation(libs.androidx.work.runtime)
 }

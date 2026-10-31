@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Shares by weight or a fixed amount (ITERATION_3 §2.4) -->
-    <string name="share_fixed">fixed</string>
     <string name="share_fixed_amount">Fixed amount</string>
     <string name="share_fixed_hint">Paid out before the rest is split by shares. Refunds of own costs come on top.</string>
     <string name="share_by_percent">Percentage</string>

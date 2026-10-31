@@ -36,7 +36,6 @@ class MainActivity : ComponentActivity() {
         if (graph.sessions.session.value != null) graph.sync.start()
         // A first band may have been made since: the server keeps the device only while the user is in one.
         graph.messages.register()
-        ApkLeftovers.clean(this)
     }
 
     override fun onStop() {
