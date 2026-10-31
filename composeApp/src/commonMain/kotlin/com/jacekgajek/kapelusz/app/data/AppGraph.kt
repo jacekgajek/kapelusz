@@ -5,13 +5,16 @@ import com.jacekgajek.kapelusz.app.auth.GoogleAuth
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.ApiSignal
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.sync.SyncEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,17 +50,13 @@ class AppGraph(
         token = { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) },
         appVersion = AppConfig.VERSION_CODE,
         installation = messageChannel?.installationId,
-        onUpdateRequired = { updateRequired.value = true },
-        // In the app scope: signing out stops the sync loop, which may be the very caller.
-        onSessionsRevoked = { scope.launch { account.signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
 
     /** Where event locations are, for the map (ITERATION_7 §8). */
     val places = PlacesLocator(store, api)
 
-    // A band created here may be the user's first: the server keeps the device only while they are in one.
-    val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { messages.register() })
+    val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads)
     val messages: DeviceMessages = DeviceMessages(messageChannel, sessions, api, sync, scope)
     val changes = Changes(bands, sync)
     val incoming = Incoming()
@@ -73,6 +72,25 @@ class AppGraph(
     private var loaded = false
     private val loadLock = Mutex()
     private var backgroundUser: String? = null
+
+    init {
+        // Subscribed before anything can emit (a signal with nobody listening would be lost). Each signal is handled in
+        // a launch of its own: one that fails or takes long (signing out stops the sync loop, which may be the very
+        // caller) must neither block the next nor end the subscription.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            api.signals.collect { signal ->
+                scope.launch {
+                    when (signal) {
+                        ApiSignal.UpdateRequired -> updateRequired.value = true
+                        ApiSignal.SessionsRevoked -> account.signOutRevoked()
+                    }
+                }
+            }
+        }
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            sync.events.collect { if (it is SyncEvent.BandCreated) scope.launch { messages.register() } }
+        }
+    }
 
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
     suspend fun load() = loadLock.withLock {

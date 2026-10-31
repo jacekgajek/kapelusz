@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.app.auth
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.ApiSignal
 import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import io.ktor.client.HttpClient
@@ -17,6 +18,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -208,11 +212,15 @@ class SessionRepositoryTest {
     )
 
     /** The app's wiring: requests use the repository's tokens, and a revoke signs out. */
-    private fun revokedApi(store: InMemoryStore): Pair<SessionRepository, ApiClient> {
+    private fun revokedApi(store: InMemoryStore, scope: CoroutineScope): Pair<SessionRepository, ApiClient> {
         lateinit var api: ApiClient
         val sessions = SessionRepository(store, google, clock = { now }) { bearer -> api.createSession(bearer) }
-        api = ApiClient(revokedServer, "https://api.test", onSessionsRevoked = { sessions.signOut() }) { refused ->
+        api = ApiClient(revokedServer, "https://api.test") { refused ->
             sessions.validToken(forceRefresh = refused != null, refused = refused)
+        }
+        // What the app's graph does on the signal (through Account); here at once, where it is emitted.
+        scope.launch(UnconfinedTestDispatcher()) {
+            api.signals.collect { if (it is ApiSignal.SessionsRevoked) sessions.signOut() }
         }
         return sessions to api
     }
@@ -221,7 +229,7 @@ class SessionRepositoryTest {
     @Test
     fun aRevokedSessionSignsOutWithoutRenewing() = runTest {
         val store = InMemoryStore()
-        val (sessions, api) = revokedApi(store)
+        val (sessions, api) = revokedApi(store, backgroundScope)
         // Signed in earlier: a session from the server, and the Google token still fresh enough to buy another.
         store.write(
             SessionRepository.KEY,
@@ -243,7 +251,7 @@ class SessionRepositoryTest {
     @Test
     fun aRevokedGoogleTokenIsNotUsedAfterTheExchangeFails() = runTest {
         val store = InMemoryStore()
-        val (sessions, api) = revokedApi(store)
+        val (sessions, api) = revokedApi(store, backgroundScope)
         sessions.signedIn(fakeIdToken("sub-1", now / 1000 + 3600))
 
         assertFailsWith<SessionsRevokedException> { api.me() }

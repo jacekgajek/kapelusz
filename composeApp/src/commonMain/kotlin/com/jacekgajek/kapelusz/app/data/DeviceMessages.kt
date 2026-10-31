@@ -32,14 +32,14 @@ class DeviceMessages(
         registration?.cancel()
         registration = scope.launch {
             val messaged = runSuspendCatching { channel.token()?.let { api.registerDevice(channel.installationId, it) } ?: false }.getOrDefault(false)
-            if (isActive) sync.messaged = messaged
+            if (isActive) sync.messaged(messaged)
         }
     }
 
     /** On signing out, before the session goes: no more messages to this device. [tellServer]: see [Account.signOut]. */
     suspend fun unregister(tellServer: Boolean) {
         registration?.cancel()
-        sync.messaged = false
+        sync.messaged(false)
         val channel = channel ?: return
         val usable = sessions.session.value?.let { it.apiToken != null && it.apiExpiresAt > nowMillis() + 60_000 } == true
         if (tellServer && usable) runSuspendCatching { withTimeout(5_000) { api.removeDevice(channel.installationId) } }

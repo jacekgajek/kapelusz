@@ -62,6 +62,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -227,6 +229,8 @@ class SyncEngineTest {
     fun createsPushesAndPullsABandMadeOffline() = runTest {
         val server = FakeServer()
         val (repository, sync) = setup(server, this)
+        val events = mutableListOf<SyncEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { sync.events.collect { events += it } }
         repository.load("alice")
         repository.createBand("Night Owls", "PLN", "Alice")
         repository.dispatch(AddMember("bob", "Bob"))
@@ -237,6 +241,8 @@ class SyncEngineTest {
         assertEquals(listOf("Alice", "Bob"), server.bands.getValue(bandId).members.map { it.name })
         assertEquals(emptyList(), repository.local(bandId)!!.pending)
         assertEquals(false, repository.local(bandId)!!.needsCreate)
+        advanceUntilIdle()
+        assertEquals<List<SyncEvent>>(listOf(SyncEvent.BandCreated(bandId)), events, "told once, when the server has the band")
 
         server.serverSide(bandId, RenameBand("Renamed elsewhere"))
         assertTrue(sync.syncNow())
@@ -729,7 +735,7 @@ class SyncEngineTest {
     fun withMessagesTheAppLooksForNewsEveryFiveMinutes() = runTest {
         val (_, sync) = setup(FakeServer(), this)
         assertEquals(30_000, sync.waitAfter(ok = true, backoff = 0))
-        sync.messaged = true
+        sync.messaged(true)
         assertEquals(SyncEngine.MESSAGED_INTERVAL, sync.waitAfter(ok = true, backoff = 0))
         assertEquals(5_000, sync.waitAfter(ok = false, backoff = 5_000), "a failed round still retries soon")
     }
@@ -796,8 +802,10 @@ class SyncEngineTest {
     fun anOutdatedAppStopsSyncingAndSaysSo() = runTest {
         val server = FakeServer()
         val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
-        var told = false
-        val api = ApiClient(server.client, "https://api.test", appVersion = 11, onUpdateRequired = { told = true }) { "alice:0" }
+        val api = ApiClient(server.client, "https://api.test", appVersion = 11) { "alice:0" }
+        val signals = mutableListOf<ApiSignal>()
+        // Delivered at once where it is emitted (the engine's thread): the loop's own dispatcher never gets a turn here.
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { api.signals.collect { signals += it } }
         val sync = SyncEngine(api, repository, this)
         repository.load("alice")
         repository.createBand("Night Owls", "PLN", "Alice")
@@ -806,7 +814,8 @@ class SyncEngineTest {
 
         server.updateRequired = true
         assertFalse(sync.syncNow())
-        assertTrue(told)
+        advanceUntilIdle()
+        assertEquals<List<ApiSignal>>(listOf(ApiSignal.UpdateRequired), signals)
         assertEquals(SyncStatus.UPDATE_REQUIRED, sync.status.value)
         val before = server.requests
         assertFalse(sync.syncNow())
