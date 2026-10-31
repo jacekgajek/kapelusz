@@ -74,6 +74,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.MyCostsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.NewBandScreen
 import com.jacekgajek.kapelusz.app.ui.screens.PlayedScreen
 import com.jacekgajek.kapelusz.app.ui.screens.RosterScreen
+import com.jacekgajek.kapelusz.app.ui.screens.RosterViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.SettleScreen
 import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
 import com.jacekgajek.kapelusz.app.ui.screens.costViewModel
@@ -208,7 +209,16 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                 )
             }
             composable<RosterRoute> { entry ->
-                RosterScreen(session, navigator, openMember = entry.toRoute<RosterRoute>().memberId)
+                val roster = entry.screenViewModel {
+                    val api = session.api
+                    val bandId = session.band.id
+                    RosterViewModel(
+                        invitesOf = { api.invites(bandId).invites },
+                        createInvite = { memberId, role -> api.createInvite(bandId, memberId, role) },
+                        revokeInvite = { api.revokeInvite(bandId, it) },
+                    )
+                }
+                RosterScreen(session, navigator, roster, openMember = entry.toRoute<RosterRoute>().memberId)
             }
             composable<SummaryRoute> { SummaryScreen(session, navigator) }
             composable<PlayedRoute> { PlayedScreen(session, navigator) }

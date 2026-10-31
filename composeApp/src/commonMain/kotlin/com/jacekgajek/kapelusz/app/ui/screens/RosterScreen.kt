@@ -39,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.newId
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
@@ -103,16 +101,12 @@ import com.jacekgajek.kapelusz.app.generated.unlink_confirm
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.platform.rememberShare
-import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.ui.BackNav
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
-import com.jacekgajek.kapelusz.app.ui.components.BusyButton
-import com.jacekgajek.kapelusz.app.ui.components.ButtonKind
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import com.jacekgajek.kapelusz.app.ui.components.Crowd
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.FormerMember
@@ -131,7 +125,6 @@ import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
-import com.jacekgajek.kapelusz.app.ui.components.rememberTask
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
@@ -143,19 +136,11 @@ import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.DeleteMember
-import com.jacekgajek.kapelusz.ops.RenameMember
-import com.jacekgajek.kapelusz.ops.SetMemberArchived
-import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetMemberShare
-import com.jacekgajek.kapelusz.ops.TransferOwnership
-import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.rules.Artists
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.MemberDeletion
-import com.jacekgajek.kapelusz.rules.RoleChanges
 import com.jacekgajek.kapelusz.settlement.MemberShares
-import com.jacekgajek.kapelusz.text.Names
-import com.jacekgajek.kapelusz.text.sortedByName
 import com.jacekgajek.kapelusz.view.BandView
 import kotlin.time.Instant
 import kotlinx.coroutines.launch
@@ -165,64 +150,38 @@ import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
 @Composable
-fun RosterScreen(session: BandSession, nav: BackNav, openMember: String? = null) {
+fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, openMember: String? = null) {
     val state = session.state
-    val changes = session.changes
-    val api = session.api
-    val onBack: () -> Unit = nav::back
     val band = state.band
     val messages = rememberMessages()
     // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
-    val actions = rememberActions(changes, messages)
+    val actions = rememberActions(session.changes, messages)
     val can = session.can
     val isAdmin = can.manageRoster()
     // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
     val namesOnly = can.artist
-    var adding by remember { mutableStateOf(false) }
-    // Opened at a member from elsewhere (an event's "invite them", ITERATION_5 §12).
-    var selected by remember { mutableStateOf(openMember) }
-    var invites by remember { mutableStateOf<List<InviteInfo>?>(null) }
-    var invitesFailed by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val reloadInvites: () -> Unit = {
-        scope.launch {
-            runSuspendCatching { api.invites(band.id).invites }
-                .onSuccess {
-                    invites = it
-                    invitesFailed = false
-                }
-                .onFailure { invitesFailed = true }
-        }
-    }
-    LaunchedEffect(band.id, isAdmin) { if (isAdmin) reloadInvites() }
-    // By role, alphabetical within (ITERATION_8 §2); archived members below, in a section of their own: bands that
-    // change players collect many of them.
-    var query by rememberSaveable { mutableStateOf("") }
-    val (allArchived, allActive) = band.members.sortedByName { it.name }.partition { it.archived }
-    val searchable = allActive.size > Crowd.THRESHOLD
-    val (archived, active) = if (searchable && query.isNotBlank()) {
-        allArchived.filter { Names.matches(it.name, query) } to allActive.filter { Names.matches(it.name, query) }
-    } else {
-        allArchived to allActive
-    }
-    var showArchived by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(band.id, isAdmin) { if (isAdmin) roster.reloadInvites() }
+    LaunchedEffect(roster.invites) { roster.invitesLoaded() }
+    val routeMember = openMember?.let { band.member(it) }
+    LaunchedEffect(routeMember) { roster.openFromRoute(routeMember, state.userId) }
+    val (active, archived, searchable) = roster.lists(band)
+    val query = roster.query
     // Leads set default shares (ITERATION_4 §2.3); leaders also manage the rest of a member in their dialog.
     val canShare = can.setMemberShare()
-    var sharing by remember { mutableStateOf<String?>(null) }
     // Everyone else gets a smaller dialog: the default share for leads, settling together (ITERATION_5 §7) for all.
     val me = state.me
     val open: (Member) -> (() -> Unit)? = { member ->
         val pair = me != null && hasSettleTogether(band, me, member)
-        if (isAdmin || (!member.archived && (canShare || pair))) ({ selected = member.id }) else null
+        if (isAdmin || (!member.archived && (canShare || pair))) ({ roster.open(member, state.userId, roster.invites != null) }) else null
     }
 
     AppScaffold(
         messages,
-        topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
+        topBar = { BackTopBar(stringResource(Res.string.menu_roster), nav::back) },
         floatingActionButton = {
             if (isAdmin) {
                 ExtendedFloatingActionButton(
-                    onClick = { adding = true },
+                    onClick = roster::add,
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
                     text = { Text(stringResource(Res.string.add_member)) },
                 )
@@ -230,10 +189,10 @@ fun RosterScreen(session: BandSession, nav: BackNav, openMember: String? = null)
         },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth()) {
-            if (isAdmin && invitesFailed) {
+            if (isAdmin && roster.invitesFailed) {
                 item { Text(stringResource(Res.string.invites_unavailable), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
             }
-            if (searchable) item(key = "search") { NameSearchField(query, { query = it }, Modifier.padding(16.dp, 8.dp)) }
+            if (searchable) item(key = "search") { NameSearchField(query, { roster.query = it }, Modifier.padding(16.dp, 8.dp)) }
             for (group in RoleGroup.entries) {
                 val members = active.filter { group.has(it) }
                 if (members.isEmpty()) continue
@@ -241,7 +200,7 @@ fun RosterScreen(session: BandSession, nav: BackNav, openMember: String? = null)
                 items(members, key = { it.id }) { member ->
                     MemberRow(
                         member,
-                        invites?.firstOrNull { it.memberId == member.id },
+                        roster.inviteOf(member.id),
                         band.currency,
                         onClick = open(member),
                         isMyPartner = me != null && member.id == me.settlesWith,
@@ -257,70 +216,86 @@ fun RosterScreen(session: BandSession, nav: BackNav, openMember: String? = null)
                 // Collapsed at first: only a count, so a long list of past players doesn't bury the band.
                 item(key = "archived-title") {
                     ListItem(
-                        modifier = Modifier.clickable { showArchived = !showArchived },
+                        modifier = Modifier.clickable { roster.showArchived = !roster.showArchived },
                         headlineContent = { Text(stringResource(Res.string.roster_archived, archived.size), style = MaterialTheme.typography.titleMedium) },
-                        trailingContent = { Icon(if (showArchived) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null) },
+                        trailingContent = { Icon(if (roster.showArchived) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null) },
                     )
                 }
                 // A search reaching former members opens them (ITERATION_8 §2).
-                if (showArchived || (searchable && query.isNotBlank())) {
+                if (roster.showArchived || (searchable && query.isNotBlank())) {
                     items(archived, key = { it.id }) { member ->
-                        MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), namesOnly = namesOnly)
+                        MemberRow(member, roster.inviteOf(member.id), band.currency, onClick = open(member), namesOnly = namesOnly)
                     }
                 }
             }
         }
     }
 
-    if (adding) {
-        TextInputDialog(
+    when (val dialog = roster.dialog) {
+        RosterDialog.Adding -> TextInputDialog(
             stringResource(Res.string.add_member),
             stringResource(Res.string.member_name),
             "",
             onConfirm = { actions.run(AddMember(newId(), it)) },
-            onDismiss = { adding = false },
+            onDismiss = roster::dismiss,
             // Someone who used to be in the band is offered back instead (their name stays theirs).
             error = { name -> nameTakenError(band, name).takeIf { band.formerMemberNamed(name) == null } },
             allowed = { band.formerMemberNamed(it) == null },
-            below = { name -> band.formerMemberNamed(name)?.let { FormerMember(it, actions) { adding = false } } },
+            below = { name -> band.formerMemberNamed(name)?.let { FormerMember(it, actions, onRestored = roster::dismiss) } },
         )
+
+        is RosterDialog.OfMember -> {
+            val member = band.member(dialog.form.memberId)
+            if (member != null && isAdmin) {
+                MemberDialog(
+                    dialog.form,
+                    member,
+                    band,
+                    state.view,
+                    me,
+                    can,
+                    actions,
+                    invitesFailed = roster.invitesFailed,
+                    onEditShare = { roster.share(true) }.takeIf { canShare && !member.archived },
+                    onDismiss = roster::dismiss,
+                )
+            } else if (member != null && !member.archived) {
+                SmallMemberDialog(member, band, me, canShare, actions, onEditShare = { roster.share(true) }, onDismiss = roster::dismiss)
+            }
+            if (member != null && dialog.sharing) MemberShareDialog(band, member, actions, onDismiss = { roster.share(false) })
+        }
+
+        null -> Unit
     }
-    selected?.let { id -> band.member(id) }?.takeIf { !isAdmin && !it.archived }?.let { member ->
-        AlertDialog(
-            onDismissRequest = { selected = null },
-            title = { Text(member.name) },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (canShare) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(shareLine(member, band.currency), Modifier.weight(1f))
-                            EditButton(onClick = { sharing = member.id })
-                        }
+}
+
+/** A member for someone who does not manage the band: the default share for leads, settling together for all. */
+@Composable
+private fun SmallMemberDialog(
+    member: Member,
+    band: Band,
+    me: Member?,
+    canShare: Boolean,
+    actions: Actions,
+    onEditShare: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(member.name) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (canShare) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(shareLine(member, band.currency), Modifier.weight(1f))
+                        EditButton(onClick = onEditShare)
                     }
-                    if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
                 }
-            },
-            confirmButton = { TextButton(onClick = { selected = null }) { Text(stringResource(Res.string.close)) } },
-        )
-    }
-    selected?.let { id -> band.member(id) }?.takeIf { isAdmin }?.let { member ->
-        MemberDialog(
-            api = api,
-            band = band,
-            member = member,
-            myUserId = state.userId,
-            me = me,
-            invitesLoaded = invites != null,
-            invitesFailed = invitesFailed,
-            invite = invites?.firstOrNull { it.memberId == member.id },
-            can = can,
-            actions = actions,
-            onInvitesChanged = reloadInvites,
-            onEditShare = { sharing = member.id }.takeIf { canShare && !member.archived },
-            onDismiss = { selected = null },
-        )
-    }
-    sharing?.let { id -> band.member(id) }?.let { member -> MemberShareDialog(band, member, actions, onDismiss = { sharing = null }) }
+                if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
+    )
 }
 
 /** "1½ shares", "20% of profit" or "300 zł (fixed)": a member's default share (ITERATION_4 §2.3); null for a normal one. */
@@ -446,65 +421,41 @@ private fun MemberRow(
 @Composable
 private fun expiryText(invite: InviteInfo): String = formatDate(Instant.fromEpochMilliseconds(invite.expiresAt).toLocalDateTime(TimeZone.currentSystemDefault()).date, language)
 
-@OptIn(ExperimentalLayoutApi::class)
+/** A leader's dialog for one member ([MemberForm]): name, share, role, settling together, invite, and the rest. */
 @Composable
 private fun MemberDialog(
-    api: ApiClient,
-    band: Band,
+    form: MemberForm,
     member: Member,
-    myUserId: String,
+    band: Band,
+    view: BandView,
     me: Member?,
-    invitesLoaded: Boolean,
-    invitesFailed: Boolean,
-    invite: InviteInfo?,
     can: Capabilities,
     actions: Actions,
-    onInvitesChanged: () -> Unit,
+    invitesFailed: Boolean,
     /** Opens the default share (ITERATION_4 §2.3); null for those who may not change it. */
     onEditShare: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    val share = rememberShare()
-    val copy = rememberCopy()
-    var name by remember(member.id) { mutableStateOf(member.name) }
-    var inviteRole by remember(member.id) { mutableStateOf(if (member.role == Role.OWNER) Role.MEMBER else member.role) }
-    var shownInvite by remember(member.id) { mutableStateOf(invite) }
-    var confirmUnlink by remember { mutableStateOf(false) }
-    var confirmOwner by remember { mutableStateOf(false) }
-    var confirmOwnRole by remember { mutableStateOf<Role?>(null) }
-    var pickingRole by remember { mutableStateOf(false) }
-    var confirmRole by remember { mutableStateOf<Role?>(null) }
-    var confirmArchive by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
     val isOwner = member.role == Role.OWNER
-    val isMe = member.userId == myUserId
-    // An invite created before the list has loaded would silently replace a code that may already have been shared.
-    var shownInviteKnown by remember(member.id) { mutableStateOf(invitesLoaded) }
-    LaunchedEffect(invitesLoaded, invite) {
-        if (invitesLoaded && !shownInviteKnown) {
-            shownInvite = invite
-            shownInviteKnown = true
-        }
-    }
-
+    val isMe = form.isMe(member)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(member.name) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val taken = nameTakenError(band, name, except = member.id)
+                    val taken = nameTakenError(band, form.name, except = member.id)
                     OutlinedTextField(
-                        name,
-                        { name = it },
+                        form.name,
+                        { form.name = it },
                         label = { Text(stringResource(Res.string.member_name)) },
                         singleLine = true,
                         isError = taken != null,
                         supportingText = taken?.let { { Text(it) } },
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(enabled = name.isNotBlank() && name.trim() != member.name && taken == null, onClick = { actions.run(RenameMember(member.id, name)) }) {
+                    val rename = form.rename(member, taken != null)
+                    TextButton(enabled = rename != null, onClick = { rename?.let { actions.run(it) } }) {
                         Text(stringResource(Res.string.save))
                     }
                 }
@@ -515,191 +466,191 @@ private fun MemberDialog(
                 // Without an account the role only takes effect when they join, which the invite's role decides. A linked
                 // member's role is changed rarely: one row, the choices behind it.
                 if (!isOwner && member.userId != null) {
-                    Row(Modifier.fillMaxWidth().clickable { pickingRole = true }, verticalAlignment = Alignment.CenterVertically) {
+                    val pickRole = { form.ask(MemberQuestion.PickingRole) }
+                    Row(Modifier.fillMaxWidth().clickable(onClick = pickRole), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(Res.string.role_row, member.role.label()), Modifier.weight(1f))
-                        EditButton(stringResource(Res.string.role), onClick = { pickingRole = true })
+                        EditButton(stringResource(Res.string.role), onClick = pickRole)
                     }
                 }
                 if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
                 if (member.userId == null && !member.archived) {
                     HorizontalDivider()
-                    val current = shownInvite
-                    // In the app's language (a non-composable getString would use the browser's on the web).
-                    val failedText = stringResource(Res.string.invite_failed)
-                    val holdsMoneyText = stringResource(Res.string.reject_holds_money)
-                    val stillPlaysText = stringResource(Res.string.reject_viewer_still_plays)
-                    // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
-                    val invite = rememberTask()
-                    LaunchedEffect(invite.failure) { if (invite.failed) actions.say(failedText) }
-                    if (current != null) {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(current.code, fontFamily = FontFamily.Monospace, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)
-                                Text("${current.role.label()} · ${stringResource(Res.string.invite_active_until, current.code, expiryText(current))}", style = MaterialTheme.typography.bodySmall)
-                                val link = "${AppConfig.WEB_URL}/join/${current.code}"
-                                val text = stringResource(Res.string.share_invite_text, band.name, current.code, link)
-                                val copied = stringResource(Res.string.invite_copied)
-                                val linkCopied = stringResource(Res.string.link_copied)
-                                // A QR code to scan from another phone; the link itself goes by Share or Copy link.
-                                QrCode(link, stringResource(Res.string.invite_qr), Modifier.align(Alignment.CenterHorizontally))
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    FilledTonalButton(onClick = {
-                                        scope.launch { if (share(text) == ShareResult.COPIED) actions.say(copied) }
-                                    }) { Text(stringResource(Res.string.share_invite)) }
-                                    OutlinedButton(onClick = {
-                                        scope.launch { actions.say(if (copy(link)) linkCopied else failedText) }
-                                    }) { Text(stringResource(Res.string.copy_link)) }
-                                    val revoke: suspend () -> Unit = {
-                                        api.revokeInvite(band.id, current.code)
-                                        shownInvite = null
-                                        onInvitesChanged()
-                                    }
-                                    BusyButton(revoke, task = invite, kind = ButtonKind.OUTLINED) {
-                                        Text(stringResource(Res.string.revoke_invite))
-                                    }
-                                }
-                            }
-                        }
-                    } else if (invitesFailed) {
-                        Text(stringResource(Res.string.invites_unavailable), color = MaterialTheme.colorScheme.error)
-                    } else if (!shownInviteKnown) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text(stringResource(Res.string.invite_hint), style = MaterialTheme.typography.bodySmall)
-                        RolePicker(inviteRole, { inviteRole = it }, stringResource(Res.string.invite_role))
-                        val create = {
-                            // Told before asking the server, which refuses for the same reasons.
-                            when (RoleChanges.refusal(BandView(band), member.id, inviteRole)) {
-                                RejectionReason.HOLDS_MONEY -> actions.say(holdsMoneyText)
-
-                                RejectionReason.VIEWER_STILL_PLAYS -> actions.say(stillPlaysText)
-
-                                else -> invite.run {
-                                    shownInvite = api.createInvite(band.id, member.id, inviteRole)
-                                    onInvitesChanged()
-                                }
-                            }
-                        }
-                        FilledTonalButton(onClick = create, enabled = !invite.working) { Text(stringResource(Res.string.create_invite)) }
-                    }
+                    InviteSection(form, band, view, invitesFailed, actions)
                 }
-                // Unlinking your own account would lock you out of the band.
-                if (member.userId != null && !isOwner && !isMe) {
-                    OutlinedButton(onClick = { confirmUnlink = true }) { Text(stringResource(Res.string.unlink)) }
-                }
-                if (can.transferOwnership() && member.userId != null && member.role == Role.LEAD) {
-                    OutlinedButton(onClick = { confirmOwner = true }) { Text(stringResource(Res.string.make_owner)) }
-                }
-                // Not yourself: an archived member can do nothing in the band, so you could not undo it (V5-M1 C5).
-                if (!isOwner && !isMe) {
-                    OutlinedButton(onClick = {
-                        // Archiving ends their settling together (ITERATION_5 §7): said first.
-                        if (!member.archived && member.settlesWith != null) {
-                            confirmArchive = true
-                        } else {
-                            actions.run(SetMemberArchived(member.id, !member.archived))
-                        }
-                    }) {
-                        Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
-                    }
-                }
-                // Only who left no trace (ITERATION_7 §3.1); anyone else is moved to the former members above.
-                if (!isOwner && !isMe && can.allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)) {
-                    TextButton(
-                        onClick = { confirmDelete = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) { Text(stringResource(Res.string.delete_member)) }
-                }
+                MemberActions(form, member, band, can, actions)
                 DialogNotice(actions)
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
     )
+    MemberQuestions(form, member, band, actions, onDismiss)
+}
 
-    if (confirmDelete) {
-        val deleted = stringResource(Res.string.deleted_member, member.name)
-        ConfirmDialog(
-            title = stringResource(Res.string.delete_member_title, member.name),
-            text = listOfNotNull(
-                stringResource(Res.string.delete_member_text, member.name),
-                stringResource(Res.string.delete_member_linked, member.name).takeIf { member.userId != null },
-            ).joinToString("\n\n"),
-            confirmLabel = stringResource(Res.string.delete),
-            onConfirm = {
-                // The account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §3.1).
-                // The dialog closes, so Undo doesn't bring it back with the member.
-                if ((member.userId == null || actions.run(UnlinkUser(member.id))) && actions.runWithUndo(DeleteMember(member.id), deleted)) onDismiss()
-            },
-            onDismiss = { confirmDelete = false },
-        )
+/** What a leader may do to a member besides editing: unlink their account, make them the owner, archive, delete. */
+@Composable
+private fun MemberActions(form: MemberForm, member: Member, band: Band, can: Capabilities, actions: Actions) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val isOwner = member.role == Role.OWNER
+        val isMe = form.isMe(member)
+        // Unlinking your own account would lock you out of the band.
+        if (member.userId != null && !isOwner && !isMe) {
+            OutlinedButton(onClick = { form.ask(MemberQuestion.ConfirmUnlink) }) { Text(stringResource(Res.string.unlink)) }
+        }
+        if (can.transferOwnership() && member.userId != null && member.role == Role.LEAD) {
+            OutlinedButton(onClick = { form.ask(MemberQuestion.ConfirmOwner) }) { Text(stringResource(Res.string.make_owner)) }
+        }
+        // Not yourself: an archived member can do nothing in the band, so you could not undo it (V5-M1 C5).
+        if (!isOwner && !isMe) {
+            OutlinedButton(onClick = { form.toggleArchived(member)?.let { actions.run(it) } }) {
+                Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
+            }
+        }
+        // Only who left no trace (ITERATION_7 §3.1); anyone else is moved to the former members above.
+        if (!isOwner && !isMe && can.allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)) {
+            TextButton(
+                onClick = { form.ask(MemberQuestion.ConfirmDelete) },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) { Text(stringResource(Res.string.delete_member)) }
+        }
     }
+}
 
-    if (confirmUnlink) {
-        ConfirmDialog(
+/** The invite of a member without an account: the code shown with its ways to pass it on, or the role and Create. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun InviteSection(form: MemberForm, band: Band, view: BandView, invitesFailed: Boolean, actions: Actions) {
+    val scope = rememberCoroutineScope()
+    val share = rememberShare()
+    val copy = rememberCopy()
+    // In the app's language (a non-composable getString would use the browser's on the web).
+    val failedText = stringResource(Res.string.invite_failed)
+    val holdsMoneyText = stringResource(Res.string.reject_holds_money)
+    val stillPlaysText = stringResource(Res.string.reject_viewer_still_plays)
+    fun tell(outcome: InviteOutcome?) {
+        when (outcome) {
+            null -> Unit
+
+            InviteOutcome.Failed -> actions.say(failedText)
+
+            is InviteOutcome.Refused -> actions.say(
+                when (outcome.reason) {
+                    RejectionReason.HOLDS_MONEY -> holdsMoneyText
+                    RejectionReason.VIEWER_STILL_PLAYS -> stillPlaysText
+                    else -> failedText
+                },
+            )
+        }
+    }
+    val current = form.shownInvite
+    if (current != null) {
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(current.code, fontFamily = FontFamily.Monospace, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)
+                val until = stringResource(Res.string.invite_active_until, current.code, expiryText(current))
+                Text("${current.role.label()} · $until", style = MaterialTheme.typography.bodySmall)
+                val link = "${AppConfig.WEB_URL}/join/${current.code}"
+                val text = stringResource(Res.string.share_invite_text, band.name, current.code, link)
+                val copied = stringResource(Res.string.invite_copied)
+                val linkCopied = stringResource(Res.string.link_copied)
+                // A QR code to scan from another phone; the link itself goes by Share or Copy link.
+                QrCode(link, stringResource(Res.string.invite_qr), Modifier.align(Alignment.CenterHorizontally))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = {
+                        scope.launch { if (share(text) == ShareResult.COPIED) actions.say(copied) }
+                    }) { Text(stringResource(Res.string.share_invite)) }
+                    OutlinedButton(onClick = {
+                        scope.launch { actions.say(if (copy(link)) linkCopied else failedText) }
+                    }) { Text(stringResource(Res.string.copy_link)) }
+                    OutlinedButton(enabled = !form.inviteBusy, onClick = { scope.launch { tell(form.revoke()) } }) {
+                        Text(stringResource(Res.string.revoke_invite))
+                    }
+                }
+            }
+        }
+    } else if (invitesFailed) {
+        Text(stringResource(Res.string.invites_unavailable), color = MaterialTheme.colorScheme.error)
+    } else if (!form.inviteKnown) {
+        CircularProgressIndicator()
+    } else {
+        Text(stringResource(Res.string.invite_hint), style = MaterialTheme.typography.bodySmall)
+        RolePicker(form.inviteRole, { form.inviteRole = it }, stringResource(Res.string.invite_role))
+        FilledTonalButton(enabled = !form.inviteBusy, onClick = { scope.launch { tell(form.create(view)) } }) {
+            Text(stringResource(Res.string.create_invite))
+        }
+    }
+}
+
+/** The question the member's dialog asks before acting, if any. */
+@Composable
+private fun MemberQuestions(form: MemberForm, member: Member, band: Band, actions: Actions, onDismiss: () -> Unit) {
+    when (val question = form.dialog) {
+        MemberQuestion.ConfirmDelete -> {
+            val deleted = stringResource(Res.string.deleted_member, member.name)
+            ConfirmDialog(
+                title = stringResource(Res.string.delete_member_title, member.name),
+                text = listOfNotNull(
+                    stringResource(Res.string.delete_member_text, member.name),
+                    stringResource(Res.string.delete_member_linked, member.name).takeIf { member.userId != null },
+                ).joinToString("\n\n"),
+                confirmLabel = stringResource(Res.string.delete),
+                onConfirm = {
+                    // The account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §3.1).
+                    // The dialog closes, so Undo doesn't bring it back with the member.
+                    val (unlink, delete) = form.deletion(member)
+                    if ((unlink == null || actions.run(unlink)) && actions.runWithUndo(delete, deleted)) onDismiss()
+                },
+                onDismiss = form::dismissDialog,
+            )
+        }
+
+        MemberQuestion.ConfirmUnlink -> ConfirmDialog(
             title = stringResource(Res.string.unlink),
             text = listOfNotNull(stringResource(Res.string.unlink_confirm, member.name), pairEndsWarning(band, member)).joinToString("\n\n"),
             confirmLabel = stringResource(Res.string.unlink),
-            onConfirm = { actions.run(UnlinkUser(member.id)) },
-            onDismiss = { confirmUnlink = false },
+            onConfirm = { actions.run(form.unlink(member)) },
+            onDismiss = form::dismissDialog,
         )
-    }
-    if (pickingRole) {
-        AlertDialog(
-            onDismissRequest = { pickingRole = false },
+
+        MemberQuestion.PickingRole -> AlertDialog(
+            onDismissRequest = form::dismissDialog,
             title = { Text(member.name) },
             text = {
-                RolePicker(member.role, { role ->
-                    pickingRole = false
-                    when {
-                        role == member.role -> {}
-
-                        // Changing your own role can take away the rights you are using right now: ask first.
-                        isMe -> confirmOwnRole = role
-
-                        // So does a change that ends their settling together (ITERATION_5 §7).
-                        pairEndsWarningNeeded(member, role) -> confirmRole = role
-
-                        else -> actions.run(SetMemberRole(member.id, role))
-                    }
-                }, stringResource(Res.string.role), Modifier.verticalScroll(rememberScrollState()))
+                val picked: (Role) -> Unit = { role -> form.pickRole(member, role)?.let { actions.run(it) } }
+                RolePicker(member.role, picked, stringResource(Res.string.role), Modifier.verticalScroll(rememberScrollState()))
             },
-            confirmButton = { TextButton(onClick = { pickingRole = false }) { Text(stringResource(Res.string.cancel)) } },
+            confirmButton = { TextButton(onClick = form::dismissDialog) { Text(stringResource(Res.string.cancel)) } },
         )
-    }
-    confirmRole?.let { role ->
-        ConfirmDialog(
-            title = stringResource(Res.string.role_row, role.label()),
-            text = pairEndsWarning(band, member, role),
-            confirmLabel = stringResource(Res.string.save),
-            onConfirm = { actions.run(SetMemberRole(member.id, role)) },
-            onDismiss = { confirmRole = null },
-        )
-    }
-    if (confirmArchive) {
-        ConfirmDialog(
+
+        is MemberQuestion.ConfirmRole -> {
+            val role = question.role
+            val warning = pairEndsWarning(band, member, role)
+            val ownText = listOfNotNull(stringResource(Res.string.change_own_role_text, role.label()), warning).joinToString("\n\n")
+            val ownTitle = stringResource(Res.string.change_own_role_title)
+            ConfirmDialog(
+                title = if (question.own) ownTitle else stringResource(Res.string.role_row, role.label()),
+                text = if (question.own) ownText else warning,
+                confirmLabel = stringResource(if (question.own) Res.string.change_own_role_confirm else Res.string.save),
+                onConfirm = { form.confirmRole(member)?.let { actions.run(it) } },
+                onDismiss = form::dismissDialog,
+            )
+        }
+
+        MemberQuestion.ConfirmArchive -> ConfirmDialog(
             title = stringResource(Res.string.archive),
             text = pairEndsWarning(band, member),
             confirmLabel = stringResource(Res.string.archive),
-            onConfirm = { actions.run(SetMemberArchived(member.id, true)) },
-            onDismiss = { confirmArchive = false },
+            onConfirm = { actions.run(form.confirmArchive(member)) },
+            onDismiss = form::dismissDialog,
         )
-    }
-    confirmOwnRole?.let { role ->
-        ConfirmDialog(
-            title = stringResource(Res.string.change_own_role_title),
-            text = listOfNotNull(stringResource(Res.string.change_own_role_text, role.label()), pairEndsWarning(band, member, role)).joinToString("\n\n"),
-            confirmLabel = stringResource(Res.string.change_own_role_confirm),
-            onConfirm = { actions.run(SetMemberRole(member.id, role)) },
-            onDismiss = { confirmOwnRole = null },
-        )
-    }
-    if (confirmOwner) {
-        ConfirmDialog(
+
+        MemberQuestion.ConfirmOwner -> ConfirmDialog(
             title = stringResource(Res.string.make_owner),
             text = stringResource(Res.string.make_owner_confirm, member.name),
             confirmLabel = stringResource(Res.string.make_owner),
-            onConfirm = { if (actions.run(TransferOwnership(member.id))) onDismiss() },
-            onDismiss = { confirmOwner = false },
+            onConfirm = { if (actions.run(form.transferOwnership(member))) onDismiss() },
+            onDismiss = form::dismissDialog,
         )
+
+        null -> Unit
     }
 }
