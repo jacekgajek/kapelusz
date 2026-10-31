@@ -21,7 +21,7 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.jacekgajek.kapelusz.app.auth.Session
-import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.data.AppState
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -49,11 +49,11 @@ import com.jacekgajek.kapelusz.rules.isArtist
 import kotlinx.coroutines.launch
 
 @Composable
-fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
+fun App(runtime: AppRuntime, onNavHostReady: suspend (NavController) -> Unit = {}) {
     // Members' Google photos load over Ktor on every platform, kept in memory and (Android) on disk.
     setSingletonImageLoaderFactory { context -> ImageLoader.Builder(context).components { add(KtorNetworkFetcherFactory()) }.build() }
-    val settings by graph.settings.settings.collectAsState()
-    val state by graph.state.collectAsState(graph.currentState)
+    val settings by runtime.settings.settings.collectAsState()
+    val state by runtime.state.collectAsState(runtime.currentState)
     // Outside key(language), so changing the language keeps the back stack. A new controller per signed-in account:
     // after signing out and in again the app starts on the event list instead of restoring the old back stack.
     val navController = key((state as? AppState.SignedIn)?.session?.userId) { rememberNavController() }
@@ -64,8 +64,12 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
                 Surface(Modifier.fillMaxSize()) {
                     when (val shown = state) {
                         AppState.UpdateRequired -> UpdateRequiredScreen()
-                        is AppState.SignedOut -> SignInScreen(onIdToken = graph.account::onSignedIn, signedOutEverywhere = shown.everywhere)
-                        is AppState.SignedIn -> BandContent(graph, shown.session, shown.band, navController)
+
+                        is AppState.SignedOut -> {
+                            SignInScreen(onIdToken = runtime.account::onSignedIn, signedOutEverywhere = shown.everywhere)
+                        }
+
+                        is AppState.SignedIn -> BandContent(runtime, shown.session, shown.band, navController)
                     }
                 }
             }
@@ -80,16 +84,16 @@ fun AppLoading() {
 }
 
 @Composable
-private fun BandContent(graph: AppGraph, session: Session, bandState: BandState, navController: NavHostController) {
+private fun BandContent(runtime: AppRuntime, session: Session, bandState: BandState, navController: NavHostController) {
     val scope = rememberCoroutineScope()
-    val index by graph.bands.index.collectAsState()
-    val syncStatus by graph.sync.status.collectAsState()
-    val stuck by graph.sync.stuck.collectAsState()
+    val index by runtime.bands.index.collectAsState()
+    val syncStatus by runtime.sync.status.collectAsState()
+    val stuck by runtime.sync.stuck.collectAsState()
     val defaultName = session.name?.substringBefore(' ').orEmpty()
     var openError by remember { mutableStateOf(false) }
     // Whose screens are up: the navigator starts another band's over (see it); saved, as recreation keeps the back stack.
     val shownBandId = rememberSaveable { mutableStateOf<String?>(null) }
-    val navigator = remember(navController, graph) { BandNavigator(navController, graph.bands, graph.sync, shownBandId) }
+    val navigator = remember(navController, runtime) { BandNavigator(navController, runtime.bands, runtime.sync, shownBandId) }
     val readyBandId = (bandState as? BandState.Ready)?.band?.id
     LaunchedEffect(readyBandId, bandState is BandState.NoBand) { navigator.bandShown(readyBandId, bandState is BandState.NoBand) }
     var signingInAgain by remember { mutableStateOf(false) }
@@ -100,17 +104,17 @@ private fun BandContent(graph: AppGraph, session: Session, bandState: BandState,
             val opened = navigator.openBand(bandId, forScreens = false)
             openError = !opened
             if (opened && resetNavigation) navigator.eventList()
-            graph.sync.requestSync()
+            runtime.sync.requestSync()
         }
     }
     val reauthenticate: suspend (String) -> Boolean = { token ->
-        graph.sessions.reauthenticated(token).also { ok -> if (ok) graph.sync.resumeAfterSignIn() }
+        runtime.sessions.reauthenticated(token).also { ok -> if (ok) runtime.sync.resumeAfterSignIn() }
     }
     if (signingInAgain) SignInAgainDialog(session.email, reauthenticate, onDismiss = { signingInAgain = false })
-    LostAccessDialog(graph.sync)
-    IntentRouter(graph, bandState, navigator)
+    LostAccessDialog(runtime.sync)
+    IntentRouter(runtime, bandState, navigator)
     // The "Join a band" buttons: the router's dialog, like a join link's.
-    val join = { graph.intents.offer(AppIntent.Join()) }
+    val join = { runtime.intents.offer(AppIntent.Join()) }
     when (bandState) {
         BandState.Loading -> LoadingScreen()
 
@@ -121,8 +125,8 @@ private fun BandContent(graph: AppGraph, session: Session, bandState: BandState,
             onSignInAgain = { signingInAgain = true },
             defaultYourName = defaultName,
             onOpen = { openBand(it, false) },
-            onCreate = graph.membership::createBand,
-            onSignOut = { graph.account.signOutInBackground() },
+            onCreate = runtime.membership::createBand,
+            onSignOut = { runtime.account.signOutInBackground() },
             onJoin = join,
         )
 
@@ -140,13 +144,13 @@ private fun BandContent(graph: AppGraph, session: Session, bandState: BandState,
                 onSettings = { navController.navigate(SettingsRoute()) },
                 onRoster = { navController.navigate(RosterRoute()) },
                 onSummary = { navController.navigate(SummaryRoute) },
-                onSyncNow = { graph.sync.syncAsked() },
+                onSyncNow = { runtime.sync.syncAsked() },
                 onReauthenticate = reauthenticate,
                 accountEmail = session.email,
                 artist = bandState.band.isArtist(session.userId),
             ),
-        ) { Navigation(graph, bandState, navController, defaultName) }
+        ) { Navigation(runtime, bandState, navController, defaultName) }
 
-        is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
+        is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { runtime.bands.startOver() } })
     }
 }

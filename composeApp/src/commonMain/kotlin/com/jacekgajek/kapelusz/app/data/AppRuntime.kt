@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.app.sync.ApiSignal
 import com.jacekgajek.kapelusz.app.sync.ApiTransport
 import com.jacekgajek.kapelusz.app.sync.SessionApi
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.model.Id
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
@@ -27,11 +28,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Process-wide objects, created once per app start (no DI framework), and loading them. The work is theirs: [account]
- * signs in and out, [membership] joins and leaves bands, [changes] applies the user's edits, [intents] holds links and
- * shared files for the UI.
+ * The app's objects, created once per process in dependency order (no DI framework), what loads them, and the
+ * lifecycle as the platforms see it ([load], [onForeground], [onBackground], [onHidden], [onMessage], [onNewToken],
+ * [syncInBackground]: all that MainActivity, the web's Main.kt, the background worker and the sync-message service call). The work is the
+ * objects' own: [account] signs in and out, [membership] joins and leaves bands, [changes] applies the user's edits,
+ * [intents] holds links and shared files for the UI.
  */
-class AppGraph(
+class AppRuntime(
     store: KeyValueStore,
     google: GoogleAuth,
     http: HttpClient = HttpClient(),
@@ -39,7 +42,8 @@ class AppGraph(
     messageChannel: MessageChannel? = null,
 ) {
     // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") })
+    private val unhandled = CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + unhandled)
     val settings = SettingsRepository(store, scope)
 
     private val transport = ApiTransport(
@@ -115,15 +119,41 @@ class AppGraph(
                 uploads.load(session.userId)
             }
         }
-        if (sessions.session.value != null) sync.start()
+        onForeground()
         loaded = true
+    }
+
+    /** The app is on screen (Android: the activity started; web: the tab shown): the sync loop runs while signed in. */
+    fun onForeground() {
+        if (sessions.session.value != null) sync.start()
+    }
+
+    /** The app left the screen (Android): the loop stops; a background job sends what waits ([hasUnsentWork]). */
+    fun onBackground() = sync.stop()
+
+    /** The web tab was hidden (ITERATION_7 §2.6): what waits is sent, then nothing until [onForeground]. */
+    fun onHidden() = sync.pauseAfterSending()
+
+    /** A sync message said [bandId] changed (ITERATION_7 §2.3). */
+    fun onMessage(bandId: Id) = sync.bandChanged(bandId)
+
+    /** Firebase gave this device a new token. */
+    fun onNewToken() = devices.tokenChanged()
+
+    /**
+     * A background job's round over every band of the user (ITERATION_3 R4), with what it needs loaded first; false
+     * when it should be retried. Nothing to do while signed out.
+     */
+    suspend fun syncInBackground(): Boolean {
+        if (loadForBackground() == null) return true
+        return sync.syncAll()
     }
 
     /**
      * Loads what a background job needs (settings, session, bands, waiting uploads) without starting the foreground
      * sync loop; the app's own [load] later keeps it. Returns the signed-in user, if any.
      */
-    suspend fun loadForBackground(): String? = loadLock.withLock {
+    private suspend fun loadForBackground(): String? = loadLock.withLock {
         if (!loaded && backgroundUser == null) {
             settings.load()
             sessions.load()

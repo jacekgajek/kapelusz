@@ -28,7 +28,7 @@ internal suspend fun linkedEvent(eventId: Id, userId: String?, bands: BandReposi
     return if (synced) LinkedEvent.NoAccess else LinkedEvent.Unreachable
 }
 
-internal suspend fun AppGraph.linkedEvent(eventId: Id): LinkedEvent {
+internal suspend fun AppRuntime.linkedEvent(eventId: Id): LinkedEvent {
     val userId = sessions.session.value?.userId
     return linkedEvent(eventId, userId, bands) { sync.syncAll() }
 }

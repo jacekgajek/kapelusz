@@ -33,7 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
-import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.Membership
@@ -104,11 +104,11 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 }
 
 @Composable
-internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: NavHostController, defaultName: String) {
-    val settings by graph.settings.settings.collectAsState()
-    LaunchedEffect(state.me?.pictureUrl) { graph.account.sendPictureIfMissing(state.me) }
-    val session = rememberBandSession(state, graph)
-    val navigator = remember(navController, graph) { AppNavigator(navController) }
+internal fun Navigation(runtime: AppRuntime, state: BandState.Ready, navController: NavHostController, defaultName: String) {
+    val settings by runtime.settings.settings.collectAsState()
+    LaunchedEffect(state.me?.pictureUrl) { runtime.account.sendPictureIfMissing(state.me) }
+    val session = rememberBandSession(state, runtime)
+    val navigator = remember(navController, runtime) { AppNavigator(navController) }
 
     // The band fund tab appears once someone holds the fund (leaders choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null
@@ -119,7 +119,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     LaunchedEffect(fundEnabled) {
         if (!fundEnabled && navController.currentDestination?.hasRoute(FundRoute::class) == true) navController.resetTo(EventsRoute)
     }
-    MainScaffold(navController, graph.sync, graph.bands, graph.membership, state.band.id, tabs) {
+    MainScaffold(navController, runtime.sync, runtime.bands, runtime.membership, state.band.id, tabs) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
             composable<EventsRoute> { entry ->
                 EventsScreen(session, settings, navigator, events = entry.screenViewModel { EventsViewModel(session.bands.state) })
@@ -210,7 +210,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
-                    graph.membership.createBand(name, currency, yourName)
+                    runtime.membership.createBand(name, currency, yourName)
                     navController.resetTo(EventsRoute)
                 }, onBack = navigator::back)
             }

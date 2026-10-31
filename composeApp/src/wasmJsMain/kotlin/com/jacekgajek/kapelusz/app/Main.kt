@@ -15,7 +15,7 @@ import androidx.compose.ui.window.ComposeViewport
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.bindToNavigation
 import com.jacekgajek.kapelusz.app.auth.WebGoogleAuth
-import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.data.AppState
 import com.jacekgajek.kapelusz.app.data.IndexedDbStore
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -49,21 +49,17 @@ private fun exposeVersion(label: String) {
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
     exposeVersion(AppConfig.VERSION_LABEL)
-    val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
+    val runtime = AppRuntime(IndexedDbStore(), WebGoogleAuth)
     // A hidden tab sends what waits, then stops looking for news; shown again, it syncs at once (ITERATION_7 §2.6).
     document.addEventListener("visibilitychange", {
-        if (documentHidden()) {
-            graph.sync.pauseAfterSending()
-        } else if (graph.sessions.session.value != null) {
-            graph.sync.start()
-        }
+        if (documentHidden()) runtime.onHidden() else runtime.onForeground()
     })
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
     // keeps it; an event link likewise, until it is opened (ITERATION_5 §10).
-    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.intents.offer(AppIntent.Join(it)) }
-    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { graph.intents.offer(AppIntent.OpenEvent(it)) }
+    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { runtime.intents.offer(AppIntent.Join(it)) }
+    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { runtime.intents.offer(AppIntent.OpenEvent(it)) }
     MainScope().launch {
-        graph.intents.pending.collect { pending ->
+        runtime.intents.pending.collect { pending ->
             keepInSession(JOIN_CODE_KEY, pending.filterIsInstance<AppIntent.Join>().firstOrNull()?.code)
             keepInSession(EVENT_LINK_KEY, pending.filterIsInstance<AppIntent.OpenEvent>().firstOrNull { it.bandId == null }?.eventId)
         }
@@ -76,16 +72,16 @@ fun main() {
         val scope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
             phase = if (TabLock.acquire(steal = false)) {
-                graph.load()
+                runtime.load()
                 // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
-                if (documentHidden()) graph.sync.pauseAfterSending()
+                if (documentHidden()) runtime.onHidden()
                 Phase.READY
             } else {
                 Phase.OTHER_TAB
             }
         }
         // Once loaded (a signed-in user's address must survive a reload), the screen leaves the address with the session.
-        LaunchedEffect(phase) { if (phase == Phase.READY) forgetScreenWhenSignedOut(graph) }
+        LaunchedEffect(phase) { if (phase == Phase.READY) forgetScreenWhenSignedOut(runtime) }
         // One loading screen for both waits, so its spinner doesn't start over in between.
         if (!fontsReady || phase == Phase.STARTING) {
             AppLoading()
@@ -100,16 +96,16 @@ fun main() {
                                 TabLock.acquire(steal = true)
                                 // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
                                 delay(1500)
-                                graph.load()
+                                runtime.load()
                                 // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
-                                if (documentHidden()) graph.sync.pauseAfterSending()
+                                if (documentHidden()) runtime.onHidden()
                                 phase = Phase.READY
                             }
                         })
                     }
                 }
 
-                Phase.READY -> App(graph, onNavHostReady = { window.bindToNavigation(it) })
+                Phase.READY -> App(runtime, onNavHostReady = { window.bindToNavigation(it) })
             }
         }
     }
@@ -124,8 +120,8 @@ private fun keepInSession(key: String, value: String?) {
  * Settings, where the user signed out), as the navigation is bound to it. So the screen (the hash) leaves the address
  * with the session.
  */
-private suspend fun forgetScreenWhenSignedOut(graph: AppGraph) {
-    graph.state.collect { if (it is AppState.SignedOut) window.history.replaceState(null, "", "/") }
+private suspend fun forgetScreenWhenSignedOut(runtime: AppRuntime) {
+    runtime.state.collect { if (it is AppState.SignedOut) window.history.replaceState(null, "", "/") }
 }
 
 /** An event link (`/e/<eventId>`, ITERATION_5 §10): taken once, the address reset to the app root like a join link. */

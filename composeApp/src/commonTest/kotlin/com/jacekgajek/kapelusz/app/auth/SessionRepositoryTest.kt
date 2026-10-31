@@ -218,7 +218,7 @@ class SessionRepositoryTest {
         val transport = ApiTransport(revokedServer, "https://api.test")
         val sessions = SessionRepository(store, google, clock = { now }, exchange = SessionApi(transport)::createSession)
         val api = ApiClient(transport) { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) }
-        // What the app's graph does on the signal (through Account); here at once, where it is emitted.
+        // What the app's runtime does on the signal (through Account); here at once, where it is emitted.
         scope.launch(UnconfinedTestDispatcher()) {
             api.signals.collect { if (it is ApiSignal.SessionsRevoked) sessions.signOut() }
         }
