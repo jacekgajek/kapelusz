@@ -23,6 +23,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import org.crac.Core
 import org.crac.Resource
+import software.amazon.awssdk.regions.Region
 
 /** API Gateway HTTP API, payload format 2.0 (only the fields we use). */
 @Serializable
@@ -138,18 +139,24 @@ class Handler : RequestStreamHandler {
         )
         private val s3Timer = CallTimer("s3")
         private val dbTimer = CallTimer("db")
-        private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data"), s3Timer)
-        private val history = DynamoHistoryStore(System.getenv("HISTORY_TABLE") ?: "art-split-history", dbTimer)
+        private val region = Region.of(System.getenv("AWS_REGION") ?: "eu-central-1")
+        private val s3 = S3BlobStore.defaultClient(region)
+        private val dynamo = DynamoHistoryStore.defaultClient(region)
+        private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data", region, s3), s3Timer)
+        private val history = DynamoHistoryStore(System.getenv("HISTORY_TABLE") ?: "art-split-history", dbTimer, dynamo)
         private val api = Api(
             store,
             history,
             verifier,
-            minAppVersion = Api.MIN_APP_VERSION,
             placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
-            geocodeCache = DynamoGeocodeCache(System.getenv("GEOCODE_TABLE") ?: "art-split-geocode", dbTimer),
-            webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it) },
+            geocodeCache = DynamoGeocodeCache(System.getenv("GEOCODE_TABLE") ?: "art-split-geocode", dbTimer, dynamo),
+            webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it, s3) } ?: NoWebIndex,
             // Sync messages (ITERATION_7 §2.5): the key is read on the first one, not into the SnapStart snapshot.
             messageSender = FcmSender(StoredServiceAccount(store)),
+            config = ServerConfig(
+                minAppVersion = Api.MIN_APP_VERSION,
+                webUrl = System.getenv("WEB_URL") ?: ServerConfig.WEB_URL,
+            ),
         )
 
         init {

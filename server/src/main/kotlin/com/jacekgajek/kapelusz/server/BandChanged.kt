@@ -17,7 +17,7 @@ internal class BandChanged(
     private val attachments: AttachmentFiles,
     private val deletions: BandDeletions,
     private val history: HistoryLog,
-    private val messenger: SyncMessenger?,
+    private val messenger: SyncMessenger,
 ) {
     /**
      * [before] became [after] by [accepted] from [user] (with [changes] recorded for undo), from the device [from]. In
@@ -56,7 +56,7 @@ internal class BandChanged(
         val memberId = (before.memberOfUser(user.userId) ?: after.memberOfUser(user.userId))?.id
         runCatching { history.append(user, memberId, bandId, accepted, changes) }
             .onFailure { System.err.println("Could not append history for band $bandId: $it") }
-        if (after != before) runCatching { messenger?.bandChanged(bandId, before.messagedUsers() + after.messagedUsers(), from) }
+        if (after != before) runCatching { messenger.bandChanged(bandId, before.messagedUsers() + after.messagedUsers(), from) }
         // Someone's account unlinked (by a leader, deleting them, or leaving, ITERATION_7 §3.1): as if they had left.
         val unlinked = before.members.mapNotNull { it.userId }.toSet() - after.members.mapNotNull { it.userId }.toSet()
         unlinked.forEach { userId ->

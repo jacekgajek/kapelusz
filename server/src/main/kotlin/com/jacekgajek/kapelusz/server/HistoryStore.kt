@@ -36,8 +36,8 @@ interface HistoryStore {
  */
 class DynamoHistoryStore(
     private val table: String,
-    private val timer: CallTimer = CallTimer("db"),
-    private val dynamo: DynamoDbClient = defaultClient(),
+    private val timer: CallTimer,
+    private val dynamo: DynamoDbClient,
 ) : HistoryStore {
 
     override fun newestFirst(bandId: String, from: String, to: String): Sequence<HistoryRecord> = sequence {
@@ -131,9 +131,9 @@ class DynamoHistoryStore(
 
         private fun text(value: String): AttributeValue = AttributeValue.builder().s(value).build()
 
-        fun defaultClient(): DynamoDbClient = DynamoDbClient.builder()
+        fun defaultClient(region: Region): DynamoDbClient = DynamoDbClient.builder()
             .httpClient(UrlConnectionHttpClient.create())
-            .region(Region.of(System.getenv("AWS_REGION") ?: "eu-central-1"))
+            .region(region)
             .build()
     }
 }

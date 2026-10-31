@@ -1,9 +1,14 @@
 package com.jacekgajek.kapelusz.local
 
 import com.jacekgajek.kapelusz.server.Api
+import com.jacekgajek.kapelusz.server.FileWebIndex
 import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
+import com.jacekgajek.kapelusz.server.InMemoryBlobStore
 import com.jacekgajek.kapelusz.server.InMemoryGeocodeCache
+import com.jacekgajek.kapelusz.server.InMemoryHistoryStore
+import com.jacekgajek.kapelusz.server.NoWebIndex
+import com.jacekgajek.kapelusz.server.ServerConfig
 import com.jacekgajek.kapelusz.server.malformedQuery
 import com.jacekgajek.kapelusz.server.parseQuery
 import com.jacekgajek.kapelusz.server.unhandled
@@ -18,22 +23,34 @@ import kotlin.io.path.readBytes
 
 /**
  * The Kapelusz API on this machine (LOCAL_DEVELOPMENT.md): the same [Api] as the Lambda, with the bucket and the history
- * table as files under [dataDir], development sign-in instead of Google's, and made-up places. No sync messages
- * (Firebase needs Google): the apps sync every 30 seconds instead. Listens on the loopback only; the emulator reaches
- * it as `10.0.2.2`.
+ * table as files under [dataDir] (or in memory, gone with the process, with [inMemory]), development sign-in instead of
+ * Google's, and made-up places. No sync messages (Firebase needs Google): the apps sync every 30 seconds instead.
+ * Event link cards need the web app's `index.html` ([webApp]); without it they are 404. Listens on the loopback only;
+ * the emulator reaches it as `10.0.2.2`.
  */
-class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getLoopbackAddress()) {
+class LocalServer(
+    dataDir: Path,
+    port: Int,
+    host: InetAddress = InetAddress.getLoopbackAddress(),
+    inMemory: Boolean = false,
+    webApp: Path? = null,
+    webUrl: String = ServerConfig.WEB_URL,
+) {
     /** The address the current request came to, for presigned URLs that lead back to this server. */
     private val requestBase = ThreadLocal.withInitial { "http://localhost:$port" }
-    private val store = FileBlobStore(dataDir.resolve("bucket")) { requestBase.get() }
+    private val fileStore = if (inMemory) null else FileBlobStore(dataDir.resolve("bucket")) { requestBase.get() }
     private val api = Api(
-        store,
-        FileHistoryStore(dataDir.resolve("history")),
+        fileStore ?: InMemoryBlobStore(),
+        if (inMemory) InMemoryHistoryStore() else FileHistoryStore(dataDir.resolve("history")),
         DevTokenVerifier(),
         placeSearch = OfflinePlaceSearch(),
         geocodeCache = InMemoryGeocodeCache(),
+        webIndex = webApp?.let(::FileWebIndex) ?: NoWebIndex,
+        config = ServerConfig(webUrl = webUrl),
     )
-    private val files = FileRoutes(store)
+
+    /** The uploads and downloads of the file store; in memory, presigned links lead nowhere (no attachments). */
+    private val files = fileStore?.let(::FileRoutes)
     private val server = HttpServer.create(InetSocketAddress(host, port), 0).apply {
         createContext("/") { exchange -> exchange.use(::serve) }
         executor = Executors.newFixedThreadPool(8)
@@ -65,7 +82,8 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
                 // CORS preflight from the web app: answered here, as API Gateway does in front of the Lambda.
                 method == "OPTIONS" -> Reply(204)
 
-                path.startsWith(FileRoutes.PREFIX) -> files.handle(method, path.removePrefix(FileRoutes.PREFIX), query, exchange.requestBody.readBytes())
+                files != null && path.startsWith(FileRoutes.PREFIX) ->
+                    files.handle(method, path.removePrefix(FileRoutes.PREFIX), query, exchange.requestBody.readBytes())
 
                 else -> Reply.of(api.handle(request(exchange, query)))
             }
@@ -154,12 +172,17 @@ class FileRoutes(private val store: FileBlobStore) {
 
 private fun mapOfNotNull(vararg pairs: Pair<String, String>?) = pairs.filterNotNull().toMap()
 
-fun main() {
+/** `--memory`: nothing written, the data goes with the process. The environment (LOCAL_DEVELOPMENT.md) sets the rest. */
+fun main(args: Array<String>) {
+    val inMemory = "--memory" in args
     val dataDir = Path.of(System.getenv("KAPELUSZ_LOCAL_DATA") ?: ".local-data").toAbsolutePath().normalize()
     val port = System.getenv("KAPELUSZ_LOCAL_PORT")?.toIntOrNull() ?: DEFAULT_PORT
-    Files.createDirectories(dataDir)
-    LocalServer(dataDir, port).start()
-    println("Kapelusz local API on http://localhost:$port (emulator: http://10.0.2.2:$port), data in $dataDir")
+    val webApp = System.getenv("KAPELUSZ_LOCAL_WEB")?.takeIf { it.isNotBlank() }?.let { Path.of(it).toAbsolutePath().normalize() }
+    val webUrl = System.getenv("WEB_URL") ?: ServerConfig.WEB_URL
+    if (!inMemory) Files.createDirectories(dataDir)
+    LocalServer(dataDir, port, inMemory = inMemory, webApp = webApp, webUrl = webUrl).start()
+    val data = if (inMemory) "in memory" else "in $dataDir"
+    println("Kapelusz local API on http://localhost:$port (emulator: http://10.0.2.2:$port), data $data")
 }
 
 const val DEFAULT_PORT = 8787

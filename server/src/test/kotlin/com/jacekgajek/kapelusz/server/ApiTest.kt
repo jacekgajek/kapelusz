@@ -205,7 +205,8 @@ class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@exa
 
     @Test
     fun aPushThatWouldMakeTheBandTooLargeToLoadIsRefused() {
-        val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
+        val verifier = TokenVerifier { token -> VerifiedUser(token, null, null) }
+        val small = Api(store, InMemoryHistoryStore(), verifier, clock = { 1_790_000_000_000 }, config = SMALL_CAP)
         createBand()
         fun add(i: Int) = small.handle(
             HttpRequest(
@@ -228,7 +229,8 @@ class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@exa
     /** V5-M1 A2: the cap counts bytes; text in other scripts takes up to 3 bytes a character. */
     @Test
     fun theSizeCapCountsBytes() {
-        val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
+        val verifier = TokenVerifier { token -> VerifiedUser(token, null, null) }
+        val small = Api(store, InMemoryHistoryStore(), verifier, clock = { 1_790_000_000_000 }, config = SMALL_CAP)
         createBand()
         fun add(i: Int) = small.handle(
             HttpRequest(
@@ -328,3 +330,6 @@ class ApiTest : ApiHarness(verifier = { token -> VerifiedUser(token, "$token@exa
         assertEquals(204, call("OPTIONS", "/bands/band1/ops", user = null).status)
     }
 }
+
+/** A cap three thousand bytes small, so a few costs reach it. */
+private val SMALL_CAP = ServerConfig(maxBandBytes = 3_000)

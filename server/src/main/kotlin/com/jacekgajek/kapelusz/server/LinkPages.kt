@@ -1,7 +1,10 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
+import java.nio.file.Path
 import java.util.Locale
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.readText
 import kotlinx.datetime.number
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
@@ -13,8 +16,20 @@ fun interface WebIndex {
     fun html(): String?
 }
 
+/** No page at hand: event links are 404 here, and CloudFront answers with the plain page. */
+object NoWebIndex : WebIndex {
+    override fun html(): String? = null
+}
+
+/** `index.html` as a file (the web app's build, for the local server), read on every use so a rebuild shows at once. */
+class FileWebIndex(private val path: Path) : WebIndex {
+    override fun html(): String? = runCatching { if (path.isRegularFile()) path.readText() else null }
+        .onFailure { System.err.println("Could not read the web app's index.html at $path: $it") }
+        .getOrNull()
+}
+
 /** `index.html` from the web app's bucket, kept for a few seconds: a deploy changes it. */
-class S3WebIndex(private val bucket: String, private val s3: S3Client = S3BlobStore.defaultClient(), private val clock: () -> Long = System::currentTimeMillis) : WebIndex {
+class S3WebIndex(private val bucket: String, private val s3: S3Client, private val clock: () -> Long = System::currentTimeMillis) : WebIndex {
     @Volatile private var cached: Pair<Long, String>? = null
 
     override fun html(): String? {
@@ -43,7 +58,7 @@ class S3WebIndex(private val bucket: String, private val s3: S3Client = S3BlobSt
  * Nothing else about the band is given away: anyone with a link sees the card. Join links keep the generic card: one
  * naming the band would tell anyone, unsigned and without the app's limit on guesses, whether a code is valid.
  */
-internal class LinkPages(private val index: WebIndex?, private val bands: BandAccess, private val pointers: EventPointers) {
+internal class LinkPages(private val index: WebIndex, private val bands: BandAccess, private val pointers: EventPointers) {
     fun event(eventId: String): HttpResponse {
         val card = runCatching {
             val bandId = pointers.bandOf(eventId)
@@ -57,7 +72,7 @@ internal class LinkPages(private val index: WebIndex?, private val bands: BandAc
     private class Card(val title: String, val description: String?)
 
     private fun page(card: Card?): HttpResponse {
-        val html = index?.html() ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No page")
+        val html = index.html() ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No page")
         // Briefly without a card: the event may be on its way (a push not sent yet), or the card's text may change.
         val cache = if (card == null) "public, max-age=60" else "public, max-age=300"
         return HttpResponse(200, if (card == null) html else withCard(html, card.title, card.description), mapOf("content-type" to "text/html; charset=utf-8", "cache-control" to cache))

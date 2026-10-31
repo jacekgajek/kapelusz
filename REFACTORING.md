@@ -346,7 +346,7 @@ interleave where no arrow connects them. Steps are numbered for reference in the
 | 5.3 | Repositories split from handlers (`UserRecords`, `InviteCodes`, `HistoryLog`, `EventPointers`, `AttachmentFiles`) | 5.2 | M | low |
 | 5.4 | `BandChanged.after(...)`; pin the side-effect order with a test first ("message before forgetting devices") | 5.3 | M | medium |
 | 5.5 | `Call` + `Route` table + `Router`; `RoutesTest` pinned before the rewrite. **Done**: route table d0d9e11; `Call(request, user, params, installation)` and `fun handler(call: Call)` for every signed-in route, `Route`/`Router` as data (no `now` on `Call`: handlers keep their `clock`, read where they need it) | 5.3 | M | medium (trailing slash, HEAD) |
-| 5.6 | `ServerConfig`; in-memory stores to `main`; `NoopMessageSender`, `FileWebIndex`, `--memory`; packages per resource; split the four-concern files | 5.5 | M | none |
+| 5.6 | `ServerConfig`; in-memory stores to `main`; `NoopMessageSender`, `FileWebIndex`, `--memory` (**done**: `Config.kt`, env read only in `Handler` and `LocalServer.main`, `NoWebIndex`/`NoopMessageSender` so nothing is null in a wiring, AWS region passed in); packages per resource; split the four-concern files (5.6b, pending) | 5.5 | M | none |
 
 ### Phase 6: documentation
 
