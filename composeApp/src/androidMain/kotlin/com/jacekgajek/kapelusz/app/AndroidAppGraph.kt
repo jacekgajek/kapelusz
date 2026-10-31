@@ -5,7 +5,6 @@ import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.FileStore
 import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
-import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
 import com.jacekgajek.kapelusz.app.sync.FirebaseMessageChannel
 import java.io.File
 
@@ -18,9 +17,6 @@ object AndroidAppGraph {
     fun get(context: Context): AppGraph {
         val app = context.applicationContext
         AndroidPlatform.context = app
-        return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth, messages = FirebaseMessageChannel(app)).also { graph ->
-            BackgroundSyncWorker.removeOldNotifications(app)
-            instance = graph
-        }
+        return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth, messages = FirebaseMessageChannel(app)).also { instance = it }
     }
 }
