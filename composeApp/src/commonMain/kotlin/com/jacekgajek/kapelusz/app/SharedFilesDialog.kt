@@ -107,12 +107,12 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 internal fun SharedFilesDialog(graph: AppGraph, state: BandState.Ready) {
-    val shared = graph.sharedFiles.collectAsState().value ?: return
+    val shared = graph.incoming.sharedFiles.collectAsState().value ?: return
     // Another share while open: starts again from the events.
     var chosen by remember(shared) { mutableStateOf<ShareEvent?>(null) }
     var busy by remember(shared) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val dismiss = { if (graph.sharedFiles.value === shared) graph.sharedFiles.value = null }
+    val dismiss = { if (graph.incoming.sharedFiles.value === shared) graph.incoming.sharedFiles.value = null }
     // Not while attaching: closing would cancel it halfway (some files attached, the event not opened).
     // A sheet of its own per share: one shared while the last was closing would otherwise stay hidden.
     val sheet = key(shared) { rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || !busy }) }
@@ -357,7 +357,7 @@ private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTa
     val eventId = chosen.event.id
     if (graph.bands.currentBandId != bandId) {
         // Like an event link: showing the other band must not reset the screens opened below.
-        graph.navigatedForBand = bandId
+        graph.incoming.navigatedForBand = bandId
         graph.bands.open(bandId)
     }
     val owner = when (target) {
@@ -367,10 +367,10 @@ private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTa
         is ShareTarget.ExistingCollected -> AttachmentOwner.OfHolding(eventId, target.holding.id)
     }
     if (owner == null) {
-        graph.sharedHandover.value = SharedHandover(eventId, toCost = target is ShareTarget.NewCost, shared.files)
+        graph.incoming.sharedHandover.value = SharedHandover(eventId, toCost = target is ShareTarget.NewCost, shared.files)
     } else {
         val attached = shared.files.mapNotNull { file -> newId().takeIf { id -> graph.attachments.attach(owner, file, id) == null } }
-        graph.sharedAttached.value = SharedAttached(bandId, eventId, owner, attached, failed = shared.files.size - attached.size)
+        graph.incoming.sharedAttached.value = SharedAttached(bandId, eventId, owner, attached, failed = shared.files.size - attached.size)
     }
     val section = when (target) {
         is ShareTarget.NewCost -> null
@@ -378,6 +378,6 @@ private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTa
         is ShareTarget.EventFiles -> "FILES"
         is ShareTarget.ExistingCost -> "REFUNDS"
     }
-    graph.pendingEventSection.value = section?.let { eventId to it }
-    graph.pendingOpenEvent.value = bandId to eventId
+    graph.incoming.pendingEventSection.value = section?.let { eventId to it }
+    graph.incoming.pendingOpenEvent.value = bandId to eventId
 }

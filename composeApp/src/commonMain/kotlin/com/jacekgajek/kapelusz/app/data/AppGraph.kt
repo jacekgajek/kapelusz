@@ -1,19 +1,11 @@
 package com.jacekgajek.kapelusz.app.data
 
 import kotlinx.coroutines.CoroutineExceptionHandler
-import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
-import com.jacekgajek.kapelusz.app.auth.Session
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.platform.PickResult
-import com.jacekgajek.kapelusz.app.platform.PreparedFile
-import com.jacekgajek.kapelusz.model.AttachmentOwner
-import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.ops.Rejection
 import io.ktor.client.HttpClient
 import io.ktor.http.isSuccess
 import io.ktor.client.statement.bodyAsBytes
@@ -21,25 +13,23 @@ import io.ktor.client.request.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.withTimeout
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
-/** Process-wide objects, created once per app start (no DI framework). */
+/**
+ * Process-wide objects, created once per app start (no DI framework), and loading them. The work is theirs: [account]
+ * signs in and out, [membership] joins and leaves bands, [changes] applies the user's edits, [incoming] holds links and
+ * shared files for the UI.
+ */
 class AppGraph(
     store: KeyValueStore,
     google: GoogleAuth,
     http: HttpClient = HttpClient(),
     /** Firebase sync messages (ITERATION_7 §2.3); null on the web. */
-    private val messages: MessageChannel? = null,
+    messageChannel: MessageChannel? = null,
 ) {
     // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") })
@@ -49,24 +39,27 @@ class AppGraph(
     val bands = BandRepository(store, scope)
     /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
     val updateRequired = MutableStateFlow(false)
-
-    /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
-    val signedOutEverywhere = MutableStateFlow(false)
     val api: ApiClient = ApiClient(
         http,
         AppConfig.API_URL,
         token = { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) },
         appVersion = AppConfig.VERSION_CODE,
-        installation = messages?.installationId,
+        installation = messageChannel?.installationId,
         onUpdateRequired = { updateRequired.value = true },
         // In the app scope: signing out stops the sync loop, which may be the very caller.
-        onSessionsRevoked = { scope.launch { signOutRevoked() } },
+        onSessionsRevoked = { scope.launch { account.signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
     /** Where event locations are, for the map (ITERATION_7 §8). */
     val places = PlacesLocator(store, api)
-    val sync = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { registerForMessages() })
-    val attachments = Attachments(bands, uploads, api, sync, scope, ::dispatch, download = { url ->
+    // A band created here may be the user's first: the server keeps the device only while they are in one.
+    val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { messages.register() })
+    val messages: DeviceMessages = DeviceMessages(messageChannel, sessions, api, sync, scope)
+    val changes = Changes(bands, sync)
+    val incoming = Incoming()
+    val account: Account = Account(scope, sessions, api, bands, uploads, sync, messages, incoming)
+    val membership = Membership(scope, api, bands, sync, messages)
+    val attachments = Attachments(bands, uploads, api, sync, scope, changes::dispatch, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.
         val response = http.get(url)
         check(response.status.isSuccess()) { "Download failed: ${response.status}" }
@@ -74,26 +67,8 @@ class AppGraph(
     })
 
     private var loaded = false
-
-    private val _signIns = MutableStateFlow(0)
-
-    /** An invite code from a join link (web `/join/CODE`, Android App Link), waiting to be shown to the user. */
-    val pendingJoinCode = MutableStateFlow<String?>(null)
-
-    /** Accepts an invite and opens the band. Network errors and refusals surface as exceptions. */
-    suspend fun joinBand(code: String) {
-        val joined = api.acceptInvite(code)
-        bands.adoptFromServer(joined.band, joined.version)
-        sync.requestSync()
-        // Possibly a first band: the server keeps the device only while the user is in one.
-        registerForMessages()
-    }
-
-    /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
-    val signIns: StateFlow<Int> = _signIns.asStateFlow()
-
-    /** The sign-ins the UI has reacted to already (it is composed again on rotation and language changes). */
-    var handledSignIns = 0
+    private val loadLock = Mutex()
+    private var backgroundUser: String? = null
 
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
     suspend fun load() = loadLock.withLock {
@@ -109,42 +84,8 @@ class AppGraph(
         }
         if (sessions.session.value != null) sync.start()
         loaded = true
-        registerForMessages()
+        messages.register()
     }
-
-    private val loadLock = Mutex()
-    private var backgroundUser: String? = null
-
-    /**
-     * The band whose screens the navigation was last set up for by whoever switched to it (an event link opening one of
-     * its events): the "another band is shown" reset then leaves that navigation alone (V5-M1 C2b).
-     */
-    var navigatedForBand: String? = null
-
-    /** Photos or PDFs shared to Kapelusz (Android, ITERATION_6 §1), waiting for "Attach to…". */
-    val sharedFiles = MutableStateFlow<SharedFiles?>(null)
-
-    /** Shared files on their way to a new cost or collected entry, which takes them as its files to attach. */
-    val sharedHandover = MutableStateFlow<SharedHandover?>(null)
-
-    /** Shared files just attached to something saved: the event's snackbar offers to take them off again. */
-    val sharedAttached = MutableStateFlow<SharedAttached?>(null)
-
-    /** The shared files handed to a new cost ([toCost]) or collected entry of [eventId], once; empty if none. */
-    fun takeSharedFiles(eventId: String, toCost: Boolean): List<PreparedFile> {
-        val handover = sharedHandover.value?.takeIf { it.eventId == eventId && it.toCost == toCost } ?: return emptyList()
-        sharedHandover.value = null
-        return handover.files
-    }
-
-    /** An event to show at one of its sections once open (event id, section), e.g. where shared files were attached. */
-    val pendingEventSection = MutableStateFlow<Pair<String, String>?>(null)
-
-    /** An event link's event id (ITERATION_5 §10), opened once the user is signed in and their bands are known. */
-    val pendingEventLink = MutableStateFlow<String?>(null)
-
-    /** A gig to open, e.g. from an event link: band id and event id. */
-    val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
 
     /**
      * Loads what a background job needs (settings, session, bands, waiting uploads) without starting the foreground
@@ -169,187 +110,6 @@ class AppGraph(
         return settings.settings.value
     }
 
-    /**
-     * Runs in the app scope, not the caller's: the sign-in screen leaves the composition as soon as the session
-     * appears, which would cancel the loading half-way and leave a blank screen. The bands are loaded before the
-     * session is published, so the UI switches straight to the loaded band.
-     */
-    suspend fun onSignedIn(idToken: String) = scope.async {
-        val userId = Session.fromIdToken(idToken).userId
-        bands.load(userId)
-        uploads.load(userId)
-        sessions.signedIn(idToken)
-        signedOutEverywhere.value = false
-        _signIns.value++
-        sync.start()
-        sync.resumeAfterSignIn()
-        registerForMessages()
-    }.await()
-
-    /**
-     * Registers this device for sync messages (ITERATION_7 §2.4), while signed in: after loading, signing in, joining
-     * a band, a new Firebase token, and each time the Android app comes to the screen (a first band may have been made
-     * since). The server's answer sets how often the app looks for news itself; any failure leaves it every 30 s.
-     */
-    fun registerForMessages() {
-        val channel = messages ?: return
-        if (sessions.session.value == null) return
-        // The latest one counts: an older one finishing later must not overwrite its answer.
-        registration?.cancel()
-        registration = scope.launch {
-            val messaged = runSuspendCatching { channel.token()?.let { api.registerDevice(channel.installationId, it) } ?: false }.getOrDefault(false)
-            if (isActive) sync.messaged = messaged
-        }
-    }
-
-    private var registration: Job? = null
-
-    /**
-     * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and
-     * its scope with it, which must not stop the rest of signing out.
-     */
-    fun signOutInBackground() {
-        scope.launch { signOut() }
-    }
-
-    /**
-     * [tellServer]: remove this device from the server's list. Not after "sign out on all devices" (the server cleared
-     * the list, and would refuse the request, signing out again), nor with a session that would need renewing (that
-     * could show Google's sign-in): the deleted token is enough, as the server forgets it at the next message.
-     */
-    suspend fun signOut(tellServer: Boolean = true) {
-        sync.stop()
-        registration?.cancel()
-        sync.messaged = false
-        messages?.let { channel ->
-            val usable = sessions.session.value?.let { it.apiToken != null && it.apiExpiresAt > nowMillis() + 60_000 } == true
-            if (tellServer && usable) runSuspendCatching { withTimeout(5_000) { api.removeDevice(channel.installationId) } }
-            // Before the session goes: a quick sign-in again must not have its new token deleted by this one.
-            runSuspendCatching { withTimeout(5_000) { channel.deleteToken() } }
-        }
-        sessions.signOut()
-        pendingOpenEvent.value = null
-    }
-
-    /**
-     * "Sign out on all devices" (ITERATION_3 R6): the server ends every session of the user, this device's included,
-     * then this device signs out as [signOut] does. Throws (and stays signed in) when the server could not be told.
-     */
-    suspend fun signOutEverywhere() {
-        api.revokeSessions()
-        signOut(tellServer = false)
-    }
-
-    /**
-     * The server refuses this device's tokens after "sign out on all devices" (here or elsewhere): signs out as
-     * [signOut] does, which also keeps Google from signing in again silently. Several requests may be refused at once.
-     */
-    private suspend fun signOutRevoked() {
-        if (sessions.session.value == null) return
-        signedOutEverywhere.value = true
-        signOut(tellServer = false)
-    }
-
-    /**
-     * Asks to delete the open band for everyone (owner only, ITERATION_7 §9): the server deletes it in a week, unless
-     * a leader keeps it; the next sync brings the notice. A band never uploaded, which nobody else has, goes at once.
-     * Network errors and refusals surface as exceptions.
-     */
-    suspend fun deleteBand() {
-        val bandId = bands.currentBandId ?: return
-        if (bands.local(bandId)?.needsCreate == true) {
-            bands.forgetDeleted(bandId)
-            return
-        }
-        api.deleteBand(bandId)
-        sync.requestSync()
-    }
-
-    /**
-     * Leaves the open band (not as its owner), see [SyncEngine.leave]. Network errors and refusals surface as
-     * exceptions; on success the band is gone from this device. In the app scope: the band's screens go away as soon
-     * as it is forgotten, which must not cancel it half-way.
-     */
-    suspend fun leaveBand() {
-        val bandId = bands.currentBandId ?: return
-        scope.async { sync.leave(bandId) }.await()
-        // Maybe the last band: the server then forgot this device, and the answer says no messages come.
-        registerForMessages()
-    }
-
-    /**
-     * Discards the unsent changes of a band the server refuses them for (ITERATION_3 R9); in the app scope, since the
-     * banner asking for it leaves as soon as the band is no longer stuck.
-     */
-    fun discardStuck(bandId: String) {
-        scope.launch { sync.discardStuck(bandId) }
-    }
-
     /** Changes or attachment files still waiting to be sent to the server. */
     fun hasUnsentWork(): Boolean = bands.bandsToPush().isNotEmpty() || uploads.pending.value.isNotEmpty()
-
-    private var pictureSent = false
-
-    /**
-     * Once per app run, while the user's member has no photo: the Google token kept from signing in carries it, so
-     * members signed in before photos existed get theirs without signing in again (ITERATION_2 §7.4).
-     */
-    fun sendPictureIfMissing(me: Member?) {
-        if (pictureSent || me == null || me.pictureUrl != null) return
-        val googleToken = sessions.session.value?.idToken ?: return
-        pictureSent = true
-        scope.launch { runSuspendCatching { api.sendPicture(googleToken) }.onSuccess { sync.requestSync() } }
-    }
-
-    /** Applies an operation locally and schedules a sync. */
-    fun dispatch(op: Operation): Rejection? {
-        val rejection = bands.dispatch(op)
-        if (rejection == null) {
-            sync.requestSync()
-        }
-        return rejection
-    }
-
-    /**
-     * Applies an operation locally but holds it back from syncing for [holdFor] ms, while its Undo snackbar shows
-     * (ITERATION_5 §2); [onHeld] gets it. Returns the rejection, if any.
-     */
-    fun dispatchHeld(op: Operation, holdFor: Long, onHeld: (HeldOp) -> Unit): Rejection? {
-        val bandId = bands.currentBandId ?: error("No band open")
-        bands.dispatch(op, holdFor)?.let { return it }
-        onHeld(HeldOp(bandId, bands.lastOpId!!))
-        return null
-    }
-
-    /** Lets a held operation sync now (its snackbar is gone). */
-    fun release(held: HeldOp) {
-        bands.release(held.bandId, held.opId)
-        sync.requestSync()
-    }
-
-    /** Takes a held operation back; false when it may already be on its way (then only the history can undo it). */
-    fun withdraw(held: HeldOp): Boolean {
-        if (!bands.withdraw(held.bandId, held.opId)) return false
-        // What was queued behind it waited for it, and goes now.
-        sync.requestSync()
-        return true
-    }
 }
-
-/** An operation held back from syncing while its Undo snackbar shows. */
-data class HeldOp(val bandId: Id, val opId: Id)
-
-/**
- * Files shared to Kapelusz: those ready to attach, what could not be used ([PickResult] other than Picked), and how many
- * more were shared than any target takes ([tooMany], not read).
- */
-class SharedFiles(val files: List<PreparedFile>, val skipped: List<PickResult>, val tooMany: Int = 0)
-
-/** Shared [files] for a new cost ([toCost]) or a new collected entry of [eventId]. */
-class SharedHandover(val eventId: String, val toCost: Boolean, val files: List<PreparedFile>)
-
-/**
- * Attachments [attachmentIds] just added to [owner] from shared files, in event [eventId] of band [bandId]; [failed] of
- * the files could not be attached.
- */
-data class SharedAttached(val bandId: String, val eventId: String, val owner: AttachmentOwner, val attachmentIds: List<String>, val failed: Int)

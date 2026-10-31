@@ -78,8 +78,8 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
                     if (updateRequired) {
                         UpdateRequiredScreen()
                     } else if (session == null) {
-                        val signedOutEverywhere by graph.signedOutEverywhere.collectAsState()
-                        SignInScreen(onIdToken = graph::onSignedIn, signedOutEverywhere = signedOutEverywhere)
+                        val signedOutEverywhere by graph.account.signedOutEverywhere.collectAsState()
+                        SignInScreen(onIdToken = graph.account::onSignedIn, signedOutEverywhere = signedOutEverywhere)
                     } else {
                         BandContent(graph, bandState, navController)
                     }
@@ -116,8 +116,8 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             bandState is BandState.NoBand -> shownBandId = shownBandId?.let { NO_BAND }
             readyBandId != null && readyBandId != shownBandId -> {
                 // Unless the switch already set up its screens (an event link opening one of its events).
-                if (shownBandId != null && graph.navigatedForBand != readyBandId) navController.resetTo(EventsRoute)
-                graph.navigatedForBand = null
+                if (shownBandId != null && graph.incoming.navigatedForBand != readyBandId) navController.resetTo(EventsRoute)
+                graph.incoming.navigatedForBand = null
                 shownBandId = readyBandId
             }
         }
@@ -142,7 +142,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     }
     if (signingInAgain) SignInAgainDialog(session?.email, reauthenticate, onDismiss = { signingInAgain = false })
     // Joining: from a join link (pending code) or the "Join a band" buttons.
-    val pendingJoinCode by graph.pendingJoinCode.collectAsState()
+    val pendingJoinCode by graph.incoming.pendingJoinCode.collectAsState()
     var joining by remember { mutableStateOf(false) }
     if (joining || pendingJoinCode != null) {
         JoinDialog(
@@ -150,10 +150,10 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             initialCode = pendingJoinCode,
             onJoined = {
                 joining = false
-                graph.pendingJoinCode.value = null
+                graph.incoming.pendingJoinCode.value = null
                 if (bandState is BandState.Ready) navController.resetTo(EventsRoute)
             },
-            onDismiss = { joining = false; graph.pendingJoinCode.value = null },
+            onDismiss = { joining = false; graph.incoming.pendingJoinCode.value = null },
         )
     }
     LostAccessDialog(graph)
@@ -168,7 +168,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             defaultYourName = defaultName,
             onOpen = { openBand(it, false) },
             onCreate = { name, currency, yourName -> graph.bands.createBand(name, currency, yourName); graph.sync.requestSync() },
-            onSignOut = { graph.signOutInBackground() },
+            onSignOut = { graph.account.signOutInBackground() },
             onJoin = { joining = true },
         )
         is BandState.Ready -> CompositionLocalProvider(
@@ -202,7 +202,7 @@ private const val NO_BAND = "-"
  */
 @Composable
 private fun EventLinkOpening(graph: AppGraph) {
-    val eventLink by graph.pendingEventLink.collectAsState()
+    val eventLink by graph.incoming.pendingEventLink.collectAsState()
     var failed by remember { mutableStateOf<LinkedEvent?>(null) }
     LaunchedEffect(eventLink) {
         val eventId = eventLink ?: return@LaunchedEffect
@@ -211,15 +211,15 @@ private fun EventLinkOpening(graph: AppGraph) {
                 // Without an open band there are no screens yet to open it from: the band first, marked as opened for
                 // the event, so that showing it doesn't reset the screens to its event list.
                 if (graph.bands.state.value !is BandState.Ready) {
-                    graph.navigatedForBand = found.bandId
+                    graph.incoming.navigatedForBand = found.bandId
                     graph.bands.open(found.bandId)
                 }
-                graph.pendingOpenEvent.value = found.bandId to eventId
+                graph.incoming.pendingOpenEvent.value = found.bandId to eventId
             }
             else -> failed = found
         }
         // Last: clearing it ends this effect.
-        graph.pendingEventLink.value = null
+        graph.incoming.pendingEventLink.value = null
     }
     if (eventLink != null) {
         AlertDialog(
@@ -230,7 +230,7 @@ private fun EventLinkOpening(graph: AppGraph) {
                     Text(stringResource(Res.string.event_link_opening))
                 }
             },
-            confirmButton = { TextButton(onClick = { graph.pendingEventLink.value = null }) { Text(stringResource(Res.string.cancel)) } },
+            confirmButton = { TextButton(onClick = { graph.incoming.pendingEventLink.value = null }) { Text(stringResource(Res.string.cancel)) } },
         )
     }
     failed?.let { reason ->
