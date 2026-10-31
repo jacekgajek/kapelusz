@@ -480,11 +480,11 @@ class SyncEngineTest {
         fun envelope(n: Int, op: Operation) = OpEnvelope("op$n", "c", n.toLong(), 0, op)
         val undo = Undo("x", RenameBand("x"), BandChange(BandPart(), BandPart()))
         val pending = (0 until 30).map { envelope(it, if (it % 10 == 0) RenameBand("b$it") else undo) }
-        val batch = SyncEngine.batchOf(pending)
+        val batch = SyncRound.batchOf(pending)
         assertEquals(Limits.MAX_UNDOS_PER_PUSH, batch.count { it.op is Undo })
         assertEquals(pending.take(batch.size), batch)
         val plain = (0 until 250).map { envelope(it, RenameBand("b$it")) }
-        assertEquals(plain.take(SyncEngine.BATCH_SIZE), SyncEngine.batchOf(plain))
+        assertEquals(plain.take(SyncRound.BATCH_SIZE), SyncRound.batchOf(plain))
     }
 
     @Test
