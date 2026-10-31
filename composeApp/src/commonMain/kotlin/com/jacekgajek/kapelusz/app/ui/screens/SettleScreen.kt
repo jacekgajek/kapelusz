@@ -54,15 +54,15 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.Payees
-import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.Payees
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.text.BlikPhone
 import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 

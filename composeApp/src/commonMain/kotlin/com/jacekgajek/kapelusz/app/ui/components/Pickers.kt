@@ -43,7 +43,7 @@ import com.jacekgajek.kapelusz.app.generated.range_pick_end
 import com.jacekgajek.kapelusz.app.generated.range_pick_start
 import com.jacekgajek.kapelusz.app.generated.search_people
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.domain.Names
+import com.jacekgajek.kapelusz.text.Names
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime

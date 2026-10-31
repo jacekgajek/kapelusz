@@ -16,6 +16,9 @@ import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
 import com.jacekgajek.kapelusz.app.data.PendingUpload
 import com.jacekgajek.kapelusz.app.platform.ByteCache
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
+import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.KapeluszJson
@@ -30,9 +33,6 @@ import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.Engine
-import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand

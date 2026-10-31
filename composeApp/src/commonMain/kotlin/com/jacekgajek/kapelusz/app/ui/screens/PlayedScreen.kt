@@ -66,8 +66,8 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.text.PlayedPlaces
 import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource

@@ -8,12 +8,12 @@ import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.DeviceRegistration
 import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PushRequest
-import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.engine.Limits
 import kotlinx.serialization.SerializationException
 
 /**
  * The HTTP API (ITERATION_1 §5.3): authentication and routing; the handlers do the work, one class per area
- * (ITERATION_3 R12). Every operation goes through the shared [com.jacekgajek.kapelusz.ops.Engine], i.e. the same
+ * (ITERATION_3 R12). Every operation goes through the shared [com.jacekgajek.kapelusz.engine.Engine], i.e. the same
  * permission checks and reducer the apps run, so clients cannot bypass the role rules.
  */
 class Api(

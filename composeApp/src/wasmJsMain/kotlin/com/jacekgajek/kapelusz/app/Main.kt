@@ -22,7 +22,7 @@ import com.jacekgajek.kapelusz.app.generated.fallback_symbols
 import com.jacekgajek.kapelusz.app.generated.fallback_text
 import com.jacekgajek.kapelusz.app.ui.screens.OtherTabScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
-import com.jacekgajek.kapelusz.domain.EventLinks
+import com.jacekgajek.kapelusz.text.EventLinks
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope

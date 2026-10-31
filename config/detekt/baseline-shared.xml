@@ -93,7 +93,7 @@
     <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(com.jacekgajek.kapelusz.ops.SetFundAmount("gig", Money(Long.MIN_VALUE))).reason)</ID>
     <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddCost("c", "alice", Money(100), DATE, description = "d".repeat(Limits.MAX_TEXT + 1))).reason)</ID>
     <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(UpdateEvent("gig", name = Change("x".repeat(Limits.MAX_NAME + 1)))).reason)</ID>
-    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.rules.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$val applied = com.jacekgajek.kapelusz.engine.Engine.apply(long, com.jacekgajek.kapelusz.rules.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)</ID>
     <ID>MaxLineLength:Lineup.kt:Lineup$val here = event.guests.firstOrNull { it.name.trim().equals(guest.name.trim(), ignoreCase = true) &amp;&amp; event.participant(it.id) != null }</ID>
     <ID>MaxLineLength:LineupReducer.kt:LineupReducer$conflictIf(event.holdings.any { it.partyId == op.partyId }, RejectionReason.PARTICIPANT_HAS_MONEY) { "Participant holds event money; remove it (and its transfers) first" }</ID>
     <ID>MaxLineLength:LineupReducer.kt:LineupReducer$conflictIf(event.refunds.any { band.cost(it.costId)?.memberId == op.partyId }, RejectionReason.PARTICIPANT_HAS_REFUNDS) { "Participant has refunds here; defer them first" }</ID>
@@ -217,7 +217,7 @@
     <ID>MaxLineLength:UndoTest.kt:UndoTest$assertEquals(RejectionReason.NOT_UNDOABLE, scenario.rejected(Undo("x", RenameBand("x"), BandChange(BandPart(), BandPart()))).reason, "nothing recorded")</ID>
     <ID>MaxLineLength:UndoTest.kt:UndoTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(undoTransfer, Actor.User("user-bob")).reason, "removing a transfer needs a lead")</ID>
     <ID>MaxLineLength:UndoTest.kt:UndoTest$listOf(OpEnvelope("o1", "phone", 1, 1, UpdateEvent("gig", name = Change("X"))), OpEnvelope("o2", "phone", 2, 2, RenameBand("Y")))</ID>
-    <ID>MaxLineLength:UndoTest.kt:UndoTest$val unlinked = (Engine.apply(undone, Actor.System, com.jacekgajek.kapelusz.ops.UnlinkUser("bob"), "x", 10) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band</ID>
+    <ID>MaxLineLength:UndoTest.kt:UndoTest$val unlinked = (Engine.apply(undone, Actor.System, com.jacekgajek.kapelusz.ops.UnlinkUser("bob"), "x", 10) as com.jacekgajek.kapelusz.engine.ApplyResult.Applied).band</ID>
     <ID>MaxLineLength:UndoTest.kt:UndoTest$val withPhoto = scenario.band.copy(members = scenario.band.members.map { if (it.id == "bob") it.copy(pictureUrl = "https://lh3.googleusercontent.com/b") else it })</ID>
     <ID>MaxLineLength:Validation.kt:internal</ID>
     <ID>MaxLineLength:Validation.kt:internal fun String.validName: String</ID>

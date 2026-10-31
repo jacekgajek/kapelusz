@@ -83,9 +83,6 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
 import com.jacekgajek.kapelusz.app.ui.screens.baseChange
 import com.jacekgajek.kapelusz.app.ui.screens.isRedo
-import com.jacekgajek.kapelusz.domain.BankAccount
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
@@ -147,6 +144,9 @@ import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.text.BankAccount
+import com.jacekgajek.kapelusz.text.BlikPhone
+import com.jacekgajek.kapelusz.text.sortedByName
 import com.jacekgajek.kapelusz.view.partyName
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone

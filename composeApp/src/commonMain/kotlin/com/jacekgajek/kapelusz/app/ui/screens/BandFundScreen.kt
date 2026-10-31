@@ -110,9 +110,6 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.domain.BandFund
-import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
@@ -127,6 +124,9 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.settlement.BandFund
+import com.jacekgajek.kapelusz.settlement.CostLedger
+import com.jacekgajek.kapelusz.text.sortedByName
 import kotlin.math.abs
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource

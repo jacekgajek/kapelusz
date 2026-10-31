@@ -59,12 +59,12 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
-import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.SetRefund
+import com.jacekgajek.kapelusz.settlement.CostLedger
 import org.jetbrains.compose.resources.stringResource
 
 /** Costs repaid out of this event: included ones, and outstanding costs of participants that could be. */

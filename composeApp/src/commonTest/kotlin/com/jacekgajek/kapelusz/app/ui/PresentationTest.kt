@@ -5,6 +5,8 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
 import com.jacekgajek.kapelusz.app.ui.model.toItem
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Band
@@ -14,9 +16,7 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived

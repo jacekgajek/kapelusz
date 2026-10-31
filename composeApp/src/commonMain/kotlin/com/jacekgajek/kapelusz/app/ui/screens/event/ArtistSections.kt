@@ -58,14 +58,14 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
-import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.Payees
-import com.jacekgajek.kapelusz.domain.SettleTogether
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.rules.Artists
+import com.jacekgajek.kapelusz.settlement.Payees
+import com.jacekgajek.kapelusz.settlement.SettleTogether
+import com.jacekgajek.kapelusz.settlement.SettlementCalculator
+import com.jacekgajek.kapelusz.settlement.SuggestedTransfer
 import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
 

@@ -5,6 +5,8 @@ import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.BandDeletion
@@ -13,8 +15,6 @@ import com.jacekgajek.kapelusz.model.RejectionCode
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
-import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser

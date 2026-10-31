@@ -37,7 +37,6 @@ import com.jacekgajek.kapelusz.app.generated.settle_together_with
 import com.jacekgajek.kapelusz.app.generated.settle_together_you_with
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Role
@@ -46,6 +45,7 @@ import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
+import com.jacekgajek.kapelusz.settlement.SettleTogether
 import com.jacekgajek.kapelusz.view.BandView
 import org.jetbrains.compose.resources.stringResource
 

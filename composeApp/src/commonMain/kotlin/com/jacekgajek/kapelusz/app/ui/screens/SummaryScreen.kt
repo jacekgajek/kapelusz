@@ -103,11 +103,11 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.text.PlayedPlaces
 import com.jacekgajek.kapelusz.view.FundSource
 import com.jacekgajek.kapelusz.view.PeriodSummary
 import com.jacekgajek.kapelusz.view.PersonTotals

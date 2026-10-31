@@ -1,11 +1,11 @@
 package com.jacekgajek.kapelusz.rules
 
-import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.view.BandView
+import com.jacekgajek.kapelusz.rules.Artists
+import com.jacekgajek.kapelusz.rules.Viewers
+import com.jacekgajek.kapelusz.settlement.SettledEvents
 
 /**
  * What stops a member from getting a role: the one rule the reducer enforces, the server checks before an invite,
@@ -13,7 +13,7 @@ import com.jacekgajek.kapelusz.view.BandView
  */
 object RoleChanges {
     /** Why [memberId] cannot become [role] now, or null when they can. */
-    fun refusal(view: BandView, memberId: Id, role: Role): RejectionReason? = when {
+    fun refusal(view: SettledEvents, memberId: Id, role: Role): RejectionReason? = when {
         // Someone holding band money cannot become an artist (ITERATION_4 §1.1).
         role == Role.ARTIST && Artists.holdsMoney(view, memberId) -> RejectionReason.HOLDS_MONEY
 

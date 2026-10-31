@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.PartyLine
-import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.PartyLine
+import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.view.partyName
 import kotlinx.datetime.LocalDate
 

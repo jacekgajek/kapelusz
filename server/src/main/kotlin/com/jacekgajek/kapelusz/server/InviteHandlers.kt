@@ -6,13 +6,13 @@ import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.InvitePreview
 import com.jacekgajek.kapelusz.api.InvitesResponse
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
-import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.rules.RoleChanges

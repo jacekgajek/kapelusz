@@ -1,15 +1,15 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.Names
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.text.Names
 import com.jacekgajek.kapelusz.view.BandView
 import com.jacekgajek.kapelusz.view.EventSearch
 import com.jacekgajek.kapelusz.view.eventSummaries

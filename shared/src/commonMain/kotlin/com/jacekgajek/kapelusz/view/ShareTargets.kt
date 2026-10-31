@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
@@ -13,6 +12,7 @@ import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.settlement.CostStatus
 import kotlinx.datetime.LocalDate
 
 /** Where files shared to Kapelusz can go (ITERATION_6 §1): one of these, in an event of one of the user's bands. */

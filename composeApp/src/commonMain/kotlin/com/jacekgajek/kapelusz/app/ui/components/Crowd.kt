@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.search_close
 import com.jacekgajek.kapelusz.app.generated.search_people
-import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.engine.Limits
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -26,7 +26,7 @@ object Crowd {
 }
 
 /**
- * Searching by name ([com.jacekgajek.kapelusz.domain.Names.matches]), with a button clearing it; people by default,
+ * Searching by name ([com.jacekgajek.kapelusz.text.Names.matches]), with a button clearing it; people by default,
  * else what [placeholder] says (in Polish a person's "imię" is not an event's "nazwa").
  */
 @Composable

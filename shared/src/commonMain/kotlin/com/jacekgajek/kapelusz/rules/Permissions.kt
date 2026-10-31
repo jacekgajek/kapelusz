@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.rules
 
-import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
@@ -66,6 +64,8 @@ import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.settlement.CostLedger
+import com.jacekgajek.kapelusz.settlement.SettleTogether
 
 /** Who performs an operation. */
 sealed interface Actor {

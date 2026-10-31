@@ -2,6 +2,8 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.PushResponse
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
@@ -9,8 +11,6 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.UnknownOperation
 import com.jacekgajek.kapelusz.rules.Actor

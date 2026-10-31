@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.Event
@@ -9,6 +7,8 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.sumOfMoney
+import com.jacekgajek.kapelusz.settlement.CostLedger
+import com.jacekgajek.kapelusz.settlement.EventStatus
 import kotlin.time.Instant
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate

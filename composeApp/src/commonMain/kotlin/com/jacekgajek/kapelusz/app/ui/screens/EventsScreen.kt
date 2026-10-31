@@ -111,9 +111,6 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
 import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
 import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.SettleTogether
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
@@ -121,6 +118,9 @@ import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.SettleTogether
+import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import com.jacekgajek.kapelusz.view.EventSearch
 import com.jacekgajek.kapelusz.view.EventSummary
 import com.jacekgajek.kapelusz.view.MyNumber

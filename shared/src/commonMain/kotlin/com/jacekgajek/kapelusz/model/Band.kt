@@ -105,7 +105,7 @@ data class Band(
     val lastSeq: Map<String, Long> = emptyMap(),
     /**
      * The latest refusals per client install, so a retried push (whose first answer was lost) reports them again
-     * instead of treating them as plain duplicates. Bounded by [com.jacekgajek.kapelusz.ops.Engine.REMEMBERED_REJECTIONS].
+     * instead of treating them as plain duplicates. Bounded by [com.jacekgajek.kapelusz.engine.Engine.REMEMBERED_REJECTIONS].
      */
     val recentRejections: Map<String, List<RecordedRejection>> = emptyMap(),
 ) {

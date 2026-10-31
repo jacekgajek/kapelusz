@@ -7,9 +7,9 @@ import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
-import com.jacekgajek.kapelusz.domain.Places
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.text.Places
+import com.jacekgajek.kapelusz.text.PlayedPlaces
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
