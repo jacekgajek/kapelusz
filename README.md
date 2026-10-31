@@ -50,8 +50,9 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
   `.github/workflows/ci.yml`).
 - Shared rules: `./gradlew :shared:allTests`. Server: `./gradlew :server:test`. Local server: `./gradlew :localServer:test`.
 - App: `./gradlew :composeApp:allTests`. The common tests run on the JVM and in headless Chrome (wasm), together
-  with the browser storage tests. Chrome is taken from `CHROME_BIN`, the `PATH` or a Playwright install; without one
-  the browser tests are skipped.
+  with the browser storage tests and the screen smoke tests (`composeApp/src/wasmJsTest/.../ui/SmokeTest.kt`, which
+  boot the app on a fake platform and server). Chrome is taken from `CHROME_BIN`, the `PATH` or a Playwright install;
+  without one the browser tests are skipped.
 - Android lint: `./gradlew :androidApp:lint`.
 
 ## Deploy

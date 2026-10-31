@@ -80,7 +80,7 @@ interface Platform {
 
     /** The platform's "Sign in with Google" button; [onIdToken] receives the Google ID token. */
     @Composable
-    fun SignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier = Modifier)
+    fun SignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier)
 
     /**
      * The locale Compose resources use, [language] from the in-app setting (null: the device's), as a value for

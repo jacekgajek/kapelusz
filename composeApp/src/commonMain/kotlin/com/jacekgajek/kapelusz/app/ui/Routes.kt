@@ -29,7 +29,10 @@ data object FundRoute
  */
 @Serializable
 @SerialName("event")
-data class EventRoute(val eventId: String, val section: EventSection? = null, val carryId: String? = null)
+data class EventRoute(val eventId: String, val section: String? = null, val carryId: String? = null) {
+    /** [section] by name: the web's navigation has no type for an enum argument (it works on the JVM by reflection). */
+    constructor(eventId: String, section: EventSection?, carryId: String? = null) : this(eventId, section?.name, carryId)
+}
 
 /** Add (`costId == null`, [forEventId]'s when given, with the shared files under [carryId]) or edit a cost. */
 @Serializable
