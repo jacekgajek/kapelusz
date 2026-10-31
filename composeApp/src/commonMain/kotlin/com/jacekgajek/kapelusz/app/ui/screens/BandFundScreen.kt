@@ -42,7 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.newId
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
@@ -103,7 +103,6 @@ import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
@@ -116,16 +115,10 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddFundEntry
-import com.jacekgajek.kapelusz.ops.Change
-import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.CostLedger
-import com.jacekgajek.kapelusz.text.sortedByName
-import kotlin.math.abs
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
@@ -137,6 +130,7 @@ fun BandFundScreen(
     /** A cost just added from here (the + beside the costs to refund), to refund (ITERATION_7 §5.1); [onAddedCostSeen] once its dialog is open. */
     addedCost: String? = null,
     onAddedCostSeen: () -> Unit = {},
+    entries: FundEntryViewModel = viewModel(),
 ) {
     val state = session.state
     val changes = session.changes
@@ -149,22 +143,23 @@ fun BandFundScreen(
     val actions = rememberActions(changes, messages, undos = null)
     val can = session.can
     val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
-    var editing by remember { mutableStateOf<FundEntry?>(null) }
-    var adding by remember { mutableStateOf(false) }
+    // Leads only: refunding a cost decides about it (ITERATION_7 §3.3); the treasurer records money paid in.
+    val refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(-1), costId = "probe"))
+    val settings by preferences.settings.collectAsState()
+    val lang = language
+    // What a refund is called when the cost has no description: its category, else "Cost" (as in the cost lists).
+    val categoryLabels = CostCategory.entries.associateWith { it.label() }
+    val unnamed = stringResource(Res.string.unnamed_cost)
+    val costName = { cost: Cost -> cost.description ?: cost.category?.let(categoryLabels::getValue) ?: unnamed }
+    val amountText = { money: Money -> formatMoneyInput(money, lang) }
+    val me = state.me?.id
     // Back from adding a cost with the +: its refund, in a new entry.
-    var refunding by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(addedCost) {
         if (addedCost != null) {
-            // Not when there is nothing left to refund, e.g. a lead's cost for an event, refunded there at once.
-            if (band.cost(addedCost)?.let { CostLedger.outstanding(band, it).isPositive } == true) {
-                refunding = addedCost
-                adding = true
-            }
+            entries.refundAddedCost(band, addedCost, me, refundsCosts, today(), amountText, costName)
             onAddedCostSeen()
         }
     }
-    val settings by preferences.settings.collectAsState()
-    val lang = language
 
     AppScaffold(
         messages,
@@ -172,10 +167,7 @@ fun BandFundScreen(
         floatingActionButton = {
             if (canEdit) {
                 ExtendedFloatingActionButton(
-                    onClick = {
-                        refunding = null
-                        adding = true
-                    },
+                    onClick = { entries.add(band, me, refundsCosts, today(), amountText, costName) },
                     icon = { Icon(Icons.Default.Add, null) },
                     text = { Text(stringResource(Res.string.fund_add_entry)) },
                 )
@@ -268,7 +260,8 @@ fun BandFundScreen(
                     is FundRow.OfEntry -> {
                         val entry = row.entry
                         val editable = canEdit && can.allowed(UpdateFundEntry(entry.id))
-                        Row(Modifier.fillMaxWidth().clickable(enabled = editable) { editing = entry }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val edit = { entries.edit(band, entry, me, today(), amountText, costName) }
+                        Row(Modifier.fillMaxWidth().clickable(enabled = editable, onClick = edit).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(entry.description)
                                 // Who paid it in, or whose cost it paid back: the description alone ("Cable") doesn't say.
@@ -282,7 +275,7 @@ fun BandFundScreen(
                                 Text(listOfNotNull(formatDate(entry.date, lang), who).joinToString(" · "), style = MaterialTheme.typography.bodySmall)
                             }
                             MoneyText(entry.amount, colored = true)
-                            if (editable) EditButton { editing = entry }
+                            if (editable) EditButton(onClick = edit)
                         }
                     }
                 }
@@ -290,27 +283,23 @@ fun BandFundScreen(
         }
     }
 
-    // Several people's contributions are added one by one: each its own entry, Undo and History line.
-    val save = { ops: List<Operation> -> ops.all { actions.run(it) } }
-    if (adding) {
+    entries.form?.let { form ->
         FundEntryDialog(
-            band, null, state.me?.id,
-            refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(-1), costId = "probe")),
-            refund = refunding,
+            form,
+            band,
             onAddCost = {
-                adding = false
-                refunding = null
+                entries.dismiss()
                 onAddCost()
+            }.takeIf { form.isNew },
+            onSave = { actions.show(entries.save { changes.dispatch(it) }) },
+            onDelete = if (form.isNew) {
+                null
+            } else {
+                { actions.show(entries.delete { changes.dispatch(it) }) }
             },
-            onSave = save, onDelete = null, actions = actions,
-            onDismiss = {
-                adding = false
-                refunding = null
-            },
+            onDismiss = entries::dismiss,
+            actions = actions,
         )
-    }
-    editing?.let { entry ->
-        FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null }, actions = actions)
     }
 }
 
@@ -333,159 +322,118 @@ private sealed interface FundRow {
     }
 }
 
-/**
- * Add or edit an entry (ITERATION_7 §5.1): money paid in by someone (a member, several at once, or from outside the band),
- * or the refund of a cost; money leaves the fund only for one. [refund]: a cost to refund, just added with the +.
- */
+/** The entry dialog over a [FundEntryForm]: fields, the people and cost pickers, Save, Delete for an existing entry. */
 @Composable
 private fun FundEntryDialog(
+    form: FundEntryForm,
     band: Band,
-    initial: FundEntry?,
-    me: String?,
-    /** Leads only: refunding a cost decides about it (ITERATION_7 §3.3); the treasurer records money paid in. */
-    refundsCosts: Boolean = true,
-    refund: String? = null,
-    onAddCost: (() -> Unit)? = null,
-    onSave: (List<Operation>) -> Boolean,
-    onDelete: (() -> Boolean)?,
+    onAddCost: (() -> Unit)?,
+    onSave: () -> Unit,
+    onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
     /** Whose refusals show in the dialog ([DialogNotice]). */
-    actions: Actions? = null,
+    actions: Actions,
 ) {
     val lang = language
-    // What a refund is called when the cost has no description: its category, else "Cost" (as in the cost lists).
-    val categoryLabels = CostCategory.entries.associateWith { it.label() }
-    val unnamed = stringResource(Res.string.unnamed_cost)
-    fun costName(cost: Cost) = cost.description ?: cost.category?.let(categoryLabels::getValue) ?: unnamed
-    var incoming by remember { mutableStateOf(initial?.amount?.isPositive ?: (refund == null)) }
-    val refundCost = refund?.let { band.cost(it) }
-    var amount by remember {
-        mutableStateOf(
-            initial?.let { formatMoneyInput(Money(abs(it.amount.minor)), lang) }
-                ?: refundCost?.let { formatMoneyInput(CostLedger.outstanding(band, it), lang) } ?: "",
-        )
-    }
-    var description by remember { mutableStateOf(initial?.description ?: refundCost?.let(::costName).orEmpty()) }
-    var date by remember { mutableStateOf(initial?.date ?: today()) }
-    // Refunding a cost is only offered for new entries; the link cannot be changed later.
-    val pendingCosts = band.costs.filter { CostLedger.outstanding(band, it).isPositive }
-    var costId by remember { mutableStateOf(initial?.costId ?: refund) }
-    // The description filled in from the picked cost: replaced when another cost is picked, unless the user typed over it.
-    var filled by remember { mutableStateOf(refundCost?.let(::costName)) }
-    // Who paid it in: members, or null for outside the band. The one adding it by default.
-    val people = band.members.filter { !it.archived && it.role != Role.VIEWER }.sortedByName { it.name }
-    var payers by remember {
-        mutableStateOf(if (initial != null) listOf(initial.paidBy) else listOf(me?.takeIf { id -> people.any { it.id == id } }))
-    }
-    var choosingPeople by remember { mutableStateOf(false) }
-    val parsed = parseMoney(amount)?.takeIf { it.isPositive }
-    val signed = parsed?.let { if (incoming) it else -it }
-    val ready = signed != null && description.isNotBlank() && (incoming || costId != null)
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.band_fund)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // A new entry's direction; the treasurer (not a lead) only records money paid in.
-                if (initial == null && refundsCosts) {
+                if (form.isNew && form.refundsCosts) {
                     val directions = listOf(
                         Choice(true, stringResource(Res.string.fund_in)),
                         Choice(false, stringResource(Res.string.fund_out)),
                     )
-                    SegmentedChoice(directions, incoming, { incoming = it })
+                    SegmentedChoice(directions, form.incoming, { form.incoming = it })
                 }
-                if (incoming) {
-                    val outside = stringResource(Res.string.fund_outside)
-                    fun name(id: String?) = if (id == null) outside else band.member(id)?.name.orEmpty()
-                    val options = (people.map { listOf<String?>(it.id) } + listOf(listOf<String?>(null)))
-                        .let { if (payers.size == 1 && payers !in it) listOf(payers) + it else it }
-                    val several = stringResource(Res.string.fund_people, payers.size)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Dropdown(payers, options, { payers = it }, stringResource(Res.string.fund_paid_by), Modifier.weight(1f)) { chosen ->
-                            if (chosen.size > 2) several else chosen.joinToString(", ") { name(it) }
-                        }
-                        // Several people paying the same, e.g. this month's fee: one entry each.
-                        if (initial == null) {
-                            IconButton(onClick = { choosingPeople = true }, Modifier.padding(top = FIELD_LABEL_INSET)) {
-                                Icon(Icons.Default.PeopleAlt, stringResource(Res.string.fund_several))
-                            }
-                        }
-                    }
-                } else if (initial == null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Dropdown(costId, pendingCosts.map { it.id }, { id ->
-                            costId = id
-                            val cost = band.cost(id!!) ?: return@Dropdown
-                            amount = formatMoneyInput(CostLedger.outstanding(band, cost), lang)
-                            if (description.isBlank() || description == filled) {
-                                description = costName(cost)
-                                filled = description
-                            }
-                        }, stringResource(Res.string.fund_refund_cost), Modifier.weight(1f)) { id ->
-                            id?.let { band.cost(it) }?.let { cost ->
-                                "${band.member(cost.memberId)?.name.orEmpty()}: ${costName(cost)} · " + formatMoney(CostLedger.outstanding(band, cost), band.currency, lang)
-                            } ?: stringResource(Res.string.fund_choose_cost)
-                        }
-                        if (onAddCost != null) IconButton(onClick = onAddCost, Modifier.padding(top = FIELD_LABEL_INSET)) { Icon(Icons.Default.Add, stringResource(Res.string.fund_add_cost)) }
-                    }
-                    if (pendingCosts.isEmpty()) Text(stringResource(Res.string.fund_no_costs), style = MaterialTheme.typography.bodySmall)
+                if (form.incoming) {
+                    PayersField(form, band)
+                } else if (form.isNew) {
+                    CostField(form, band, onAddCost)
                 }
-                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
-                if (incoming && payers.size > 1 && parsed != null) {
-                    Text(
-                        stringResource(Res.string.fund_each, payers.size, formatMoney(Money(parsed.minor * payers.size), band.currency, lang)),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                MoneyField(form.amount, { form.amount = it }, stringResource(Res.string.amount))
+                val parsed = form.parsed
+                if (form.incoming && form.payers.size > 1 && parsed != null) {
+                    val total = formatMoney(Money(parsed.minor * form.payers.size), band.currency, lang)
+                    Text(stringResource(Res.string.fund_each, form.payers.size, total), style = MaterialTheme.typography.bodySmall)
                 }
-                OutlinedTextField(description, { description = it }, label = { Text(stringResource(Res.string.description)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                DateField(date, { date = it }, stringResource(Res.string.cost_date))
-                actions?.let { DialogNotice(it) }
+                OutlinedTextField(
+                    form.description,
+                    { form.description = it },
+                    label = { Text(stringResource(Res.string.description)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DateField(form.date, { form.date = it }, stringResource(Res.string.cost_date))
+                DialogNotice(actions)
             }
         },
-        confirmButton = {
-            TextButton(enabled = ready, onClick = {
-                val ok = when {
-                    initial == null && incoming -> {
-                        // One by one: on a refusal, who was saved already is no longer ticked (no doubles on a retry).
-                        val left = payers.dropWhile { payer -> onSave(listOf(AddFundEntry(newId(), date, description.trim(), signed!!, paidBy = payer))) }
-                        if (left.isNotEmpty()) payers = left
-                        left.isEmpty()
-                    }
-
-                    initial == null -> onSave(listOf(AddFundEntry(newId(), date, description.trim(), signed!!, costId)))
-
-                    else -> onSave(
-                        listOf(
-                            UpdateFundEntry(
-                                initial.id,
-                                date = Change(date).takeIf { date != initial.date },
-                                description = Change(description.trim()).takeIf { description.trim() != initial.description },
-                                amount = Change(signed!!).takeIf { signed != initial.amount },
-                                paidBy = Change(payers.single()).takeIf { incoming && payers.single() != initial.paidBy },
-                            ),
-                        ),
-                    )
-                }
-                if (ok) onDismiss()
-            }) { Text(stringResource(Res.string.save)) }
-        },
+        confirmButton = { TextButton(enabled = form.ready, onClick = onSave) { Text(stringResource(Res.string.save)) } },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = { if (onDelete()) onDismiss() }) { Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = onDelete) { Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error) }
                 }
                 TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
             }
         },
     )
-    if (choosingPeople) {
+    if (form.choosingPeople) {
         PeopleDialog(
-            people = people,
-            initial = payers.filterNotNull().toSet(),
-            onDone = { chosen -> if (chosen.isNotEmpty()) payers = people.map { it.id }.filter { it in chosen } },
-            onDismiss = { choosingPeople = false },
+            people = form.people,
+            initial = form.payers.filterNotNull().toSet(),
+            onDone = form::choosePeople,
+            onDismiss = { form.choosingPeople = false },
         )
+    }
+}
+
+/** Who paid in: a member, or outside the band; for a new entry, several people at once (one entry each). */
+@Composable
+private fun PayersField(form: FundEntryForm, band: Band) {
+    val outside = stringResource(Res.string.fund_outside)
+    fun name(id: String?) = if (id == null) outside else band.member(id)?.name.orEmpty()
+    val payers = form.payers
+    val options = (form.people.map { listOf<String?>(it.id) } + listOf(listOf<String?>(null)))
+        .let { if (payers.size == 1 && payers !in it) listOf(payers) + it else it }
+    val several = stringResource(Res.string.fund_people, payers.size)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Dropdown(payers, options, { form.payers = it }, stringResource(Res.string.fund_paid_by), Modifier.weight(1f)) { chosen ->
+            if (chosen.size > 2) several else chosen.joinToString(", ") { name(it) }
+        }
+        // Several people paying the same, e.g. this month's fee: one entry each.
+        if (form.isNew) {
+            IconButton(onClick = { form.choosingPeople = true }, Modifier.padding(top = FIELD_LABEL_INSET)) {
+                Icon(Icons.Default.PeopleAlt, stringResource(Res.string.fund_several))
+            }
+        }
+    }
+}
+
+/** The cost a refund is for, among those with something left to refund; [onAddCost] adds one first. */
+@Composable
+private fun CostField(form: FundEntryForm, band: Band, onAddCost: (() -> Unit)?) {
+    val lang = language
+    val choose = stringResource(Res.string.fund_choose_cost)
+    val label = stringResource(Res.string.fund_refund_cost)
+    fun describe(cost: Cost): String {
+        val outstanding = formatMoney(CostLedger.outstanding(band, cost), band.currency, lang)
+        return "${band.member(cost.memberId)?.name.orEmpty()}: ${form.costName(cost)} · $outstanding"
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Dropdown(form.costId, form.pendingCosts.map { it.id }, { form.pickCost(band, it) }, label, Modifier.weight(1f)) { id ->
+                id?.let { band.cost(it) }?.let(::describe) ?: choose
+            }
+            if (onAddCost != null) {
+                IconButton(onClick = onAddCost, Modifier.padding(top = FIELD_LABEL_INSET)) {
+                    Icon(Icons.Default.Add, stringResource(Res.string.fund_add_cost))
+                }
+            }
+        }
+        if (form.pendingCosts.isEmpty()) Text(stringResource(Res.string.fund_no_costs), style = MaterialTheme.typography.bodySmall)
     }
 }
 

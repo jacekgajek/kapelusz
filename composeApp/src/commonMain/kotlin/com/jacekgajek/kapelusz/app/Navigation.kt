@@ -167,7 +167,12 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                 if (artist) {
                     BackToEvents(navController)
                 } else {
-                    BandFundScreen(session, navigator, addedCost = addedCost) { entry.savedStateHandle[AppNavigator.ADDED_COST] = null }
+                    BandFundScreen(
+                        session,
+                        navigator,
+                        addedCost = addedCost,
+                        onAddedCostSeen = { entry.savedStateHandle[AppNavigator.ADDED_COST] = null },
+                    )
                 }
             }
             composable<EventRoute> { entry ->
