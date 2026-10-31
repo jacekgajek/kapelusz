@@ -4,15 +4,12 @@ import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
 import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.DeleteMember
@@ -23,24 +20,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 
-class LeaveBandTest {
-    private val store = InMemoryBlobStore()
-    private val history = InMemoryHistoryStore()
-    private val api = Api(store, history, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
-
-    private fun call(method: String, path: String, user: String, body: String? = null) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
-
-    private fun invite(member: String) = KapeluszJson.decodeFromString(
-        InviteInfo.serializer(),
-        call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(member, Role.MEMBER))).body!!,
-    ).code
-
+class LeaveBandTest : ApiHarness() {
     /** Alice owns the band; Bob joined it and recorded a cost. */
     private fun setup() {
-        call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
+        createBand()
         val ops = listOf(OpEnvelope("op1", "phone", 1, 1, AddMember("m-bob", "Bob")))
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
-        assertEquals(200, call("POST", "/invites/${invite("m-bob")}/accept", "bob").status)
+        assertEquals(200, call("POST", "/invites/${inviteCode("m-bob")}/accept", "bob").status)
         val cost = listOf(OpEnvelope("op2", "phone", 1, 1, AddCost("c1", "m-bob", Money(5000), LocalDate(2026, 9, 1))))
         call("POST", "/bands/band1/ops", "bob", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(cost)))
     }
@@ -59,7 +45,7 @@ class LeaveBandTest {
         assertTrue(call("GET", "/bands/band1/state", "bob").body!!.contains(ApiErrors.BAND_NOT_FOUND))
         assertEquals(404, call("POST", "/bands/band1/leave", "bob").status, "a second time: not a member any more")
         // A new invite brings them back.
-        assertEquals(200, call("POST", "/invites/${invite("m-bob")}/accept", "bob").status)
+        assertEquals(200, call("POST", "/invites/${inviteCode("m-bob")}/accept", "bob").status)
         assertEquals("bob", band().member("m-bob")!!.userId)
     }
 
@@ -127,7 +113,7 @@ class LeaveBandTest {
         setup()
         val add = listOf(OpEnvelope("op10", "phone", 10, 1, AddMember("m-carol", "Carol")))
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(add)))
-        val code = invite("m-carol")
+        val code = inviteCode("m-carol")
         val delete = listOf(OpEnvelope("op11", "phone", 11, 1, DeleteMember("m-carol")))
         assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(delete))).status)
         assertEquals(404, call("GET", "/invites/$code", "dan").status, "no old code comes back with an Undo")
