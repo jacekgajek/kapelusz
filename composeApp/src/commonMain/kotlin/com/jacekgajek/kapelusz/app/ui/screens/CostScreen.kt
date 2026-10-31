@@ -29,19 +29,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
@@ -79,118 +76,63 @@ import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
-import com.jacekgajek.kapelusz.ops.AddCost
-import com.jacekgajek.kapelusz.ops.Change
-import com.jacekgajek.kapelusz.ops.DeleteCost
-import com.jacekgajek.kapelusz.ops.UpdateCost
-import com.jacekgajek.kapelusz.view.CostChoices
-import kotlinx.datetime.LocalDate
+import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.Member
 import org.jetbrains.compose.resources.stringResource
 
-/** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
+/** Fast cost form: amount first, everything else optional. The form itself is [CostViewModel]; this draws it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
+fun CostScreen(
+    session: BandSession,
+    route: CostRoute,
+    nav: CostNav,
+    form: CostViewModel = viewModel(initializer = costViewModel(session, route, language)),
+) {
     val state = session.state
-    val changes = session.changes
-    val incoming = session.incoming
-    val fileStore = session.attachments
-    val costId = route.costId
-    val forEventId = route.forEventId
-    val onBack: () -> Unit = nav::back
-    val onAddedForOther: () -> Unit = nav::addedForOther
-    val onAdded: (String) -> Unit = nav::added
-    val onOpenEvent: (String) -> Unit = nav::openRefunds
     val band = state.band
     val messages = rememberMessages()
-    val actions = rememberActions(changes, messages)
-    val existing = costId?.let { band.cost(it) }
-    val lang = language
-
-    // The cost as it was when the form opened: Save sends only what the user changed since, so a change someone else
-    // made meanwhile is not overwritten (ITERATION_3 R8). Saved with the typed text, or after a rotation an untouched
-    // old amount would count as changed against a newer snapshot.
-    val openedJson = rememberSaveable { existing?.let { KapeluszJson.encodeToString(Cost.serializer(), it) }.orEmpty() }
-    val opened = remember(openedJson) { openedJson.takeIf { it.isNotEmpty() }?.let { KapeluszJson.decodeFromString(Cost.serializer(), it) } }
-    // Typed text survives rotation and the camera app's round trip (ITERATION_3 R8).
-    var amount by rememberSaveable { mutableStateOf(existing?.let { formatMoneyInput(it.amount, lang) } ?: "") }
-    // Opened from an event: the new cost is for that event (fixed; My costs books it elsewhere), so only its
-    // participants can have paid it.
-    val forEvent = forEventId?.takeIf { existing == null }?.let { band.event(it) }
-    // All of the form survives a trip to an event and back (a refund's event line opens it), as the typed text does.
-    var paidBy by rememberSaveable { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }
-    var date by rememberSaveable(stateSaver = DateSaver) { mutableStateOf(existing?.date ?: today()) }
-    var eventId by rememberSaveable { mutableStateOf(existing?.eventId ?: forEventId?.takeIf { band.event(it) != null }) }
-    var category by rememberSaveable { mutableStateOf(existing?.category) }
-    var description by rememberSaveable { mutableStateOf(existing?.description.orEmpty()) }
-    var confirmDelete by remember { mutableStateOf(false) }
-    var saved by remember { mutableStateOf(false) }
-    // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1).
-    var drafts by remember { mutableStateOf(if (existing == null && forEventId != null) incoming.takeSharedFiles(forEventId, toCost = true) else listOf()) }
+    val actions = rememberActions(session.changes, messages)
+    val s = form.state
+    val existing = form.existing
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { if (existing == null) focus.requestFocus() }
-
-    val can = session.can
-    val choices = remember(state) { CostChoices(state.view, can) }
-    val editable = existing == null || can.editCost(existing)
-    val parsed = parseMoney(amount)?.takeIf { it.isPositive }
-    // Leads may add costs for anyone; others only for themselves (the permission check decides).
-    val payers = choices.payers(forEvent)
+    LaunchedEffect(Unit) { if (s.isNew) focus.requestFocus() }
     // A single choice is made already (the picker is shown only for several).
-    LaunchedEffect(payers.size) { if (existing == null && paidBy == null) payers.singleOrNull()?.let { paidBy = it.id } }
-    val canSave = editable && parsed != null && paidBy != null && !saved
-    fun save() {
-        // Once only: the screen stays tappable while it fades out, and a second tap would add the cost again.
-        if (saved) return
-        val ok = if (existing == null) {
-            val id = newId()
-            actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
-                .also { if (it) fileStore.attachAfterSave(id, drafts) }
-                .also { if (it && paidBy != state.me?.id) onAddedForOther() }
-                .also { if (it) onAdded(id) }
-        } else {
-            actions.run(
-                UpdateCost(
-                    existing.id,
-                    amount = Change(parsed!!).takeIf { parsed != (opened ?: existing).amount },
-                    date = Change(date).takeIf { date != (opened ?: existing).date },
-                    incurredForEventId = Change(eventId).takeIf { eventId != (opened ?: existing).eventId },
-                    category = Change(category).takeIf { category != (opened ?: existing).category },
-                    description = Change(description.ifBlank { null }).takeIf { description.trim() != (opened ?: existing).description.orEmpty() },
-                ),
-            )
+    LaunchedEffect(s.payers.size) { form.takeOnlyPayer() }
+    LaunchedEffect(s.events) { form.pruneEvent() }
+
+    fun finish(outcome: CostOutcome?) = when (outcome) {
+        null -> Unit
+
+        is CostOutcome.Refused -> actions.show(outcome.rejection)
+
+        is CostOutcome.Added -> {
+            if (outcome.forOther) nav.addedForOther()
+            nav.added(outcome.costId)
+            nav.back()
         }
-        if (ok) {
-            saved = true
-            onBack()
-        }
+
+        CostOutcome.Updated, CostOutcome.Deleted -> nav.back()
     }
-    val events = choices.events(existing, paidBy, eventId)
-    // Another payer: an event they are not in is no longer a choice.
-    LaunchedEffect(events) { if (forEvent == null && eventId !in events) eventId = null }
 
     AppScaffold(
         messages,
         topBar = {
-            BackTopBar(stringResource(if (existing == null) Res.string.add_cost else Res.string.edit_cost), onBack) {
-                if (existing != null && can.deleteCost(existing)) {
-                    IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
-                }
-                TextButton(onClick = ::save, enabled = canSave) { Text(stringResource(Res.string.save)) }
+            BackTopBar(stringResource(if (s.isNew) Res.string.add_cost else Res.string.edit_cost), nav::back) {
+                if (s.canDelete) IconButton(onClick = form::askDelete) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
+                TextButton(onClick = { finish(form.save()) }, enabled = s.canSave) { Text(stringResource(Res.string.save)) }
             }
         },
     ) { padding ->
-        if (costId != null && existing == null) {
+        if (s.notFound) {
             EmptyState(stringResource(Res.string.cost_not_found), Modifier.padding(padding))
             return@AppScaffold
         }
@@ -199,48 +141,18 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
                 Modifier.widthIn(max = MAX_LIST_WIDTH).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (existing != null) RefundInfo(state, existing, onOpenEvent)
-                when {
-                    existing == null && payers.size > 1 -> Dropdown(paidBy, payers.map { it.id }, { paidBy = it }, stringResource(Res.string.paid_by)) { id ->
-                        id?.let { band.member(it)?.name }.orEmpty()
-                    }
-
-                    // A single possible payer (always the case for members) is shown, not chosen, like a fixed event.
-                    existing == null -> OutlinedTextField(
-                        paidBy?.let { band.member(it)?.name }.orEmpty(),
-                        {},
-                        readOnly = true,
-                        label = { Text(stringResource(Res.string.paid_by)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
-                    existing != null && existing.memberId != state.me?.id -> Text(
-                        stringResource(Res.string.paid_by_name, band.member(existing.memberId)?.name.orEmpty()),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                }
-                if (!editable) Text(stringResource(Res.string.cost_locked), color = MaterialTheme.colorScheme.error)
-                MoneyField(amount, { if (editable) amount = it }, stringResource(Res.string.amount), Modifier.focusRequester(focus))
-                DateField(date, { if (editable) date = it }, stringResource(Res.string.cost_date))
-                if (forEvent != null) {
-                    OutlinedTextField(
-                        "${forEvent.name} · ${formatDate(forEvent.date, lang)}",
-                        {},
-                        readOnly = true,
-                        label = { Text(stringResource(Res.string.cost_event)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    Dropdown(eventId, events, { if (editable) eventId = it }, stringResource(Res.string.cost_event), searchHint = Res.string.search_by_title) { id ->
-                        id?.let { band.event(it) }?.let { "${it.name} · ${formatDate(it.date, lang)}" } ?: stringResource(Res.string.cost_no_event)
-                    }
-                }
+                if (existing != null) RefundInfo(state, existing, nav::openRefunds)
+                PayerField(state, existing, form.draft.payerId, s.payers, form::payer)
+                if (!s.editable) Text(stringResource(Res.string.cost_locked), color = MaterialTheme.colorScheme.error)
+                MoneyField(form.draft.amountText, form::amount, stringResource(Res.string.amount), Modifier.focusRequester(focus))
+                DateField(form.draft.date, form::date, stringResource(Res.string.cost_date))
+                EventField(state, s.forEvent, form.draft.eventId, s.events, form::event)
                 Text(stringResource(Res.string.category), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CostCategory.entries.forEach { option ->
                         FilterChip(
-                            selected = category == option,
-                            onClick = { if (editable) category = if (category == option) null else option },
+                            selected = form.draft.category == option,
+                            onClick = { form.category(option) },
                             label = { Text(option.label()) },
                             // Kept when selected (the chip's fill says so): the same icon as in the lists (ITERATION_6 §4).
                             leadingIcon = { Icon(option.icon(), null, Modifier.size(FilterChipDefaults.IconSize)) },
@@ -248,19 +160,19 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
                     }
                 }
                 OutlinedTextField(
-                    description,
-                    { if (editable) description = it },
+                    form.draft.description,
+                    form::description,
                     label = { Text(stringResource(Res.string.description_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 AttachmentsSection(
-                    fileStore,
+                    session.attachments,
                     owner = existing?.let { AttachmentOwner.OfCost(it.id) },
                     attachments = existing?.attachments.orEmpty(),
-                    drafts = drafts,
-                    onDrafts = { drafts = it },
-                    editable = existing == null || can.attachTo(AttachmentOwner.OfCost(existing.id)),
-                    removable = existing == null || can.detachFrom(AttachmentOwner.OfCost(existing.id)),
+                    drafts = form.drafts,
+                    onDrafts = { form.drafts = it },
+                    editable = s.attachmentsEditable,
+                    removable = s.attachmentsRemovable,
                     actions = actions,
                     undoRemoval = true,
                 )
@@ -268,14 +180,78 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
         }
     }
 
-    if (confirmDelete && existing != null) {
-        ConfirmDialog(
+    when (form.dialog) {
+        CostDialog.CONFIRM_DELETE -> ConfirmDialog(
             title = stringResource(Res.string.delete_cost_title),
             text = stringResource(Res.string.delete_cost_confirm),
             confirmLabel = stringResource(Res.string.delete),
-            onConfirm = { if (actions.run(DeleteCost(existing.id))) onBack() },
-            onDismiss = { confirmDelete = false },
+            onConfirm = { finish(form.delete()) },
+            onDismiss = form::dismissDialog,
         )
+
+        null -> Unit
+    }
+}
+
+/** The screen's [CostViewModel], scoped to its back-stack entry: the band's services it needs, and the typed amount's language. */
+private fun costViewModel(session: BandSession, route: CostRoute, language: String): CreationExtras.() -> CostViewModel = {
+    // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1): taken once, when the form opens.
+    val sharedTo = route.forEventId?.takeIf { route.costId == null }
+    CostViewModel(
+        route,
+        session.bands.state,
+        dispatch = { session.changes.dispatch(it) },
+        attachAfterSave = { costId, files -> session.attachments.attachAfterSave(costId, files) },
+        sharedFiles = sharedTo?.let { session.incoming.takeSharedFiles(it, toCost = true) }.orEmpty(),
+        handle = createSavedStateHandle(),
+        today = today(),
+        amountText = { formatMoneyInput(it, language) },
+    )
+}
+
+/** Who paid: a picker for a lead adding one, the one possible payer shown otherwise, the payer's name on someone else's cost. */
+@Composable
+private fun PayerField(state: BandState.Ready, existing: Cost?, payerId: String?, payers: List<Member>, onPayer: (String?) -> Unit) {
+    val band = state.band
+    when {
+        existing == null && payers.size > 1 -> {
+            val label = stringResource(Res.string.paid_by)
+            Dropdown(payerId, payers.map { it.id }, onPayer, label) { id -> id?.let { band.member(it)?.name }.orEmpty() }
+        }
+
+        // A single possible payer (always the case for members) is shown, not chosen, like a fixed event.
+        existing == null -> OutlinedTextField(
+            payerId?.let { band.member(it)?.name }.orEmpty(),
+            {},
+            readOnly = true,
+            label = { Text(stringResource(Res.string.paid_by)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        existing.memberId != state.me?.id -> Text(
+            stringResource(Res.string.paid_by_name, band.member(existing.memberId)?.name.orEmpty()),
+            style = MaterialTheme.typography.titleSmall,
+        )
+    }
+}
+
+/** The event the cost is for: fixed when opened from one, else a choice among the payer's. */
+@Composable
+private fun EventField(state: BandState.Ready, forEvent: Event?, eventId: String?, events: List<String?>, onEvent: (String?) -> Unit) {
+    val lang = language
+    if (forEvent != null) {
+        OutlinedTextField(
+            "${forEvent.name} · ${formatDate(forEvent.date, lang)}",
+            {},
+            readOnly = true,
+            label = { Text(stringResource(Res.string.cost_event)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else {
+        val none = stringResource(Res.string.cost_no_event)
+        Dropdown(eventId, events, onEvent, stringResource(Res.string.cost_event), searchHint = Res.string.search_by_title) { id ->
+            id?.let { state.band.event(it) }?.let { "${it.name} · ${formatDate(it.date, lang)}" } ?: none
+        }
     }
 }
 
@@ -319,5 +295,3 @@ private fun RefundInfo(state: BandState.Ready, cost: Cost, onOpenEvent: (String)
         }
     }
 }
-
-private val DateSaver = Saver<LocalDate, String>({ it.toString() }, { LocalDate.parse(it) })
