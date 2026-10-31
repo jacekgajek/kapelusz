@@ -115,7 +115,7 @@ fun CollectedSection(context: EventContext) {
                     color = if (holding.awaited) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                 )
             }
-            MoneyText(holding.amount, context.currency)
+            MoneyText(holding.amount)
             if (context.can.editHolding(event, holding)) EditButton { editing = holding }
         }
         // A fee the organiser still owes (ITERATION_4 §2.2): paid (whoever got it takes it over), or never paid (it goes).

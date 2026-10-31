@@ -44,13 +44,13 @@ import com.jacekgajek.kapelusz.app.generated.refund_of
 import com.jacekgajek.kapelusz.app.generated.refunds
 import com.jacekgajek.kapelusz.app.generated.refunds_empty
 import com.jacekgajek.kapelusz.app.generated.save
-import com.jacekgajek.kapelusz.app.generated.unnamed_cost
-import com.jacekgajek.kapelusz.app.ui.components.CostIcon
+import com.jacekgajek.kapelusz.app.ui.components.CostRow
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.costTitle
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
@@ -90,7 +90,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
         ) {
             CostDescription(context, cost, Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
-                MoneyText(refund.amount, context.currency)
+                MoneyText(refund.amount)
                 if (refund.amount != cost.amount) {
                     Text(
                         stringResource(Res.string.refund_of, formatMoney(cost.amount, context.currency, language)),
@@ -115,7 +115,7 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CostDescription(context, cost, Modifier.weight(1f))
-                    MoneyText(outstanding, context.currency, Modifier.padding(start = 8.dp))
+                    MoneyText(outstanding, modifier = Modifier.padding(start = 8.dp))
                     // The cost itself, in its own form; Back comes to the event.
                     EditButton(cost.description) { onOpenCost(cost.id) }
                 }
@@ -141,22 +141,11 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     editing?.let { cost -> RefundDialog(context, cost, onOpenCost, onDismiss = { editing = null }) }
 }
 
+/** Who paid it, then what and when: the amount is beside it as a field or a figure of its own. */
 @Composable
 private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifier) {
-    // The category's icon over both lines (ITERATION_6 §4).
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        CostIcon(cost, Modifier.padding(end = 12.dp))
-        Column {
-            Text(context.band.member(cost.memberId)?.name.orEmpty())
-            Text(
-                listOfNotNull(
-                    cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost),
-                    formatDate(cost.date, language),
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-    }
+    val subtitle = "${costTitle(cost)} · ${formatDate(cost.date, language)}"
+    CostRow(cost, subtitle, modifier, title = context.band.member(cost.memberId)?.name.orEmpty(), showAmount = false)
 }
 
 @Composable
@@ -225,7 +214,7 @@ private fun MyWaitingCosts(context: EventContext, costs: List<Cost>, onOpenCost:
         ) {
             CostDescription(context, cost, Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
-                MoneyText(CostLedger.outstanding(band, cost), context.currency)
+                MoneyText(CostLedger.outstanding(band, cost))
                 Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
             }
         }

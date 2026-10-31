@@ -156,7 +156,7 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
                     TransferParties(from, to)
                     transfer.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
-                MoneyText(transfer.amount, context.currency)
+                MoneyText(transfer.amount)
                 if (context.can.removeTransfer(event, transfer)) RemoveButton("$from → $to, ${formatMoney(transfer.amount, context.currency, language)}") { removing = transfer }
             }
         }
@@ -212,7 +212,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
                 if (!keepsForFund) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CopyAmountButton(context, suggestion.amount)
-                        MoneyText(suggestion.amount, context.currency, bold = true)
+                        MoneyText(suggestion.amount, bold = true)
                     }
                 }
             }

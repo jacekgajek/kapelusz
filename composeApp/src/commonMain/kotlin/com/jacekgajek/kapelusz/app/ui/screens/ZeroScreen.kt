@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -40,6 +39,7 @@ import com.jacekgajek.kapelusz.app.generated.sync_offline
 import com.jacekgajek.kapelusz.app.generated.your_bands
 import com.jacekgajek.kapelusz.app.sync.SyncStatus
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.formWidth
 import com.jacekgajek.kapelusz.app.ui.components.label
 import org.jetbrains.compose.resources.stringResource
 
@@ -60,7 +60,7 @@ fun ZeroScreen(
     onJoin: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.formWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(top = 32.dp))
             val checking = syncStatus == SyncStatus.IDLE || syncStatus == SyncStatus.SYNCING
             if (checking && bands.isEmpty()) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))

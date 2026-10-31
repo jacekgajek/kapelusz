@@ -26,12 +26,9 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -89,16 +86,19 @@ import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.FundNav
 import com.jacekgajek.kapelusz.app.ui.components.Actions
+import com.jacekgajek.kapelusz.app.ui.components.AmountRow
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
+import com.jacekgajek.kapelusz.app.ui.components.Choice
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SegmentedChoice
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -166,9 +166,9 @@ fun BandFundScreen(
     val settings by preferences.settings.collectAsState()
     val lang = language
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = { TabTopBar(stringResource(Res.string.tab_fund)) },
-        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (canEdit) {
                 ExtendedFloatingActionButton(
@@ -191,7 +191,7 @@ fun BandFundScreen(
                     FilledTonalButton(onClick = onSettings) { Text(stringResource(Res.string.open_settings)) }
                 }
             }
-            return@Scaffold
+            return@AppScaffold
         }
         // One list, by date (ITERATION_7 §5.1): events' money first on a day, entries in the order they were added.
         val rows = remember(band, settings.fundOldestFirst) {
@@ -209,16 +209,16 @@ fun BandFundScreen(
             item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row {
-                            Text(stringResource(Res.string.fund_balance), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                            MoneyText(BandFund.balance(band), band.currency, colored = true, bold = true)
-                        }
+                        AmountRow(
+                            stringResource(Res.string.fund_balance),
+                            BandFund.balance(band),
+                            bold = true,
+                            colored = true,
+                            labelStyle = MaterialTheme.typography.titleMedium,
+                        )
                         val waiting = BandFund.notHandedOver(band)
                         if (!waiting.isZero) {
-                            Row {
-                                Text(stringResource(Res.string.fund_not_handed_over), Modifier.weight(1f))
-                                MoneyText(waiting, band.currency)
-                            }
+                            AmountRow(stringResource(Res.string.fund_not_handed_over), waiting, labelStyle = LocalTextStyle.current)
                         }
                         Text(stringResource(Res.string.fund_held_by, treasurer.name), style = MaterialTheme.typography.bodySmall)
                     }
@@ -261,7 +261,7 @@ fun BandFundScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
-                            MoneyText(event.fund, band.currency, colored = true)
+                            MoneyText(event.fund, colored = true)
                         }
                     }
 
@@ -281,7 +281,7 @@ fun BandFundScreen(
                                 }
                                 Text(listOfNotNull(formatDate(entry.date, lang), who).joinToString(" · "), style = MaterialTheme.typography.bodySmall)
                             }
-                            MoneyText(entry.amount, band.currency, colored = true)
+                            MoneyText(entry.amount, colored = true)
                             if (editable) EditButton { editing = entry }
                         }
                     }
@@ -389,13 +389,11 @@ private fun FundEntryDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // A new entry's direction; the treasurer (not a lead) only records money paid in.
                 if (initial == null && refundsCosts) {
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        listOf(true to Res.string.fund_in, false to Res.string.fund_out).forEachIndexed { index, (value, label) ->
-                            SegmentedButton(selected = incoming == value, onClick = { incoming = value }, shape = SegmentedButtonDefaults.itemShape(index, 2), icon = {}) {
-                                Text(stringResource(label))
-                            }
-                        }
-                    }
+                    val directions = listOf(
+                        Choice(true, stringResource(Res.string.fund_in)),
+                        Choice(false, stringResource(Res.string.fund_out)),
+                    )
+                    SegmentedChoice(directions, incoming, { incoming = it })
                 }
                 if (incoming) {
                     val outside = stringResource(Res.string.fund_outside)

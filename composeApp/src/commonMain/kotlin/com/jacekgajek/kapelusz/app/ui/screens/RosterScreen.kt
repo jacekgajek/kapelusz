@@ -31,7 +31,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -108,16 +107,17 @@ import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.ui.BackNav
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.Actions
-import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.BusyButton
+import com.jacekgajek.kapelusz.app.ui.components.ButtonKind
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Crowd
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.FormerMember
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
+import com.jacekgajek.kapelusz.app.ui.components.MemberAvatar
 import com.jacekgajek.kapelusz.app.ui.components.NameSearchField
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.QrCode
 import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
 import com.jacekgajek.kapelusz.app.ui.components.RolePicker
@@ -131,6 +131,7 @@ import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
+import com.jacekgajek.kapelusz.app.ui.components.rememberTask
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
@@ -215,9 +216,9 @@ fun RosterScreen(session: BandSession, nav: BackNav, openMember: String? = null)
         if (isAdmin || (!member.archived && (canShare || pair))) ({ selected = member.id }) else null
     }
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), onBack) },
-        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (isAdmin) {
                 ExtendedFloatingActionButton(
@@ -408,7 +409,7 @@ private fun MemberRow(
         modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
         // Decorative: the name follows right after it (ITERATION_3 R13).
         // Without an app account: can't see the band (ITERATION_5 §12).
-        leadingContent = { if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) },
+        leadingContent = { MemberAvatar(member, 40.dp) },
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
@@ -527,7 +528,9 @@ private fun MemberDialog(
                     val failedText = stringResource(Res.string.invite_failed)
                     val holdsMoneyText = stringResource(Res.string.reject_holds_money)
                     val stillPlaysText = stringResource(Res.string.reject_viewer_still_plays)
-                    var inviteBusy by remember { mutableStateOf(false) }
+                    // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
+                    val invite = rememberTask()
+                    LaunchedEffect(invite.failure) { if (invite.failed) actions.say(failedText) }
                     if (current != null) {
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -546,18 +549,14 @@ private fun MemberDialog(
                                     OutlinedButton(onClick = {
                                         scope.launch { actions.say(if (copy(link)) linkCopied else failedText) }
                                     }) { Text(stringResource(Res.string.copy_link)) }
-                                    OutlinedButton(enabled = !inviteBusy, onClick = {
-                                        inviteBusy = true
-                                        scope.launch {
-                                            runSuspendCatching { api.revokeInvite(band.id, current.code) }
-                                                .onSuccess {
-                                                    shownInvite = null
-                                                    onInvitesChanged()
-                                                }
-                                                .onFailure { actions.say(failedText) }
-                                            inviteBusy = false
-                                        }
-                                    }) { Text(stringResource(Res.string.revoke_invite)) }
+                                    val revoke: suspend () -> Unit = {
+                                        api.revokeInvite(band.id, current.code)
+                                        shownInvite = null
+                                        onInvitesChanged()
+                                    }
+                                    BusyButton(revoke, task = invite, kind = ButtonKind.OUTLINED) {
+                                        Text(stringResource(Res.string.revoke_invite))
+                                    }
                                 }
                             }
                         }
@@ -568,33 +567,20 @@ private fun MemberDialog(
                     } else {
                         Text(stringResource(Res.string.invite_hint), style = MaterialTheme.typography.bodySmall)
                         RolePicker(inviteRole, { inviteRole = it }, stringResource(Res.string.invite_role))
-                        // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
-                        FilledTonalButton(enabled = !inviteBusy, onClick = {
+                        val create = {
                             // Told before asking the server, which refuses for the same reasons.
                             when (RoleChanges.refusal(BandView(band), member.id, inviteRole)) {
-                                RejectionReason.HOLDS_MONEY -> {
-                                    actions.say(holdsMoneyText)
-                                    return@FilledTonalButton
-                                }
+                                RejectionReason.HOLDS_MONEY -> actions.say(holdsMoneyText)
 
-                                RejectionReason.VIEWER_STILL_PLAYS -> {
-                                    actions.say(stillPlaysText)
-                                    return@FilledTonalButton
-                                }
+                                RejectionReason.VIEWER_STILL_PLAYS -> actions.say(stillPlaysText)
 
-                                else -> Unit
+                                else -> invite.run {
+                                    shownInvite = api.createInvite(band.id, member.id, inviteRole)
+                                    onInvitesChanged()
+                                }
                             }
-                            inviteBusy = true
-                            scope.launch {
-                                runSuspendCatching { api.createInvite(band.id, member.id, inviteRole) }
-                                    .onSuccess {
-                                        shownInvite = it
-                                        onInvitesChanged()
-                                    }
-                                    .onFailure { actions.say(failedText) }
-                                inviteBusy = false
-                            }
-                        }) { Text(stringResource(Res.string.create_invite)) }
+                        }
+                        FilledTonalButton(onClick = create, enabled = !invite.working) { Text(stringResource(Res.string.create_invite)) }
                     }
                 }
                 // Unlinking your own account would lock you out of the band.

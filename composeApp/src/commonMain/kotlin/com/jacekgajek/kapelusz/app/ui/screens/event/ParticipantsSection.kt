@@ -57,9 +57,8 @@ import com.jacekgajek.kapelusz.app.ui.components.Crowd
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.FormerMember
-import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.PartyAvatar
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
@@ -226,13 +225,7 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
             Modifier.weight(1f).let { if (invite != null) it.clickable(onClickLabel = inviteLabel, onClick = invite) else it },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (guest) {
-                GuestIcon()
-            } else if (notInApp) {
-                NotInAppIcon()
-            } else {
-                Avatar(name, band.member(partyId)?.pictureUrl, decorative = true)
-            }
+            PartyAvatar(band, event, partyId)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(name)
                 share?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

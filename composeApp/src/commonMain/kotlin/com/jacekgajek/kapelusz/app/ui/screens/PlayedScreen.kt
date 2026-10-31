@@ -14,14 +14,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -29,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,6 +58,7 @@ import com.jacekgajek.kapelusz.app.platform.PlacesMap
 import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.PlayedNav
+import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
@@ -99,12 +97,7 @@ fun PlayedScreen(session: BandSession, nav: PlayedNav) {
     val openPlace = { place: PlayedPlaces.Place -> opened = place }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.played_title)) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back)) } },
-            )
-        },
+        topBar = { BackTopBar(stringResource(Res.string.played_title), onBack) },
     ) { padding ->
         if (events.isEmpty()) {
             Text(stringResource(Res.string.played_empty), Modifier.padding(padding).padding(16.dp))

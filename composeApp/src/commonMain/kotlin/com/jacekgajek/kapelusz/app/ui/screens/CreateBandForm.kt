@@ -3,7 +3,6 @@ package com.jacekgajek.kapelusz.app.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,6 +19,7 @@ import com.jacekgajek.kapelusz.app.generated.create_band
 import com.jacekgajek.kapelusz.app.generated.currency
 import com.jacekgajek.kapelusz.app.generated.your_name
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
+import com.jacekgajek.kapelusz.app.ui.components.formWidth
 import org.jetbrains.compose.resources.stringResource
 
 private val CURRENCIES = listOf("PLN", "EUR", "USD", "GBP", "CZK")
@@ -30,7 +30,7 @@ fun CreateBandForm(onCreate: (name: String, currency: String, yourName: String) 
     var name by remember { mutableStateOf("") }
     var yourName by remember { mutableStateOf(defaultYourName) }
     var currency by remember { mutableStateOf(CURRENCIES.first()) }
-    Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.formWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.band_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(yourName, { yourName = it }, label = { Text(stringResource(Res.string.your_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Dropdown(currency, CURRENCIES, { currency = it }, stringResource(Res.string.currency)) { it }

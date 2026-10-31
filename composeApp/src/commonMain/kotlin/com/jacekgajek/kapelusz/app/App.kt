@@ -49,6 +49,7 @@ import com.jacekgajek.kapelusz.app.ui.RosterRoute
 import com.jacekgajek.kapelusz.app.ui.SettingsRoute
 import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.components.LoadingScreen
+import com.jacekgajek.kapelusz.app.ui.components.LocalCurrency
 import com.jacekgajek.kapelusz.app.ui.components.LocalTopBarState
 import com.jacekgajek.kapelusz.app.ui.components.SignInAgainDialog
 import com.jacekgajek.kapelusz.app.ui.components.TopBarState
@@ -184,6 +185,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
         )
 
         is BandState.Ready -> CompositionLocalProvider(
+            LocalCurrency provides bandState.band.currency,
             LocalTopBarState provides TopBarState(
                 syncStatus = syncStatus,
                 bands = index?.bands.orEmpty(),

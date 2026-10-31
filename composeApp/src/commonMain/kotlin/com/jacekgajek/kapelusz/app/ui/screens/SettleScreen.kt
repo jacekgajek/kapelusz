@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,7 +37,7 @@ import com.jacekgajek.kapelusz.app.generated.you_hold
 import com.jacekgajek.kapelusz.app.generated.your_transfers
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.TabNav
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
 import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
@@ -76,9 +75,9 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
     val settling = remember(state, me) { Settling(state.view, me, session.can, today()) }
     val pair = stringResource(Res.string.pair_names)
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = { TabTopBar(stringResource(Res.string.tab_settle)) },
-        snackbarHost = { MessageHost(messages) },
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).listWidth(),
@@ -115,7 +114,7 @@ fun SettleScreen(session: BandSession, nav: TabNav) {
                                         if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
+                                        MoneyText(suggestion.amount, bold = true, modifier = Modifier.weight(1f))
                                         TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
                                         FilledTonalButton(onClick = {
                                             actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))

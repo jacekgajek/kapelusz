@@ -35,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -91,9 +90,9 @@ import com.jacekgajek.kapelusz.app.generated.tab_events
 import com.jacekgajek.kapelusz.app.generated.upcoming_event
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.TabNav
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -185,9 +184,9 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
         upcomingEvent(band, state.me, today, except = continueEvent?.id)?.takeIf { !artist || it.participant(state.me?.id ?: "") != null }
     }
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }) },
-        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (session.can.createEvent()) {
                 ExtendedFloatingActionButton(

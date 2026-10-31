@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,8 +15,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.member_share_fixed
@@ -103,22 +98,12 @@ fun rememberShareEditorState(weight: Int, fixedShare: Money?, percent: Int?): Sh
 fun ShareEditor(state: ShareEditorState, currency: String, percentTaken: Int = 0, below: @Composable () -> Unit = {}) {
     val currencyLabel = if (language == "pl" && currency == "PLN") "zł" else currency
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            val modes = listOf(
-                Triple(ShareMode.WEIGHT, stringResource(Res.string.share_by_weight), stringResource(Res.string.share_by_weight)),
-                Triple(ShareMode.PERCENT, "%", stringResource(Res.string.share_by_percent)),
-                Triple(ShareMode.FIXED, currencyLabel, stringResource(Res.string.share_fixed_amount)),
-            )
-            modes.forEachIndexed { index, (mode, label, description) ->
-                SegmentedButton(
-                    selected = state.mode == mode,
-                    onClick = { state.mode = mode },
-                    shape = SegmentedButtonDefaults.itemShape(index, modes.size),
-                    icon = {},
-                    modifier = Modifier.semantics { contentDescription = description },
-                ) { Text(label) }
-            }
-        }
+        val modes = listOf(
+            Choice(ShareMode.WEIGHT, stringResource(Res.string.share_by_weight), stringResource(Res.string.share_by_weight)),
+            Choice(ShareMode.PERCENT, "%", stringResource(Res.string.share_by_percent)),
+            Choice(ShareMode.FIXED, currencyLabel, stringResource(Res.string.share_fixed_amount)),
+        )
+        SegmentedChoice(modes, state.mode, { state.mode = it })
         when (state.mode) {
             ShareMode.WEIGHT -> {
                 Text(sharesText(state.weight), style = MaterialTheme.typography.titleMedium)
