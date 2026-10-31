@@ -2,8 +2,8 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.Rejection
 
 /** The user's changes to the open band: applied here at once, then sent by [sync]. */
 class Changes(private val bands: BandRepository, private val sync: SyncEngine) {

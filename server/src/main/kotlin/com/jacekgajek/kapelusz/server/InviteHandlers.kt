@@ -9,14 +9,14 @@ import com.jacekgajek.kapelusz.api.InvitesResponse
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.Viewers
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.OpEnvelope
-import com.jacekgajek.kapelusz.ops.RejectionReason
 import java.security.SecureRandom
 
 /** Invite codes: leaders create them for an unlinked member, and whoever has the code joins the band as that member. */

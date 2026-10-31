@@ -65,9 +65,9 @@ import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.describe
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
+import com.jacekgajek.kapelusz.history.BandChange
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import kotlin.time.Instant
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime

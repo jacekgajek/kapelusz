@@ -6,9 +6,9 @@ import com.jacekgajek.kapelusz.app.ui.screens.pendingUndoLine
 import com.jacekgajek.kapelusz.app.ui.screens.stillPending
 import com.jacekgajek.kapelusz.app.ui.screens.undoTargets
 import com.jacekgajek.kapelusz.app.ui.screens.withPending
-import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.BandPart
-import com.jacekgajek.kapelusz.ops.OpEnvelope
+import com.jacekgajek.kapelusz.history.BandChange
+import com.jacekgajek.kapelusz.history.BandPart
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo

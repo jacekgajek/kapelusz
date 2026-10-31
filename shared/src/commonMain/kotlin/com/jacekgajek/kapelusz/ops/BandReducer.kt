@@ -9,6 +9,7 @@ import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 
 /** The band itself: name, fund settings and payment details, agenda template, ownership, deletion. Pure state transitions and their validation; see [Reducer]. */

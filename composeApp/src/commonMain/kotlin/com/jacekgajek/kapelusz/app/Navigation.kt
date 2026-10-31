@@ -78,7 +78,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
-import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.model.RejectionReason
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 

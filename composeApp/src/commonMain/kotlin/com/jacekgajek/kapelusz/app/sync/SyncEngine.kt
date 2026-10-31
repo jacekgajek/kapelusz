@@ -7,11 +7,11 @@ import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.Limits
-import com.jacekgajek.kapelusz.ops.OpEnvelope
-import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.Undo
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException

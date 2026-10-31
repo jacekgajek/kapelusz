@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.sync
 
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.model.KapeluszJson
-import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.OpEnvelope
+import com.jacekgajek.kapelusz.history.BandChange
+import com.jacekgajek.kapelusz.history.KapeluszJson
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement

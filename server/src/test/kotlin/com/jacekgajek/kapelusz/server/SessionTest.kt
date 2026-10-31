@@ -4,7 +4,7 @@ import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.ErrorResponse
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.SessionResponse
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

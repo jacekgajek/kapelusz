@@ -99,9 +99,9 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Rejection
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.Rejection
-import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay

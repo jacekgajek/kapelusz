@@ -5,9 +5,9 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddHolding

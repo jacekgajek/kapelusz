@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.ops
 
+import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Id
 import kotlinx.serialization.SerialName
@@ -8,16 +9,6 @@ import kotlinx.serialization.Serializable
 /** Patch field: `null` means "leave unchanged", `Change(x)` means "set to x" (x itself may be null). */
 @Serializable
 data class Change<out T>(val value: T)
-
-/** An operation as queued by a client and pushed to the server. */
-@Serializable
-data class OpEnvelope(
-    val opId: Id,
-    val clientId: String,
-    val seq: Long,
-    val timestamp: Long,
-    val op: Operation,
-)
 
 /** Every state change is one of these. Ops carry entity ids and only the changed fields. */
 @Serializable

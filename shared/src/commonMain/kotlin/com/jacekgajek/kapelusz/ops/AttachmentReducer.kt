@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.allAttachments
 
 /** Files on costs, received-money entries and events. Pure state transitions and their validation; see [Reducer]. */

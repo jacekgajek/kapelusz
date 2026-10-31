@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.model
+package com.jacekgajek.kapelusz.history
 
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.UnknownOperation

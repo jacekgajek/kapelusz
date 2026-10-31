@@ -1,11 +1,11 @@
 package com.jacekgajek.kapelusz.api
 
+import com.jacekgajek.kapelusz.history.BandChange
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.OpEnvelope
-import com.jacekgajek.kapelusz.ops.Rejection
 import kotlinx.serialization.Serializable
 
 /** Request and response bodies of the HTTP API (ITERATION_1 §5.3), shared by the server and the apps. */

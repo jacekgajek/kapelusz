@@ -8,11 +8,11 @@ import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Rejection
+import com.jacekgajek.kapelusz.model.RejectionCode
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.Rejection
-import com.jacekgajek.kapelusz.ops.RejectionCode
-import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RenameAttachment
 import kotlin.io.encoding.Base64

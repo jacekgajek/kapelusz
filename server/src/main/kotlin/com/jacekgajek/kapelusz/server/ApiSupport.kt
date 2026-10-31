@@ -2,7 +2,7 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.ErrorResponse
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter

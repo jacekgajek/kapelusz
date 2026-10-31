@@ -1,7 +1,5 @@
-package com.jacekgajek.kapelusz.ops
+package com.jacekgajek.kapelusz.model
 
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -78,21 +76,6 @@ enum class RejectionReason {
 @Serializable
 data class Rejection(val code: RejectionCode, val message: String, val reason: RejectionReason = RejectionReason.INVALID_INPUT)
 
-class RejectedException(val rejection: Rejection) : Exception(rejection.message)
-
-internal fun reject(code: RejectionCode, reason: RejectionReason, message: String): Nothing = throw RejectedException(Rejection(code, message, reason))
-
-/** Throws when [condition] holds; so after it returns, the condition is known to be false (a `null` check smart-casts). */
-@OptIn(ExperimentalContracts::class)
-internal fun invalidIf(condition: Boolean, reason: RejectionReason, message: () -> String) {
-    contract { returns() implies !condition }
-    if (condition) reject(RejectionCode.INVALID, reason, message())
-}
-
-@OptIn(ExperimentalContracts::class)
-internal fun conflictIf(condition: Boolean, reason: RejectionReason, message: () -> String) {
-    contract { returns() implies !condition }
-    if (condition) reject(RejectionCode.CONFLICT, reason, message())
-}
-
-internal fun <T : Any> T?.orNotFound(what: () -> String): T = this ?: reject(RejectionCode.NOT_FOUND, RejectionReason.NOT_FOUND, "${what()} not found")
+/** A refusal remembered in [Band.recentRejections]. */
+@Serializable
+data class RecordedRejection(val opId: Id, val rejection: Rejection)

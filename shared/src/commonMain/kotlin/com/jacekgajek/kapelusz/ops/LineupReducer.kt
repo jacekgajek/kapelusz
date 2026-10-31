@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** Who takes part in an event, and with what share. Pure state transitions and their validation; see [Reducer]. */
 internal object LineupReducer {

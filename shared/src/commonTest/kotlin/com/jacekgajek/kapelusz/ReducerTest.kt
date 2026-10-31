@@ -1,11 +1,14 @@
 package com.jacekgajek.kapelusz
 
 import com.jacekgajek.kapelusz.auth.Actor
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Refund
+import com.jacekgajek.kapelusz.model.RejectionCode
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddGuest
@@ -17,10 +20,7 @@ import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.Engine
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.ops.RejectionCode
-import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetFundAmount
@@ -198,7 +198,7 @@ class ReducerTest {
         scenario.apply(AddCost("later", "bob", pln("20"), DATE))
         // Archived events are read-only (ITERATION_3 R10): not even a cost can be assigned to one.
         assertEquals(
-            com.jacekgajek.kapelusz.ops.RejectionReason.ARCHIVED_EVENT,
+            com.jacekgajek.kapelusz.model.RejectionReason.ARCHIVED_EVENT,
             scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason,
         )
     }

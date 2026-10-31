@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Refund
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** What an event pays out before the shares: cost refunds and the band fund's cut. Pure state transitions and their validation; see [Reducer]. */
 internal object MoneyReducer {

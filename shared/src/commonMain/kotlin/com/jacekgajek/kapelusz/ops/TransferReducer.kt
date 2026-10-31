@@ -9,6 +9,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Transfer
 
 /** Money handed between parties to settle an event, by hand or from the suggestions. Pure state transitions and their validation; see [Reducer]. */

@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Refund
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** Money paid into the band fund, or refunded from it. Pure state transitions and their validation; see [Reducer]. */
 internal object FundReducer {

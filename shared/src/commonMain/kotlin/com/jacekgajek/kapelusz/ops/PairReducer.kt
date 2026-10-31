@@ -4,6 +4,7 @@ import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** Settling together (ITERATION_5 §7): invitations and pairs. Pure state transitions and their validation; see [Reducer]. */
 internal object PairReducer {

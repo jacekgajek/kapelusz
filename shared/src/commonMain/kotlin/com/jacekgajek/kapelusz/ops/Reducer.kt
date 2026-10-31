@@ -4,9 +4,15 @@ import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.RejectionCode
+import com.jacekgajek.kapelusz.model.RejectionReason
+import com.jacekgajek.kapelusz.model.Role
 
 /** Who applies an operation, and when. [memberId] is null for server-internal (system) operations. */
-data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?)
+data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?) {
+    /** The system (no member) acts as a lead; so does a lead or the owner. */
+    internal fun actsAsLead(band: Band): Boolean = memberId == null || band.member(memberId)?.role?.atLeast(Role.LEAD) == true
+}
 
 /**
  * Pure state transitions with data validation. Permissions are checked separately by

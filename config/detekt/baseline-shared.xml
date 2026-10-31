@@ -158,8 +158,8 @@
     <ID>MaxLineLength:ReducerTest.kt:ReducerTest$.</ID>
     <ID>MaxLineLength:ReducerTest.kt:ReducerTest$assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig")).reason)</ID>
     <ID>MaxLineLength:ReducerTest.kt:ReducerTest$val</ID>
-    <ID>MaxLineLength:Rejection.kt:internal fun &lt;T : Any> T?.orNotFound: T</ID>
-    <ID>MaxLineLength:Rejection.kt:internal fun reject: Nothing</ID>
+    <ID>MaxLineLength:RejectedException.kt:internal fun &lt;T : Any> T?.orNotFound: T</ID>
+    <ID>MaxLineLength:RejectedException.kt:internal fun reject: Nothing</ID>
     <ID>MaxLineLength:RosterReducer.kt:RosterReducer$conflictIf(!MemberDeletion.possible(band, member.id), RejectionReason.MEMBER_HAS_HISTORY) { "Something in the band refers to this member; archive instead" }</ID>
     <ID>MaxLineLength:RosterReducer.kt:RosterReducer$invalidIf(op.archived &amp;&amp; band.treasurerMemberId == op.memberId, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }</ID>
     <ID>MaxLineLength:RosterReducer.kt:RosterReducer$return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null, blikPhone = null, bankAccount = null) }</ID>
