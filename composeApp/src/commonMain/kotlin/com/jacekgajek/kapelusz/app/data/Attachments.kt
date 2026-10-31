@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Attaching files to costs, collected entries and events (ITERATION_4 §2.1), renaming, removing and opening them (moved
- * out of [AppGraph], ITERATION_3 R12).
+ * out of [AppRuntime], ITERATION_3 R12).
  */
 class Attachments(
     private val bands: BandRepository,

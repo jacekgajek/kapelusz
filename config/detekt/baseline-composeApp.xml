@@ -83,7 +83,6 @@
     <ID>MaxLineLength:Agenda.kt:fun</ID>
     <ID>MaxLineLength:AgendaTemplateEditor.kt:TextButton(enabled = drafts.all { it.text.isNotBlank() } &amp;&amp; (items != template || toDefaults), onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }</ID>
     <ID>MaxLineLength:AgendaTemplateEditor.kt:if (drafts.size &lt; AgendaTime.MAX_TIMES) TextButton(onClick = { drafts = drafts + TemplateDraft(null, "") }) { Text(stringResource(Res.string.agenda_add_time)) }</ID>
-    <ID>MaxLineLength:AndroidAppGraph.kt:AndroidAppGraph$return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth, messageChannel = FirebaseMessageChannel(app)).also { instance = it }</ID>
     <ID>MaxLineLength:AndroidGoogleAuth.kt:AndroidGoogleAuth$internal suspend fun signIn: String?</ID>
     <ID>MaxLineLength:AndroidGoogleAuth.kt:AndroidGoogleAuth$val activity = activity.get()?.takeIf { (it as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != false } ?: return null</ID>
     <ID>MaxLineLength:AndroidGoogleAuth.kt:AndroidGoogleAuth$val result = CredentialManager.create(activity).getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())</ID>
@@ -101,7 +100,6 @@
     <ID>MaxLineLength:App.kt:text = { Text(stringResource(if (reason == LinkedEvent.Unreachable) Res.string.event_link_offline else Res.string.event_link_no_access)) }</ID>
     <ID>MaxLineLength:AppBanner.kt:StoreUpdateState.AVAILABLE -> stringResource(Res.string.store_update_available) to (Res.string.app_update_download to updates::download)</ID>
     <ID>MaxLineLength:AppBanner.kt:StoreUpdateState.DOWNLOADED -> stringResource(Res.string.store_update_ready) to (Res.string.store_update_restart to updates::install)</ID>
-    <ID>MaxLineLength:AppGraph.kt:AppGraph$private</ID>
     <ID>MaxLineLength:ArtistSections.kt:Row</ID>
     <ID>MaxLineLength:AttachmentViewer.kt:BytesImage(file.bytes, attachment.id, ContentScale.Fit, Modifier.fillMaxSize().zoomable(remember { ZoomState() }))</ID>
     <ID>MaxLineLength:AttachmentViewer.kt:IconButton(onClick = { onRename(current) }) { Icon(Icons.Default.Edit, stringResource(Res.string.attachment_rename), tint = Color.White) }</ID>

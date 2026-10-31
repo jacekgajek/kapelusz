@@ -8,7 +8,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.jacekgajek.kapelusz.app.AndroidAppGraph
+import com.jacekgajek.kapelusz.app.AndroidAppRuntime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -20,9 +20,7 @@ import kotlinx.coroutines.withContext
 class BackgroundSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     // On the main thread: band data is only ever touched there (the UI, the foreground sync), never concurrently.
     override suspend fun doWork(): Result = withContext(Dispatchers.Main) {
-        val graph = AndroidAppGraph.get(applicationContext)
-        if (graph.loadForBackground() == null) return@withContext Result.success()
-        if (graph.sync.syncAll()) Result.success() else Result.retry()
+        if (AndroidAppRuntime.get(applicationContext).syncInBackground()) Result.success() else Result.retry()
     }
 
     companion object {

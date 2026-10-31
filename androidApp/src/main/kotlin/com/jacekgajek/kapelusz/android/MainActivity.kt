@@ -19,7 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jacekgajek.kapelusz.app.AndroidAppGraph
+import com.jacekgajek.kapelusz.app.AndroidAppRuntime
 import com.jacekgajek.kapelusz.app.App
 import com.jacekgajek.kapelusz.app.AppLoading
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
@@ -27,20 +27,20 @@ import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
 import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
-    private val graph by lazy { AndroidAppGraph.get(this) }
+    private val runtime by lazy { AndroidAppRuntime.get(this) }
 
     // Sync only while the app is visible.
     override fun onStart() {
         super.onStart()
         // The screen in front is the one Google's sign-in UI uses (also after another one was closed).
         AndroidGoogleAuth.activity = WeakReference(this)
-        if (graph.sessions.session.value != null) graph.sync.start()
+        runtime.onForeground()
     }
 
     override fun onStop() {
-        graph.sync.stop()
+        runtime.onBackground()
         // Changes not sent yet go out as soon as there is a network.
-        if (graph.hasUnsentWork()) BackgroundSyncWorker.syncSoon(this)
+        if (runtime.hasUnsentWork()) BackgroundSyncWorker.syncSoon(this)
         super.onStop()
     }
 
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
                 results.filter { it !is PickResult.Picked },
                 tooMany = (uris.size - MAX_EVENT_ATTACHMENTS).coerceAtLeast(0),
             )
-            graph.intents.offer(AppIntent.ShareFiles(shared))
+            runtime.intents.offer(AppIntent.ShareFiles(shared))
         }
     }
 
@@ -79,8 +79,8 @@ class MainActivity : ComponentActivity() {
      */
     private fun takeJoinCode(intent: Intent?) {
         val path = intent?.data?.path ?: return
-        Regex("^/join/([A-Za-z0-9]{6})/?$").find(path)?.let { graph.intents.offer(AppIntent.Join(it.groupValues[1].uppercase())) }
-        EventLinks.eventId(path)?.let { graph.intents.offer(AppIntent.OpenEvent(it)) }
+        Regex("^/join/([A-Za-z0-9]{6})/?$").find(path)?.let { runtime.intents.offer(AppIntent.Join(it.groupValues[1].uppercase())) }
+        EventLinks.eventId(path)?.let { runtime.intents.offer(AppIntent.OpenEvent(it)) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,11 +94,11 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             var loaded by remember { mutableStateOf(false) }
-            LaunchedEffect(graph) {
-                graph.load()
+            LaunchedEffect(runtime) {
+                runtime.load()
                 loaded = true
             }
-            if (loaded) App(graph) else AppLoading()
+            if (loaded) App(runtime) else AppLoading()
         }
     }
 }

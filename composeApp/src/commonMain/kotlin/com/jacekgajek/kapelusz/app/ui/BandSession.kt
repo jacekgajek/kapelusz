@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import com.jacekgajek.kapelusz.app.data.Account
-import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
@@ -30,7 +30,7 @@ import com.jacekgajek.kapelusz.view.BandView
  * What a screen may do is [can], asked once per state rather than rebuilt in every composable.
  */
 @Stable
-class BandSession(val state: BandState.Ready, private val graph: AppGraph) {
+class BandSession(val state: BandState.Ready, private val runtime: AppRuntime) {
     val view: BandView get() = state.view
     val band: Band get() = state.band
     val userId: String get() = state.userId
@@ -43,29 +43,29 @@ class BandSession(val state: BandState.Ready, private val graph: AppGraph) {
     /** Sees only their own events, costs and payouts (ITERATION_4 §1.1). */
     val artist: Boolean = band.isArtist(userId)
 
-    val changes: Changes get() = graph.changes
-    val bands: BandRepository get() = graph.bands
-    val settings: SettingsRepository get() = graph.settings
-    val intents: IntentInbox get() = graph.intents
-    val attachments: Attachments get() = graph.attachments
-    val account: Account get() = graph.account
-    val membership: Membership get() = graph.membership
+    val changes: Changes get() = runtime.changes
+    val bands: BandRepository get() = runtime.bands
+    val settings: SettingsRepository get() = runtime.settings
+    val intents: IntentInbox get() = runtime.intents
+    val attachments: Attachments get() = runtime.attachments
+    val account: Account get() = runtime.account
+    val membership: Membership get() = runtime.membership
 
     // What a screen may ask the server (sync/ScreenApis.kt): the parts, never the whole client.
-    val placesApi: PlacesApi get() = graph.api
-    val invitesApi: InvitesApi get() = graph.api
-    val historyApi: HistoryApi get() = graph.api
-    val calendarApi: CalendarApi get() = graph.api
-    val rawStateApi: RawStateApi get() = graph.api
+    val placesApi: PlacesApi get() = runtime.api
+    val invitesApi: InvitesApi get() = runtime.api
+    val historyApi: HistoryApi get() = runtime.api
+    val calendarApi: CalendarApi get() = runtime.api
+    val rawStateApi: RawStateApi get() = runtime.api
 
     /** Where event locations are, for the map (ITERATION_7 §8). */
-    val locations: PlacesLocator get() = graph.locations
+    val locations: PlacesLocator get() = runtime.locations
 
     /** A round of sync now, e.g. before reading the server's history, so it has what this device changed. */
     suspend fun syncNow() {
-        graph.sync.syncNow()
+        runtime.sync.syncNow()
     }
 }
 
 @Composable
-fun rememberBandSession(state: BandState.Ready, graph: AppGraph): BandSession = remember(state, graph) { BandSession(state, graph) }
+fun rememberBandSession(state: BandState.Ready, runtime: AppRuntime): BandSession = remember(state, runtime) { BandSession(state, runtime) }

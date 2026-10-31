@@ -18,7 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.LinkedEvent
@@ -42,14 +42,14 @@ import org.jetbrains.compose.resources.stringResource
  * dialogs on the way (join, "Opening the event…", "no access", "Attach to…") are this one's.
  */
 @Composable
-internal fun IntentRouter(graph: AppGraph, bandState: BandState, navigator: BandNavigator) {
-    val inbox = graph.intents
+internal fun IntentRouter(runtime: AppRuntime, bandState: BandState, navigator: BandNavigator) {
+    val inbox = runtime.intents
     val pending by inbox.pending.collectAsState()
     // Kept here, not in the opening: taking the intent ends that, and the reason must stay until read.
     var failed by remember { mutableStateOf<LinkedEvent?>(null) }
     pending.filterIsInstance<AppIntent.Join>().firstOrNull()?.let { join ->
         JoinDialog(
-            membership = graph.membership,
+            membership = runtime.membership,
             initialCode = join.code,
             onJoined = {
                 inbox.take(join)
@@ -60,12 +60,12 @@ internal fun IntentRouter(graph: AppGraph, bandState: BandState, navigator: Band
         )
     }
     pending.filterIsInstance<AppIntent.OpenEvent>().firstOrNull()?.let { open ->
-        EventOpening(graph, open, navigator, onFail = { failed = it })
+        EventOpening(runtime, open, navigator, onFail = { failed = it })
     }
     val ready = bandState as? BandState.Ready
     pending.filterIsInstance<AppIntent.ShareFiles>().firstOrNull()?.let { share ->
         if (ready != null) {
-            SharedFilesDialog(share.files, graph.bands, ready, onChoose = {
+            SharedFilesDialog(share.files, runtime.bands, ready, onChoose = {
                 inbox.take(share)
                 inbox.offer(it)
             }, onDismiss = { inbox.take(share) })
@@ -89,11 +89,11 @@ internal fun IntentRouter(graph: AppGraph, bandState: BandState, navigator: Band
  * them has it for the user. Files to attach are attached once the band is open, before its screens are set up.
  */
 @Composable
-private fun EventOpening(graph: AppGraph, open: AppIntent.OpenEvent, navigator: BandNavigator, onFail: (LinkedEvent) -> Unit) {
-    val inbox = graph.intents
+private fun EventOpening(runtime: AppRuntime, open: AppIntent.OpenEvent, navigator: BandNavigator, onFail: (LinkedEvent) -> Unit) {
+    val inbox = runtime.intents
     val failed by rememberUpdatedState(onFail)
     LaunchedEffect(open) {
-        val bandId = open.bandId ?: when (val found = graph.linkedEvent(open.eventId)) {
+        val bandId = open.bandId ?: when (val found = runtime.linkedEvent(open.eventId)) {
             is LinkedEvent.Found -> found.bandId
 
             else -> {
@@ -103,7 +103,7 @@ private fun EventOpening(graph: AppGraph, open: AppIntent.OpenEvent, navigator: 
         }
         // The band can be gone by the time it opens (deleted, access lost): then nothing more happens.
         if (bandId != null && navigator.openBand(bandId, forScreens = true)) {
-            when (val carry = open.carry?.let { if (it is Carry.Attach) attach(graph.attachments, it) else it }) {
+            when (val carry = open.carry?.let { if (it is Carry.Attach) attach(runtime.attachments, it) else it }) {
                 is Carry.NewCost -> navigator.showNewCost(open.eventId, inbox.hold(carry))
                 else -> navigator.showEvent(open.eventId, open.section, carry?.let(inbox::hold))
             }

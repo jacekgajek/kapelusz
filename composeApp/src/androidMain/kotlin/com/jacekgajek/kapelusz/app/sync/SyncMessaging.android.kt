@@ -8,7 +8,7 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.jacekgajek.kapelusz.app.AndroidAppGraph
+import com.jacekgajek.kapelusz.app.AndroidAppRuntime
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import java.security.SecureRandom
 import kotlin.coroutines.resume
@@ -67,11 +67,11 @@ class SyncMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val bandId = message.data["band"] ?: return
         // Firebase calls on a thread of its own; the sync engine lives on the main one.
-        val graph = AndroidAppGraph.get(applicationContext)
-        Handler(Looper.getMainLooper()).post { graph.sync.bandChanged(bandId) }
+        val runtime = AndroidAppRuntime.get(applicationContext)
+        Handler(Looper.getMainLooper()).post { runtime.onMessage(bandId) }
     }
 
     override fun onNewToken(token: String) {
-        AndroidAppGraph.get(applicationContext).devices.tokenChanged()
+        AndroidAppRuntime.get(applicationContext).onNewToken()
     }
 }
