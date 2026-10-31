@@ -81,7 +81,7 @@ class FundEntryFormTest {
         val form = form(repository)
         form.amount = "20"
         form.description = "Fee"
-        form.choosePeople(setOf("bob", "carol", me(repository)))
+        form.choosePeople(band(repository), setOf("bob", "carol", me(repository)))
         assertEquals(listOf(me(repository), "bob", "carol"), form.payers, "in the people's order")
         assertEquals(3, form.operations().size)
         // Bob's entry is refused (e.g. the server's limit): Alice's went through, Bob and Carol stay ticked.
@@ -102,11 +102,15 @@ class FundEntryFormTest {
         assertEquals("40.00", form.amount)
         assertEquals("Cable", form.description)
         assertTrue(form.ready)
-        form.description = "Bob's cable"
         assertNull(repository.dispatch(AddCost("c2", "carol", Money.parse("15"), today, description = "Strings")))
         form.pickCost(band(repository), "c2")
         assertEquals("15.00", form.amount)
-        assertEquals("Bob's cable", form.description, "what the user typed stays")
+        assertEquals("Strings", form.description, "the name filled in follows the cost picked")
+        form.description = "Carol's strings"
+        form.pickCost(band(repository), "c1")
+        assertEquals("40.00", form.amount)
+        assertEquals("Carol's strings", form.description, "what the user typed stays")
+        form.pickCost(band(repository), "c2")
         assertNull(form.save { repository.dispatch(it) })
         val entry = band(repository).fundEntries.single()
         assertEquals(Money.parse("-15"), entry.amount)
@@ -121,7 +125,7 @@ class FundEntryFormTest {
         form.amount = "10"
         form.description = "Something"
         assertFalse(form.ready)
-        assertEquals(listOf("c1"), form.pendingCosts.map { it.id })
+        assertEquals(listOf("c1"), form.pendingCosts(band(repository)).map { it.id })
         form.pickCost(band(repository), "c1")
         assertTrue(form.ready)
     }
@@ -134,7 +138,7 @@ class FundEntryFormTest {
         assertFalse(form.isNew)
         assertEquals("50.00", form.amount)
         assertEquals(listOf("bob"), form.payers)
-        form.choosePeople(setOf("carol"))
+        form.choosePeople(band(repository), setOf("carol"))
         val sent = mutableListOf<Operation>()
         assertNull(
             form.save {

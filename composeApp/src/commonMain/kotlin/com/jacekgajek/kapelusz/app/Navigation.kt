@@ -64,9 +64,11 @@ import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.rememberBandSession
+import com.jacekgajek.kapelusz.app.ui.screenViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.BandFundScreen
 import com.jacekgajek.kapelusz.app.ui.screens.CostScreen
 import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
+import com.jacekgajek.kapelusz.app.ui.screens.FundEntryViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryScreen
 import com.jacekgajek.kapelusz.app.ui.screens.MyCostsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.NewBandScreen
@@ -74,6 +76,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.PlayedScreen
 import com.jacekgajek.kapelusz.app.ui.screens.RosterScreen
 import com.jacekgajek.kapelusz.app.ui.screens.SettleScreen
 import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
+import com.jacekgajek.kapelusz.app.ui.screens.costViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
@@ -170,6 +173,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     BandFundScreen(
                         session,
                         navigator,
+                        entries = entry.screenViewModel { FundEntryViewModel() },
                         addedCost = addedCost,
                         onAddedCostSeen = { entry.savedStateHandle[AppNavigator.ADDED_COST] = null },
                     )
@@ -190,7 +194,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     BackToEvents(navController)
                     return@composable
                 }
-                CostScreen(session, route, navigator)
+                CostScreen(session, navigator, form = entry.screenViewModel(costViewModel(session, route, language)))
             }
             composable<SettingsRoute> { entry ->
                 val page = entry.toRoute<SettingsRoute>().page?.let { name -> SettingsPage.entries.firstOrNull { it.name == name } }

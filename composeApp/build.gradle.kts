@@ -137,7 +137,6 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.navigation.compose)
-            implementation(libs.lifecycle.viewmodel.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
             // Google photos of members (ITERATION_2 §7.4).

@@ -57,7 +57,7 @@ class FundEntryViewModel : ViewModel() {
 
     /**
      * A cost just added from here (the + beside the costs to refund) comes back to be refunded in a new entry; not
-     * when there is nothing left to refund (e.g. a lead's cost for an event, refunded there at once). True when opened.
+     * when there is nothing left to refund (e.g. a lead's cost for an event, refunded there at once).
      */
     fun refundAddedCost(
         band: Band,
@@ -67,11 +67,9 @@ class FundEntryViewModel : ViewModel() {
         today: LocalDate,
         amountText: (Money) -> String,
         costName: (Cost) -> String,
-    ): Boolean {
-        val cost = band.cost(costId) ?: return false
-        if (!CostLedger.outstanding(band, cost).isPositive) return false
-        add(band, me, refundsCosts, today, amountText, costName, refund = costId)
-        return true
+    ) {
+        val cost = band.cost(costId) ?: return
+        if (CostLedger.outstanding(band, cost).isPositive) add(band, me, refundsCosts, today, amountText, costName, refund = costId)
     }
 
     /**
@@ -80,7 +78,7 @@ class FundEntryViewModel : ViewModel() {
      * who was saved already no longer ticked (no doubles on a retry), and the refusal is returned.
      */
     fun save(dispatch: (Operation) -> Rejection?): Rejection? {
-        val form = form ?: return null
+        val form = form?.takeIf { it.ready } ?: return null
         val refused = form.save(dispatch)
         if (refused == null) this.form = null
         return refused
@@ -112,12 +110,6 @@ class FundEntryForm(
 ) {
     val isNew: Boolean get() = initial == null
 
-    /** Who can have paid in: members who may hold money, alphabetical. */
-    val people: List<Member> = band.members.filter { !it.archived && it.role != Role.VIEWER }.sortedByName { it.name }
-
-    /** Costs with something left to refund; refunding is only offered for new entries, the link cannot change later. */
-    val pendingCosts: List<Cost> = band.costs.filter { CostLedger.outstanding(band, it).isPositive }
-
     private val refundCost: Cost? = refund?.let { band.cost(it) }
 
     /** Money in (true) or out: a refund. */
@@ -135,13 +127,21 @@ class FundEntryForm(
     private var filled by mutableStateOf(refundCost?.let(costName))
 
     /** Who paid it in: members, or null for outside the band. The one adding it by default. */
-    var payers by mutableStateOf(if (initial != null) listOf(initial.paidBy) else listOf(me?.takeIf { id -> people.any { it.id == id } }))
+    var payers by mutableStateOf(
+        if (initial != null) listOf(initial.paidBy) else listOf(me?.takeIf { id -> people(band).any { it.id == id } }),
+    )
 
     var choosingPeople by mutableStateOf(false)
 
     val parsed: Money? by derivedStateOf { parseMoney(amount)?.takeIf { it.isPositive } }
     private val signed: Money? get() = parsed?.let { if (incoming) it else -it }
     val ready: Boolean by derivedStateOf { signed != null && description.isNotBlank() && (incoming || costId != null) }
+
+    /** Who can have paid in, as the band is now: members who may hold money, alphabetical. */
+    fun people(band: Band): List<Member> = band.members.filter { !it.archived && it.role != Role.VIEWER }.sortedByName { it.name }
+
+    /** Costs with something left to refund now; refunding is only offered for new entries, the link cannot change later. */
+    fun pendingCosts(band: Band): List<Cost> = band.costs.filter { CostLedger.outstanding(band, it).isPositive }
 
     /** The cost to refund: its outstanding amount, and its name unless the user typed a description. */
     fun pickCost(band: Band, id: String?) {
@@ -155,8 +155,8 @@ class FundEntryForm(
     }
 
     /** Who paid: from the people dialog; nobody chosen keeps the previous choice. */
-    fun choosePeople(chosen: Set<String>) {
-        if (chosen.isNotEmpty()) payers = people.map { it.id }.filter { it in chosen }
+    fun choosePeople(band: Band, chosen: Set<String>) {
+        if (chosen.isNotEmpty()) payers = people(band).map { it.id }.filter { it in chosen }
     }
 
     /** What Save sends: one entry per payer for money in, a refund, or only the changed fields of an existing entry. */
@@ -180,9 +180,9 @@ class FundEntryForm(
         }
     }
 
-    /** Runs [operations] in order; stops at the first refusal, dropping the payers saved before it. */
+    /** Runs [operations] in order; stops at the first refusal, dropping the payers saved before it. Only when [ready]. */
     fun save(dispatch: (Operation) -> Rejection?): Rejection? {
-        if (!ready) return null
+        check(ready) { "Save is offered only when the form is ready" }
         val ops = operations()
         for ((index, op) in ops.withIndex()) {
             val refused = dispatch(op) ?: continue

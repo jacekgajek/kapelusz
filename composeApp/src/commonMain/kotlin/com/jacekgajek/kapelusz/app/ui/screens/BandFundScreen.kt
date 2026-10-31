@@ -42,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
@@ -130,7 +129,7 @@ fun BandFundScreen(
     /** A cost just added from here (the + beside the costs to refund), to refund (ITERATION_7 §5.1); [onAddedCostSeen] once its dialog is open. */
     addedCost: String? = null,
     onAddedCostSeen: () -> Unit = {},
-    entries: FundEntryViewModel = viewModel(),
+    entries: FundEntryViewModel,
 ) {
     val state = session.state
     val changes = session.changes
@@ -261,7 +260,10 @@ fun BandFundScreen(
                         val entry = row.entry
                         val editable = canEdit && can.allowed(UpdateFundEntry(entry.id))
                         val edit = { entries.edit(band, entry, me, today(), amountText, costName) }
-                        Row(Modifier.fillMaxWidth().clickable(enabled = editable, onClick = edit).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            Modifier.fillMaxWidth().clickable(enabled = editable, onClick = edit).padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Column(Modifier.weight(1f)) {
                                 Text(entry.description)
                                 // Who paid it in, or whose cost it paid back: the description alone ("Cable") doesn't say.
@@ -382,9 +384,9 @@ private fun FundEntryDialog(
     )
     if (form.choosingPeople) {
         PeopleDialog(
-            people = form.people,
+            people = form.people(band),
             initial = form.payers.filterNotNull().toSet(),
-            onDone = form::choosePeople,
+            onDone = { form.choosePeople(band, it) },
             onDismiss = { form.choosingPeople = false },
         )
     }
@@ -396,7 +398,7 @@ private fun PayersField(form: FundEntryForm, band: Band) {
     val outside = stringResource(Res.string.fund_outside)
     fun name(id: String?) = if (id == null) outside else band.member(id)?.name.orEmpty()
     val payers = form.payers
-    val options = (form.people.map { listOf<String?>(it.id) } + listOf(listOf<String?>(null)))
+    val options = (form.people(band).map { listOf<String?>(it.id) } + listOf(listOf<String?>(null)))
         .let { if (payers.size == 1 && payers !in it) listOf(payers) + it else it }
     val several = stringResource(Res.string.fund_people, payers.size)
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -422,9 +424,10 @@ private fun CostField(form: FundEntryForm, band: Band, onAddCost: (() -> Unit)?)
         val outstanding = formatMoney(CostLedger.outstanding(band, cost), band.currency, lang)
         return "${band.member(cost.memberId)?.name.orEmpty()}: ${form.costName(cost)} · $outstanding"
     }
+    val pending = form.pendingCosts(band)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Dropdown(form.costId, form.pendingCosts.map { it.id }, { form.pickCost(band, it) }, label, Modifier.weight(1f)) { id ->
+            Dropdown(form.costId, pending.map { it.id }, { form.pickCost(band, it) }, label, Modifier.weight(1f)) { id ->
                 id?.let { band.cost(it) }?.let(::describe) ?: choose
             }
             if (onAddCost != null) {
@@ -433,7 +436,7 @@ private fun CostField(form: FundEntryForm, band: Band, onAddCost: (() -> Unit)?)
                 }
             }
         }
-        if (form.pendingCosts.isEmpty()) Text(stringResource(Res.string.fund_no_costs), style = MaterialTheme.typography.bodySmall)
+        if (pending.isEmpty()) Text(stringResource(Res.string.fund_no_costs), style = MaterialTheme.typography.bodySmall)
     }
 }
 
