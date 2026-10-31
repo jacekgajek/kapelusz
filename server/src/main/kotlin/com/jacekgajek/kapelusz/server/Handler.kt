@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.server.lambda
+package com.jacekgajek.kapelusz.server
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
@@ -13,18 +13,11 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.rules.Actor
-import com.jacekgajek.kapelusz.server.Api
-import com.jacekgajek.kapelusz.server.HttpRequest
-import com.jacekgajek.kapelusz.server.HttpResponse
-import com.jacekgajek.kapelusz.server.ServerConfig
 import com.jacekgajek.kapelusz.server.auth.GoogleTokenVerifier
-import com.jacekgajek.kapelusz.server.decode
 import com.jacekgajek.kapelusz.server.links.NoWebIndex
 import com.jacekgajek.kapelusz.server.links.S3WebIndex
-import com.jacekgajek.kapelusz.server.malformedQuery
 import com.jacekgajek.kapelusz.server.messaging.FcmSender
 import com.jacekgajek.kapelusz.server.messaging.StoredServiceAccount
-import com.jacekgajek.kapelusz.server.parseQuery
 import com.jacekgajek.kapelusz.server.places.GooglePlaceSearch
 import com.jacekgajek.kapelusz.server.store.CallTimer
 import com.jacekgajek.kapelusz.server.store.DynamoGeocodeCache
@@ -32,7 +25,6 @@ import com.jacekgajek.kapelusz.server.store.DynamoHistoryStore
 import com.jacekgajek.kapelusz.server.store.S3BlobStore
 import com.jacekgajek.kapelusz.server.store.StorageKeys
 import com.jacekgajek.kapelusz.server.store.TimedBlobStore
-import com.jacekgajek.kapelusz.server.unhandled
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -99,6 +91,8 @@ fun acceptsGzip(acceptEncoding: String?): Boolean {
 }
 
 /** Lambda entry point (`com.jacekgajek.kapelusz.server.Handler::handleRequest`). */
+// The Lambda is configured with this class's fully qualified name (`com.jacekgajek.kapelusz.server.Handler::handleRequest`,
+// in the infrastructure repository): moving or renaming it takes the API down until the function is reconfigured.
 class Handler : RequestStreamHandler {
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context?) {

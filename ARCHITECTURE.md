@@ -139,7 +139,7 @@ store/        BlobStore (S3, files, memory), HistoryStore (DynamoDB, files, memo
 auth/         token verification (Google), sessions and their revocation
 users/ bands/ history/ invites/ attachments/ calendar/ places/ links/ devices/ messaging/
               one package per resource: a records or access class over the store, and the handlers over it
-lambda/       the API Gateway adapter and SnapStart priming
+Handler.kt    the API Gateway adapter and SnapStart priming; its fully qualified name is what the Lambda is configured with
 ```
 
 - A request is authenticated, then matched against the route table; the handler gets a `Call` (request, user, path
@@ -153,7 +153,7 @@ lambda/       the API Gateway adapter and SnapStart priming
   `BandChanged.after`, called from the four handlers that change a band, in one fixed order.
 - Sync messages are Firebase data messages carrying only a band id, to the other members' devices; the sender's own
   device is left out. No user-facing notifications.
-- Configuration (`ServerConfig`) and environment variables are read in exactly two places: `lambda/Handler` and
+- Configuration (`ServerConfig`) and environment variables are read in exactly two places: `Handler` and
   `localServer`'s `main`. Tests build `Api` with in-memory stores and defaults.
 
 ## 5. Tests, and where to look
