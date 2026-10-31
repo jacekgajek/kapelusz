@@ -22,7 +22,9 @@ import com.jacekgajek.kapelusz.app.generated.history_unavailable
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
-import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
+import com.jacekgajek.kapelusz.app.ui.screens.HistoryLineRow
+import com.jacekgajek.kapelusz.app.ui.screens.HistoryState
+import com.jacekgajek.kapelusz.app.ui.screens.UndoConfirmation
 import com.jacekgajek.kapelusz.app.ui.screens.historyMonth
 import com.jacekgajek.kapelusz.app.ui.screens.toLines
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -39,7 +41,9 @@ private const val MONTHS = 3
 fun HistorySection(context: EventContext, api: ApiClient, bands: BandRepository, sync: SyncEngine) {
     var shown by remember(context.event.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val history = remember(context.event.id) { HistoryController(bands, sync, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
+    val history = remember(context.event.id) {
+        HistoryState(bands, sync::syncNow, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope)
+    }
     // Folded like Recorded transfers; loaded only once opened (it needs the server).
     CollapsibleHeader(stringResource(Res.string.history), shown) { shown = !shown }
     if (!shown) return
@@ -65,11 +69,11 @@ fun HistorySection(context: EventContext, api: ApiClient, bands: BandRepository,
             else -> {
                 // Undo steps back through this event's changes, redo forward (ITERATION_2 §7.2).
                 val arrows = history.arrows(loaded, context.can)
-                loaded.forEach { line -> history.LineRow(context.band, line, arrows) }
+                loaded.forEach { line -> HistoryLineRow(history, context.band, line, arrows) }
             }
         }
     }
-    history.UndoConfirmation(context.band, context.actions)
+    UndoConfirmation(history, context.band, context.actions)
 }
 
 /** Operations on the event itself, plus costs added or moved to it. */

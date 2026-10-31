@@ -68,8 +68,10 @@ import com.jacekgajek.kapelusz.app.ui.screenViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.BandFundScreen
 import com.jacekgajek.kapelusz.app.ui.screens.CostScreen
 import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
+import com.jacekgajek.kapelusz.app.ui.screens.EventsViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.FundEntryViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryScreen
+import com.jacekgajek.kapelusz.app.ui.screens.HistoryViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.MyCostsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.NewBandScreen
 import com.jacekgajek.kapelusz.app.ui.screens.PlayedScreen
@@ -157,8 +159,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     }
     MainScaffold(navController, graph.sync, graph.bands, graph.membership, state.band.id, tabs) {
         NavHost(navController, startDestination = EventsRoute, modifier = Modifier.fillMaxSize()) {
-            composable<EventsRoute> {
-                EventsScreen(session, settings, navigator)
+            composable<EventsRoute> { entry ->
+                EventsScreen(session, settings, navigator, events = entry.screenViewModel { EventsViewModel(session.bands.state) })
             }
             composable<MyCostsRoute> { entry ->
                 val everyone by entry.savedStateHandle.getStateFlow(AppNavigator.SHOW_EVERYONE, false).collectAsState()
@@ -224,7 +226,20 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<SummaryRoute> { SummaryScreen(session, navigator) }
             composable<PlayedRoute> { PlayedScreen(session, navigator) }
-            composable<HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(session, navigator) }
+            composable<HistoryRoute> { entry ->
+                if (artist) {
+                    BackToEvents(navController)
+                } else {
+                    val screen = entry.screenViewModel {
+                        val api = session.api
+                        val bandId = session.band.id
+                        HistoryViewModel(session.bands, session.sync::syncNow, bandId, session.userId, session.me?.id) { month, next ->
+                            api.history(bandId, month, next)
+                        }
+                    }
+                    HistoryScreen(session, navigator, screen)
+                }
+            }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
                     graph.bands.createBand(name, currency, yourName)
