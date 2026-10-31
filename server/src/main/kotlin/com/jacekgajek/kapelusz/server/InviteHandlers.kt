@@ -27,13 +27,18 @@ internal class InviteHandlers(
     private val codes: Invites,
     private val changed: BandChanged,
 ) {
-    fun list(user: VerifiedUser, bandId: String): HttpResponse {
+    fun list(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
         bands.loadForLeader(user, bandId)
         val active = codes.loadCodes(bandId).mapNotNull { codes.load(it)?.info }.filter { it.expiresAt > clock() }
         return ok(InvitesResponse.serializer(), InvitesResponse(active))
     }
 
-    fun create(user: VerifiedUser, bandId: String, request: CreateInviteRequest): HttpResponse {
+    fun create(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val request = call.body(CreateInviteRequest.serializer())
         val (band, _) = bands.loadForLeader(user, bandId)
         val member = band.member(request.memberId) ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No such member")
         badRequestIf(member.userId != null) { "This member is already linked to an account" }
@@ -49,7 +54,10 @@ internal class InviteHandlers(
         return ok(InviteInfo.serializer(), codes.create(bandId, member.id, request.role, user.userId))
     }
 
-    fun revoke(user: VerifiedUser, bandId: String, code: String): HttpResponse {
+    fun revoke(call: Call): HttpResponse {
+        val user = call.user
+        val bandId = call.param("bandId")
+        val code = call.param("code")
         bands.loadForLeader(user, bandId)
         // Codes are stored upper-case, as preview and accept read them (V5-M1 A10d).
         val stored = code.uppercase()
@@ -57,14 +65,19 @@ internal class InviteHandlers(
         return HttpResponse(204)
     }
 
-    fun preview(user: VerifiedUser, code: String): HttpResponse {
+    fun preview(call: Call): HttpResponse {
+        val user = call.user
+        val code = call.param("code")
         val invite = find(user, code).info
         val band = bands.load(invite.bandId)?.first ?: throw notFound()
         val member = band.member(invite.memberId) ?: throw notFound()
         return ok(InvitePreview.serializer(), InvitePreview(invite.code, band.id, band.name, member.name, invite.role, invite.expiresAt))
     }
 
-    fun accept(user: VerifiedUser, code: String, from: SenderDevice? = null): HttpResponse {
+    fun accept(call: Call): HttpResponse {
+        val user = call.user
+        val code = call.param("code")
+        val from = call.installation
         val stored = find(user, code)
         val invite = stored.info
         users.requireRoomForBand(user.userId, invite.bandId)
