@@ -66,6 +66,7 @@ import com.jacekgajek.kapelusz.app.ui.components.ShareMode
 import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
+import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.engine.Limits
@@ -92,14 +93,9 @@ fun ParticipantsSection(context: EventContext) {
     val band = context.band
     val event = context.event
     val canManage = context.can.manageParticipants(event)
-    var addingGuest by remember { mutableStateOf(false) }
-    var editingWeight by remember { mutableStateOf<String?>(null) }
-    var inviting by remember { mutableStateOf<String?>(null) }
+    var dialog by remember { mutableStateOf<ParticipantsDialog?>(null) }
     // Who may invite members without the app (ITERATION_5 §12).
     val canInvite = context.can.manageRoster()
-
-    var picking by remember { mutableStateOf(false) }
-    var choosingSource by remember { mutableStateOf(false) }
     var copying by remember { mutableStateOf<ChangeLineup?>(null) }
     // Members, then guests, each alphabetical (ITERATION_8 §2).
     val order = SettlementCalculator.partyOrder(band, event)
@@ -112,7 +108,9 @@ fun ParticipantsSection(context: EventContext) {
     fun rows(ids: List<String>) = ids.forEach { partyId ->
         val participant = event.participant(partyId) ?: return@forEach
         key(partyId) {
-            ParticipantRow(context, participant, canManage, onEdit = { editingWeight = partyId }, onInvite = { inviting = partyId }.takeIf { canInvite })
+            val invite = { dialog = ParticipantsDialog.Inviting(partyId) }
+            val editShare = { dialog = ParticipantsDialog.EditingShare(partyId) }
+            ParticipantRow(context, participant, canManage, onEdit = editShare, onInvite = invite.takeIf { canInvite })
         }
     }
     rows(memberRows)
@@ -151,34 +149,51 @@ fun ParticipantsSection(context: EventContext) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
             if (empty) {
                 AssistChip(
-                    onClick = { choosingSource = true },
+                    onClick = { dialog = ParticipantsDialog.ChoosingSource },
                     label = { Text(stringResource(Res.string.lineup_start_from)) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
                 )
             }
             if (picker) {
                 AssistChip(
-                    onClick = { picking = true },
+                    onClick = { dialog = ParticipantsDialog.Picking },
                     label = { Text(stringResource(Res.string.lineup_add, notTakingPart.size)) },
                     leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
                 )
             }
             AssistChip(
-                onClick = { addingGuest = true },
+                onClick = { dialog = ParticipantsDialog.AddingGuest },
                 label = { Text(stringResource(Res.string.add_guest)) },
                 leadingIcon = { Icon(Icons.Default.Add, null) },
             )
         }
     } else if (!chips) {
         // Information rather than an action: who isn't taking part, read only.
-        TextButton(onClick = { picking = true }) { Text(stringResource(Res.string.lineup_not_taking_part, notTakingPart.size)) }
+        TextButton(onClick = { dialog = ParticipantsDialog.Picking }) {
+            Text(stringResource(Res.string.lineup_not_taking_part, notTakingPart.size))
+        }
     }
 
-    if (choosingSource) {
-        StartFromDialog(context, onDismiss = { choosingSource = false }) { source ->
-            choosingSource = false
+    when (val open = dialog) {
+        ParticipantsDialog.ChoosingSource -> StartFromDialog(context, onDismiss = { dialog = null }) { source ->
+            dialog = null
             copying = Lineup.change(band, event, Lineup.startFrom(band, event, source) { newId() })
         }
+
+        ParticipantsDialog.Picking -> LineupPicker(context, readOnly = !canManage, onDismiss = { dialog = null })
+
+        ParticipantsDialog.AddingGuest -> GuestDialog(context, onDismiss = { dialog = null }) { name, share ->
+            context.actions.run(AddGuest(event.id, newId(), name, share.weight, share.fixedShare, share.percent))
+        }
+
+        is ParticipantsDialog.Inviting -> InviteThemDialog(context, open.partyId, onDismiss = { dialog = null })
+
+        is ParticipantsDialog.EditingShare -> {
+            val participant = resolved(event.participant(open.partyId), onDismiss = { dialog = null })
+            if (participant != null) ShareDialog(context, participant, onDismiss = { dialog = null })
+        }
+
+        null -> Unit
     }
     // Applied at once, with Undo (its message needs the counts, hence here rather than in the click).
     copying?.let { op ->
@@ -188,21 +203,15 @@ fun ParticipantsSection(context: EventContext) {
             copying = null
         }
     }
-    if (picking) LineupPicker(context, readOnly = !canManage, onDismiss = { picking = false })
-    if (addingGuest) {
-        GuestDialog(context, onDismiss = { addingGuest = false }) { name, share ->
-            context.actions.run(AddGuest(event.id, newId(), name, share.weight, share.fixedShare, share.percent))
-        }
-    }
-    inviting?.let { partyId -> InviteThemDialog(context, partyId, onDismiss = { inviting = null }) }
-    editingWeight?.let { partyId ->
-        val participant = event.participant(partyId)
-        if (participant == null) {
-            editingWeight = null
-        } else {
-            ShareDialog(context, participant, onDismiss = { editingWeight = null })
-        }
-    }
+}
+
+/** What is open over the participants: one at a time. */
+private sealed interface ParticipantsDialog {
+    data object AddingGuest : ParticipantsDialog
+    data object Picking : ParticipantsDialog
+    data object ChoosingSource : ParticipantsDialog
+    data class EditingShare(val partyId: String) : ParticipantsDialog
+    data class Inviting(val partyId: String) : ParticipantsDialog
 }
 
 /** A participant: avatar, name, their share when not the default; edit and remove (with Undo) for who manages them. */
@@ -365,10 +374,6 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
 /** A member without the app (ITERATION_5 §12), tapped by a leader: "Ola cannot see the band. Invite her?". */
 @Composable
 private fun InviteThemDialog(context: EventContext, memberId: String, onDismiss: () -> Unit) {
-    val member = context.band.member(memberId)
-    if (member == null) {
-        LaunchedEffect(Unit) { onDismiss() }
-        return
-    }
+    val member = resolved(context.band.member(memberId), onDismiss) ?: return
     InviteMemberDialog(member.name, onInvite = { context.onInviteMember(memberId) }, onDismiss = onDismiss)
 }

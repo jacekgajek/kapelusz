@@ -91,10 +91,9 @@ fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit
     var draft by remember(event.id) { mutableStateOf(Lineup.Draft()) }
     val ticked = draft.ticked(event)
     var query by remember { mutableStateOf("") }
-    var choosingSource by remember { mutableStateOf(false) }
-    var discarding by remember { mutableStateOf(false) }
+    var dialog by remember { mutableStateOf<LineupDialog?>(null) }
     val change = if (readOnly) null else Lineup.change(band, event, draft)
-    val close = { if (change != null) discarding = true else onDismiss() }
+    val close = { if (change != null) dialog = LineupDialog.DISCARDING else onDismiss() }
 
     // Who can be added, and who takes part though they no longer could be added (a former member, now a viewer):
     // shown, so nothing changes unseen. Read only: who isn't taking part.
@@ -126,7 +125,11 @@ fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit
                     Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = close) { Icon(Icons.Default.Close, stringResource(Res.string.close)) }
                         Text(stringResource(Res.string.lineup_title), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                        if (!readOnly) TextButton(onClick = { choosingSource = true }) { Text(stringResource(Res.string.lineup_start_from)) }
+                        if (!readOnly) {
+                            TextButton(onClick = { dialog = LineupDialog.CHOOSING_SOURCE }) {
+                                Text(stringResource(Res.string.lineup_start_from))
+                            }
+                        }
                     }
                     NameSearchField(query, { query = it }, Modifier.padding(horizontal = 16.dp))
                     if (!readOnly && toggleable.isNotEmpty()) {
@@ -166,24 +169,25 @@ fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit
         }
     }
 
-    if (choosingSource) {
-        StartFromDialog(context, onDismiss = { choosingSource = false }) { source ->
+    when (dialog) {
+        LineupDialog.CHOOSING_SOURCE -> StartFromDialog(context, onDismiss = { dialog = null }) { source ->
             draft = Lineup.startFrom(band, event, source) { newId() }
-            choosingSource = false
+            dialog = null
         }
-    }
-    if (discarding) {
-        AlertDialog(
-            onDismissRequest = { discarding = false },
+
+        LineupDialog.DISCARDING -> AlertDialog(
+            onDismissRequest = { dialog = null },
             title = { Text(stringResource(Res.string.lineup_discard_title)) },
             confirmButton = {
                 TextButton(onClick = {
-                    discarding = false
+                    dialog = null
                     onDismiss()
                 }) { Text(stringResource(Res.string.lineup_discard)) }
             },
-            dismissButton = { TextButton(onClick = { discarding = false }) { Text(stringResource(Res.string.lineup_keep_editing)) } },
+            dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(Res.string.lineup_keep_editing)) } },
         )
+
+        null -> Unit
     }
 }
 
@@ -263,3 +267,6 @@ internal fun StartFromDialog(context: EventContext, onDismiss: () -> Unit, onPic
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
 }
+
+/** What is open over the picker: the lineup to start from, or the question whether to drop the changes. */
+private enum class LineupDialog { CHOOSING_SOURCE, DISCARDING }
