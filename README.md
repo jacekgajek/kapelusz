@@ -31,7 +31,7 @@ the wrapper.
 - Web production bundle (what is deployed): `./gradlew :composeApp:wasmJsBrowserDistribution`, output in
   `composeApp/build/dist/wasmJs/productionExecutable/`
 - Android on a connected phone or emulator: `./gradlew :androidApp:installDebug`. The app comes only from Google Play
-  (ITERATION_7 §1.1, since 2026-10-27), which updates it.
+  (since 2026-10-27, [DECISIONS.md](DECISIONS.md) 15), which updates it.
 - Google Play bundle: `./gradlew :androidApp:bundleRelease`, signed with the upload key when
   `ANDROID_UPLOAD_KEYSTORE_PATH`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD` and `ANDROID_UPLOAD_KEY_ALIAS` are set.
 - Server (Lambda) jar: `./gradlew :server:shadowJar`, output `server/build/libs/server-all.jar`. The apps use the
@@ -58,13 +58,13 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 ## Deploy
 
 CI (`.github/workflows/ci.yml`) tests every pull request and push to `main`. On `main`, once the tests pass, its
-deploy job runs `scripts/deploy.sh`: it builds the release artefacts once (the Play bundle, the production web bundle,
+deploy job (paused since 2026-10-31 for the refactoring, see `ci.yml`) runs `scripts/deploy.sh`: it builds the release artefacts once (the Play bundle, the production web bundle,
 the server jar) and uploads the API to Lambda and the web app to S3 and CloudFront. The version code is CI's run
 number plus 10 (since the first Play bundle, 231, went up by hand). AWS access uses GitHub OIDC; the keys come from
 the repository's secrets (the app signing key only for its fingerprint, in `assetlinks.json`). Running
 `scripts/deploy.sh` by hand is described at its top.
 
-Google Play (ITERATION_7 §1.3): with the upload key in the secrets (`ANDROID_UPLOAD_KEYSTORE_BASE64`,
+Google Play: with the upload key in the secrets (`ANDROID_UPLOAD_KEYSTORE_BASE64`,
 `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, optionally `ANDROID_UPLOAD_KEY_PASSWORD`, and the variable
 `ANDROID_UPLOAD_KEY_ALIAS`) the deploy also builds the Play bundle, and with a service account's key
 (`PLAY_SERVICE_ACCOUNT_JSON`) uploads it to the closed testing track. Production is promoted by hand in the Play
@@ -72,10 +72,14 @@ Console.
 
 ## Documents
 
-- [ITERATION_1.md](ITERATION_1.md) — the first planning iteration, as built.
-- [ITERATION_2.md](ITERATION_2.md) — the second iteration: plan, milestones and decision log (app 1.0).
-- [ITERATION_3.md](ITERATION_3.md) — the third iteration: hardening, quality work and new features.
-- [ITERATION_7.md](ITERATION_7.md) — the seventh iteration: Google Play, and syncing when something changed.
+- [SPEC.md](SPEC.md) — what the app does, consolidated from the eight iterations; the regression checklist at its end.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — how it is built: modules, packages, state, sync, the server, tests.
+- [DECISIONS.md](DECISIONS.md) — the choices in force and why.
+- [BACKLOG.md](BACKLOG.md) — what is known to be wrong or missing.
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md), [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md) — working offline; restoring data.
+- [REFACTORING.md](REFACTORING.md) — the 2026-10-31 restructuring: plan, progress, reviews under `docs/refactoring/`.
+- [docs/history/](docs/history/) — the planning iterations as they were written (`ITERATION_1` to `ITERATION_8`), the
+  record of how each decision was reached; `SPEC.md` cites them.
 
 The app was called Art Split until 1.0 (and Split Art for a few hours). The S3 buckets (`jacekgajek-art-split-*`) and the Lambda (`art-split-api`)
 keep the old name: they hold the bands' data and run the API.
