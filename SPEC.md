@@ -530,7 +530,6 @@ channels and logs are cleaned once on update.
   Raising the minimum needs the required build live on Play first.
 - Web: service worker caches the app for offline start; `version.json` is still written by every deploy for "a new
   version: reload"; network-first uses only `response.ok` answers and keeps the cache fill alive.
-- A phone that came from the website APK has the updater's leftovers cleaned at start (`ApkLeftovers`).
 
 **Superseded**: website APK + `version.json` update strip; self-updater with silent install; "Support me!" link;
 Play Store "out of scope".
