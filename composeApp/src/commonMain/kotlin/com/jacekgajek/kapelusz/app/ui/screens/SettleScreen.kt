@@ -13,8 +13,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +39,7 @@ import com.jacekgajek.kapelusz.app.generated.settle_part
 import com.jacekgajek.kapelusz.app.generated.tab_settle
 import com.jacekgajek.kapelusz.app.generated.you_hold
 import com.jacekgajek.kapelusz.app.generated.your_transfers
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
 import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
@@ -51,6 +50,7 @@ import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -77,8 +77,8 @@ fun SettleScreen(
 ) {
     val band = state.band
     val me = state.me
-    val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(changes, snackbar)
+    val messages = rememberMessages()
+    val actions = rememberActions(changes, messages, undos = null)
     val fundLabel = stringResource(Res.string.band_fund)
     val lang = language
 
@@ -112,7 +112,7 @@ fun SettleScreen(
 
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_settle), onSettings, onRoster) },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { MessageHost(messages) },
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).listWidth(),

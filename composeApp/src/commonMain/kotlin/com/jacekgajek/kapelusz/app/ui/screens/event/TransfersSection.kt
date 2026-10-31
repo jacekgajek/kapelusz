@@ -76,6 +76,7 @@ import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.payeeName
@@ -193,11 +194,9 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val pair = stringResource(Res.string.pair_names)
     val from = partyName(band, context.event, settlement, suggestion.from, fundLabel, pair)
     val to = partyName(band, context.event, settlement, suggestion.to, fundLabel, pair)
-    // Read without arguments, so its placeholders stay for the amount known only on tap (as in SettlementWords).
-    val recordedText = stringResource(Res.string.transfer_recorded)
 
     // "Recorded: Ania → Bartek 250,00 zł", said with Undo.
-    fun recorded(amount: Money) = recordedText.replace("%1\$s", from).replace("%2\$s", to).replace("%3\$s", formatMoney(amount, context.currency, lang))
+    fun recorded(amount: Money) = UiMessage.Text(Res.string.transfer_recorded, listOf(from, to, formatMoney(amount, context.currency, lang)))
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
     // A size smaller than body text, so "Name → Name" mostly fits on one line on a phone (ITERATION_2 §7.4).
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -308,8 +307,6 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
     // At most what the sender holds (an artist: owes back): a hand-over passes on money, it doesn't make any up.
     val held = handOverable(context, from)
     val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= held }
-    // Read without arguments: its placeholders stay for the names and amount known on OK.
-    val recordedText = stringResource(Res.string.transfer_recorded)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -339,8 +336,14 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(enabled = parsed != null && from != to, onClick = {
                 // Recorded with Undo in the snackbar (ITERATION_5 §4.6), as Settle is.
-                val recorded = recordedText.replace("%1\$s", partyName(context.band, event, from, fundLabel))
-                    .replace("%2\$s", partyName(context.band, event, to, fundLabel)).replace("%3\$s", formatMoney(parsed!!, context.currency, lang))
+                val recorded = UiMessage.Text(
+                    Res.string.transfer_recorded,
+                    listOf(
+                        partyName(context.band, event, from, fundLabel),
+                        partyName(context.band, event, to, fundLabel),
+                        formatMoney(parsed!!, context.currency, lang),
+                    ),
+                )
                 onDismiss()
                 context.actions.runWithUndo(RecordTransfer(event.id, newId(), from, to, parsed, note.ifBlank { null }), recorded)
             }) { Text(stringResource(Res.string.hand_over)) }

@@ -263,7 +263,6 @@ private fun HoldingDialog(
                     editable = true,
                     actions = context.actions,
                     hint = Res.string.attachment_hint_holding,
-                    inDialog = true,
                 )
                 DialogNotice(context.actions)
             }

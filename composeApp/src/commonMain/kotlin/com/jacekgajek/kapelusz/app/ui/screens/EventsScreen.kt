@@ -36,8 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -97,11 +95,13 @@ import com.jacekgajek.kapelusz.app.generated.upcoming_event
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -148,8 +148,8 @@ fun EventsScreen(
     onRoster: () -> Unit,
 ) {
     val band = state.band
-    val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(changes, snackbar)
+    val messages = rememberMessages()
+    val actions = rememberActions(changes, messages, undos = null)
     var creating by remember { mutableStateOf(false) }
     // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
     // (ITERATION_4 §1.1).
@@ -194,7 +194,7 @@ fun EventsScreen(
 
     Scaffold(
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (Capabilities(band, state.userId).createEvent()) {
                 ExtendedFloatingActionButton(

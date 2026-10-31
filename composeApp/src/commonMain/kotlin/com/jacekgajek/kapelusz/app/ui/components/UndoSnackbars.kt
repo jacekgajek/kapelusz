@@ -34,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 const val UNDO_TIME = 10_000L
 
 /** One Undo snackbar: [message]; [undo] takes the change back; [gone] lets it sync. */
-class UndoItem(val message: String, val undo: () -> Unit, val gone: () -> Unit)
+class UndoItem(val message: UiMessage, val undo: () -> Unit, val gone: () -> Unit)
 
 /**
  * Undo snackbars shown together, each with its own time (ITERATION_5 §2): at most [MAX_UNDOS]; a new one pushes out
@@ -72,6 +72,7 @@ class UndoStack {
 fun UndoSnackbars(stack: UndoStack) {
     val undoLabel = stringResource(Res.string.undo)
     val closeLabel = stringResource(Res.string.close)
+    val texts = messageTexts()
     // The user's "time to take action" (Android accessibility), as Material's own snackbars do.
     stack.timeout = LocalAccessibilityManager.current
         ?.calculateRecommendedTimeoutMillis(UNDO_TIME, containsIcons = true, containsText = true, containsControls = true)
@@ -91,7 +92,7 @@ fun UndoSnackbars(stack: UndoStack) {
                     modifier = Modifier.padding(horizontal = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     action = { TextButton(onClick = { stack.undo(item) }) { Text(undoLabel) } },
                     dismissAction = { IconButton(onClick = { stack.dismiss(item) }) { Icon(Icons.Default.Close, closeLabel) } },
-                ) { Text(item.message) }
+                ) { Text(texts.resolve(item.message)) }
             }
         }
     }

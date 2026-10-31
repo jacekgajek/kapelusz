@@ -23,13 +23,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,11 +53,13 @@ import com.jacekgajek.kapelusz.app.generated.filter_refunded
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.model.Band
@@ -123,7 +122,7 @@ fun MyCostsScreen(
     onRoster: () -> Unit,
 ) {
     val band = state.band
-    val snackbar = remember { SnackbarHostState() }
+    val messages = rememberMessages()
     val can = Capabilities(band, state.userId)
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
@@ -137,7 +136,7 @@ fun MyCostsScreen(
 
     Scaffold(
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs), onSettings, onRoster) },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (can.addCost()) {
                 ExtendedFloatingActionButton(

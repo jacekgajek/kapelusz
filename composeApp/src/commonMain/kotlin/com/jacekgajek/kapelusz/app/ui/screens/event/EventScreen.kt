@@ -28,8 +28,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -97,15 +95,15 @@ import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
-import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
-import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.agendaLine
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
@@ -165,15 +163,14 @@ fun EventScreen(
     onOpenCost: (costId: String) -> Unit = {},
     onInviteMember: (memberId: String) -> Unit = {},
 ) {
-    val snackbar = remember { SnackbarHostState() }
-    val undos = remember { UndoStack() }
-    val actions = rememberActions(changes, snackbar, undos)
+    val messages = rememberMessages()
+    val actions = rememberActions(changes, messages)
     // Artists only open the events they play, archived ones too (ITERATION_4 §1.1).
     val artist = state.band.isArtist(state.userId)
     val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
     var editing by remember { mutableStateOf(false) }
     val settlement = event?.let { state.view.settlement(it) }
-    val shareSettlement = rememberShareSettlement(state.band, event, settlement, snackbar)
+    val shareSettlement = rememberShareSettlement(state.band, event, settlement, messages.snackbar)
     // Pages (ITERATION_5 §4.4): the gig, its money, and who gets what; artists see the gig and their own money. Each
     // event opens on the page last used there; swiping or the tabs switch, and each page keeps its own scroll position.
     val bandId = state.band.id
@@ -233,11 +230,12 @@ fun EventScreen(
     LaunchedEffect(attached) {
         val done = attached ?: return@LaunchedEffect
         if (done.attachmentIds.isEmpty()) {
-            snackbar.showSnackbar(attachFailed)
+            messages.snackbar.showSnackbar(attachFailed)
         } else {
             val message = if (done.failed > 0) "$attachedText. $attachFailed" else attachedText.orEmpty()
             // With an action a snackbar stays until tapped by default: a while, with a cross to close it sooner.
-            val undone = snackbar.showSnackbar(message, undoLabel, withDismissAction = true, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed
+            val result = messages.snackbar.showSnackbar(message, undoLabel, withDismissAction = true, duration = SnackbarDuration.Long)
+            val undone = result == SnackbarResult.ActionPerformed
             if (undone && bands.currentBandId == done.bandId) done.attachmentIds.forEach { fileStore.remove(done.owner, it) }
         }
         attached = null
@@ -254,12 +252,7 @@ fun EventScreen(
                 }
             }
         },
-        snackbarHost = {
-            Column {
-                UndoSnackbars(undos)
-                SnackbarHost(snackbar)
-            }
-        },
+        snackbarHost = { MessageHost(messages) },
     ) { padding ->
         if (event == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -278,7 +271,7 @@ fun EventScreen(
             Capabilities(state.band, state.userId),
             onInviteMember,
         )
-        val shareInfo = rememberShareInfo(state.band, event, snackbar)
+        val shareInfo = rememberShareInfo(state.band, event, messages.snackbar)
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
             EventTabs(tabs, pagerState)
             HorizontalPager(pagerState, Modifier.fillMaxSize(), key = { tabs[it] }) { page ->

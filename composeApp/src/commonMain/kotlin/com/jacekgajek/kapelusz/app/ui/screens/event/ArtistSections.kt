@@ -53,6 +53,7 @@ import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
 import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
@@ -160,11 +161,10 @@ private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTran
     val label = if (pays) Res.string.settle_paid else Res.string.settle_received
     var partial by remember { mutableStateOf(false) }
     val lang = language
-    // Read without arguments, so its placeholders stay for the amount known only on tap (as in SuggestionRow).
-    val recordedText = stringResource(Res.string.transfer_recorded)
+
     fun record(amount: Money) = context.actions.runWithUndo(
         RecordTransfer(context.event.id, newId(), part.from, part.to, amount),
-        recordedText.replace("%1\$s", from).replace("%2\$s", to).replace("%3\$s", formatMoney(amount, context.currency, lang)),
+        UiMessage.Text(Res.string.transfer_recorded, listOf(from, to, formatMoney(amount, context.currency, lang))),
     )
     val settles = context.can.recordTransfer(context.event, part.from, part.to)
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {

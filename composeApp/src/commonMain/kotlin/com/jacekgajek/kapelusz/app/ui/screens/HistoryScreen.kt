@@ -21,8 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,9 +56,11 @@ import com.jacekgajek.kapelusz.app.sync.HistoryItem
 import com.jacekgajek.kapelusz.app.sync.ReadOp
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.describe
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
@@ -104,8 +104,8 @@ fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync:
     var loadingMore by remember { mutableStateOf(false) }
     var loadMoreFailed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(changes, snackbar)
+    val messages = rememberMessages()
+    val actions = rememberActions(changes, messages, undos = null)
     val history = remember(state.band.id) { HistoryController(bands, sync, state.band.id, state.userId, state.me?.id, scope) }
     val month = historyMonth(offset)
     var linesMonth by remember { mutableStateOf<String?>(null) }
@@ -142,7 +142,7 @@ fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync:
         }
     }
     history.UndoConfirmation(state.band, actions)
-    Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }, snackbarHost = { MessageHost(messages) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).listWidth()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { offset++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month)) }
