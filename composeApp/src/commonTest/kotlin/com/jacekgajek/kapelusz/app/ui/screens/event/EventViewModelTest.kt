@@ -4,8 +4,7 @@ import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.EventTab
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
-import com.jacekgajek.kapelusz.app.data.SharedAttached
-import com.jacekgajek.kapelusz.app.data.SharedHandover
+import com.jacekgajek.kapelusz.app.intents.Carry
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Role
@@ -99,31 +98,17 @@ class EventViewModelTest {
     }
 
     @Test
-    fun sharedFilesOpenTheCostFormOrAreDroppedWhenTheEventIsGone() = runTest {
+    fun whatTheScreenOpenedWithIsTakenOnce() = runTest {
         val repository = repository()
-        val screen = EventViewModel("gig", repository.state)
-        assertNull(screen.handoverAction(null))
-        assertNull(screen.handoverAction(SharedHandover("show", toCost = true, emptyList())), "another event's")
-        assertNull(screen.handoverAction(SharedHandover("gig", toCost = false, emptyList())), "to the event itself: the section takes them")
-        assertEquals(HandoverAction.ADD_COST, screen.handoverAction(SharedHandover("gig", toCost = true, emptyList())))
-        assertNull(repository.dispatch(DeleteEvent("gig")))
-        assertEquals(HandoverAction.DROP, screen.handoverAction(SharedHandover("gig", toCost = true, emptyList())))
-    }
-
-    @Test
-    fun attachedFilesAreTakenOverOnceForThisEventOfThisBand() = runTest {
-        val repository = repository()
-        val bandId = band(repository).id
-        val screen = EventViewModel("gig", repository.state)
-        val owner = AttachmentOwner.OfEvent("gig")
-        assertFalse(screen.takeAttached(null, bandId))
-        assertFalse(screen.takeAttached(SharedAttached(bandId, "show", owner, listOf("a1"), failed = 0), bandId))
-        assertFalse(screen.takeAttached(SharedAttached("other-band", "gig", owner, listOf("a1"), failed = 0), bandId))
-        assertNull(screen.attached)
-        val mine = SharedAttached(bandId, "gig", owner, listOf("a1"), failed = 0)
-        assertTrue(screen.takeAttached(mine, bandId))
-        assertEquals(mine, screen.attached)
+        assertNull(EventViewModel("gig", repository.state).attached)
+        val attached = Carry.Attached(AttachmentOwner.OfEvent("gig"), listOf("a1"), failed = 0)
+        val screen = EventViewModel("gig", repository.state, carry = attached)
+        assertEquals(attached, screen.attached)
+        assertNull(screen.takeCollectedFiles(), "not what the carry wasn't")
         screen.attachedShown()
         assertNull(screen.attached)
+        val collected = EventViewModel("gig", repository.state, carry = Carry.NewCollected(emptyList()))
+        assertEquals(emptyList(), collected.takeCollectedFiles())
+        assertNull(collected.takeCollectedFiles(), "once: the dialog opened with them")
     }
 }

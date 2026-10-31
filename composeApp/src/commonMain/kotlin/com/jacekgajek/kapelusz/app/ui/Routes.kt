@@ -23,15 +23,18 @@ data object SettleRoute
 @SerialName("fund")
 data object FundRoute
 
-/** An event; at one of its [section]s when given (e.g. where shared files went, or the refund a cost is in). */
+/**
+ * An event; at one of its [section]s when given (e.g. where shared files went, or the refund a cost is in), with what
+ * the inbox holds for it under [carryId] (files shared to the app, ITERATION_6 §1).
+ */
 @Serializable
 @SerialName("event")
-data class EventRoute(val eventId: String, val section: EventSection? = null)
+data class EventRoute(val eventId: String, val section: EventSection? = null, val carryId: String? = null)
 
-/** Add (`costId == null`) or edit a cost. */
+/** Add (`costId == null`, [forEventId]'s when given, with the shared files under [carryId]) or edit a cost. */
 @Serializable
 @SerialName("cost")
-data class CostRoute(val costId: String? = null, val forEventId: String? = null)
+data class CostRoute(val costId: String? = null, val forEventId: String? = null, val carryId: String? = null)
 
 /** Settings, or one of its pages ([page] is a [com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage] name). */
 @Serializable

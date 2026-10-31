@@ -16,10 +16,12 @@ import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.bindToNavigation
 import com.jacekgajek.kapelusz.app.auth.WebGoogleAuth
 import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppState
 import com.jacekgajek.kapelusz.app.data.IndexedDbStore
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.fallback_symbols
 import com.jacekgajek.kapelusz.app.generated.fallback_text
+import com.jacekgajek.kapelusz.app.intents.AppIntent
 import com.jacekgajek.kapelusz.app.ui.screens.OtherTabScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
 import com.jacekgajek.kapelusz.text.EventLinks
@@ -57,18 +59,13 @@ fun main() {
         }
     })
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
-    // keeps it.
-    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.incoming.pendingJoinCode.value = it }
+    // keeps it; an event link likewise, until it is opened (ITERATION_5 §10).
+    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.intents.offer(AppIntent.Join(it)) }
+    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { graph.intents.offer(AppIntent.OpenEvent(it)) }
     MainScope().launch {
-        graph.incoming.pendingJoinCode.collect { code ->
-            if (code == null) window.sessionStorage.removeItem(JOIN_CODE_KEY) else window.sessionStorage.setItem(JOIN_CODE_KEY, code)
-        }
-    }
-    // An event link likewise, until it is opened (ITERATION_5 §10).
-    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { graph.incoming.pendingEventLink.value = it }
-    MainScope().launch {
-        graph.incoming.pendingEventLink.collect { id ->
-            if (id == null) window.sessionStorage.removeItem(EVENT_LINK_KEY) else window.sessionStorage.setItem(EVENT_LINK_KEY, id)
+        graph.intents.pending.collect { pending ->
+            keepInSession(JOIN_CODE_KEY, pending.filterIsInstance<AppIntent.Join>().firstOrNull()?.code)
+            keepInSession(EVENT_LINK_KEY, pending.filterIsInstance<AppIntent.OpenEvent>().firstOrNull { it.bandId == null }?.eventId)
         }
     }
     ComposeViewport {
@@ -87,6 +84,8 @@ fun main() {
                 Phase.OTHER_TAB
             }
         }
+        // Once loaded (a signed-in user's address must survive a reload), the screen leaves the address with the session.
+        LaunchedEffect(phase) { if (phase == Phase.READY) forgetScreenWhenSignedOut(graph) }
         // One loading screen for both waits, so its spinner doesn't start over in between.
         if (!fontsReady || phase == Phase.STARTING) {
             AppLoading()
@@ -114,6 +113,19 @@ fun main() {
             }
         }
     }
+}
+
+private fun keepInSession(key: String, value: String?) {
+    if (value == null) window.sessionStorage.removeItem(key) else window.sessionStorage.setItem(key, value)
+}
+
+/**
+ * After signing in, the app starts from the event list: the address would otherwise bring back the last screen (e.g.
+ * Settings, where the user signed out), as the navigation is bound to it. So the screen (the hash) leaves the address
+ * with the session.
+ */
+private suspend fun forgetScreenWhenSignedOut(graph: AppGraph) {
+    graph.state.collect { if (it is AppState.SignedOut) window.history.replaceState(null, "", "/") }
 }
 
 /** An event link (`/e/<eventId>`, ITERATION_5 §10): taken once, the address reset to the app root like a join link. */

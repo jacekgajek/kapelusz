@@ -43,12 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.currentStateAsState
 import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.EventTab
-import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_place
 import com.jacekgajek.kapelusz.app.generated.add_times
@@ -81,6 +77,7 @@ import com.jacekgajek.kapelusz.app.generated.total_net
 import com.jacekgajek.kapelusz.app.generated.total_refunds
 import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.when_where
+import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.EventNav
 import com.jacekgajek.kapelusz.app.ui.EventSection
@@ -130,8 +127,8 @@ import org.jetbrains.compose.resources.stringResource
 class EventContext(
     /** The attachment files of the event, its costs and collected money. */
     val fileStore: Attachments,
-    /** Shared files on their way to a new collected entry. */
-    val incoming: Incoming,
+    /** Files shared to the app for new received money here (ITERATION_6 §1), once; null when none. */
+    val takeCollectedFiles: () -> List<PreparedFile>?,
     val view: BandView,
     val event: Event,
     val settlement: Settlement,
@@ -159,7 +156,6 @@ fun EventScreen(
     val bands = session.bands
     val sync = session.sync
     val preferences = session.settings
-    val incoming = session.incoming
     val fileStore = session.attachments
     val onBack: () -> Unit = nav::back
     val onAddCost: (String) -> Unit = nav::addCost
@@ -192,7 +188,7 @@ fun EventScreen(
         snapshotFlow { list.layoutInfo.totalItemsCount }.first { it == sections.size }
         list.scrollToItem(sections.indexOf(section))
     }
-    // Opened at, or asked to show, one of its sections (where shared files went, the refund a cost is in): once each.
+    // Opened at one of its sections (where shared files went, the refund a cost is in): once.
     val sectionShown by rememberUpdatedState(onSectionShow)
     LaunchedEffect(section, event != null) {
         if (section == null || event == null) return@LaunchedEffect
@@ -200,23 +196,7 @@ fun EventScreen(
         if (!artist) scrollTo(section) else section.tabs.firstOrNull { it in tabs }?.let { pagerState.scrollToPage(tabs.indexOf(it)) }
         sectionShown()
     }
-    // Files shared to Kapelusz (ITERATION_6 §1) on their way to the new cost that takes them. Only by the screen in
-    // front: one on its way out (the same event opened again) would take them along.
-    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
-    val handover by incoming.sharedHandover.collectAsState()
-    LaunchedEffect(handover, event != null, resumed) {
-        if (!resumed) return@LaunchedEffect
-        when (screen.handoverAction(handover)) {
-            HandoverAction.DROP -> incoming.sharedHandover.value = null
-            HandoverAction.ADD_COST -> onAddCost(eventId)
-            null -> Unit
-        }
-    }
-    // Taken over from incoming first: clearing it there must not cancel the snackbar showing here.
-    val sharedAttached by incoming.sharedAttached.collectAsState()
-    LaunchedEffect(sharedAttached, resumed) {
-        if (resumed && screen.takeAttached(sharedAttached, state.band.id)) incoming.sharedAttached.value = null
-    }
+    // Files shared to the app (ITERATION_6 §1) attached to something here: a snackbar offers to take them off again.
     val attached = screen.attached
     val attachedText = attached?.let { pluralStringResource(Res.plurals.share_attached, it.attachmentIds.size, it.attachmentIds.size) }
     val attachFailed = stringResource(Res.string.share_attach_failed)
@@ -232,7 +212,8 @@ fun EventScreen(
             // With an action a snackbar stays until tapped by default: a while, with a cross to close it sooner.
             val result = messages.snackbar.showSnackbar(message, undoLabel, withDismissAction = true, duration = SnackbarDuration.Long)
             val undone = result == SnackbarResult.ActionPerformed
-            if (undone && bands.currentBandId == done.bandId) done.attachmentIds.forEach { fileStore.remove(done.owner, it) }
+            // The band is still this screen's: showing another one starts its screens over.
+            if (undone) done.attachmentIds.forEach { fileStore.remove(done.owner, it) }
         }
     }
 
@@ -256,7 +237,17 @@ fun EventScreen(
         if (settlement == null) return@AppScaffold
         // Once per band state: the sections and their dialogs all take it.
         val context = remember(state, event, settlement, actions, session, nav) {
-            EventContext(fileStore, incoming, state.view, event, settlement, state.me, actions, session.can, onInviteMember)
+            EventContext(
+                fileStore,
+                screen::takeCollectedFiles,
+                state.view,
+                event,
+                settlement,
+                state.me,
+                actions,
+                session.can,
+                onInviteMember,
+            )
         }
         val shareInfo = rememberShareInfo(state.band, event, messages.snackbar)
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {

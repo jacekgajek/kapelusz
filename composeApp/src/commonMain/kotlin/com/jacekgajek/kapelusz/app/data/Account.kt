@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.auth.Session
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
+import com.jacekgajek.kapelusz.app.intents.IntentInbox
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Member
@@ -21,7 +22,7 @@ class Account(
     private val uploads: AttachmentUploads,
     private val sync: SyncEngine,
     private val messages: DeviceMessages,
-    private val incoming: Incoming,
+    private val intents: IntentInbox,
 ) {
     /** The signed-in user; null while signed out. */
     val session: StateFlow<Session?> get() = sessions.session
@@ -30,14 +31,6 @@ class Account(
 
     /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
     val signedOutEverywhere: StateFlow<Boolean> = _signedOutEverywhere.asStateFlow()
-
-    private val _signIns = MutableStateFlow(0)
-
-    /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
-    val signIns: StateFlow<Int> = _signIns.asStateFlow()
-
-    /** The sign-ins the UI has reacted to already (it is composed again on rotation and language changes). */
-    var handledSignIns = 0
 
     /**
      * Runs in the app scope, not the caller's: the sign-in screen leaves the composition as soon as the session
@@ -50,7 +43,6 @@ class Account(
         uploads.load(userId)
         sessions.signedIn(idToken)
         _signedOutEverywhere.value = false
-        _signIns.value++
         sync.start()
         sync.resumeAfterSignIn()
         messages.register()
@@ -73,7 +65,7 @@ class Account(
         sync.stop()
         messages.unregister(tellServer)
         sessions.signOut()
-        incoming.pendingOpenEvent.value = null
+        intents.signedOut()
     }
 
     /**
