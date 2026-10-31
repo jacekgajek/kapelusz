@@ -50,8 +50,8 @@ import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.settlement.Payees
 import com.jacekgajek.kapelusz.text.BlikPhone

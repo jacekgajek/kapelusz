@@ -3,12 +3,10 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:Navigation.kt:artist &amp;&amp; route.costId != null &amp;&amp; state.band.cost(route.costId)?.memberId.let { it != null &amp;&amp; it != state.me?.id }</ID>
-    <ID>ComplexCondition:RefundsSection.kt:canEdit || me == null || me.role == Role.VIEWER || event.archived</ID>
     <ID>ComplexCondition:RosterScreen.kt:!isOwner &amp;&amp; !isMe &amp;&amp; can.allowed(DeleteMember(member.id)) &amp;&amp; MemberDeletion.possible(band, member.id)</ID>
     <ID>ComplexCondition:RosterScreen.kt:isAdmin || (!member.archived &amp;&amp; (canShare || pair))</ID>
     <ID>ComplexCondition:RosterScreen.kt:searchable &amp;&amp; query.isNotBlank() &amp;&amp; active.isEmpty() &amp;&amp; (archived.isEmpty() || namesOnly)</ID>
     <ID>ComplexCondition:Session.kt:SessionRepository$forceRefresh &amp;&amp; refused != null &amp;&amp; current.apiToken != null &amp;&amp; current.apiToken != refused</ID>
-    <ID>ComposableParamOrder:BandFundScreen.kt:@Composable private fun FundEntryDialog</ID>
     <ID>ComposableParamOrder:Common.kt:@Composable fun StatusChip</ID>
     <ID>ContentSlotReused:ShareEditor.kt:below: @Composable () -> Unit = {}</ID>
     <ID>CyclomaticComplexMethod:App.kt:@Composable private fun BandContent</ID>
@@ -16,10 +14,8 @@
     <ID>CyclomaticComplexMethod:AttachmentViewer.kt:@Composable fun AttachmentViewer</ID>
     <ID>CyclomaticComplexMethod:AttachmentsSection.kt:@Composable fun AttachmentsSection</ID>
     <ID>CyclomaticComplexMethod:BandFundScreen.kt:@Composable fun BandFundScreen</ID>
-    <ID>CyclomaticComplexMethod:BandFundScreen.kt:@Composable private fun FundEntryDialog</ID>
     <ID>CyclomaticComplexMethod:CollectedSection.kt:@Composable fun CollectedSection</ID>
     <ID>CyclomaticComplexMethod:CollectedSection.kt:@Composable private fun HoldingDialog</ID>
-    <ID>CyclomaticComplexMethod:CostScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun CostScreen</ID>
     <ID>CyclomaticComplexMethod:EventFields.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun EventFields</ID>
     <ID>CyclomaticComplexMethod:EventScreen.kt:@Composable fun EventScreen</ID>
     <ID>CyclomaticComplexMethod:EventsScreen.kt:@OptIn(ExperimentalComposeUiApi::class) @Composable fun EventsScreen</ID>
@@ -31,11 +27,8 @@
     <ID>CyclomaticComplexMethod:LineupPicker.kt:@Composable fun LineupPicker</ID>
     <ID>CyclomaticComplexMethod:Navigation.kt:@Composable internal fun Navigation</ID>
     <ID>CyclomaticComplexMethod:ParticipantsSection.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun ParticipantsSection</ID>
-    <ID>CyclomaticComplexMethod:RefundsSection.kt:@Composable fun RefundsSection</ID>
     <ID>CyclomaticComplexMethod:RosterScreen.kt:@Composable fun RosterScreen</ID>
-    <ID>CyclomaticComplexMethod:RosterScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable private fun MemberDialog</ID>
     <ID>CyclomaticComplexMethod:SettingsScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun SettingsScreen</ID>
-    <ID>CyclomaticComplexMethod:SettleScreen.kt:@Composable fun SettleScreen</ID>
     <ID>CyclomaticComplexMethod:SharedFilesDialog.kt:@Composable private fun TargetChoices</ID>
     <ID>CyclomaticComplexMethod:Zoomable.kt:internal fun Modifier.zoomGestures: Modifier</ID>
     <ID>EmptyFunctionBlock:MapPicker.wasmJs.kt:{ }</ID>
@@ -46,34 +39,23 @@
     <ID>LambdaParameterEventTrailing:Media.android.kt:onPage: (Int) -> Unit</ID>
     <ID>LambdaParameterEventTrailing:SharedFilesDialog.kt:onClick: () -> Unit</ID>
     <ID>LambdaParameterInRestartableEffect:App.kt:onNavHostReady: suspend (NavController) -> Unit = {}</ID>
-    <ID>LambdaParameterInRestartableEffect:AttachmentViewer.kt:onDismiss: () -> Unit</ID>
     <ID>LambdaParameterInRestartableEffect:BandFundScreen.kt:onAddedCostSeen: () -> Unit = {}</ID>
-    <ID>LambdaParameterInRestartableEffect:CollectedSection.kt:onDismiss: () -> Unit</ID>
-    <ID>LambdaParameterInRestartableEffect:EventScreen.kt:onAddCost: (eventId: String) -> Unit = {}</ID>
     <ID>LambdaParameterInRestartableEffect:EventsScreen.kt:onFocused: () -> Unit</ID>
-    <ID>LambdaParameterInRestartableEffect:ParticipantsSection.kt:onDismiss: () -> Unit</ID>
-    <ID>LambdaParameterInRestartableEffect:RefundsSection.kt:onDismiss: () -> Unit</ID>
     <ID>LambdaParameterInRestartableEffect:SettingsScreen.kt:onBack: () -> Unit</ID>
-    <ID>LambdaParameterInRestartableEffect:TransfersSection.kt:onDismiss: () -> Unit</ID>
     <ID>LargeClass:SyncEngineTest.kt:SyncEngineTest</ID>
     <ID>LongMethod:App.kt:@Composable private fun BandContent</ID>
     <ID>LongMethod:AttachmentsSection.kt:@Composable fun AttachmentsSection</ID>
     <ID>LongMethod:BandFundScreen.kt:@Composable fun BandFundScreen</ID>
-    <ID>LongMethod:BandFundScreen.kt:@Composable private fun FundEntryDialog</ID>
     <ID>LongMethod:CollectedSection.kt:@Composable fun CollectedSection</ID>
     <ID>LongMethod:CollectedSection.kt:@Composable private fun HoldingDialog</ID>
-    <ID>LongMethod:CostScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun CostScreen</ID>
     <ID>LongMethod:EventFields.kt:@Composable private fun LocationField</ID>
     <ID>LongMethod:EventScreen.kt:@Composable fun EventScreen</ID>
     <ID>LongMethod:EventsScreen.kt:@OptIn(ExperimentalComposeUiApi::class) @Composable fun EventsScreen</ID>
-    <ID>LongMethod:HistoryScreen.kt:@Composable fun HistoryScreen</ID>
     <ID>LongMethod:HistoryText.kt:@Composable fun describe: String</ID>
     <ID>LongMethod:LineupPicker.kt:@Composable fun LineupPicker</ID>
-    <ID>LongMethod:MyCostsScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun MyCostsScreen</ID>
     <ID>LongMethod:Navigation.kt:@Composable internal fun Navigation</ID>
     <ID>LongMethod:ParticipantsSection.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun ParticipantsSection</ID>
     <ID>LongMethod:RosterScreen.kt:@Composable fun RosterScreen</ID>
-    <ID>LongMethod:RosterScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable private fun MemberDialog</ID>
     <ID>LongMethod:SettingsScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun SettingsScreen</ID>
     <ID>LongMethod:SettleScreen.kt:@Composable fun SettleScreen</ID>
     <ID>LongMethod:SummaryScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun SummaryScreen</ID>
@@ -97,6 +79,7 @@
     <ID>MatchingDeclarationName:ShareInfo.kt:InfoWords</ID>
     <ID>MatchingDeclarationName:SyncMessages.kt:MessageChannel</ID>
     <ID>MatchingDeclarationName:TopBars.kt:TopBarState</ID>
+    <ID>MaxLineLength:Actions.kt:fun</ID>
     <ID>MaxLineLength:Agenda.kt:fun</ID>
     <ID>MaxLineLength:AgendaTemplateEditor.kt:TextButton(enabled = drafts.all { it.text.isNotBlank() } &amp;&amp; (items != template || toDefaults), onClick = { onSave(items) }) { Text(stringResource(Res.string.save)) }</ID>
     <ID>MaxLineLength:AgendaTemplateEditor.kt:if (drafts.size &lt; AgendaTime.MAX_TIMES) TextButton(onClick = { drafts = drafts + TemplateDraft(null, "") }) { Text(stringResource(Res.string.agenda_add_time)) }</ID>
@@ -119,10 +102,7 @@
     <ID>MaxLineLength:AppBanner.kt:StoreUpdateState.AVAILABLE -> stringResource(Res.string.store_update_available) to (Res.string.app_update_download to updates::download)</ID>
     <ID>MaxLineLength:AppBanner.kt:StoreUpdateState.DOWNLOADED -> stringResource(Res.string.store_update_ready) to (Res.string.store_update_restart to updates::install)</ID>
     <ID>MaxLineLength:AppGraph.kt:AppGraph$private</ID>
-    <ID>MaxLineLength:ArtistSections.kt:PayoutRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), context.currency, bold = true)</ID>
     <ID>MaxLineLength:ArtistSections.kt:Row</ID>
-    <ID>MaxLineLength:ArtistSections.kt:if (partner != null &amp;&amp; heldForPartner.isPositive) PayoutRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner, context.currency)</ID>
-    <ID>MaxLineLength:ArtistSections.kt:if (partner != null &amp;&amp; kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)</ID>
     <ID>MaxLineLength:AttachmentViewer.kt:BytesImage(file.bytes, attachment.id, ContentScale.Fit, Modifier.fillMaxSize().zoomable(remember { ZoomState() }))</ID>
     <ID>MaxLineLength:AttachmentViewer.kt:IconButton(onClick = { onRename(current) }) { Icon(Icons.Default.Edit, stringResource(Res.string.attachment_rename), tint = Color.White) }</ID>
     <ID>MaxLineLength:AttachmentViewer.kt:Loaded.Unavailable -> Text(stringResource(Res.string.attachment_unavailable), color = Color.White, modifier = Modifier.padding(32.dp))</ID>
@@ -135,24 +115,14 @@
     <ID>MaxLineLength:AttachmentsSection.kt:if (onRename != null) IconButton(onClick = onRename) { Icon(Icons.Default.Edit, stringResource(Res.string.attachment_rename) + ": " + name) }</ID>
     <ID>MaxLineLength:AttachmentsSection.kt:if (removable) ThumbnailRemoveButton(attachment.fileName ?: attachment.id, Modifier.align(Alignment.TopEnd)) { remove(attachment) }</ID>
     <ID>MaxLineLength:AttachmentsSection.kt:imageDrafts.forEach { draft -> key(draft) { DraftThumbnail(draft, onRemove = { onDrafts(drafts - draft) }.takeIf { editable }) } }</ID>
-    <ID>MaxLineLength:AttachmentsSection.kt:taken.size &lt; files.size -> say(partialText.replace("%1\$d", taken.size.toString()).replace("%2\$d", files.size.toString()).replace("%3\$d", max.toString()))</ID>
     <ID>MaxLineLength:BandDeletionNotice.kt:Text(stringResource(if (onKeep != null) Res.string.band_deletion_notice_leader else Res.string.band_deletion_notice, by, on))</ID>
     <ID>MaxLineLength:BandDeletionNotice.kt:TextButton(onClick = onKeep, modifier = Modifier.align(Alignment.End)) { Text(stringResource(Res.string.band_deletion_keep)) }</ID>
     <ID>MaxLineLength:BandDeletionNotice.kt:colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:"${band.member(cost.memberId)?.name.orEmpty()}: ${costName(cost)} · " + formatMoney(CostLedger.outstanding(band, cost), band.currency, lang)</ID>
     <ID>MaxLineLength:BandFundScreen.kt:"${formatDate(event.date, lang)} · " + stringResource(if (handedOver) Res.string.fund_handed_over else Res.string.fund_waiting)</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null }, actions = actions)</ID>
     <ID>MaxLineLength:BandFundScreen.kt:Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(member.id in chosen, role = SemanticsRole.Checkbox) { on -> chosen = if (on) chosen + member.id else chosen - member.id }</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:OutlinedTextField(description, { description = it }, label = { Text(stringResource(Res.string.description)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:PeopleDialog(people, payers.filterNotNull().toSet(), onDone = { chosen -> if (chosen.isNotEmpty()) payers = people.map { it.id }.filter { it in chosen } }, onDismiss = { choosingPeople = false })</ID>
     <ID>MaxLineLength:BandFundScreen.kt:Row</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:SegmentedButton</ID>
     <ID>MaxLineLength:BandFundScreen.kt:Text(listOfNotNull(formatDate(entry.date, lang), who).joinToString(" · "), style = MaterialTheme.typography.bodySmall)</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:TextButton(onClick = { if (onDelete()) onDismiss() }) { Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error) }</ID>
     <ID>MaxLineLength:BandFundScreen.kt:entry.paidBy != null -> stringResource(Res.string.fund_entry_from, band.member(entry.paidBy!!)?.name.orEmpty())</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:if (onAddCost != null) IconButton(onClick = onAddCost, Modifier.padding(top = FIELD_LABEL_INSET)) { Icon(Icons.Default.Add, stringResource(Res.string.fund_add_cost)) }</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:stringResource(Res.string.fund_each, payers.size, formatMoney(Money(parsed.minor * payers.size), band.currency, lang))</ID>
-    <ID>MaxLineLength:BandFundScreen.kt:val left = payers.dropWhile { payer -> onSave(listOf(AddFundEntry(newId(), date, description.trim(), signed!!, paidBy = payer))) }</ID>
     <ID>MaxLineLength:BandRepository.kt:BandRepository$fun</ID>
     <ID>MaxLineLength:BandRepository.kt:BandRepository$index.copy(currentBandId = band.id, bands = index.bands + BandSummary(band.id, band.name, yourName.trim(), band.members.single().role))</ID>
     <ID>MaxLineLength:BandRepository.kt:BandRepository$local.copy(base = response.band, version = response.version, pending = pending, holds = local.holds.filterKeys { id -> pending.any { it.opId == id } })</ID>
@@ -163,42 +133,20 @@
     <ID>MaxLineLength:BandRepositoryTest.kt:BandRepositoryTest$val saved = KapeluszJson.decodeFromString(LocalBand.serializer(), store.values.getValue(BandRepository.bandKey("alice", repository.currentBandId!!)))</ID>
     <ID>MaxLineLength:BandRepositoryTest.kt:BandRepositoryTest$val serverBand = created.copy(name = "Sent", members = created.members + created.members.first().copy(id = "carol", name = "Carol", userId = null, role = Role.MEMBER))</ID>
     <ID>MaxLineLength:BandRepositoryTest.kt:BandRepositoryTest$val stored = LocalBand(base = band, version = "\"etag-1\"", clientId = "c", userId = "alice", schema = BandRepository.CURRENT_SCHEMA)</ID>
-    <ID>MaxLineLength:CalendarSettings.kt:OutlinedButton(onClick = { run(null) }, enabled = !working, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.calendar_get)) }</ID>
     <ID>MaxLineLength:CalendarSettings.kt:OutlinedButton(onClick = { scope.launch { copied = copy(current.url) } }) { Text(stringResource(if (copied) Res.string.link_copied else Res.string.copy_link)) }</ID>
     <ID>MaxLineLength:CalendarSettings.kt:if ((c.isLetterOrDigit() &amp;&amp; byte >= 0) || c in "-_.~") append(c) else append("%" + (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))</ID>
-    <ID>MaxLineLength:CalendarSettings.kt:if (failed) Text(stringResource(Res.string.calendar_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)</ID>
-    <ID>MaxLineLength:CalendarSettings.kt:if (showIncludeAll) SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !working) { on -> run(CalendarSubscriptionChange(includeAll = on)) }</ID>
     <ID>MaxLineLength:CollectedSection.kt:Dropdown(partyId, parties, { partyId = it }, stringResource(Res.string.received_by)) { partyName(context.band, event, it, fund) }</ID>
-    <ID>MaxLineLength:CollectedSection.kt:Modifier.fillMaxWidth().clickable(enabled = context.can.editHolding(event, holding)) { editing = holding }.padding(vertical = 8.dp)</ID>
     <ID>MaxLineLength:CollectedSection.kt:OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
     <ID>MaxLineLength:CollectedSection.kt:Text(stringResource(Res.string.receive_awaited_hint, formatMoney(awaited.amount, context.currency, lang)), style = MaterialTheme.typography.bodySmall)</ID>
-    <ID>MaxLineLength:CollectedSection.kt:key(sharedDrafts) { HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts) }</ID>
     <ID>MaxLineLength:CollectedSection.kt:listOfNotNull(holding.source.label(), holding.note, stringResource(Res.string.awaited_payment).takeIf { holding.awaited }).joinToString(" · ")</ID>
     <ID>MaxLineLength:CollectedSection.kt:var source by remember { mutableStateOf(initial?.source ?: if (defaultParty == ORGANISER) IncomeSource.CONTRACT else IncomeSource.DOOR) }</ID>
-    <ID>MaxLineLength:Common.kt:Text(stringResource(Res.string.former_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
-    <ID>MaxLineLength:Common.kt:fun</ID>
-    <ID>MaxLineLength:Common.kt:fun parseMoney: Money?</ID>
-    <ID>MaxLineLength:Common.kt:if (pictureUrl != null) AsyncImage(pictureUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())</ID>
-    <ID>MaxLineLength:CostScreen.kt:!it.archived &amp;&amp; (forEvent == null || forEvent.participant(it.id) != null) &amp;&amp; Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date))</ID>
-    <ID>MaxLineLength:CostScreen.kt:.</ID>
-    <ID>MaxLineLength:CostScreen.kt:Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(stringResource(Res.string.cost_not_found)) }</ID>
-    <ID>MaxLineLength:CostScreen.kt:Dropdown</ID>
     <ID>MaxLineLength:CostScreen.kt:Modifier.fillMaxWidth().clickable(onClickLabel = stringResource(Res.string.open_event)) { onOpenEvent(event.id) }.padding(vertical = 4.dp)</ID>
     <ID>MaxLineLength:CostScreen.kt:Text(stringResource(Res.string.cost_refunded_fund, formatMoney(-it.amount, band.currency, lang)), style = MaterialTheme.typography.bodySmall)</ID>
-    <ID>MaxLineLength:CostScreen.kt:description = Change(description.ifBlank { null }).takeIf { description.trim() != (opened ?: existing).description.orEmpty() }</ID>
-    <ID>MaxLineLength:CostScreen.kt:editable = existing == null || Permissions.isAllowed(band, actor, AddAttachment(existing.id, Attachment("probe", AttachmentKind.IMAGE)))</ID>
-    <ID>MaxLineLength:CostScreen.kt:existing == null &amp;&amp; payers.size > 1</ID>
-    <ID>MaxLineLength:CostScreen.kt:id?.let { band.event(it) }?.let { "${it.name} · ${formatDate(it.date, lang)}" } ?: stringResource(Res.string.cost_no_event)</ID>
-    <ID>MaxLineLength:CostScreen.kt:val opened = remember(openedJson) { openedJson.takeIf { it.isNotEmpty() }?.let { KapeluszJson.decodeFromString(Cost.serializer(), it) } }</ID>
     <ID>MaxLineLength:CostScreen.kt:val refundedAt = band.events.mapNotNull { event -> event.refundOf(cost.id)?.let { Triple(event, it.amount, statuses.isSettled(event)) } }</ID>
-    <ID>MaxLineLength:CostScreen.kt:var drafts by remember { mutableStateOf(if (existing == null &amp;&amp; forEventId != null) incoming.takeSharedFiles(forEventId, toCost = true) else listOf()) }</ID>
-    <ID>MaxLineLength:CostScreen.kt:var paidBy by rememberSaveable { mutableStateOf(existing?.memberId ?: state.me?.id?.takeIf { forEvent == null || forEvent.participant(it) != null }) }</ID>
     <ID>MaxLineLength:CreateBandForm.kt:OutlinedTextField(name, { name = it }, label = { Text(stringResource(Res.string.band_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
     <ID>MaxLineLength:CreateBandForm.kt:OutlinedTextField(yourName, { yourName = it }, label = { Text(stringResource(Res.string.your_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
     <ID>MaxLineLength:Crowd.kt:fun</ID>
     <ID>MaxLineLength:DeleteBandDialog.kt:Text(stringResource(Res.string.delete_band_final), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleSmall)</ID>
-    <ID>MaxLineLength:DeleteBandDialog.kt:colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)</ID>
-    <ID>MaxLineLength:DeleteBandDialog.kt:if (working) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onError)</ID>
     <ID>MaxLineLength:DetailsSection.kt:TextButton(onClick = { expanded = !expanded }) { Text(stringResource(if (expanded) Res.string.show_less else Res.string.show_all)) }</ID>
     <ID>MaxLineLength:DevSignIn.kt:OutlinedButton</ID>
     <ID>MaxLineLength:DevSignIn.kt:internal</ID>
@@ -216,15 +164,9 @@
     <ID>MaxLineLength:EventInfoTextTest.kt:EventInfoTextTest$assertEquals("Próba\n\nData: 02 Jan 2026\n\nkapelusz.jacekgajek.com", eventInfoText(event, emptyList(), emptyList(), words, "en"), "English dates as elsewhere in the app")</ID>
     <ID>MaxLineLength:EventScreen.kt:EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)</ID>
     <ID>MaxLineLength:EventScreen.kt:EventSection.STATUS -> StatusChip(context.settlement.status, event.archived, Modifier.fillMaxWidth().padding(top = 8.dp))</ID>
-    <ID>MaxLineLength:EventScreen.kt:EventSection.WHEN -> WhenAndWhere(context, onEdit = { editing = true }.takeIf { context.can.editEvent(event) })</ID>
-    <ID>MaxLineLength:EventScreen.kt:SegmentedButton</ID>
-    <ID>MaxLineLength:EventScreen.kt:if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceLookup(api, state.band, state.userId), onDismiss = { editing = false })</ID>
-    <ID>MaxLineLength:EventScreen.kt:listOf(false to Res.string.fund_direction_to, true to Res.string.fund_direction_from)</ID>
     <ID>MaxLineLength:EventScreen.kt:snapshotFlow { pagerState.settledPage }.collect { page -> tabs.getOrNull(page)?.let { tab -> preferences.update { it.withEventTab(bandId, eventId, tab) } } }</ID>
-    <ID>MaxLineLength:EventScreen.kt:val attachedHere = incoming.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId &amp;&amp; it.bandId == state.band.id &amp;&amp; resumed }</ID>
     <ID>MaxLineLength:EventScreen.kt:val canSetFund = !event.archived &amp;&amp; context.band.treasurerMemberId != null &amp;&amp; context.can.allowed(SetFundAmount(event.id, Money(1)))</ID>
     <ID>MaxLineLength:EventScreen.kt:val unchanged = op.percent?.takeIf { it > 0 } == event.fundPercent &amp;&amp; (if (op.percent != null) Money.ZERO else op.amount) == event.fundAmount</ID>
-    <ID>MaxLineLength:EventScreen.kt:val undone = snackbar.showSnackbar(message, undoLabel, withDismissAction = true, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed</ID>
     <ID>MaxLineLength:EventsScreen.kt:AvatarStack(SettlementCalculator.partyOrder(band, event).map { partyName(band, event, it, "") to band.member(it)?.pictureUrl }, Modifier.weight(1f))</ID>
     <ID>MaxLineLength:EventsScreen.kt:BandHintCard(hint, onRoster, onHide = { preferences.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })</ID>
     <ID>MaxLineLength:EventsScreen.kt:Text(text, Modifier.padding(start = 12.dp), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
@@ -247,11 +189,8 @@
     <ID>MaxLineLength:HistoryDecoderTest.kt:HistoryDecoderTest$assertEquals(listOf(UnreadableOp("5-0", "e1"), UnreadableOp("5-1", null)), item.unreadable, "ids from the entry's time when missing")</ID>
     <ID>MaxLineLength:HistoryReadingTest.kt:HistoryReadingTest$assertEquals(listOf("o1", "o2"), item.ops.map { (it as? ReadOp.Known)?.envelope?.opId ?: (it as ReadOp.Unknown).op.opId }, "in order")</ID>
     <ID>MaxLineLength:HistoryScreen.kt:"$who · ${formatDate(time.date, language)} ${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}"</ID>
-    <ID>MaxLineLength:HistoryScreen.kt:IconButton(onClick = { offset++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month)) }</ID>
     <ID>MaxLineLength:HistoryScreen.kt:history.failed -> Text(stringResource(Res.string.history_unavailable), Modifier.padding(padding16), color = MaterialTheme.colorScheme.error)</ID>
-    <ID>MaxLineLength:HistoryScreen.kt:if (loadMoreFailed) Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)</ID>
     <ID>MaxLineLength:HistoryScreen.kt:line.envelope?.let { describe(it.op, band, line.change, by = line.entry.memberId) } ?: stringResource(Res.string.history_newer_version)</ID>
-    <ID>MaxLineLength:HistorySection.kt:val history = remember(context.event.id) { HistoryController(bands, sync, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }</ID>
     <ID>MaxLineLength:HistoryText.kt:is ReceiveAwaited -> stringResource(Res.string.h_receive_awaited, money(op.amount), party(op.eventId, op.partyId), event(op.eventId))</ID>
     <ID>MaxLineLength:HistoryText.kt:is SetEventArchived -> stringResource(if (op.archived) Res.string.h_archive_event else Res.string.h_restore_event, event(op.eventId))</ID>
     <ID>MaxLineLength:HistoryText.kt:is SetFundBankAccount</ID>
@@ -270,11 +209,8 @@
     <ID>MaxLineLength:JoinDialog.kt:preview?.let { Text(stringResource(Res.string.join_preview, it.bandName, it.memberName, it.role.label()), style = MaterialTheme.typography.titleSmall) }</ID>
     <ID>MaxLineLength:Labels.kt:Box</ID>
     <ID>MaxLineLength:Labels.kt:fun</ID>
-    <ID>MaxLineLength:LeaveBandDialog.kt:colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)</ID>
-    <ID>MaxLineLength:LeaveBandDialog.kt:if (working) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onError)</ID>
     <ID>MaxLineLength:LineupPicker.kt:PickRow$private</ID>
     <ID>MaxLineLength:LineupPicker.kt:PickRowItem(context, row, row.id in ticked, readOnly, locked(row.id)) { draft = draft.toggled(event, row.id) }</ID>
-    <ID>MaxLineLength:LineupPicker.kt:if (!readOnly) TextButton(onClick = { choosingSource = true }) { Text(stringResource(Res.string.lineup_start_from)) }</ID>
     <ID>MaxLineLength:LineupPicker.kt:if (locked) Text(stringResource(Res.string.lineup_locked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
     <ID>MaxLineLength:LineupPicker.kt:if (visible.isEmpty()) item(key = "none") { Text(stringResource(Res.string.search_people_none, query.trim()), Modifier.padding(16.dp)) }</ID>
     <ID>MaxLineLength:LineupPicker.kt:listOf(stringResource(Res.string.participants_guests) to guests.filter { shown(it.name) }.map { PickRow(it.id, it.name, null, guest = true, notInApp = false, share = shareOf(it.id)) })</ID>
@@ -284,23 +220,10 @@
     <ID>MaxLineLength:MapPicker.android.kt:position = start?.let { CameraPosition.fromLatLngZoom(LatLng(it.first, it.second), PIN_ZOOM) } ?: CameraPosition.fromLatLngZoom(POLAND, COUNTRY_ZOOM)</ID>
     <ID>MaxLineLength:MapPicker.kt:expect</ID>
     <ID>MaxLineLength:MapPicker.wasmJs.kt:actual</ID>
-    <ID>MaxLineLength:MyCostsScreen.kt:Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost), style = MaterialTheme.typography.titleSmall)</ID>
-    <ID>MaxLineLength:MyCostsScreen.kt:listOf(false to Res.string.filter_mine, true to Res.string.filter_all_members)</ID>
-    <ID>MaxLineLength:Navigation.kt:CostScreen</ID>
-    <ID>MaxLineLength:Navigation.kt:EventsScreen(graph.changes, graph.api, graph.settings, state, settings, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)</ID>
-    <ID>MaxLineLength:Navigation.kt:MyCostsScreen(state, everyone, { entry.savedStateHandle[SHOW_EVERYONE] = it }, { navController.navigate(CostRoute(it)) }, toSettings, toRoster)</ID>
-    <ID>MaxLineLength:Navigation.kt:StuckPushBanner(stuck, { bands.pendingAsJson(bandId) }, { membership.discardStuck(bandId) }, { snackbar.showSnackbar(it) })</ID>
-    <ID>MaxLineLength:Navigation.kt:composable&lt;HistoryRoute> { if (artist) BackToEvents(navController) else HistoryScreen(graph.changes, graph.api, graph.bands, graph.sync, state, back) }</ID>
-    <ID>MaxLineLength:Navigation.kt:composable&lt;PlayedRoute> { PlayedScreen(graph.settings, graph.places, state, back, onOpenEvent = { navController.navigate(EventRoute(it)) }) }</ID>
-    <ID>MaxLineLength:Navigation.kt:composable&lt;SummaryRoute> { SummaryScreen(graph.settings, state, back, onInviteMember = { navController.navigate(RosterRoute(it)) }, onOpenPlayed = { navController.navigate(PlayedRoute) }) }</ID>
-    <ID>MaxLineLength:Navigation.kt:if</ID>
-    <ID>MaxLineLength:Navigation.kt:if (artist) BackToEvents(navController) else SettleScreen(graph.changes, state, { navController.navigate(EventRoute(it)) }, toSettings, toRoster)</ID>
-    <ID>MaxLineLength:Navigation.kt:navController.previousBackStackEntry?.takeIf { it.destination.hasRoute(FundRoute::class) }?.savedStateHandle?.set(ADDED_COST, costId)</ID>
+    <ID>MaxLineLength:Money.kt:fun parseMoney: Money?</ID>
     <ID>MaxLineLength:Navigation.kt:onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) }</ID>
     <ID>MaxLineLength:Navigation.kt:private</ID>
-    <ID>MaxLineLength:Navigation.kt:settingsFor(state, graph.changes, graph.account, graph.membership, graph.api, graph.settings, onBandGone = { navController.resetTo(EventsRoute) })</ID>
     <ID>MaxLineLength:ParticipantsSection.kt:OutlinedTextField(name, { name = it.take(Limits.MAX_NAME) }, label = { Text(stringResource(Res.string.guest_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
-    <ID>MaxLineLength:ParticipantsSection.kt:ParticipantRow(context, participant, canManage, onEdit = { editingWeight = partyId }, onInvite = { inviting = partyId }.takeIf { canInvite })</ID>
     <ID>MaxLineLength:ParticipantsSection.kt:SetFixedShare(event.id, participant.partyId, target.fixedShare, target.weight.takeIf { it != participant.weight }, target.percent)</ID>
     <ID>MaxLineLength:ParticipantsSection.kt:Text(stringResource(Res.string.guest_is_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)</ID>
     <ID>MaxLineLength:ParticipantsSection.kt:if (context.actions.run(AddParticipant(context.event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent))) onDismiss()</ID>
@@ -314,15 +237,16 @@
     <ID>MaxLineLength:PaymentDetails.kt:PaymentKind.ACCOUNT$ACCOUNT</ID>
     <ID>MaxLineLength:PaymentDetails.kt:if (copied) Text(stringResource(Res.string.blik_copied), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)</ID>
     <ID>MaxLineLength:PaymentDetails.kt:if (label == null) Icon(kind.icon, stringResource(kind.title), Modifier.padding(end = 12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:People.kt:Text(stringResource(Res.string.former_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:People.kt:fun</ID>
+    <ID>MaxLineLength:People.kt:if (pictureUrl != null) AsyncImage(pictureUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())</ID>
     <ID>MaxLineLength:PlacesLocator.kt:PlacesLocator$known ?: (store.read(KEY)?.let { runCatching { KapeluszJson.decodeFromString(SERIALIZER, it) }.getOrNull() }.orEmpty().toMutableMap()).also { known = it }</ID>
     <ID>MaxLineLength:PlacesMap.android.kt:actual</ID>
     <ID>MaxLineLength:PlacesMap.kt:expect</ID>
     <ID>MaxLineLength:PlayedScreen.kt:Column</ID>
     <ID>MaxLineLength:PlayedScreen.kt:Surface</ID>
     <ID>MaxLineLength:PlayedScreen.kt:Text(pluralStringResource(Res.plurals.played_concerts, place.events.size, place.events.size), Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelLarge)</ID>
-    <ID>MaxLineLength:PlayedScreen.kt:fun</ID>
     <ID>MaxLineLength:PlayedScreen.kt:if (first != null) PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })</ID>
-    <ID>MaxLineLength:PlayedScreen.kt:navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back)) } }</ID>
     <ID>MaxLineLength:PlayedScreen.kt:private</ID>
     <ID>MaxLineLength:PresentationTest.kt:PresentationTest$CreateEvent("gig", "Gig", LocalDate(2026, 9, 13), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol")))</ID>
     <ID>MaxLineLength:PresentationTest.kt:PresentationTest$assertEquals(AgendaTemplateItem(label = "Zbiórka"), TemplateDraft(AgendaKind.ARRIVAL, " Zbiórka ").toItem(labels::getValue), "renamed: custom")</ID>
@@ -336,44 +260,27 @@
     <ID>MaxLineLength:RefundsSection.kt:Text(stringResource(Res.string.refund_max, formatMoney(max, context.currency, lang)), style = MaterialTheme.typography.bodySmall)</ID>
     <ID>MaxLineLength:RolePicker.kt:Text(stringResource(Res.string.role_owner_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
     <ID>MaxLineLength:RolePicker.kt:Text(stringResource(Res.string.role_read_only), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
-    <ID>MaxLineLength:RosterScreen.kt:MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), namesOnly = namesOnly)</ID>
-    <ID>MaxLineLength:RosterScreen.kt:Text("${current.role.label()} · ${stringResource(Res.string.invite_active_until, current.code, expiryText(current))}", style = MaterialTheme.typography.bodySmall)</ID>
-    <ID>MaxLineLength:RosterScreen.kt:Text(current.code, fontFamily = FontFamily.Monospace, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)</ID>
-    <ID>MaxLineLength:RosterScreen.kt:TextButton</ID>
     <ID>MaxLineLength:RosterScreen.kt:confirmButton = { TextButton(onClick = { save(pending, stillOld) }) { Text(stringResource(Res.string.member_share_apply_yes)) } }</ID>
     <ID>MaxLineLength:RosterScreen.kt:dismissButton = { TextButton(onClick = { save(pending, emptyList()) }) { Text(stringResource(Res.string.member_share_apply_no)) } }</ID>
     <ID>MaxLineLength:RosterScreen.kt:headlineContent = { Text(stringResource(Res.string.roster_archived, archived.size), style = MaterialTheme.typography.titleMedium) }</ID>
-    <ID>MaxLineLength:RosterScreen.kt:if ((member.userId == null || actions.run(UnlinkUser(member.id))) &amp;&amp; actions.runWithUndo(DeleteMember(member.id), deleted)) onDismiss()</ID>
     <ID>MaxLineLength:RosterScreen.kt:item { Text(stringResource(Res.string.invites_unavailable), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }</ID>
-    <ID>MaxLineLength:RosterScreen.kt:leadingContent = { if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true) }</ID>
     <ID>MaxLineLength:RosterScreen.kt:private</ID>
-    <ID>MaxLineLength:RosterScreen.kt:text = listOfNotNull(stringResource(Res.string.change_own_role_text, role.label()), pairEndsWarning(band, member, role)).joinToString("\n\n")</ID>
     <ID>MaxLineLength:RosterScreen.kt:text = listOfNotNull(stringResource(Res.string.unlink_confirm, member.name), pairEndsWarning(band, member)).joinToString("\n\n")</ID>
     <ID>MaxLineLength:Session.kt:SessionRepository$_session.value = store.read(KEY)?.let { raw -> runCatching { KapeluszJson.decodeFromString(Session.serializer(), raw) }.getOrNull() }</ID>
     <ID>MaxLineLength:SessionRepositoryTest.kt:SessionRepositoryTest$Session.fromIdToken(fakeIdToken("sub-1", now / 1000 + 3600)).copy(apiToken = "as1.old", apiExpiresAt = now + 25L * 24 * 3600 * 1000)</ID>
     <ID>MaxLineLength:SessionRepositoryTest.kt:SessionRepositoryTest$private fun withSessions</ID>
     <ID>MaxLineLength:SessionRepositoryTest.kt:SessionRepositoryTest$respond("""{"error":"sessions_revoked","message":"Signed out on all devices"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))</ID>
-    <ID>MaxLineLength:SettingsComponents.kt:Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().then(if (padded) Modifier.padding(16.dp) else Modifier.padding(vertical = 8.dp)), content = content)</ID>
     <ID>MaxLineLength:SettingsComponents.kt:Modifier.fillMaxWidth().padding(top = 8.dp).toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)</ID>
     <ID>MaxLineLength:SettingsScreen.kt:FlowRow</ID>
-    <ID>MaxLineLength:SettingsScreen.kt:PaymentDetailDialog(PaymentKind.ACCOUNT, stringResource(Res.string.account_mine), stringResource(Res.string.account_mine_hint), personal.bankAccount, personal.onBankAccount, onDismiss = { editingAccount = false })</ID>
-    <ID>MaxLineLength:SettingsScreen.kt:PaymentDetailDialog(PaymentKind.BLIK, stringResource(Res.string.blik_mine), stringResource(Res.string.blik_mine_hint), personal.blikPhone, personal.onBlikPhone, onDismiss = { editingBlik = false })</ID>
     <ID>MaxLineLength:SettingsScreen.kt:SettingsItem</ID>
-    <ID>MaxLineLength:SettingsScreen.kt:SettingsItem(Icons.Default.Groups, stringResource(Res.string.band_name), band.name, onClick = band.onRename?.let { { renaming = true } })</ID>
-    <ID>MaxLineLength:SettingsScreen.kt:TextInputDialog(stringResource(Res.string.band_name), stringResource(Res.string.band_name), band.name, onConfirm = { if (it != band.name) band.onRename(it) }, onDismiss = { renaming = false })</ID>
-    <ID>MaxLineLength:SettingsScreen.kt:VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(if (band.rawData != null) Modifier.clickable { secretMenu = true } else Modifier))</ID>
     <ID>MaxLineLength:SettingsScreen.kt:fund.treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off)</ID>
-    <ID>MaxLineLength:SettingsScreen.kt:if (signingOutEverywhere) SignOutEverywhereDialog(personal.onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })</ID>
     <ID>MaxLineLength:SettingsWiring.kt:agenda</ID>
     <ID>MaxLineLength:SettingsWiring.kt:onBankAccount = me?.let { member -> { account: String? -> dispatch(SetBankAccount(member.id, account)) }.takeIf { can.allowed(SetBankAccount(member.id, null)) } }</ID>
     <ID>MaxLineLength:SettingsWiring.kt:onBlikPhone = me?.let { member -> { phone: String? -> dispatch(SetBlikPhone(member.id, phone)) }.takeIf { can.allowed(SetBlikPhone(member.id, null)) } }</ID>
     <ID>MaxLineLength:SettingsWiring.kt:onPayment = { kind: PaymentKind, value: String? -> dispatch(fundPaymentOp(kind, value)) }.takeIf { can.allowed(SetFundBlikPhone(null)) }</ID>
     <ID>MaxLineLength:SettingsWiring.kt:treasurerOptions = band.members.filter { !it.archived &amp;&amp; it.role != Role.ARTIST &amp;&amp; it.role != Role.VIEWER }.sortedByName { it.name }.map { it.id to it.name }</ID>
     <ID>MaxLineLength:SettleScreen.kt:actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))</ID>
-    <ID>MaxLineLength:SettleScreen.kt:active.filter { (event, s) -> s.status == EventStatus.OPEN || s.status == EventStatus.LOSS || (s.status == EventStatus.AWAITING &amp;&amp; event.date &lt;= today()) }</ID>
-    <ID>MaxLineLength:SettleScreen.kt:band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))</ID>
     <ID>MaxLineLength:SettleScreen.kt:if (!keepsForFund &amp;&amp; BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))</ID>
-    <ID>MaxLineLength:SettleScreen.kt:val suggestions = settlement.suggestions.filter { (it.from in myParties || it.to in myParties) &amp;&amp; can.settleSuggestion(event, it.from, it.to) }</ID>
     <ID>MaxLineLength:SettleScreen.kt:}</ID>
     <ID>MaxLineLength:SettleTogether.kt:FilledTonalButton(onClick = { actions.run(AcceptSettleTogether(from.id, me.id)) }) { Text(stringResource(Res.string.settle_together_accept)) }</ID>
     <ID>MaxLineLength:SettleTogether.kt:OutlinedButton(onClick = { actions.run(DeclineSettleTogether(from.id, me.id)) }) { Text(stringResource(Res.string.settle_together_decline)) }</ID>
@@ -408,17 +315,14 @@
     <ID>MaxLineLength:SummaryPeriods.kt:fun AppSettings.withSummaryPeriod: AppSettings</ID>
     <ID>MaxLineLength:SummaryPeriodsTest.kt:SummaryPeriodsTest$val stored = KapeluszJson.decodeFromString(AppSettings.serializer(), KapeluszJson.encodeToString(AppSettings.serializer(), settings))</ID>
     <ID>MaxLineLength:SummaryScreen.kt:DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = { start, end -> choose(SummaryPeriod.Custom(start, end)) }, onDismiss = { choosingRange = false })</ID>
-    <ID>MaxLineLength:SummaryScreen.kt:IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back)) }</ID>
     <ID>MaxLineLength:SummaryScreen.kt:LazyRow</ID>
     <ID>MaxLineLength:SummaryScreen.kt:PersonRow</ID>
     <ID>MaxLineLength:SummaryScreen.kt:Text(custom?.let { formatDate(it.from, language) + " – " + formatDate(it.to, language) } ?: stringResource(Res.string.summary_custom))</ID>
     <ID>MaxLineLength:SummaryScreen.kt:Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = Inset, end = Inset, top = 12.dp))</ID>
-    <ID>MaxLineLength:SummaryScreen.kt:fun</ID>
     <ID>MaxLineLength:SummaryScreen.kt:if (parts.isNotEmpty()) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, Modifier.padding(start = 4.dp).size(20.dp))</ID>
     <ID>MaxLineLength:SummaryScreen.kt:if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)</ID>
     <ID>MaxLineLength:SummaryScreen.kt:if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SummaryHeader(stringResource(Res.string.summary_members)) }</ID>
     <ID>MaxLineLength:SummaryScreen.kt:private</ID>
-    <ID>MaxLineLength:SummaryScreen.kt:shown = period to withContext(Dispatchers.Default) { periodSummary(state.view, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) { yield() } }</ID>
     <ID>MaxLineLength:SummarySection.kt:Text(stringResource(Res.string.line_holds, formatMoney(line.balance, currency, lang)), style = MaterialTheme.typography.bodySmall)</ID>
     <ID>MaxLineLength:SummarySection.kt:partyName(context.band, context.event, context.settlement, line.partyId, fundLabel, stringResource(Res.string.pair_names))</ID>
     <ID>MaxLineLength:SyncEngine.kt:SyncEngine$if</ID>
@@ -438,18 +342,14 @@
     <ID>MaxLineLength:TopBars.kt:leadingIcon = { if (band.id == bar.currentBandId) Icon(Icons.Default.Check, null) else Icon(Icons.Default.Groups, null) }</ID>
     <ID>MaxLineLength:TopBars.kt:val tint = if (status == SyncStatus.NEEDS_SIGN_IN || status == SyncStatus.ERROR) MaterialTheme.colorScheme.error else LocalContentColor.current</ID>
     <ID>MaxLineLength:TopBars.kt:{ Icon(Icons.Default.Warning, stringResource(Res.string.stuck_push_title), tint = MaterialTheme.colorScheme.error) }</ID>
-    <ID>MaxLineLength:TransfersSection.kt:.</ID>
     <ID>MaxLineLength:TransfersSection.kt:CollapsibleHeader("${stringResource(Res.string.recorded_transfers)} (${event.transfers.size})", showRecorded) { showRecorded = !showRecorded }</ID>
     <ID>MaxLineLength:TransfersSection.kt:CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) { SuggestionText(context, suggestion, keepsForFund, from, to) }</ID>
-    <ID>MaxLineLength:TransfersSection.kt:Modifier.fillMaxWidth().clickable(enabled = context.can.removeTransfer(event, transfer)) { removing = transfer }.padding(vertical = 8.dp)</ID>
     <ID>MaxLineLength:TransfersSection.kt:OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())</ID>
     <ID>MaxLineLength:TransfersSection.kt:Payees.forHandOver(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }</ID>
     <ID>MaxLineLength:TransfersSection.kt:Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)</ID>
     <ID>MaxLineLength:TransfersSection.kt:fun</ID>
-    <ID>MaxLineLength:TransfersSection.kt:if (context.can.removeTransfer(event, transfer)) RemoveButton("$from → $to, ${formatMoney(transfer.amount, context.currency, language)}") { removing = transfer }</ID>
     <ID>MaxLineLength:TransfersSection.kt:if (settles &amp;&amp; !keepsForFund &amp;&amp; BlikPhone.pays(band, settlement, context.me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, context.me?.id))</ID>
     <ID>MaxLineLength:TransfersSection.kt:private</ID>
-    <ID>MaxLineLength:TransfersSection.kt:var amount by remember { mutableStateOf(handOverable(context, from).takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }</ID>
     <ID>MaxLineLength:WebInstallHint.kt:WebHint.AndroidApp -> TextButton(onClick = { uriHandler.openUri(PLAY_INSTALL) }) { Text(stringResource(Res.string.app_banner_download)) }</ID>
     <ID>MaxLineLength:WebInstallHint.kt:is WebHint.NewVersion -> if (reload != null) TextButton(onClick = reload) { Text(stringResource(Res.string.app_update_download)) }</ID>
     <ID>MaxLineLength:ZeroScreen.kt:SyncStatus.NEEDS_SIGN_IN</ID>
@@ -484,19 +384,14 @@
     <ID>MultipleEmitters:RosterScreen.kt:@Composable private fun MemberRow</ID>
     <ID>MultipleEmitters:SummarySection.kt:@Composable private fun DeltaLabel</ID>
     <ID>MultipleEmitters:TransfersSection.kt:@Composable fun TransfersSection</ID>
-    <ID>MutableStateAutoboxing:HistoryController.kt:HistoryController$mutableStateOf(0)</ID>
-    <ID>MutableStateAutoboxing:HistoryScreen.kt:mutableStateOf(0)</ID>
     <ID>MutableStateAutoboxing:Main.kt:mutableStateOf(0)</ID>
     <ID>MutableStateAutoboxing:PlayedScreen.kt:mutableStateOf(0)</ID>
     <ID>ParameterNaming:BandFundScreen.kt:onAddedCostSeen: () -> Unit = {}</ID>
-    <ID>ParameterNaming:Common.kt:onRestored: () -> Unit</ID>
-    <ID>ParameterNaming:CostScreen.kt:/** A new cost saved, with its id. */ onAdded: (String) -> Unit = {}</ID>
     <ID>ParameterNaming:EventDialogs.kt:onDeleted: () -> Unit</ID>
     <ID>ParameterNaming:EventsScreen.kt:onFocused: () -> Unit</ID>
     <ID>ParameterNaming:JoinDialog.kt:onJoined: () -> Unit</ID>
-    <ID>ParameterNaming:RosterScreen.kt:onInvitesChanged: () -> Unit</ID>
+    <ID>ParameterNaming:People.kt:onRestored: () -> Unit</ID>
     <ID>ParameterNaming:SettingsWiring.kt:onBandGone: () -> Unit</ID>
-    <ID>ParameterNaming:SummaryScreen.kt:onOpenPlayed: () -> Unit</ID>
     <ID>SwallowedException:AndroidGoogleAuth.kt:AndroidGoogleAuth$e: GetCredentialCancellationException</ID>
     <ID>SwallowedException:BandRepository.kt:BandRepository$e: Exception</ID>
     <ID>SwallowedException:BandRepository.kt:BandRepository$e: UnreadableBand</ID>

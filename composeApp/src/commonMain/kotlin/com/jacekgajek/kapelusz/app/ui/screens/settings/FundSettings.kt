@@ -54,7 +54,7 @@ import com.jacekgajek.kapelusz.app.ui.components.FundPaymentDetails
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.model.FundCut
 import org.jetbrains.compose.resources.stringResource
 

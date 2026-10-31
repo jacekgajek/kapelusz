@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.app.ui.format
 
 import com.jacekgajek.kapelusz.model.Money
 import kotlin.math.absoluteValue

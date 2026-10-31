@@ -65,7 +65,7 @@ import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.shareText
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member

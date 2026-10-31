@@ -86,6 +86,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
+import com.jacekgajek.kapelusz.app.ui.screens.share.SharedFilesDialog
 import com.jacekgajek.kapelusz.rules.isArtist
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource

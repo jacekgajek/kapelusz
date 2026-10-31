@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.app.ui.text
 
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -81,6 +81,8 @@ import com.jacekgajek.kapelusz.app.generated.share_of_profit
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.baseChange
 import com.jacekgajek.kapelusz.app.ui.screens.isRedo
 import com.jacekgajek.kapelusz.history.BandChange

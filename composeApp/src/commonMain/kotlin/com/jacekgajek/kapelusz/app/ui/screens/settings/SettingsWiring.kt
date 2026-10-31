@@ -11,7 +11,7 @@ import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.pairEndsWarning
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Role

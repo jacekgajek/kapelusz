@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui
 
-import com.jacekgajek.kapelusz.app.ui.model.SettlementWords
-import com.jacekgajek.kapelusz.app.ui.model.settlementText
+import com.jacekgajek.kapelusz.app.ui.format.SettlementWords
+import com.jacekgajek.kapelusz.app.ui.format.settlementText
 import com.jacekgajek.kapelusz.engine.ApplyResult
 import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.BAND_FUND

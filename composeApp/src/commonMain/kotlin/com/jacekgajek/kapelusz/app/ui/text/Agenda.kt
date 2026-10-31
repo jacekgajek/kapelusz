@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.app.ui.text
 
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.app.generated.Res

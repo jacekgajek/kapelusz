@@ -54,8 +54,8 @@ import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money

@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.LocatedPlaces
+import com.jacekgajek.kapelusz.app.data.summaryPeriod
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
@@ -61,8 +62,7 @@ import com.jacekgajek.kapelusz.app.ui.PlayedNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.text.PlayedPlaces
 import org.jetbrains.compose.resources.PluralStringResource

@@ -1,6 +1,5 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.app.data
 
-import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.view.SummaryPeriod
 

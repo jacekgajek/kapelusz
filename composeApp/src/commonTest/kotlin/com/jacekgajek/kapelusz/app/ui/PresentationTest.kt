@@ -1,10 +1,10 @@
 package com.jacekgajek.kapelusz.app.ui
 
-import com.jacekgajek.kapelusz.app.ui.model.TemplateDraft
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMonth
-import com.jacekgajek.kapelusz.app.ui.model.toItem
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMonth
+import com.jacekgajek.kapelusz.app.ui.text.TemplateDraft
+import com.jacekgajek.kapelusz.app.ui.text.toItem
 import com.jacekgajek.kapelusz.engine.ApplyResult
 import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.AgendaKind

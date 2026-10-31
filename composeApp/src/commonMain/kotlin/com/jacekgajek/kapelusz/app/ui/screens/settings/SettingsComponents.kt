@@ -34,7 +34,7 @@ import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.MAX_LIST_WIDTH
 import com.jacekgajek.kapelusz.app.ui.components.Messages
-import com.jacekgajek.kapelusz.app.ui.model.label
+import com.jacekgajek.kapelusz.app.ui.text.label
 
 /** A settings page: the top bar, the screen's messages, and a centred column that does not stretch on wide screens. */
 @Composable

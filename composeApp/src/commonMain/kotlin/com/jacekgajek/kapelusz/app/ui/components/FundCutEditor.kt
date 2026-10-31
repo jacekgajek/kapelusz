@@ -20,8 +20,8 @@ import com.jacekgajek.kapelusz.app.generated.fund_percent_no_profit
 import com.jacekgajek.kapelusz.app.generated.fund_percent_of_profit
 import com.jacekgajek.kapelusz.app.generated.share_by_percent
 import com.jacekgajek.kapelusz.app.generated.share_fixed_amount
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMoneyInput
 import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.model.FundCut
 import com.jacekgajek.kapelusz.model.Money

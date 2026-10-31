@@ -12,7 +12,7 @@ import com.jacekgajek.kapelusz.app.generated.redo
 import com.jacekgajek.kapelusz.app.generated.redo_confirm
 import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.undo_confirm
-import com.jacekgajek.kapelusz.app.ui.model.describe
+import com.jacekgajek.kapelusz.app.ui.text.describe
 import com.jacekgajek.kapelusz.engine.isUndoable
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
