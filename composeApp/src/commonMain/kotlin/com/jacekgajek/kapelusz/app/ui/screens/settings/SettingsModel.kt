@@ -17,7 +17,7 @@ data class Settings(
     val personal: PersonalSettings,
     /** The band's agenda template; null for non-leaders. */
     val agenda: AgendaSettings?,
-    /** No band fund and no whole-band calendar for artists (ITERATION_4 §1.1). */
+    /** No band fund and no whole-band calendar for artists. */
     val artist: Boolean,
 )
 
@@ -35,9 +35,9 @@ class BandSettings(
     val leaveWarnings: List<String>,
     /** Deletes the band for everyone; only for its owner. Throws when it did not work (e.g. offline). */
     val onDelete: (suspend () -> Unit)?,
-    /** While the band is to be deleted (ITERATION_7 §9): its notice, in place of Delete band. */
+    /** While the band is to be deleted: its notice, in place of Delete band. */
     val deletionNotice: (@Composable () -> Unit)?,
-    /** The band's raw file from the server, for the secret menu (ITERATION_2 §7.1); null for non-leaders. */
+    /** The band's raw file from the server, for the secret menu; null for non-leaders. */
     val rawData: (suspend () -> String)?,
 )
 
@@ -53,11 +53,11 @@ class BandFundSettings(
     /** Turns the band fund off; null while it holds or owes money ([balance] says how much it holds). */
     val onDisable: (() -> Unit)?,
     val balance: String,
-    /** The fund's default for new events (ITERATION_7 §5.2); [defaultSetting] is null for non-leaders. */
+    /** The fund's default for new events; [defaultSetting] is null for non-leaders. */
     val default: FundCut?,
     val defaultSetting: FundDefaultSetting?,
     val currency: String,
-    /** Where to pay into the band fund (ITERATION_7 §7); [onPayment] for its holder and leads. */
+    /** Where to pay into the band fund; [onPayment] for its holder and leads. */
     val blikPhone: String?,
     val bankAccount: String?,
     val onPayment: ((PaymentKind, String?) -> Unit)?,
@@ -70,10 +70,10 @@ class PersonalSettings(
     val onLanguage: (String?) -> Unit,
     /** The calendar subscription (needs the server): get it, or change it. */
     val calendar: suspend (CalendarSubscriptionChange?) -> CalendarSubscription,
-    /** The user's BLIK number in this band (ITERATION_5 §8), as stored; [onBlikPhone] is null for whoever is never paid. */
+    /** The user's BLIK number in this band, as stored; [onBlikPhone] is null for whoever is never paid. */
     val blikPhone: String?,
     val onBlikPhone: ((String?) -> Unit)?,
-    /** The user's bank account in this band (ITERATION_7 §7), as [blikPhone]. */
+    /** The user's bank account in this band, as [blikPhone]. */
     val bankAccount: String?,
     val onBankAccount: ((String?) -> Unit)?,
     /** The account's e-mail address (or name). */
@@ -81,7 +81,7 @@ class PersonalSettings(
     /** The user's Google photo (as their member in this band has it). */
     val picture: String?,
     val onSignOut: () -> Unit,
-    /** Signs out every device of the user, this one too (ITERATION_3 R6). Throws when it did not work (e.g. offline). */
+    /** Signs out every device of the user, this one too. Throws when it did not work (e.g. offline). */
     val onSignOutEverywhere: suspend () -> Unit,
 )
 

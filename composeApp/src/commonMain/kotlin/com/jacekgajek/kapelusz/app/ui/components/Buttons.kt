@@ -21,7 +21,7 @@ fun EditButton(what: String? = null, onClick: () -> Unit) {
     IconButton(onClick = onClick) { Icon(Icons.Default.Edit, if (what.isNullOrBlank()) edit else "$edit: $what") }
 }
 
-/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers (ITERATION_3 R13). */
+/** Visible remove affordance at the end of a tappable row; [what] names the item for screen readers. */
 @Composable
 fun RemoveButton(what: String, onClick: () -> Unit) {
     IconButton(onClick = onClick) { Icon(Icons.Default.Delete, removeLabel(what)) }

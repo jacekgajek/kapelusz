@@ -9,7 +9,7 @@ typealias Id = String
 const val BAND_FUND: Id = "band-fund"
 
 /**
- * Holder of collected money that has not come in yet: a fee the organiser still owes (ITERATION_4 §2.2). It counts in
+ * Holder of collected money that has not come in yet: a fee the organiser still owes. It counts in
  * the event's income and shares but is never asked to pay; "Received…" moves it to whoever got it.
  */
 const val ORGANISER: Id = "organiser"
@@ -18,8 +18,8 @@ const val ORGANISER: Id = "organiser"
 @Serializable
 enum class Role {
     /**
-     * Sees only their own events, costs and what they receive; adds their own costs; never holds money (ITERATION_4
-     * §1.1). Below [MEMBER], which can do everything an artist can, but not "at least [VIEWER]" in what it sees: viewers
+     * Sees only their own events, costs and what they receive; adds their own costs; never holds money. Below [MEMBER], which can do
+     * everything an artist can, but not "at least [VIEWER]" in what it sees: viewers
      * see everything.
      */
     VIEWER,
@@ -28,7 +28,7 @@ enum class Role {
 
     /**
      * The band's leader ("Leader" in the app): runs the events and the money, and manages the members, roles and
-     * invites. Also had an Leader role above it until 2026-10-25 (ITERATION_5 §11): merged, as a band's leader is its leader.
+     * invites. Also had an Leader role above it until 2026-10-25: merged, as a band's leader is its leader.
      */
     LEAD,
     OWNER,
@@ -49,30 +49,29 @@ data class Member(
     val role: Role = Role.MEMBER,
     val archived: Boolean = false,
     /**
-     * The linked user's Google photo (ITERATION_2 §7.4), set by the server at sign-in and when joining; not an
+     * The linked user's Google photo, set by the server at sign-in and when joining; not an
      * operation, not in the history, and ignored by undo.
      */
     val pictureUrl: String? = null,
     /**
-     * Where their share starts in a new event (ITERATION_4 §2.3): a weight, or [shareFixed] or [sharePercent] (ITERATION_7
-     * §6) when set.
+     * Where their share starts in a new event: a weight, or [shareFixed] or [sharePercent] when set.
      */
     val shareWeight: Int = DEFAULT_WEIGHT,
     val shareFixed: Money? = null,
     val sharePercent: Int? = null,
     /**
-     * Who they settle together with (ITERATION_5 §7): in events where both take part, the two are one party on
+     * Who they settle together with: in events where both take part, the two are one party on
      * Settlement and in its transfers, and separate everywhere else. Both members name each other.
      */
     val settlesWith: Id? = null,
-    /** Who they invited to settle together, while that member has not answered (ITERATION_5 §7). */
+    /** Who they invited to settle together, while that member has not answered. */
     val invitedToSettle: Id? = null,
     /**
-     * The phone number bandmates send them money to with BLIK (ITERATION_5 §8), as stored by [BlikPhone.normalize]; set
+     * The phone number bandmates send them money to with BLIK, as stored by [BlikPhone.normalize]; set
      * only by the member, kept out of the history and of undo, and gone with the linked account.
      */
     val blikPhone: String? = null,
-    /** Their bank account number (ITERATION_7 §7), as stored by [BankAccount.normalize]; kept like [blikPhone]. */
+    /** Their bank account number, as stored by [BankAccount.normalize]; kept like [blikPhone]. */
     val bankAccount: String? = null,
 ) {
     /** A participant with this member's default share. */
@@ -91,15 +90,15 @@ data class Band(
     val events: List<Event> = emptyList(),
     val costs: List<Cost> = emptyList(),
     val fundEntries: List<FundEntry> = emptyList(),
-    /** Where to pay into the band fund (ITERATION_7 §7), as stored by [BlikPhone.normalize]; never the holder's own. */
+    /** Where to pay into the band fund, as stored by [BlikPhone.normalize]; never the holder's own. */
     val fundBlikPhone: String? = null,
-    /** The band fund's bank account (ITERATION_7 §7), as stored by [BankAccount.normalize]. */
+    /** The band fund's bank account, as stored by [BankAccount.normalize]. */
     val fundBankAccount: String? = null,
-    /** The owner asked to delete the band (ITERATION_7 §9): it is deleted then, unless a leader cancels it first. */
+    /** The owner asked to delete the band: it is deleted then, unless a leader cancels it first. */
     val deletion: BandDeletion? = null,
-    /** What new events put into the band fund (ITERATION_7 §5.2); null: nothing. */
+    /** What new events put into the band fund; null: nothing. */
     val fundDefault: FundCut? = null,
-    /** Agenda times new events get (ITERATION_2 §4.1); null = the defaults, Arrival, Sound check and Concert start. */
+    /** Agenda times new events get; null = the defaults, Arrival, Sound check and Concert start. */
     val agendaTemplate: List<AgendaTemplateItem>? = null,
     /** Highest applied operation sequence number per client install, for idempotent sync. */
     val lastSeq: Map<String, Long> = emptyMap(),
@@ -114,7 +113,7 @@ data class Band(
 
     /**
      * The member (archived ones too) already called [name], ignoring letter case and surrounding spaces, other than
-     * [except]: member names are unique (ITERATION_5 §12).
+     * [except]: member names are unique.
      */
     fun memberNamed(name: String, except: Id? = null): Member? = members.firstOrNull { it.id != except && it.name.trim().equals(name.trim(), ignoreCase = true) }
     fun event(id: Id): Event? = events.firstOrNull { it.id == id }
@@ -133,7 +132,7 @@ data class Band(
 }
 
 /**
- * A band waiting to be deleted (ITERATION_7 §9): [requestedBy] (a member id) asked at [requestedAt]; the server deletes
+ * A band waiting to be deleted: [requestedBy] (a member id) asked at [requestedAt]; the server deletes
  * it at [deleteAt], epoch millis by the server's clock.
  */
 @Serializable

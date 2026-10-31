@@ -22,7 +22,7 @@ import kotlinx.datetime.LocalDate
 class AttachmentsTest {
     private var nextId = 0
 
-    /** ITERATION_5 §4.2: an attachment's file is the local copy while it uploads, then downloaded once and kept. */
+    /** An attachment's file is the local copy while it uploads, then downloaded once and kept. */
     @Test
     fun anAttachmentsFileComesFromTheDeviceOrIsDownloadedOnce() = runTest {
         val server = FakeServer()

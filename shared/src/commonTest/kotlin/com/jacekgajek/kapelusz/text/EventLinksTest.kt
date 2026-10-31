@@ -9,7 +9,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** ITERATION_5 §10: links to an event. */
+/** Links to an event. */
 class EventLinksTest {
     @Test
     fun aLinkIsTheEventIdUnderE() {

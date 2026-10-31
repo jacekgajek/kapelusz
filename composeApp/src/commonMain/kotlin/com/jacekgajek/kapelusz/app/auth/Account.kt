@@ -31,7 +31,7 @@ class Account(
 
     private val _signedOutEverywhere = MutableStateFlow(false)
 
-    /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
+    /** The user was signed out because of "sign out on all devices"; the sign-in screen says so. */
     val signedOutEverywhere: StateFlow<Boolean> = _signedOutEverywhere.asStateFlow()
 
     /**
@@ -50,7 +50,7 @@ class Account(
     }
 
     /**
-     * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and
+     * Signs out in the app's own scope: the screen that asked goes away as soon as the session does, and
      * its scope with it, which must not stop the rest of signing out.
      */
     fun signOutInBackground() {
@@ -70,7 +70,7 @@ class Account(
     }
 
     /**
-     * "Sign out on all devices" (ITERATION_3 R6): the server ends every session of the user, this device's included,
+     * "Sign out on all devices": the server ends every session of the user, this device's included,
      * then this device signs out as [signOut] does. Throws (and stays signed in) when the server could not be told.
      */
     suspend fun signOutEverywhere() {
@@ -92,7 +92,7 @@ class Account(
 
     /**
      * Once per app run, while the user's member has no photo: the Google token kept from signing in carries it, so
-     * members signed in before photos existed get theirs without signing in again (ITERATION_2 §7.4).
+     * members signed in before photos existed get theirs without signing in again.
      */
     fun sendPictureIfMissing(me: Member?) {
         if (pictureSent || me == null || me.pictureUrl != null) return

@@ -1,4 +1,4 @@
-// Keeps the web app's own files on the device so it starts offline (ITERATION_3 §2.3). Data lives in IndexedDB and
+// Keeps the web app's own files on the device so it starts offline. Data lives in IndexedDB and
 // syncs once online, as on Android; this worker only serves the app's files.
 //
 // - The page and composeApp.js: network first, so a new deploy is picked up on the next start; the cached copy when
@@ -76,7 +76,7 @@ async function networkFirst(event, request, key) {
     // With a copy at hand, a hanging network (a weak signal) does not keep the app from starting.
     const timeout = new Promise((resolve) => setTimeout(() => resolve(null), NETWORK_TIMEOUT_MS));
     try {
-        // An error answer (a server or CDN hiccup, a captive portal) loses to the good copy too (V5-M1 D7).
+        // An error answer (a server or CDN hiccup, a captive portal) loses to the good copy too.
         const answer = await Promise.race([network, timeout]);
         return answer && answer.ok ? answer : cached;
     } catch (e) {

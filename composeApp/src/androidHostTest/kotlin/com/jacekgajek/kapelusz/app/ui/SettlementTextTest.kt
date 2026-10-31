@@ -34,7 +34,7 @@ import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 
 /**
- * The shared settlement text (ITERATION_3 §2.1) with the real words of each UI language, read from the string
+ * The shared settlement text with the real words of each UI language, read from the string
  * resources as the app does. Runs as a JVM host test.
  */
 class SettlementTextTest {
@@ -119,7 +119,7 @@ class SettlementTextTest {
 
     @Test
     fun aPairSettlingTogetherIsNamedTogether() {
-        // Bob and Carol settle together (ITERATION_5 §7); Bob collected 300, a third each.
+        // Bob and Carol settle together; Bob collected 300, a third each.
         val band = gig
             .let { (Engine.apply(it, Actor.System, AddMember("carol", "Carol"), "m2", 1) as ApplyResult.Applied).band }
             .let { (Engine.apply(it, Actor.System, LinkUser("carol", "u-carol", Role.MEMBER), "l2", 1) as ApplyResult.Applied).band }
@@ -210,7 +210,7 @@ class SettlementTextTest {
         )
     }
 
-    /** ITERATION_3 §2.4: a fixed share says so, in both languages. */
+    /** A fixed share says so, in both languages. */
     @Test
     fun aFixedShareSaysSo() {
         val band = gig.apply(com.jacekgajek.kapelusz.ops.SetFixedShare("gig", "bob", Money(20000)))

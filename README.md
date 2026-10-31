@@ -72,14 +72,13 @@ Console.
 
 ## Documents
 
-- [SPEC.md](SPEC.md) — what the app does, consolidated from the eight iterations; the regression checklist at its end.
+- [SPEC.md](SPEC.md) — what the app does; the regression checklist at its end.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how it is built: modules, packages, state, sync, the server, tests.
 - [DECISIONS.md](DECISIONS.md) — the choices in force and why.
 - [BACKLOG.md](BACKLOG.md) — what is known to be wrong or missing.
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md), [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md) — working offline; restoring data.
 - [REFACTORING.md](REFACTORING.md) — the 2026-10-31 restructuring: plan, progress, reviews under `docs/refactoring/`.
-- [docs/history/](docs/history/) — the planning iterations as they were written (`ITERATION_1` to `ITERATION_8`), the
-  record of how each decision was reached; `SPEC.md` cites them.
+- [docs/history/](docs/history/) — the planning notes as they were written, kept for the record.
 
 The app was called Art Split until 1.0 (and Split Art for a few hours). The S3 buckets (`jacekgajek-art-split-*`) and the Lambda (`art-split-api`)
 keep the old name: they hold the bands' data and run the API.

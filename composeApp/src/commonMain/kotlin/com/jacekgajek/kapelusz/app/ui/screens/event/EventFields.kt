@@ -75,7 +75,7 @@ import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Google's place services for Location (ITERATION_5 §9), through the server, in the app's language. Each call throws
+ * Google's place services for Location, through the server, in the app's language. Each call throws
  * when it cannot (offline, not set up). A search and the details of the place picked from it are one Google session.
  */
 class PlaceLookup(private val api: PlacesApi, private val bandId: String, private val language: String) {
@@ -111,7 +111,7 @@ data class EventFieldsState(
 )
 
 /**
- * The fields of the create and edit dialogs (ITERATION_2 §4.3, §4.4): name, date, location with Paste from Maps, and
+ * The fields of the create and edit dialogs: name, date, location with Paste from Maps, and
  * the agenda: set times as rows, the unset ones (and "+ Add time") as chips.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -131,7 +131,7 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
         DateField(state.date, { onState(state.copy(date = it)) }, stringResource(Res.string.event_date))
         LocationField(state, places, onState)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // A link copied in Maps (Share › Copy link) is pasted here (ITERATION_6 §1: Kapelusz takes no shared text).
+            // A link copied in Maps (Share › Copy link) is pasted here (Kapelusz takes no shared text).
             AssistChip(onClick = {
                 scope.launch {
                     val place = paste()?.let(Places::parse)
@@ -139,7 +139,7 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
                         pasting = Pasting.NoLink
                         return@launch
                     }
-                    // Read by the server (ITERATION_5 §9.1): the place's name and address, or the pin's coordinates.
+                    // Read by the server: the place's name and address, or the pin's coordinates.
                     pasting = Pasting.Reading
                     val before = current.location
                     val text = places?.let { runSuspendCatching { it.resolve(place.url) }.getOrNull() }
@@ -192,7 +192,7 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
 }
 
 /**
- * Location, with Google's places for what is typed (ITERATION_5 §9): from 3 characters, after a short pause, up to 5
+ * Location, with Google's places for what is typed: from 3 characters, after a short pause, up to 5
  * under the field. Picking one puts in its name and full address; typing freely still works, and offline (or without
  * place search on the server) the field is plain text.
  */
@@ -235,7 +235,7 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
         trailingIcon = if (state.location.isNotEmpty() || maps != null) {
             {
                 Row {
-                    // Any spot, also one without an address (ITERATION_6 §3).
+                    // Any spot, also one without an address.
                     if (maps != null) {
                         IconButton(onClick = { picking = true }) { Icon(Icons.Default.Place, stringResource(Res.string.location_pick_map)) }
                     }

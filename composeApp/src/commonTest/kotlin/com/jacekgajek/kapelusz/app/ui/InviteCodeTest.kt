@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** What a scanned invite QR code gives the Join dialog (ITERATION_6 §10). */
+/** What a scanned invite QR code gives the Join dialog. */
 class InviteCodeTest {
 
     @Test

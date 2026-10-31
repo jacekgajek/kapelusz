@@ -21,7 +21,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-/** The server's list of devices to send sync messages to (ITERATION_7 §2.4). */
+/** The server's list of devices to send sync messages to. */
 interface DevicesApi {
     /** This installation's Firebase token; the answer says whether sync messages will come. */
     suspend fun registerDevice(installationId: String, token: String): Boolean
@@ -31,7 +31,7 @@ interface DevicesApi {
 }
 
 /**
- * This device on the server's list for sync messages (ITERATION_7 §2.4); without a [channel] (the web), nothing. A
+ * This device on the server's list for sync messages; without a [channel] (the web), nothing. A
  * reaction, nothing calls it to register: it does so whenever what the server keeps the device for changes — the user
  * signed in (once their bands are loaded), whether they are in a band, a band of theirs the server now has
  * ([SyncEvent.BandCreated]), a new token ([tokenChanged]) — and when the app comes to the screen after a registration

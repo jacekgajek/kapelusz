@@ -45,7 +45,7 @@ import org.jetbrains.compose.resources.stringResource
 private const val COLLAPSED_LINES = 6
 
 /**
- * Free-text details of an event (ITERATION_2 §4.2), e.g. a pasted setlist: line breaks kept, long text collapsed,
+ * Free-text details of an event, e.g. a pasted setlist: line breaks kept, long text collapsed,
  * selectable for copying. Stored as the event's notes. Leads and above edit it in a full-screen editor.
  */
 @Composable
@@ -97,7 +97,7 @@ private fun DetailsEditor(initial: String, onSave: (String) -> Boolean, onDismis
         Scaffold(
             topBar = {
                 BackTopBar(stringResource(Res.string.details), leave) {
-                    // Refused (the snackbar says why): the editor stays, with what was typed (V5-M1 C4a).
+                    // Refused (the snackbar says why): the editor stays, with what was typed.
                     TextButton(enabled = value.trim().length <= Limits.MAX_NOTES, onClick = { if (onSave(value)) onDismiss() }) {
                         Text(stringResource(Res.string.save))
                     }

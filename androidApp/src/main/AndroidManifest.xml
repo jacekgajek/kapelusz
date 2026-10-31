@@ -4,7 +4,7 @@
 
     <!-- Sync with the Kapelusz API. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- No notifications at all: Firebase Messaging, used only to sync (ITERATION_7 §2.3), would ask for it. -->
+    <!-- No notifications at all: Firebase Messaging, used only to sync, would ask for it. -->
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"
         tools:node="remove" />
@@ -20,7 +20,7 @@
         <meta-data
             android:name="asset_statements"
             android:resource="@string/asset_statements" />
-        <!-- Compose follows these changes itself (V5-M1): turning the phone, dark mode, split screen or a foldable no
+        <!-- Compose follows these changes itself: turning the phone, dark mode, split screen or a foldable no
              longer rebuild the activity, which would close dialogs and reset forms. Language is left to Android. -->
         <activity
             android:name=".android.MainActivity"
@@ -31,7 +31,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Photos and PDFs shared to Kapelusz: attached to a cost, received money or an event (ITERATION_6 §1). -->
+            <!-- Photos and PDFs shared to Kapelusz: attached to a cost, received money or an event. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
@@ -48,7 +48,7 @@
                 <data android:scheme="https" android:host="kapelusz.jacekgajek.com" android:pathPrefix="/e/" />
             </intent-filter>
         </activity>
-        <!-- Play services downloads the QR scanner with the app, not on the first scan (ITERATION_6 §10). -->
+        <!-- Play services downloads the QR scanner with the app, not on the first scan. -->
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode_ui" />
@@ -59,11 +59,11 @@
             android:name="com.google.mlkit.vision.codescanner.internal.GmsBarcodeScanningDelegateActivity"
             tools:ignore="MissingClass"
             tools:remove="android:screenOrientation" />
-        <!-- Google Maps, for picking a place on a map (ITERATION_6 §3). -->
+        <!-- Google Maps, for picking a place on a map. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${googleMapsKey}" />
-        <!-- Sync messages, not notifications (ITERATION_7 §2.3): "band X changed" makes the app on screen sync it. -->
+        <!-- Sync messages, not notifications: "band X changed" makes the app on screen sync it. -->
         <service
             android:name="com.jacekgajek.kapelusz.app.sync.SyncMessagingService"
             android:exported="false">

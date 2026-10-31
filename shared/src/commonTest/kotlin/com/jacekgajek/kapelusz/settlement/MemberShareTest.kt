@@ -22,7 +22,7 @@ import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** ITERATION_4 §2.3: a default share per member. */
+/** A default share per member. */
 class MemberShareTest {
 
     @Test

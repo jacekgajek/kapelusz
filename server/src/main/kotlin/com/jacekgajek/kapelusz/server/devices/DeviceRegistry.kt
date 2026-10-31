@@ -15,7 +15,7 @@ data class DeviceTarget(val userId: String, val installationId: String, val toke
 data class SenderDevice(val userId: String, val installationId: String)
 
 /**
- * The users' devices for sync messages (ITERATION_7 §2.4): registered by the app after sign-in and at each start,
+ * The users' devices for sync messages: registered by the app after sign-in and at each start,
  * removed on sign-out. Kept small: at most [MAX_DEVICES] per user, and none unseen for [MAX_UNSEEN_MS] (dropped on
  * every update, and when found while sending).
  */

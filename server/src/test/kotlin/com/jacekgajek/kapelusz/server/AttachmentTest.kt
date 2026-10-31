@@ -88,7 +88,7 @@ class AttachmentTest : ApiHarness() {
         assertEquals(RejectionReason.INVALID_INPUT, noSize.rejected.values.single().reason)
     }
 
-    /** ITERATION_4 §2.1: files of collected entries and of events go the same way, and leave with what they belong to. */
+    /** Files of collected entries and of events go the same way, and leave with what they belong to. */
     @Test
     fun filesOfCollectedMoneyAndEvents() {
         setup()

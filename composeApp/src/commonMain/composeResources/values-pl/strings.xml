@@ -647,7 +647,7 @@
     <string name="reject_storage_failed">Nie udało się zapisać na tym urządzeniu (czy pamięć jest pełna?).</string>
     <string name="loading">Wczytywanie…</string>
 
-    <!-- Settling together (ITERATION_5 §7) -->
+    <!-- Settling together -->
     <string name="pair_names">%1$s i %2$s</string>
     <string name="pair_breakdown">%1$s: wypłata %2$s · trzyma %3$s</string>
     <string name="settle_together_title">Wspólne rozliczenie</string>

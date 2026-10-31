@@ -174,7 +174,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
     fun money(amount: Money) = formatMoney(amount, band.currency, lang)
     val pairNames = stringResource(Res.string.pair_names)
 
-    // A suggestion's transfer settled together names the pair, as it was suggested (ITERATION_5 §7).
+    // A suggestion's transfer settled together names the pair, as it was suggested.
     fun transferParty(eventId: Id, id: Id, together: Boolean): String {
         val partner = band.member(id)?.settlesWith?.takeIf { together && band.event(eventId)?.participant(it) != null }
             ?: return party(eventId, id)
@@ -279,7 +279,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         )
 
         is AddFundEntry -> when {
-            // Who paid it in (ITERATION_7 §5.1); a refund names its cost's owner on the fund's page.
+            // Who paid it in; a refund names its cost's owner on the fund's page.
             op.paidBy != null -> stringResource(Res.string.h_add_fund_entry_from, op.description, money(op.amount), member(op.paidBy!!))
 
             op.amount.isPositive -> stringResource(Res.string.h_add_fund_entry_outside, op.description, money(op.amount))
@@ -340,7 +340,7 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
 
         else -> stringResource(Res.string.h_unknown)
     }
-    // A pair ended by an archive, an unlink or a role change says so (ITERATION_5 §7).
+    // A pair ended by an archive, an unlink or a role change says so.
     val ended = if (change == null || op is StopSettlingTogether || op is Undo) {
         emptyList()
     } else {

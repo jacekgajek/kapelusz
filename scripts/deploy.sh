@@ -4,7 +4,7 @@
 #   AWS_PROFILE=... WEB_BUCKET=jacekgajek-art-split-web CLOUDFRONT_DISTRIBUTION_ID=... scripts/deploy.sh
 # Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_UPLOAD_KEYSTORE_PATH (and
 # ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS, KAPELUSZ_VERSION_CODE) it also builds the Android app's
-# bundle for Google Play (ITERATION_7 §1.3), signed with the upload key; CI uploads it to Play, the only place the app
+# bundle for Google Play, signed with the upload key; CI uploads it to Play, the only place the app
 # comes from (no APK on the website since 2026-10-27). With KAPELUSZ_VERSION_CODE it writes /download/version.json,
 # from which a web app open since before the deploy learns to reload.
 # KAPELUSZ_VERSION_CODE must not be lower than the live one (see below); without it the web app is a "dev" build.
@@ -91,7 +91,7 @@ if [[ -n "${KAPELUSZ_VERSION_CODE:-}" ]]; then
 fi
 aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" >/dev/null
 
-# Smoke check (ITERATION_3 R5): the API answers (401 without a sign-in) and the website serves the app. A few tries:
+# Smoke check: the API answers (401 without a sign-in) and the website serves the app. A few tries:
 # CloudFront takes a moment to drop the old files.
 API_URL="${KAPELUSZ_API_URL:-$(sed -n 's/^kapelusz.apiUrl=//p' gradle.properties)}"
 WEB_URL="${KAPELUSZ_WEB_URL:-$(sed -n 's/^kapelusz.webUrl=//p' gradle.properties)}"

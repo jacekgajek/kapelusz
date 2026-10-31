@@ -105,7 +105,7 @@ internal class HistoryLog(private val records: HistoryStore, private val clock: 
         // A huge offline batch is logged without its changes (it cannot be undone), so history pages stay small.
         val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() <= MAX_LOGGED_CHANGES } ?: emptyMap()
         val name = "${monthOf(now)}/$now-${UUID.randomUUID()}.json"
-        // A member's BLIK number and account are shown only to who settles with them (ITERATION_5 §8, ITERATION_7 §7):
+        // A member's BLIK number and account are shown only to who settles with them:
         // their changes are not history.
         val pushed = ops.filter { it.op !is SetBlikPhone && it.op !is SetBankAccount }.mapIndexedNotNull { index, envelope ->
             val part = HistoryEntry(user.userId, memberId, now, listOf(envelope), kept[envelope.opId]?.let { mapOf(envelope.opId to it) } ?: emptyMap())
@@ -122,7 +122,7 @@ internal class HistoryLog(private val records: HistoryStore, private val clock: 
     fun deleteBand(bandId: String) = records.deleteBand(bandId)
 
     companion object {
-        /** Above this, a push's changes are not logged (ITERATION_2 §7.2): the entry lists its operations only. */
+        /** Above this, a push's changes are not logged: the entry lists its operations only. */
         const val MAX_LOGGED_CHANGES = 1_000_000
 
         /** A DynamoDB item is at most 400 KB, keys included. */
@@ -131,7 +131,7 @@ internal class HistoryLog(private val records: HistoryStore, private val clock: 
 }
 
 /**
- * [BandChange] without members' BLIK numbers and accounts (ITERATION_5 §8, ITERATION_7 §7): the history keeps no record
+ * [BandChange] without members' BLIK numbers and accounts: the history keeps no record
  * of who is paid where. The band fund's are the band's, and stay.
  */
 private fun BandChange.withoutBlikPhones(): BandChange {

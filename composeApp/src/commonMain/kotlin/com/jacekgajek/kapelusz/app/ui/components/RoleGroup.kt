@@ -11,7 +11,7 @@ import com.jacekgajek.kapelusz.model.Role
 import org.jetbrains.compose.resources.StringResource
 
 /**
- * Members by role (ITERATION_8 §2), in this order, on the members screen and in the line-up picker: by role while
+ * Members by role, in this order, on the members screen and in the line-up picker: by role while
  * linked to an account; those without one apart, whatever role is stored (it applies only once they join).
  * [title] takes the count.
  */

@@ -19,7 +19,7 @@ internal object AttachmentReducer {
         is AddAttachment -> band.updateAttachments(op.owner) { attachments ->
             val max = if (op.owner is AttachmentOwner.OfEvent) MAX_EVENT_ATTACHMENTS else MAX_ATTACHMENTS
             invalidIf(attachments.size >= max, RejectionReason.TOO_MANY_ATTACHMENTS) { "At most $max attachments here" }
-            // Unique in the whole band: the id names its file in storage (ITERATION_3 R6).
+            // Unique in the whole band: the id names its file in storage.
             invalidIf(band.allAttachments().any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }
             // The size is signed into the upload URL, so the stored file cannot be larger than declared here.
             val size = op.attachment.sizeBytes
@@ -49,7 +49,7 @@ internal object AttachmentReducer {
         invalidIf(it.isEmpty(), RejectionReason.EMPTY_NAME) { "File name cannot be empty" }
     }
 
-    /** The attachments of a cost, a collected entry or an event (ITERATION_4 §2.1), changed by [transform]. */
+    /** The attachments of a cost, a collected entry or an event, changed by [transform]. */
     private inline fun Band.updateAttachments(owner: AttachmentOwner, transform: (List<Attachment>) -> List<Attachment>): Band = when (owner) {
         is AttachmentOwner.OfCost -> updateCost(owner.costId) { it.copy(attachments = transform(it.attachments)) }
 

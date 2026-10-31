@@ -18,8 +18,8 @@ class Changes(private val bands: BandRepository, private val sync: SyncEngine) {
     }
 
     /**
-     * Applies an operation locally but holds it back from syncing for [holdFor] ms, while its Undo snackbar shows
-     * (ITERATION_5 §2); [onHeld] gets it. Returns the rejection, if any.
+     * Applies an operation locally but holds it back from syncing for [holdFor] ms, while its Undo snackbar shows; [onHeld] gets it.
+     * Returns the rejection, if any.
      */
     fun dispatchHeld(op: Operation, holdFor: Long, onHeld: (HeldOp) -> Unit): Rejection? {
         val bandId = bands.currentBandId ?: error("No band open")

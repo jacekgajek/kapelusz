@@ -94,7 +94,7 @@ class SessionRepository(
      */
     suspend fun validToken(forceRefresh: Boolean = false, refused: String? = null): String? = refreshLock.withLock {
         var current = _session.value ?: return null
-        // Another request renewed the session meanwhile (ITERATION_3 R9): the refused token was the old one, keep the new.
+        // Another request renewed the session meanwhile: the refused token was the old one, keep the new.
         if (forceRefresh && refused != null && current.apiToken != null && current.apiToken != refused) return@withLock current.apiToken
         val now = clock()
         val session = current.apiToken?.takeIf { current.apiExpiresAt - now > EXPIRY_SKEW_MS }

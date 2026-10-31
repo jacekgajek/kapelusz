@@ -90,7 +90,7 @@ class PermissionsTest {
 
     @Test
     fun leaderRunsEventsAndTheRoster() {
-        // One role since the Leader role was merged into it (ITERATION_5 §11).
+        // One role since the Leader role was merged into it.
         assertTrue(allowed(lead, CreateEvent("e2", "e2", DATE)))
         assertTrue(allowed(lead, SettleSuggestions("gig")))
         assertTrue(allowed(lead, AddHolding("gig", "h", "other", pln("1"), DOOR)))
@@ -137,7 +137,7 @@ class PermissionsTest {
     fun whoRecordedATransferRemovesIt() {
         scenario.apply(RecordTransfer("gig", "mine", "other", "member", pln("10")), member)
         scenario.apply(RecordTransfer("gig", "theirs", "other", "member", pln("10")))
-        assertTrue(allowed(member, RemoveTransfer("gig", "mine")), "a Paid tapped by mistake (ITERATION_7 §3.3)")
+        assertTrue(allowed(member, RemoveTransfer("gig", "mine")), "a Paid tapped by mistake")
         assertFalse(allowed(member, RemoveTransfer("gig", "theirs")))
         assertTrue(allowed(lead, RemoveTransfer("gig", "mine")))
     }
@@ -147,7 +147,7 @@ class PermissionsTest {
         val entry = AddFundEntry("e", DATE, "Membership fee", pln("40"), paidBy = "other")
         assertFalse(allowed(member, entry))
         scenario.apply(SetTreasurer("member"))
-        assertTrue(allowed(member, entry), "ITERATION_7 §3.3")
+        assertTrue(allowed(member, entry))
         scenario.apply(entry, member)
         assertTrue(allowed(member, UpdateFundEntry("e", amount = Change(pln("45")))))
         assertTrue(allowed(member, RemoveFundEntry("e")))

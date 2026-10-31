@@ -94,15 +94,15 @@ fun ParticipantsSection(context: EventContext) {
     val event = context.event
     val canManage = context.can.manageParticipants(event)
     var dialog by remember { mutableStateOf<ParticipantsDialog?>(null) }
-    // Who may invite members without the app (ITERATION_5 §12).
+    // Who may invite members without the app.
     val canInvite = context.can.manageRoster()
     var copying by remember { mutableStateOf<ChangeLineup?>(null) }
-    // Members, then guests, each alphabetical (ITERATION_8 §2).
+    // Members, then guests, each alphabetical.
     val order = SettlementCalculator.partyOrder(band, event)
     val crowded = order.size > Crowd.THRESHOLD
     SectionTitle(if (crowded) stringResource(Res.string.participants_count, order.size) else stringResource(Res.string.participants))
-    // One row each (ITERATION_5 §4.5), guests under their own heading (§12); the share when not the default 100%.
-    // All of them, however many (ITERATION_8 §1.4).
+    // One row each, guests under their own heading; the share when not the default 100%.
+    // All of them, however many.
     val (memberRows, guestRows) = order.partition { band.member(it) != null }
     @Composable
     fun rows(ids: List<String>) = ids.forEach { partyId ->
@@ -123,8 +123,8 @@ fun ParticipantsSection(context: EventContext) {
         )
         rows(guestRows)
     }
-    // Who could take part but does not: a tap adds them, with their default share; too many for chips, the picker
-    // (ITERATION_8 §1.1). Viewers only watch (they take no part in events).
+    // Who could take part but does not: a tap adds them, with their default share; too many for chips, the picker. Viewers only watch
+    // (they take no part in events).
     val notTakingPart = Lineup.candidates(band).filter { event.participant(it.id) == null }
     val chips = notTakingPart.size <= Crowd.THRESHOLD
     if (chips && notTakingPart.isNotEmpty()) {
@@ -135,13 +135,13 @@ fun ParticipantsSection(context: EventContext) {
                     enabled = canManage,
                     onClick = { context.actions.run(AddParticipant(event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent)) },
                     label = { Text(member.name) },
-                    // The member's Google photo, or their initials (ITERATION_2 §7.4).
+                    // The member's Google photo, or their initials.
                     leadingIcon = { Avatar(member.name, member.pictureUrl, 18.dp, decorative = true) },
                 )
             }
         }
     }
-    // The actions on a row of their own, below the people, all alike (ITERATION_8 §1.2a): another event's line-up
+    // The actions on a row of their own, below the people, all alike: another event's line-up
     // while there is nobody yet; the picker past the threshold, or while there is nobody yet, for any band size.
     val empty = order.isEmpty()
     val picker = notTakingPart.isNotEmpty() && (!chips || empty)
@@ -224,7 +224,7 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
     val guest = event.guest(partyId) != null
     val share = shareText(participant.weight, participant.fixedShare, participant.percent, context.currency)
     val removed = stringResource(if (guest) Res.string.guest_removed else Res.string.participant_removed, name)
-    // A member without the app can't see the band: the crossed eye, and (leaders) a tap to invite them (§12). A guest
+    // A member without the app can't see the band: the crossed eye, and (leaders) a tap to invite them. A guest
     // can't either, but is only ever a guest: the handshake, and no tap.
     val notInApp = !guest && band.member(partyId)?.userId == null
     val invite = onInvite?.takeIf { notInApp }
@@ -242,7 +242,7 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
         }
         if (canManage) {
             EditButton(name, onEdit)
-            // At once, with Undo: it brings them back with their share (ITERATION_5 §4.5).
+            // At once, with Undo: it brings them back with their share.
             RemoveButton(name) { context.actions.runWithUndo(RemoveParticipant(event.id, partyId), removed) }
         }
     }
@@ -259,7 +259,7 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it.take(Limits.MAX_NAME) }, label = { Text(stringResource(Res.string.guest_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                // Probably the member, typed as a guest (ITERATION_5 §12): offered as a participant; a guest still possible.
+                // Probably the member, typed as a guest: offered as a participant; a guest still possible.
                 val former = context.band.formerMemberNamed(name)
                 // Or someone who used to be in the band: welcomed back, and into this event.
                 if (former != null) {
@@ -309,7 +309,7 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
 /** The guest being added, in the preview of what their share comes to. */
 private const val NEW_GUEST = "new-guest"
 
-/** What the percentages of everyone but [partyId], the fund's included, already take of the profit (ITERATION_7 §6). */
+/** What the percentages of everyone but [partyId], the fund's included, already take of the profit. */
 private fun percentTaken(event: Event, partyId: String): Int = event.participants.filter { it.partyId != partyId }.sumOf { it.percent ?: 0 } + (event.fundPercent ?: 0)
 
 /** What [partyId]'s share comes to in [preview]; by shares, also what one share does. */
@@ -329,7 +329,7 @@ private fun SharePreview(context: EventContext, preview: Event, partyId: String,
 }
 
 /**
- * A participant's share (ITERATION_3 §2.4, ITERATION_7 §6): shares on a slider in quarters, a percentage of the profit,
+ * A participant's share: shares on a slider in quarters, a percentage of the profit,
  * or a fixed amount. OK applies the change in one operation, so one undo reverts the whole dialog; the weight stays
  * underneath a fixed amount or a percentage, so switching back restores it.
  */
@@ -362,7 +362,7 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
             TextButton(
                 enabled = editor.valid,
                 onClick = {
-                    // Refused (e.g. removed from the event meanwhile): the dialog stays (V5-M1 C4c).
+                    // Refused (e.g. removed from the event meanwhile): the dialog stays.
                     if (ops.all { context.actions.run(it) }) onDismiss()
                 },
             ) { Text(stringResource(Res.string.ok)) }
@@ -371,7 +371,7 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
     )
 }
 
-/** A member without the app (ITERATION_5 §12), tapped by a leader: "Ola cannot see the band. Invite her?". */
+/** A member without the app, tapped by a leader: "Ola cannot see the band. Invite her?". */
 @Composable
 private fun InviteThemDialog(context: EventContext, memberId: String, onDismiss: () -> Unit) {
     val member = resolved(context.band.member(memberId), onDismiss) ?: return

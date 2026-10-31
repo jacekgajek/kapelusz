@@ -16,7 +16,7 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
- * Firebase Cloud Messaging for sync messages (ITERATION_7 §2.3). Off until signed in (automatic start is off in the
+ * Firebase Cloud Messaging for sync messages. Off until signed in (automatic start is off in the
  * manifest), and off again after signing out. Without Google Play services every call fails quietly: the app then
  * looks for news every 30 s, as before.
  */
@@ -60,8 +60,8 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
 }
 
 /**
- * Receives sync messages: "band X changed" makes an app on screen sync it, and is ignored otherwise (ITERATION_7
- * §2.3). A new token is registered with the server.
+ * Receives sync messages: "band X changed" makes an app on screen sync it, and is ignored otherwise. A new token is registered with the
+ * server.
  */
 class SyncMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {

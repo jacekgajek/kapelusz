@@ -29,7 +29,7 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * What a band fund editor holds (ITERATION_7 §5.2): a percentage of the profit, or an amount being typed. Its own
+ * What a band fund editor holds: a percentage of the profit, or an amount being typed. Its own
  * editor, not a member's share: no shares, and its percentage stops at 50% in whole units.
  */
 @Stable
@@ -63,8 +63,8 @@ fun rememberFundCutEditorState(cut: FundCut?): FundCutEditorState {
 }
 
 /**
- * Money to the band fund as a percentage of the profit on a slider in 5% steps up to 50%, or a fixed amount
- * (ITERATION_7 §5.2). [profit] (in an event) shows what the percentage comes to; null where there is none (a default).
+ * Money to the band fund as a percentage of the profit on a slider in 5% steps up to 50%, or a fixed amount. [profit] (in an event) shows
+ * what the percentage comes to; null where there is none (a default).
  */
 @Composable
 fun FundCutEditor(state: FundCutEditorState, currency: String, profit: Money?) {

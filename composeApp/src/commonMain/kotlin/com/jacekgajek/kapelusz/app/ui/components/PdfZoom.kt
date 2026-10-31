@@ -7,7 +7,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 
 /**
- * The PDF view's zoom (ITERATION_5 §4.3): the page list is scaled from its top, so up and down are the list's own
+ * The PDF view's zoom: the page list is scaled from its top, so up and down are the list's own
  * scrolling (in its unscaled pixels, through [scrollList], which returns what it could take) plus [offsetY] for what
  * the list cannot reach: zoomed in, the list ends while the bottom of the document is still below the screen (a
  * single page cannot scroll at all), so the view itself moves the rest of the way. Sideways is [offsetX].

@@ -4,7 +4,7 @@ import com.jacekgajek.kapelusz.model.Id
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Settling together (ITERATION_5 §7): two members settling as one party, each acting for themselves.
+// Settling together: two members settling as one party, each acting for themselves.
 
 /** [fromMemberId] invites [toMemberId] to settle together. */
 @Serializable

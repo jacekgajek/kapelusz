@@ -39,8 +39,8 @@ import com.jacekgajek.kapelusz.server.users.UserRecords
 import kotlinx.serialization.SerializationException
 
 /**
- * The HTTP API (ITERATION_1 §5.3): authentication and routing; the handlers do the work, one class per area
- * (ITERATION_3 R12). Every operation goes through the shared [com.jacekgajek.kapelusz.engine.Engine], i.e. the same
+ * The HTTP API: authentication and routing; the handlers do the work, one class per area. Every operation goes through the shared
+ * [com.jacekgajek.kapelusz.engine.Engine], i.e. the same
  * permission checks and reducer the apps run, so clients cannot bypass the role rules.
  */
 class Api(
@@ -49,13 +49,13 @@ class Api(
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
     private val sessions: SessionTokens = SessionTokens(store, clock),
-    /** Place suggestions for Location (ITERATION_5 §9); null where no Google key is set up. */
+    /** Place suggestions for Location; null where no Google key is set up. */
     placeSearch: PlaceSearch? = null,
-    /** Addresses already looked up, for the map (ITERATION_7 §8); null: none are. */
+    /** Addresses already looked up, for the map; null: none are. */
     geocodeCache: GeocodeCache? = null,
-    /** The web app's page, for link cards (ITERATION_6 §2); [NoWebIndex] where it can't be had. */
+    /** The web app's page, for link cards; [NoWebIndex] where it can't be had. */
     webIndex: WebIndex = NoWebIndex,
-    /** Sync messages to Android devices (ITERATION_7 §2); [NoopMessageSender] where FCM isn't set up: devices register, nothing is sent. */
+    /** Sync messages to Android devices; [NoopMessageSender] where FCM isn't set up: devices register, nothing is sent. */
     messageSender: MessageSender = NoopMessageSender,
     /** What the deployment decides; tests take the defaults (no minimum app version). */
     private val config: ServerConfig = ServerConfig(),
@@ -85,7 +85,7 @@ class Api(
 
     /** [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time. */
     fun handle(request: HttpRequest, sweep: Boolean = true): HttpResponse = try {
-        // Bands whose time to be deleted has come (ITERATION_7 §9), hourly: a failure there is not this request's.
+        // Bands whose time to be deleted has come, hourly: a failure there is not this request's.
         if (sweep) runCatching { deletions.sweep() }
         route(request)
     } catch (e: ApiError) {
@@ -102,7 +102,7 @@ class Api(
         // The calendar feed is fetched by calendar apps: no sign-in, no app version; the secret in the path is the key.
         request.isRead && CALENDAR_FEED.matches(request.path) -> calendarFeed(request)
 
-        // Event links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in.
+        // Event links reach the API through the web app's CloudFront, without a sign-in.
         request.path.startsWith("/e/") -> eventLinkPage(request)
 
         !appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER]) ->
@@ -186,7 +186,7 @@ class Api(
         // Kapelusz sessions are recognised by their prefix; anything else must be a Google ID token.
         val user = if (token.startsWith(SessionTokens.PREFIX)) sessions.verify(token) else verifier.verify(token)
         user ?: throw ApiError(401, ApiErrors.UNAUTHORIZED, "Invalid or expired token")
-        // A session, or a Google token, from before "sign out on all devices" (ITERATION_3 R6); also refuses renewing
+        // A session, or a Google token, from before "sign out on all devices"; also refuses renewing
         // the session or exchanging the Google token, which the other devices would otherwise do silently.
         (user.sessionSince ?: user.issuedAt)?.let { since ->
             if (!revocations.isValid(user.userId, since)) throw ApiError(401, ApiErrors.SESSIONS_REVOKED, "Signed out on all devices; sign in again")
@@ -223,11 +223,11 @@ class Api(
         const val HISTORY_PAGE_BYTES = 1_500_000
         const val MAX_UNDOS_PER_PUSH = Limits.MAX_UNDOS_PER_PUSH
 
-        /** Bands one user may belong to (ITERATION_3 R6): far above any musician's, and a bound on storage per account. */
+        /** Bands one user may belong to: far above any musician's, and a bound on storage per account. */
         const val MAX_BANDS_PER_USER = 20
 
         /**
-         * The largest band file a push may produce, in UTF-8 bytes (ITERATION_3 R1, V5-M1 A2): well below the 6 MB of a
+         * The largest band file a push may produce, in UTF-8 bytes: well below the 6 MB of a
          * Lambda response, which also escapes it once more.
          */
         const val MAX_BAND_BYTES = 3_000_000

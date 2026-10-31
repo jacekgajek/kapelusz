@@ -22,7 +22,7 @@ data class SettlingEvent(val event: Event, val settlement: Settlement)
 data class OwnSettling(val event: Event, val settlement: Settlement, val suggestions: List<SuggestedTransfer>)
 
 /**
- * The Settle tab (ITERATION_1 §4.1): what [me] still has to pay or receive, what they hold, and for leads what is
+ * The Settle tab: what [me] still has to pay or receive, what they hold, and for leads what is
  * open at all. Computed once per band state and user; the screen only draws it.
  */
 class Settling(view: BandView, private val me: Member?, can: Capabilities, today: LocalDate) {
@@ -33,7 +33,7 @@ class Settling(view: BandView, private val me: Member?, can: Capabilities, today
         .map { SettlingEvent(it, view.settlement(it)) }
 
     /**
-     * Transfers the user may record where they are a side (a pair's are both partners', ITERATION_5 §7), only in
+     * Transfers the user may record where they are a side (a pair's are both partners'), only in
      * events that can be settled; a viewer gets none.
      */
     val mine: List<OwnSettling> = active.mapNotNull { (event, settlement) ->
@@ -63,7 +63,7 @@ class Settling(view: BandView, private val me: Member?, can: Capabilities, today
 
     val isEmpty: Boolean get() = mine.isEmpty() && holding.isEmpty() && forLeads.isEmpty()
 
-    /** What the user holds that is their own, also in a pair: only what the pair still has to pass on counts (§7). */
+    /** What the user holds that is their own, also in a pair: only what the pair still has to pass on counts. */
     fun held(settlement: Settlement): Money? {
         val own = settlement.line(me?.id ?: "")?.delta?.takeIf { it.isPositive } ?: return null
         val pair = settlement.party(me!!.id)?.delta?.takeIf { it.isPositive } ?: return null
@@ -73,7 +73,7 @@ class Settling(view: BandView, private val me: Member?, can: Capabilities, today
     companion object {
         /**
          * A suggested transfer to the band fund that its holder (or their pair) would make to themselves: they keep the
-         * money, nobody pays (ITERATION_6 §8).
+         * money, nobody pays.
          */
         fun keepsForFund(band: Band, settlement: Settlement, suggestion: SuggestedTransfer): Boolean {
             val holders = settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from)
@@ -82,7 +82,7 @@ class Settling(view: BandView, private val me: Member?, can: Capabilities, today
     }
 }
 
-/** Handing money over by hand in one event: who may give what to whom (ITERATION_5 §4.6). */
+/** Handing money over by hand in one event: who may give what to whom. */
 class HandOver(private val view: BandView, private val event: Event, private val settlement: Settlement, private val can: Capabilities) {
     private val band get() = view.band
 
@@ -92,12 +92,12 @@ class HandOver(private val view: BandView, private val event: Event, private val
         lines + (if (band.treasurerMemberId != null && BAND_FUND !in lines) listOf(BAND_FUND) else emptyList())
     }
 
-    /** Recipients the user may record a transfer to from [from]: not artists, who never hold money (ITERATION_4 §1.1). */
+    /** Recipients the user may record a transfer to from [from]: not artists, who never hold money. */
     fun recipients(from: Id): List<Id> = parties.filter { it != from && !Artists.isArtist(band, it) && can.recordTransfer(event, from, it) }
 
     /**
-     * What [partyId] can hand over: what they hold, or for an artist only what they were paid too much
-     * (ITERATION_4 §1.1), e.g. after a refund accepted later made their share smaller.
+     * What [partyId] can hand over: what they hold, or for an artist only what they were paid too much, e.g. after a refund accepted later
+     * made their share smaller.
      */
     fun amount(partyId: Id): Money {
         val line = settlement.line(partyId) ?: return Money.ZERO

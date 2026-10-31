@@ -25,7 +25,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
 
-/** The events tab's search ([EventsViewModel], ITERATION_6 §6): opened, prepared, narrowing the list, closed. */
+/** The events tab's search ([EventsViewModel]): opened, prepared, narrowing the list, closed. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EventsViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()

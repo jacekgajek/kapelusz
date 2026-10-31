@@ -75,7 +75,7 @@ fun historyMonth(offset: Int): String {
 
 /** One history line: an operation with who made it and when; [envelope] is null for one this app cannot read. */
 data class HistoryLine(val entry: HistoryEntry, val envelope: OpEnvelope?, val opId: String, val unreadableEventId: String? = null) {
-    /** What the operation changed, for undo; null for changes from before V2-M7. */
+    /** What the operation changed, for undo; null for changes from before. */
     val change: BandChange? get() = envelope?.let { entry.changes[it.opId] }
 }
 
@@ -121,7 +121,7 @@ fun HistoryScreen(session: BandSession, nav: BackNav, screen: HistoryViewModel) 
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
 
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Undo steps back from the newest change, redo forward (ITERATION_2 §7.2); both only from this month.
+                    // Undo steps back from the newest change, redo forward; both only from this month.
                     val arrows = history.arrows(loaded, session.can, enabled = offset == 0)
                     items(loaded, key = { it.opId }) { line ->
                         HistoryLineRow(history, state.band, line, arrows)
@@ -185,7 +185,7 @@ private fun HistoryText(band: Band, line: HistoryLine, who: String, time: LocalD
         Text(
             line.envelope?.let { describe(it.op, band, line.change, by = line.entry.memberId) } ?: stringResource(Res.string.history_newer_version),
             style = MaterialTheme.typography.bodyMedium,
-            // A change that is currently undone (ITERATION_2 §7.2).
+            // A change that is currently undone.
             textDecoration = if (undone) TextDecoration.LineThrough else null,
         )
         Text(

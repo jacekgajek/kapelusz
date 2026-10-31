@@ -26,7 +26,7 @@ import kotlin.math.abs
 import kotlinx.datetime.LocalDate
 
 /**
- * The band fund tab's state that outlives a recomposition (ITERATION_7 §5.1): the entry dialog open on it, if any, as
+ * The band fund tab's state that outlives a recomposition: the entry dialog open on it, if any, as
  * a [FundEntryForm]. Scoped to the tab's back-stack entry.
  */
 class FundEntryViewModel : ViewModel() {
@@ -94,8 +94,8 @@ class FundEntryViewModel : ViewModel() {
 
 /**
  * Add or edit an entry: money paid in by someone (a member, several at once, or from outside the band), or the refund
- * of a cost; money leaves the fund only for one. [refundsCosts]: leads only, as refunding a cost decides about it
- * (ITERATION_7 §3.3); the treasurer records money paid in. [refund]: a cost to refund from the start.
+ * of a cost; money leaves the fund only for one. [refundsCosts]: leads only, as refunding a cost decides about it; the treasurer records
+ * money paid in. [refund]: a cost to refund from the start.
  */
 @Stable
 class FundEntryForm(

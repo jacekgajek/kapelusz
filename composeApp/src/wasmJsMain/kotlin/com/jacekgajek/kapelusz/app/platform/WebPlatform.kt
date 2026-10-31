@@ -23,7 +23,7 @@ class WebPlatform : Platform {
     override val clipboard: Clipboard = WebClipboard
     override val sharing: Sharing = WebSharing
 
-    // No map on the web (ITERATION_6 §3): Compose for the web has none; the browser shows PDFs itself; a phone's own
+    // No map on the web: Compose for the web has none; the browser shows PDFs itself; a phone's own
     // camera opens an invite link anyway.
     override val maps: Maps? = null
     override val pdf: PdfRenderer? = null

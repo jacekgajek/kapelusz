@@ -62,7 +62,7 @@ class InviteAndHistoryTest : ApiHarness() {
         assertTrue(call("GET", "/bands/band1/invites", "alice").parse(InvitesResponse.serializer()).invites.isEmpty())
     }
 
-    /** ITERATION_4 §1.1: someone holding band money cannot become an artist, by invite either. */
+    /** Someone holding band money cannot become an artist, by invite either. */
     @Test
     fun anArtistInviteWaitsUntilTheirMoneyIsSettled() {
         setup()
@@ -81,7 +81,7 @@ class InviteAndHistoryTest : ApiHarness() {
         assertEquals(409, refused.status)
         assertTrue(ApiErrors.HOLDS_MONEY in refused.body!!)
         assertEquals(409, invite(role = Role.ARTIST).status, "and no new artist invite for them")
-        // V5-M1 B2: nor a viewer invite while they play in an unsettled gig, with its own reason.
+        // Nor a viewer invite while they play in an unsettled gig, with its own reason.
         val viewer = invite(role = Role.VIEWER)
         assertEquals(409, viewer.status)
         assertTrue(ApiErrors.STILL_PLAYS in viewer.body!!)
@@ -234,8 +234,8 @@ class InviteAndHistoryTest : ApiHarness() {
         val logged = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer())
             .entries.flatMap { entry -> entry.ops.map { it.opId } }
         assertEquals(true, "rename" in logged)
-        assertEquals(false, "blik" in logged, "who is paid where is not history (ITERATION_5 §8)")
-        assertEquals(false, "account" in logged, "nor their account (ITERATION_7 §7)")
+        assertEquals(false, "blik" in logged, "who is paid where is not history")
+        assertEquals(false, "account" in logged, "nor their account")
 
         // Nor in the members' snapshots of other changes.
         now += 1

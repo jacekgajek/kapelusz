@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The open band's unsent changes are refused by the server as a whole (ITERATION_3 R9): says so with the server's
+ * The open band's unsent changes are refused by the server as a whole: says so with the server's
  * message, and offers to copy them (as JSON) or to discard them.
  */
 @Composable

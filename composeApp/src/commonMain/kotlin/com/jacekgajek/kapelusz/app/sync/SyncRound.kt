@@ -51,7 +51,7 @@ class SyncRound(
 
     private val _stuck = MutableStateFlow<Map<Id, StuckPush>>(emptyMap())
 
-    /** Bands whose unsent changes the server refuses as a whole (ITERATION_3 R9): not pushed again until the user decides. */
+    /** Bands whose unsent changes the server refuses as a whole: not pushed again until the user decides. */
     val stuck: StateFlow<Map<Id, StuckPush>> = _stuck.asStateFlow()
 
     /** The user discarded the refused changes: the band is pushed again from now on. */
@@ -95,7 +95,7 @@ class SyncRound(
         else -> when (e) {
             is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
 
-            // An answer this app cannot read is not a network problem (ITERATION_3 R9).
+            // An answer this app cannot read is not a network problem.
             is ApiException, is SyncProtocolException, is SerializationException -> SyncStatus.ERROR
 
             else -> SyncStatus.OFFLINE
@@ -103,7 +103,7 @@ class SyncRound(
     }
 
     /**
-     * Updates the band list, and checks every band still on this device that it no longer has (ITERATION_3 R9): the
+     * Updates the band list, and checks every band still on this device that it no longer has: the
      * check finds it deleted or access lost, says so, and removes it.
      */
     suspend fun checkBandList(listed: List<BandSummary>) {
@@ -118,7 +118,7 @@ class SyncRound(
 
     suspend fun pushBand(bandId: Id) {
         // What is pushed must already be on disk, or a crash after the push could make later ops reuse sequence numbers:
-        // if the device cannot store it now, nothing is pushed (ITERATION_3 R4). Checked again before every batch.
+        // if the device cannot store it now, nothing is pushed. Checked again before every batch.
         storedOrStop()
         val local = bands.local(bandId) ?: return
         if (local.needsCreate) {
@@ -127,7 +127,7 @@ class SyncRound(
             bands.onCreated(bandId, created.band, created.version)
             _events.emit(SyncEvent.BandCreated(bandId))
         }
-        // Refused as a whole before: not again until the user decides (ITERATION_3 R9).
+        // Refused as a whole before: not again until the user decides.
         if (bandId in _stuck.value) return
         while (true) {
             val current = bands.local(bandId) ?: return
@@ -135,7 +135,7 @@ class SyncRound(
             if (batch.isEmpty()) return
             // Sent, so no longer taken back by an Undo, whatever the clock says (a hold may only have expired).
             bands.release(bandId, *batch.map { it.opId }.toTypedArray())
-            // Ops added since the last check (a big push goes in batches) must be on disk too (V5-M1 A9a).
+            // Ops added since the last check (a big push goes in batches) must be on disk too.
             storedOrStop()
             val response = try {
                 api.push(bandId, batch)
@@ -164,8 +164,8 @@ class SyncRound(
         const val BATCH_SIZE = 200
 
         /**
-         * The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once (ITERATION_3 R6);
-         * none from the first one still [held][LocalBand.holds] on, as later ones may build on it (ITERATION_5 §2).
+         * The next ops to push: at most [BATCH_SIZE], and no more undos than the server takes at once;
+         * none from the first one still [held][LocalBand.holds] on, as later ones may build on it.
          */
         internal fun batchOf(pending: List<OpEnvelope>, holds: Map<Id, Long> = emptyMap(), now: Long = 0): List<OpEnvelope> {
             var undos = 0

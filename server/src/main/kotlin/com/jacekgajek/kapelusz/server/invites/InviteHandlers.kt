@@ -75,7 +75,7 @@ internal class InviteHandlers(
         val bandId = call.param("bandId")
         val code = call.param("code")
         bands.loadForLeader(user, bandId)
-        // Codes are stored upper-case, as preview and accept read them (V5-M1 A10d).
+        // Codes are stored upper-case, as preview and accept read them.
         val stored = code.uppercase()
         if (codes.load(stored)?.info?.bandId == bandId) codes.delete(bandId, stored)
         return HttpResponse(204)
@@ -115,7 +115,7 @@ internal class InviteHandlers(
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
                 is ApplyResult.Applied -> result.band.withPicture(user.userId, users.pictureOf(user.userId))
 
-                // Became an artist while holding money meanwhile (ITERATION_4 §1.1): the invite stays for when it is settled.
+                // Became an artist while holding money meanwhile: the invite stays for when it is settled.
                 is ApplyResult.Rejected -> when (result.rejection.reason) {
                     RejectionReason.HOLDS_MONEY -> throw holdsMoney()
                     RejectionReason.VIEWER_STILL_PLAYS -> throw stillPlays()

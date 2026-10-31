@@ -84,7 +84,7 @@ internal fun IntentRouter(runtime: AppRuntime, bandState: BandState, navigator: 
 }
 
 /**
- * Opens [open]'s event, switching band if needed. An event link (ITERATION_5 §10) first finds its band among the user's:
+ * Opens [open]'s event, switching band if needed. An event link first finds its band among the user's:
  * "Opening the event…" while they are looked through (a new device downloads them first), and "no access" when none of
  * them has it for the user. Files to attach are attached once the band is open, before its screens are set up.
  */

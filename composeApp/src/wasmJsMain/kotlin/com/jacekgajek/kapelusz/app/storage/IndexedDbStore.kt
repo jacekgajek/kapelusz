@@ -7,8 +7,7 @@ import kotlinx.coroutines.await
  * One operation ([op]: `get`, `put` or `delete`) in its own transaction. The connection is opened once per page and
  * shared (cached on globalThis), and forgotten when the browser closes it (iPhone Safari does after the app was in the
  * background, or when site data is cleared): the operation then reconnects once instead of failing until a reload. A
- * transaction the browser aborts (e.g. storage full, reported only as an abort) fails instead of never finishing
- * (V5-M1 D4).
+ * transaction the browser aborts (e.g. storage full, reported only as an abort) fails instead of never finishing.
  */
 private fun idb(op: String, key: String, value: String?): Promise<JsAny?> = js(
     """(() => {

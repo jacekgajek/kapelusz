@@ -15,7 +15,7 @@ import com.jacekgajek.kapelusz.server.store.scheduledDeletions
 import com.jacekgajek.kapelusz.server.users.UserRecords
 
 /**
- * Deleting bands (ITERATION_7 §9): the owner asks, and the band goes a week later unless a leader keeps it. A band
+ * Deleting bands: the owner asks, and the band goes a week later unless a leader keeps it. A band
  * whose time has come is deleted when someone next loads it ([BandAccess.load]), or by [sweep], which some request
  * runs at most hourly, from the list of bands waiting ([ScheduledDeletions]), so a band nobody opens goes too.
  */
@@ -53,7 +53,7 @@ internal class BandDeletions(
         runCatching { pointers.forget(bandId, band.events.map { it.id }) }
         runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
         runCatching { note(bandId) }
-        // The members' apps let go of it at once (ITERATION_7 §2.3); former members' apps did already.
+        // The members' apps let go of it at once; former members' apps did already.
         runCatching { messenger.bandChanged(bandId, band.messagedUsers(), null) }
     }
 

@@ -15,7 +15,7 @@ sealed interface AppIntent {
     data class Join(val code: String? = null) : AppIntent
 
     /**
-     * Open an event: of [bandId], or of an event link (ITERATION_5 §10, [bandId] null) in whichever of the user's bands
+     * Open an event: of [bandId], or of an event link ([bandId] null) in whichever of the user's bands
      * has it; at [section] when given, with [carry] for the screen that opens.
      */
     data class OpenEvent(
@@ -25,7 +25,7 @@ sealed interface AppIntent {
         val carry: Carry? = null,
     ) : AppIntent
 
-    /** Photos or PDFs shared to Kapelusz (Android, ITERATION_6 §1), waiting for "Attach to…". */
+    /** Photos or PDFs shared to Kapelusz (Android), waiting for "Attach to…". */
     data class ShareFiles(val files: SharedFiles) : AppIntent
 }
 

@@ -29,7 +29,7 @@ import com.jacekgajek.kapelusz.app.generated.save
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * A BLIK number or a bank account to set, change or remove: your own in this band (ITERATION_5 §8, ITERATION_7 §7), or
+ * A BLIK number or a bank account to set, change or remove: your own in this band, or
  * the band fund's.
  */
 @Composable

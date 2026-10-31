@@ -144,7 +144,7 @@ fun PartialSettleDialog(
             }
         },
         confirmButton = {
-            // Refused (e.g. more than an artist is owed now): the dialog stays, with the amount (V5-M1 C4c).
+            // Refused (e.g. more than an artist is owed now): the dialog stays, with the amount.
             TextButton(enabled = parsed != null, onClick = { if (onConfirm(parsed!!)) onDismiss() }) {
                 Text(stringResource(confirmLabel))
             }

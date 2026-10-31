@@ -1,4 +1,4 @@
-# Play Console answers (ITERATION_7 §1.4)
+# Play Console answers
 
 Drafted from the code on 2026-10-27, for Policy › App content. Check them against the forms: their wording changes, and
 some choices (marked "check") depend on what the form offers.
@@ -58,8 +58,7 @@ No.
 
 - Does the app collect or share user data? **Yes** (collect; nothing is shared).
 - Is all collected data encrypted in transit? **Yes** (HTTPS only).
-- Can users request that their data be deleted? **Yes**: in the app (Settings › Account › Leave band, ITERATION_6
-  §11a), and by email for who can't sign in. Delete-account URL: https://kapelusz.jacekgajek.com/privacy-policy#rights
+- Can users request that their data be deleted? **Yes**: in the app (Settings › Account › Leave band), and by email for who can't sign in. Delete-account URL: https://kapelusz.jacekgajek.com/privacy-policy#rights
 
 **Shared:** nothing. Google (sign-in, places, maps, QR scanner) and Amazon Web Services (hosting) act as service
 providers, which Play doesn't count as sharing.
@@ -78,7 +77,7 @@ providers, which Play doesn't count as sharing.
 | Photos and videos › Photos | receipt photos attached to costs, money or events; the Google profile photo link | Optional | No |
 | Files and docs | PDFs attached to costs, money or events | Optional | No |
 | App activity › Other user-generated content | events (name, place, schedule, notes), cost descriptions, band name | Required | No |
-| Device or other IDs | a random identifier per band and installation, which orders a device's changes; on Android also an installation id and its Firebase Cloud Messaging token, for sync messages (ITERATION_7 §2) | Required | No |
+| Device or other IDs | a random identifier per band and installation, which orders a device's changes; on Android also an installation id and its Firebase Cloud Messaging token, for sync messages | Required | No |
 
 **Collected by Google's SDKs in the app** (Play counts what bundled SDKs collect; check each one's own Data safety
 guidance, which Google publishes, and add exactly what it lists):
@@ -88,7 +87,7 @@ guidance, which Google publishes, and add exactly what it lists):
   **App info and performance › Diagnostics** and **Device or other IDs**, purpose **Analytics**, not shared.
 - **Maps SDK for Android** (picking a place on a map): see Google's "Maps SDK for Android" Play Data safety page; it
   may add diagnostics or crash logs.
-- **Firebase Cloud Messaging** (sync messages, ITERATION_7 §2): see Firebase's Data safety guidance for Messaging
+- **Firebase Cloud Messaging** (sync messages): see Firebase's Data safety guidance for Messaging
   (device identifiers and the token, for app functionality); no Analytics is included.
 - **Credential Manager / Sign in with Google**: see its Data safety guidance; usually nothing beyond the account data
   above.

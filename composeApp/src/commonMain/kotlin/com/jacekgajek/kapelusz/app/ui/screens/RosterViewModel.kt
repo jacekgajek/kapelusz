@@ -39,7 +39,7 @@ sealed interface RosterDialog {
 data class RosterLists(val active: List<Member>, val archived: List<Member>, val searchable: Boolean)
 
 /**
- * The band members screen (ITERATION_8 §2): the invites for leaders, the search, the former members' fold, and the
+ * The band members screen: the invites for leaders, the search, the former members' fold, and the
  * dialog open on top. Scoped to the screen's back-stack entry.
  */
 class RosterViewModel(
@@ -98,7 +98,7 @@ class RosterViewModel(
     }
 
     /**
-     * Opened at a member from elsewhere (an event's "invite them", ITERATION_5 §12): once they are in the band, and
+     * Opened at a member from elsewhere (an event's "invite them"): once they are in the band, and
      * not again after a rotation.
      */
     fun openFromRoute(member: Member?, myUserId: String) {
@@ -107,7 +107,7 @@ class RosterViewModel(
         open(member, myUserId, invites != null)
     }
 
-    /** The default share editor on top of the member's dialog (ITERATION_4 §2.3). */
+    /** The default share editor on top of the member's dialog. */
     fun share(on: Boolean) {
         val open = dialog as? RosterDialog.OfMember ?: return
         dialog = open.copy(sharing = on)
@@ -192,7 +192,7 @@ class MemberForm(
 
     /**
      * A role picked: changing your own can take away the rights you are using now, and a change that ends settling
-     * together (ITERATION_5 §7) is said first; otherwise it applies at once.
+     * together is said first; otherwise it applies at once.
      */
     fun pickRole(member: Member, role: Role): Operation? {
         dialog = null
@@ -243,7 +243,7 @@ class MemberForm(
         return TransferOwnership(member.id)
     }
 
-    /** Deleting: the account first, for good (not undoable); Undo then brings the member back without it (ITERATION_7 §3.1). */
+    /** Deleting: the account first, for good (not undoable); Undo then brings the member back without it. */
     fun deletion(member: Member): Pair<Operation?, Operation> {
         dialog = null
         return (UnlinkUser(member.id).takeIf { member.userId != null }) to DeleteMember(member.id)

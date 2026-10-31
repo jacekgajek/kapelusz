@@ -7,7 +7,7 @@ import com.jacekgajek.kapelusz.server.store.BlobStore
 import com.jacekgajek.kapelusz.server.store.PresignedRequest
 import com.jacekgajek.kapelusz.server.store.StorageKeys
 
-/** The files of attachments in the bucket (ITERATION_4 §2.1), under the band's prefix; the HTTP side is [AttachmentHandlers]. */
+/** The files of attachments in the bucket, under the band's prefix; the HTTP side is [AttachmentHandlers]. */
 internal class AttachmentFiles(private val store: BlobStore) {
     fun exists(bandId: String, attachment: Attachment): Boolean {
         val key = StorageKeys.attachment(bandId, attachment)

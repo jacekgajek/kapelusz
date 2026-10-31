@@ -42,7 +42,7 @@ import org.jetbrains.compose.resources.stringResource
 class InfoWords(val date: String, val place: String, val map: String, val plan: String, val lineup: String, val footer: String)
 
 /**
- * The gig to send to someone (ITERATION_5 §3): its name; date, place and the map pin; the plan, a time per line; the
+ * The gig to send to someone: its name; date, place and the map pin; the plan, a time per line; the
  * notes as they are; the line-up on one line; the app's address last, as under a shared settlement. Parts apart by a
  * blank line; what the event does not have is left out.
  */
@@ -53,7 +53,7 @@ fun eventInfoText(event: Event, plan: List<String>, lineup: List<String>, words:
         "${words.date}: $date",
         event.location?.takeIf { it.isNotBlank() }?.let { "${words.place}: ${it.trim()}" },
         // Only an exact pin: a search link made from a place name would be long and no better than the name.
-        // Directions to the location, an address or a pin (ITERATION_5 §9.1).
+        // Directions to the location, an address or a pin.
         Places.navigateUrl(event)?.let { "${words.map}: $it" },
     )
     return listOfNotNull(
@@ -78,7 +78,7 @@ internal fun rememberShareInfo(band: Band, event: Event, snackbar: SnackbarHostS
         stringResource(Res.string.info_map),
         stringResource(Res.string.info_plan),
         stringResource(Res.string.info_lineup),
-        // The event's own link, opening it in the app (ITERATION_5 §10).
+        // The event's own link, opening it in the app.
         EventLinks.url(AppConfig.WEB_URL, event.id),
     )
     val plan = event.setTimes().map { "${it.displayLabel()} ${formatAgendaTime(it)}" }

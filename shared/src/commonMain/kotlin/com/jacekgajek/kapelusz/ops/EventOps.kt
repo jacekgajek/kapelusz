@@ -21,9 +21,9 @@ data class CreateEvent(
     val notes: String? = null,
     val guests: List<Guest> = emptyList(),
     val participants: List<Participant> = emptyList(),
-    /** The band's agenda template at creation time, times not set yet (ITERATION_2 §4.1). */
+    /** The band's agenda template at creation time, times not set yet. */
     val agenda: List<AgendaTime> = emptyList(),
-    /** The band's fund default at creation time (ITERATION_7 §5.2); null: nothing to the fund. */
+    /** The band's fund default at creation time; null: nothing to the fund. */
     val fund: FundCut? = null,
 ) : EventDetailsOp
 

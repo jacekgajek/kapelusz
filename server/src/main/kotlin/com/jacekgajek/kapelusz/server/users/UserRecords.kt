@@ -33,7 +33,7 @@ internal class UserRecords(private val store: BlobStore, private val bands: Band
         record?.bandIds?.forEach { bandId -> runCatching { bands.setMemberPicture(bandId, userId, url) } }
     }
 
-    /** At most [Api.MAX_BANDS_PER_USER] bands (ITERATION_3 R6); joining or creating one more is refused. */
+    /** At most [Api.MAX_BANDS_PER_USER] bands; joining or creating one more is refused. */
     fun requireRoomForBand(userId: String, bandId: String) {
         val list = store.userRecord(userId).get()?.bandIds.orEmpty()
         if (bandId in list || list.size < Api.MAX_BANDS_PER_USER) return

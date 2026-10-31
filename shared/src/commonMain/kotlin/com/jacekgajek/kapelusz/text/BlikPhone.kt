@@ -6,7 +6,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.settlement.Settlement
 
 /**
- * A member's BLIK phone number (ITERATION_5 §8): any phone number, 7 to 15 digits with an optional leading `+`. A
+ * A member's BLIK phone number: any phone number, 7 to 15 digits with an optional leading `+`. A
  * Polish one (9 digits, or +48 and 9 digits) is shown in threes and copied without +48, as Polish bank apps take it.
  */
 object BlikPhone {
@@ -47,8 +47,8 @@ object BlikPhone {
     fun copyText(stored: String): String = polish(stored) ?: stored
 
     /**
-     * The member [me] pays from [from]: they are that member, in that pair, or hold the band fund. Only payers see BLIK numbers
-     * (ITERATION_5 §8): beside a transfer the recipient settles, a phone icon read as "you pay".
+     * The member [me] pays from [from]: they are that member, in that pair, or hold the band fund. Only payers see BLIK numbers: beside a
+     * transfer the recipient settles, a phone icon read as "you pay".
      */
     fun pays(band: Band, settlement: Settlement?, me: Id?, from: Id): Boolean = onSide(band, settlement, me, from)
 

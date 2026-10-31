@@ -41,7 +41,7 @@ data class ServiceAccount(
 )
 
 /**
- * Firebase Cloud Messaging's HTTP v1 API (ITERATION_7 §2.5), without the Firebase Admin SDK: one call per token, all
+ * Firebase Cloud Messaging's HTTP v1 API, without the Firebase Admin SDK: one call per token, all
  * at once, within [deadlineMs]. The access token is a self-signed JWT exchanged at Google (within [signInMs] of its
  * own: the first message of an instance opens two connections) and kept until shortly before it expires; a failed
  * sign-in isn't tried again for [SIGN_IN_RETRY_MS].
@@ -99,7 +99,7 @@ class FcmSender(
 
     private fun remaining(deadline: Long): Duration = Duration.ofMillis((deadline - clock()).coerceAtLeast(1))
 
-    /** A data message: the app syncs, nothing is shown. Normal priority (ITERATION_7 §2.3); worthless after 10 minutes. */
+    /** A data message: the app syncs, nothing is shown. Normal priority; worthless after 10 minutes. */
     private fun message(token: String, data: Map<String, String>): JsonObject = buildJsonObject {
         putJsonObject("message") {
             put("token", token)
@@ -170,7 +170,7 @@ class FcmSender(
 }
 
 /**
- * The FCM key (ITERATION_7 §2.5) in the data bucket, next to the session signing key ([StorageKeys.FCM_KEY]), put
+ * The FCM key in the data bucket, next to the session signing key ([StorageKeys.FCM_KEY]), put
  * there by hand: no infrastructure, and whoever can read the bucket could read the bands anyway. Read on first use
  * (not into the SnapStart snapshot) and kept; missing or unreadable means no messages, looked for again after
  * [RETRY_MS].

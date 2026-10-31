@@ -59,7 +59,7 @@ import com.jacekgajek.kapelusz.model.FundCut
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Changing the fund's default for new events (ITERATION_7 §5.2): the unsettled events that still have the old one (id and
+ * Changing the fund's default for new events: the unsettled events that still have the old one (id and
  * name), offered the new one too, as a member's default share is; [onSave] saves it, and to the events chosen.
  */
 class FundDefaultSetting(val stillDefault: List<Pair<String, String>>, val onSave: (FundCut?, List<String>) -> Unit)
@@ -134,7 +134,7 @@ internal fun FundSettings(fund: BandFundSettings, dialog: SettingsDialog?, open:
     }
 }
 
-/** Where to pay into the fund (ITERATION_7 §7): set here, by its holder and leads; shown on its tab once set. */
+/** Where to pay into the fund: set here, by its holder and leads; shown on its tab once set. */
 @Composable
 private fun FundPaymentItems(blikPhone: String?, bankAccount: String?, onSave: ((PaymentKind, String?) -> Unit)?) {
     if (onSave == null && blikPhone == null && bankAccount == null) return

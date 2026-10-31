@@ -14,10 +14,10 @@ import com.jacekgajek.kapelusz.settlement.SettledEvents
 object RoleChanges {
     /** Why [memberId] cannot become [role] now, or null when they can. */
     fun refusal(view: SettledEvents, memberId: Id, role: Role): RejectionReason? = when {
-        // Someone holding band money cannot become an artist (ITERATION_4 §1.1).
+        // Someone holding band money cannot become an artist.
         role == Role.ARTIST && Artists.holdsMoney(view, memberId) -> RejectionReason.HOLDS_MONEY
 
-        // Nor a viewer while playing in an unsettled event or holding the fund (ITERATION_5 B2).
+        // Nor a viewer while playing in an unsettled event or holding the fund.
         role == Role.VIEWER && !Viewers.mayBecome(view, memberId) -> RejectionReason.VIEWER_STILL_PLAYS
 
         else -> null

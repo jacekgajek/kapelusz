@@ -60,7 +60,7 @@ internal object EventReducer {
             location = op.location.blankToNull(),
             notes = op.notes.blankToNull(),
             guests = op.guests.map { it.copy(name = it.name.validName("Guest name")) },
-            // Who added each participant (the creator); was for the reminder prompt (ITERATION_2 §5.2), gone since ITERATION_6 §9.
+            // Who added each participant (the creator); was for the reminder prompt, since removed.
             participants = op.participants.map { validShare(it.weight, it.fixedShare, it.percent).applyTo(it).copy(addedBy = ctx.memberId) },
             agenda = validAgenda(op.agenda),
         )

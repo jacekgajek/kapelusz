@@ -47,7 +47,7 @@ fun AmountRow(
 fun costTitle(cost: Cost): String = cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost)
 
 /**
- * A cost in a list: the category's icon over both lines (ITERATION_6 §4), its [title] and [subtitle], and at the end
+ * A cost in a list: the category's icon over both lines, its [title] and [subtitle], and at the end
  * the amount with its [status] under it (none when [showAmount] is off, e.g. where the amount is a field).
  */
 @Composable

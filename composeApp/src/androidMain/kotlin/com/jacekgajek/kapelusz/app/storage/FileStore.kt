@@ -15,7 +15,7 @@ class FileStore(private val directory: File) : KeyValueStore {
     override suspend fun write(key: String, value: String) = withContext(Dispatchers.IO) {
         directory.mkdirs()
         val temp = File.createTempFile(key, ".tmp", directory)
-        // On the disk before it replaces the old file (ITERATION_3 R9): after a power loss, an older file coming back
+        // On the disk before it replaces the old file: after a power loss, an older file coming back
         // would reuse sequence numbers the server has seen, and the next changes would be dropped as duplicates.
         try {
             FileOutputStream(temp).use { out ->
@@ -24,7 +24,7 @@ class FileStore(private val directory: File) : KeyValueStore {
             }
             check(temp.renameTo(file(key))) { "Could not save $key" }
         } catch (e: Throwable) {
-            // A failed write (e.g. a full device) leaves no temp file behind (V5-M1 D7).
+            // A failed write (e.g. a full device) leaves no temp file behind.
             temp.delete()
             throw e
         }

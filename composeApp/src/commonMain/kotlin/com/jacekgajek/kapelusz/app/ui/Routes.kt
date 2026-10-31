@@ -25,7 +25,7 @@ data object FundRoute
 
 /**
  * An event; at one of its [section]s when given (e.g. where shared files went, or the refund a cost is in), with what
- * the inbox holds for it under [carryId] (files shared to the app, ITERATION_6 §1).
+ * the inbox holds for it under [carryId] (files shared to the app).
  */
 @Serializable
 @SerialName("event")
@@ -44,7 +44,7 @@ data class CostRoute(val costId: String? = null, val forEventId: String? = null,
 @SerialName("settings")
 data class SettingsRoute(val page: String? = null)
 
-/** Band members; with [memberId], that member's dialog open (e.g. to invite them, ITERATION_5 §12). */
+/** Band members; with [memberId], that member's dialog open (e.g. to invite them). */
 @Serializable
 @SerialName("members")
 data class RosterRoute(val memberId: String? = null)
@@ -61,7 +61,7 @@ data object HistoryRoute
 @SerialName("summary")
 data object SummaryRoute
 
-/** "Where we played" (ITERATION_7 §8), for the Summary's period. */
+/** "Where we played", for the Summary's period. */
 @Serializable
 @SerialName("played")
 data object PlayedRoute

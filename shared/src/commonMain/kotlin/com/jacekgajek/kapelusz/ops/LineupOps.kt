@@ -40,8 +40,8 @@ data class RenameGuest(override val eventId: Id, val guestId: Id, val name: Stri
 data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int) : LineupOp
 
 /**
- * A fixed amount the participant takes off the top instead of a share by weight (ITERATION_3 §2.4), or a [percent] of
- * the profit (ITERATION_7 §6); neither goes back to the weight. [weight], when set, is applied in the same step, so
+ * A fixed amount the participant takes off the top instead of a share by weight, or a [percent] of
+ * the profit; neither goes back to the weight. [weight], when set, is applied in the same step, so
  * going back to a different weight is one change to undo.
  */
 @Serializable
@@ -59,7 +59,7 @@ data class SetFixedShare(
 data class RemoveParticipant(override val eventId: Id, val partyId: Id) : LineupOp
 
 /**
- * The picker's line-up (ITERATION_8 §1.3): participants [add]ed with their shares, members or the new [guests] (from
+ * The picker's line-up: participants [add]ed with their shares, members or the new [guests] (from
  * From an event…, each with its participant in [add]); participants (members or guests) [remove]d. All or nothing, as one
  * change.
  */

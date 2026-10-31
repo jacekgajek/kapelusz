@@ -37,7 +37,7 @@ internal fun validateActiveMember(band: Band, memberId: Id) {
 
 internal fun validateWeight(weight: Int) = invalidIf(weight !in 0..10_000, RejectionReason.INVALID_SHARE) { "Share weight must be between 0 and 10000" }
 
-/** A share as stored (ITERATION_7 §6): a weight, a fixed amount or a percentage of the profit. */
+/** A share as stored: a weight, a fixed amount or a percentage of the profit. */
 internal data class Share(val weight: Int, val fixed: Money?, val percent: Int?) {
     val byWeight: Boolean get() = fixed == null && percent == null
 

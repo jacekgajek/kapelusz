@@ -4,7 +4,7 @@ import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
 
-/** A member's default share and the events it may be applied to (ITERATION_4 §2.3). */
+/** A member's default share and the events it may be applied to. */
 object MemberShares {
 
     /** The same share: the same fixed amount, the same percentage, or (both by weight) the same weight. */

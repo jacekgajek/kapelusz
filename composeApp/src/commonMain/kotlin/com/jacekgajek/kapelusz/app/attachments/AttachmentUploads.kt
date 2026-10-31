@@ -22,7 +22,7 @@ import kotlinx.serialization.builtins.ListSerializer
 data class PendingUpload(val bandId: Id, val attachmentId: Id)
 
 /**
- * The offline queue of attachment files (ITERATION_1 §4.5). A picked file is stored locally (base64, scoped to the
+ * The offline queue of attachment files. A picked file is stored locally (base64, scoped to the
  * user) while its `AddAttachment` operation goes through the normal sync; once the server has the attachment, the
  * file is uploaded to a presigned URL and the local copy dropped.
  */
@@ -51,7 +51,7 @@ class AttachmentUploads(
     private val attaching = mutableSetOf<Id>()
 
     /**
-     * Stores the file and queues it, before the attachment is published (ITERATION_3 R4): published first, a crash
+     * Stores the file and queues it, before the attachment is published: published first, a crash
      * or a full device would leave everyone an attachment without a file. Throws when it cannot be stored; call
      * [published] once the operation is dispatched (or refused).
      */
@@ -108,7 +108,7 @@ class AttachmentUploads(
     }
 
     /**
-     * The attachments' operations were discarded unsent (ITERATION_3 R9): their files are no longer queued, but stay on
+     * The attachments' operations were discarded unsent: their files are no longer queued, but stay on
      * the device with the backup of those operations (found by attachment id), as the user was promised. Otherwise
      * [uploadFor] would delete them as removed.
      */

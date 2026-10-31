@@ -38,7 +38,7 @@ class AndroidGoogleAuth(private val app: Context) : GoogleAuth {
     var activity: WeakReference<Activity> = WeakReference(null)
 
     override suspend fun refresh(): String? {
-        // Only on a screen the user sees (ITERATION_3 R7): Google's UI must not appear over a stopped or closing one.
+        // Only on a screen the user sees: Google's UI must not appear over a stopped or closing one.
         val activity = activity.get()?.takeIf { (it as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != false } ?: return null
         val option = GetGoogleIdOption.Builder()
             .setServerClientId(AppConfig.GOOGLE_WEB_CLIENT_ID)

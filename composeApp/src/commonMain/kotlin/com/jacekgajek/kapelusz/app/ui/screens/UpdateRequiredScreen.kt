@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The server no longer serves this app version (ITERATION_2 §2). Nothing would sync, so the app says so plainly and
+ * The server no longer serves this app version. Nothing would sync, so the app says so plainly and
  * offers the update: a reload on the web, the automatic updater on Android (or the download if that cannot install).
  */
 @Composable
@@ -44,8 +44,8 @@ fun UpdateRequiredScreen() {
             Text(stringResource(Res.string.update_required_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(Res.string.update_required_text), style = MaterialTheme.typography.bodyMedium)
             Button(onClick = {
-                // The web reloads into the deployed version; Android updates from Google Play (ITERATION_7 §1.1): its
-                // full-screen update when Play offers one here (§4), else the listing.
+                // The web reloads into the deployed version; Android updates from Google Play: its
+                // full-screen update when Play offers one here, else the listing.
                 when {
                     reload != null -> reload()
                     store != null -> scope.launch { if (storeUpdates?.updateNow() != true) uriHandler.openUri(store) }

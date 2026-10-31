@@ -6,7 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Attachment files in the app's cache directory (ITERATION_5 §4.2): the oldest dropped above about 100 MB, and by the
+ * Attachment files in the app's cache directory: the oldest dropped above about 100 MB, and by the
  * system when it needs room.
  */
 class AndroidFileCache(private val app: Context) : ByteCache {
@@ -37,7 +37,7 @@ class AndroidFileCache(private val app: Context) : ByteCache {
     }
 
     private companion object {
-        /** Above this the files used longest ago go (ITERATION_5 §4.2). */
+        /** Above this the files used longest ago go. */
         const val MAX_BYTES = 100L * 1024 * 1024
     }
 }

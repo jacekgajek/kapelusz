@@ -27,7 +27,7 @@ class Actions(private val changes: Changes, val messages: Messages, private val 
     fun say(text: String) = messages.post(text)
 
     /**
-     * Runs [op] with Undo in a snackbar saying [message] (ITERATION_5 §2): it is held back from syncing while the
+     * Runs [op] with Undo in a snackbar saying [message]: it is held back from syncing while the
      * snackbar shows, and Undo takes it back as if it was never made.
      */
     fun runWithUndo(op: Operation, message: UiMessage): Boolean {

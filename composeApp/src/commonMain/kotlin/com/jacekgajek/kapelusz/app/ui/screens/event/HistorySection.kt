@@ -65,7 +65,7 @@ fun HistorySection(context: EventContext, session: BandSession) {
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
 
             else -> {
-                // Undo steps back through this event's changes, redo forward (ITERATION_2 §7.2).
+                // Undo steps back through this event's changes, redo forward.
                 val arrows = history.arrows(loaded, context.can)
                 loaded.forEach { line -> HistoryLineRow(history, context.band, line, arrows) }
             }

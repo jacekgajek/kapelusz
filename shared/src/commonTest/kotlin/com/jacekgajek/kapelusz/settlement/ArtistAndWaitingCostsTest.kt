@@ -32,7 +32,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** ITERATION_4 §1.1 (artists) and §1.2 (costs wait for a lead's Refund here). */
+/** Covers artists, and costs that wait for a lead's Refund here. */
 class ArtistAndWaitingCostsTest {
 
     private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
@@ -164,7 +164,7 @@ class ArtistAndWaitingCostsTest {
         assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(AddHolding("gig", "h", "carol", pln("100"), DOOR)).reason)
         assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(SetTreasurer("carol")).reason)
 
-        // They are only paid: someone who collected pays them, and either of the two records it (ITERATION_7 §3.2).
+        // They are only paid: someone who collected pays them, and either of the two records it.
         scenario.apply(AddHolding("gig", "h", "alice", pln("300"), DOOR))
         val carol = scenario.userFor("carol", Role.ARTIST)
         assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "t", "alice", "bob", pln("100")), carol).reason, "not someone else's")
@@ -197,7 +197,7 @@ class ArtistAndWaitingCostsTest {
         assertEquals(pln("400"), CostLedger.maxRefundAt(scenario.band, scenario.band.cost("c")!!, gig), "what Refund here sets")
     }
 
-    /** An artist who ends up owing (overpaid, or owing from before) hands it back and records it (ITERATION_7 §3.2). */
+    /** An artist who ends up owing (overpaid, or owing from before) hands it back and records it. */
     @Test
     fun anArtistRecordsWhatTheyHandBack() {
         val scenario = gig().apply(AddHolding("gig", "h", "alice", pln("300"), DOOR))

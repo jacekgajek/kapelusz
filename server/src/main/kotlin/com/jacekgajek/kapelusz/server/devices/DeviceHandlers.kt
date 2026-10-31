@@ -9,7 +9,7 @@ import com.jacekgajek.kapelusz.server.ok
 import com.jacekgajek.kapelusz.server.store.devices
 import com.jacekgajek.kapelusz.server.users.UserRecords
 
-/** `PUT` and `DELETE /me/devices/{installationId}` (ITERATION_7 §2.4). */
+/** `PUT` and `DELETE /me/devices/{installationId}`. */
 internal class DeviceHandlers(
     private val registry: DeviceRegistry,
     private val users: UserRecords,
@@ -18,8 +18,8 @@ internal class DeviceHandlers(
 ) {
 
     /**
-     * Stores the device only while the user is in a band: after their last one, the server keeps nothing of theirs
-     * (ITERATION_6 §11a), and an app starting again doesn't bring it back. The answer says whether messages will come,
+     * Stores the device only while the user is in a band: after their last one, the server keeps nothing of theirs, and an app starting
+     * again doesn't bring it back. The answer says whether messages will come,
      * so the app knows how often to look for news itself.
      */
     fun register(call: Call): HttpResponse {

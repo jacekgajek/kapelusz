@@ -30,7 +30,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Roles a leader can give, from the least to the most a role may change; ownership only changes by transfer. Viewer is
- * apart: it sees everything but changes nothing (ITERATION_4), so it is not a step below the others.
+ * apart: it sees everything but changes nothing, so it is not a step below the others.
  */
 val ASSIGNABLE_ROLES = listOf(Role.ARTIST, Role.MEMBER, Role.LEAD, Role.VIEWER)
 
@@ -41,7 +41,7 @@ private fun Role.description(): StringResource = when (this) {
     Role.LEAD, Role.OWNER -> Res.string.role_desc_lead
 }
 
-/** Radio buttons for a role, each with what it allows (§3 of the plan), and a note on ownership. */
+/** Radio buttons for a role, each with what it allows, and a note on ownership. */
 @Composable
 fun RolePicker(selected: Role, onSelect: (Role) -> Unit, title: String, modifier: Modifier = Modifier) {
     Column(modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {

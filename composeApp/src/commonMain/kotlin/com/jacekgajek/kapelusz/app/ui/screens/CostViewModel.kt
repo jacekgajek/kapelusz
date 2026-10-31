@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
-/** What the user has typed into the cost form; kept across rotation and the camera app's round trip (ITERATION_3 R8). */
+/** What the user has typed into the cost form; kept across rotation and the camera app's round trip. */
 @Serializable
 data class CostDraft(
     val amountText: String,
@@ -74,8 +74,8 @@ sealed interface CostOutcome {
 }
 
 /**
- * The cost form (ITERATION_1 §5): a new cost, or an existing one edited. Save sends only what the user changed since
- * the form opened ([opened]), so a change someone else made meanwhile is not overwritten (ITERATION_3 R8). Lives as
+ * The cost form: a new cost, or an existing one edited. Save sends only what the user changed since
+ * the form opened ([opened]), so a change someone else made meanwhile is not overwritten. Lives as
  * long as the screen is on the back stack, following the band as it changes ([bands]).
  */
 class CostViewModel(
@@ -136,7 +136,7 @@ class CostViewModel(
     var dialog by mutableStateOf<CostDialog?>(null)
         private set
 
-    /** Photos or PDFs shared to the app for a new cost of this event (ITERATION_6 §1). */
+    /** Photos or PDFs shared to the app for a new cost of this event. */
     var drafts by mutableStateOf(sharedFiles)
 
     /** Once only: the screen stays tappable while it fades out, and a second tap would add the cost again. */

@@ -17,7 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * What the band history and an event's history share (ITERATION_3 R12): the loaded lines, this device's undos the
+ * What the band history and an event's history share: the loaded lines, this device's undos the
  * server does not have yet, and the undo waiting for its confirmation. The screens decide what to load and draw it.
  */
 @Stable
@@ -57,7 +57,7 @@ class HistoryState(
     /** The lines to show: the server's, with this device's undos it does not have yet on top (when [withPending]). */
     fun shown(withPending: Boolean = true): List<HistoryLine>? = lines?.let { withPending(it, if (withPending) pending else emptyList()) }
 
-    /** Where the undo and redo arrows go among [shown] lines (ITERATION_2 §7.2); none when not [enabled]. */
+    /** Where the undo and redo arrows go among [shown] lines; none when not [enabled]. */
     fun arrows(shown: List<HistoryLine>, can: Capabilities, enabled: Boolean = true): HistoryArrows {
         val targets = undoTargets(shown) { undoOf(it, can) != null }
         val undo = targets.undo?.takeIf { enabled }?.let { line -> undoOf(line, can)?.let { line to it } }
@@ -88,7 +88,7 @@ class HistoryState(
 class HistoryArrows(val undone: Set<String>, val undo: Pair<HistoryLine, Undo>?, val redo: Pair<HistoryLine, Undo>?)
 
 /**
- * The band history screen (ITERATION_2 §7): a month at a time, newest first, more of it on demand; this device's
+ * The band history screen: a month at a time, newest first, more of it on demand; this device's
  * undos on top of the current month. Scoped to the screen's back-stack entry.
  */
 class HistoryViewModel(
@@ -139,7 +139,7 @@ class HistoryViewModel(
         }
     }
 
-    /** The next page of the month; what is shown stays, only "Load more" can fail (ITERATION_3 R8). */
+    /** The next page of the month; what is shown stays, only "Load more" can fail. */
     fun loadMore() {
         loadMoreFailed = false
         viewModelScope.launch {

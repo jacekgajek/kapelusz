@@ -13,7 +13,7 @@ internal class Call(
     val user: VerifiedUser,
     /** The route's `{name}` segments, by name. */
     val params: Map<String, String>,
-    /** The Android device making a change: no sync message for it about its own change (ITERATION_7 §2.4). */
+    /** The Android device making a change: no sync message for it about its own change. */
     val installation: SenderDevice?,
 ) {
     /** A `{name}` segment of the route; asking for one the route has not is a programming error. */

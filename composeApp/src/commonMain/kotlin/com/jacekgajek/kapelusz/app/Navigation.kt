@@ -112,7 +112,7 @@ internal fun Navigation(runtime: AppRuntime, state: BandState.Ready, navControll
 
     // The band fund tab appears once someone holds the fund (leaders choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null
-    // Artists get their events and their costs only (ITERATION_4 §1.1).
+    // Artists get their events and their costs only.
     val artist = state.band.isArtist(state.userId)
     val tabs = Tab.entries.filter { (it != Tab.FUND || fundEnabled) && (!artist || it == Tab.EVENTS || it == Tab.MY_COSTS) }
     // E.g. after switching to a band without a band fund while on its tab.
@@ -149,7 +149,7 @@ internal fun Navigation(runtime: AppRuntime, state: BandState.Ready, navControll
                 val route = entry.toRoute<EventRoute>()
                 // The section to show once (not again after a rotation): the route's, cleared once shown.
                 val asked by entry.savedStateHandle.getStateFlow(AppNavigator.EVENT_SECTION, route.section).collectAsState()
-                // What travels with it (files shared to the event, ITERATION_6 §1): taken once, when the screen's model is made.
+                // What travels with it (files shared to the event): taken once, when the screen's model is made.
                 val screen = entry.screenViewModel {
                     val carry = route.carryId?.let(session.intents::takeCarry)
                     EventViewModel(route.eventId, session.bands.state, carry)
@@ -228,7 +228,7 @@ private fun MainScaffold(navController: NavHostController, sync: SyncEngine, ban
         sync.rejections.collect { messages.post(UiMessage.SyncRefused(it.reason)) }
     }
     val current = Tab.entries.firstOrNull { tab -> entry?.destination?.hasRoute(tab.route::class) == true }
-    // Changes the server refuses as a whole (ITERATION_3 R9).
+    // Changes the server refuses as a whole.
     val stuck = sync.stuck.collectAsState().value[bandId]
     fun select(tab: Tab) = navController.navigate(tab.route) {
         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -287,7 +287,7 @@ private fun MainScaffold(navController: NavHostController, sync: SyncEngine, ban
 
 /** Navigates to [route] and drops everything else from the back stack. */
 internal fun NavHostController.resetTo(route: Any) {
-    // The tabs' saved back stacks too (V5-M1 C2a): after a band switch, a tab must not bring back an event or a cost
+    // The tabs' saved back stacks too: after a band switch, a tab must not bring back an event or a cost
     // of the band before.
     Tab.entries.forEach { clearBackStack(it.route) }
     navigate(route) { popUpTo(graph.id) { inclusive = true } }
