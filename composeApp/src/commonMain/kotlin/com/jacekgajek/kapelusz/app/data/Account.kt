@@ -1,0 +1,105 @@
+package com.jacekgajek.kapelusz.app.data
+
+import com.jacekgajek.kapelusz.app.auth.Session
+import com.jacekgajek.kapelusz.app.auth.SessionRepository
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.model.Member
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/** Signing in and out of this device, and what goes with it: the user's bands, sync, sync messages. */
+class Account(
+    private val scope: CoroutineScope,
+    private val sessions: SessionRepository,
+    private val api: ApiClient,
+    private val bands: BandRepository,
+    private val uploads: AttachmentUploads,
+    private val sync: SyncEngine,
+    private val messages: DeviceMessages,
+    private val incoming: Incoming,
+) {
+    /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
+    val signedOutEverywhere = MutableStateFlow(false)
+
+    private val _signIns = MutableStateFlow(0)
+
+    /** Counts interactive sign-ins in this process; the UI starts from the event list after each one. */
+    val signIns: StateFlow<Int> = _signIns.asStateFlow()
+
+    /** The sign-ins the UI has reacted to already (it is composed again on rotation and language changes). */
+    var handledSignIns = 0
+
+    /**
+     * Runs in the app scope, not the caller's: the sign-in screen leaves the composition as soon as the session
+     * appears, which would cancel the loading half-way and leave a blank screen. The bands are loaded before the
+     * session is published, so the UI switches straight to the loaded band.
+     */
+    suspend fun onSignedIn(idToken: String) = scope.async {
+        val userId = Session.fromIdToken(idToken).userId
+        bands.load(userId)
+        uploads.load(userId)
+        sessions.signedIn(idToken)
+        signedOutEverywhere.value = false
+        _signIns.value++
+        sync.start()
+        sync.resumeAfterSignIn()
+        messages.register()
+    }.await()
+
+    /**
+     * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and
+     * its scope with it, which must not stop the rest of signing out.
+     */
+    fun signOutInBackground() {
+        scope.launch { signOut() }
+    }
+
+    /**
+     * [tellServer]: remove this device from the server's list. Not after "sign out on all devices" (the server cleared
+     * the list, and would refuse the request, signing out again), nor with a session that would need renewing (that
+     * could show Google's sign-in): the deleted token is enough, as the server forgets it at the next message.
+     */
+    suspend fun signOut(tellServer: Boolean = true) {
+        sync.stop()
+        messages.unregister(tellServer)
+        sessions.signOut()
+        incoming.pendingOpenEvent.value = null
+    }
+
+    /**
+     * "Sign out on all devices" (ITERATION_3 R6): the server ends every session of the user, this device's included,
+     * then this device signs out as [signOut] does. Throws (and stays signed in) when the server could not be told.
+     */
+    suspend fun signOutEverywhere() {
+        api.revokeSessions()
+        signOut(tellServer = false)
+    }
+
+    /**
+     * The server refuses this device's tokens after "sign out on all devices" (here or elsewhere): signs out as
+     * [signOut] does, which also keeps Google from signing in again silently. Several requests may be refused at once.
+     */
+    internal suspend fun signOutRevoked() {
+        if (sessions.session.value == null) return
+        signedOutEverywhere.value = true
+        signOut(tellServer = false)
+    }
+
+    private var pictureSent = false
+
+    /**
+     * Once per app run, while the user's member has no photo: the Google token kept from signing in carries it, so
+     * members signed in before photos existed get theirs without signing in again (ITERATION_2 §7.4).
+     */
+    fun sendPictureIfMissing(me: Member?) {
+        if (pictureSent || me == null || me.pictureUrl != null) return
+        val googleToken = sessions.session.value?.idToken ?: return
+        pictureSent = true
+        scope.launch { runSuspendCatching { api.sendPicture(googleToken) }.onSuccess { sync.requestSync() } }
+    }
+}

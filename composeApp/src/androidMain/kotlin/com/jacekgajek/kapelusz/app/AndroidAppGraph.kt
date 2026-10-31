@@ -18,7 +18,7 @@ object AndroidAppGraph {
     fun get(context: Context): AppGraph {
         val app = context.applicationContext
         AndroidPlatform.context = app
-        return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth, messages = FirebaseMessageChannel(app)).also { graph ->
+        return instance ?: AppGraph(FileStore(File(app.filesDir, "kapelusz")), AndroidGoogleAuth, messageChannel = FirebaseMessageChannel(app)).also { graph ->
             BackgroundSyncWorker.removeOldNotifications(app)
             instance = graph
         }

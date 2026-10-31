@@ -146,7 +146,7 @@ fun CostScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
     // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1).
-    var drafts by remember { mutableStateOf(if (existing == null && forEventId != null) graph.takeSharedFiles(forEventId, toCost = true) else listOf()) }
+    var drafts by remember { mutableStateOf(if (existing == null && forEventId != null) graph.incoming.takeSharedFiles(forEventId, toCost = true) else listOf()) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (existing == null) focus.requestFocus() }
 

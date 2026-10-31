@@ -125,7 +125,7 @@ class Actions(
     /** Open dialogs showing messages themselves ([DialogNotice]), newest last: a dialog hides the screen's snackbar. */
     internal val dialogs = mutableListOf<(String) -> Unit>()
 
-    fun run(op: Operation): Boolean = show(graph.dispatch(op))
+    fun run(op: Operation): Boolean = show(graph.changes.dispatch(op))
 
     /** Shows [rejection] (if any) in the snackbar; true when there was none. */
     fun show(rejection: Rejection?): Boolean {
@@ -146,15 +146,15 @@ class Actions(
     fun runWithUndo(op: Operation, message: String): Boolean {
         val stack = undos ?: return run(op)
         return show(
-            graph.dispatchHeld(op, stack.timeout + HOLD_MARGIN) { held ->
+            graph.changes.dispatchHeld(op, stack.timeout + HOLD_MARGIN) { held ->
                 val undo = {
                     // Its hold ran out first (e.g. the device slept): it may be on its way, so only the history can undo it.
-                    if (!graph.withdraw(held)) {
-                        graph.release(held)
+                    if (!graph.changes.withdraw(held)) {
+                        graph.changes.release(held)
                         say(tooLate)
                     }
                 }
-                stack.add(UndoItem(message, undo = undo, gone = { graph.release(held) }))
+                stack.add(UndoItem(message, undo = undo, gone = { graph.changes.release(held) }))
             },
         )
     }

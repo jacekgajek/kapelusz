@@ -142,7 +142,7 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
                 TextButton(enabled = !busy, onClick = {
                     scope.launch {
                         busy = true
-                        runSuspendCatching { graph.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
+                        runSuspendCatching { graph.membership.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
                         busy = false
                     }
                 }) { Text(stringResource(Res.string.join)) }

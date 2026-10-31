@@ -172,12 +172,12 @@ fun CollectedSection(context: EventContext) {
 
     // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): its dialog, with them.
     var sharedDrafts by remember { mutableStateOf(listOf<PreparedFile>()) }
-    val handover by context.graph.sharedHandover.collectAsState()
+    val handover by context.graph.incoming.sharedHandover.collectAsState()
     // Only on the screen in front: one on its way out (the same event opened again) would take them along.
     val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
     LaunchedEffect(handover, resumed) {
         if (handover?.let { it.eventId == event.id && !it.toCost } != true || !resumed) return@LaunchedEffect
-        sharedDrafts = context.graph.takeSharedFiles(event.id, toCost = false)
+        sharedDrafts = context.graph.incoming.takeSharedFiles(event.id, toCost = false)
         // One dialog at a time: the new entry's.
         editing = null
         adding = true
