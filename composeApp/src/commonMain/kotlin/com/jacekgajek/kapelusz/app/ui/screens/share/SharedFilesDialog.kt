@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.app
+package com.jacekgajek.kapelusz.app.ui.screens.share
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -86,9 +86,9 @@ import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMonthShort
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMonthShort
 import com.jacekgajek.kapelusz.app.ui.screens.DraftThumbnail
 import com.jacekgajek.kapelusz.app.ui.screens.ThumbnailBox
 import com.jacekgajek.kapelusz.model.AttachmentKind

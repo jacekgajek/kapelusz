@@ -25,10 +25,10 @@ import com.jacekgajek.kapelusz.app.generated.share_info_failed
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.displayLabel
-import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.app.ui.model.setTimes
+import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.ui.text.displayLabel
+import com.jacekgajek.kapelusz.app.ui.text.formatAgendaTime
+import com.jacekgajek.kapelusz.app.ui.text.setTimes
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator

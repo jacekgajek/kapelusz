@@ -1,8 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui
 
 import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
-import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
+import com.jacekgajek.kapelusz.app.data.summaryPeriod
+import com.jacekgajek.kapelusz.app.data.withSummaryPeriod
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.view.SummaryPeriod
 import kotlin.test.Test

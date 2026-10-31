@@ -36,8 +36,8 @@ import com.jacekgajek.kapelusz.app.generated.share_text_to_fund
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.SettlementWords
-import com.jacekgajek.kapelusz.app.ui.model.settlementText
+import com.jacekgajek.kapelusz.app.ui.format.SettlementWords
+import com.jacekgajek.kapelusz.app.ui.format.settlementText
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.settlement.EventStatus

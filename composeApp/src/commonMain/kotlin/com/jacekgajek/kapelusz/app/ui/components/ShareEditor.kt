@@ -31,8 +31,8 @@ import com.jacekgajek.kapelusz.app.generated.share_percent_hint
 import com.jacekgajek.kapelusz.app.generated.share_percent_over
 import com.jacekgajek.kapelusz.app.generated.share_percent_taken
 import com.jacekgajek.kapelusz.app.generated.share_weight_hint
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMoneyInput
 import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.Money

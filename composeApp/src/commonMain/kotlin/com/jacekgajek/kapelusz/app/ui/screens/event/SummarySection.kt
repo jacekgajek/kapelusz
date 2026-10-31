@@ -40,7 +40,7 @@ import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.summary
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.settlement.EventStatus

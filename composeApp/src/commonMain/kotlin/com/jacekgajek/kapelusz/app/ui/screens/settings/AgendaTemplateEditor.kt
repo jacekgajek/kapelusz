@@ -30,9 +30,9 @@ import com.jacekgajek.kapelusz.app.generated.move_up
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.TemplateDraft
-import com.jacekgajek.kapelusz.app.ui.model.label
-import com.jacekgajek.kapelusz.app.ui.model.toItem
+import com.jacekgajek.kapelusz.app.ui.text.TemplateDraft
+import com.jacekgajek.kapelusz.app.ui.text.label
+import com.jacekgajek.kapelusz.app.ui.text.toItem
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime

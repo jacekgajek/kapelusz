@@ -81,8 +81,8 @@ import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.payeeName
 import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
+import com.jacekgajek.kapelusz.app.ui.format.formatMoney
+import com.jacekgajek.kapelusz.app.ui.format.formatMoneyInput
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.RecordTransfer

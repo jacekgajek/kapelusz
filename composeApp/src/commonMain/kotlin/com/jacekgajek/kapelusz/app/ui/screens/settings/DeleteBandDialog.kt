@@ -27,7 +27,7 @@ import com.jacekgajek.kapelusz.app.ui.components.BusyButton
 import com.jacekgajek.kapelusz.app.ui.components.FormDialog
 import com.jacekgajek.kapelusz.app.ui.components.dangerButtonColors
 import com.jacekgajek.kapelusz.app.ui.components.rememberTask
-import com.jacekgajek.kapelusz.app.ui.model.label
+import com.jacekgajek.kapelusz.app.ui.text.label
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
