@@ -110,9 +110,6 @@ import com.jacekgajek.kapelusz.app.ui.model.agendaLine
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
-import com.jacekgajek.kapelusz.domain.Places
-import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.SettlementProblem
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
@@ -123,6 +120,9 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.settlement.SettlementProblem
+import com.jacekgajek.kapelusz.text.Places
 import com.jacekgajek.kapelusz.view.BandView
 import kotlin.math.abs
 import kotlinx.coroutines.flow.first

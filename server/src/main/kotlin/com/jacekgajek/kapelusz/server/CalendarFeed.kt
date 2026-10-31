@@ -1,12 +1,12 @@
 package com.jacekgajek.kapelusz.server
 
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.text.EventLinks
+import com.jacekgajek.kapelusz.text.Places
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime

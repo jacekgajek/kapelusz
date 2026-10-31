@@ -1,13 +1,14 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.SettledEvents
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 
 /**
  * One band state, with what is derived from it computed at most once: lookups by id, each event's settlement, which
@@ -18,7 +19,7 @@ import com.jacekgajek.kapelusz.model.Member
  * Settlements are cached by event id, so [settlement] is for the events of [band]: a draft event (a preview of a change)
  * goes to [SettlementCalculator.settle] directly.
  */
-class BandView(val band: Band) {
+class BandView(override val band: Band) : SettledEvents {
     private val membersById: Map<Id, Member> = band.members.associateBy { it.id }
     private val eventsById: Map<Id, Event> = band.events.associateBy { it.id }
     private val costsById: Map<Id, Cost> = band.costs.associateBy { it.id }
@@ -33,7 +34,7 @@ class BandView(val band: Band) {
     /** The event's settlement, computed once per view. */
     fun settlement(event: Event): Settlement = settlements.getOrPut(event.id) { SettlementCalculator.settle(band, event) }
 
-    fun isSettled(event: Event): Boolean = settlement(event).status == EventStatus.SETTLED
+    override fun isSettled(event: Event): Boolean = settlement(event).status == EventStatus.SETTLED
 
     /** Ids of the settled events; every event is settled once to find out. */
     val settledEventIds: Set<Id> by lazy { band.events.filter { isSettled(it) }.mapTo(HashSet()) { it.id } }

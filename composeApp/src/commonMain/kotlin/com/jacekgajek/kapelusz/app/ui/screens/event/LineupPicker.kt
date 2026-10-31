@@ -66,13 +66,13 @@ import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
-import com.jacekgajek.kapelusz.domain.Lineup
-import com.jacekgajek.kapelusz.domain.Names
-import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.rules.Lineup
+import com.jacekgajek.kapelusz.text.Names
+import com.jacekgajek.kapelusz.text.sortedByName
 import org.jetbrains.compose.resources.stringResource
 
 /** One person in the picker: a member, one of this event's guests, or a guest From an event… brought. */

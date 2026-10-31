@@ -91,9 +91,6 @@ import com.jacekgajek.kapelusz.app.generated.transfer_a11y
 import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
@@ -102,6 +99,9 @@ import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.text.BlikPhone
 import com.jacekgajek.kapelusz.view.initials
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay

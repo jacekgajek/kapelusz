@@ -41,9 +41,9 @@ import com.jacekgajek.kapelusz.app.generated.blik_pay_to
 import com.jacekgajek.kapelusz.app.generated.blik_title
 import com.jacekgajek.kapelusz.app.generated.close
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
-import com.jacekgajek.kapelusz.domain.BankAccount
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.Payee
+import com.jacekgajek.kapelusz.settlement.Payee
+import com.jacekgajek.kapelusz.text.BankAccount
+import com.jacekgajek.kapelusz.text.BlikPhone
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource

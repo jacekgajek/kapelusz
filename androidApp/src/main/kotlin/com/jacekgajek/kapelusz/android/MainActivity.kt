@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.android
 
-import com.jacekgajek.kapelusz.domain.EventLinks
+import com.jacekgajek.kapelusz.text.EventLinks
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.IntentCompat

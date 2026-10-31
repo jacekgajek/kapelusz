@@ -41,7 +41,7 @@
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$private fun call</ID>
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), linked), ifMatch = etag)</ID>
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }</ID>
-    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val linked = (com.jacekgajek.kapelusz.ops.Engine.apply(band, com.jacekgajek.kapelusz.rules.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val linked = (com.jacekgajek.kapelusz.engine.Engine.apply(band, com.jacekgajek.kapelusz.rules.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.engine.ApplyResult.Applied).band</ID>
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val tooLarge = push("alice", AddAttachment("c1", Attachment("big", AttachmentKind.IMAGE, "x.jpg", AttachmentKind.IMAGE.maxBytes + 1)))</ID>
     <ID>MaxLineLength:Auth.kt:GoogleTokenVerifier$if (claims.audience.none { it in clientIds } || claims.issuer !in ISSUERS || claims.subject == null) throw BadJWTException("Not a token of this app")</ID>
     <ID>MaxLineLength:BandDeletions.kt:BandDeletions$store.put(StorageKeys.SCHEDULED_DELETIONS, encode(ScheduledDeletions.serializer(), ScheduledDeletions(updated)), ifMatch = blob?.etag, ifNoneMatch = blob == null)</ID>

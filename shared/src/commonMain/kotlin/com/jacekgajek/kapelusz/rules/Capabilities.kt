@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.rules
 
-import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
@@ -29,6 +27,8 @@ import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.rules.Artists
+import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import kotlinx.datetime.LocalDate
 
 /**

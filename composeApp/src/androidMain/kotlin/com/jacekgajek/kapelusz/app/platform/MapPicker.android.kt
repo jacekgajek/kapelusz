@@ -42,7 +42,7 @@ import com.jacekgajek.kapelusz.app.generated.close
 import com.jacekgajek.kapelusz.app.generated.map_pick_hint
 import com.jacekgajek.kapelusz.app.generated.map_pick_use
 import com.jacekgajek.kapelusz.app.generated.map_satellite
-import com.jacekgajek.kapelusz.domain.Places
+import com.jacekgajek.kapelusz.text.Places
 import org.jetbrains.compose.resources.stringResource
 
 actual val mapPickerAvailable: Boolean = AppConfig.HAS_MAPS_KEY

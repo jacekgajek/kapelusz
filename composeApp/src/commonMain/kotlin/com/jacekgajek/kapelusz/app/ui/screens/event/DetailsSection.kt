@@ -37,8 +37,8 @@ import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.ops.Change
-import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import org.jetbrains.compose.resources.stringResource
 

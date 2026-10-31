@@ -1,10 +1,5 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.PartyLine
-import com.jacekgajek.kapelusz.domain.SettleTogether
-import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
@@ -12,6 +7,11 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.PartyLine
+import com.jacekgajek.kapelusz.settlement.SettleTogether
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.text.sortedByName
 import kotlinx.datetime.LocalDate
 
 /** The current user's position in an event: what they still get or must hand over. */

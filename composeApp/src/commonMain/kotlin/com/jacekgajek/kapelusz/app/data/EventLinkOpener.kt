@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.data
 
-import com.jacekgajek.kapelusz.domain.EventLinks
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.text.EventLinks
 
 /** Where an event link leads (ITERATION_5 §10). */
 internal sealed interface LinkedEvent {

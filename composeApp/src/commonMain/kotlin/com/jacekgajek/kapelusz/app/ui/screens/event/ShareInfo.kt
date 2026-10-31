@@ -29,11 +29,11 @@ import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.domain.Places
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.settlement.SettlementCalculator
+import com.jacekgajek.kapelusz.text.EventLinks
+import com.jacekgajek.kapelusz.text.Places
 import com.jacekgajek.kapelusz.view.partyName
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource

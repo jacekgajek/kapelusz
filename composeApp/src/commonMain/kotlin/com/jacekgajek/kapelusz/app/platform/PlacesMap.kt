@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import com.jacekgajek.kapelusz.text.PlayedPlaces
 
 /**
  * A map of [places], one marker each; a marker's bubble opens [onPlace] (ITERATION_7 §8). Only where

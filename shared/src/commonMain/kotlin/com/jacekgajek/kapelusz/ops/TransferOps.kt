@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 /**
  * A manual transfer or hand-over between parties (or a single settled suggestion). [together]: a suggestion's parties,
  * where a pair settling together is either partner; recorded between real people as
- * [com.jacekgajek.kapelusz.domain.SettleTogether.split] says, against the state it is applied to, as [transferId] and
+ * [com.jacekgajek.kapelusz.settlement.SettleTogether.split] says, against the state it is applied to, as [transferId] and
  * `transferId-1` (ITERATION_5 §7).
  */
 @Serializable

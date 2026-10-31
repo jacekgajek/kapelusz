@@ -18,8 +18,6 @@ import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.pairEndsWarning
-import com.jacekgajek.kapelusz.domain.BandFund
-import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
@@ -35,6 +33,8 @@ import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.settlement.BandFund
+import com.jacekgajek.kapelusz.text.sortedByName
 import org.jetbrains.compose.resources.stringResource
 
 /**

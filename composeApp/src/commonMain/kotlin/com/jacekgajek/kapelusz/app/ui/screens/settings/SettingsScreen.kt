@@ -91,8 +91,8 @@ import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.label
-import com.jacekgajek.kapelusz.domain.BankAccount
-import com.jacekgajek.kapelusz.domain.BlikPhone
+import com.jacekgajek.kapelusz.text.BankAccount
+import com.jacekgajek.kapelusz.text.BlikPhone
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource

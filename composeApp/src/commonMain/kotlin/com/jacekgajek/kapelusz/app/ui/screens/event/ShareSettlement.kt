@@ -38,11 +38,11 @@ import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.SettlementWords
 import com.jacekgajek.kapelusz.app.ui.model.settlementText
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.settlement.EventStatus
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.text.EventLinks
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 

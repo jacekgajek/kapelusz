@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Id
@@ -10,12 +10,12 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import kotlin.test.fail
 import kotlinx.datetime.LocalDate
 

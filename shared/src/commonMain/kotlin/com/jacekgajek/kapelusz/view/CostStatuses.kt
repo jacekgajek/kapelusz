@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.sumOfMoney
+import com.jacekgajek.kapelusz.settlement.CostLedger
+import com.jacekgajek.kapelusz.settlement.CostStatus
 
 /**
  * Paid amounts and statuses of costs for one band state ([BandView.costStatuses]): which events are settled comes from

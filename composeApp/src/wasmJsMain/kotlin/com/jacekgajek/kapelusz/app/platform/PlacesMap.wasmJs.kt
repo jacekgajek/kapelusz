@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.app.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import com.jacekgajek.kapelusz.text.PlayedPlaces
 
 // No map on the web (ITERATION_6 §3): the places are a list there (ITERATION_7 §8).
 @Composable

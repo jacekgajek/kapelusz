@@ -27,7 +27,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.played_concerts
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import com.jacekgajek.kapelusz.text.PlayedPlaces
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.exp

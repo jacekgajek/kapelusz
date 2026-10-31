@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.domain.Names
 import com.jacekgajek.kapelusz.model.Member
+import com.jacekgajek.kapelusz.text.Names
 
 /**
  * Searching the event list (ITERATION_6 §6): each typed word somewhere in an event's name or Location, in any order,

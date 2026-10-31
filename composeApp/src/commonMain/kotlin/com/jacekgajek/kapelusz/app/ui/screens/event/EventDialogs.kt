@@ -46,8 +46,6 @@ import com.jacekgajek.kapelusz.app.generated.unarchive
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
@@ -57,6 +55,8 @@ import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.SetEventAgenda
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import com.jacekgajek.kapelusz.settlement.Settlement
+import com.jacekgajek.kapelusz.text.EventLinks
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
