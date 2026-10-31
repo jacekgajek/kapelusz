@@ -424,6 +424,8 @@
     <string name="role_read_only">Tylko do odczytu</string>
     <string name="copy_link">Kopiuj link</string>
     <string name="link_copied">Skopiowano link</string>
+    <string name="copy_invite_code">Skopiuj kod zaproszenia</string>
+    <string name="invite_code_copied">Skopiowano kod zaproszenia</string>
     <string name="tab_fund">Kasa</string>
     <string name="fund_balance">Stan kasy</string>
     <string name="fund_not_handed_over">Jeszcze nieprzekazane</string>

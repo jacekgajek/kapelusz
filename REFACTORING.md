@@ -259,8 +259,8 @@ interleave where no arrow connects them. Steps are numbered for reference in the
 
 ### Working rules during the refactor (decided 2026-10-31)
 
-- The CI `deploy` job (AWS deploy and Google Play upload) is commented out until the refactor ends; `main` is tested
-  but not shipped. Uncomment it as it was to resume.
+- The CI `deploy` job (AWS deploy and Google Play upload) was commented out while the refactor ran; `main` was tested
+  but not shipped. Resumed with the first feature after it (the copy button for the invite code, 1.34.0).
 - One PR at a time, never stacked: branch from `main`, implement, independent review, fix, push, wait for CI green,
   merge, then the next branch.
 - Every refactoring PR bumps `kapelusz.versionName` by one patch.

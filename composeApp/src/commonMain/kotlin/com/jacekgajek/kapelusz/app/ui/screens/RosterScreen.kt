@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
@@ -27,6 +28,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -55,6 +57,8 @@ import com.jacekgajek.kapelusz.app.generated.change_own_role_confirm
 import com.jacekgajek.kapelusz.app.generated.change_own_role_text
 import com.jacekgajek.kapelusz.app.generated.change_own_role_title
 import com.jacekgajek.kapelusz.app.generated.close
+import com.jacekgajek.kapelusz.app.generated.copy_failed
+import com.jacekgajek.kapelusz.app.generated.copy_invite_code
 import com.jacekgajek.kapelusz.app.generated.copy_link
 import com.jacekgajek.kapelusz.app.generated.create_invite
 import com.jacekgajek.kapelusz.app.generated.delete
@@ -64,6 +68,7 @@ import com.jacekgajek.kapelusz.app.generated.delete_member_text
 import com.jacekgajek.kapelusz.app.generated.delete_member_title
 import com.jacekgajek.kapelusz.app.generated.deleted_member
 import com.jacekgajek.kapelusz.app.generated.invite_active_until
+import com.jacekgajek.kapelusz.app.generated.invite_code_copied
 import com.jacekgajek.kapelusz.app.generated.invite_copied
 import com.jacekgajek.kapelusz.app.generated.invite_failed
 import com.jacekgajek.kapelusz.app.generated.invite_hint
@@ -544,7 +549,15 @@ private fun InviteSection(form: MemberForm, band: Band, view: BandView, invitesF
     if (current != null) {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(current.code, fontFamily = FontFamily.Monospace, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)
+                val codeCopied = stringResource(Res.string.invite_code_copied)
+                val copyFailed = stringResource(Res.string.copy_failed)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(current.code, fontFamily = FontFamily.Monospace, fontSize = 28.sp, style = MaterialTheme.typography.headlineMedium)
+                    // The code alone, for a chat where the link or the whole text would be too much.
+                    IconButton(onClick = { scope.launch { actions.say(if (copy(current.code)) codeCopied else copyFailed) } }) {
+                        Icon(Icons.Default.ContentCopy, stringResource(Res.string.copy_invite_code))
+                    }
+                }
                 val until = stringResource(Res.string.invite_active_until, current.code, expiryText(current))
                 Text("${current.role.label()} · $until", style = MaterialTheme.typography.bodySmall)
                 val link = "${AppConfig.WEB_URL}/join/${current.code}"
