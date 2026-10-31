@@ -15,6 +15,8 @@ hands over how much to whom. Shared by the whole band and synced through a small
 - `composeApp/` — the app (Compose Multiplatform) for Android and the web (Wasm).
 - `androidApp/` — the Android application shell.
 - `server/` — the API (AWS Lambda, Java 21, SnapStart); data in S3.
+- `localServer/` — the same API on this machine, with files instead of S3 and DynamoDB, for development offline
+  ([LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)).
 - `scripts/deploy.sh` — deploys API and website, and builds the bundle for Google Play (run by CI after a merge to
   `main`).
 - `scripts/restore-s3.sh` — puts a band's data back as it was at a moment in the past; see `DISASTER_RECOVERY.md`.
@@ -32,8 +34,10 @@ the wrapper.
   (ITERATION_7 §1.1, since 2026-10-27), which updates it.
 - Google Play bundle: `./gradlew :androidApp:bundleRelease`, signed with the upload key when
   `ANDROID_UPLOAD_KEYSTORE_PATH`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD` and `ANDROID_UPLOAD_KEY_ALIAS` are set.
-- Server (Lambda) jar: `./gradlew :server:shadowJar`, output `server/build/libs/server-all.jar`. There is no local
-  server; the apps use the API in `gradle.properties`.
+- Server (Lambda) jar: `./gradlew :server:shadowJar`, output `server/build/libs/server-all.jar`. The apps use the
+  API in `gradle.properties`.
+- Everything on this machine, offline too (local API, emulator, sign-in as made-up users):
+  [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md), `scripts/local-dev.sh`.
 
 The API URL, website URL and Google client id compiled into the apps come from `gradle.properties` (`kapelusz.*`).
 The environment variables `KAPELUSZ_API_URL`, `KAPELUSZ_WEB_URL` and `KAPELUSZ_GOOGLE_WEB_CLIENT_ID` override them,
@@ -44,7 +48,7 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 
 - Everything CI runs: `./gradlew check`. CI also builds the Play bundle, the web bundle and the server jar (see
   `.github/workflows/ci.yml`).
-- Shared rules: `./gradlew :shared:allTests`. Server: `./gradlew :server:test`.
+- Shared rules: `./gradlew :shared:allTests`. Server: `./gradlew :server:test`. Local server: `./gradlew :localServer:test`.
 - App: `./gradlew :composeApp:allTests`. The common tests run on the JVM and in headless Chrome (wasm), together
   with the browser storage tests. Chrome is taken from `CHROME_BIN`, the `PATH` or a Playwright install; without one
   the browser tests are skipped.

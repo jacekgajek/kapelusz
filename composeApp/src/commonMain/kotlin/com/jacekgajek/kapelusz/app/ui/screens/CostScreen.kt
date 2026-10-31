@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.data.Incoming
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.domain.sortedByName
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
@@ -47,7 +50,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
@@ -108,7 +110,9 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CostScreen(
-    graph: AppGraph,
+    changes: Changes,
+    incoming: Incoming,
+    fileStore: Attachments,
     state: BandState.Ready,
     costId: String?,
     onBack: () -> Unit,
@@ -123,7 +127,7 @@ fun CostScreen(
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     val undos = remember { UndoStack() }
-    val actions = rememberActions(graph, snackbar, undos)
+    val actions = rememberActions(changes, snackbar, undos)
     val existing = costId?.let { band.cost(it) }
     val lang = language
 
@@ -146,7 +150,7 @@ fun CostScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
     // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1).
-    var drafts by remember { mutableStateOf(if (existing == null && forEventId != null) graph.takeSharedFiles(forEventId, toCost = true) else listOf()) }
+    var drafts by remember { mutableStateOf(if (existing == null && forEventId != null) incoming.takeSharedFiles(forEventId, toCost = true) else listOf()) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (existing == null) focus.requestFocus() }
 
@@ -166,7 +170,7 @@ fun CostScreen(
         val ok = if (existing == null) {
             val id = newId()
             actions.run(AddCost(id, paidBy!!, parsed!!, date, eventId, category, description.ifBlank { null }))
-                .also { if (it) graph.attachments.attachAfterSave(id, drafts) }
+                .also { if (it) fileStore.attachAfterSave(id, drafts) }
                 .also { if (it && paidBy != state.me?.id) onAddedForOther() }
                 .also { if (it) onAdded(id) }
         } else {
@@ -266,7 +270,7 @@ fun CostScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 AttachmentsSection(
-                    graph,
+                    fileStore,
                     owner = existing?.let { AttachmentOwner.OfCost(it.id) },
                     attachments = existing?.attachments.orEmpty(),
                     drafts = drafts,

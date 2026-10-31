@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import androidx.compose.runtime.rememberCoroutineScope
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
@@ -16,7 +19,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
@@ -34,10 +36,10 @@ private const val MONTHS = 3
 
 /** Changes to this event, newest first; loaded on demand. */
 @Composable
-fun HistorySection(context: EventContext, graph: AppGraph) {
+fun HistorySection(context: EventContext, api: ApiClient, bands: BandRepository, sync: SyncEngine) {
     var shown by remember(context.event.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val history = remember(context.event.id) { HistoryController(graph, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
+    val history = remember(context.event.id) { HistoryController(bands, sync, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope) }
     // Folded like Recorded transfers; loaded only once opened (it needs the server).
     CollapsibleHeader(stringResource(Res.string.history), shown) { shown = !shown }
     if (!shown) return
@@ -45,7 +47,7 @@ fun HistorySection(context: EventContext, graph: AppGraph) {
         history.load {
             // Newest first; the first page of each month is enough for one event. One request for all the months: one
             // per month would each wake a server instance of its own, which is slower than reading them together.
-            val entries = graph.api.history(context.band.id, historyMonth(0), months = MONTHS).entries
+            val entries = api.history(context.band.id, historyMonth(0), months = MONTHS).entries
             entries.flatMap { it.toLines() }.filter { line ->
                 line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
             }

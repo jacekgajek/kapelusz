@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import com.jacekgajek.kapelusz.app.data.Changes
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -74,7 +75,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.generated.amount
@@ -114,7 +114,7 @@ val language: String @Composable get() = Locale.current.language
 
 /** Applies operations; a rejection is shown in the snackbar. */
 class Actions(
-    private val graph: AppGraph,
+    private val changes: Changes,
     private val snackbar: SnackbarHostState,
     private val scope: CoroutineScope,
     private val reasonTexts: Map<RejectionReason, String>,
@@ -125,7 +125,7 @@ class Actions(
     /** Open dialogs showing messages themselves ([DialogNotice]), newest last: a dialog hides the screen's snackbar. */
     internal val dialogs = mutableListOf<(String) -> Unit>()
 
-    fun run(op: Operation): Boolean = show(graph.dispatch(op))
+    fun run(op: Operation): Boolean = show(changes.dispatch(op))
 
     /** Shows [rejection] (if any) in the snackbar; true when there was none. */
     fun show(rejection: Rejection?): Boolean {
@@ -146,15 +146,15 @@ class Actions(
     fun runWithUndo(op: Operation, message: String): Boolean {
         val stack = undos ?: return run(op)
         return show(
-            graph.dispatchHeld(op, stack.timeout + HOLD_MARGIN) { held ->
+            changes.dispatchHeld(op, stack.timeout + HOLD_MARGIN) { held ->
                 val undo = {
                     // Its hold ran out first (e.g. the device slept): it may be on its way, so only the history can undo it.
-                    if (!graph.withdraw(held)) {
-                        graph.release(held)
+                    if (!changes.withdraw(held)) {
+                        changes.release(held)
                         say(tooLate)
                     }
                 }
-                stack.add(UndoItem(message, undo = undo, gone = { graph.release(held) }))
+                stack.add(UndoItem(message, undo = undo, gone = { changes.release(held) }))
             },
         )
     }
@@ -193,13 +193,13 @@ fun DialogNotice(actions: Actions) {
 private const val DIALOG_NOTICE_MS = 8_000L
 
 @Composable
-fun rememberActions(graph: AppGraph, snackbar: SnackbarHostState, undos: UndoStack? = null): Actions {
+fun rememberActions(changes: Changes, snackbar: SnackbarHostState, undos: UndoStack? = null): Actions {
     val scope = rememberCoroutineScope()
     // Resolved during composition so they follow the in-app language; a non-composable getString() would use the
     // system language on the web.
     val reasonTexts = RejectionReason.entries.associateWith { stringResource(it.labelRes()) }
     val tooLate = stringResource(Res.string.undo_too_late)
-    return remember(graph, snackbar, reasonTexts, undos, tooLate) { Actions(graph, snackbar, scope, reasonTexts, undos, tooLate) }
+    return remember(changes, snackbar, reasonTexts, undos, tooLate) { Actions(changes, snackbar, scope, reasonTexts, undos, tooLate) }
 }
 
 @Composable

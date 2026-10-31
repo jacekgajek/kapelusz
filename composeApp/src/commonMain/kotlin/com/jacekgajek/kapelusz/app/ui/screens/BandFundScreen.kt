@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
@@ -55,7 +57,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
@@ -135,7 +136,8 @@ import org.jetbrains.compose.resources.stringResource
 /** The band fund ("Kasa zespołowa"): balance, contributions from events, and manual entries. */
 @Composable
 fun BandFundScreen(
-    graph: AppGraph,
+    changes: Changes,
+    preferences: SettingsRepository,
     state: BandState.Ready,
     onSettings: () -> Unit,
     onRoster: () -> Unit,
@@ -148,7 +150,7 @@ fun BandFundScreen(
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
+    val actions = rememberActions(changes, snackbar)
     val can = Can(band, state.userId)
     val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
     var editing by remember { mutableStateOf<FundEntry?>(null) }
@@ -165,7 +167,7 @@ fun BandFundScreen(
             onAddedCostSeen()
         }
     }
-    val settings by graph.settings.settings.collectAsState()
+    val settings by preferences.settings.collectAsState()
     val lang = language
 
     Scaffold(
@@ -238,7 +240,7 @@ fun BandFundScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { SectionTitle(stringResource(Res.string.fund_history)) }
                     val order = stringResource(if (settings.fundOldestFirst) Res.string.fund_oldest_first else Res.string.fund_newest_first)
-                    TextButton(onClick = { graph.settings.update { it.copy(fundOldestFirst = !it.fundOldestFirst) } }) {
+                    TextButton(onClick = { preferences.update { it.copy(fundOldestFirst = !it.fundOldestFirst) } }) {
                         Icon(Icons.AutoMirrored.Filled.Sort, null, Modifier.padding(end = 4.dp))
                         Text(order)
                     }

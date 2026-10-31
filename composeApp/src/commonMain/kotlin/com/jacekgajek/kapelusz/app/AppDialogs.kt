@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -9,7 +10,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_was_deleted
 import com.jacekgajek.kapelusz.app.generated.lost_access
@@ -19,9 +19,9 @@ import org.jetbrains.compose.resources.stringResource
 
 /** A dialog, not a snackbar: losing the open band leaves its screens, so they cannot show the message. */
 @Composable
-internal fun LostAccessDialog(graph: AppGraph) {
+internal fun LostAccessDialog(sync: SyncEngine) {
     var lostBand by remember { mutableStateOf<LostBand?>(null) }
-    LaunchedEffect(graph) { graph.sync.lostAccess.collect { lostBand = it } }
+    LaunchedEffect(sync) { sync.lostAccess.collect { lostBand = it } }
     lostBand?.let { lost ->
         AlertDialog(
             onDismissRequest = { lostBand = null },

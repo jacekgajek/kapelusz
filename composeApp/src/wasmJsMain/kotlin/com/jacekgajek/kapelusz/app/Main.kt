@@ -54,16 +54,16 @@ fun main() {
     })
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
     // keeps it.
-    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.pendingJoinCode.value = it }
+    (takeJoinCodeFromUrl() ?: window.sessionStorage.getItem(JOIN_CODE_KEY))?.let { graph.incoming.pendingJoinCode.value = it }
     MainScope().launch {
-        graph.pendingJoinCode.collect { code ->
+        graph.incoming.pendingJoinCode.collect { code ->
             if (code == null) window.sessionStorage.removeItem(JOIN_CODE_KEY) else window.sessionStorage.setItem(JOIN_CODE_KEY, code)
         }
     }
     // An event link likewise, until it is opened (ITERATION_5 §10).
-    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { graph.pendingEventLink.value = it }
+    (takeEventLinkFromUrl() ?: window.sessionStorage.getItem(EVENT_LINK_KEY))?.let { graph.incoming.pendingEventLink.value = it }
     MainScope().launch {
-        graph.pendingEventLink.collect { id ->
+        graph.incoming.pendingEventLink.collect { id ->
             if (id == null) window.sessionStorage.removeItem(EVENT_LINK_KEY) else window.sessionStorage.setItem(EVENT_LINK_KEY, id)
         }
     }

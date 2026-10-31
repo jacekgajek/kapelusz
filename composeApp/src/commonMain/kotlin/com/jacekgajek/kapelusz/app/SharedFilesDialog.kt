@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.app
 
+import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.data.BandRepository
+import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,7 +54,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.data.SharedFiles
@@ -106,18 +108,18 @@ import org.jetbrains.compose.resources.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-internal fun SharedFilesDialog(graph: AppGraph, state: BandState.Ready) {
-    val shared = graph.sharedFiles.collectAsState().value ?: return
+internal fun SharedFilesDialog(incoming: Incoming, bands: BandRepository, fileStore: Attachments, state: BandState.Ready) {
+    val shared = incoming.sharedFiles.collectAsState().value ?: return
     // Another share while open: starts again from the events.
     var chosen by remember(shared) { mutableStateOf<ShareEvent?>(null) }
     var busy by remember(shared) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val dismiss = { if (graph.sharedFiles.value === shared) graph.sharedFiles.value = null }
+    val dismiss = { if (incoming.sharedFiles.value === shared) incoming.sharedFiles.value = null }
     // Not while attaching: closing would cancel it halfway (some files attached, the event not opened).
     // A sheet of its own per share: one shared while the last was closing would otherwise stay hidden.
     val sheet = key(shared) { rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || !busy }) }
     // Every band on the device; recomputed as the open band changes (the others change only in the background).
-    val events = remember(shared, state.band) { ShareTargets.events(graph.bands.allBands(), state.userId, today()) }
+    val events = remember(shared, state.band) { ShareTargets.events(bands.allBands(), state.userId, today()) }
     val severalBands = events.map { it.band.id }.distinct().size > 1
     val event = chosen
     ModalBottomSheet(onDismissRequest = { if (!busy) dismiss() }, sheetState = sheet) {
@@ -132,7 +134,7 @@ internal fun SharedFilesDialog(graph: AppGraph, state: BandState.Ready) {
                 else -> TargetChoices(event, state.userId, shared, enabled = !busy) { target ->
                     busy = true
                     scope.launch {
-                        deliver(graph, event, target, shared)
+                        deliver(incoming, bands, fileStore, event, target, shared)
                         dismiss()
                     }
                 }
@@ -352,13 +354,13 @@ private const val DISABLED_ALPHA = 0.45f
  * files to the new cost or received money form, or attaches them and remembers them for the event's Undo; the event
  * then opens (at the section where they went).
  */
-private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTarget, shared: SharedFiles) {
+private suspend fun deliver(incoming: Incoming, bands: BandRepository, fileStore: Attachments, chosen: ShareEvent, target: ShareTarget, shared: SharedFiles) {
     val bandId = chosen.band.id
     val eventId = chosen.event.id
-    if (graph.bands.currentBandId != bandId) {
+    if (bands.currentBandId != bandId) {
         // Like an event link: showing the other band must not reset the screens opened below.
-        graph.navigatedForBand = bandId
-        graph.bands.open(bandId)
+        incoming.navigatedForBand = bandId
+        bands.open(bandId)
     }
     val owner = when (target) {
         is ShareTarget.NewCost, is ShareTarget.NewCollected -> null
@@ -367,10 +369,10 @@ private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTa
         is ShareTarget.ExistingCollected -> AttachmentOwner.OfHolding(eventId, target.holding.id)
     }
     if (owner == null) {
-        graph.sharedHandover.value = SharedHandover(eventId, toCost = target is ShareTarget.NewCost, shared.files)
+        incoming.sharedHandover.value = SharedHandover(eventId, toCost = target is ShareTarget.NewCost, shared.files)
     } else {
-        val attached = shared.files.mapNotNull { file -> newId().takeIf { id -> graph.attachments.attach(owner, file, id) == null } }
-        graph.sharedAttached.value = SharedAttached(bandId, eventId, owner, attached, failed = shared.files.size - attached.size)
+        val attached = shared.files.mapNotNull { file -> newId().takeIf { id -> fileStore.attach(owner, file, id) == null } }
+        incoming.sharedAttached.value = SharedAttached(bandId, eventId, owner, attached, failed = shared.files.size - attached.size)
     }
     val section = when (target) {
         is ShareTarget.NewCost -> null
@@ -378,6 +380,6 @@ private suspend fun deliver(graph: AppGraph, chosen: ShareEvent, target: ShareTa
         is ShareTarget.EventFiles -> "FILES"
         is ShareTarget.ExistingCost -> "REFUNDS"
     }
-    graph.pendingEventSection.value = section?.let { eventId to it }
-    graph.pendingOpenEvent.value = bandId to eventId
+    incoming.pendingEventSection.value = section?.let { eventId to it }
+    incoming.pendingOpenEvent.value = bandId to eventId
 }
