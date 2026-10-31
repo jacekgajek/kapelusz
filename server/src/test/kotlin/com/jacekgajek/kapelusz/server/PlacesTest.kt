@@ -16,6 +16,14 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.places.PlaceAddress
+import com.jacekgajek.kapelusz.server.places.PlaceSearch
+import com.jacekgajek.kapelusz.server.store.GeocodeCache
+import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryGeocodeCache
+import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
+import com.jacekgajek.kapelusz.server.store.Located
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -2,6 +2,11 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.history.KapeluszJson
+import com.jacekgajek.kapelusz.server.lambda.ApiGatewayRequest
+import com.jacekgajek.kapelusz.server.lambda.ApiGatewayResponse
+import com.jacekgajek.kapelusz.server.lambda.Handler
+import com.jacekgajek.kapelusz.server.lambda.acceptsGzip
+import com.jacekgajek.kapelusz.server.lambda.gatewayResponse
 import java.util.Base64
 import java.util.zip.GZIPInputStream
 import kotlin.test.Test

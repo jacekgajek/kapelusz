@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.local
 
-import com.jacekgajek.kapelusz.server.HistoryRecord
-import com.jacekgajek.kapelusz.server.HistoryStore
+import com.jacekgajek.kapelusz.server.store.HistoryRecord
+import com.jacekgajek.kapelusz.server.store.HistoryStore
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.file.Files

@@ -5,8 +5,8 @@ import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.history.KapeluszJson
-import com.jacekgajek.kapelusz.server.HistoryRecord
-import com.jacekgajek.kapelusz.server.PreconditionFailed
+import com.jacekgajek.kapelusz.server.store.HistoryRecord
+import com.jacekgajek.kapelusz.server.store.PreconditionFailed
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient

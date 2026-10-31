@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.server.auth.GoogleTokenVerifier
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.RSASSASigner

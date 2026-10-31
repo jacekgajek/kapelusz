@@ -1,5 +1,7 @@
 package com.jacekgajek.kapelusz.server
 
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.devices.SenderDevice
 import kotlinx.serialization.KSerializer
 
 /**

@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.local
 
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
-import com.jacekgajek.kapelusz.server.Located
-import com.jacekgajek.kapelusz.server.PlaceAddress
-import com.jacekgajek.kapelusz.server.PlaceSearch
+import com.jacekgajek.kapelusz.server.places.PlaceAddress
+import com.jacekgajek.kapelusz.server.places.PlaceSearch
+import com.jacekgajek.kapelusz.server.store.Located
 import java.util.Base64
 
 /**

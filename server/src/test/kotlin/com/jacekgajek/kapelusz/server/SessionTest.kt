@@ -5,6 +5,13 @@ import com.jacekgajek.kapelusz.api.ErrorResponse
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.history.KapeluszJson
+import com.jacekgajek.kapelusz.server.auth.SessionRevocations
+import com.jacekgajek.kapelusz.server.auth.SessionTokens
+import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
+import com.jacekgajek.kapelusz.server.store.StorageKeys
+import com.jacekgajek.kapelusz.server.store.UserRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

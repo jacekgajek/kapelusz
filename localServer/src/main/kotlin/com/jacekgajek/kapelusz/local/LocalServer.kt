@@ -1,16 +1,16 @@
 package com.jacekgajek.kapelusz.local
 
 import com.jacekgajek.kapelusz.server.Api
-import com.jacekgajek.kapelusz.server.FileWebIndex
 import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
-import com.jacekgajek.kapelusz.server.InMemoryBlobStore
-import com.jacekgajek.kapelusz.server.InMemoryGeocodeCache
-import com.jacekgajek.kapelusz.server.InMemoryHistoryStore
-import com.jacekgajek.kapelusz.server.NoWebIndex
 import com.jacekgajek.kapelusz.server.ServerConfig
+import com.jacekgajek.kapelusz.server.links.FileWebIndex
+import com.jacekgajek.kapelusz.server.links.NoWebIndex
 import com.jacekgajek.kapelusz.server.malformedQuery
 import com.jacekgajek.kapelusz.server.parseQuery
+import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryGeocodeCache
+import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
 import com.jacekgajek.kapelusz.server.unhandled
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
