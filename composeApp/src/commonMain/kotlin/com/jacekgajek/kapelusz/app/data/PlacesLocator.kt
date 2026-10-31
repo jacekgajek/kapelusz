@@ -2,8 +2,8 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

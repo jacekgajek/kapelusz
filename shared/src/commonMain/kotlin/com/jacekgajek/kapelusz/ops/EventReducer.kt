@@ -5,6 +5,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** An event as a whole: creating, editing, archiving and deleting it, its agenda. Pure state transitions and their validation; see [Reducer]. */
 internal object EventReducer {

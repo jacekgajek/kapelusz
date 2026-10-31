@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.ui.SUPPORTED_LANGUAGES
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

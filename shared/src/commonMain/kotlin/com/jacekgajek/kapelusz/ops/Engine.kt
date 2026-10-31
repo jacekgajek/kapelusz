@@ -2,9 +2,12 @@ package com.jacekgajek.kapelusz.ops
 
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
+import com.jacekgajek.kapelusz.history.BandChange
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.RecordedRejection
+import com.jacekgajek.kapelusz.model.Rejection
 
 sealed interface ApplyResult {
     data class Applied(val band: Band) : ApplyResult

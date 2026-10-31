@@ -4,7 +4,7 @@ import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.SessionResponse
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.server.HistoryRecord
 import com.jacekgajek.kapelusz.server.PreconditionFailed
 import java.net.URI

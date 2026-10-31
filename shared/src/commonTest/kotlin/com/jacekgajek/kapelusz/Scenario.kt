@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.ApplyResult
@@ -15,7 +16,6 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
-import com.jacekgajek.kapelusz.ops.Rejection
 import kotlin.test.fail
 import kotlinx.datetime.LocalDate
 

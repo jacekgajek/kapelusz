@@ -4,7 +4,7 @@ import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond

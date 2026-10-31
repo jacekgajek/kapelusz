@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Refund
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** Costs a member paid for the band. Pure state transitions and their validation; see [Reducer]. */
 internal object CostReducer {
@@ -58,7 +59,8 @@ internal object CostReducer {
             val refundedElsewhere = CostLedger.refunded(band, cost.id) - ownRefund.amount
             if (ownRefund.amount == cost.amount - refundedElsewhere) {
                 // Only a lead's edit raises the refund; anyone else's raise waits for a lead (ITERATION_4 §1.2).
-                val adjusted = (newAmount - refundedElsewhere).let { if (isLead(band, ctx) || it < ownRefund.amount) it else ownRefund.amount }
+                val adjusted = (newAmount - refundedElsewhere)
+                    .let { if (ctx.actsAsLead(band) || it < ownRefund.amount) it else ownRefund.amount }
                 invalidIf(adjusted.isNegative, RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }
                 result = result.updateEvent(ownEvent.id) { event ->
                     event.copy(
@@ -105,7 +107,7 @@ internal object CostReducer {
      * others enter wait for a lead's Refund here (ITERATION_4 §1.2).
      */
     private fun includeByLead(band: Band, eventId: Id, costId: Id, ctx: OpContext): Band {
-        if (!isLead(band, ctx)) return band
+        if (!ctx.actsAsLead(band)) return band
         val event = band.event(eventId) ?: return band
         val cost = band.cost(costId) ?: return band
         if (event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band

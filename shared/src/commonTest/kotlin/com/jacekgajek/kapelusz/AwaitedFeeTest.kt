@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz
 
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
@@ -9,13 +10,12 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.IncomeSource.CONTRACT
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.ORGANISER
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddHolding
-import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
-import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetTreasurer

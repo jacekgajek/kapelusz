@@ -6,10 +6,10 @@ import com.jacekgajek.kapelusz.api.DeviceRegistration
 import com.jacekgajek.kapelusz.api.DeviceRegistrationResponse
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.PushRequest
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.UnlinkUser

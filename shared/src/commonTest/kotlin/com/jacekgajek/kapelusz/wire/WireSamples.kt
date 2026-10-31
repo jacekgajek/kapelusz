@@ -2,6 +2,8 @@ package com.jacekgajek.kapelusz.wire
 
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.auth.Actor
+import com.jacekgajek.kapelusz.history.BandChange
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -18,6 +20,9 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.RecordedRejection
+import com.jacekgajek.kapelusz.model.Rejection
+import com.jacekgajek.kapelusz.model.RejectionCode
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
 import com.jacekgajek.kapelusz.ops.AddAttachment
@@ -28,7 +33,6 @@ import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
 import com.jacekgajek.kapelusz.ops.Change
@@ -42,13 +46,9 @@ import com.jacekgajek.kapelusz.ops.DisableBandFund
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
 import com.jacekgajek.kapelusz.ops.LinkUser
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.ops.Rejection
-import com.jacekgajek.kapelusz.ops.RejectionCode
-import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding

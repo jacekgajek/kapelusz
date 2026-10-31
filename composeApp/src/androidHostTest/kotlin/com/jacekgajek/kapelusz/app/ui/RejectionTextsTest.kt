@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui
 
-import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.model.RejectionReason
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertTrue

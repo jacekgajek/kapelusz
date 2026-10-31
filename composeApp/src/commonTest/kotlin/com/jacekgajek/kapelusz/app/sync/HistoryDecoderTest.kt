@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.app.sync
 
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.ops.RenameBand
 import kotlin.test.Test
 import kotlin.test.assertEquals

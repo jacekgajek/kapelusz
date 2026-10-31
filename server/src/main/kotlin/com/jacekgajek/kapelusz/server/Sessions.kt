@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
-import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.history.KapeluszJson
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64

@@ -105,7 +105,7 @@ class FcmSenderTest {
         var now = 0L
         val stored = StoredServiceAccount(store) { now }
         assertEquals(null, stored(), "not put there yet")
-        store.put(StorageKeys.FCM_KEY, com.jacekgajek.kapelusz.model.KapeluszJson.encodeToString(ServiceAccount.serializer(), account))
+        store.put(StorageKeys.FCM_KEY, com.jacekgajek.kapelusz.history.KapeluszJson.encodeToString(ServiceAccount.serializer(), account))
         assertEquals(null, stored(), "looked for again only later")
         now += StoredServiceAccount.RETRY_MS
         assertEquals("kapelusz-test", stored()?.projectId)

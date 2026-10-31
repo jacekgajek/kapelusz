@@ -13,11 +13,11 @@ import com.jacekgajek.kapelusz.model.IncomeSource.HAT
 import com.jacekgajek.kapelusz.model.IncomeSource.MERCH
 import com.jacekgajek.kapelusz.model.IncomeSource.SPONSORSHIP
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.RejectionCode
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer

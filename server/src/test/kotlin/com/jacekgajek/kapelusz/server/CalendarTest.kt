@@ -4,13 +4,13 @@ import com.jacekgajek.kapelusz.api.CalendarSubscription
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.PushRequest
+import com.jacekgajek.kapelusz.history.KapeluszJson
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTime
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

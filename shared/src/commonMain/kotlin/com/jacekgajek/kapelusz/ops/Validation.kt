@@ -11,6 +11,7 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.SharePercent
 
@@ -25,9 +26,6 @@ internal fun validateCanWatchOnly(band: Band, memberId: Id) = conflictIf(!Viewer
 
 /** A viewer only watches: they don't play in events (and so never get a share or a transfer). */
 internal fun validateNotViewer(band: Band, memberId: Id) = invalidIf(band.member(memberId)?.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Viewers take no part in events" }
-
-/** The change is a lead's (or above), or the server's own, which is allowed everything. */
-internal fun isLead(band: Band, ctx: OpContext) = ctx.memberId == null || band.member(ctx.memberId)?.role?.atLeast(Role.LEAD) == true
 
 /** Someone becoming an artist (ITERATION_4 §1.1) may not hold money in an unsettled event or the band fund. */
 internal fun validateHoldsNoMoney(band: Band, memberId: Id) = conflictIf(Artists.holdsMoney(band, memberId), RejectionReason.HOLDS_MONEY) { "Settle their events or hand over the band fund first" }

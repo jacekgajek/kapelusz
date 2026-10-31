@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
+import com.jacekgajek.kapelusz.model.RejectionReason
 
 /** Money received for an event, and fees awaited from the organiser. Pure state transitions and their validation; see [Reducer]. */
 internal object HoldingReducer {

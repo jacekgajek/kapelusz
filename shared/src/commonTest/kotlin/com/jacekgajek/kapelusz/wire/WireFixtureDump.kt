@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.wire
 
 import com.jacekgajek.kapelusz.api.HistoryEntry
+import com.jacekgajek.kapelusz.history.KapeluszJson
+import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.KapeluszJson
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import kotlin.test.Test
 import kotlinx.serialization.builtins.ListSerializer
