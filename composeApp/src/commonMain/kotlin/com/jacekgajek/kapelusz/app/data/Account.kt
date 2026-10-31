@@ -7,7 +7,6 @@ import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Member
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,11 +32,11 @@ class Account(
     val signedOutEverywhere: StateFlow<Boolean> = _signedOutEverywhere.asStateFlow()
 
     /**
-     * Runs in the app scope, not the caller's: the sign-in screen leaves the composition as soon as the session
-     * appears, which would cancel the loading half-way and leave a blank screen. The bands are loaded before the
-     * session is published, so the UI switches straight to the loaded band.
+     * [detached] from the caller: the sign-in screen leaves the composition as soon as the session appears, which
+     * would cancel the loading half-way and leave a blank screen. The bands are loaded before the session is
+     * published, so the UI switches straight to the loaded band.
      */
-    suspend fun onSignedIn(idToken: String) = scope.async {
+    suspend fun onSignedIn(idToken: String) = scope.detached {
         val userId = Session.fromIdToken(idToken).userId
         bands.load(userId)
         uploads.load(userId)
@@ -46,7 +45,7 @@ class Account(
         sync.start()
         sync.resumeAfterSignIn()
         messages.register()
-    }.await()
+    }
 
     /**
      * Signs out in the app's own scope (V5-M1 A5c): the screen that asked goes away as soon as the session does, and

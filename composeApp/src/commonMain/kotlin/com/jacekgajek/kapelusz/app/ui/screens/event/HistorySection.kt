@@ -14,13 +14,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryLineRow
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryState
@@ -38,11 +36,11 @@ private const val MONTHS = 3
 
 /** Changes to this event, newest first; loaded on demand. */
 @Composable
-fun HistorySection(context: EventContext, api: ApiClient, bands: BandRepository, sync: SyncEngine) {
+fun HistorySection(context: EventContext, session: BandSession) {
     var shown by remember(context.event.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val history = remember(context.event.id) {
-        HistoryState(bands, sync::syncNow, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope)
+        HistoryState(session.bands, session::syncNow, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope)
     }
     // Folded like Recorded transfers; loaded only once opened (it needs the server).
     CollapsibleHeader(stringResource(Res.string.history), shown) { shown = !shown }
@@ -51,7 +49,7 @@ fun HistorySection(context: EventContext, api: ApiClient, bands: BandRepository,
         history.load {
             // Newest first; the first page of each month is enough for one event. One request for all the months: one
             // per month would each wake a server instance of its own, which is slower than reading them together.
-            val entries = api.history(context.band.id, historyMonth(0), months = MONTHS).entries
+            val entries = session.historyApi.history(context.band.id, historyMonth(0), months = MONTHS).entries
             entries.flatMap { it.toLines() }.filter { line ->
                 line.envelope?.let { concernsEvent(it.op, context.event.id) } ?: (line.unreadableEventId == context.event.id)
             }

@@ -182,12 +182,12 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<RosterRoute> { entry ->
                 val roster = entry.screenViewModel {
-                    val api = session.api
+                    val invites = session.invitesApi
                     val bandId = session.band.id
                     RosterViewModel(
-                        invitesOf = { api.invites(bandId).invites },
-                        createInvite = { memberId, role -> api.createInvite(bandId, memberId, role) },
-                        revokeInvite = { api.revokeInvite(bandId, it) },
+                        invitesOf = { invites.invites(bandId).invites },
+                        createInvite = { memberId, role -> invites.createInvite(bandId, memberId, role) },
+                        revokeInvite = { invites.revokeInvite(bandId, it) },
                     )
                 }
                 RosterScreen(session, navigator, roster, openMember = entry.toRoute<RosterRoute>().memberId)
@@ -199,10 +199,10 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                     BackToEvents(navController)
                 } else {
                     val screen = entry.screenViewModel {
-                        val api = session.api
+                        val history = session.historyApi
                         val bandId = session.band.id
-                        HistoryViewModel(session.bands, session.sync::syncNow, bandId, session.userId, session.me?.id) { month, next ->
-                            api.history(bandId, month, next)
+                        HistoryViewModel(session.bands, session::syncNow, bandId, session.userId, session.me?.id) { month, next ->
+                            history.history(bandId, month, next)
                         }
                     }
                     HistoryScreen(session, navigator, screen)
@@ -210,8 +210,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<NewBandRoute> {
                 NewBandScreen(defaultName, onCreate = { name, currency, yourName ->
-                    graph.bands.createBand(name, currency, yourName)
-                    graph.sync.requestSync()
+                    graph.membership.createBand(name, currency, yourName)
                     navController.resetTo(EventsRoute)
                 }, onBack = navigator::back)
             }

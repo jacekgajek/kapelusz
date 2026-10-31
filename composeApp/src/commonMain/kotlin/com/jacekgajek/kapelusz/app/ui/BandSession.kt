@@ -13,8 +13,11 @@ import com.jacekgajek.kapelusz.app.data.Membership
 import com.jacekgajek.kapelusz.app.data.PlacesLocator
 import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.intents.IntentInbox
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.sync.CalendarApi
+import com.jacekgajek.kapelusz.app.sync.HistoryApi
+import com.jacekgajek.kapelusz.app.sync.InvitesApi
+import com.jacekgajek.kapelusz.app.sync.PlacesApi
+import com.jacekgajek.kapelusz.app.sync.RawStateApi
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.rules.Capabilities
@@ -41,15 +44,27 @@ class BandSession(val state: BandState.Ready, private val graph: AppGraph) {
     val artist: Boolean = band.isArtist(userId)
 
     val changes: Changes get() = graph.changes
-    val api: ApiClient get() = graph.api
     val bands: BandRepository get() = graph.bands
-    val sync: SyncEngine get() = graph.sync
     val settings: SettingsRepository get() = graph.settings
     val intents: IntentInbox get() = graph.intents
     val attachments: Attachments get() = graph.attachments
-    val places: PlacesLocator get() = graph.places
     val account: Account get() = graph.account
     val membership: Membership get() = graph.membership
+
+    // What a screen may ask the server (sync/ScreenApis.kt): the parts, never the whole client.
+    val placesApi: PlacesApi get() = graph.api
+    val invitesApi: InvitesApi get() = graph.api
+    val historyApi: HistoryApi get() = graph.api
+    val calendarApi: CalendarApi get() = graph.api
+    val rawStateApi: RawStateApi get() = graph.api
+
+    /** Where event locations are, for the map (ITERATION_7 §8). */
+    val locations: PlacesLocator get() = graph.locations
+
+    /** A round of sync now, e.g. before reading the server's history, so it has what this device changed. */
+    suspend fun syncNow() {
+        graph.sync.syncNow()
+    }
 }
 
 @Composable

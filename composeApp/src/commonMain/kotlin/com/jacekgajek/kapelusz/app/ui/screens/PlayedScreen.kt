@@ -79,7 +79,7 @@ import org.jetbrains.compose.resources.stringResource
 fun PlayedScreen(session: BandSession, nav: PlayedNav) {
     val state = session.state
     val preferences = session.settings
-    val locator = session.places
+    val locator = session.locations
     val onBack: () -> Unit = nav::back
     val onOpenEvent: (String) -> Unit = nav::openEvent
     val band = state.band
