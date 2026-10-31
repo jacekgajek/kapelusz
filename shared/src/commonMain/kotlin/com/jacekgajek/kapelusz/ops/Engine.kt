@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.ops
 
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.RecordedRejection
 import com.jacekgajek.kapelusz.model.Rejection
+import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.rules.Permissions
 
 sealed interface ApplyResult {
     data class Applied(val band: Band) : ApplyResult
@@ -40,6 +40,9 @@ object Engine {
             ApplyResult.Rejected(e.rejection)
         }
     }
+
+    /** A band as just created (the server's `POST /bands`): its name and first member checked like any change from nothing. */
+    fun validateNew(band: Band): Rejection? = Limits.violation(band.copy(name = "", members = emptyList()), band)
 
     /**
      * Applies a client's queued operations in order. Operations with a sequence number not above the client's last

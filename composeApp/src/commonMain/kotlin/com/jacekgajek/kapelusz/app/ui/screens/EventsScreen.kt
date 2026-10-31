@@ -102,7 +102,6 @@ import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.EventSearch
 import com.jacekgajek.kapelusz.app.ui.model.EventSummary
 import com.jacekgajek.kapelusz.app.ui.model.MyNumber
@@ -110,7 +109,6 @@ import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.model.searchWords
 import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
@@ -132,6 +130,8 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.rules.isArtist
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
@@ -197,7 +197,7 @@ fun EventsScreen(
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (Can(band, state.userId).createEvent()) {
+            if (Capabilities(band, state.userId).createEvent()) {
                 ExtendedFloatingActionButton(
                     onClick = { creating = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -219,7 +219,7 @@ fun EventsScreen(
                         {
                             actions.run(CancelBandDeletion)
                             Unit
-                        }.takeIf { Can(band, state.userId).allowed(CancelBandDeletion) },
+                        }.takeIf { Capabilities(band, state.userId).allowed(CancelBandDeletion) },
                     )
                 }
             }
@@ -299,7 +299,7 @@ fun EventsScreen(
                     artist -> Res.string.events_empty_artist
 
                     // "Create the first one!" only to those who can.
-                    band.events.isEmpty() && Can(band, state.userId).createEvent() -> Res.string.events_empty
+                    band.events.isEmpty() && Capabilities(band, state.userId).createEvent() -> Res.string.events_empty
 
                     band.events.isEmpty() -> Res.string.events_empty_cannot_create
 

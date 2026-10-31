@@ -6,7 +6,6 @@ import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.KapeluszJson
@@ -23,6 +22,7 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

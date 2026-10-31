@@ -2,7 +2,6 @@ package com.jacekgajek.kapelusz.app.ui
 
 import com.jacekgajek.kapelusz.app.ui.model.ShareTarget
 import com.jacekgajek.kapelusz.app.ui.model.ShareTargets
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.Band
@@ -23,6 +22,7 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

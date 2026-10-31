@@ -12,20 +12,20 @@ import com.jacekgajek.kapelusz.app.generated.redo
 import com.jacekgajek.kapelusz.app.generated.redo_confirm
 import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.undo_confirm
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.describe
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.isUndoable
+import com.jacekgajek.kapelusz.rules.Capabilities
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * The undo of [line] (ITERATION_2 §7.2), or null when it cannot be undone: a kind of change that never can, one from
  * before changes were recorded, one that would bring back deleted files, or one [can] does not allow.
  */
-fun undoOf(line: HistoryLine, can: Can): Undo? {
+fun undoOf(line: HistoryLine, can: Capabilities): Undo? {
     val envelope = line.envelope ?: return null
     val change = line.change ?: return null
     val entry = line.entry.id ?: return null

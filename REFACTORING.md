@@ -75,7 +75,7 @@ can move between packages and gain intermediate sealed parents without touching 
 - **`rules/`**: `Permissions` indexed by op group (drops 70 import lines and a 29-branch `when`), `isLead` moved out of
   the reducer into `OpContext`, and **`Capabilities`** (today's app `Can`) so the app, server and shared tests ask
   the same object. Predicates the UI needs become plain functions here: `FundRules.isOn(band)`,
-  `Visibility.canSee(band, me, event)`, `Invites.refusal(view, member, role)`; the reducer, server and app call those
+  `Visibility.canSee(band, me, event)`, `RoleChanges.refusal(band, member, role)`; the reducer, server and app call those
   instead of re-deriving them.
 - **`view/`: `BandView`** built once per band state, immutable, with indexed lookups and memoised settlements:
 
@@ -292,7 +292,7 @@ interleave where no arrow connects them. Steps are numbered for reference in the
 | 1.1 | Split `Operation.kt` into per-aggregate files with the intermediate sealed interfaces | 0.2 | S | low (0.2 proves discriminators) |
 | 1.2 | Split `Reducer.kt` into per-aggregate reducers + `Validation.kt` + `Guards.kt`; mechanical cut-and-paste | 1.1 | M | low (225 tests + replay golden) |
 | 1.3 | `history/` package; move `Rejection`, `OpEnvelope`, `BandChange`, `KapeluszJson`; `isLead` into `OpContext`; `Rejecting` helpers internal | 1.2 | S | low (imports only outside shared) |
-| 1.4 | `Permissions` by group; `Capabilities` in shared (from app `Can`, with `CanTest`); `Engine.validateNew`; one `Invites.refusal` predicate used by reducer, server and app | 1.3 | M | low-medium |
+| 1.4 | `Permissions` by group; `Capabilities` in shared (from app `Can`, with `CanTest`); `Engine.validateNew`; one `RoleChanges.refusal` predicate used by reducer, server and app | 1.3 | M | low-medium |
 | 1.5 | `BandView`/`EventView` in `view/`; settle-calling helpers take the view; `CostLedger.paid/unpaid/status` deleted; reducer settles once per state | 1.2 | M | medium (an immutable view per band instance; the one trap is reusing a view after mutating `band` inside a loop) |
 | 1.6 | App adopts the view: `BandState.Ready(view, me)`; `remember(view)`; move `Summaries`, `PeriodSummary`, `EventSearch`, `ShareTargets` and their tests to shared; one accent-folding table | 1.5 | M | medium (largest diff, mechanical for screens) |
 | 1.7 | Package tidy (`domain/` → `settlement/`, `rules/`, `text/`); tests into mirrored sub-packages with explicit actors where roles matter | 1.6 | S | low, noisy |

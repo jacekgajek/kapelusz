@@ -98,14 +98,12 @@ import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.FundSource
 import com.jacekgajek.kapelusz.app.ui.model.PeriodSummary
 import com.jacekgajek.kapelusz.app.ui.model.PersonTotals
 import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.periodSummary
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
@@ -113,6 +111,8 @@ import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
 import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.rules.isArtist
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
@@ -139,7 +139,7 @@ fun SummaryScreen(preferences: SettingsRepository, state: BandState.Ready, onBac
     val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     var choosingRange by remember { mutableStateOf(false) }
     var inviting by remember { mutableStateOf<Member?>(null) }
-    val canInvite = Can(band, state.userId).manageRoster()
+    val canInvite = Capabilities(band, state.userId).manageRoster()
     fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
 
     Scaffold(

@@ -107,7 +107,6 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
@@ -129,6 +128,7 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
+import com.jacekgajek.kapelusz.rules.Capabilities
 import kotlin.math.abs
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
@@ -151,7 +151,7 @@ fun BandFundScreen(
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberActions(changes, snackbar)
-    val can = Can(band, state.userId)
+    val can = Capabilities(band, state.userId)
     val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
     var editing by remember { mutableStateOf<FundEntry?>(null) }
     var adding by remember { mutableStateOf(false) }

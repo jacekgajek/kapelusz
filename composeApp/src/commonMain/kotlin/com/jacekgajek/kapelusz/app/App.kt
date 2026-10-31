@@ -49,13 +49,13 @@ import com.jacekgajek.kapelusz.app.ui.components.LoadingScreen
 import com.jacekgajek.kapelusz.app.ui.components.LocalTopBarState
 import com.jacekgajek.kapelusz.app.ui.components.SignInAgainDialog
 import com.jacekgajek.kapelusz.app.ui.components.TopBarState
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.JoinDialog
 import com.jacekgajek.kapelusz.app.ui.screens.SignInScreen
 import com.jacekgajek.kapelusz.app.ui.screens.UnreadableDataScreen
 import com.jacekgajek.kapelusz.app.ui.screens.UpdateRequiredScreen
 import com.jacekgajek.kapelusz.app.ui.screens.ZeroScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
+import com.jacekgajek.kapelusz.rules.isArtist
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 

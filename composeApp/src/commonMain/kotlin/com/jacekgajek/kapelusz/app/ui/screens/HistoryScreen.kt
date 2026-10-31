@@ -61,13 +61,13 @@ import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.describe
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.rules.Capabilities
 import kotlin.time.Instant
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
@@ -162,7 +162,7 @@ fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync:
 
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Undo steps back from the newest change, redo forward (ITERATION_2 §7.2); both only from this month.
-                    val arrows = history.arrows(loaded, Can(state.band, state.userId), enabled = offset == 0)
+                    val arrows = history.arrows(loaded, Capabilities(state.band, state.userId), enabled = offset == 0)
                     items(loaded, key = { it.opId }) { line ->
                         history.LineRow(state.band, line, arrows)
                         HorizontalDivider()

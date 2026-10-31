@@ -61,7 +61,6 @@ import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.CostLedger
@@ -71,6 +70,7 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
+import com.jacekgajek.kapelusz.rules.Capabilities
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -125,7 +125,7 @@ fun MyCostsScreen(
 ) {
     val band = state.band
     val snackbar = remember { SnackbarHostState() }
-    val can = Can(band, state.userId)
+    val can = Capabilities(band, state.userId)
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
     val isLead = state.me?.role?.atLeast(Role.LEAD) == true
     // A viewer sees everything, costs included, and has none of their own to switch to.

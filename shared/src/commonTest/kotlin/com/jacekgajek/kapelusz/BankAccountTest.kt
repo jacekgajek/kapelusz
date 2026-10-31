@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.BankAccount
 import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.history.BandChange
@@ -22,6 +21,7 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.isUndoable
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

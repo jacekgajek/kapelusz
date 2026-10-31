@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
@@ -13,6 +11,8 @@ import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetEventAgenda
+import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.rules.Permissions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

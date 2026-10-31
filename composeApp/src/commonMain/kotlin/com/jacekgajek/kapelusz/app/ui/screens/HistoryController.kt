@@ -9,10 +9,10 @@ import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.Actions
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.rules.Capabilities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -55,7 +55,7 @@ class HistoryController(
     fun shown(withPending: Boolean = true): List<HistoryLine>? = lines?.let { withPending(it, if (withPending) pending else emptyList()) }
 
     /** Where the undo and redo arrows go among [shown] lines (ITERATION_2 §7.2); none when not [enabled]. */
-    fun arrows(shown: List<HistoryLine>, can: Can, enabled: Boolean = true): HistoryArrows {
+    fun arrows(shown: List<HistoryLine>, can: Capabilities, enabled: Boolean = true): HistoryArrows {
         val targets = undoTargets(shown) { undoOf(it, can) != null }
         val undo = targets.undo?.takeIf { enabled }?.let { line -> undoOf(line, can)?.let { line to it } }
         val redo = targets.redo?.takeIf { enabled }?.let { line -> undoOf(line, can)?.let { line to it } }

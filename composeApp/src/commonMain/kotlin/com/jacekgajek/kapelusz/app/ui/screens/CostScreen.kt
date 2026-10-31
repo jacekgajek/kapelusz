@@ -86,8 +86,6 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.history.KapeluszJson
@@ -103,6 +101,8 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.UpdateCost
+import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.rules.Permissions
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 

@@ -7,7 +7,6 @@
     <ID>CyclomaticComplexMethod:CostReducer.kt:CostReducer$private fun updateCost: Band</ID>
     <ID>CyclomaticComplexMethod:Limits.kt:Limits$fun violation: Rejection?</ID>
     <ID>CyclomaticComplexMethod:Limits.kt:Limits$private fun events: Rejection?</ID>
-    <ID>CyclomaticComplexMethod:Permissions.kt:Permissions$private fun requiredRole: Role</ID>
     <ID>CyclomaticComplexMethod:Places.kt:Places$fun target: MapTarget?</ID>
     <ID>CyclomaticComplexMethod:Reducer.kt:Reducer$fun apply: Band</ID>
     <ID>CyclomaticComplexMethod:SettleTogether.kt:SettleTogether$fun split: List&lt;SuggestedTransfer></ID>
@@ -28,7 +27,6 @@
     <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "over", "alice", "carol", pln("1")), alice).reason, "never more than owed")</ID>
     <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "t", "alice", "bob", pln("100")), carol).reason, "not someone else's")</ID>
     <ID>MaxLineLength:AttachmentReducer.kt:AttachmentReducer$invalidIf(band.allAttachments().any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }</ID>
-    <ID>MaxLineLength:AttachmentReducer.kt:AttachmentReducer$invalidIf(size!! > op.attachment.kind.maxBytes, RejectionReason.ATTACHMENT_TOO_LARGE) { "Attachment exceeds ${op.attachment.kind.maxBytes} bytes" }</ID>
     <ID>MaxLineLength:AttachmentReducer.kt:AttachmentReducer$private inline</ID>
     <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("1")), alice).reason)</ID>
     <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(ReceiveAwaited("gig", "door", "x", "alice", pln("1"))).reason, "not an awaited fee")</ID>
@@ -48,6 +46,8 @@
     <ID>MaxLineLength:BankAccountTest.kt:BankAccountTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(SetBankAccount("vera", ACCOUNT), scenario.userFor("vera", Role.VIEWER)).reason)</ID>
     <ID>MaxLineLength:BankAccountTest.kt:BankAccountTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(SetFundBankAccount(null), carol).reason, "other members only see them")</ID>
     <ID>MaxLineLength:BlikPhoneTest.kt:BlikPhoneTest$assertEquals(true, BlikPhone.pays(scenario.band, null, "alice", com.jacekgajek.kapelusz.model.BAND_FUND), "the fund's holder pays from it")</ID>
+    <ID>MaxLineLength:Capabilities.kt:Capabilities$(SettlementCalculator.partyOrder(band, event).filter { !Artists.isArtist(band, it) } + listOfNotNull(BAND_FUND.takeIf { band.treasurerMemberId != null }))</ID>
+    <ID>MaxLineLength:Capabilities.kt:Capabilities$fun</ID>
     <ID>MaxLineLength:Cost.kt:fun</ID>
     <ID>MaxLineLength:CostLedger.kt:CostLedger$fun</ID>
     <ID>MaxLineLength:CostReducer.kt:CostReducer$conflictIf(band.events.any { it.archived &amp;&amp; it.refundOf(cost.id) != null }, RejectionReason.ARCHIVED_EVENT) { "Cost is refunded by an archived event" }</ID>
@@ -55,7 +55,6 @@
     <ID>MaxLineLength:CostReducer.kt:CostReducer$if (event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band</ID>
     <ID>MaxLineLength:CostReducer.kt:CostReducer$invalidIf(event.participant(memberId) == null, RejectionReason.NOT_A_PARTICIPANT) { "The cost's owner does not take part in the event" }</ID>
     <ID>MaxLineLength:CostReducer.kt:CostReducer$invalidIf(newAmount &lt; CostLedger.refunded(result, cost.id), RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }</ID>
-    <ID>MaxLineLength:CostReducer.kt:CostReducer$val adjusted = (newAmount - refundedElsewhere).let { if (isLead(band, ctx) || it &lt; ownRefund.amount) it else ownRefund.amount }</ID>
     <ID>MaxLineLength:Engine.kt:Engine$fun</ID>
     <ID>MaxLineLength:Engine.kt:Engine$val</ID>
     <ID>MaxLineLength:Engine.kt:Engine$val result = if (applied is ApplyResult.Applied &amp;&amp; check != null) check(state, applied.band)?.let { ApplyResult.Rejected(it) } ?: applied else applied</ID>
@@ -92,7 +91,7 @@
     <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(com.jacekgajek.kapelusz.ops.SetFundAmount("gig", Money(Long.MIN_VALUE))).reason)</ID>
     <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddCost("c", "alice", Money(100), DATE, description = "d".repeat(Limits.MAX_TEXT + 1))).reason)</ID>
     <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(UpdateEvent("gig", name = Change("x".repeat(Limits.MAX_NAME + 1)))).reason)</ID>
-    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.auth.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.rules.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)</ID>
     <ID>MaxLineLength:Lineup.kt:Lineup$val here = event.guests.firstOrNull { it.name.trim().equals(guest.name.trim(), ignoreCase = true) &amp;&amp; event.participant(it.id) != null }</ID>
     <ID>MaxLineLength:LineupReducer.kt:LineupReducer$conflictIf(event.holdings.any { it.partyId == op.partyId }, RejectionReason.PARTICIPANT_HAS_MONEY) { "Participant holds event money; remove it (and its transfers) first" }</ID>
     <ID>MaxLineLength:LineupReducer.kt:LineupReducer$conflictIf(event.refunds.any { band.cost(it.costId)?.memberId == op.partyId }, RejectionReason.PARTICIPANT_HAS_REFUNDS) { "Participant has refunds here; defer them first" }</ID>
@@ -116,9 +115,9 @@
     <ID>MaxLineLength:Payees.kt:Payees$private fun member: Payee?</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$if (op is ScheduleBandDeletion) return forbidden(RejectionReason.ROLE_REQUIRED, "Only the owner deletes the band, through the server")</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$is AttachmentOwner.OfCost -> if (adding &amp;&amp; band.cost(owner.costId)?.memberId == me.id) Role.ARTIST else ownCost(band, me, owner.costId)</ID>
-    <ID>MaxLineLength:Permissions.kt:Permissions$is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null &amp;&amp; it == me.id }, Role.ARTIST)</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$is SettleSuggestions -> ownIf(op.partyId != null &amp;&amp; (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$is UpdateFundEntry, is RemoveFundEntry -> band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together &amp;&amp; partnerIn(band, me, op.eventId).let { it != null &amp;&amp; (it == op.from || it == op.to) })</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$private</ID>
     <ID>MaxLineLength:Places.kt:Places$.</ID>

@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
@@ -29,6 +28,7 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

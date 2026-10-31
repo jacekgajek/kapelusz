@@ -1,7 +1,5 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.rules
 
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -37,7 +35,7 @@ import kotlinx.datetime.LocalDate
  * What the current user may do, for showing only the actions that would be accepted. Every answer comes from the
  * shared [Permissions] (the same rules the server enforces), asked with a representative operation.
  */
-class Can(private val band: Band, private val userId: String) {
+class Capabilities(private val band: Band, private val userId: String) {
     private val actor = Actor.User(userId)
     private val meId: Id? = band.memberOfUser(userId)?.id
 
@@ -96,6 +94,3 @@ class Can(private val band: Band, private val userId: String) {
         val PROBE_DATE = LocalDate(2000, 1, 1)
     }
 }
-
-/** Artists see only their own events, costs and payouts (ITERATION_4 §1.1). Hidden in the UI only, see its §1.4. */
-fun Band.isArtist(userId: String?): Boolean = userId != null && memberOfUser(userId)?.role == Role.ARTIST

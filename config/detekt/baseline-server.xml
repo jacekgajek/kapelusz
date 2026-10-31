@@ -41,12 +41,11 @@
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$private fun call</ID>
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), linked), ifMatch = etag)</ID>
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }</ID>
-    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val linked = (com.jacekgajek.kapelusz.ops.Engine.apply(band, com.jacekgajek.kapelusz.auth.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val linked = (com.jacekgajek.kapelusz.ops.Engine.apply(band, com.jacekgajek.kapelusz.rules.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band</ID>
     <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val tooLarge = push("alice", AddAttachment("c1", Attachment("big", AttachmentKind.IMAGE, "x.jpg", AttachmentKind.IMAGE.maxBytes + 1)))</ID>
     <ID>MaxLineLength:Auth.kt:GoogleTokenVerifier$if (claims.audience.none { it in clientIds } || claims.issuer !in ISSUERS || claims.subject == null) throw BadJWTException("Not a token of this app")</ID>
     <ID>MaxLineLength:BandDeletions.kt:BandDeletions$store.put(StorageKeys.SCHEDULED_DELETIONS, encode(ScheduledDeletions.serializer(), ScheduledDeletions(updated)), ifMatch = blob?.etag, ifNoneMatch = blob == null)</ID>
     <ID>MaxLineLength:BandDeletions.kt:BandDeletions$val band = bands.load(bandId, deleteIfDue = false)?.first?.takeIf { it.deletion.let { d -> d != null &amp;&amp; d.deleteAt &lt;= clock() } } ?: return</ID>
-    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$Limits.violation(draft.copy(name = "", members = emptyList()), draft)?.let { throw ApiError(400, ApiErrors.BAD_REQUEST, it.message) }</ID>
     <ID>MaxLineLength:BandHandlers.kt:BandHandlers$Rejection(RejectionCode.CONFLICT, "The band would be too large; remove old entries or attachments", RejectionReason.LIMIT_REACHED)</ID>
     <ID>MaxLineLength:BandHandlers.kt:BandHandlers$fun</ID>
     <ID>MaxLineLength:BandHandlers.kt:BandHandlers$if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }</ID>

@@ -12,6 +12,8 @@ import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.ops.AddAttachment
+import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.rules.isArtist
 import kotlinx.datetime.LocalDate
 
 /** Where files shared to Kapelusz can go (ITERATION_6 §1): one of these, in an event of one of the user's bands. */
@@ -58,7 +60,7 @@ object ShareTargets {
      */
     fun targets(band: Band, userId: String, event: Event): List<ShareTarget> {
         if (event.archived) return emptyList()
-        val can = Can(band, userId)
+        val can = Capabilities(band, userId)
         val statuses = CostStatuses(band)
         fun mayAttach(owner: AttachmentOwner) = can.allowed(AddAttachment(owner, PROBE))
         return buildList {

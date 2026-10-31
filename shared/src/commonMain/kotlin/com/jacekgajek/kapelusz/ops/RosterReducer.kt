@@ -105,8 +105,7 @@ internal object RosterReducer {
         val member = band.member(op.memberId).orNotFound { "Member ${op.memberId}" }
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Use ownership transfer to make someone the owner" }
         invalidIf(member.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "The owner's role cannot be changed" }
-        if (op.role == Role.ARTIST && member.role != Role.ARTIST) validateHoldsNoMoney(band, member.id)
-        if (op.role == Role.VIEWER && member.role != Role.VIEWER) validateCanWatchOnly(band, member.id)
+        if (op.role != member.role) validateRoleChange(band, member.id, op.role)
         return band.updateMember(op.memberId) { it.copy(role = op.role) }
     }
 
@@ -115,8 +114,7 @@ internal object RosterReducer {
         conflictIf(member.userId != null, RejectionReason.MEMBER_LINKED) { "Member is already linked to a user" }
         conflictIf(band.memberOfUser(op.userId) != null, RejectionReason.USER_ALREADY_MEMBER) { "User is already a member of this band" }
         invalidIf(op.role == Role.OWNER, RejectionReason.OWNER_ROLE_FIXED) { "Invites cannot grant ownership" }
-        if (op.role == Role.ARTIST) validateHoldsNoMoney(band, member.id)
-        if (op.role == Role.VIEWER) validateCanWatchOnly(band, member.id)
+        validateRoleChange(band, member.id, op.role)
         return band.updateMember(op.memberId) { it.copy(userId = op.userId, role = op.role, archived = false) }
     }
 

@@ -16,9 +16,7 @@ import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.pairEndsWarning
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.sortedByName
@@ -35,6 +33,8 @@ import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.rules.isArtist
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -53,7 +53,7 @@ fun settingsFor(
 ): Settings {
     val band = state.band
     val me = state.me
-    val can = Can(band, state.userId)
+    val can = Capabilities(band, state.userId)
     val session by account.session.collectAsState()
     val appSettings by preferences.settings.collectAsState()
     val stillDefault = remember(band) { BandFund.stillDefault(band).map { it.id to it.name } }

@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Band
@@ -16,6 +15,7 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.fail
 import kotlinx.datetime.LocalDate
 
