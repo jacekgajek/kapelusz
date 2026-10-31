@@ -40,9 +40,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.LocatedPlaces
-import com.jacekgajek.kapelusz.app.data.summaryPeriod
-import com.jacekgajek.kapelusz.app.data.today
+import com.jacekgajek.kapelusz.app.bands.LocatedPlaces
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
 import com.jacekgajek.kapelusz.app.generated.played_concerts
@@ -56,12 +54,14 @@ import com.jacekgajek.kapelusz.app.generated.played_title
 import com.jacekgajek.kapelusz.app.generated.played_unplaced
 import com.jacekgajek.kapelusz.app.generated.played_unplaced_hint
 import com.jacekgajek.kapelusz.app.platform.LocalPlatform
+import com.jacekgajek.kapelusz.app.settings.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.PlayedNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.util.today
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.text.PlayedPlaces
 import org.jetbrains.compose.resources.PluralStringResource

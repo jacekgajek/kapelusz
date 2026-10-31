@@ -41,8 +41,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
-import com.jacekgajek.kapelusz.app.data.newId
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.agenda_add_time
 import com.jacekgajek.kapelusz.app.generated.agenda_label
@@ -65,6 +63,8 @@ import com.jacekgajek.kapelusz.app.ui.components.TimePickerDialog
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.text.displayLabel
 import com.jacekgajek.kapelusz.app.ui.text.formatAgendaTime
+import com.jacekgajek.kapelusz.app.util.newId
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Role

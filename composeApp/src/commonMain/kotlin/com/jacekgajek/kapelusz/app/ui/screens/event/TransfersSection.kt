@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.amount_copied
@@ -83,6 +82,7 @@ import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.format.formatMoneyInput
+import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.RecordTransfer

@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
-import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.storage.KeyValueStore
 import com.jacekgajek.kapelusz.text.PlayedPlaces
 
 enum class PlatformKind { ANDROID, WEB }

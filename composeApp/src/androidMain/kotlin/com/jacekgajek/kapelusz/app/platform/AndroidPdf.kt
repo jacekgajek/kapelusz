@@ -34,6 +34,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.ui.components.PdfZoom
 import com.jacekgajek.kapelusz.app.ui.components.zoomGestures
 import java.io.ByteArrayOutputStream
 import java.io.File

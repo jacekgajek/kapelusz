@@ -7,9 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.bands.BandRepository
 import com.jacekgajek.kapelusz.app.sync.HistoryPage
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.rules.Capabilities

@@ -7,8 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jacekgajek.kapelusz.api.InviteInfo
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.ui.components.Crowd
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.RejectionReason

@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

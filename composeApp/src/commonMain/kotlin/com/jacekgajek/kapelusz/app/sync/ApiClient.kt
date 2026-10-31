@@ -24,7 +24,7 @@ import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.app.data.DevicesApi
+import com.jacekgajek.kapelusz.app.devices.DevicesApi
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Id

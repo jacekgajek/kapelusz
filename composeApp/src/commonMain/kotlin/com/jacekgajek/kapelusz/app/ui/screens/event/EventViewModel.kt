@@ -6,10 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.EventTab
+import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.intents.Carry
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.settings.EventTab
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.Settlement

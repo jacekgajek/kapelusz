@@ -1,10 +1,10 @@
 package com.jacekgajek.kapelusz.app.sync
 
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.app.data.AttachmentUploads
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.nowMillis
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.attachments.AttachmentUploads
+import com.jacekgajek.kapelusz.app.bands.BandRepository
+import com.jacekgajek.kapelusz.app.util.nowMillis
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.ops.AddAttachment

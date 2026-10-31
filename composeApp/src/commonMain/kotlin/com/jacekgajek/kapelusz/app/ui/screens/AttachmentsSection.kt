@@ -38,7 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.attachments.Attachments
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed

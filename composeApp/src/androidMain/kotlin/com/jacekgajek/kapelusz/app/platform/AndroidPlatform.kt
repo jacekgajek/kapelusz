@@ -7,8 +7,8 @@ import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.auth.AndroidGoogleAuth
 import com.jacekgajek.kapelusz.app.auth.AndroidSignInButton
-import com.jacekgajek.kapelusz.app.data.FileStore
-import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.storage.FileStore
+import com.jacekgajek.kapelusz.app.storage.KeyValueStore
 import com.jacekgajek.kapelusz.app.sync.FirebaseMessageChannel
 import java.io.File
 import java.net.HttpURLConnection

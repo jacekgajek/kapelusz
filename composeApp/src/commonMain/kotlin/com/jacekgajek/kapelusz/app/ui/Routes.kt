@@ -1,6 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui
 
-import com.jacekgajek.kapelusz.app.data.EventTab
+import com.jacekgajek.kapelusz.app.settings.EventTab
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

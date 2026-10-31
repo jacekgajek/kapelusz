@@ -14,8 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.platform.LocalPlatform
+import com.jacekgajek.kapelusz.app.util.nowMillis
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.json.buildJsonObject

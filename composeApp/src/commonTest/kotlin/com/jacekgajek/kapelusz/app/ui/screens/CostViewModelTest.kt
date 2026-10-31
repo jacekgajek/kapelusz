@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.lifecycle.SavedStateHandle
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.InMemoryStore
+import com.jacekgajek.kapelusz.app.bands.BandRepository
+import com.jacekgajek.kapelusz.app.bands.BandState
+import com.jacekgajek.kapelusz.app.storage.InMemoryStore
 import com.jacekgajek.kapelusz.app.ui.CostRoute
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.Money

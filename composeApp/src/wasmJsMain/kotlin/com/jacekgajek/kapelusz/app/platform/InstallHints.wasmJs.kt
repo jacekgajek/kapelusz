@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.platform
 
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import kotlin.js.Promise
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.Json

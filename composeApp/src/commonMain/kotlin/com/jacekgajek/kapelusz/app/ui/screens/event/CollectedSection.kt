@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_awaited
 import com.jacekgajek.kapelusz.app.generated.add_money
@@ -70,6 +69,7 @@ import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.format.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
+import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource

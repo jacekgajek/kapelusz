@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
 import com.jacekgajek.kapelusz.app.generated.artist_held_for_partner
@@ -57,6 +56,7 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
+import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.RecordTransfer

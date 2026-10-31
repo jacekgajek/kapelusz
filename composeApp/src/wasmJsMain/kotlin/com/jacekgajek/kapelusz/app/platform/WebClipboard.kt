@@ -2,7 +2,7 @@ package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.Promise

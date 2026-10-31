@@ -48,7 +48,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
-import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.attachments.Attachments
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.attachment_open_in_app
 import com.jacekgajek.kapelusz.app.generated.attachment_rename
@@ -76,7 +76,7 @@ private sealed interface Loaded {
     data object Unavailable : Loaded
 }
 
-/** The file of [attachment], from the device or downloaded once ([com.jacekgajek.kapelusz.app.data.Attachments.bytes]). */
+/** The file of [attachment], from the device or downloaded once ([com.jacekgajek.kapelusz.app.attachments.Attachments.bytes]). */
 @Composable
 private fun rememberFile(fileStore: Attachments, attachment: Attachment): Loaded {
     val loaded by produceState<Loaded>(Loaded.Loading, attachment.id) {

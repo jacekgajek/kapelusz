@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
@@ -57,6 +56,7 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMonth
 import com.jacekgajek.kapelusz.app.ui.text.describe
+import com.jacekgajek.kapelusz.app.util.nowMillis
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band

@@ -47,9 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.today
+import com.jacekgajek.kapelusz.app.bands.BandRepository
+import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
 import com.jacekgajek.kapelusz.app.generated.band_fund
@@ -84,6 +83,7 @@ import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.format.formatMonthShort
 import com.jacekgajek.kapelusz.app.ui.screens.DraftThumbnail
 import com.jacekgajek.kapelusz.app.ui.screens.ThumbnailBox
+import com.jacekgajek.kapelusz.app.util.today
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.view.ShareEvent

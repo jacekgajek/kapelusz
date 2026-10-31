@@ -17,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.close
 import com.jacekgajek.kapelusz.app.generated.copy_raw_data
@@ -28,6 +27,7 @@ import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.components.BusyButton
 import com.jacekgajek.kapelusz.app.ui.components.ButtonKind
 import com.jacekgajek.kapelusz.app.ui.components.rememberTask
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 

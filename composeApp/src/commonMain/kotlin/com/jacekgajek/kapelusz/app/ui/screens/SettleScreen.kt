@@ -23,8 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.newId
-import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.events_to_settle
@@ -52,6 +50,8 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
+import com.jacekgajek.kapelusz.app.util.newId
+import com.jacekgajek.kapelusz.app.util.today
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.settlement.Payees
 import com.jacekgajek.kapelusz.text.BlikPhone

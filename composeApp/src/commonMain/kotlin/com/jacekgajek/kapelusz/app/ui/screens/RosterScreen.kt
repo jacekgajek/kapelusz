@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
@@ -127,6 +126,7 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
+import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member

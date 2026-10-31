@@ -333,7 +333,7 @@ interleave where no arrow connects them. Steps are numbered for reference in the
 | 4.1 | `build-logic/` convention plugins; one `KapeluszConfig`; fix the Maps-key precedence mismatch; CI builds release artefacts on PRs with explicit Chrome | 0.5 | M | low |
 | 4.2 | `Platform` step A (non-composable members: store, cache, google, messages, reload, listing, upload, install state); `AppRuntime(platform)`; `LocalPlatform`; `FakePlatform` + first `AttachmentsTest`; Android globals deleted | 3.2 | M | medium (touches sign-in and sync wiring) |
 | 4.3 | `Platform` step B (maps, pdf, QR, store updates, clipboard, sharing, picker, sign-in button); remaining `expect`s and `-Xexpect-actual-classes` removed | 4.2 | M | medium (`rememberCopy` has seven call sites; clipboard first, maps/pdf last) |
-| 4.4 | File reorganisation of `platform/` and `data/` → `storage/`, `session/`, `bands/`, `util/`; `PdfZoom` to common | 4.3 | S | low |
+| 4.4 | File reorganisation of `platform/` and `data/` → `storage/`, `session/`, `bands/`, `util/`; `PdfZoom` to common (**done**: `data/` dissolved into `storage/ auth/ bands/ attachments/ devices/ settings/ runtime/ util/` after §3.1, `Account` joined the existing `auth/` rather than a new `session/`; `PdfZoom` and its test in common `ui/components`) | 4.3 | S | low |
 | 4.5 | Test fixtures: `FakeServer` to `commonTest/testing/`, `InMemoryStore` out of `main`, virtual time in `SyncEngineTest`, injected FCM deadline (drops a 5 s sleep) | 3.5 | M | medium |
 | 4.6 | Five Compose UI smoke tests on the JVM (`runComposeUiTest`): sign-in, zero screen, event opens, settings pages, update-required (decision 10) | 2.6 | M | low |
 

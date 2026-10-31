@@ -46,9 +46,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.summaryPeriod
-import com.jacekgajek.kapelusz.app.data.today
-import com.jacekgajek.kapelusz.app.data.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
 import com.jacekgajek.kapelusz.app.generated.band_fund
@@ -85,6 +82,8 @@ import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_unsettled
 import com.jacekgajek.kapelusz.app.generated.summary_waiting
 import com.jacekgajek.kapelusz.app.generated.summary_you
+import com.jacekgajek.kapelusz.app.settings.summaryPeriod
+import com.jacekgajek.kapelusz.app.settings.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.SummaryNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
@@ -100,6 +99,7 @@ import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
+import com.jacekgajek.kapelusz.app.util.today
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.text.PlayedPlaces

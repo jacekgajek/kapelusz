@@ -1,8 +1,8 @@
 package com.jacekgajek.kapelusz.app
 
 import android.content.Context
-import com.jacekgajek.kapelusz.app.data.AppRuntime
 import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
+import com.jacekgajek.kapelusz.app.runtime.AppRuntime
 
 /** Single [AppRuntime] (and [AndroidPlatform]) per process, so activity recreation (rotation) keeps the loaded state. */
 object AndroidAppRuntime {
