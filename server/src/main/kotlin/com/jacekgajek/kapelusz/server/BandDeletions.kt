@@ -16,7 +16,7 @@ internal class BandDeletions(
     private val invites: Invites,
     private val pointers: EventPointers,
     private val history: HistoryLog,
-    private val messenger: SyncMessenger?,
+    private val messenger: SyncMessenger,
 ) {
     @Volatile private var lastSweep = 0L
 
@@ -43,7 +43,7 @@ internal class BandDeletions(
         runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
         runCatching { note(bandId) }
         // The members' apps let go of it at once (ITERATION_7 §2.3); former members' apps did already.
-        runCatching { messenger?.bandChanged(bandId, band.messagedUsers(), null) }
+        runCatching { messenger.bandChanged(bandId, band.messagedUsers(), null) }
     }
 
     /**

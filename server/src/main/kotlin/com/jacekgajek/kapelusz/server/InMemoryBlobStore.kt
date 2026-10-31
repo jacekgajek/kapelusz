@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.server
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/** For tests; kept out of the Lambda jar (ITERATION_3 R13). */
+/** [BlobStore] in memory: for tests, and the local server's `--memory`. */
 class InMemoryBlobStore : BlobStore {
     val objects = ConcurrentHashMap<String, Blob>()
 

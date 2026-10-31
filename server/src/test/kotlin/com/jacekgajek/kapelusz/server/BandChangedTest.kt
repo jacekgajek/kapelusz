@@ -59,7 +59,8 @@ class BandChangedTest {
         val pointers = EventPointers(store, bands)
         val files = AttachmentFiles(store)
         val historyLog = HistoryLog(history) { 1_000 }
-        val deletions = BandDeletions(store, { 1_000 }, bands, users, invites, pointers, historyLog, null)
+        val silent = DeviceMessenger(DeviceRegistry(store) { 1_000 }, NoopMessageSender)
+        val deletions = BandDeletions(store, { 1_000 }, bands, users, invites, pointers, historyLog, silent)
         val messenger = object : SyncMessenger {
             override fun bandChanged(bandId: String, userIds: Collection<String>, from: SenderDevice?) {
                 log += "message to ${userIds.toSortedSet()}"

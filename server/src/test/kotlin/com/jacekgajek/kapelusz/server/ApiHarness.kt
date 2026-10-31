@@ -29,8 +29,8 @@ open class ApiHarness(
     minAppVersion: Int = 0,
     placeSearch: PlaceSearch? = null,
     /** Kept for the test that gave it, to look at what the server did with it. */
-    protected val webIndex: WebIndex? = null,
-    protected val messageSender: MessageSender? = null,
+    protected val webIndex: WebIndex = NoWebIndex,
+    protected val messageSender: MessageSender = NoopMessageSender,
 ) {
     val store = InMemoryBlobStore()
     val history = InMemoryHistoryStore()
@@ -43,10 +43,10 @@ open class ApiHarness(
         history,
         verifier,
         clock = { this.now },
-        minAppVersion = minAppVersion,
         placeSearch = placeSearch,
         webIndex = webIndex,
         messageSender = messageSender,
+        config = ServerConfig(minAppVersion = minAppVersion),
     )
 
     /** A request as [user] (null: no token), to [on] (this API unless another is under test). */

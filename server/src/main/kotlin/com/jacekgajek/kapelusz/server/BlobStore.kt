@@ -61,8 +61,9 @@ interface BlobStore {
 
 class S3BlobStore(
     private val bucket: String,
-    private val s3: S3Client = defaultClient(),
-    private val presigner: S3Presigner = S3Presigner.builder().region(region()).build(),
+    region: Region,
+    private val s3: S3Client = defaultClient(region),
+    private val presigner: S3Presigner = S3Presigner.builder().region(region).build(),
 ) : BlobStore {
 
     override fun get(key: String): Blob? = try {
@@ -135,11 +136,9 @@ class S3BlobStore(
     companion object {
         private val PRESIGN_DURATION: Duration = Duration.ofMinutes(15)
 
-        private fun region(): Region = Region.of(System.getenv("AWS_REGION") ?: "eu-central-1")
-
-        fun defaultClient(): S3Client = S3Client.builder()
+        fun defaultClient(region: Region): S3Client = S3Client.builder()
             .httpClient(UrlConnectionHttpClient.create())
-            .region(region())
+            .region(region)
             .build()
     }
 }

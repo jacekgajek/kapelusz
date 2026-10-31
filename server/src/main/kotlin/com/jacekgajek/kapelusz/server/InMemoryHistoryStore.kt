@@ -3,7 +3,7 @@ package com.jacekgajek.kapelusz.server
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListMap
 
-/** For tests; kept out of the Lambda jar, like [InMemoryBlobStore]. */
+/** [HistoryStore] in memory: for tests, and the local server's `--memory`. */
 class InMemoryHistoryStore : HistoryStore {
     val bands = ConcurrentHashMap<String, ConcurrentSkipListMap<String, String>>()
 

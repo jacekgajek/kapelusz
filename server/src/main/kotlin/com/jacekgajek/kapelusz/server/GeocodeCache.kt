@@ -52,8 +52,8 @@ class InMemoryGeocodeCache(private val clock: () -> Long = System::currentTimeMi
  */
 class DynamoGeocodeCache(
     private val table: String,
-    private val timer: CallTimer = CallTimer("db"),
-    private val dynamo: DynamoDbClient = DynamoHistoryStore.defaultClient(),
+    private val timer: CallTimer,
+    private val dynamo: DynamoDbClient,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : GeocodeCache {
 

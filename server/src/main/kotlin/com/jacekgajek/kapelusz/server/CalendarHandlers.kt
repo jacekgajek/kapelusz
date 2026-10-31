@@ -14,6 +14,8 @@ internal class CalendarHandlers(
     private val clock: () -> Long,
     private val bands: BandAccess,
     private val users: UserRecords,
+    /** The web app's address, for the links in calendar entries. */
+    private val webUrl: String,
 ) {
     /** The user's feed link, created on first use. */
     fun subscription(call: Call): HttpResponse = subscription(call.user, CalendarSubscriptionChange())
@@ -39,7 +41,7 @@ internal class CalendarHandlers(
         }
         // On the app's own domain, which passes /calendar/* to this API (ITERATION_6 §10); links given out earlier on the
         // API's own address keep working.
-        return ok(CalendarSubscription.serializer(), CalendarSubscription("$WEB_URL/calendar/$secret.ics", updated.includeAll))
+        return ok(CalendarSubscription.serializer(), CalendarSubscription("$webUrl/calendar/$secret.ics", updated.includeAll))
     }
 
     /**
@@ -54,7 +56,7 @@ internal class CalendarHandlers(
         val list = users.load(owner.userId).bandIds.mapNotNull { bands.load(it)?.first }
         val now = Instant.ofEpochMilli(clock()).atZone(ZoneOffset.UTC).toLocalDateTime()
         val stamp = kotlinx.datetime.LocalDateTime(now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute)
-        val body = CalendarFeed.build(list, owner.userId, settings.includeAll, stamp.date, WEB_URL, stamp)
+        val body = CalendarFeed.build(list, owner.userId, settings.includeAll, stamp.date, webUrl, stamp)
         return HttpResponse(200, body, mapOf("content-type" to "text/calendar; charset=utf-8", "cache-control" to "private, max-age=900"))
     }
 
@@ -62,8 +64,5 @@ internal class CalendarHandlers(
 
     companion object {
         private val random = SecureRandom()
-
-        /** For links in calendar entries. */
-        private val WEB_URL = System.getenv("WEB_URL") ?: "https://kapelusz.jacekgajek.com"
     }
 }

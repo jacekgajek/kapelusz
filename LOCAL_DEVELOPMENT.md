@@ -16,11 +16,13 @@ calendar). Only what reaches out of the machine is replaced:
 | Google sign-in                      | **development sign-in**: any name, as user `dev-<name>` (unsigned token)                    |
 | Google Places and Geocoding         | made up: the typed text becomes a place in Kraków; every address gets a fixed spot nearby   |
 | Firebase sync messages              | none: the app on screen checks for changes every 30 seconds, and on returning to it       |
-| Event link cards (`/e/…`)           | none: no web app's page to put them in                                                      |
+| Event link cards (`/e/…`)           | none, unless `KAPELUSZ_LOCAL_WEB` names the web app's built `index.html` to put them in     |
 
 The data stays in `.local-data/` (ignored by git) between runs. Delete the folder to start afresh. Another
 place can be set with `KAPELUSZ_LOCAL_DATA` (a relative path is taken from the repository's root), and another port
-with `KAPELUSZ_LOCAL_PORT` (default 8787; the scripts' builds follow it too).
+with `KAPELUSZ_LOCAL_PORT` (default 8787; the scripts' builds follow it too). With `--memory`
+(`./gradlew :localServer:run --args=--memory`) nothing is written: the data lives in the process and goes with it, and
+attachments cannot be uploaded (their links lead to the files on disk).
 
 The development sign-in only works with the local server. The real API checks Google's signature and refuses these
 tokens. A build with `kapelusz.devSignIn` fails on purpose if it's a release, or if the API URL is anything but

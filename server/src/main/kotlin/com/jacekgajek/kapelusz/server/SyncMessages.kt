@@ -51,6 +51,13 @@ interface MessageSender {
     fun send(tokens: List<String>, data: Map<String, String>): Map<String, SendResult>?
 }
 
+/** Where FCM isn't set up (tests, the local server): never ready, so no device is read and nothing is sent. */
+object NoopMessageSender : MessageSender {
+    override fun ready(): Boolean = false
+
+    override fun send(tokens: List<String>, data: Map<String, String>): Map<String, SendResult>? = null
+}
+
 internal class DeviceMessenger(
     private val registry: DeviceRegistry,
     private val sender: MessageSender,

@@ -15,22 +15,21 @@ class Api(
     private val verifier: TokenVerifier,
     private val clock: () -> Long = System::currentTimeMillis,
     private val sessions: SessionTokens = SessionTokens(store, clock),
-    /** No minimum by default (tests); the Lambda handler passes [MIN_APP_VERSION]. */
-    private val minAppVersion: Int = 0,
-    maxBandBytes: Int = MAX_BAND_BYTES,
     /** Place suggestions for Location (ITERATION_5 §9); null where no Google key is set up. */
     placeSearch: PlaceSearch? = null,
     /** Addresses already looked up, for the map (ITERATION_7 §8); null: none are. */
     geocodeCache: GeocodeCache? = null,
-    /** The web app's page, for link cards (ITERATION_6 §2); null where it can't be read. */
-    webIndex: WebIndex? = null,
-    /** Sync messages to Android devices (ITERATION_7 §2); null where FCM isn't set up: devices register, nothing is sent. */
-    messageSender: MessageSender? = null,
+    /** The web app's page, for link cards (ITERATION_6 §2); [NoWebIndex] where it can't be had. */
+    webIndex: WebIndex = NoWebIndex,
+    /** Sync messages to Android devices (ITERATION_7 §2); [NoopMessageSender] where FCM isn't set up: devices register, nothing is sent. */
+    messageSender: MessageSender = NoopMessageSender,
+    /** What the deployment decides; tests take the defaults (no minimum app version). */
+    private val config: ServerConfig = ServerConfig(),
 ) {
     private val revocations = SessionRevocations(store, clock)
     private val bands = BandAccess(store, clock)
     private val devices = DeviceRegistry(store, clock)
-    private val messenger: SyncMessenger? = messageSender?.let { DeviceMessenger(devices, it) }
+    private val messenger: SyncMessenger = DeviceMessenger(devices, messageSender)
 
     // What is stored, by resource; then the handlers over it.
     private val records = UserRecords(store, bands, devices)
@@ -39,16 +38,16 @@ class Api(
     private val files = AttachmentFiles(store)
     private val pointers = EventPointers(store, bands)
     private val users = UserHandlers(verifier, sessions, revocations, clock, bands, devices, records)
-    private val deviceHandlers = DeviceHandlers(devices, records) { messageSender?.ready() == true }
+    private val deviceHandlers = DeviceHandlers(devices, records, messageSender::ready)
     private val history = HistoryHandlers(clock, bands, log)
     private val attachments = AttachmentHandlers(bands, files)
     private val deletions = BandDeletions(store, clock, bands, records, codes, pointers, log, messenger).also { bands.whenDue = it::deleteNow }
     private val changed = BandChanged(records, codes, pointers, files, deletions, log, messenger)
     private val invites = InviteHandlers(store, clock, bands, records, codes, changed)
-    private val calendar = CalendarHandlers(store, clock, bands, records)
+    private val calendar = CalendarHandlers(store, clock, bands, records, config.webUrl)
     private val places = PlacesHandlers(bands, placeSearch, geocodeCache)
     private val linkPages = LinkPages(webIndex, bands, pointers)
-    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, records, log, changed)
+    private val bandHandlers = BandHandlers(store, clock, config.maxBandBytes, bands, records, log, changed)
 
     /** [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time. */
     fun handle(request: HttpRequest, sweep: Boolean = true): HttpResponse = try {
@@ -136,10 +135,12 @@ class Api(
     )
 
     /**
-     * Apps send their version code; a version below [minAppVersion] must update first. Apps from before version 2 send
-     * none, and local development builds send 0 (always allowed, so they can be tested against the live API).
+     * Apps send their version code; a version below [ServerConfig.minAppVersion] must update first. Apps from before
+     * version 2 send none, and local development builds send 0 (always allowed, so they can be tested against the live
+     * API).
      */
     private fun appSupported(version: String?): Boolean {
+        val minAppVersion = config.minAppVersion
         if (minAppVersion <= 0) return true
         val code = version?.toIntOrNull() ?: return false
         return code == 0 || code >= minAppVersion
