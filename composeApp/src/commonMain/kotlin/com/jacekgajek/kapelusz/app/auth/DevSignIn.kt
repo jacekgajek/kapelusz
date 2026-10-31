@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.nowMillis
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.json.buildJsonObject
@@ -26,7 +27,7 @@ import kotlinx.serialization.json.put
  */
 @Composable
 fun SignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier = Modifier) {
-    if (AppConfig.DEV_SIGN_IN) DevSignInButton(onIdToken, modifier) else GoogleSignInButton(onIdToken, onError, modifier)
+    if (AppConfig.DEV_SIGN_IN) DevSignInButton(onIdToken, modifier) else LocalPlatform.current.SignInButton(onIdToken, onError, modifier)
 }
 
 // Development builds only, so in English, without string resources.

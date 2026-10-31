@@ -33,8 +33,8 @@ import com.jacekgajek.kapelusz.app.generated.share_text_share_with_refunds
 import com.jacekgajek.kapelusz.app.generated.share_text_shares
 import com.jacekgajek.kapelusz.app.generated.share_text_still_to_pay
 import com.jacekgajek.kapelusz.app.generated.share_text_to_fund
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.ShareResult
-import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.format.SettlementWords
 import com.jacekgajek.kapelusz.app.ui.format.settlementText
@@ -75,7 +75,7 @@ private fun settlementWords(eventId: String?) = SettlementWords(
  */
 @Composable
 internal fun rememberShareSettlement(band: Band, event: Event?, settlement: Settlement?, snackbar: SnackbarHostState): (() -> Unit)? {
-    val share = rememberShare()
+    val share = LocalPlatform.current.sharing.rememberShare()
     val scope = rememberCoroutineScope()
     val words = settlementWords(event?.id)
     val lang = language

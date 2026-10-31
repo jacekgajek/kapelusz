@@ -31,7 +31,7 @@ import com.jacekgajek.kapelusz.app.generated.stuck_push_export
 import com.jacekgajek.kapelusz.app.generated.stuck_push_export_failed
 import com.jacekgajek.kapelusz.app.generated.stuck_push_exported
 import com.jacekgajek.kapelusz.app.generated.stuck_push_title
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.sync.StuckPush
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -51,7 +51,7 @@ fun StuckPushBanner(
     onMessage: suspend (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val copy = rememberCopy()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     val scope = rememberCoroutineScope()
     val exported = stringResource(Res.string.stuck_push_exported)
     val exportFailed = stringResource(Res.string.stuck_push_export_failed)

@@ -37,7 +37,6 @@ import com.jacekgajek.kapelusz.app.generated.copy_link
 import com.jacekgajek.kapelusz.app.generated.link_copied
 import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.PlatformKind
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberTask
@@ -56,7 +55,7 @@ internal fun CalendarSection(
     showIncludeAll: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
-    val copy = rememberCopy()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     val uriHandler = LocalUriHandler.current
     var subscription by remember { mutableStateOf<CalendarSubscription?>(null) }
     val task = rememberTask()

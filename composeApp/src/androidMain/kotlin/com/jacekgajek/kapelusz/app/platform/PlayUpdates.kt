@@ -27,8 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 
+/** Play's in-app updates for the activity on screen; null outside one. */
 @Composable
-actual fun rememberStoreUpdates(): StoreUpdates? {
+internal fun rememberPlayUpdates(): StoreUpdates? {
     val activity = LocalContext.current as? Activity ?: return null
     val updates = remember(activity) { PlayStoreUpdates(activity) }
     DisposableEffect(updates) {
@@ -71,10 +72,12 @@ private class PlayStoreUpdates(private val activity: Activity) : StoreUpdates {
 
     override fun check() {
         manager.appUpdateInfo.addOnSuccessListener { found ->
+            val status = found.installStatus()
+            val declined = prefs.getInt(DECLINED, 0)
             _state.value = when {
-                found.installStatus() == InstallStatus.DOWNLOADED -> StoreUpdateState.DOWNLOADED
-                found.installStatus() == InstallStatus.DOWNLOADING || found.installStatus() == InstallStatus.PENDING -> StoreUpdateState.DOWNLOADING
-                offered(found, AppUpdateType.FLEXIBLE) && found.availableVersionCode() > prefs.getInt(DECLINED, 0) -> StoreUpdateState.AVAILABLE
+                status == InstallStatus.DOWNLOADED -> StoreUpdateState.DOWNLOADED
+                status == InstallStatus.DOWNLOADING || status == InstallStatus.PENDING -> StoreUpdateState.DOWNLOADING
+                offered(found, AppUpdateType.FLEXIBLE) && found.availableVersionCode() > declined -> StoreUpdateState.AVAILABLE
                 else -> StoreUpdateState.NONE
             }
         }.addOnFailureListener { _state.value = StoreUpdateState.NONE }
@@ -113,7 +116,10 @@ private class PlayStoreUpdates(private val activity: Activity) : StoreUpdates {
         return result != null && result != ActivityResult.RESULT_IN_APP_UPDATE_FAILED
     }
 
-    private fun offered(info: AppUpdateInfo, type: Int) = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && info.isUpdateTypeAllowed(type)
+    private fun offered(info: AppUpdateInfo, type: Int): Boolean {
+        val available = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+        return available && info.isUpdateTypeAllowed(type)
+    }
 
     private companion object {
         const val PREFS = "kapelusz-store-updates"

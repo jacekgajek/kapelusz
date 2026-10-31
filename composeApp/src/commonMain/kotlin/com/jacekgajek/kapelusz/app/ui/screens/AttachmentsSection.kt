@@ -58,11 +58,9 @@ import com.jacekgajek.kapelusz.app.generated.attachment_uploading
 import com.jacekgajek.kapelusz.app.generated.attachment_waiting_for_save
 import com.jacekgajek.kapelusz.app.generated.attachments
 import com.jacekgajek.kapelusz.app.generated.remove
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.PickResult
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
-import com.jacekgajek.kapelusz.app.platform.pdfInViewer
-import com.jacekgajek.kapelusz.app.platform.rememberAttachmentPicker
-import com.jacekgajek.kapelusz.app.platform.rememberUrlOpener
 import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
@@ -105,12 +103,15 @@ fun AttachmentsSection(
     // Inside a dialog, the dialog's [DialogNotice] shows these; the screen's snackbar would be hidden behind it.
     val say: (UiMessage) -> Unit = actions::say
     val scope = rememberCoroutineScope()
-    val open = rememberUrlOpener()
+    val platform = LocalPlatform.current
+    val open = platform.rememberUrlOpener()
+    // PDFs show in the app's viewer where the platform renders them; elsewhere they open in the browser.
+    val pdfInViewer = platform.pdf != null
     val pending by fileStore.pending.collectAsState()
     var removing by remember { mutableStateOf<Attachment?>(null) }
     var renaming by remember { mutableStateOf<Attachment?>(null) }
     val count = attachments.size + drafts.size
-    val picker = rememberAttachmentPicker { results ->
+    val picker = platform.rememberAttachmentPicker { results ->
         // As many as there is room for, in the order chosen; the rest is said, not silently dropped.
         val files = results.filterIsInstance<PickResult.Picked>().map { it.file }
         val taken = files.take((max - count).coerceAtLeast(0))

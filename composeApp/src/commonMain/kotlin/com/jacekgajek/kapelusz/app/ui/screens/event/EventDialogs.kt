@@ -43,7 +43,7 @@ import com.jacekgajek.kapelusz.app.generated.event_name
 import com.jacekgajek.kapelusz.app.generated.more
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unarchive
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.model.AgendaTime
@@ -107,7 +107,7 @@ fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceL
 fun EventMenu(event: Event, settlement: Settlement, actions: Actions, manage: Boolean, onDeleted: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
-    val copy = rememberCopy()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     val scope = rememberCoroutineScope()
     val copied = stringResource(Res.string.event_link_copied)
     val failed = stringResource(Res.string.copy_failed)

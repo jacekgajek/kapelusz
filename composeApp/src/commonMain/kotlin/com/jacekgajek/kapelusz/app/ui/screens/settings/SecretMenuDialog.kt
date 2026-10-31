@@ -24,7 +24,7 @@ import com.jacekgajek.kapelusz.app.generated.copy_raw_data
 import com.jacekgajek.kapelusz.app.generated.raw_data_copied
 import com.jacekgajek.kapelusz.app.generated.raw_data_failed
 import com.jacekgajek.kapelusz.app.generated.secret_menu
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.components.BusyButton
 import com.jacekgajek.kapelusz.app.ui.components.ButtonKind
 import com.jacekgajek.kapelusz.app.ui.components.rememberTask
@@ -34,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Tools for leaders: copy the band's raw data, e.g. to look into a problem. */
 @Composable
 internal fun SecretMenuDialog(rawData: suspend () -> String, onDismiss: () -> Unit) {
-    val copy = rememberCopy()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     val task = rememberTask()
     var result by remember { mutableStateOf<StringResource?>(null) }
     AlertDialog(

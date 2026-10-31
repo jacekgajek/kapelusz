@@ -58,10 +58,7 @@ import com.jacekgajek.kapelusz.app.generated.copy_failed
 import com.jacekgajek.kapelusz.app.generated.image_copied
 import com.jacekgajek.kapelusz.app.generated.image_copy
 import com.jacekgajek.kapelusz.app.generated.remove
-import com.jacekgajek.kapelusz.app.platform.PdfPages
-import com.jacekgajek.kapelusz.app.platform.rememberCopyImage
-import com.jacekgajek.kapelusz.app.platform.rememberOpenPdf
-import com.jacekgajek.kapelusz.app.platform.rememberPdfPagePng
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.components.ZoomState
 import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.zoomable
@@ -147,9 +144,11 @@ fun AttachmentViewer(
     val pager = rememberPagerState(start.coerceIn(0, attachments.lastIndex)) { attachments.size }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val copyImage = rememberCopyImage()
-    val pdfPagePng = rememberPdfPagePng()
-    val openPdf = rememberOpenPdf()
+    val platform = LocalPlatform.current
+    val copyImage = platform.clipboard.rememberCopyImage()
+    // Where PDFs are not rendered they never reach this screen; the fallbacks keep the calls below simple.
+    val pdfPagePng = platform.pdf?.rememberPagePng() ?: remember { { _, _ -> null } }
+    val openPdf = platform.pdf?.rememberOpen() ?: remember { { _, _ -> false } }
     // The PDF page mostly in view, per attachment: copy copies that page.
     val pdfPages = remember { mutableStateMapOf<String, Int>() }
     val files = remember { mutableStateMapOf<String, ByteArray>() }
@@ -169,7 +168,8 @@ fun AttachmentViewer(
                             LaunchedEffect(file) { files[attachment.id] = file.bytes }
                             if (attachment.kind == AttachmentKind.PDF) {
                                 // Below the top bar, so the first page's top can be seen.
-                                PdfPages(file.bytes, Modifier.fillMaxSize().padding(top = 56.dp).statusBarsPadding()) { pdfPages[attachment.id] = it }
+                                val belowBar = Modifier.fillMaxSize().padding(top = 56.dp).statusBarsPadding()
+                                platform.pdf?.Pages(file.bytes, belowBar) { pdfPages[attachment.id] = it }
                             } else {
                                 BytesImage(file.bytes, attachment.id, ContentScale.Fit, Modifier.fillMaxSize().zoomable(remember { ZoomState() }))
                             }

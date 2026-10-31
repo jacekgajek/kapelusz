@@ -103,8 +103,9 @@ object WebGoogleAuth : GoogleAuth {
     }
 }
 
+/** Google Identity Services' button, a DOM element positioned over a placeholder of its size. */
 @Composable
-actual fun GoogleSignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier) {
+internal fun WebSignInButton(onIdToken: (String) -> Unit, onError: (String) -> Unit, modifier: Modifier = Modifier) {
     val density = LocalDensity.current.density
     val locale = language
     val callback by rememberUpdatedState(onIdToken)

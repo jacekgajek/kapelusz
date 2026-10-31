@@ -61,7 +61,7 @@ import com.jacekgajek.kapelusz.app.generated.settle_part
 import com.jacekgajek.kapelusz.app.generated.settled_all
 import com.jacekgajek.kapelusz.app.generated.to_settle
 import com.jacekgajek.kapelusz.app.generated.transfer_recorded
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
@@ -257,7 +257,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
  */
 @Composable
 internal fun CopyAmountButton(context: EventContext, amount: Money) {
-    val copy = rememberCopy()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     val scope = rememberCoroutineScope()
     val text = formatMoneyInput(amount, language)
     val copied = stringResource(Res.string.amount_copied, text)

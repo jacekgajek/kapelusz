@@ -22,8 +22,8 @@ import com.jacekgajek.kapelusz.app.generated.info_plan
 import com.jacekgajek.kapelusz.app.generated.share_info
 import com.jacekgajek.kapelusz.app.generated.share_info_copied
 import com.jacekgajek.kapelusz.app.generated.share_info_failed
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.platform.ShareResult
-import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.text.displayLabel
@@ -69,7 +69,7 @@ fun eventInfoText(event: Event, plan: List<String>, lineup: List<String>, words:
 /** Shares the gig info as text: the share sheet, or the clipboard where there is none (said in the snackbar). */
 @Composable
 internal fun rememberShareInfo(band: Band, event: Event, snackbar: SnackbarHostState): () -> Unit {
-    val share = rememberShare()
+    val share = LocalPlatform.current.sharing.rememberShare()
     val scope = rememberCoroutineScope()
     val lang = language
     val words = InfoWords(

@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.model.AttachmentKind
 
 /** A file ready to attach: photos are already compressed (longest edge 1600 px, JPEG ~80, no EXIF). */
@@ -24,14 +23,3 @@ interface AttachmentPicker {
     /** Takes a photo with the camera; null where the file picker already offers the camera (the web). */
     val takePhoto: (() -> Unit)?
 }
-
-@Composable
-expect fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker
-
-/**
- * Returns a function that opens the URL [resolve] produces (a presigned download) in the browser or system viewer.
- * On the web the window is opened right away, while the click still counts as a user action, so it is not blocked as a
- * popup; [resolve] returning null closes it again.
- */
-@Composable
-expect fun rememberUrlOpener(): (resolve: suspend () -> String?) -> Unit

@@ -40,7 +40,7 @@ import com.jacekgajek.kapelusz.app.generated.blik_partner
 import com.jacekgajek.kapelusz.app.generated.blik_pay_to
 import com.jacekgajek.kapelusz.app.generated.blik_title
 import com.jacekgajek.kapelusz.app.generated.close
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.settlement.Payee
 import com.jacekgajek.kapelusz.text.BankAccount
 import com.jacekgajek.kapelusz.text.BlikPhone
@@ -137,7 +137,7 @@ fun payeeName(payee: Payee): String = payee.member?.name ?: stringResource(Res.s
 @Composable
 fun PaymentRow(kind: PaymentKind, label: String?, stored: String?, whose: String, trailing: @Composable () -> Unit = {}) {
     if (stored == null) return
-    val copy = rememberCopy()
+    val copy = LocalPlatform.current.clipboard.rememberCopy()
     val scope = rememberCoroutineScope()
     // Said in place: a snackbar would be under the dialog.
     var copied by remember { mutableStateOf(false) }
