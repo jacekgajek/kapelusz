@@ -49,12 +49,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import com.jacekgajek.kapelusz.app.data.Attachments
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.EventTab
 import com.jacekgajek.kapelusz.app.data.Incoming
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_place
@@ -88,8 +84,8 @@ import com.jacekgajek.kapelusz.app.generated.total_net
 import com.jacekgajek.kapelusz.app.generated.total_refunds
 import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.when_where
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.EventNav
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
@@ -117,7 +113,6 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.rules.Capabilities
-import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.settlement.SettlementProblem
 import com.jacekgajek.kapelusz.text.Places
@@ -148,25 +143,23 @@ class EventContext(
 }
 
 @Composable
-fun EventScreen(
-    changes: Changes,
-    api: ApiClient,
-    bands: BandRepository,
-    sync: SyncEngine,
-    preferences: SettingsRepository,
-    incoming: Incoming,
-    fileStore: Attachments,
-    state: BandState.Ready,
-    eventId: String,
-    onBack: () -> Unit,
-    onAddCost: (eventId: String) -> Unit = {},
-    onOpenCost: (costId: String) -> Unit = {},
-    onInviteMember: (memberId: String) -> Unit = {},
-) {
+fun EventScreen(session: BandSession, eventId: String, nav: EventNav) {
+    val state = session.state
+    val changes = session.changes
+    val api = session.api
+    val bands = session.bands
+    val sync = session.sync
+    val preferences = session.settings
+    val incoming = session.incoming
+    val fileStore = session.attachments
+    val onBack: () -> Unit = nav::back
+    val onAddCost: (String) -> Unit = nav::addCost
+    val onOpenCost: (String) -> Unit = nav::openCost
+    val onInviteMember: (String) -> Unit = nav::inviteMember
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages)
     // Artists only open the events they play, archived ones too (ITERATION_4 §1.1).
-    val artist = state.band.isArtist(state.userId)
+    val artist = session.artist
     val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
     var editing by remember { mutableStateOf(false) }
     val settlement = event?.let { state.view.settlement(it) }
@@ -245,7 +238,7 @@ fun EventScreen(
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
                 if (event != null && settlement != null) {
-                    val can = Capabilities(state.band, state.userId)
+                    val can = session.can
                     // For everyone (Copy link); archiving and deleting for who may. Also on archived events, which are
                     // otherwise read-only: restoring them is in it.
                     EventMenu(event, settlement, actions, manage = can.archiveEvents(), onDeleted = onBack)
@@ -268,7 +261,7 @@ fun EventScreen(
             settlement ?: return@Scaffold,
             state.me,
             actions,
-            Capabilities(state.band, state.userId),
+            session.can,
             onInviteMember,
         )
         val shareInfo = rememberShareInfo(state.band, event, messages.snackbar)

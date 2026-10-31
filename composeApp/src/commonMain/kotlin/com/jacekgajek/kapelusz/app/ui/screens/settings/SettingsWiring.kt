@@ -4,14 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import com.jacekgajek.kapelusz.app.data.Account
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.data.Membership
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.leave_band_treasurer
-import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.fundPaymentOp
@@ -31,7 +26,6 @@ import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetTreasurer
-import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.text.sortedByName
@@ -42,18 +36,16 @@ import org.jetbrains.compose.resources.stringResource
  * permission checks as the operations themselves). [onBandGone]: after leaving or deleting the band.
  */
 @Composable
-fun settingsFor(
-    state: BandState.Ready,
-    changes: Changes,
-    account: Account,
-    membership: Membership,
-    api: ApiClient,
-    preferences: SettingsRepository,
-    onBandGone: () -> Unit,
-): Settings {
+fun settingsFor(session: BandSession, onBandGone: () -> Unit): Settings {
+    val state = session.state
+    val changes = session.changes
+    val account = session.account
+    val membership = session.membership
+    val api = session.api
+    val preferences = session.settings
     val band = state.band
     val me = state.me
-    val can = Capabilities(band, state.userId)
+    val can = session.can
     val session by account.session.collectAsState()
     val appSettings by preferences.settings.collectAsState()
     val stillDefault = remember(band) { BandFund.stillDefault(state.view).map { it.id to it.name } }

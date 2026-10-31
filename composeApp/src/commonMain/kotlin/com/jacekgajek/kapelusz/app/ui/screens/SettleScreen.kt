@@ -24,8 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -39,6 +37,8 @@ import com.jacekgajek.kapelusz.app.generated.settle_part
 import com.jacekgajek.kapelusz.app.generated.tab_settle
 import com.jacekgajek.kapelusz.app.generated.you_hold
 import com.jacekgajek.kapelusz.app.generated.your_transfers
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.TabNav
 import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
@@ -58,7 +58,6 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.RecordTransfer
-import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.settlement.EventStatus
 import com.jacekgajek.kapelusz.settlement.Payees
 import com.jacekgajek.kapelusz.settlement.Settlement
@@ -68,13 +67,10 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Everything the current user still has to pay, receive or hand over, across events. */
 @Composable
-fun SettleScreen(
-    changes: Changes,
-    state: BandState.Ready,
-    onOpenEvent: (String) -> Unit,
-    onSettings: () -> Unit,
-    onRoster: () -> Unit,
-) {
+fun SettleScreen(session: BandSession, nav: TabNav) {
+    val state = session.state
+    val changes = session.changes
+    val onOpenEvent: (String) -> Unit = nav::openEvent
     val band = state.band
     val me = state.me
     val messages = rememberMessages()
@@ -83,7 +79,7 @@ fun SettleScreen(
     val lang = language
 
     val active = band.events.filter { !it.archived }.sortedByDescending { it.date }.map { it to state.view.settlement(it) }
-    val can = Capabilities(band, state.userId)
+    val can = session.can
     // Only transfers the user may record (a viewer may not, e.g. one added to an event before that was refused); a
     // pair's are both partners' (ITERATION_5 §7).
     val mine = active.mapNotNull { (event, settlement) ->
@@ -111,7 +107,7 @@ fun SettleScreen(
     }
 
     Scaffold(
-        topBar = { TabTopBar(stringResource(Res.string.tab_settle), onSettings, onRoster) },
+        topBar = { TabTopBar(stringResource(Res.string.tab_settle)) },
         snackbarHost = { MessageHost(messages) },
     ) { padding ->
         LazyColumn(

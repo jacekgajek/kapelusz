@@ -41,10 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -69,6 +66,9 @@ import com.jacekgajek.kapelusz.app.generated.paid_by
 import com.jacekgajek.kapelusz.app.generated.paid_by_name
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.search_by_title
+import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.CostNav
+import com.jacekgajek.kapelusz.app.ui.CostRoute
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
@@ -106,21 +106,17 @@ import org.jetbrains.compose.resources.stringResource
 /** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CostScreen(
-    changes: Changes,
-    incoming: Incoming,
-    fileStore: Attachments,
-    state: BandState.Ready,
-    costId: String?,
-    onBack: () -> Unit,
-    onAddedForOther: () -> Unit = {},
-    /** A new cost saved, with its id. */
-    onAdded: (String) -> Unit = {},
-    /** A new cost "incurred for" this event, from the event's Cost refunds (ITERATION_2 §7). */
-    forEventId: String? = null,
-    /** An event the cost is refunded at, opened at its Money page. */
-    onOpenEvent: (String) -> Unit = {},
-) {
+fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
+    val state = session.state
+    val changes = session.changes
+    val incoming = session.incoming
+    val fileStore = session.attachments
+    val costId = route.costId
+    val forEventId = route.forEventId
+    val onBack: () -> Unit = nav::back
+    val onAddedForOther: () -> Unit = nav::addedForOther
+    val onAdded: (String) -> Unit = nav::added
+    val onOpenEvent: (String) -> Unit = nav::openRefunds
     val band = state.band
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages)
