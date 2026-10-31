@@ -86,7 +86,6 @@ import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
-import com.jacekgajek.kapelusz.app.ui.screens.share.SharedFilesDialog
 import com.jacekgajek.kapelusz.rules.isArtist
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -107,46 +106,7 @@ private enum class Tab(val route: Any, val icon: ImageVector, val label: StringR
 @Composable
 internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: NavHostController, defaultName: String) {
     val settings by graph.settings.settings.collectAsState()
-    // After signing in, start from the event list: on the web the URL would otherwise restore the last screen
-    // (e.g. Settings, where the user signed out).
-    val signIns by graph.account.signIns.collectAsState()
-    // Each sign-in once: this screen is composed again on a language change or (Android) rotation, which must keep
-    // where the user is.
-    LaunchedEffect(signIns) {
-        if (signIns > graph.account.handledSignIns) {
-            graph.account.handledSignIns = signIns
-            navController.resetTo(EventsRoute)
-        }
-    }
-    // An event to open (e.g. an event link): open it, switching band if needed.
-    val openEvent by graph.incoming.pendingOpenEvent.collectAsState()
-    LaunchedEffect(openEvent) {
-        val (bandId, eventId, section) = openEvent ?: return@LaunchedEffect
-        graph.incoming.pendingOpenEvent.value = null
-        // The band can be gone by the time it opens (deleted, access lost): then nothing more happens.
-        if (!graph.bands.hasStored(bandId)) {
-            graph.incoming.sharedHandover.value = null
-            return@LaunchedEffect
-        }
-        // First: opening the band shows another band, whose reset must not undo the event opened below. Only when it
-        // switches: marked for a band already shown, the mark would stay and skip a later switch's reset.
-        if (graph.bands.currentBandId != bandId) {
-            graph.incoming.navigatedForBand = bandId
-            graph.bands.open(bandId)
-        }
-        // Already on it (e.g. files shared from the gig's screen): it stays, and takes what was shared.
-        val entry = navController.currentBackStackEntry
-        if (entry?.destination?.hasRoute(EventRoute::class) == true && entry.toRoute<EventRoute>().eventId == eventId) {
-            // At the section where the files went, in place: the screen stays, with its snackbar offering Undo.
-            if (section != null) entry.savedStateHandle[AppNavigator.EVENT_SECTION] = section.name
-            return@LaunchedEffect
-        }
-        // From the event list, like switching bands: Back must not lead into the other band's screens.
-        navController.resetTo(EventsRoute)
-        navController.navigate(EventRoute(eventId, section))
-    }
     LaunchedEffect(state.me?.pictureUrl) { graph.account.sendPictureIfMissing(state.me) }
-    SharedFilesDialog(graph.incoming, graph.bands, graph.attachments, state)
     val session = rememberBandSession(state, graph)
     val navigator = remember(navController, graph) { AppNavigator(navController) }
 
@@ -187,9 +147,13 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<EventRoute> { entry ->
                 val route = entry.toRoute<EventRoute>()
-                // The section to show: the route's at first, or one asked for later (files shared to this event); cleared once shown.
+                // The section to show once (not again after a rotation): the route's, cleared once shown.
                 val asked by entry.savedStateHandle.getStateFlow(AppNavigator.EVENT_SECTION, route.section?.name).collectAsState()
-                val screen = entry.screenViewModel { EventViewModel(route.eventId, session.bands.state) }
+                // What travels with it (files shared to the event, ITERATION_6 §1): taken once, when the screen's model is made.
+                val screen = entry.screenViewModel {
+                    val carry = route.carryId?.let(session.intents::takeCarry)
+                    EventViewModel(route.eventId, session.bands.state, carry)
+                }
                 EventScreen(session, navigator, screen, section = asked?.let(EventSection::valueOf)) {
                     entry.savedStateHandle[AppNavigator.EVENT_SECTION] = null
                 }

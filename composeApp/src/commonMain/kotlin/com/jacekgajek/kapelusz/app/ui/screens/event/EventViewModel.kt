@@ -8,29 +8,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.EventTab
-import com.jacekgajek.kapelusz.app.data.SharedAttached
-import com.jacekgajek.kapelusz.app.data.SharedHandover
+import com.jacekgajek.kapelusz.app.intents.Carry
+import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.Settlement
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-/** What the event screen does with files shared to the app for this event (ITERATION_6 §1). */
-enum class HandoverAction {
-    /** Opens the cost form for the event, which takes the files. */
-    ADD_COST,
-
-    /** The event is gone meanwhile (or hidden from an artist): the files must not turn up there later. */
-    DROP,
-}
-
 /**
  * One event's screen (ITERATION_5 §4.4): the event and its settlement as the band is now, the pages the user gets,
- * the dialog open, and the files shared to the app on their way in. Scoped to the screen's back-stack entry; the
- * pager and the lists' scroll positions stay in the screen, as they are its own.
+ * the dialog open, and what the screen was opened with ([carry]: files shared to the app, ITERATION_6 §1). Scoped to
+ * the screen's back-stack entry; the pager and the lists' scroll positions stay in the screen, as they are its own.
  */
-class EventViewModel(val eventId: String, bands: StateFlow<BandState>) : ViewModel() {
+class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Carry? = null) : ViewModel() {
     private var ready by mutableStateOf(bands.value as? BandState.Ready)
 
     init {
@@ -55,25 +46,15 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>) : ViewMod
     var editing by mutableStateOf(false)
 
     /** Files shared to this event that were attached: shown once in a snackbar with Undo, then forgotten. */
-    var attached by mutableStateOf<SharedAttached?>(null)
+    var attached by mutableStateOf(carry as? Carry.Attached)
         private set
 
-    /** What to do with [handover], files shared to the app, while this screen is in front; null: nothing. */
-    fun handoverAction(handover: SharedHandover?): HandoverAction? = when {
-        handover?.eventId != eventId -> null
-        event == null -> HandoverAction.DROP
-        handover.toCost -> HandoverAction.ADD_COST
-        else -> null
-    }
-
-    /** Takes [shared] over from the app's inbox (its own clearing must not cancel the snackbar showing here). */
-    fun takeAttached(shared: SharedAttached?, bandId: String): Boolean {
-        if (shared == null || shared.eventId != eventId || shared.bandId != bandId) return false
-        attached = shared
-        return true
-    }
+    private var collectedFiles = (carry as? Carry.NewCollected)?.files
 
     fun attachedShown() {
         attached = null
     }
+
+    /** Files shared to the app for new received money of this event, once (the entry's dialog opens with them). */
+    fun takeCollectedFiles(): List<PreparedFile>? = collectedFiles.also { collectedFiles = null }
 }

@@ -9,10 +9,10 @@ import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.data.Membership
 import com.jacekgajek.kapelusz.app.data.PlacesLocator
 import com.jacekgajek.kapelusz.app.data.SettingsRepository
+import com.jacekgajek.kapelusz.app.intents.IntentInbox
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Band
@@ -45,7 +45,7 @@ class BandSession(val state: BandState.Ready, private val graph: AppGraph) {
     val bands: BandRepository get() = graph.bands
     val sync: SyncEngine get() = graph.sync
     val settings: SettingsRepository get() = graph.settings
-    val incoming: Incoming get() = graph.incoming
+    val intents: IntentInbox get() = graph.intents
     val attachments: Attachments get() = graph.attachments
     val places: PlacesLocator get() = graph.places
     val account: Account get() = graph.account

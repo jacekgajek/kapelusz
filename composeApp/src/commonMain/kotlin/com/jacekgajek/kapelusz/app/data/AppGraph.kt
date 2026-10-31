@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.app.data
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
+import com.jacekgajek.kapelusz.app.intents.IntentInbox
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiSignal
@@ -28,7 +29,7 @@ import kotlinx.coroutines.sync.withLock
 
 /**
  * Process-wide objects, created once per app start (no DI framework), and loading them. The work is theirs: [account]
- * signs in and out, [membership] joins and leaves bands, [changes] applies the user's edits, [incoming] holds links and
+ * signs in and out, [membership] joins and leaves bands, [changes] applies the user's edits, [intents] holds links and
  * shared files for the UI.
  */
 class AppGraph(
@@ -62,8 +63,10 @@ class AppGraph(
     val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads)
     val messages: DeviceMessages = DeviceMessages(messageChannel, sessions, api, sync, scope)
     val changes = Changes(bands, sync)
-    val incoming = Incoming()
-    val account: Account = Account(scope, sessions, api, bands, uploads, sync, messages, incoming)
+
+    /** What the app was asked to do from outside (links, shared files), for the UI's router. */
+    val intents = IntentInbox()
+    val account: Account = Account(scope, sessions, api, bands, uploads, sync, messages, intents)
     val membership = Membership(scope, api, bands, sync, messages)
     val attachments = Attachments(bands, uploads, api, sync, scope, changes::dispatch, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.

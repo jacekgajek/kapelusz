@@ -5,7 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
-import com.jacekgajek.kapelusz.app.data.SharedFiles
+import com.jacekgajek.kapelusz.app.intents.AppIntent
+import com.jacekgajek.kapelusz.app.intents.SharedFiles
 import com.jacekgajek.kapelusz.app.platform.PickResult
 import com.jacekgajek.kapelusz.app.platform.prepareShared
 import kotlinx.coroutines.launch
@@ -62,16 +63,15 @@ class MainActivity : ComponentActivity() {
             else -> return
         }
         if (uris.isEmpty()) return
-        // Files handed to a form earlier but never taken: not to turn up there later.
-        graph.incoming.sharedHandover.value = null
         lifecycleScope.launch {
             // No target takes more: the rest is said, not read (each could be large).
             val results = prepareShared(applicationContext, uris.take(MAX_EVENT_ATTACHMENTS), intent.type)
-            graph.incoming.sharedFiles.value = SharedFiles(
+            val shared = SharedFiles(
                 results.filterIsInstance<PickResult.Picked>().map { it.file },
                 results.filter { it !is PickResult.Picked },
                 tooMany = (uris.size - MAX_EVENT_ATTACHMENTS).coerceAtLeast(0),
             )
+            graph.intents.offer(AppIntent.ShareFiles(shared))
         }
     }
 
@@ -81,8 +81,8 @@ class MainActivity : ComponentActivity() {
      */
     private fun takeJoinCode(intent: Intent?) {
         val path = intent?.data?.path ?: return
-        Regex("^/join/([A-Za-z0-9]{6})/?$").find(path)?.let { graph.incoming.pendingJoinCode.value = it.groupValues[1].uppercase() }
-        EventLinks.eventId(path)?.let { graph.incoming.pendingEventLink.value = it }
+        Regex("^/join/([A-Za-z0-9]{6})/?$").find(path)?.let { graph.intents.offer(AppIntent.Join(it.groupValues[1].uppercase())) }
+        EventLinks.eventId(path)?.let { graph.intents.offer(AppIntent.OpenEvent(it)) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

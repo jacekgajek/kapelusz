@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -30,9 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.currentStateAsState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_awaited
@@ -157,14 +153,7 @@ fun CollectedSection(context: EventContext) {
         }
     }
     // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): the new entry's dialog, with them.
-    val handover by context.incoming.sharedHandover.collectAsState()
-    // Only on the screen in front: one on its way out (the same event opened again) would take them along.
-    val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
-    LaunchedEffect(handover, resumed) {
-        if (handover?.let { it.eventId == event.id && !it.toCost } != true || !resumed) return@LaunchedEffect
-        // One dialog at a time: the new entry's.
-        dialog = CollectedDialog.Adding(context.incoming.takeSharedFiles(event.id, toCost = false))
-    }
+    LaunchedEffect(Unit) { context.takeCollectedFiles()?.let { dialog = CollectedDialog.Adding(it) } }
     val close = { dialog = null }
     when (val open = dialog) {
         CollectedDialog.AddingAwaited -> HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = close)

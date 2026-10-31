@@ -17,13 +17,18 @@ internal sealed interface LinkedEvent {
 /**
  * The band of an event link's event: one of the user's bands that has it and where they may open it. Looked for on the
  * device first; if not there (a gig just created, a band not on this device yet), every band of the user's is brought
- * up to date from the server and looked in again.
+ * up to date from the server ([syncAll], false when that could not be done) and looked in again.
  */
-internal suspend fun AppGraph.linkedEvent(eventId: Id): LinkedEvent {
-    val userId = sessions.session.value?.userId ?: return LinkedEvent.Unreachable
+internal suspend fun linkedEvent(eventId: Id, userId: String?, bands: BandRepository, syncAll: suspend () -> Boolean): LinkedEvent {
+    if (userId == null) return LinkedEvent.Unreachable
     fun find() = bands.allBands().firstOrNull { band -> band.event(eventId)?.let { EventLinks.canOpen(band, userId, it) } == true }?.id
     find()?.let { return LinkedEvent.Found(it) }
-    val synced = runSuspendCatching { sync.syncAll() }.getOrDefault(false)
+    val synced = runSuspendCatching { syncAll() }.getOrDefault(false)
     find()?.let { return LinkedEvent.Found(it) }
     return if (synced) LinkedEvent.NoAccess else LinkedEvent.Unreachable
+}
+
+internal suspend fun AppGraph.linkedEvent(eventId: Id): LinkedEvent {
+    val userId = sessions.session.value?.userId
+    return linkedEvent(eventId, userId, bands) { sync.syncAll() }
 }

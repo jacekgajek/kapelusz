@@ -61,6 +61,7 @@ import com.jacekgajek.kapelusz.app.generated.paid_by
 import com.jacekgajek.kapelusz.app.generated.paid_by_name
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.search_by_title
+import com.jacekgajek.kapelusz.app.intents.Carry
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.CostNav
 import com.jacekgajek.kapelusz.app.ui.CostRoute
@@ -190,13 +191,13 @@ fun CostScreen(session: BandSession, nav: CostNav, form: CostViewModel) {
 /** The screen's [CostViewModel], scoped to its back-stack entry: the band's services it needs, and the typed amount's language. */
 internal fun costViewModel(session: BandSession, route: CostRoute, language: String): CreationExtras.() -> CostViewModel = {
     // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1): taken once, when the form opens.
-    val sharedTo = route.forEventId?.takeIf { route.costId == null }
+    val shared = route.carryId?.let { session.intents.takeCarry(it) as? Carry.NewCost }
     CostViewModel(
         route,
         session.bands.state,
         dispatch = { session.changes.dispatch(it) },
         attachAfterSave = { costId, files -> session.attachments.attachAfterSave(costId, files) },
-        sharedFiles = sharedTo?.let { session.incoming.takeSharedFiles(it, toCost = true) }.orEmpty(),
+        sharedFiles = shared?.files.orEmpty(),
         handle = createSavedStateHandle(),
         today = today(),
         amountText = { formatMoneyInput(it, language) },

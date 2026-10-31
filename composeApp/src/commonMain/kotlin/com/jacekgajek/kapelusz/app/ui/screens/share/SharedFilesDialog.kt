@@ -27,17 +27,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -50,15 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.Incoming
-import com.jacekgajek.kapelusz.app.data.OpenEvent
-import com.jacekgajek.kapelusz.app.data.SharedAttached
-import com.jacekgajek.kapelusz.app.data.SharedFiles
-import com.jacekgajek.kapelusz.app.data.SharedHandover
-import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
@@ -80,6 +70,9 @@ import com.jacekgajek.kapelusz.app.generated.share_skipped_too_many
 import com.jacekgajek.kapelusz.app.generated.share_skipped_unsupported
 import com.jacekgajek.kapelusz.app.generated.share_title
 import com.jacekgajek.kapelusz.app.generated.share_upcoming
+import com.jacekgajek.kapelusz.app.intents.AppIntent
+import com.jacekgajek.kapelusz.app.intents.Carry
+import com.jacekgajek.kapelusz.app.intents.SharedFiles
 import com.jacekgajek.kapelusz.app.platform.PickResult
 import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
@@ -97,7 +90,6 @@ import com.jacekgajek.kapelusz.view.ShareEvent
 import com.jacekgajek.kapelusz.view.ShareTarget
 import com.jacekgajek.kapelusz.view.ShareTargets
 import com.jacekgajek.kapelusz.view.partyName
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -110,38 +102,31 @@ import org.jetbrains.compose.resources.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-internal fun SharedFilesDialog(incoming: Incoming, bands: BandRepository, fileStore: Attachments, state: BandState.Ready) {
-    val shared = incoming.sharedFiles.collectAsState().value ?: return
+internal fun SharedFilesDialog(
+    shared: SharedFiles,
+    bands: BandRepository,
+    state: BandState.Ready,
+    onChoose: (AppIntent.OpenEvent) -> Unit,
+    onDismiss: () -> Unit,
+) {
     // Another share while open: starts again from the events.
     var chosen by remember(shared) { mutableStateOf<ShareEvent?>(null) }
-    var busy by remember(shared) { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val dismiss = { if (incoming.sharedFiles.value === shared) incoming.sharedFiles.value = null }
-    // Not while attaching: closing would cancel it halfway (some files attached, the event not opened).
     // A sheet of its own per share: one shared while the last was closing would otherwise stay hidden.
-    val sheet = key(shared) { rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || !busy }) }
+    val sheet = key(shared) { rememberModalBottomSheetState(skipPartiallyExpanded = true) }
     // Every band on the device; recomputed as the open band changes (the others change only in the background).
     val events = remember(shared, state.band) { ShareTargets.events(bands.allBands(), state.userId, today()) }
     val severalBands = events.map { it.band.id }.distinct().size > 1
     val event = chosen
-    ModalBottomSheet(onDismissRequest = { if (!busy) dismiss() }, sheetState = sheet) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
         // Back from an event to the events, like the arrow; from the events it closes the sheet.
-        BackHandler(enabled = event != null && !busy) { chosen = null }
+        BackHandler(enabled = event != null) { chosen = null }
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
-            SheetHeader(shared, event, severalBands, onBack = { chosen = null }.takeIf { event != null && !busy })
+            SheetHeader(shared, event, severalBands, onBack = { chosen = null }.takeIf { event != null })
             Skipped(shared)
             when {
                 shared.files.isEmpty() -> Text(stringResource(Res.string.share_nothing_usable), Modifier.padding(vertical = 16.dp))
-
                 event == null -> EventChoices(events, severalBands) { chosen = it }
-
-                else -> TargetChoices(event, state.userId, shared, enabled = !busy) { target ->
-                    busy = true
-                    scope.launch {
-                        deliver(incoming, bands, fileStore, event, target, shared)
-                        dismiss()
-                    }
-                }
+                else -> TargetChoices(event, state.userId, shared, enabled = true) { target -> onChoose(intentFor(event, target, shared)) }
             }
         }
     }
@@ -359,29 +344,18 @@ private fun ExistingRow(icon: ImageVector, title: String, subtitle: String?, amo
 private const val DISABLED_ALPHA = 0.45f
 
 /**
- * Takes the shared files where the user chose: opens the event's band if another one is open, then either hands the
- * files to the new cost or received money form, or attaches them and remembers them for the event's Undo; the event
- * then opens (at the section where they went).
+ * Where the user chose to put the shared files, as what the app does next: open the event's band if another one is
+ * open, hand the files to the new cost or received money form, or attach them (the event then offers Undo), and open
+ * the event at the section where they went.
  */
-private suspend fun deliver(incoming: Incoming, bands: BandRepository, fileStore: Attachments, chosen: ShareEvent, target: ShareTarget, shared: SharedFiles) {
-    val bandId = chosen.band.id
+private fun intentFor(chosen: ShareEvent, target: ShareTarget, shared: SharedFiles): AppIntent.OpenEvent {
     val eventId = chosen.event.id
-    if (bands.currentBandId != bandId) {
-        // Like an event link: showing the other band must not reset the screens opened below.
-        incoming.navigatedForBand = bandId
-        bands.open(bandId)
-    }
-    val owner = when (target) {
-        is ShareTarget.NewCost, is ShareTarget.NewCollected -> null
-        is ShareTarget.EventFiles -> AttachmentOwner.OfEvent(eventId)
-        is ShareTarget.ExistingCost -> AttachmentOwner.OfCost(target.cost.id)
-        is ShareTarget.ExistingCollected -> AttachmentOwner.OfHolding(eventId, target.holding.id)
-    }
-    if (owner == null) {
-        incoming.sharedHandover.value = SharedHandover(eventId, toCost = target is ShareTarget.NewCost, shared.files)
-    } else {
-        val attached = shared.files.mapNotNull { file -> newId().takeIf { id -> fileStore.attach(owner, file, id) == null } }
-        incoming.sharedAttached.value = SharedAttached(bandId, eventId, owner, attached, failed = shared.files.size - attached.size)
+    val carry = when (target) {
+        is ShareTarget.NewCost -> Carry.NewCost(shared.files)
+        is ShareTarget.NewCollected -> Carry.NewCollected(shared.files)
+        is ShareTarget.EventFiles -> Carry.Attach(AttachmentOwner.OfEvent(eventId), shared.files)
+        is ShareTarget.ExistingCost -> Carry.Attach(AttachmentOwner.OfCost(target.cost.id), shared.files)
+        is ShareTarget.ExistingCollected -> Carry.Attach(AttachmentOwner.OfHolding(eventId, target.holding.id), shared.files)
     }
     val section = when (target) {
         is ShareTarget.NewCost -> null
@@ -389,5 +363,5 @@ private suspend fun deliver(incoming: Incoming, bands: BandRepository, fileStore
         is ShareTarget.EventFiles -> EventSection.FILES
         is ShareTarget.ExistingCost -> EventSection.REFUNDS
     }
-    incoming.pendingOpenEvent.value = OpenEvent(bandId, eventId, section)
+    return AppIntent.OpenEvent(eventId, chosen.band.id, section, carry)
 }
