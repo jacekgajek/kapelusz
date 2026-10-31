@@ -3,7 +3,6 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 
 /** Who applies an operation, and when. [memberId] is null for server-internal (system) operations. */

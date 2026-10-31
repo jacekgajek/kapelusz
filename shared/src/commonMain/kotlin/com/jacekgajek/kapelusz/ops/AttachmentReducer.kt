@@ -19,7 +19,9 @@ internal object AttachmentReducer {
             // The size is signed into the upload URL, so the stored file cannot be larger than declared here.
             val size = op.attachment.sizeBytes
             invalidIf(size == null || size <= 0, RejectionReason.INVALID_INPUT) { "Attachment size is required" }
-            invalidIf(size!! > op.attachment.kind.maxBytes, RejectionReason.ATTACHMENT_TOO_LARGE) { "Attachment exceeds ${op.attachment.kind.maxBytes} bytes" }
+            invalidIf(size > op.attachment.kind.maxBytes, RejectionReason.ATTACHMENT_TOO_LARGE) {
+                "Attachment exceeds ${op.attachment.kind.maxBytes} bytes"
+            }
             invalidIf(!op.attachment.id.matches(Regex("[A-Za-z0-9_-]{1,64}")), RejectionReason.INVALID_INPUT) { "Invalid attachment id" }
             // A device's file name can be anything: kept short rather than refused.
             attachments + op.attachment.copy(fileName = op.attachment.fileName?.trim()?.take(Attachment.MAX_FILE_NAME)?.ifEmpty { null })

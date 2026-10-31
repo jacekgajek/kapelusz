@@ -13,6 +13,8 @@ style:
     active: false
   WildcardImport:
     active: true
+  UnusedImport:
+    active: true
 naming:
   FunctionNaming:
     ignoreAnnotated: ["Composable"]
