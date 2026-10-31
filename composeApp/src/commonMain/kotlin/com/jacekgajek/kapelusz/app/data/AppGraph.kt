@@ -6,6 +6,8 @@ import com.jacekgajek.kapelusz.app.auth.SessionRepository
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiSignal
+import com.jacekgajek.kapelusz.app.sync.ApiTransport
+import com.jacekgajek.kapelusz.app.sync.SessionApi
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.sync.SyncEvent
 import io.ktor.client.HttpClient
@@ -38,19 +40,18 @@ class AppGraph(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") })
     val settings = SettingsRepository(store, scope)
 
-    // The exchange runs only after construction, when api exists.
-    val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
+    private val transport = ApiTransport(
+        http,
+        AppConfig.API_URL,
+        appVersion = AppConfig.VERSION_CODE,
+        installation = messageChannel?.installationId,
+    )
+    val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis, SessionApi(transport)::createSession)
     val bands = BandRepository(store, scope)
 
     /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
     val updateRequired = MutableStateFlow(false)
-    val api: ApiClient = ApiClient(
-        http,
-        AppConfig.API_URL,
-        token = { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) },
-        appVersion = AppConfig.VERSION_CODE,
-        installation = messageChannel?.installationId,
-    )
+    val api: ApiClient = ApiClient(transport) { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) }
     val uploads = AttachmentUploads(store, api, bands)
 
     /** Where event locations are, for the map (ITERATION_7 §8). */
@@ -78,7 +79,7 @@ class AppGraph(
         // a launch of its own: one that fails or takes long (signing out stops the sync loop, which may be the very
         // caller) must neither block the next nor end the subscription.
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            api.signals.collect { signal ->
+            transport.signals.collect { signal ->
                 scope.launch {
                     when (signal) {
                         ApiSignal.UpdateRequired -> updateRequired.value = true

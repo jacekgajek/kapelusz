@@ -4,6 +4,8 @@ import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiSignal
+import com.jacekgajek.kapelusz.app.sync.ApiTransport
+import com.jacekgajek.kapelusz.app.sync.SessionApi
 import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import io.ktor.client.HttpClient
@@ -213,11 +215,9 @@ class SessionRepositoryTest {
 
     /** The app's wiring: requests use the repository's tokens, and a revoke signs out. */
     private fun revokedApi(store: InMemoryStore, scope: CoroutineScope): Pair<SessionRepository, ApiClient> {
-        lateinit var api: ApiClient
-        val sessions = SessionRepository(store, google, clock = { now }) { bearer -> api.createSession(bearer) }
-        api = ApiClient(revokedServer, "https://api.test") { refused ->
-            sessions.validToken(forceRefresh = refused != null, refused = refused)
-        }
+        val transport = ApiTransport(revokedServer, "https://api.test")
+        val sessions = SessionRepository(store, google, clock = { now }, exchange = SessionApi(transport)::createSession)
+        val api = ApiClient(transport) { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) }
         // What the app's graph does on the signal (through Account); here at once, where it is emitted.
         scope.launch(UnconfinedTestDispatcher()) {
             api.signals.collect { if (it is ApiSignal.SessionsRevoked) sessions.signOut() }
