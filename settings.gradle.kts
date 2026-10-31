@@ -19,4 +19,4 @@ dependencyResolutionManagement {
     }
 }
 
-include(":shared", ":composeApp", ":androidApp", ":server")
+include(":shared", ":composeApp", ":androidApp", ":server", ":localServer")

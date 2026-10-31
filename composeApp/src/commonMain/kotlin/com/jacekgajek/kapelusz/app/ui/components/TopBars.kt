@@ -34,7 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.auth.GoogleSignInButton
+import com.jacekgajek.kapelusz.app.auth.SignInButton
 import kotlinx.coroutines.launch
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
@@ -186,7 +186,7 @@ fun SignInAgainDialog(accountEmail: String?, onReauthenticate: suspend (String) 
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(Res.string.sign_in_again_text, accountEmail.orEmpty()))
-                GoogleSignInButton(
+                SignInButton(
                     onIdToken = { token ->
                         scope.launch {
                             if (onReauthenticate(token)) {

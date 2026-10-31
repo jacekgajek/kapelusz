@@ -12,3 +12,6 @@ local.properties
 output.zip
 pepk.jar
 encryption_public_key.pem
+
+# The local server's bands, attachments and history (LOCAL_DEVELOPMENT.md).
+.local-data/

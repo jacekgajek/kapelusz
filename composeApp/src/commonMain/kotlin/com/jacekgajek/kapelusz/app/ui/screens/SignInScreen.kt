@@ -19,7 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.auth.GoogleSignInButton
+import com.jacekgajek.kapelusz.app.auth.SignInButton
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.app_name
 import com.jacekgajek.kapelusz.app.generated.sign_in_failed
@@ -40,7 +40,7 @@ fun SignInScreen(onIdToken: suspend (String) -> Unit, signedOutEverywhere: Boole
             // After "sign out on all devices" elsewhere, so the sudden sign-in screen is no mystery.
             if (signedOutEverywhere) Text(stringResource(Res.string.signed_out_everywhere), color = MaterialTheme.colorScheme.error)
             Text(stringResource(Res.string.sign_in_intro), style = MaterialTheme.typography.bodyMedium)
-            GoogleSignInButton(
+            SignInButton(
                 onIdToken = { token ->
                     scope.launch { runSuspendCatching { onIdToken(token) }.onFailure { error = it.message } }
                 },
