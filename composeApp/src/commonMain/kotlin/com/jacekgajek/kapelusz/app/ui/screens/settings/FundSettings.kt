@@ -66,7 +66,7 @@ class FundDefaultSetting(val stillDefault: List<Pair<String, String>>, val onSav
 
 /** The band fund page: what it is, whether it is on, who holds it and its default for new events (leaders change it). */
 @Composable
-internal fun FundSettings(fund: BandFundSettings) {
+internal fun FundSettings(fund: BandFundSettings, dialog: SettingsDialog?, open: (SettingsDialog) -> Unit, dismiss: () -> Unit) {
     with(fund) {
         Text(stringResource(Res.string.fund_explanation), style = MaterialTheme.typography.bodyMedium)
         val names = treasurerOptions.toMap()
@@ -78,7 +78,6 @@ internal fun FundSettings(fund: BandFundSettings) {
         }
         // On = someone holds the fund. Turning it on asks for the holder first; the switch shows on meanwhile.
         var enabling by remember { mutableStateOf(false) }
-        var confirmDisable by remember { mutableStateOf(false) }
         val enabled = treasurer != null
         Row(
             Modifier.fillMaxWidth().padding(top = 16.dp)
@@ -90,7 +89,7 @@ internal fun FundSettings(fund: BandFundSettings) {
                         if (on) {
                             enabling = true
                         } else if (enabled) {
-                            confirmDisable = true
+                            open(SettingsDialog.FUND_DISABLING)
                         } else {
                             enabling = false
                         }
@@ -117,19 +116,19 @@ internal fun FundSettings(fund: BandFundSettings) {
                 Text(stringResource(Res.string.fund_cannot_disable, balance), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
             }
             if (enabled) {
-                FundDefaultItem(default, defaultSetting, currency)
+                FundDefaultItem(default, defaultSetting, currency, editing = dialog == SettingsDialog.FUND_DEFAULT, open, dismiss)
                 FundPaymentItems(blikPhone, bankAccount, onPayment)
             }
         } else {
             Text(stringResource(Res.string.fund_disabled_hint), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
         }
-        if (confirmDisable && onDisable != null) {
+        if (dialog == SettingsDialog.FUND_DISABLING && onDisable != null) {
             ConfirmDialog(
                 title = stringResource(Res.string.fund_disable_title),
                 text = stringResource(Res.string.fund_disable_text),
                 confirmLabel = stringResource(Res.string.fund_disable_confirm),
                 onConfirm = onDisable,
-                onDismiss = { confirmDisable = false },
+                onDismiss = dismiss,
             )
         }
     }
@@ -144,15 +143,22 @@ private fun FundPaymentItems(blikPhone: String?, bankAccount: String?, onSave: (
 }
 
 @Composable
-private fun FundDefaultItem(fundDefault: FundCut?, setting: FundDefaultSetting?, currency: String) {
-    var editing by remember { mutableStateOf(false) }
+private fun FundDefaultItem(
+    fundDefault: FundCut?,
+    setting: FundDefaultSetting?,
+    currency: String,
+    editing: Boolean,
+    open: (SettingsDialog) -> Unit,
+    dismiss: () -> Unit,
+) {
     val lang = language
     val summary = fundDefault?.percent?.let { "$it%" } ?: fundDefault?.amount?.let { formatMoney(it, currency, lang) }
         ?: stringResource(Res.string.fund_default_none)
     Box(Modifier.padding(top = 8.dp)) {
-        SettingsItem(Icons.Default.Percent, stringResource(Res.string.fund_default), summary, onClick = setting?.let { { editing = true } })
+        val edit = { open(SettingsDialog.FUND_DEFAULT) }
+        SettingsItem(Icons.Default.Percent, stringResource(Res.string.fund_default), summary, onClick = edit.takeIf { setting != null })
     }
-    if (editing && setting != null) FundDefaultDialog(fundDefault, setting, currency) { editing = false }
+    if (editing && setting != null) FundDefaultDialog(fundDefault, setting, currency, onDismiss = dismiss)
 }
 
 /** The fund's default, then (if some unsettled events still have the old one) whether to use the new one there too. */

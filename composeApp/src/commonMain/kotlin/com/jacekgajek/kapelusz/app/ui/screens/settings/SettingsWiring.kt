@@ -33,12 +33,12 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The open band's [Settings] for its user: what each setting is, and how it changes, where they may change it (the same
- * permission checks as the operations themselves). [onBandGone]: after leaving or deleting the band.
+ * permission checks as the operations themselves). [onBandGone]: after leaving or deleting the band; [dispatch]: runs
+ * a change, telling its refusal (each action is offered only where it is allowed, but the band may have changed meanwhile).
  */
 @Composable
-fun settingsFor(session: BandSession, onBandGone: () -> Unit): Settings {
+fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operation) -> Unit): Settings {
     val state = session.state
-    val changes = session.changes
     val account = session.account
     val membership = session.membership
     val api = session.api
@@ -50,10 +50,6 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit): Settings {
     val appSettings by preferences.settings.collectAsState()
     val stillDefault = remember(band) { BandFund.stillDefault(state.view).map { it.id to it.name } }
 
-    // A refusal can't happen here: each action is offered only where it is allowed.
-    fun dispatch(op: Operation) {
-        changes.dispatch(op)
-    }
     return Settings(
         band = BandSettings(
             name = band.name,
