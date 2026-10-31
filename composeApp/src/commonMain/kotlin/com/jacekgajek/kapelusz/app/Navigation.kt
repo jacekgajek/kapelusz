@@ -84,6 +84,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
+import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
 import com.jacekgajek.kapelusz.rules.isArtist
 import org.jetbrains.compose.resources.StringResource
@@ -203,8 +204,10 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<SettingsRoute> { entry ->
                 val page = entry.toRoute<SettingsRoute>().page?.let { name -> SettingsPage.entries.firstOrNull { it.name == name } }
+                val screen = entry.screenViewModel { SettingsViewModel { session.changes.dispatch(it) } }
                 SettingsScreen(
-                    settingsFor(session, onBandGone = navigator::bandGone),
+                    settingsFor(session, onBandGone = navigator::bandGone, dispatch = screen::dispatch),
+                    screen,
                     page,
                     // Only from the list while it is on screen, so a double tap does not open the page twice.
                     onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) },

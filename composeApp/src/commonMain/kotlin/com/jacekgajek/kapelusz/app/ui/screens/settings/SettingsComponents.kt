@@ -18,7 +18,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,14 +30,22 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.settings
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.MAX_LIST_WIDTH
+import com.jacekgajek.kapelusz.app.ui.components.Messages
 import com.jacekgajek.kapelusz.app.ui.model.label
 
-/** A settings page: the top bar and a centred column that does not stretch on wide screens. */
+/** A settings page: the top bar, the screen's messages, and a centred column that does not stretch on wide screens. */
 @Composable
-internal fun SettingsPageScaffold(title: String, onBack: () -> Unit, padded: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
-    Scaffold(topBar = { BackTopBar(title, onBack) }) { padding ->
+internal fun SettingsPageScaffold(
+    title: String,
+    onBack: () -> Unit,
+    messages: Messages,
+    padded: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    AppScaffold(messages, topBar = { BackTopBar(title, onBack) }) { padding ->
         Box(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
             val inset = if (padded) Modifier.padding(16.dp) else Modifier.padding(vertical = 8.dp)
             Column(Modifier.widthIn(max = MAX_LIST_WIDTH).fillMaxWidth().then(inset), content = content)

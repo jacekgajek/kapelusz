@@ -42,11 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -87,8 +84,10 @@ import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.PaymentDetailDialog
 import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.rememberMessages
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.label
 import com.jacekgajek.kapelusz.text.BankAccount
@@ -109,6 +108,7 @@ private const val PRIVACY_URL = "https://kapelusz.jacekgajek.com/privacy-policy"
 @Composable
 fun SettingsScreen(
     settings: Settings,
+    screen: SettingsViewModel,
     /** The page shown: null for the main list. */
     page: SettingsPage?,
     onOpenPage: (SettingsPage) -> Unit,
@@ -121,12 +121,25 @@ fun SettingsScreen(
     val personal = settings.personal
     val agenda = settings.agenda
     val artist = settings.artist
+    val messages = rememberMessages()
+    // A change the band refused (it may have changed meanwhile): said here, where it was made.
+    LaunchedEffect(screen.refusal) {
+        screen.refusal?.let {
+            messages.post(UiMessage.Rejected(it.reason))
+            screen.refusalShown()
+        }
+    }
+    val dialog = screen.dialog
+    // A dialog whose reason went away meanwhile (the band is to be deleted, the fund turned off, no longer a member):
+    // closed, not kept for when the reason comes back.
+    val offered = dialog == null || dialog.stillOffered(settings)
+    LaunchedEffect(dialog, offered) { if (!offered) screen.dismiss() }
     when (page) {
-        SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
-            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(fund)
+        SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack, messages) {
+            if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(fund, dialog, screen::open, screen::dismiss)
         }
 
-        SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
+        SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack, messages) {
             if (agenda != null) {
                 AgendaTemplateEditor(agenda.template, agenda.stored, agenda.onChange)
             } // No longer a leader (e.g. demoted meanwhile): nothing to edit here.
@@ -136,19 +149,21 @@ fun SettingsScreen(
         }
 
         // The app's own notifications are gone (ITERATION_6 §9): gigs reach the phone through the calendar.
-        SettingsPage.CALENDAR -> SettingsPageScaffold(stringResource(Res.string.calendar_title), onBack) {
+        SettingsPage.CALENDAR -> SettingsPageScaffold(stringResource(Res.string.calendar_title), onBack, messages) {
             CalendarSection(personal.calendar, showTitle = false, showIncludeAll = !artist)
         }
 
-        null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
-            var choosingLanguage by remember { mutableStateOf(false) }
-            var renaming by remember { mutableStateOf(false) }
-            var editingBlik by remember { mutableStateOf(false) }
-            var editingAccount by remember { mutableStateOf(false) }
+        null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, messages, padded = false) {
             val languages = listOf(null to Res.string.language_system, "en" to Res.string.language_en, "pl" to Res.string.language_pl)
             // Grouped by whom they affect: the band's settings change things for everyone, the personal ones only for you.
             SectionHeader(stringResource(Res.string.settings_band), Modifier.padding(horizontal = 16.dp))
-            SettingsItem(Icons.Default.Groups, stringResource(Res.string.band_name), band.name, onClick = band.onRename?.let { { renaming = true } })
+            val rename = { screen.open(SettingsDialog.RENAMING) }
+            SettingsItem(
+                Icons.Default.Groups,
+                stringResource(Res.string.band_name),
+                band.name,
+                onClick = rename.takeIf { band.onRename != null },
+            )
             if (!artist) {
                 SettingsItem(
                     Icons.Default.Savings,
@@ -159,12 +174,12 @@ fun SettingsScreen(
             }
             if (personal.onBlikPhone != null) {
                 SettingsItem(Icons.Default.PhoneAndroid, stringResource(Res.string.blik_mine), personal.blikPhone?.let(BlikPhone::display) ?: stringResource(Res.string.blik_mine_off)) {
-                    editingBlik = true
+                    screen.open(SettingsDialog.BLIK)
                 }
             }
             if (personal.onBankAccount != null) {
                 SettingsItem(Icons.Default.AccountBalance, stringResource(Res.string.account_mine), personal.bankAccount?.let(BankAccount::display) ?: stringResource(Res.string.blik_mine_off)) {
-                    editingAccount = true
+                    screen.open(SettingsDialog.ACCOUNT)
                 }
             }
             if (agenda != null) {
@@ -178,7 +193,7 @@ fun SettingsScreen(
             }
             SectionHeader(stringResource(Res.string.settings_personal), Modifier.padding(horizontal = 16.dp))
             SettingsItem(Icons.Default.Language, stringResource(Res.string.language), stringResource((languages.firstOrNull { it.first == personal.language } ?: languages.first()).second)) {
-                choosingLanguage = true
+                screen.open(SettingsDialog.LANGUAGE)
             }
             SettingsItem(Icons.Default.Event, stringResource(Res.string.calendar_title), stringResource(Res.string.calendar_summary), chevron = true) {
                 onOpenPage(SettingsPage.CALENDAR)
@@ -210,47 +225,44 @@ fun SettingsScreen(
                 FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Signing out takes a moment (sync stops, data is cleared): a spinner at once, and no second tap. The
                     // screen goes away when it is done.
-                    var signingOut by remember { mutableStateOf(false) }
-                    OutlinedButton(enabled = !signingOut, onClick = {
-                        signingOut = true
-                        personal.onSignOut()
-                    }) {
+                    val signingOut = screen.signingOut
+                    OutlinedButton(enabled = !signingOut, onClick = { screen.signOut(personal.onSignOut) }) {
                         if (signingOut) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         if (signingOut) Spacer(Modifier.width(8.dp))
                         Text(stringResource(Res.string.sign_out))
                     }
-                    var signingOutEverywhere by remember { mutableStateOf(false) }
-                    TextButton(onClick = { signingOutEverywhere = true }) {
+                    TextButton(onClick = { screen.open(SettingsDialog.SIGN_OUT_EVERYWHERE) }) {
                         Text(stringResource(Res.string.sign_out_everywhere))
                     }
-                    if (signingOutEverywhere) SignOutEverywhereDialog(personal.onSignOutEverywhere, onDismiss = { signingOutEverywhere = false })
+                    if (dialog == SettingsDialog.SIGN_OUT_EVERYWHERE) {
+                        SignOutEverywhereDialog(personal.onSignOutEverywhere, onDismiss = screen::dismiss)
+                    }
                 }
                 // Red, as a link: the owner is told how to hand the band over or delete it instead.
                 val deleteButton = remember { BringIntoViewRequester() }
                 val scope = rememberCoroutineScope()
                 if (band.onLeave != null) {
-                    var leaving by remember { mutableStateOf(false) }
                     TextButton(
-                        onClick = { leaving = true },
+                        onClick = { screen.open(SettingsDialog.LEAVING) },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         contentPadding = PaddingValues(vertical = 8.dp),
                         modifier = Modifier.padding(top = 8.dp),
                     ) {
                         Text(stringResource(Res.string.leave_band))
                     }
-                    if (leaving) {
+                    if (dialog == SettingsDialog.LEAVING) {
                         // Only the owner may delete the band, and the owner alone can't leave it.
                         if (band.onDelete != null) {
                             OwnerCannotLeaveDialog(
                                 onOpenMembers = onOpenMembers,
                                 onDeleteBand = {
-                                    leaving = false
+                                    screen.dismiss()
                                     scope.launch { deleteButton.bringIntoView() }
                                 },
-                                onDismiss = { leaving = false },
+                                onDismiss = screen::dismiss,
                             )
                         } else {
-                            LeaveBandDialog(band.name, band.leaveWarnings, band.onLeave, onDismiss = { leaving = false })
+                            LeaveBandDialog(band.name, band.leaveWarnings, band.onLeave, onDismiss = screen::dismiss)
                         }
                     }
                 }
@@ -260,9 +272,8 @@ fun SettingsScreen(
                     Box(Modifier.padding(top = 16.dp).bringIntoViewRequester(deleteButton)) { band.deletionNotice() }
                 } else if (band.onDelete != null) {
                     HorizontalDivider(Modifier.padding(top = 24.dp))
-                    var deleting by remember { mutableStateOf(false) }
                     OutlinedButton(
-                        onClick = { deleting = true },
+                        onClick = { screen.open(SettingsDialog.DELETING) },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                         modifier = Modifier.padding(top = 16.dp).bringIntoViewRequester(deleteButton),
@@ -270,17 +281,21 @@ fun SettingsScreen(
                         Icon(Icons.Default.DeleteForever, null)
                         Text(stringResource(Res.string.delete_band), Modifier.padding(start = 8.dp))
                     }
-                    if (deleting) DeleteBandDialog(band.name, band.otherMembers, band.onDelete, onDismiss = { deleting = false })
+                    if (dialog == SettingsDialog.DELETING) {
+                        DeleteBandDialog(band.name, band.otherMembers, band.onDelete, onDismiss = screen::dismiss)
+                    }
                 }
-                var secretMenu by remember { mutableStateOf(false) }
                 // A tap on the version opens the secret menu for leaders (ITERATION_2 §7.1); for others it is just text.
-                VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(if (band.rawData != null) Modifier.clickable { secretMenu = true } else Modifier))
-                if (secretMenu && band.rawData != null) SecretMenuDialog(band.rawData, onDismiss = { secretMenu = false })
+                val secret = if (band.rawData != null) Modifier.clickable { screen.open(SettingsDialog.SECRET_MENU) } else Modifier
+                VersionLabel(Modifier.align(Alignment.End).padding(vertical = 24.dp).then(secret))
+                if (dialog == SettingsDialog.SECRET_MENU && band.rawData != null) {
+                    SecretMenuDialog(band.rawData, onDismiss = screen::dismiss)
+                }
             }
 
-            if (choosingLanguage) {
+            if (dialog == SettingsDialog.LANGUAGE) {
                 AlertDialog(
-                    onDismissRequest = { choosingLanguage = false },
+                    onDismissRequest = screen::dismiss,
                     title = { Text(stringResource(Res.string.language)) },
                     text = {
                         Column(Modifier.selectableGroup()) {
@@ -289,7 +304,7 @@ fun SettingsScreen(
                                     Modifier.fillMaxWidth()
                                         .selectable(selected = personal.language == code, onClick = {
                                             personal.onLanguage(code)
-                                            choosingLanguage = false
+                                            screen.dismiss()
                                         }, role = Role.RadioButton)
                                         .padding(vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -300,18 +315,52 @@ fun SettingsScreen(
                             }
                         }
                     },
-                    confirmButton = { TextButton(onClick = { choosingLanguage = false }) { Text(stringResource(Res.string.cancel)) } },
+                    confirmButton = { TextButton(onClick = screen::dismiss) { Text(stringResource(Res.string.cancel)) } },
                 )
             }
-            if (editingBlik && personal.onBlikPhone != null) {
-                PaymentDetailDialog(PaymentKind.BLIK, stringResource(Res.string.blik_mine), stringResource(Res.string.blik_mine_hint), personal.blikPhone, personal.onBlikPhone, onDismiss = { editingBlik = false })
+            if (dialog == SettingsDialog.BLIK && personal.onBlikPhone != null) {
+                PaymentDetailDialog(
+                    PaymentKind.BLIK,
+                    stringResource(Res.string.blik_mine),
+                    stringResource(Res.string.blik_mine_hint),
+                    personal.blikPhone,
+                    personal.onBlikPhone,
+                    onDismiss = screen::dismiss,
+                )
             }
-            if (editingAccount && personal.onBankAccount != null) {
-                PaymentDetailDialog(PaymentKind.ACCOUNT, stringResource(Res.string.account_mine), stringResource(Res.string.account_mine_hint), personal.bankAccount, personal.onBankAccount, onDismiss = { editingAccount = false })
+            if (dialog == SettingsDialog.ACCOUNT && personal.onBankAccount != null) {
+                PaymentDetailDialog(
+                    PaymentKind.ACCOUNT,
+                    stringResource(Res.string.account_mine),
+                    stringResource(Res.string.account_mine_hint),
+                    personal.bankAccount,
+                    personal.onBankAccount,
+                    onDismiss = screen::dismiss,
+                )
             }
-            if (renaming && band.onRename != null) {
-                TextInputDialog(stringResource(Res.string.band_name), stringResource(Res.string.band_name), band.name, onConfirm = { if (it != band.name) band.onRename(it) }, onDismiss = { renaming = false })
+            if (dialog == SettingsDialog.RENAMING && band.onRename != null) {
+                val title = stringResource(Res.string.band_name)
+                TextInputDialog(
+                    title,
+                    title,
+                    band.name,
+                    onConfirm = { if (it != band.name) band.onRename(it) },
+                    onDismiss = screen::dismiss,
+                )
             }
         }
     }
+}
+
+/** Whether what the dialog changes is still on offer, as the settings are now. */
+private fun SettingsDialog.stillOffered(settings: Settings): Boolean = when (this) {
+    SettingsDialog.LANGUAGE, SettingsDialog.SIGN_OUT_EVERYWHERE -> true
+    SettingsDialog.RENAMING -> settings.band.onRename != null
+    SettingsDialog.BLIK -> settings.personal.onBlikPhone != null
+    SettingsDialog.ACCOUNT -> settings.personal.onBankAccount != null
+    SettingsDialog.LEAVING -> settings.band.onLeave != null
+    SettingsDialog.DELETING -> settings.band.onDelete != null && settings.band.deletionNotice == null
+    SettingsDialog.SECRET_MENU -> settings.band.rawData != null
+    SettingsDialog.FUND_DISABLING -> settings.fund.onDisable != null
+    SettingsDialog.FUND_DEFAULT -> settings.fund.treasurer != null && settings.fund.defaultSetting != null
 }
