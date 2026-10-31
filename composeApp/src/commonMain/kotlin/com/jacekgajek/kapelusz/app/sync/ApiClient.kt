@@ -144,14 +144,12 @@ class ApiClient(
 
     /** Deletes the band for everyone (owner only). */
     suspend fun deleteBand(bandId: Id) {
-        val response = send(HttpMethod.Delete, "/bands/$bandId") {}
-        if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
+        text(send(HttpMethod.Delete, "/bands/$bandId") {})
     }
 
     /** Unlinks the caller's account from the band (not its owner, who gets [ApiErrors.OWNER_CANNOT_LEAVE]). */
     suspend fun leaveBand(bandId: Id) {
-        val response = send(HttpMethod.Post, "/bands/$bandId/leave") {}
-        if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
+        text(send(HttpMethod.Post, "/bands/$bandId/leave") {})
     }
 
     /** The band's file exactly as stored on the server, for leaders (ITERATION_2 §7.1). */
@@ -198,8 +196,7 @@ class ApiClient(
     )
 
     suspend fun revokeInvite(bandId: Id, code: String) {
-        val response = send(HttpMethod.Delete, "/bands/$bandId/invites/$code") {}
-        if (response.status.value !in 200..299) parse(response, ErrorResponse.serializer())
+        text(send(HttpMethod.Delete, "/bands/$bandId/invites/$code") {})
     }
 
     suspend fun previewInvite(code: String): InvitePreview = call(HttpMethod.Get, "/invites/$code", InvitePreview.serializer())

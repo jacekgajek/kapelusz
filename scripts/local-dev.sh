@@ -19,10 +19,10 @@ case "$command" in
     ;;
   android)
     # installDebug installs on every connected device: only on the one named.
-#    if [[ -z "${ANDROID_SERIAL:-}" ]]; then
-#      echo "Set ANDROID_SERIAL to the emulator to install on (adb devices lists them), e.g. emulator-5554." >&2
-#      exit 1
-#    fi
+    if [[ -z "${ANDROID_SERIAL:-}" ]]; then
+      echo "Set ANDROID_SERIAL to the emulator to install on (adb devices lists them), e.g. emulator-5554." >&2
+      exit 1
+    fi
     KAPELUSZ_API_URL="http://10.0.2.2:$port" KAPELUSZ_DEV_SIGN_IN=true exec ./gradlew :androidApp:installDebug "$@"
     ;;
   web)

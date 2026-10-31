@@ -37,7 +37,6 @@
     <string name="deleted_member">Usunięto: %1$s</string>
     <string name="archive_not_settled">Jeszcze nierozliczone</string>
     <string name="move_up">Przesuń w górę</string>
-    <string name="move_down">Przesuń w dół</string>
     <string name="amount_invalid">Wpisz kwotę, np. 129,60</string>
     <string name="create_band">Utwórz zespół</string>
     <string name="create_band_intro">Utwórz zespół, aby zacząć rozliczać koncerty. Zostaniesz jego właścicielem.</string>
@@ -134,7 +133,6 @@
     <string name="participants">Uczestnicy</string>
     <string name="add_guest">Gość</string>
     <string name="guest_name">Imię gościa</string>
-    <string name="share_weight">Udział</string>
     <string name="share_weight_hint">1 to zwykły udział, 1½ to półtora, bez udziału oznacza udział w wydarzeniu bez części pieniędzy.</string>
     <string name="collected_money">Otrzymane pieniądze</string>
     <string name="collected_empty">Nikt jeszcze nie otrzymał pieniędzy.</string>

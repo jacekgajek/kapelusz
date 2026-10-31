@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Udziały albo stała kwota (ITERATION_3 §2.4) -->
-    <string name="share_fixed">stała kwota</string>
     <string name="share_fixed_amount">Stała kwota</string>
     <string name="share_fixed_hint">Wypłacana przed podziałem reszty na udziały. Zwroty własnych kosztów dochodzą do niej.</string>
     <string name="share_by_percent">Procent</string>

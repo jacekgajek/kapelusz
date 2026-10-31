@@ -256,14 +256,10 @@ class SyncEngine(
             for (bandId in ids) {
                 val result = if (bands.local(bandId) == null) {
                     // One band failing to download must not keep the others from syncing.
-                    try {
+                    runSuspendCatching {
                         api.state(bandId, null)?.let { bands.storeFromServer(it.band, it.version) }
                         SyncStatus.SYNCED
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Throwable) {
-                        classify(e)
-                    }
+                    }.getOrElse { classify(it) }
                 } else {
                     syncBand(bandId, pull = true)
                 }

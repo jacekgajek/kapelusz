@@ -37,7 +37,6 @@
     <string name="deleted_member">Deleted %1$s</string>
     <string name="archive_not_settled">Not settled yet</string>
     <string name="move_up">Move up</string>
-    <string name="move_down">Move down</string>
     <string name="amount_invalid">Enter an amount like 129.60</string>
     <string name="create_band">Create band</string>
     <string name="create_band_intro">Create your band to start settling concerts. You will be its owner.</string>
@@ -134,7 +133,6 @@
     <string name="participants">Participants</string>
     <string name="add_guest">Guest</string>
     <string name="guest_name">Guest name</string>
-    <string name="share_weight">Share</string>
     <string name="share_weight_hint">1 is a normal share, 1½ gets one and a half, no share takes part without any of the money.</string>
     <string name="collected_money">Received money</string>
     <string name="collected_empty">No money received yet.</string>

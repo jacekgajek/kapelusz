@@ -14,7 +14,6 @@ import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.UnknownOperation
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,14 +97,12 @@ class BandRepository(
 
     /**
      * Loads all of the user's bands stored on this device and opens the last used one. Storage keys include the user
-     * id, so another account signed in on the same device never sees (or pushes) these bands. Also adopts data saved
-     * by older versions.
+     * id, so another account signed in on the same device never sees (or pushes) these bands.
      */
     suspend fun load(userId: String) {
         this.userId = userId
         locals.clear()
         dirty.clear()
-        migrateUnscopedKeys(userId)
         val rawIndex = store.read(indexKey(userId))
         val index = rawIndex?.let { raw -> runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
             ?: BandIndex(userId).also {
@@ -116,7 +113,6 @@ class BandRepository(
         // Unreadable: the bands it listed are found again from their own files, also those created offline that the
         // server does not know yet. The ids are picked out of the broken text.
         if (rawIndex != null && index.bands.isEmpty()) recoverBands(userId, rawIndex)
-        adoptLegacyBand(userId)
         // Every stored band, not only the open one: bands created offline must still be uploaded, and unsent changes
         // in other bands pushed, even if the user never opens them.
         for (summary in _index.value?.bands.orEmpty()) {
@@ -381,47 +377,6 @@ class BandRepository(
         if (summaries.isNotEmpty()) updateIndex { it.copy(bands = summaries, currentBandId = summaries.first().id) }
     }
 
-    /** M3 builds stored `band-index` and `band-{id}` without the user id; move them if they belong to [userId]. */
-    private suspend fun migrateUnscopedKeys(userId: String) {
-        val raw = store.read(UNSCOPED_INDEX_KEY) ?: return
-        val index = runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull()
-        if (index == null || index.userId != userId) return
-        for (summary in index.bands) {
-            val band = store.read("band-${summary.id}") ?: continue
-            val owner = runCatching { KapeluszJson.decodeFromString(LocalBand.serializer(), band).userId }.getOrNull()
-            if (owner == userId) {
-                store.write(bandKey(userId, summary.id), band)
-                store.remove("band-${summary.id}")
-            }
-        }
-        if (store.read(indexKey(userId)) == null) store.write(indexKey(userId), raw)
-        store.remove(UNSCOPED_INDEX_KEY)
-    }
-
-    /** M2 kept one band under `band`, owned by a placeholder user; it now belongs to the signed-in user. */
-    private suspend fun adoptLegacyBand(userId: String) {
-        val raw = store.read(LEGACY_KEY) ?: return
-        val legacy = runCatching { KapeluszJson.decodeFromString(LocalBand.serializer(), raw) }.getOrNull()
-        if (legacy == null) {
-            store.write("$LEGACY_KEY-backup-${clock()}", raw)
-            store.remove(LEGACY_KEY)
-            return
-        }
-        val reassign = { band: Band -> band.copy(members = band.members.map { if (it.userId == legacy.userId) it.copy(userId = userId) else it }) }
-        val adopted = legacy.copy(base = reassign(legacy.base), userId = userId, needsCreate = legacy.version == null)
-        locals[adopted.base.id] = adopted
-        store.write(bandKey(userId, adopted.base.id), KapeluszJson.encodeToString(LocalBand.serializer(), adopted))
-        store.remove(LEGACY_KEY)
-        val shown = replay(adopted)
-        val me = shown.memberOfUser(userId)
-        updateIndex { index ->
-            index.copy(
-                currentBandId = adopted.base.id,
-                bands = index.bands.filterNot { it.id == shown.id } + BandSummary(shown.id, shown.name, me?.name.orEmpty(), me?.role ?: Role.OWNER),
-            )
-        }
-    }
-
     private fun replay(local: LocalBand): Band = local.pending.fold(local.base) { band, envelope ->
         when (val result = Engine.apply(band, Actor.User(local.userId), envelope.op, envelope.opId, envelope.timestamp)) {
             is ApplyResult.Applied -> result.band
@@ -488,15 +443,9 @@ class BandRepository(
     }
 
     /** False when the device could not store it (e.g. full): it stays marked as unsaved instead of being forgotten. */
-    private suspend fun write(key: String, value: String): Boolean = try {
-        store.write(key, value)
-        true
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Throwable) {
-        println("Could not store $key: $e")
-        false
-    }
+    private suspend fun write(key: String, value: String): Boolean = runSuspendCatching { store.write(key, value) }
+        .onFailure { println("Could not store $key: $it") }
+        .isSuccess
 
     private var retrying = false
 
@@ -515,23 +464,14 @@ class BandRepository(
     private class UnreadableBand : RuntimeException()
 
     companion object {
-        /** Before multi-band support (M2) the only band lived under this key. */
-        const val LEGACY_KEY = "band"
-
         /** How soon a write that failed (e.g. a full device) is tried again. */
         const val FLUSH_RETRY_MS = 30_000L
 
         /** Write passes per flush: changes arriving during writes are rare and few. */
         const val FLUSH_PASSES = 3
 
-        /** M3 stored the index without the user id. */
-        const val UNSCOPED_INDEX_KEY = "band-index"
-
         /** Raise when the band model gains fields an older app would drop (V2-M3: agenda times). */
         const val CURRENT_SCHEMA = 3
-
-        /** Identity of the device user in M2, before Google sign-in. */
-        const val LOCAL_USER_ID = "local-user"
 
         private val PrettyJson = Json(from = KapeluszJson) { prettyPrint = true }
 
