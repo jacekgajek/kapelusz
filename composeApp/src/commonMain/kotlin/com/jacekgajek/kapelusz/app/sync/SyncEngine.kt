@@ -78,8 +78,14 @@ class SyncEngine(
 
     private val runLock = Mutex()
     private val wakeUp = Channel<Unit>(1, BufferOverflow.DROP_OLDEST)
-    private var loop: Job? = null
-    private var drain: Job? = null
+
+    private val _state = MutableStateFlow<SyncState>(SyncState.Stopped)
+
+    /** Where the loop is; see [SyncState]. */
+    val state: StateFlow<SyncState> = _state.asStateFlow()
+    private var roundJob: Job? = null
+    private var waitJob: Job? = null
+    private val blocked: Boolean get() = _state.value is SyncState.Blocked
 
     /**
      * The server will send this device a message when one of the user's bands changes (ITERATION_7 §2.3): the loop then
@@ -93,61 +99,51 @@ class SyncEngine(
     }
 
     /** Starts the periodic loop (idempotent). */
-    fun start() {
-        drain?.cancel()
-        if (loop?.isActive == true) return
-        loop = scope.launch {
-            var backoff = 0L
-            while (true) {
-                val ok = syncNow()
-                backoff = if (ok) 0 else (if (backoff == 0L) 5_000 else backoff * 2).coerceAtMost(5 * 60_000)
-                withTimeoutOrNull(waitAfter(ok, backoff).milliseconds) { wakeUp.receive() }
-                delay(DEBOUNCE.milliseconds)
-            }
-        }
-    }
+    fun start() = send(SyncInput.Start)
 
-    /** Until the next round: [interval] (or [MESSAGED_INTERVAL] when messages come) after a good one, else [backoff]. */
-    internal fun waitAfter(ok: Boolean, backoff: Long): Long = if (!ok) {
-        backoff
-    } else if (messaged) {
-        MESSAGED_INTERVAL
-    } else {
-        interval
-    }
-
-    /** Pauses the periodic loop, e.g. while the Android app is in the background. */
-    fun stop() {
-        loop?.cancel()
-        loop = null
-        drain?.cancel()
-        drain = null
-    }
+    /** Pauses the periodic loop, e.g. while the Android app is in the background; a round under way is cut short. */
+    fun stop() = send(SyncInput.Stop)
 
     /**
      * The web app's tab was hidden (ITERATION_7 §2.6): what waits to be sent goes first (with backoff while offline,
      * and after Undo's hold), then nothing more until [start] when it is shown again.
      */
-    fun pauseAfterSending() {
-        loop?.cancel()
-        loop = null
-        if (drain?.isActive == true) return
-        drain = scope.launch {
-            var backoff = 5_000L
+    fun pauseAfterSending() = send(SyncInput.Hide)
 
-            // Not what can't go: bands whose changes the server refuses, or no session, or too old an app.
-            fun waiting(): Boolean {
-                val unsent = bands.bandsToPush() - round.stuck.value.keys
-                return unsent.isNotEmpty() || uploads?.bandsWithUploads().orEmpty().isNotEmpty()
-            }
-            fun blocked() = _status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED
-            while (waiting() && !blocked()) {
-                val ok = syncNow()
-                if (!waiting() || blocked()) break
-                delay((if (ok) 2_000 else backoff).milliseconds)
-                backoff = if (ok) 5_000 else (backoff * 2).coerceAtMost(5 * 60_000)
-            }
+    /** Until the next round: [interval] (or [MESSAGED_INTERVAL] when messages come) after a good one, else [backoff]. */
+    internal fun waitAfter(ok: Boolean, backoff: Long): Long = rules().waitAfter(ok, backoff)
+
+    /** Something waits to be sent that can go: not bands whose changes the server refuses. */
+    private fun waiting(): Boolean {
+        val unsent = bands.bandsToPush() - round.stuck.value.keys
+        return unsent.isNotEmpty() || uploads?.bandsWithUploads().orEmpty().isNotEmpty()
+    }
+
+    private fun rules() = SyncRules(sending = waiting(), messaged = messaged, interval = interval, messagedInterval = MESSAGED_INTERVAL)
+
+    /** The only way the loop moves: [reduce] says where it goes, and what to do is done here. */
+    private fun send(input: SyncInput) {
+        val (next, effect) = reduce(_state.value, input, rules())
+        _state.value = next
+        // A wait belongs between rounds; elsewhere a leftover one would only consume a wake.
+        if (!next.betweenRounds) waitJob?.cancel()
+        when (effect) {
+            Effect.RunRound -> roundJob = scope.launch { syncNow() }
+            is Effect.WaitThenRun -> waitJob = scope.launch { waitThenRun(effect) }
+            Effect.Cancel -> roundJob?.cancel()
+            Effect.None -> Unit
         }
+    }
+
+    private suspend fun waitThenRun(effect: Effect.WaitThenRun) {
+        if (effect.wakeable) {
+            // Until the time is up, or a wake comes first; then a breath, so quick taps make one round.
+            withTimeoutOrNull(effect.after.milliseconds) { wakeUp.receive() }
+            delay(DEBOUNCE.milliseconds)
+        } else {
+            delay(effect.after.milliseconds)
+        }
+        send(SyncInput.Wake)
     }
 
     /**
@@ -156,7 +152,7 @@ class SyncEngine(
      * fetched quietly, downloaded if it isn't here yet, or let go of if it is gone for the user.
      */
     fun bandChanged(bandId: Id) {
-        if (loop?.isActive != true) return
+        if (_state.value !is SyncState.Idle && _state.value !is SyncState.Running) return
         if (bandId == bands.currentBandId) {
             requestSync()
             return
@@ -164,7 +160,7 @@ class SyncEngine(
         scope.launch {
             runSuspendCatching {
                 runLock.withLock {
-                    if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return@withLock
+                    if (blocked) return@withLock
                     if (bands.local(bandId) != null) {
                         round.syncBand(bandId, pull = true)
                     } else {
@@ -178,10 +174,10 @@ class SyncEngine(
         }
     }
 
-    /** The user signed in again: leave [SyncStatus.NEEDS_SIGN_IN] and sync right away. */
+    /** The user signed in again: leave [SyncStatus.NEEDS_SIGN_IN] and sync right away (when the loop runs). */
     fun resumeAfterSignIn() {
         if (_status.value == SyncStatus.NEEDS_SIGN_IN) _status.value = SyncStatus.IDLE
-        requestSync()
+        send(SyncInput.SignedIn)
     }
 
     /** Asks for a sync soon, e.g. after a local change. */
@@ -191,7 +187,7 @@ class SyncEngine(
 
     /** The user tapped the sync icon: it shows "syncing" at once, even when nothing waits to be sent. */
     fun syncAsked() {
-        if (_status.value != SyncStatus.NEEDS_SIGN_IN && _status.value != SyncStatus.UPDATE_REQUIRED) _status.value = SyncStatus.SYNCING
+        if (!blocked) _status.value = SyncStatus.SYNCING
         requestSync()
     }
 
@@ -199,12 +195,18 @@ class SyncEngine(
      * One full round; returns false when it should be retried later. Bands are synced independently, so a problem
      * with one band never blocks the others.
      */
-    suspend fun syncNow(): Boolean = runLock.withLock {
+    suspend fun syncNow(): Boolean {
+        val result = runRound() ?: return false
+        // Also a round run by hand: what blocks every round (sign in again, update the app) stops the loop too.
+        send(SyncInput.RoundDone(result, waiting()))
+        return result == SyncStatus.SYNCED
+    }
+
+    /** The round under the lock; null when none may run (waiting for the user to sign in again, or to update the app). */
+    private suspend fun runRound(): SyncStatus? = runLock.withLock {
         // Waiting for the user to sign in again: retrying would only repeat silent renewal attempts (and on the web
-        // possibly Google prompts) while hiding the "sign in again" state.
-        if (_status.value == SyncStatus.NEEDS_SIGN_IN) return false
-        // Retrying is pointless until the app is updated (which restarts it).
-        if (_status.value == SyncStatus.UPDATE_REQUIRED) return false
+        // possibly Google prompts) while hiding the "sign in again" state. Pointless until an update too (which restarts).
+        if (blocked) return@withLock null
         var result = SyncStatus.SYNCED
         try {
             val current = bands.currentBandId
@@ -230,7 +232,7 @@ class SyncEngine(
             result = round.classify(e)
         }
         _status.value = shown(result)
-        result == SyncStatus.SYNCED
+        result
     }
 
     /**
@@ -245,7 +247,7 @@ class SyncEngine(
      * should be retried.
      */
     suspend fun syncAll(): Boolean = runLock.withLock {
-        if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return false
+        if (blocked) return false
         try {
             round.checkBandList(api.me().bands)
             val ids = (bands.index.value?.bands.orEmpty().map { it.id } + bands.bandsToPush() + uploads?.bandsWithUploads().orEmpty()).distinct()
@@ -262,6 +264,7 @@ class SyncEngine(
                 }
                 if (result == SyncStatus.NEEDS_SIGN_IN || result == SyncStatus.OFFLINE || result == SyncStatus.UPDATE_REQUIRED) {
                     _status.value = backgroundShown(result)
+                    if (result == SyncStatus.UPDATE_REQUIRED) send(SyncInput.RoundDone(result, waiting = false))
                     return false
                 }
                 if (result != SyncStatus.SYNCED) allOk = false
@@ -272,7 +275,12 @@ class SyncEngine(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            round.classify(e).let { if (it == SyncStatus.UPDATE_REQUIRED) _status.value = it }
+            round.classify(e).let {
+                if (it == SyncStatus.UPDATE_REQUIRED) {
+                    _status.value = it
+                    send(SyncInput.RoundDone(it, waiting = false))
+                }
+            }
             false
         }
     }
