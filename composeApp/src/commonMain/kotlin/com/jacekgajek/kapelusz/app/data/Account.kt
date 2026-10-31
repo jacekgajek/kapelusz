@@ -26,8 +26,10 @@ class Account(
     /** The signed-in user; null while signed out. */
     val session: StateFlow<Session?> get() = sessions.session
 
+    private val _signedOutEverywhere = MutableStateFlow(false)
+
     /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
-    val signedOutEverywhere = MutableStateFlow(false)
+    val signedOutEverywhere: StateFlow<Boolean> = _signedOutEverywhere.asStateFlow()
 
     private val _signIns = MutableStateFlow(0)
 
@@ -47,7 +49,7 @@ class Account(
         bands.load(userId)
         uploads.load(userId)
         sessions.signedIn(idToken)
-        signedOutEverywhere.value = false
+        _signedOutEverywhere.value = false
         _signIns.value++
         sync.start()
         sync.resumeAfterSignIn()
@@ -89,7 +91,7 @@ class Account(
      */
     internal suspend fun signOutRevoked() {
         if (sessions.session.value == null) return
-        signedOutEverywhere.value = true
+        _signedOutEverywhere.value = true
         signOut(tellServer = false)
     }
 

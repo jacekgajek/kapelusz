@@ -29,7 +29,9 @@ import androidx.navigation.compose.rememberNavController
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
+import com.jacekgajek.kapelusz.app.auth.Session
 import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.AppState
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.LinkedEvent
 import com.jacekgajek.kapelusz.app.data.OpenEvent
@@ -68,24 +70,19 @@ fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
     // Members' Google photos load over Ktor on every platform, kept in memory and (Android) on disk.
     setSingletonImageLoaderFactory { context -> ImageLoader.Builder(context).components { add(KtorNetworkFetcherFactory()) }.build() }
     val settings by graph.settings.settings.collectAsState()
-    val bandState by graph.bands.state.collectAsState()
-    val session by graph.sessions.session.collectAsState()
+    val state by graph.state.collectAsState(graph.currentState)
     // Outside key(language), so changing the language keeps the back stack. A new controller per signed-in account:
     // after signing out and in again the app starts on the event list instead of restoring the old back stack.
-    val navController = key(session?.userId) { rememberNavController() }
+    val navController = key((state as? AppState.SignedIn)?.session?.userId) { rememberNavController() }
     LaunchedEffect(navController) { onNavHostReady(navController) }
     CompositionLocalProvider(LocalAppLocale provides settings.language) {
         key(settings.language) {
             KapeluszTheme {
-                val updateRequired by graph.updateRequired.collectAsState()
                 Surface(Modifier.fillMaxSize()) {
-                    if (updateRequired) {
-                        UpdateRequiredScreen()
-                    } else if (session == null) {
-                        val signedOutEverywhere by graph.account.signedOutEverywhere.collectAsState()
-                        SignInScreen(onIdToken = graph.account::onSignedIn, signedOutEverywhere = signedOutEverywhere)
-                    } else {
-                        BandContent(graph, bandState, navController)
+                    when (val shown = state) {
+                        AppState.UpdateRequired -> UpdateRequiredScreen()
+                        is AppState.SignedOut -> SignInScreen(onIdToken = graph.account::onSignedIn, signedOutEverywhere = shown.everywhere)
+                        is AppState.SignedIn -> BandContent(graph, shown.session, shown.band, navController)
                     }
                 }
             }
@@ -100,13 +97,12 @@ fun AppLoading() {
 }
 
 @Composable
-private fun BandContent(graph: AppGraph, bandState: BandState, navController: NavHostController) {
+private fun BandContent(graph: AppGraph, session: Session, bandState: BandState, navController: NavHostController) {
     val scope = rememberCoroutineScope()
     val index by graph.bands.index.collectAsState()
     val syncStatus by graph.sync.status.collectAsState()
     val stuck by graph.sync.stuck.collectAsState()
-    val session by graph.sessions.session.collectAsState()
-    val defaultName = session?.name?.substringBefore(' ').orEmpty()
+    val defaultName = session.name?.substringBefore(' ').orEmpty()
     // Opening a band from the first screen must not navigate: the navigation host only exists once a band is open.
     // Switching from inside a band resets the back stack to the event list.
     var openError by remember { mutableStateOf(false) }
@@ -145,7 +141,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     val reauthenticate: suspend (String) -> Boolean = { token ->
         graph.sessions.reauthenticated(token).also { ok -> if (ok) graph.sync.resumeAfterSignIn() }
     }
-    if (signingInAgain) SignInAgainDialog(session?.email, reauthenticate, onDismiss = { signingInAgain = false })
+    if (signingInAgain) SignInAgainDialog(session.email, reauthenticate, onDismiss = { signingInAgain = false })
     // Joining: from a join link (pending code) or the "Join a band" buttons.
     val pendingJoinCode by graph.incoming.pendingJoinCode.collectAsState()
     var joining by remember { mutableStateOf(false) }
@@ -200,8 +196,8 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 onSummary = { navController.navigate(SummaryRoute) },
                 onSyncNow = { graph.sync.syncAsked() },
                 onReauthenticate = reauthenticate,
-                accountEmail = session?.email,
-                artist = bandState.band.isArtist(session?.userId),
+                accountEmail = session.email,
+                artist = bandState.band.isArtist(session.userId),
             ),
         ) { Navigation(graph, bandState, navController, defaultName) }
 
