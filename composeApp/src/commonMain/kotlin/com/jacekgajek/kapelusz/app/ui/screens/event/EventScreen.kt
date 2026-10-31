@@ -23,10 +23,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Tab
@@ -89,14 +85,18 @@ import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.EventNav
 import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.app.ui.components.Actions
+import com.jacekgajek.kapelusz.app.ui.components.AmountRow
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.Choice
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.EmptyState
 import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
+import com.jacekgajek.kapelusz.app.ui.components.MAX_LIST_WIDTH
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
-import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SegmentedChoice
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
@@ -233,7 +233,8 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
         attached = null
     }
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
                 if (event != null && settlement != null) {
@@ -244,20 +245,17 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
                 }
             }
         },
-        snackbarHost = { MessageHost(messages) },
     ) { padding ->
         if (event == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text(stringResource(Res.string.event_not_found))
-            }
-            return@Scaffold
+            EmptyState(stringResource(Res.string.event_not_found), Modifier.padding(padding))
+            return@AppScaffold
         }
         val context = EventContext(
             fileStore,
             incoming,
             state.view,
             event,
-            settlement ?: return@Scaffold,
+            settlement ?: return@AppScaffold,
             state.me,
             actions,
             session.can,
@@ -270,7 +268,7 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
                 val tab = tabs[page]
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     LazyColumn(
-                        Modifier.widthIn(max = 720.dp).fillMaxWidth(),
+                        Modifier.widthIn(max = MAX_LIST_WIDTH).fillMaxWidth(),
                         state = listStates.getValue(tab),
                         contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp),
                     ) {
@@ -321,7 +319,7 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
 @Composable
 private fun EventTabs(tabs: List<EventTab>, pagerState: PagerState) {
     val scope = rememberCoroutineScope()
-    PrimaryTabRow(selectedTabIndex = pagerState.currentPage, modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
+    PrimaryTabRow(selectedTabIndex = pagerState.currentPage, modifier = Modifier.widthIn(max = MAX_LIST_WIDTH).fillMaxWidth()) {
         tabs.forEachIndexed { index, tab ->
             Tab(
                 selected = pagerState.currentPage == index,
@@ -387,32 +385,22 @@ private fun Totals(context: EventContext) {
     if (editingFund) FundAmountDialog(context, onDismiss = { editingFund = false })
     Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TotalRow(stringResource(Res.string.total_income), s.income, context.currency)
+            AmountRow(stringResource(Res.string.total_income), s.income)
             // Part of the income is a fee the organiser has not paid yet (ITERATION_4 §2.2).
-            if (event.awaited.isPositive) TotalRow(stringResource(Res.string.total_awaited), event.awaited, context.currency)
+            if (event.awaited.isPositive) AmountRow(stringResource(Res.string.total_awaited), event.awaited)
             val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
             if (!s.fundAmount.isZero || event.fundPercent != null || canSetFund) {
                 // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
-                TotalRow(
+                AmountRow(
                     stringResource(if (s.fundAmount.isNegative) Res.string.total_from_fund else Res.string.total_fund) +
                         (event.fundPercent?.let { " ($it%)" } ?: ""),
                     -s.fundAmount,
-                    context.currency,
                     onEdit = { editingFund = true }.takeIf { canSetFund },
                 )
             }
-            if (!s.refundsTotal.isZero) TotalRow(stringResource(Res.string.total_refunds), -s.refundsTotal, context.currency)
-            TotalRow(stringResource(Res.string.total_net), s.net, context.currency, bold = true)
+            if (!s.refundsTotal.isZero) AmountRow(stringResource(Res.string.total_refunds), -s.refundsTotal)
+            AmountRow(stringResource(Res.string.total_net), s.net, bold = true)
         }
-    }
-}
-
-@Composable
-private fun TotalRow(label: String, amount: Money, currency: String, bold: Boolean = false, onEdit: (() -> Unit)? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), style = if (bold) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
-        MoneyText(amount, currency, bold = bold)
-        if (onEdit != null) EditButton(onClick = onEdit)
     }
 }
 
@@ -438,13 +426,11 @@ private fun FundAmountDialog(context: EventContext, onDismiss: () -> Unit) {
         title = { Text(stringResource(Res.string.band_fund)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    listOf(false to Res.string.fund_direction_to, true to Res.string.fund_direction_from).forEachIndexed { index, (value, label) ->
-                        SegmentedButton(selected = fromFund == value, onClick = { fromFund = value }, shape = SegmentedButtonDefaults.itemShape(index, 2), icon = {}) {
-                            Text(stringResource(label))
-                        }
-                    }
-                }
+                val directions = listOf(
+                    Choice(false, stringResource(Res.string.fund_direction_to)),
+                    Choice(true, stringResource(Res.string.fund_direction_from)),
+                )
+                SegmentedChoice(directions, fromFund, { fromFund = it })
                 if (fromFund) {
                     // The editor's amount: switching back keeps a percentage chosen before.
                     MoneyField(editor.amount, { editor.amount = it }, stringResource(Res.string.amount))

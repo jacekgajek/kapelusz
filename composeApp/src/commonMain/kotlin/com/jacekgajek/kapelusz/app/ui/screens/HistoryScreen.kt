@@ -20,7 +20,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,8 +51,8 @@ import com.jacekgajek.kapelusz.app.sync.HistoryItem
 import com.jacekgajek.kapelusz.app.sync.ReadOp
 import com.jacekgajek.kapelusz.app.ui.BackNav
 import com.jacekgajek.kapelusz.app.ui.BandSession
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
@@ -144,7 +143,7 @@ fun HistoryScreen(session: BandSession, nav: BackNav) {
         }
     }
     history.UndoConfirmation(state.band, actions)
-    Scaffold(topBar = { BackTopBar(stringResource(Res.string.history), onBack) }, snackbarHost = { MessageHost(messages) }) { padding ->
+    AppScaffold(messages, topBar = { BackTopBar(stringResource(Res.string.history), onBack) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).listWidth()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { offset++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month)) }

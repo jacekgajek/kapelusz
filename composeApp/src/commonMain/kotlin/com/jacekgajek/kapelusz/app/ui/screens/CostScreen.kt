@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,11 +68,13 @@ import com.jacekgajek.kapelusz.app.generated.search_by_title
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.CostNav
 import com.jacekgajek.kapelusz.app.ui.CostRoute
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
+import com.jacekgajek.kapelusz.app.ui.components.EmptyState
+import com.jacekgajek.kapelusz.app.ui.components.MAX_LIST_WIDTH
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
@@ -178,7 +179,8 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
     // Another payer: an event they are not in is no longer a choice.
     LaunchedEffect(events) { if (forEvent == null && eventId !in events) eventId = null }
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = {
             BackTopBar(stringResource(if (existing == null) Res.string.add_cost else Res.string.edit_cost), onBack) {
                 if (existing != null && can.deleteCost(existing)) {
@@ -187,15 +189,14 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
                 TextButton(onClick = ::save, enabled = canSave) { Text(stringResource(Res.string.save)) }
             }
         },
-        snackbarHost = { MessageHost(messages) },
     ) { padding ->
         if (costId != null && existing == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(stringResource(Res.string.cost_not_found)) }
-            return@Scaffold
+            EmptyState(stringResource(Res.string.cost_not_found), Modifier.padding(padding))
+            return@AppScaffold
         }
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             Column(
-                Modifier.widthIn(max = 600.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.widthIn(max = MAX_LIST_WIDTH).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (existing != null) RefundInfo(state, existing, onOpenEvent)

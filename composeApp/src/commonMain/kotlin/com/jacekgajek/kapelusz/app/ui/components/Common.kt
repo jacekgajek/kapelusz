@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +90,7 @@ import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
@@ -159,11 +161,14 @@ fun DialogNotice(actions: Actions) = DialogNotice(actions.messages)
 @Composable
 fun rememberActions(changes: Changes, messages: Messages, undos: UndoStack? = messages.undos): Actions = remember(changes, messages, undos) { Actions(changes, messages, undos) }
 
+/** The band's currency, for money shown without saying whose: provided while a band is open. */
+val LocalCurrency = staticCompositionLocalOf<String> { error("No band open") }
+
 @Composable
 fun MoneyText(
     money: Money,
-    currency: String,
     modifier: Modifier = Modifier,
+    currency: String = LocalCurrency.current,
     colored: Boolean = false,
     bold: Boolean = false,
 ) {
@@ -262,6 +267,23 @@ fun InviteMemberDialog(name: String, onInvite: () -> Unit, onDismiss: () -> Unit
 /** In place of a guest's avatar: someone playing this one event with the band. */
 @Composable
 fun GuestIcon(size: Dp = 28.dp) = AvatarIcon(Icons.Default.Handshake, size, null)
+
+/** A member's avatar beside their name, or the crossed eye when they have no app account. */
+@Composable
+fun MemberAvatar(member: Member, size: Dp = 28.dp) {
+    if (member.userId == null) NotInAppIcon(size) else Avatar(member.name, member.pictureUrl, size, decorative = true)
+}
+
+/** A party's avatar beside its name in [event]: the handshake for a guest, else the member's ([MemberAvatar]). */
+@Composable
+fun PartyAvatar(band: Band, event: Event, partyId: String, size: Dp = 28.dp) {
+    val member = band.member(partyId)
+    when {
+        event.guest(partyId) != null -> GuestIcon(size)
+        member == null -> NotInAppIcon(size)
+        else -> MemberAvatar(member, size)
+    }
+}
 
 @Composable
 private fun AvatarIcon(icon: ImageVector, size: Dp, description: String?) {
@@ -483,6 +505,12 @@ val MAX_LIST_WIDTH = 600.dp
 
 /** Caps a list (after its size modifiers) at [MAX_LIST_WIDTH], centred in the space it was given. */
 fun Modifier.listWidth(): Modifier = wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = MAX_LIST_WIDTH).fillMaxWidth()
+
+/** The widest a short form grows (sign-in, a new band, the screens with nothing but a few fields and a button). */
+val MAX_FORM_WIDTH = 420.dp
+
+/** Caps a form at [MAX_FORM_WIDTH]. */
+fun Modifier.formWidth(): Modifier = widthIn(max = MAX_FORM_WIDTH)
 
 /** Visible edit affordance at the end of a tappable row (touch screens show no hover highlight). */
 @Composable

@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -27,11 +26,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -88,12 +85,12 @@ import com.jacekgajek.kapelusz.app.generated.summary_waiting
 import com.jacekgajek.kapelusz.app.generated.summary_you
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.SummaryNav
-import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.DateRangeDialog
 import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.MemberAvatar
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -149,19 +146,7 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
     fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(stringResource(Res.string.summary_title))
-                        Text(band.name, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back)) }
-                },
-            )
-        },
+        topBar = { BackTopBar(stringResource(Res.string.summary_title), onBack, subtitle = band.name) },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth(), contentPadding = PaddingValues(8.dp, 0.dp, 8.dp, 32.dp)) {
             item(key = "periods") {
@@ -305,7 +290,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         val invite = canInvite && member.userId == null && member.id != myId
         val inviteLabel = stringResource(Res.string.not_in_app_invite)
         PersonRow(totals, currency, member.name, index, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
-            MemberAvatar(member)
+            MemberAvatar(member, 40.dp)
         }
     }
     summary.guests?.let { guests ->
@@ -323,7 +308,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         }
     }
     itemsIndexed(former, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
-        PersonRow(totals, currency, member.name, index) { MemberAvatar(member) }
+        PersonRow(totals, currency, member.name, index) { MemberAvatar(member, 40.dp) }
     }
 }
 
@@ -413,6 +398,3 @@ private fun PersonAmount(label: StringResource, amount: Money, currency: String)
     Text(stringResource(label), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
     Text(formatMoney(amount, currency, language), style = MaterialTheme.typography.bodyMedium)
 }
-
-@Composable
-private fun MemberAvatar(member: Member) = if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)

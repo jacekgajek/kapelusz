@@ -43,13 +43,11 @@ import com.jacekgajek.kapelusz.app.generated.settle_part
 import com.jacekgajek.kapelusz.app.generated.settle_received
 import com.jacekgajek.kapelusz.app.generated.to_settle
 import com.jacekgajek.kapelusz.app.generated.transfer_recorded
-import com.jacekgajek.kapelusz.app.generated.unnamed_cost
-import com.jacekgajek.kapelusz.app.ui.components.Avatar
-import com.jacekgajek.kapelusz.app.ui.components.CostIcon
-import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
+import com.jacekgajek.kapelusz.app.ui.components.AmountRow
+import com.jacekgajek.kapelusz.app.ui.components.CostRow
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
+import com.jacekgajek.kapelusz.app.ui.components.PartyAvatar
 import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
@@ -81,14 +79,7 @@ fun ArtistLineup(context: EventContext) {
     SettlementCalculator.partyOrder(context.band, event).mapNotNull { event.participant(it) }.forEach { participant ->
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            val member = context.band.member(participant.partyId)
-            if (event.guest(participant.partyId) != null) {
-                GuestIcon()
-            } else if (member?.userId == null) {
-                NotInAppIcon()
-            } else {
-                Avatar(name, member.pictureUrl, decorative = true)
-            }
+            PartyAvatar(context.band, event, participant.partyId)
             Text(name)
         }
     }
@@ -110,16 +101,18 @@ fun ArtistPayout(context: EventContext) {
     SectionTitle(stringResource(Res.string.artist_payout))
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            PayoutRow(stringResource(Res.string.artist_to_receive), line.target, context.currency)
-            PayoutRow(stringResource(Res.string.artist_received), line.received - line.sent, context.currency)
+            AmountRow(stringResource(Res.string.artist_to_receive), line.target)
+            AmountRow(stringResource(Res.string.artist_received), line.received - line.sent)
             // Artists hold no money (ITERATION_4 §1.1), so what is still owed to them is just the negative delta. If they
             // got too much (or owe from before they were an artist), they hand it back (To settle, ITERATION_7 §3.2).
-            if (partner != null && kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)
-            if (partner != null && heldForPartner.isPositive) PayoutRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner, context.currency)
+            if (partner != null && kept.isPositive) AmountRow(stringResource(Res.string.artist_kept_by_partner, partner), kept)
+            if (partner != null && heldForPartner.isPositive) {
+                AmountRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner)
+            }
             if (line.delta > heldForPartner) {
-                PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, context.currency, bold = true)
+                AmountRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, bold = true)
             } else {
-                PayoutRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), context.currency, bold = true)
+                AmountRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), bold = true)
             }
             // A pair kept by an event settled together before it ended (ITERATION_5 §7) is told in the past.
             if (partner != null) {
@@ -175,7 +168,7 @@ private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTran
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 CopyAmountButton(context, part.amount)
-                MoneyText(part.amount, context.currency, bold = true)
+                MoneyText(part.amount, bold = true)
             }
             if (settles) {
                 TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
@@ -197,14 +190,6 @@ private fun ArtistTransferRow(context: EventContext, me: Id, part: SuggestedTran
     }
 }
 
-@Composable
-private fun PayoutRow(label: String, amount: Money, currency: String, bold: Boolean = false) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), style = if (bold) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
-        MoneyText(amount, currency, bold = bold)
-    }
-}
-
 /** The artist's own costs for this event, with their statuses, and adding one. */
 @Composable
 fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: () -> Unit) {
@@ -215,20 +200,12 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
     SectionTitle(stringResource(Res.string.artist_my_costs))
     costs.forEach { cost ->
         val status = statuses.status(cost)
-        Row(
+        CostRow(
+            cost,
+            formatDate(cost.date, language),
             Modifier.fillMaxWidth().clickable { onOpenCost(cost.id) }.padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CostIcon(cost, Modifier.padding(end = 12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost))
-                Text(formatDate(cost.date, language), style = MaterialTheme.typography.bodySmall)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                MoneyText(cost.amount, context.currency)
-                Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
-            }
-        }
+            status = costStatusText(band, cost, status),
+        )
     }
     if (context.can.addCostIn(context.event)) {
         TextButton(onClick = onAddCost) {

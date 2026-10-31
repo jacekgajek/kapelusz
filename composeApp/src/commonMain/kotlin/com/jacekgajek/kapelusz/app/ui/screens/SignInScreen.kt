@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +25,7 @@ import com.jacekgajek.kapelusz.app.generated.sign_in_failed
 import com.jacekgajek.kapelusz.app.generated.sign_in_intro
 import com.jacekgajek.kapelusz.app.generated.signed_out_everywhere
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
+import com.jacekgajek.kapelusz.app.ui.components.formWidth
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -35,7 +35,7 @@ fun SignInScreen(onIdToken: suspend (String) -> Unit, signedOutEverywhere: Boole
     var error by remember { mutableStateOf<String?>(null) }
     // Clear of the system bars (edge to edge on Android 15+).
     Box(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
-        Column(Modifier.widthIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.formWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineLarge)
             // After "sign out on all devices" elsewhere, so the sudden sign-in screen is no mystery.
             if (signedOutEverywhere) Text(stringResource(Res.string.signed_out_everywhere), color = MaterialTheme.colorScheme.error)

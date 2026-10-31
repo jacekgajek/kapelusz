@@ -2,11 +2,7 @@ package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,9 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.amount
@@ -78,18 +71,11 @@ fun FundCutEditor(state: FundCutEditorState, currency: String, profit: Money?) {
     val lang = language
     val currencyLabel = if (lang == "pl" && currency == "PLN") "zł" else currency
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            listOf(true to "%", false to currencyLabel).forEachIndexed { index, (value, label) ->
-                val description = stringResource(if (value) Res.string.share_by_percent else Res.string.share_fixed_amount)
-                SegmentedButton(
-                    selected = state.byPercent == value,
-                    onClick = { state.byPercent = value },
-                    shape = SegmentedButtonDefaults.itemShape(index, 2),
-                    icon = {},
-                    modifier = Modifier.semantics { contentDescription = description },
-                ) { Text(label) }
-            }
-        }
+        val modes = listOf(
+            Choice(true, "%", stringResource(Res.string.share_by_percent)),
+            Choice(false, currencyLabel, stringResource(Res.string.share_fixed_amount)),
+        )
+        SegmentedChoice(modes, state.byPercent, { state.byPercent = it })
         if (state.byPercent) {
             Text("${state.percent}%", style = MaterialTheme.typography.titleMedium)
             Slider(

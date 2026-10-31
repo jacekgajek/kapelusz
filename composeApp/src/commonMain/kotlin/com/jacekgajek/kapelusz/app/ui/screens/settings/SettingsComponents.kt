@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.settings
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.MAX_LIST_WIDTH
 import com.jacekgajek.kapelusz.app.ui.model.label
 
 /** A settings page: the top bar and a centred column that does not stretch on wide screens. */
@@ -39,7 +40,8 @@ import com.jacekgajek.kapelusz.app.ui.model.label
 internal fun SettingsPageScaffold(title: String, onBack: () -> Unit, padded: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
     Scaffold(topBar = { BackTopBar(title, onBack) }) { padding ->
         Box(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().then(if (padded) Modifier.padding(16.dp) else Modifier.padding(vertical = 8.dp)), content = content)
+            val inset = if (padded) Modifier.padding(16.dp) else Modifier.padding(vertical = 8.dp)
+            Column(Modifier.widthIn(max = MAX_LIST_WIDTH).fillMaxWidth().then(inset), content = content)
         }
     }
 }

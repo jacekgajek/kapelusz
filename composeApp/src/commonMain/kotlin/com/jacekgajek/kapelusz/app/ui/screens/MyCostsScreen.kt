@@ -1,11 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,19 +17,13 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
@@ -50,12 +42,12 @@ import com.jacekgajek.kapelusz.app.generated.filter_mine
 import com.jacekgajek.kapelusz.app.generated.filter_pending
 import com.jacekgajek.kapelusz.app.generated.filter_refunded
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
-import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.CostsNav
-import com.jacekgajek.kapelusz.app.ui.components.CostIcon
-import com.jacekgajek.kapelusz.app.ui.components.MessageHost
-import com.jacekgajek.kapelusz.app.ui.components.MoneyText
+import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
+import com.jacekgajek.kapelusz.app.ui.components.Choice
+import com.jacekgajek.kapelusz.app.ui.components.CostRow
+import com.jacekgajek.kapelusz.app.ui.components.SegmentedChoice
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -129,9 +121,9 @@ fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean)
     val shown = mine.filter { filter.matches(statuses.status(it)) }
     val unpaid = mine.sumOfMoney { statuses.unpaid(it) }
 
-    Scaffold(
+    AppScaffold(
+        messages,
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs)) },
-        snackbarHost = { MessageHost(messages) },
         floatingActionButton = {
             if (can.addCost()) {
                 ExtendedFloatingActionButton(
@@ -158,16 +150,11 @@ fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean)
             }
             if (isLead) {
                 item {
-                    SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 360.dp).fillMaxWidth()) {
-                        listOf(false to Res.string.filter_mine, true to Res.string.filter_all_members).forEachIndexed { index, (value, label) ->
-                            SegmentedButton(
-                                selected = everyone == value,
-                                onClick = { onEveryone(value) },
-                                shape = SegmentedButtonDefaults.itemShape(index, 2),
-                                icon = {},
-                            ) { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                        }
-                    }
+                    val filters = listOf(
+                        Choice(false, stringResource(Res.string.filter_mine)),
+                        Choice(true, stringResource(Res.string.filter_all_members)),
+                    )
+                    SegmentedChoice(filters, everyone, onEveryone, Modifier.widthIn(max = 360.dp))
                 }
             }
             item {
@@ -187,25 +174,13 @@ fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean)
             }
             items(shown, key = { it.id }) { cost ->
                 val status = statuses.status(cost)
+                val subtitle = listOfNotNull(
+                    band.member(cost.memberId)?.name?.takeIf { showAll },
+                    formatDate(cost.date, language),
+                    cost.eventId?.let { band.event(it)?.name },
+                ).joinToString(" · ")
                 Card(onClick = { onOpenCost(cost.id) }, modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CostIcon(cost, Modifier.padding(end = 12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(cost.description ?: cost.category?.label() ?: stringResource(Res.string.unnamed_cost), style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                listOfNotNull(
-                                    band.member(cost.memberId)?.name?.takeIf { showAll },
-                                    formatDate(cost.date, language),
-                                    cost.eventId?.let { band.event(it)?.name },
-                                ).joinToString(" · "),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            MoneyText(cost.amount, band.currency, bold = true)
-                            Text(costStatusText(band, cost, status), style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
+                    CostRow(cost, subtitle, Modifier.padding(16.dp), status = costStatusText(band, cost, status), bold = true)
                 }
             }
         }

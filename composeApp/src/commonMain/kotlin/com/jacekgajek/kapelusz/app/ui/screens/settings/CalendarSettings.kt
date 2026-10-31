@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.CalendarSubscription
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.calendar_add_google
 import com.jacekgajek.kapelusz.app.generated.calendar_add_on_computer
@@ -40,6 +39,7 @@ import com.jacekgajek.kapelusz.app.platform.isAndroidApp
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.rememberTask
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -58,23 +58,17 @@ internal fun CalendarSection(
     val copy = rememberCopy()
     val uriHandler = LocalUriHandler.current
     var subscription by remember { mutableStateOf<CalendarSubscription?>(null) }
-    var working by remember { mutableStateOf(false) }
-    var failed by remember { mutableStateOf(false) }
+    val task = rememberTask()
     var copied by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
-    fun run(change: CalendarSubscriptionChange?) {
-        working = true
-        failed = false
-        scope.launch {
-            runSuspendCatching { calendar(change) }.onSuccess { subscription = it }.onFailure { failed = true }
-            working = false
-        }
-    }
+    fun run(change: CalendarSubscriptionChange?) = task.run { subscription = calendar(change) }
     if (showTitle) SectionHeader(stringResource(Res.string.calendar_title))
     Text(stringResource(Res.string.calendar_hint), style = MaterialTheme.typography.bodySmall)
     val current = subscription
     if (current == null) {
-        OutlinedButton(onClick = { run(null) }, enabled = !working, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.calendar_get)) }
+        OutlinedButton(onClick = { run(null) }, enabled = !task.working, modifier = Modifier.padding(top = 8.dp)) {
+            Text(stringResource(Res.string.calendar_get))
+        }
     } else {
         SelectionContainer { Text(current.url, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp)) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -95,11 +89,18 @@ internal fun CalendarSection(
             Text(stringResource(Res.string.calendar_help))
         }
         // Not while a change is under way: a late answer could otherwise show a link that a reset just replaced.
-        if (showIncludeAll) SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !working) { on -> run(CalendarSubscriptionChange(includeAll = on)) }
-        TextButton(onClick = { confirmReset = true }, enabled = !working) { Text(stringResource(Res.string.calendar_reset)) }
+        if (showIncludeAll) {
+            SwitchRow(stringResource(Res.string.calendar_include_all), current.includeAll, enabled = !task.working) { on ->
+                run(CalendarSubscriptionChange(includeAll = on))
+            }
+        }
+        TextButton(onClick = { confirmReset = true }, enabled = !task.working) { Text(stringResource(Res.string.calendar_reset)) }
         Text(stringResource(Res.string.calendar_refresh_note), style = MaterialTheme.typography.bodySmall)
     }
-    if (failed) Text(stringResource(Res.string.calendar_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    if (task.failed) {
+        val failed = stringResource(Res.string.calendar_failed)
+        Text(failed, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
     if (confirmReset) {
         ConfirmDialog(
             title = stringResource(Res.string.calendar_reset_title),

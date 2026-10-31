@@ -1,32 +1,17 @@
 package com.jacekgajek.kapelusz.app.ui.screens.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.delete_band
 import com.jacekgajek.kapelusz.app.generated.leave_band_confirm
 import com.jacekgajek.kapelusz.app.generated.leave_band_failed
@@ -38,7 +23,10 @@ import com.jacekgajek.kapelusz.app.generated.leave_band_text
 import com.jacekgajek.kapelusz.app.generated.leave_band_title
 import com.jacekgajek.kapelusz.app.generated.menu_roster
 import com.jacekgajek.kapelusz.app.sync.LeaveBlocked
-import kotlinx.coroutines.launch
+import com.jacekgajek.kapelusz.app.ui.components.BusyButton
+import com.jacekgajek.kapelusz.app.ui.components.FormDialog
+import com.jacekgajek.kapelusz.app.ui.components.dangerButtonColors
+import com.jacekgajek.kapelusz.app.ui.components.rememberTask
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -47,43 +35,25 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 internal fun LeaveBandDialog(bandName: String, warnings: List<String>, onLeave: suspend () -> Unit, onDismiss: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    var working by remember { mutableStateOf(false) }
-    var failure by remember { mutableStateOf<Throwable?>(null) }
-    AlertDialog(
-        onDismissRequest = { if (!working) onDismiss() },
+    val task = rememberTask()
+    FormDialog(
+        title = stringResource(Res.string.leave_band_title, bandName),
+        onDismiss = onDismiss,
         icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error) },
-        title = { Text(stringResource(Res.string.leave_band_title, bandName)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.leave_band_text))
-                warnings.forEach { Text(it) }
-                Text(stringResource(Res.string.leave_band_return))
-                failure?.let { e ->
-                    val text = if ((e as? LeaveBlocked)?.stuck == true) Res.string.leave_band_stuck else Res.string.leave_band_failed
-                    Text(stringResource(text), color = MaterialTheme.colorScheme.error)
-                }
-            }
-        },
+        dismissEnabled = !task.working,
+        scroll = true,
         confirmButton = {
-            Button(
-                enabled = !working,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
-                onClick = {
-                    working = true
-                    failure = null
-                    scope.launch {
-                        runSuspendCatching { onLeave() }.onFailure { failure = it }
-                        working = false
-                    }
-                },
-            ) {
-                if (working) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onError)
-                Text(stringResource(Res.string.leave_band_confirm))
-            }
+            BusyButton(onLeave, task = task, colors = dangerButtonColors()) { Text(stringResource(Res.string.leave_band_confirm)) }
         },
-        dismissButton = { TextButton(enabled = !working, onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
-    )
+    ) {
+        Text(stringResource(Res.string.leave_band_text))
+        warnings.forEach { Text(it) }
+        Text(stringResource(Res.string.leave_band_return))
+        task.failure?.let { e ->
+            val text = if ((e as? LeaveBlocked)?.stuck == true) Res.string.leave_band_stuck else Res.string.leave_band_failed
+            Text(stringResource(text), color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
 /**
