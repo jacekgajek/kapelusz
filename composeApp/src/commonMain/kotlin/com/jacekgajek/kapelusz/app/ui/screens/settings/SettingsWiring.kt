@@ -41,7 +41,8 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
     val state = session.state
     val account = session.account
     val membership = session.membership
-    val api = session.api
+    val calendarApi = session.calendarApi
+    val rawStateApi = session.rawStateApi
     val preferences = session.settings
     val band = state.band
     val me = state.me
@@ -75,7 +76,7 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
                 { BandDeletionNotice(band, { dispatch(CancelBandDeletion) }.takeIf { can.allowed(CancelBandDeletion) }) }
             },
             // The secret menu (ITERATION_2 §7.1), for the band's leaders.
-            rawData = suspend { api.rawState(band.id) }.takeIf { me?.role?.atLeast(Role.LEAD) == true },
+            rawData = suspend { rawStateApi.rawState(band.id) }.takeIf { me?.role?.atLeast(Role.LEAD) == true },
         ),
         fund = BandFundSettings(
             treasurer = band.treasurerMemberId,
@@ -96,7 +97,7 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
         personal = PersonalSettings(
             language = appSettings.language,
             onLanguage = { code -> preferences.update { it.copy(language = code) } },
-            calendar = { change -> if (change == null) api.calendar() else api.changeCalendar(change) },
+            calendar = { change -> if (change == null) calendarApi.calendar() else calendarApi.changeCalendar(change) },
             blikPhone = me?.blikPhone,
             onBlikPhone = me?.let { member -> { phone: String? -> dispatch(SetBlikPhone(member.id, phone)) }.takeIf { can.allowed(SetBlikPhone(member.id, null)) } },
             bankAccount = me?.bankAccount,

@@ -59,7 +59,7 @@ import com.jacekgajek.kapelusz.app.generated.places_powered_by_google
 import com.jacekgajek.kapelusz.app.platform.MapPickerDialog
 import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.platform.rememberPaste
-import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.PlacesApi
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
@@ -80,7 +80,7 @@ import org.jetbrains.compose.resources.stringResource
  * Google's place services for Location (ITERATION_5 §9), through the server, in the app's language. Each call throws
  * when it cannot (offline, not set up). A search and the details of the place picked from it are one Google session.
  */
-class PlaceLookup(private val api: ApiClient, private val bandId: String, private val language: String) {
+class PlaceLookup(private val api: PlacesApi, private val bandId: String, private val language: String) {
     private var session = newId()
 
     suspend fun suggest(query: String): List<PlaceSuggestion> = api.places(bandId, query, language, session)
@@ -98,7 +98,7 @@ class PlaceLookup(private val api: ApiClient, private val bandId: String, privat
 
 /** Place lookups for the band's event dialogs; null for who cannot edit events. */
 @Composable
-fun rememberPlaceLookup(api: ApiClient, band: Band, userId: String): PlaceLookup? {
+fun rememberPlaceLookup(api: PlacesApi, band: Band, userId: String): PlaceLookup? {
     val lang = language
     val allowed = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) == true
     return remember(api, band.id, lang, allowed) { if (allowed) PlaceLookup(api, band.id, lang) else null }

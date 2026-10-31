@@ -58,7 +58,7 @@ class AppGraph(
     val uploads = AttachmentUploads(store, api, bands)
 
     /** Where event locations are, for the map (ITERATION_7 §8). */
-    val places = PlacesLocator(store, api)
+    val locations = PlacesLocator(store, api)
 
     val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads)
     val messages: DeviceMessages = DeviceMessages(messageChannel, sessions, api, sync, scope)

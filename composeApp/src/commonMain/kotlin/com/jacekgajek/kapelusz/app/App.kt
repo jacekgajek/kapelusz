@@ -121,10 +121,7 @@ private fun BandContent(graph: AppGraph, session: Session, bandState: BandState,
             onSignInAgain = { signingInAgain = true },
             defaultYourName = defaultName,
             onOpen = { openBand(it, false) },
-            onCreate = { name, currency, yourName ->
-                graph.bands.createBand(name, currency, yourName)
-                graph.sync.requestSync()
-            },
+            onCreate = graph.membership::createBand,
             onSignOut = { graph.account.signOutInBackground() },
             onJoin = join,
         )

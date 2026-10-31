@@ -128,7 +128,6 @@ import org.jetbrains.compose.resources.stringResource
 fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, events: EventsViewModel) {
     val state = session.state
     val changes = session.changes
-    val api = session.api
     val preferences = session.settings
     val onOpenEvent: (String) -> Unit = nav::openEvent
     val onRoster: () -> Unit = nav::roster
@@ -277,7 +276,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
     if (events.creating) {
         NewEventDialog(
             band,
-            places = rememberPlaceLookup(api, band, state.userId),
+            places = rememberPlaceLookup(session.placesApi, band, state.userId),
             onDismiss = { events.creating = false },
             onCreate = { fields ->
                 val eventId = newId()

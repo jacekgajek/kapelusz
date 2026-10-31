@@ -152,9 +152,7 @@ fun EventScreen(
 ) {
     val eventId = screen.eventId
     val state = session.state
-    val api = session.api
     val bands = session.bands
-    val sync = session.sync
     val preferences = session.settings
     val fileStore = session.attachments
     val onBack: () -> Unit = nav::back
@@ -306,7 +304,7 @@ fun EventScreen(
 
                                     EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement)
 
-                                    EventSection.HISTORY -> HistorySection(context, api, bands, sync)
+                                    EventSection.HISTORY -> HistorySection(context, session)
                                 }
                             }
                         }
@@ -315,7 +313,7 @@ fun EventScreen(
             }
         }
         if (screen.editing) {
-            val places = rememberPlaceLookup(api, state.band, state.userId)
+            val places = rememberPlaceLookup(session.placesApi, state.band, state.userId)
             EditDetailsDialog(state.band, event, actions, places, onDismiss = { screen.editing = false })
         }
     }

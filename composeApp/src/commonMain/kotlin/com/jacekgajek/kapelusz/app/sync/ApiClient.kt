@@ -73,12 +73,16 @@ open class NeedsSignInException(message: String = "Sign in again") : RuntimeExce
  */
 class SessionsRevokedException : NeedsSignInException("Signed out on all devices")
 
-/** Typed client for the Kapelusz API, sending the user's session token. */
+/** Typed client for the Kapelusz API, sending the user's session token; screens get its parts (ScreenApis.kt). */
 class ApiClient(
     internal val transport: ApiTransport,
     /** The token to send; [refused] is the one the server just refused (null: the current one is wanted). */
     private val token: suspend (refused: String?) -> String?,
-) {
+) : PlacesApi,
+    InvitesApi,
+    HistoryApi,
+    CalendarApi,
+    RawStateApi {
     /** Its own transport, for tests and tools; the app shares one with [SessionApi]. */
     constructor(
         http: HttpClient,
@@ -113,9 +117,9 @@ class ApiClient(
     }
 
     /** The user's private calendar feed link (created on first use). */
-    suspend fun calendar(): CalendarSubscription = call(HttpMethod.Get, "/me/calendar", CalendarSubscription.serializer())
+    override suspend fun calendar(): CalendarSubscription = call(HttpMethod.Get, "/me/calendar", CalendarSubscription.serializer())
 
-    suspend fun changeCalendar(change: CalendarSubscriptionChange): CalendarSubscription = call(
+    override suspend fun changeCalendar(change: CalendarSubscriptionChange): CalendarSubscription = call(
         HttpMethod.Post,
         "/me/calendar",
         CalendarSubscription.serializer(),
@@ -149,10 +153,10 @@ class ApiClient(
     }
 
     /** The band's file exactly as stored on the server, for leaders (ITERATION_2 §7.1). */
-    suspend fun rawState(bandId: Id): String = transport.text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
+    override suspend fun rawState(bandId: Id): String = transport.text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */
-    suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> = transport.parse(
+    override suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> = transport.parse(
         send(HttpMethod.Get, "/bands/$bandId/places") {
             parameter("q", query)
             parameter("lang", language)
@@ -168,7 +172,7 @@ class ApiClient(
     }
 
     /** What Location becomes for a picked place: its name and full address (ITERATION_5 §9.1), ending the [session]. */
-    suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String = transport.parse(
+    override suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String = transport.parse(
         send(HttpMethod.Get, "/bands/$bandId/places/${placeId.encodeURLPathPart()}") {
             parameter("lang", language)
             parameter("session", session)
@@ -177,7 +181,7 @@ class ApiClient(
     ).text
 
     /** What Location becomes for a Google Maps link: the place and its address, or a pin's coordinates (ITERATION_5 §9.1). */
-    suspend fun resolveMapLink(bandId: Id, url: String, language: String): String = transport.parse(
+    override suspend fun resolveMapLink(bandId: Id, url: String, language: String): String = transport.parse(
         send(HttpMethod.Post, "/bands/$bandId/places/resolve") {
             parameter("lang", language)
             setBody(TextContent(KapeluszJson.encodeToString(MapLinkRequest.serializer(), MapLinkRequest(url)), ContentType.Application.Json))
@@ -185,16 +189,16 @@ class ApiClient(
         PlaceText.serializer(),
     ).text
 
-    suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
+    override suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
 
-    suspend fun createInvite(bandId: Id, memberId: Id, role: Role): InviteInfo = call(
+    override suspend fun createInvite(bandId: Id, memberId: Id, role: Role): InviteInfo = call(
         HttpMethod.Post,
         "/bands/$bandId/invites",
         InviteInfo.serializer(),
         body = KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(memberId, role)),
     )
 
-    suspend fun revokeInvite(bandId: Id, code: String) {
+    override suspend fun revokeInvite(bandId: Id, code: String) {
         transport.text(send(HttpMethod.Delete, "/bands/$bandId/invites/$code") {})
     }
 
@@ -207,7 +211,7 @@ class ApiClient(
      * first page of that many months back from [month], in one request (no `next`). Read leniently by
      * [HistoryDecoder], so a change made by a newer app version does not fail the whole page.
      */
-    suspend fun history(bandId: Id, month: String, before: String? = null, months: Int = 1): HistoryPage {
+    override suspend fun history(bandId: Id, month: String, before: String?, months: Int): HistoryPage {
         val query = "month=$month" + (before?.let { "&before=$it" } ?: "") + (if (months > 1) "&months=$months" else "")
         return HistoryDecoder.page(call(HttpMethod.Get, "/bands/$bandId/log?$query", JsonObject.serializer()), month)
     }
