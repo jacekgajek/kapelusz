@@ -26,11 +26,11 @@ internal class BandHandlers(
     private val clock: () -> Long,
     private val maxBandBytes: Int,
     private val bands: BandAccess,
-    private val users: UserHandlers,
-    private val history: HistoryHandlers,
-    private val invites: InviteHandlers,
-    private val attachments: AttachmentHandlers,
-    private val linkPages: LinkPages,
+    private val users: UserRecords,
+    private val history: HistoryLog,
+    private val invites: Invites,
+    private val attachments: AttachmentFiles,
+    private val pointers: EventPointers,
     private val messenger: SyncMessenger?,
     private val deletions: BandDeletions,
 ) {
@@ -106,15 +106,15 @@ internal class BandHandlers(
             val newEtag = if (encoded == null) etag else store.put(StorageKeys.band(bandId), encoded, ifMatch = etag)
             if (result.accepted.isNotEmpty()) {
                 // A member whose account was unlinked, or who is gone (deleted, also by a redo), keeps no invite
-                // (InviteHandlers.revokeFor).
+                // (Invites.revokeFor).
                 val unlinkedMembers = envelopes.filter { it.opId in result.accepted }.map { it.op }.mapNotNull { (it as? UnlinkUser)?.memberId }
                 val goneMembers = band.members.map { it.id } - result.band.members.map { it.id }.toSet()
                 (unlinkedMembers + goneMembers).distinct().forEach { memberId -> runCatching { invites.revokeFor(bandId, memberId) } }
                 // New events (also one brought back by an undo): where their links find them; deleted ones: not anymore.
                 val before = band.events.map { it.id }.toSet()
                 val after = result.band.events.map { it.id }.toSet()
-                linkPages.pointTo(bandId, after - before)
-                linkPages.forget(bandId, before - after)
+                pointers.pointTo(bandId, after - before)
+                pointers.forget(bandId, before - after)
                 // Files of attachments that are gone (removed, or what they belonged to deleted); versioning keeps them for 30 days.
                 runCatching { attachments.deleteRemoved(bandId, band, result.band) }
                     .onFailure { System.err.println("Could not delete attachment files of band $bandId: $it") }

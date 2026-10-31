@@ -13,7 +13,7 @@ internal class CalendarHandlers(
     private val store: BlobStore,
     private val clock: () -> Long,
     private val bands: BandAccess,
-    private val users: UserHandlers,
+    private val users: UserRecords,
 ) {
     /** The user's feed link, created on first use; [change] can switch "include all" or make a new link. */
     fun subscription(user: VerifiedUser, change: CalendarSubscriptionChange): HttpResponse {
@@ -46,7 +46,7 @@ internal class CalendarHandlers(
             ?: return error(410, ApiErrors.NOT_FOUND, "No such calendar")
         val settings = store.get(StorageKeys.calendar(owner.userId))?.let { decode(StoredCalendar.serializer(), it.content) }
         if (settings?.secret != secret) return error(410, ApiErrors.NOT_FOUND, "No such calendar")
-        val list = users.loadUser(owner.userId).bandIds.mapNotNull { bands.load(it)?.first }
+        val list = users.load(owner.userId).bandIds.mapNotNull { bands.load(it)?.first }
         val now = Instant.ofEpochMilli(clock()).atZone(ZoneOffset.UTC).toLocalDateTime()
         val stamp = kotlinx.datetime.LocalDateTime(now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute)
         val body = CalendarFeed.build(list, owner.userId, settings.includeAll, stamp.date, WEB_URL, stamp)

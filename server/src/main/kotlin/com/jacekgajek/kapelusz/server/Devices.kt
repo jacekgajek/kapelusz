@@ -70,7 +70,7 @@ internal class DeviceRegistry(private val store: BlobStore, private val clock: (
 /** `PUT` and `DELETE /me/devices/{installationId}` (ITERATION_7 §2.4). */
 internal class DeviceHandlers(
     private val registry: DeviceRegistry,
-    private val users: UserHandlers,
+    private val users: UserRecords,
     /** Whether messages can be sent at all (the FCM key is in place). */
     private val messaging: () -> Boolean,
 ) {
@@ -84,7 +84,7 @@ internal class DeviceHandlers(
         validInstallation(installationId)
         // Firebase tokens are long, but not that long, and have no spaces or quotes.
         badRequestIf(request.token.length !in 20..MAX_TOKEN_CHARS || !request.token.matches(Regex("[A-Za-z0-9_:.-]+"))) { "Invalid token" }
-        val inBand = users.loadUser(user.userId).bandIds.isNotEmpty()
+        val inBand = users.load(user.userId).bandIds.isNotEmpty()
         if (inBand) registry.register(user.userId, installationId, request.token)
         return ok(DeviceRegistrationResponse.serializer(), DeviceRegistrationResponse(messaging = inBand && runCatching { messaging() }.getOrDefault(false)))
     }

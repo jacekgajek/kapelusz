@@ -38,16 +38,24 @@ class Api(
     private val bands = BandAccess(store, clock)
     private val devices = DeviceRegistry(store, clock)
     private val messenger: SyncMessenger? = messageSender?.let { DeviceMessenger(devices, it) }
-    private val users = UserHandlers(store, verifier, sessions, revocations, clock, bands, devices)
-    private val deviceHandlers = DeviceHandlers(devices, users) { messageSender?.ready() == true }
-    private val history = HistoryHandlers(historyStore, clock, bands)
-    private val attachments = AttachmentHandlers(store, bands)
-    private val invites = InviteHandlers(store, clock, bands, users, history, messenger)
-    private val calendar = CalendarHandlers(store, clock, bands, users)
+
+    // What is stored, by resource; then the handlers over it.
+    private val records = UserRecords(store, bands, devices)
+    private val log = HistoryLog(historyStore, clock)
+    private val codes = Invites(store, clock)
+    private val files = AttachmentFiles(store)
+    private val pointers = EventPointers(store, bands)
+    private val users = UserHandlers(verifier, sessions, revocations, clock, bands, devices, records)
+    private val deviceHandlers = DeviceHandlers(devices, records) { messageSender?.ready() == true }
+    private val history = HistoryHandlers(clock, bands, log)
+    private val attachments = AttachmentHandlers(bands, files)
+    private val invites = InviteHandlers(store, clock, bands, records, codes, log, messenger)
+    private val calendar = CalendarHandlers(store, clock, bands, records)
     private val places = PlacesHandlers(bands, placeSearch, geocodeCache)
-    private val linkPages = LinkPages(store, webIndex, clock, bands)
-    private val deletions = BandDeletions(store, clock, bands, users, invites, linkPages, history, messenger).also { bands.whenDue = it::deleteNow }
-    private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages, messenger, deletions)
+    private val linkPages = LinkPages(webIndex, bands, pointers)
+    private val deletions = BandDeletions(store, clock, bands, records, codes, pointers, log, messenger).also { bands.whenDue = it::deleteNow }
+    private val bandHandlers =
+        BandHandlers(store, clock, maxBandBytes, bands, records, log, codes, files, pointers, messenger, deletions)
 
     /** [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time. */
     fun handle(request: HttpRequest, sweep: Boolean = true): HttpResponse = try {

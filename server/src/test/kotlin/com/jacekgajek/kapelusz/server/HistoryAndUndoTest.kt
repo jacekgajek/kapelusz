@@ -167,17 +167,17 @@ class HistoryAndUndoTest : ApiHarness() {
     fun aRecordTooLargeForTheTableKeepsItsOperationWithoutTheChange() {
         createBand()
         val band = Band.create("band1", "Night Owls", "PLN", "m-alice", "Alice", "alice")
-        val handlers = HistoryHandlers(history, { now }, BandAccess(store))
+        val historyLog = HistoryLog(history) { now }
         val small = OpEnvelope("small", "phone", 1, 0, RenameBand("A"))
         val large = OpEnvelope("large", "phone", 2, 0, RenameBand("B"))
         // Under the push's limit together, but one operation's change alone is over what one record takes.
-        val event = Event("e1", "Gig", LocalDate(2026, 9, 1), notes = "n".repeat(HistoryHandlers.MAX_RECORD_BYTES))
+        val event = Event("e1", "Gig", LocalDate(2026, 9, 1), notes = "n".repeat(HistoryLog.MAX_RECORD_BYTES))
         val changes = mapOf(
             "small" to BandChange(BandPart(), BandPart()),
             "large" to BandChange(BandPart(events = mapOf("e1" to null)), BandPart(events = mapOf("e1" to event))),
         )
-        handlers.append(VerifiedUser("alice", null, null), band, "band1", listOf(small, large), changes)
-        assertTrue(history.bands.getValue("band1").values.all { it.length <= HistoryHandlers.MAX_RECORD_BYTES })
+        historyLog.append(VerifiedUser("alice", null, null), band, "band1", listOf(small, large), changes)
+        assertTrue(history.bands.getValue("band1").values.all { it.length <= HistoryLog.MAX_RECORD_BYTES })
         val entry = log().entries.single()
         assertEquals(listOf("small", "large"), entry.ops.map { it.opId }, "both operations are listed")
         assertEquals(setOf("small"), entry.changes.keys, "only the small one can be undone")
@@ -206,7 +206,7 @@ class HistoryAndUndoTest : ApiHarness() {
         }
         val result = pushed("alice", *events.toTypedArray())
         assertEquals(Api.MAX_OPS_PER_PUSH, result.accepted.size)
-        assertTrue(KapeluszJson.encodeToString(Band.serializer(), result.band).length > HistoryHandlers.MAX_LOGGED_CHANGES)
+        assertTrue(KapeluszJson.encodeToString(Band.serializer(), result.band).length > HistoryLog.MAX_LOGGED_CHANGES)
         val entry = log().entries.first()
         assertEquals(Api.MAX_OPS_PER_PUSH, entry.ops.size, "the operations are still listed")
         assertTrue(entry.changes.isEmpty(), "but not what they changed")
