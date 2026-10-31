@@ -85,21 +85,14 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.history.KapeluszJson
-import com.jacekgajek.kapelusz.model.Attachment
-import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
-import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteCost
-import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.UpdateCost
-import com.jacekgajek.kapelusz.rules.Actor
-import com.jacekgajek.kapelusz.rules.Permissions
-import com.jacekgajek.kapelusz.text.sortedByName
+import com.jacekgajek.kapelusz.view.CostChoices
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
@@ -146,13 +139,12 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (existing == null) focus.requestFocus() }
 
-    val actor = Actor.User(state.userId)
-    val editable = existing == null || Permissions.isAllowed(band, actor, UpdateCost(existing.id))
+    val can = session.can
+    val choices = remember(state) { CostChoices(state.view, can) }
+    val editable = existing == null || can.editCost(existing)
     val parsed = parseMoney(amount)?.takeIf { it.isPositive }
     // Leads may add costs for anyone; others only for themselves (the permission check decides).
-    val payers = band.members.filter {
-        !it.archived && (forEvent == null || forEvent.participant(it.id) != null) && Permissions.isAllowed(band, actor, AddCost("", it.id, Money(1), date))
-    }.sortedByName { it.name }
+    val payers = choices.payers(forEvent)
     // A single choice is made already (the picker is shown only for several).
     LaunchedEffect(payers.size) { if (existing == null && paidBy == null) payers.singleOrNull()?.let { paidBy = it.id } }
     val canSave = editable && parsed != null && paidBy != null && !saved
@@ -182,18 +174,14 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
             onBack()
         }
     }
-    // Only events the payer takes part in (ITERATION_3 R2); the cost's own event stays listed while it is still its owner's.
-    val keptEventId = existing?.eventId?.takeIf { paidBy == existing.memberId }
-    val events = listOf<String?>(null) + band.events
-        .filter { event -> event.id == keptEventId || (paidBy != null && event.participant(paidBy!!) != null && (!event.archived || event.id == eventId)) }
-        .sortedByDescending { it.date }.map { it.id }
+    val events = choices.events(existing, paidBy, eventId)
     // Another payer: an event they are not in is no longer a choice.
     LaunchedEffect(events) { if (forEvent == null && eventId !in events) eventId = null }
 
     Scaffold(
         topBar = {
             BackTopBar(stringResource(if (existing == null) Res.string.add_cost else Res.string.edit_cost), onBack) {
-                if (existing != null && Permissions.isAllowed(band, actor, DeleteCost(existing.id))) {
+                if (existing != null && can.deleteCost(existing)) {
                     IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
                 }
                 TextButton(onClick = ::save, enabled = canSave) { Text(stringResource(Res.string.save)) }
@@ -270,8 +258,8 @@ fun CostScreen(session: BandSession, route: CostRoute, nav: CostNav) {
                     attachments = existing?.attachments.orEmpty(),
                     drafts = drafts,
                     onDrafts = { drafts = it },
-                    editable = existing == null || Permissions.isAllowed(band, actor, AddAttachment(existing.id, Attachment("probe", AttachmentKind.IMAGE))),
-                    removable = existing == null || Permissions.isAllowed(band, actor, RemoveAttachment(existing.id, "probe")),
+                    editable = existing == null || can.attachTo(AttachmentOwner.OfCost(existing.id)),
+                    removable = existing == null || can.detachFrom(AttachmentOwner.OfCost(existing.id)),
                     actions = actions,
                     undoRemoval = true,
                 )

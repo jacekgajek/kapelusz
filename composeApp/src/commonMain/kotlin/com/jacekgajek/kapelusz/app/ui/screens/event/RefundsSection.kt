@@ -62,9 +62,9 @@ import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.settlement.CostLedger
+import com.jacekgajek.kapelusz.view.Refunds
 import org.jetbrains.compose.resources.stringResource
 
 /** Costs repaid out of this event: included ones, and outstanding costs of participants that could be. */
@@ -74,19 +74,9 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     val event = context.event
     var editing by remember { mutableStateOf<Cost?>(null) }
     val canEdit = context.can.editRefunds(event)
-    val pending = if (canEdit) CostLedger.pendingFromEarlier(band, event) else emptyList()
-    // Someone who cannot include costs still sees their own waiting here, so a cost they just added does not seem
-    // lost (and is not added twice).
+    val pending = Refunds.pending(context.view, event, canEdit)
     val me = context.me
-    // Not on an archived event (nothing is refunded there any more), nor for viewers (they have no costs).
-    val mine = if (canEdit || me == null || me.role == Role.VIEWER || event.archived) {
-        emptyList()
-    } else {
-        // Also ones added for this event that cannot be refunded here (their owner does not take part).
-        val forThisEvent = band.costs.filter { it.eventId == event.id && CostLedger.outstanding(band, it).isPositive }
-        (CostLedger.pendingFromEarlier(band, event) + forThisEvent).distinct().filter { it.memberId == me.id }
-            .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
-    }
+    val mine = Refunds.mine(context.view, event, me, canEdit)
 
     SectionTitle(stringResource(Res.string.refunds))
     if (event.refunds.isEmpty() && pending.isEmpty() && mine.isEmpty()) {
