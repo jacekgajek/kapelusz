@@ -16,13 +16,9 @@ import com.jacekgajek.kapelusz.ops.UnknownOperation
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.view.BandView
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -76,12 +72,11 @@ sealed interface BandState {
 
 /**
  * Offline-first band state for the signed-in user. Every change is an [Operation] applied immediately with the shared
- * [Engine] (the same permission checks and reducer the server runs), queued and persisted; [com.jacekgajek.kapelusz.app.sync.SyncEngine]
+ * [Engine] (the same permission checks and reducer the server runs), queued and written through [BandStore]; [com.jacekgajek.kapelusz.app.sync.SyncEngine]
  * later pushes the queue and merges the server's state.
  */
 class BandRepository(
-    private val store: KeyValueStore,
-    private val scope: CoroutineScope,
+    private val store: BandStore,
     private val idGenerator: () -> String = ::newId,
     private val clock: () -> Long = ::nowMillis,
 ) {
@@ -92,10 +87,19 @@ class BandRepository(
     val index: StateFlow<BandIndex?> = _index.asStateFlow()
 
     private val locals = mutableMapOf<Id, LocalBand>()
-    private val dirty = mutableSetOf<Id>()
-    private var indexDirty = false
     private var userId: String? = null
-    private val writeLock = Mutex()
+
+    /** Its own store over a plain [KeyValueStore], writing in [scope]: tests and tools. */
+    constructor(store: KeyValueStore, scope: CoroutineScope, idGenerator: () -> String = ::newId, clock: () -> Long = ::nowMillis) :
+        this(BandStore(store, scope, clock), idGenerator, clock)
+
+    init {
+        store.bind(object : BandStore.Source {
+            override val userId get() = this@BandRepository.userId
+            override val index get() = _index.value
+            override fun local(bandId: Id) = locals[bandId]
+        })
+    }
 
     val currentBandId: Id? get() = _index.value?.currentBandId
 
@@ -106,12 +110,12 @@ class BandRepository(
     suspend fun load(userId: String) {
         this.userId = userId
         locals.clear()
-        dirty.clear()
-        val rawIndex = store.read(indexKey(userId))
+        store.forgetUnwritten()
+        val rawIndex = store.readIndex(userId)
         val index = rawIndex?.let { raw -> runCatching { KapeluszJson.decodeFromString(BandIndex.serializer(), raw) }.getOrNull() }
             ?: BandIndex(userId).also {
                 // Never lose the only copy (ITERATION_3 R4).
-                if (rawIndex != null) store.write("${indexKey(userId)}-backup-${clock()}", rawIndex)
+                if (rawIndex != null) store.backupIndex(userId, rawIndex)
             }
         _index.value = index
         // Unreadable: the bands it listed are found again from their own files, also those created offline that the
@@ -146,7 +150,7 @@ class BandRepository(
     }
 
     /** Whether the band is on this device (in memory or saved), i.e. can be opened without downloading. */
-    suspend fun hasStored(bandId: Id): Boolean = bandId in locals || store.read(bandKey(requireUser(), bandId)) != null
+    suspend fun hasStored(bandId: Id): Boolean = bandId in locals || store.hasBand(requireUser(), bandId)
 
     /** Creates a band on this device (the user is its owner); the next sync creates it on the server. */
     fun createBand(name: String, currency: String, yourName: String) {
@@ -277,8 +281,8 @@ class BandRepository(
     suspend fun loseAccess(bandId: Id): String {
         val local = locals.remove(bandId)
         val name = local?.let { replay(it).name } ?: _index.value?.bands?.firstOrNull { it.id == bandId }?.name ?: bandId
-        if (local != null) keepUnsent(bandId, local)
-        store.remove(bandKey(requireUser(), bandId))
+        if (local != null) store.keepUnsent(requireUser(), bandId, local)
+        store.remove(requireUser(), bandId)
         val wasCurrent = currentBandId == bandId
         updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
         if (wasCurrent) _state.value = BandState.NoBand
@@ -292,7 +296,7 @@ class BandRepository(
      */
     suspend fun discardPending(bandId: Id): List<OpEnvelope> {
         val local = locals[bandId] ?: return emptyList()
-        keepUnsent(bandId, local)
+        store.keepUnsent(requireUser(), bandId, local)
         val backedUp = local.pending.map { it.opId }.toSet()
         rebase(bandId) { band -> band.copy(pending = band.pending.filterNot { it.opId in backedUp }, holds = band.holds - backedUp) }
         return local.pending
@@ -301,16 +305,10 @@ class BandRepository(
     /** The band's unsent changes as readable JSON, for the user to keep (ITERATION_3 R9). */
     fun pendingAsJson(bandId: Id): String = PrettyJson.encodeToString(ListSerializer(OpEnvelope.serializer()), locals[bandId]?.pending.orEmpty())
 
-    private suspend fun keepUnsent(bandId: Id, local: LocalBand) {
-        if (local.pending.isEmpty()) return
-        store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", KapeluszJson.encodeToString(LocalBand.serializer(), local))
-    }
-
     /** Forgets a band deleted on purpose (nothing is kept) and opens another of the user's bands, if any. */
     suspend fun forgetDeleted(bandId: Id) {
         locals.remove(bandId)
-        dirty -= bandId
-        store.remove(bandKey(requireUser(), bandId))
+        store.remove(requireUser(), bandId)
         updateIndex { index -> index.copy(currentBandId = index.currentBandId.takeIf { it != bandId }, bands = index.bands.filterNot { it.id == bandId }) }
         open(_index.value?.bands?.firstOrNull { hasStored(it.id) }?.id)
     }
@@ -318,7 +316,7 @@ class BandRepository(
     /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
     suspend fun startOver() {
         val bandId = currentBandId
-        if (bandId != null) store.remove(bandKey(requireUser(), bandId))
+        if (bandId != null) store.remove(requireUser(), bandId)
         bandId?.let { locals.remove(it) }
         updateIndex { index -> index.copy(currentBandId = null, bands = index.bands.filterNot { it.id == bandId }) }
         _state.value = BandState.NoBand
@@ -336,21 +334,19 @@ class BandRepository(
     }
 
     private suspend fun readLocal(bandId: Id, reportUnreadable: Boolean): LocalBand? {
-        val key = bandKey(requireUser(), bandId)
-        val raw = store.read(key) ?: return null
+        val raw = store.readBand(requireUser(), bandId) ?: return null
         return try {
             KapeluszJson.decodeFromString(LocalBand.serializer(), raw).let(::withoutUnknown).also { replay(it) }.let { local ->
                 if (local.schema >= CURRENT_SCHEMA) {
                     local
                 } // Forget the version: the next pull gets the full state instead of "not modified".
                 else {
-                    local.copy(version = null, schema = CURRENT_SCHEMA).also { dirty += bandId }
+                    local.copy(version = null, schema = CURRENT_SCHEMA).also { store.markDirty(bandId, flushSoon = false) }
                 }
             }
         } catch (e: Exception) {
             // Never lose the only copy: keep the unreadable data as a backup before offering to start over.
-            val backupKey = "$key-backup-${clock()}"
-            store.write(backupKey, raw)
+            val backupKey = store.backupBand(requireUser(), bandId, raw)
             if (reportUnreadable) {
                 updateIndex { it.copy(currentBandId = bandId) }
                 _state.value = BandState.Unreadable(backupKey)
@@ -366,7 +362,7 @@ class BandRepository(
     private fun withoutUnknown(local: LocalBand): LocalBand {
         val unknown = local.pending.filter { it.op is UnknownOperation }.map { it.opId }.toSet()
         if (unknown.isEmpty()) return local
-        dirty += local.base.id
+        store.markDirty(local.base.id, flushSoon = false)
         return local.copy(pending = local.pending.filterNot { it.opId in unknown }, holds = local.holds - unknown)
     }
 
@@ -393,93 +389,22 @@ class BandRepository(
         val updated = change(current)
         if (updated == current) return
         _index.value = updated
-        indexDirty = true
-        scope.launch { flush() }
+        store.markIndexDirty()
     }
 
-    private fun persist(bandId: Id) {
-        dirty += bandId
-        scope.launch { flush() }
-    }
+    private fun persist(bandId: Id) = store.markDirty(bandId)
 
-    /**
-     * Writes every changed band (and the index) now. Sync calls this before pushing, so a crash right after a push
-     * cannot leave an older `nextSeq` on disk and make the next operation reuse a sequence number.
-     */
-    suspend fun flush(): Boolean = writeLock.withLock {
-        val user = userId ?: return@withLock true
-        // A change made while a write is under way (a tap, a sync) is written in another pass rather than forgotten.
-        repeat(FLUSH_PASSES) {
-            if (!writeChanged(user)) {
-                retryFlush()
-                return@withLock false
-            }
-            if (dirty.isEmpty() && !indexDirty) return@withLock true
-        }
-        retryFlush()
-        false
-    }
-
-    /**
-     * One pass over what changed. Each is unmarked only once written, and only if it didn't change again during its write
-     * (V5-M1 A1): otherwise that newer change would count as saved. False when a write failed.
-     */
-    private suspend fun writeChanged(user: String): Boolean {
-        var ok = true
-        // The index first: it then lists every band that has a file, also after a crash between the writes.
-        if (indexDirty) {
-            val index = _index.value
-            if (index == null || write(indexKey(user), KapeluszJson.encodeToString(BandIndex.serializer(), index))) {
-                if (_index.value === index) indexDirty = false
-            } else {
-                ok = false
-            }
-        }
-        for (bandId in dirty.toList()) {
-            val local = locals[bandId]
-            if (local == null || write(bandKey(user, bandId), KapeluszJson.encodeToString(LocalBand.serializer(), local))) {
-                if (locals[bandId] === local) dirty -= bandId
-            } else {
-                ok = false
-            }
-        }
-        return ok
-    }
-
-    /** False when the device could not store it (e.g. full): it stays marked as unsaved instead of being forgotten. */
-    private suspend fun write(key: String, value: String): Boolean = runSuspendCatching { store.write(key, value) }
-        .onFailure { println("Could not store $key: $it") }
-        .isSuccess
-
-    private var retrying = false
-
-    private fun retryFlush() {
-        if (retrying) return
-        retrying = true
-        scope.launch {
-            delay(FLUSH_RETRY_MS)
-            retrying = false
-            flush()
-        }
-    }
+    /** Writes every changed band (and the index) now: see [BandStore.flush]. */
+    suspend fun flush(): Boolean = store.flush()
 
     private fun requireUser(): String = requireNotNull(userId) { "Not signed in" }
 
     private class UnreadableBand : RuntimeException()
 
     companion object {
-        /** How soon a write that failed (e.g. a full device) is tried again. */
-        const val FLUSH_RETRY_MS = 30_000L
-
-        /** Write passes per flush: changes arriving during writes are rare and few. */
-        const val FLUSH_PASSES = 3
-
         /** Raise when the band model gains fields an older app would drop (V2-M3: agenda times). */
         const val CURRENT_SCHEMA = 3
 
         private val PrettyJson = Json(from = KapeluszJson) { prettyPrint = true }
-
-        fun indexKey(userId: String) = "band-index-$userId"
-        fun bandKey(userId: String, bandId: Id) = "band-$userId-$bandId"
     }
 }
