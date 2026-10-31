@@ -35,7 +35,6 @@ import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
-import com.jacekgajek.kapelusz.view.BandView
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -57,7 +56,7 @@ fun settingsFor(
     val can = Capabilities(band, state.userId)
     val session by account.session.collectAsState()
     val appSettings by preferences.settings.collectAsState()
-    val stillDefault = remember(band) { BandFund.stillDefault(BandView(band)).map { it.id to it.name } }
+    val stillDefault = remember(band) { BandFund.stillDefault(state.view).map { it.id to it.name } }
 
     // A refusal can't happen here: each action is offered only where it is allowed.
     fun dispatch(op: Operation) {

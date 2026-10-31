@@ -31,7 +31,6 @@
     <ID>CyclomaticComplexMethod:LineupPicker.kt:@Composable fun LineupPicker</ID>
     <ID>CyclomaticComplexMethod:Navigation.kt:@Composable internal fun Navigation</ID>
     <ID>CyclomaticComplexMethod:ParticipantsSection.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun ParticipantsSection</ID>
-    <ID>CyclomaticComplexMethod:PeriodSummary.kt:suspend fun periodSummary: PeriodSummary</ID>
     <ID>CyclomaticComplexMethod:RefundsSection.kt:@Composable fun RefundsSection</ID>
     <ID>CyclomaticComplexMethod:RosterScreen.kt:@Composable fun RosterScreen</ID>
     <ID>CyclomaticComplexMethod:RosterScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable private fun MemberDialog</ID>
@@ -81,7 +80,6 @@
     <ID>LongMethod:SummaryScreen.kt:private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent</ID>
     <ID>LongMethod:TopBars.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun TabTopBar</ID>
     <ID>LoopWithTooManyJumpStatements:AttachmentUploads.kt:AttachmentUploads$for</ID>
-    <ID>LoopWithTooManyJumpStatements:EventSearch.kt:for</ID>
     <ID>MatchingDeclarationName:AppLocale.android.kt:LocalAppLocale</ID>
     <ID>MatchingDeclarationName:AppSuggestion.android.kt:AndroidPlatform</ID>
     <ID>MatchingDeclarationName:AppSuggestion.kt:PublishedVersion</ID>
@@ -316,19 +314,6 @@
     <ID>MaxLineLength:PaymentDetails.kt:PaymentKind.ACCOUNT$ACCOUNT</ID>
     <ID>MaxLineLength:PaymentDetails.kt:if (copied) Text(stringResource(Res.string.blik_copied), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)</ID>
     <ID>MaxLineLength:PaymentDetails.kt:if (label == null) Icon(kind.icon, stringResource(kind.title), Modifier.padding(end = 12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:PeriodSummary$val</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:fun</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:fun AppSettings.withSummaryPeriod: AppSettings</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:inPeriod(it.date) &amp;&amp; settlements.getValue(it.id).status.let { status -> status != EventStatus.SETTLED &amp;&amp; status != EventStatus.DRAFT }</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:myWaiting = me?.let { band.costs.filter { cost -> cost.memberId == it.id }.sumOfMoney { cost -> cost.amount - paid(cost.id) } } ?: Money.ZERO</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:paidOut = settledInPeriod.sumOfMoney { event -> settlements.getValue(event.id).lines.filter { it.partyId != BAND_FUND }.sumOfMoney { it.share } }</ID>
-    <ID>MaxLineLength:PeriodSummary.kt:val recorded = transfer.recordedAt.takeIf { it > 0 }?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date }</ID>
-    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$CreateEvent("gig", "Gig", LocalDate(2026, 6, 1), participants = listOf(Participant("me"), Participant("bob"), Participant("ann")))</ID>
-    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = Money.ZERO, out = zl(300), balance = zl(300), outBy = listOf(FundSource.Of(bob) to zl(300))), y2026.fund)</ID>
-    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200), outBy = listOf(FundSource.Of(bob) to zl(300), FundSource.Events to zl(100))), y2026.fund)</ID>
-    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400), intoBy = listOf(FundSource.Events to zl(100)), outBy = listOf(FundSource.Of(bob) to zl(300))), untilToday)</ID>
-    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = zl(600), out = Money.ZERO, balance = zl(600), intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100))), y2025.fund)</ID>
-    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$val stored = KapeluszJson.decodeFromString(AppSettings.serializer(), KapeluszJson.encodeToString(AppSettings.serializer(), settings))</ID>
     <ID>MaxLineLength:PlacesLocator.kt:PlacesLocator$known ?: (store.read(KEY)?.let { runCatching { KapeluszJson.decodeFromString(SERIALIZER, it) }.getOrNull() }.orEmpty().toMutableMap()).also { known = it }</ID>
     <ID>MaxLineLength:PlacesMap.android.kt:actual</ID>
     <ID>MaxLineLength:PlacesMap.kt:expect</ID>
@@ -341,7 +326,9 @@
     <ID>MaxLineLength:PlayedScreen.kt:private</ID>
     <ID>MaxLineLength:PresentationTest.kt:PresentationTest$CreateEvent("gig", "Gig", LocalDate(2026, 9, 13), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol")))</ID>
     <ID>MaxLineLength:PresentationTest.kt:PresentationTest$assertEquals(AgendaTemplateItem(label = "Zbiórka"), TemplateDraft(AgendaKind.ARRIVAL, " Zbiórka ").toItem(labels::getValue), "renamed: custom")</ID>
+    <ID>MaxLineLength:PresentationTest.kt:PresentationTest$assertEquals(MyNumber.HandOver(Money(5000)), eventSummaries(BandView(band), band.member("bob"), showArchived = false, onlyMyEvents = false).first().myNumber)</ID>
     <ID>MaxLineLength:PresentationTest.kt:PresentationTest$assertEquals(listOf(AgendaTemplateItem(AgendaKind.CONCERT_START), AgendaTemplateItem(AgendaKind.ARRIVAL)), drafts.map { it.toItem(labels::getValue) })</ID>
+    <ID>MaxLineLength:PresentationTest.kt:PresentationTest$fun number</ID>
     <ID>MaxLineLength:QrCode.kt:if (dark) drawRect(Color.Black, Offset((column + QUIET_ZONE) * cell, (row + QUIET_ZONE) * cell), Size(cell + 0.5f, cell + 0.5f))</ID>
     <ID>MaxLineLength:RefundsSection.kt:IconButton(onClick = { editing = cost }) { Icon(Icons.Default.Tune, cost.description?.takeIf { it.isNotBlank() }?.let { "$label: $it" } ?: label) }</ID>
     <ID>MaxLineLength:RefundsSection.kt:Text(stringResource(Res.string.pending_from_earlier), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))</ID>
@@ -390,8 +377,6 @@
     <ID>MaxLineLength:SettleScreen.kt:}</ID>
     <ID>MaxLineLength:SettleTogether.kt:FilledTonalButton(onClick = { actions.run(AcceptSettleTogether(from.id, me.id)) }) { Text(stringResource(Res.string.settle_together_accept)) }</ID>
     <ID>MaxLineLength:SettleTogether.kt:OutlinedButton(onClick = { actions.run(DeclineSettleTogether(from.id, me.id)) }) { Text(stringResource(Res.string.settle_together_decline)) }</ID>
-    <ID>MaxLineLength:SettleTogether.kt:return stringResource(Res.string.settle_together_ends, member.name, partner.name, SettleTogether.openEventsTogether(band, member.id, partner.id).toString())</ID>
-    <ID>MaxLineLength:SettleTogether.kt:text = stringResource(Res.string.settle_together_stop_text, other.name, SettleTogether.openEventsTogether(band, me.id, other.id).toString())</ID>
     <ID>MaxLineLength:SettlementText.kt:if (shares.isNotEmpty()) blocks.add(listOf(words.shares) + shares.mapIndexed { index, share -> if (index &lt; shares.lastIndex) "$share," else share })</ID>
     <ID>MaxLineLength:SettlementText.kt:private</ID>
     <ID>MaxLineLength:SettlementTextTest.kt:SettlementTextTest$CreateEvent("pair-gig", "Pair gig", LocalDate(2026, 9, 12), participants = listOf(Participant("alice"), Participant("bob"), Participant("carol")))</ID>
@@ -400,9 +385,6 @@
     <ID>MaxLineLength:SettlementTextTest.kt:SettlementTextTest$private</ID>
     <ID>MaxLineLength:SettlementTextTest.kt:SettlementTextTest$val</ID>
     <ID>MaxLineLength:ShareEditor.kt:content = { labels.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }</ID>
-    <ID>MaxLineLength:ShareTargets.kt:ShareTargets$band.costs.filter { it.eventId == event.id &amp;&amp; statuses.status(it) != CostStatus.REFUNDED &amp;&amp; mayAttach(AttachmentOwner.OfCost(it.id)) }</ID>
-    <ID>MaxLineLength:ShareTargetsTest.kt:ShareTargetsTest$listOf(ShareTarget.NewCost::class, ShareTarget.NewCollected::class, ShareTarget.ExistingCost::class, ShareTarget.ExistingCollected::class)</ID>
-    <ID>MaxLineLength:ShareTargetsTest.kt:ShareTargetsTest$val cost = ShareTargets.targets(withFiles, "u-member", withFiles.event("today")!!).filterIsInstance&lt;ShareTarget.ExistingCost>().single()</ID>
     <ID>MaxLineLength:SharedFilesDialog.kt:Column</ID>
     <ID>MaxLineLength:SharedFilesDialog.kt:Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onChoose(item) }.padding(vertical = 8.dp, horizontal = 4.dp)</ID>
     <ID>MaxLineLength:SharedFilesDialog.kt:Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick).padding(vertical = 8.dp, horizontal = 4.dp)</ID>
@@ -422,9 +404,9 @@
     <ID>MaxLineLength:StoreUpdates.android.kt:PlayStoreUpdates$offered(found, AppUpdateType.FLEXIBLE) &amp;&amp; found.availableVersionCode() > prefs.getInt(DECLINED, 0) -> StoreUpdateState.AVAILABLE</ID>
     <ID>MaxLineLength:StoreUpdates.android.kt:PlayStoreUpdates$private fun offered</ID>
     <ID>MaxLineLength:StuckPushBanner.kt:Surface</ID>
-    <ID>MaxLineLength:Summaries.kt:fun initials: String</ID>
-    <ID>MaxLineLength:Summaries.kt:internal</ID>
-    <ID>MaxLineLength:Summaries.kt:val upcoming = band.events.filter { !it.archived &amp;&amp; it.date >= today &amp;&amp; it.id != except }.sortedWith(compareBy&lt;Event> { it.date }.thenBy { it.name })</ID>
+    <ID>MaxLineLength:SummaryPeriods.kt:fun</ID>
+    <ID>MaxLineLength:SummaryPeriods.kt:fun AppSettings.withSummaryPeriod: AppSettings</ID>
+    <ID>MaxLineLength:SummaryPeriodsTest.kt:SummaryPeriodsTest$val stored = KapeluszJson.decodeFromString(AppSettings.serializer(), KapeluszJson.encodeToString(AppSettings.serializer(), settings))</ID>
     <ID>MaxLineLength:SummaryScreen.kt:DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = { start, end -> choose(SummaryPeriod.Custom(start, end)) }, onDismiss = { choosingRange = false })</ID>
     <ID>MaxLineLength:SummaryScreen.kt:IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back)) }</ID>
     <ID>MaxLineLength:SummaryScreen.kt:LazyRow</ID>
@@ -436,6 +418,7 @@
     <ID>MaxLineLength:SummaryScreen.kt:if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)</ID>
     <ID>MaxLineLength:SummaryScreen.kt:if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SummaryHeader(stringResource(Res.string.summary_members)) }</ID>
     <ID>MaxLineLength:SummaryScreen.kt:private</ID>
+    <ID>MaxLineLength:SummaryScreen.kt:shown = period to withContext(Dispatchers.Default) { periodSummary(state.view, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) { yield() } }</ID>
     <ID>MaxLineLength:SummarySection.kt:Text(stringResource(Res.string.line_holds, formatMoney(line.balance, currency, lang)), style = MaterialTheme.typography.bodySmall)</ID>
     <ID>MaxLineLength:SummarySection.kt:partyName(context.band, context.event, context.settlement, line.partyId, fundLabel, stringResource(Res.string.pair_names))</ID>
     <ID>MaxLineLength:SyncEngine.kt:SyncEngine$if</ID>

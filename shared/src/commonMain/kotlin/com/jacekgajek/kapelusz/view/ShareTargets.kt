@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.view
 
 import com.jacekgajek.kapelusz.domain.CostStatus
 import com.jacekgajek.kapelusz.model.Attachment
@@ -13,7 +13,6 @@ import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
-import com.jacekgajek.kapelusz.view.CostStatuses
 import kotlinx.datetime.LocalDate
 
 /** Where files shared to Kapelusz can go (ITERATION_6 §1): one of these, in an event of one of the user's bands. */
@@ -29,7 +28,9 @@ sealed interface ShareTarget {
 }
 
 /** An event shared files can go to, with its band; [upcoming] after today. */
-data class ShareEvent(val band: Band, val event: Event, val upcoming: Boolean)
+data class ShareEvent(val view: BandView, val event: Event, val upcoming: Boolean) {
+    val band: Band get() = view.band
+}
 
 object ShareTargets {
     /**
@@ -38,16 +39,17 @@ object ShareTargets {
      * first.
      */
     fun events(bands: List<Band>, userId: String, today: LocalDate): List<ShareEvent> {
-        val all = bands.flatMap { band ->
+        val all = bands.map(::BandView).flatMap { view ->
+            val band = view.band
             // Artists see only the events they play (ITERATION_4 §1.1), even with an own cost in another.
             val me = band.memberOfUser(userId)?.id
             val artist = band.isArtist(userId)
             band.events
                 .filter { event ->
                     val mine = !artist || (me != null && event.participant(me) != null)
-                    !event.archived && mine && targets(band, userId, event).isNotEmpty()
+                    !event.archived && mine && targets(view, userId, event).isNotEmpty()
                 }
-                .map { ShareEvent(band, it, it.date > today) }
+                .map { ShareEvent(view, it, it.date > today) }
         }
         val (upcoming, past) = all.partition { it.upcoming }
         return past.sortedWith(compareByDescending<ShareEvent> { it.event.date }.thenByDescending { it.event.updatedAt }) +
@@ -58,10 +60,11 @@ object ShareTargets {
      * What the user may attach files to in [event]: a new cost, new collected money, the event's own files, then its
      * existing costs (not those fully refunded) and collected entries. Full ones are listed too, with no room left.
      */
-    fun targets(band: Band, userId: String, event: Event): List<ShareTarget> {
+    fun targets(view: BandView, userId: String, event: Event): List<ShareTarget> {
         if (event.archived) return emptyList()
+        val band = view.band
         val can = Capabilities(band, userId)
-        val statuses = CostStatuses(band)
+        val statuses = view.costStatuses
         fun mayAttach(owner: AttachmentOwner) = can.allowed(AddAttachment(owner, PROBE))
         return buildList {
             if (can.addCostIn(event)) add(ShareTarget.NewCost())

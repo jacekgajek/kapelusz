@@ -102,19 +102,10 @@ import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
-import com.jacekgajek.kapelusz.app.ui.model.EventSearch
-import com.jacekgajek.kapelusz.app.ui.model.EventSummary
-import com.jacekgajek.kapelusz.app.ui.model.MyNumber
-import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.app.ui.model.partyName
-import com.jacekgajek.kapelusz.app.ui.model.searchWords
-import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
-import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
-import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
 import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
@@ -125,15 +116,23 @@ import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Participant
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.isArtist
+import com.jacekgajek.kapelusz.view.EventSearch
+import com.jacekgajek.kapelusz.view.EventSummary
+import com.jacekgajek.kapelusz.view.MyNumber
+import com.jacekgajek.kapelusz.view.eventSummaries
+import com.jacekgajek.kapelusz.view.partyName
+import com.jacekgajek.kapelusz.view.searchWords
+import com.jacekgajek.kapelusz.view.searchableSummaries
+import com.jacekgajek.kapelusz.view.unsettledEvent
+import com.jacekgajek.kapelusz.view.upcomingEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -159,7 +158,7 @@ fun EventsScreen(
     // Settling every event is costly: again only when the band or a filter changes, not on each redraw (e.g. a key
     // typed in the search).
     val summaries = remember(band, state.me, onlyMine, settings.showArchived) {
-        eventSummaries(band, state.me, settings.copy(onlyMyEvents = onlyMine))
+        eventSummaries(state.view, state.me, settings.showArchived, onlyMine)
     }
     // Searching (ITERATION_6 §6): all events the user may see, whatever the filters, prepared in the background once
     // the search opens; kept until the band changes, then built again (the old results shown meanwhile).
@@ -172,7 +171,7 @@ fun EventsScreen(
             return@LaunchedEffect
         }
         val me = state.me
-        search = withContext(Dispatchers.Default) { EventSearch(searchableSummaries(band, me, artist)) }
+        search = withContext(Dispatchers.Default) { EventSearch(searchableSummaries(state.view, me, artist) { yield() }) }
     }
     val words = remember(query) { searchWords(query) }
     // Until something is typed, the list as it was, filters included. Results of a search being built again leave out
@@ -187,7 +186,7 @@ fun EventsScreen(
     }
     BackHandler(enabled = searching) { closeSearch() }
     val today = today()
-    val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(band, today) }
+    val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(state.view, today) }
     // One card per event: an open gig tonight is unsettled business, not also "upcoming".
     val upcoming = remember(band, state.me, today, continueEvent, artist) {
         upcomingEvent(band, state.me, today, except = continueEvent?.id)?.takeIf { !artist || it.participant(state.me?.id ?: "") != null }

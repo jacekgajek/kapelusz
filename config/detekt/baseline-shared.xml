@@ -7,6 +7,7 @@
     <ID>CyclomaticComplexMethod:CostReducer.kt:CostReducer$private fun updateCost: Band</ID>
     <ID>CyclomaticComplexMethod:Limits.kt:Limits$fun violation: Rejection?</ID>
     <ID>CyclomaticComplexMethod:Limits.kt:Limits$private fun events: Rejection?</ID>
+    <ID>CyclomaticComplexMethod:PeriodSummary.kt:suspend fun periodSummary: PeriodSummary</ID>
     <ID>CyclomaticComplexMethod:Places.kt:Places$fun target: MapTarget?</ID>
     <ID>CyclomaticComplexMethod:Reducer.kt:Reducer$fun apply: Band</ID>
     <ID>CyclomaticComplexMethod:SettleTogether.kt:SettleTogether$fun split: List&lt;SuggestedTransfer></ID>
@@ -14,6 +15,7 @@
     <ID>CyclomaticComplexMethod:Undo.kt:Undoing$fun problems: Set&lt;String></ID>
     <ID>ExplicitItLambdaMultipleParameters:AwaitedFeeTest.kt:AwaitedFeeTest${ sum, it -> sum + it.amount }</ID>
     <ID>ExplicitItLambdaMultipleParameters:TransferReducer.kt:TransferReducer${ part, it -> Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId) }</ID>
+    <ID>LoopWithTooManyJumpStatements:Names.kt:Names$for</ID>
     <ID>LoopWithTooManyJumpStatements:SettlementCalculator.kt:SettlementCalculator$while</ID>
     <ID>MaxLineLength:AgendaTest.kt:AgendaTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", AgendaKind.ARRIVAL, label = long)))).reason, "also on a built-in entry")</ID>
     <ID>MaxLineLength:AgendaTest.kt:AgendaTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("i".repeat(65), AgendaKind.ARRIVAL)))).reason)</ID>
@@ -105,7 +107,6 @@
     <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(listOf("Cyryl", "Ćma", "Ewa", "lena", "Lz", "Łukasz", "Mark", "Müller", "Zenon", "Źdźbło", "Żaneta"), names.sortedWith(Names.order))</ID>
     <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(listOf("adam", "lukasz", "zoe", "bea", "zed"), SettlementCalculator.partyOrder(scenario.band, scenario.band.event("gig")!!))</ID>
     <ID>MaxLineLength:LineupTest.kt:LineupTest$participants = listOf(Participant("carol", 150), Participant("dave"), Participant("helper2"), Participant("roadie", 50))</ID>
-    <ID>MaxLineLength:MemberShareTest.kt:MemberShareTest$assertEquals(listOf("gig"), MemberShares.stillDefault(scenario.band, member).map { it.id }, "the same 300, whatever the hidden percentage")</ID>
     <ID>MaxLineLength:MemberShares.kt:MemberShares$fun</ID>
     <ID>MaxLineLength:MoneyReducer.kt:MoneyReducer$invalidIf(!CostLedger.isRefundableAt(cost, event), RejectionReason.NOT_REFUNDABLE_HERE) { "Costs can only be refunded at events their owner takes part in" }</ID>
     <ID>MaxLineLength:PairReducer.kt:PairReducer$.</ID>
@@ -113,11 +114,21 @@
     <ID>MaxLineLength:PairReducer.kt:PairReducer$conflictIf(band.member(op.memberId)?.settlesWith != op.partnerId, RejectionReason.NOT_FOUND) { "${op.memberId} does not settle with ${op.partnerId}" }</ID>
     <ID>MaxLineLength:PairReducer.kt:PairReducer$conflictIf(member(fromMemberId)?.invitedToSettle != toMemberId, RejectionReason.NOT_FOUND) { "No invitation from $fromMemberId to $toMemberId" }</ID>
     <ID>MaxLineLength:Payees.kt:Payees$private fun member: Payee?</ID>
+    <ID>MaxLineLength:PeriodSummary.kt:PeriodSummary$val</ID>
+    <ID>MaxLineLength:PeriodSummary.kt:inPeriod(it.date) &amp;&amp; settlements.getValue(it.id).status.let { status -> status != EventStatus.SETTLED &amp;&amp; status != EventStatus.DRAFT }</ID>
+    <ID>MaxLineLength:PeriodSummary.kt:myWaiting = me?.let { band.costs.filter { cost -> cost.memberId == it.id }.sumOfMoney { cost -> cost.amount - paid(cost.id) } } ?: Money.ZERO</ID>
+    <ID>MaxLineLength:PeriodSummary.kt:paidOut = settledInPeriod.sumOfMoney { event -> settlements.getValue(event.id).lines.filter { it.partyId != BAND_FUND }.sumOfMoney { it.share } }</ID>
+    <ID>MaxLineLength:PeriodSummary.kt:val recorded = transfer.recordedAt.takeIf { it > 0 }?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date }</ID>
+    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$CreateEvent("gig", "Gig", LocalDate(2026, 6, 1), participants = listOf(Participant("me"), Participant("bob"), Participant("ann")))</ID>
+    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = Money.ZERO, out = zl(300), balance = zl(300), outBy = listOf(FundSource.Of(bob) to zl(300))), y2026.fund)</ID>
+    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = Money.ZERO, out = zl(400), balance = zl(200), outBy = listOf(FundSource.Of(bob) to zl(300), FundSource.Events to zl(100))), y2026.fund)</ID>
+    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = zl(100), out = zl(300), balance = zl(400), intoBy = listOf(FundSource.Events to zl(100)), outBy = listOf(FundSource.Of(bob) to zl(300))), untilToday)</ID>
+    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(FundTotals(into = zl(600), out = Money.ZERO, balance = zl(600), intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100))), y2025.fund)</ID>
+    <ID>MaxLineLength:PeriodSummaryTest.kt:PeriodSummaryTest$assertEquals(zl(100), periodSummary(BandView(night), me, june.first, june.second, timeZone = UtcOffset(hours = 2).asTimeZone()).fund?.into)</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$if (op is ScheduleBandDeletion) return forbidden(RejectionReason.ROLE_REQUIRED, "Only the owner deletes the band, through the server")</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$is AttachmentOwner.OfCost -> if (adding &amp;&amp; band.cost(owner.costId)?.memberId == me.id) Role.ARTIST else ownCost(band, me, owner.costId)</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null &amp;&amp; it == me.id }, Role.ARTIST)</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$is SettleSuggestions -> ownIf(op.partyId != null &amp;&amp; (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))</ID>
-    <ID>MaxLineLength:Permissions.kt:Permissions$is UpdateFundEntry, is RemoveFundEntry -> band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together &amp;&amp; partnerIn(band, me, op.eventId).let { it != null &amp;&amp; (it == op.from || it == op.to) })</ID>
     <ID>MaxLineLength:Permissions.kt:Permissions$private</ID>
     <ID>MaxLineLength:Places.kt:Places$.</ID>
@@ -181,6 +192,12 @@
     <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(listOf(SuggestedTransfer("bob", "alice", pln("100")), SuggestedTransfer("bob", "carol", pln("100"))), scenario.settle("open").suggestions)</ID>
     <ID>MaxLineLength:SettlementCalculator.kt:SettlementCalculator$byPercent.isNotEmpty() -> splitByWeight(rest, byPercent.map { it.copy(weight = it.percent!!) }, byPercent.sumOf { it.percent!!.toLong() })</ID>
     <ID>MaxLineLength:SharePercentTest.kt:SharePercentTest$val s = gig().apply(SetFundAmount("gig", Money.ZERO, percent = 10)).apply(SetFixedShare("gig", "alice", null, percent = 50)).settle("gig")</ID>
+    <ID>MaxLineLength:ShareTargets.kt:ShareTargets$band.costs.filter { it.eventId == event.id &amp;&amp; statuses.status(it) != CostStatus.REFUNDED &amp;&amp; mayAttach(AttachmentOwner.OfCost(it.id)) }</ID>
+    <ID>MaxLineLength:ShareTargetsTest.kt:ShareTargetsTest$listOf(ShareTarget.NewCost::class, ShareTarget.NewCollected::class, ShareTarget.ExistingCost::class, ShareTarget.ExistingCollected::class)</ID>
+    <ID>MaxLineLength:ShareTargetsTest.kt:ShareTargetsTest$val cost = ShareTargets.targets(BandView(withFiles), "u-member", withFiles.event("today")!!).filterIsInstance&lt;ShareTarget.ExistingCost>().single()</ID>
+    <ID>MaxLineLength:Summaries.kt:fun initials: String</ID>
+    <ID>MaxLineLength:Summaries.kt:internal</ID>
+    <ID>MaxLineLength:Summaries.kt:val upcoming = band.events.filter { !it.archived &amp;&amp; it.date >= today &amp;&amp; it.id != except }.sortedWith(compareBy&lt;Event> { it.date }.thenBy { it.name })</ID>
     <ID>MaxLineLength:TransferReducer.kt:TransferReducer$Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId)</ID>
     <ID>MaxLineLength:TransferReducer.kt:TransferReducer$Transfer(if (index == 0) op.transferId else "${op.transferId}-$index", part.from, part.to, part.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId)</ID>
     <ID>MaxLineLength:TransferReducer.kt:TransferReducer$conflictIf(!settlement.canSettle, RejectionReason.CANNOT_SETTLE) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }</ID>
@@ -189,7 +206,6 @@
     <ID>MaxLineLength:TransferReducer.kt:TransferReducer$invalidIf(op.from == op.to || settlement.party(op.from)?.let { op.to in it.partyIds } == true, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }</ID>
     <ID>MaxLineLength:TransferReducer.kt:TransferReducer$invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }</ID>
     <ID>MaxLineLength:TransferReducer.kt:TransferReducer$invalidIf(transfers.any { t -> now.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }</ID>
-    <ID>MaxLineLength:TransferReducer.kt:TransferReducer$val parts = SettleTogether.split(result, SettlementCalculator.settle(result, now), suggestion.from, suggestion.to, suggestion.amount)</ID>
     <ID>MaxLineLength:Undo.kt:Undoing$)</ID>
     <ID>MaxLineLength:Undo.kt:Undoing$event.holdings.filter { it.partyId !in parties &amp;&amp; it.partyId != ORGANISER &amp;&amp; it.partyId != BAND_FUND }.forEach { add("holding ${it.id} at ${event.id}") }</ID>
     <ID>MaxLineLength:Undo.kt:Undoing$event.participants.filter { it.partyId !in memberIds &amp;&amp; it.partyId !in guestIds }.forEach { add("participant ${it.partyId} at ${event.id}") }</ID>

@@ -1,12 +1,8 @@
-package com.jacekgajek.kapelusz.app.ui.model
+package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.BAND_FUND
-import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
@@ -14,7 +10,6 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.sumOfMoney
 import kotlin.time.Instant
-import kotlinx.coroutines.yield
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -60,12 +55,6 @@ sealed interface SummaryPeriod {
         override fun range(today: LocalDate) = from to to
     }
 }
-
-/** The period [bandId]'s summary was last shown for; at first, or unreadable: the last 12 months. */
-fun AppSettings.summaryPeriod(bandId: String): SummaryPeriod = summaryPeriods[bandId]?.let { runCatching { KapeluszJson.decodeFromString(SummaryPeriod.serializer(), it) }.getOrNull() }
-    ?: SummaryPeriod.Last12Months
-
-fun AppSettings.withSummaryPeriod(bandId: String, period: SummaryPeriod): AppSettings = copy(summaryPeriods = summaryPeriods + (bandId to KapeluszJson.encodeToString(SummaryPeriod.serializer(), period)))
 
 /** What one person got in the period: their shares, and payments of their costs. */
 data class PersonTotals(val earned: Money, val refunded: Money) {
@@ -135,22 +124,25 @@ data class PeriodSummary(
 /**
  * The summary of [band] from [from] to [to] (both included; null: no limit), as ITERATION_6 §7 counts it: settled
  * events' money on the event's date, fund entries on their own, each refund payment on its date, costs once fully
- * refunded on the date that happened. [onlyEventsOf]: an artist's id, naming only their unsettled events. Settles every event, the costly part: yields between events, to be cancelled
- * when outdated and to let the web's one thread draw.
+ * refunded on the date that happened. [onlyEventsOf]: an artist's id, naming only their unsettled events. Settles every
+ * event, the costly part, and [pause]s between them.
  */
 suspend fun periodSummary(
-    band: Band,
+    view: BandView,
     me: Member?,
     from: LocalDate?,
     to: LocalDate?,
     onlyEventsOf: Id? = null,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    /** Called between events, e.g. to yield: the computation is cancelled when outdated and the web's one thread draws. */
+    pause: suspend () -> Unit = {},
 ): PeriodSummary {
+    val band = view.band
     fun inPeriod(date: LocalDate) = (from == null || date >= from) && (to == null || date <= to)
 
     val settlements = band.events.associate { event ->
-        yield()
-        event.id to SettlementCalculator.settle(band, event)
+        pause()
+        event.id to view.settlement(event)
     }
     val settled = band.events.filter { settlements.getValue(it.id).status == EventStatus.SETTLED }
     val settledInPeriod = settled.filter { inPeriod(it.date) }
@@ -177,7 +169,7 @@ suspend fun periodSummary(
     // Paid amounts from the settlements above: settling every event again (as CostStatuses does) costs as much again.
     fun paid(costId: Id) = settled.sumOfMoney { it.refundOf(costId)?.amount ?: Money.ZERO } + CostLedger.fundRefunds(band, costId)
     val refundedCosts = band.costs.mapNotNull { cost ->
-        yield()
+        pause()
         if (paid(cost.id) < cost.amount) return@mapNotNull null
         val dates = settled.filter { it.refundOf(cost.id) != null }.map { it.date } +
             band.fundEntries.filter { it.costId == cost.id }.map { it.date }

@@ -1,11 +1,6 @@
-package com.jacekgajek.kapelusz.app.ui
+package com.jacekgajek.kapelusz.view
 
-import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.app.ui.model.EventSearch
-import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
-import com.jacekgajek.kapelusz.app.ui.model.foldForSearch
-import com.jacekgajek.kapelusz.app.ui.model.searchWords
-import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
+import com.jacekgajek.kapelusz.domain.Names
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddMember
@@ -15,6 +10,11 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.view.BandView
+import com.jacekgajek.kapelusz.view.EventSearch
+import com.jacekgajek.kapelusz.view.eventSummaries
+import com.jacekgajek.kapelusz.view.searchWords
+import com.jacekgajek.kapelusz.view.searchableSummaries
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.test.runTest
@@ -33,15 +33,15 @@ class EventSearchTest {
         CreateEvent("noplace", "Próba", LocalDate(2026, 1, 3)),
         SetEventArchived("lodz", true),
     )
-    private val search = EventSearch(eventSummaries(band, band.member("me"), AppSettings(showArchived = true)))
+    private val search = EventSearch(eventSummaries(BandView(band), band.member("me"), showArchived = true, onlyMyEvents = false))
 
     private fun find(query: String) = search.find(searchWords(query)).map { it.event.id }
 
     @Test
     fun foldsCaseAndDiacritics() {
-        assertEquals("zazolc gesla jazn lodz", foldForSearch("ZAŻÓŁĆ gęślą jaźń Łódź"))
-        assertEquals("creme bruhe strasse", foldForSearch("Crème Brühe Straße"))
-        assertEquals("lodz", foldForSearch("L\u006F\u0301dz"), "combining marks, as pasted from a Mac")
+        assertEquals("zazolc gesla jazn lodz", Names.fold("ZAŻÓŁĆ gęślą jaźń Łódź"))
+        assertEquals("creme bruhe strasse", Names.fold("Crème Brühe Straße"))
+        assertEquals("lodz", Names.fold("L\u006F\u0301dz"), "combining marks, as pasted from a Mac")
     }
 
     @Test
@@ -79,10 +79,10 @@ class EventSearchTest {
         )
         assertEquals(
             listOf("wedding", "club", "bobs", "noplace", "lodz"),
-            searchableSummaries(withBob, withBob.member("me"), artist = false).map { it.event.id },
+            searchableSummaries(BandView(withBob), withBob.member("me"), artist = false).map { it.event.id },
             "archived and other people's events too",
         )
-        assertEquals(listOf("bobs"), searchableSummaries(withBob, withBob.member("bob"), artist = true).map { it.event.id })
+        assertEquals(listOf("bobs"), searchableSummaries(BandView(withBob), withBob.member("bob"), artist = true).map { it.event.id })
     }
 
     @Test
