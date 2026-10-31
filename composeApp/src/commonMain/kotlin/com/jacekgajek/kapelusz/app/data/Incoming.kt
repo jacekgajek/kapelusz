@@ -2,6 +2,7 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.app.platform.PickResult
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -16,11 +17,8 @@ class Incoming {
     /** An event link's event id (ITERATION_5 §10), opened once the user is signed in and their bands are known. */
     val pendingEventLink = MutableStateFlow<String?>(null)
 
-    /** A gig to open, e.g. from an event link: band id and event id. */
-    val pendingOpenEvent = MutableStateFlow<Pair<String, String>?>(null)
-
-    /** An event to show at one of its sections once open (event id, section), e.g. where shared files were attached. */
-    val pendingEventSection = MutableStateFlow<Pair<String, String>?>(null)
+    /** A gig to open, e.g. from an event link or where shared files went, switching band if needed. */
+    val pendingOpenEvent = MutableStateFlow<OpenEvent?>(null)
 
     /**
      * The band whose screens the navigation was last set up for by whoever switched to it (an event link opening one of
@@ -59,3 +57,6 @@ class SharedHandover(val eventId: String, val toCost: Boolean, val files: List<P
  * the files could not be attached.
  */
 data class SharedAttached(val bandId: String, val eventId: String, val owner: AttachmentOwner, val attachmentIds: List<String>, val failed: Int)
+
+/** An event to open: in band [bandId], at [section] when given. */
+data class OpenEvent(val bandId: String, val eventId: String, val section: EventSection? = null)

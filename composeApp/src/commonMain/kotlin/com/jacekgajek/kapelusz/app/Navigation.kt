@@ -46,6 +46,7 @@ import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.AppNavigator
 import com.jacekgajek.kapelusz.app.ui.CostRoute
 import com.jacekgajek.kapelusz.app.ui.EventRoute
+import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.FundRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
@@ -111,7 +112,7 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
     // An event to open (e.g. an event link): open it, switching band if needed.
     val openEvent by graph.incoming.pendingOpenEvent.collectAsState()
     LaunchedEffect(openEvent) {
-        val (bandId, eventId) = openEvent ?: return@LaunchedEffect
+        val (bandId, eventId, section) = openEvent ?: return@LaunchedEffect
         graph.incoming.pendingOpenEvent.value = null
         // The band can be gone by the time it opens (deleted, access lost): then nothing more happens.
         if (!graph.bands.hasStored(bandId)) {
@@ -126,15 +127,19 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
         }
         // Already on it (e.g. files shared from the gig's screen): it stays, and takes what was shared.
         val entry = navController.currentBackStackEntry
-        if (entry?.destination?.hasRoute(EventRoute::class) == true && entry.toRoute<EventRoute>().eventId == eventId) return@LaunchedEffect
+        if (entry?.destination?.hasRoute(EventRoute::class) == true && entry.toRoute<EventRoute>().eventId == eventId) {
+            // At the section where the files went, in place: the screen stays, with its snackbar offering Undo.
+            if (section != null) entry.savedStateHandle[AppNavigator.EVENT_SECTION] = section.name
+            return@LaunchedEffect
+        }
         // From the event list, like switching bands: Back must not lead into the other band's screens.
         navController.resetTo(EventsRoute)
-        navController.navigate(EventRoute(eventId))
+        navController.navigate(EventRoute(eventId, section))
     }
     LaunchedEffect(state.me?.pictureUrl) { graph.account.sendPictureIfMissing(state.me) }
     SharedFilesDialog(graph.incoming, graph.bands, graph.attachments, state)
     val session = rememberBandSession(state, graph)
-    val navigator = remember(navController, graph) { AppNavigator(navController, graph.incoming) }
+    val navigator = remember(navController, graph) { AppNavigator(navController) }
 
     // The band fund tab appears once someone holds the fund (leaders choose the holder in Settings).
     val fundEnabled = state.band.treasurerMemberId != null
@@ -166,7 +171,12 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                 }
             }
             composable<EventRoute> { entry ->
-                EventScreen(session, entry.toRoute<EventRoute>().eventId, navigator)
+                val route = entry.toRoute<EventRoute>()
+                // The section to show: the route's at first, or one asked for later (files shared to this event); cleared once shown.
+                val asked by entry.savedStateHandle.getStateFlow(AppNavigator.EVENT_SECTION, route.section?.name).collectAsState()
+                EventScreen(session, route.eventId, navigator, section = asked?.let(EventSection::valueOf)) {
+                    entry.savedStateHandle[AppNavigator.EVENT_SECTION] = null
+                }
             }
             composable<CostRoute> { entry ->
                 val route = entry.toRoute<CostRoute>()

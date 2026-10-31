@@ -32,6 +32,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.LinkedEvent
+import com.jacekgajek.kapelusz.app.data.OpenEvent
 import com.jacekgajek.kapelusz.app.data.linkedEvent
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -228,7 +229,7 @@ private fun EventLinkOpening(graph: AppGraph) {
                     graph.incoming.navigatedForBand = found.bandId
                     graph.bands.open(found.bandId)
                 }
-                graph.incoming.pendingOpenEvent.value = found.bandId to eventId
+                graph.incoming.pendingOpenEvent.value = OpenEvent(found.bandId, eventId)
             }
 
             else -> failed = found

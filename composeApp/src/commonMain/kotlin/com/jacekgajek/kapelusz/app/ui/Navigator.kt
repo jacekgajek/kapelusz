@@ -3,7 +3,6 @@ package com.jacekgajek.kapelusz.app.ui
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
-import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.resetTo
 
 // Where a screen can go, as small interfaces: a screen names what it needs, and only [AppNavigator] knows the routes.
@@ -69,7 +68,7 @@ interface SettingsNav : BackNav {
 }
 
 /** The one implementation, over the navigation controller; built once per band in `Navigation`. */
-class AppNavigator(private val navController: NavHostController, private val incoming: Incoming) :
+class AppNavigator(private val navController: NavHostController) :
     CostsNav,
     FundNav,
     EventNav,
@@ -98,10 +97,7 @@ class AppNavigator(private val navController: NavHostController, private val inc
 
     override fun bandGone() = navController.resetTo(EventsRoute)
 
-    override fun openRefunds(eventId: String) {
-        incoming.pendingEventSection.value = eventId to "REFUNDS"
-        navController.navigate(EventRoute(eventId))
-    }
+    override fun openRefunds(eventId: String) = navController.navigate(EventRoute(eventId, EventSection.REFUNDS))
 
     override fun addedForOther() {
         navController.previousBackStackEntry?.savedStateHandle?.set(SHOW_EVERYONE, true)
@@ -127,5 +123,8 @@ class AppNavigator(private val navController: NavHostController, private val inc
 
         /** Saved state key of a cost just added from the band fund's +, for the fund tab to refund. */
         const val ADDED_COST = "addedCost"
+
+        /** Saved state key of the [EventSection] name an open event screen should scroll to; cleared once it did. */
+        const val EVENT_SECTION = "eventSection"
     }
 }

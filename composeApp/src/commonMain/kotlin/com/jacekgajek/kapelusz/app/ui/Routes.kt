@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui
 
+import com.jacekgajek.kapelusz.app.data.EventTab
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -22,9 +23,10 @@ data object SettleRoute
 @SerialName("fund")
 data object FundRoute
 
+/** An event; at one of its [section]s when given (e.g. where shared files went, or the refund a cost is in). */
 @Serializable
 @SerialName("event")
-data class EventRoute(val eventId: String)
+data class EventRoute(val eventId: String, val section: EventSection? = null)
 
 /** Add (`costId == null`) or edit a cost. */
 @Serializable
@@ -57,3 +59,28 @@ data object SummaryRoute
 @Serializable
 @SerialName("played")
 data object PlayedRoute
+
+/**
+ * The event screen's sections in list order, each on the pages ([tabs]) it shows on. One list item each, so a section is
+ * found by its index on its page (e.g. where shared files were attached).
+ */
+enum class EventSection(vararg val tabs: EventTab) {
+    WHEN(EventTab.GIG),
+    DETAILS(EventTab.GIG),
+    FILES(EventTab.GIG),
+    PARTICIPANTS(EventTab.GIG),
+    SHARE_INFO(EventTab.GIG),
+    STATUS(EventTab.MONEY, EventTab.SETTLEMENT),
+    TOTALS(EventTab.MONEY),
+    COLLECTED(EventTab.MONEY),
+    REFUNDS(EventTab.MONEY),
+    PROBLEMS(EventTab.SETTLEMENT),
+    SUMMARY(EventTab.SETTLEMENT),
+    TO_SETTLE(EventTab.SETTLEMENT),
+    HISTORY(EventTab.SETTLEMENT),
+    ;
+
+    companion object {
+        fun on(tab: EventTab) = entries.filter { tab in it.tabs }
+    }
+}
