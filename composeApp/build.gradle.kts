@@ -113,6 +113,9 @@ kotlin {
                 enabled = chrome != null
                 useKarma { useChromeHeadlessNoSandbox() }
                 if (chrome != null) environment("CHROME_BIN", chrome)
+                // The resources the screens under test read; served by karma.config.d/ui-tests.js.
+                dependsOn("wasmJsProcessResources")
+                environment("COMPOSE_TEST_RESOURCES", layout.buildDirectory.dir("processedResources/wasmJs/main").get().asFile.absolutePath)
             }
         }
         binaries.executable()
@@ -164,6 +167,12 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+        }
+        // Compose UI smoke tests run in the browser (REFACTORING.md 4.6): the app has no JVM target, and the Android
+        // host tests have no Activity to put a composition in.
+        wasmJsTest.dependencies {
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            implementation(compose.uiTest)
         }
     }
 }

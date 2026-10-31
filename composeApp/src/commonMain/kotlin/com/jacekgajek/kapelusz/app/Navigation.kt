@@ -148,7 +148,7 @@ internal fun Navigation(runtime: AppRuntime, state: BandState.Ready, navControll
             composable<EventRoute> { entry ->
                 val route = entry.toRoute<EventRoute>()
                 // The section to show once (not again after a rotation): the route's, cleared once shown.
-                val asked by entry.savedStateHandle.getStateFlow(AppNavigator.EVENT_SECTION, route.section?.name).collectAsState()
+                val asked by entry.savedStateHandle.getStateFlow(AppNavigator.EVENT_SECTION, route.section).collectAsState()
                 // What travels with it (files shared to the event, ITERATION_6 §1): taken once, when the screen's model is made.
                 val screen = entry.screenViewModel {
                     val carry = route.carryId?.let(session.intents::takeCarry)
