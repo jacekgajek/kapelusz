@@ -184,8 +184,9 @@ kotlin {
 val checkStringKeys = tasks.register("checkStringKeys") {
     val resources = layout.projectDirectory.dir("src/commonMain/composeResources")
     val sources = listOf(layout.projectDirectory.dir("src"), rootProject.layout.projectDirectory.dir("androidApp/src"))
-    inputs.dir(resources)
+    val stamp = layout.buildDirectory.file("stringKeys/checked")
     sources.forEach { inputs.dir(it) }
+    outputs.file(stamp)
     doLast {
         val declared = Regex("<(?:string|plurals) name=\"(\\w+)\"")
         fun keys(dir: String) = resources.dir(dir).asFile.listFiles { f -> f.extension == "xml" }.orEmpty()
@@ -201,6 +202,7 @@ val checkStringKeys = tasks.register("checkStringKeys") {
         check(unused.isEmpty() && untranslated.isEmpty() && stray.isEmpty()) {
             "String keys: unused $unused; missing in values-pl $untranslated; only in values-pl $stray"
         }
+        stamp.get().asFile.apply { parentFile.mkdirs() }.writeText("${english.size} keys\n")
     }
 }
 tasks.named("check") { dependsOn(checkStringKeys) }
