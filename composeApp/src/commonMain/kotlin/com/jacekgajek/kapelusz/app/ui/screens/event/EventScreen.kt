@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +49,6 @@ import androidx.lifecycle.compose.currentStateAsState
 import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.EventTab
 import com.jacekgajek.kapelusz.app.data.Incoming
-import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_place
 import com.jacekgajek.kapelusz.app.generated.add_times
@@ -126,6 +126,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
+@Stable
 class EventContext(
     /** The attachment files of the event, its costs and collected money. */
     val fileStore: Attachments,
@@ -145,9 +146,15 @@ class EventContext(
 }
 
 @Composable
-fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: EventSection? = null, onSectionShow: () -> Unit = {}) {
+fun EventScreen(
+    session: BandSession,
+    nav: EventNav,
+    screen: EventViewModel,
+    section: EventSection? = null,
+    onSectionShow: () -> Unit = {},
+) {
+    val eventId = screen.eventId
     val state = session.state
-    val changes = session.changes
     val api = session.api
     val bands = session.bands
     val sync = session.sync
@@ -159,17 +166,15 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
     val onOpenCost: (String) -> Unit = nav::openCost
     val onInviteMember: (String) -> Unit = nav::inviteMember
     val messages = rememberMessages()
-    val actions = rememberActions(changes, messages)
-    // Artists only open the events they play, archived ones too (ITERATION_4 §1.1).
-    val artist = session.artist
-    val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
-    var editing by remember { mutableStateOf(false) }
-    val settlement = event?.let { state.view.settlement(it) }
+    val actions = rememberActions(session.changes, messages)
+    val artist = screen.artist
+    val event = screen.event
+    val settlement = screen.settlement
     val shareSettlement = rememberShareSettlement(state.band, event, settlement, messages.snackbar)
-    // Pages (ITERATION_5 §4.4): the gig, its money, and who gets what; artists see the gig and their own money. Each
-    // event opens on the page last used there; swiping or the tabs switch, and each page keeps its own scroll position.
+    // Pages (ITERATION_5 §4.4). Each event opens on the page last used there; swiping or the tabs switch, and each page
+    // keeps its own scroll position.
     val bandId = state.band.id
-    val tabs = if (artist) listOf(EventTab.GIG, EventTab.MONEY) else EventTab.entries
+    val tabs = screen.tabs
     val stored = preferences.settings.collectAsState().value.eventTab(bandId, eventId)
     val pagerState = rememberPagerState(initialPage = tabs.indexOf(stored).coerceAtLeast(0)) { tabs.size }
     val listStates = tabs.associateWith { rememberLazyListState() }
@@ -200,27 +205,26 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
     val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
     val handover by incoming.sharedHandover.collectAsState()
     LaunchedEffect(handover, event != null, resumed) {
-        if (handover?.eventId != eventId || !resumed) return@LaunchedEffect
-        when {
-            // Gone meanwhile (or hidden from an artist): the files must not turn up there later.
-            event == null -> incoming.sharedHandover.value = null
-
-            handover?.toCost == true -> onAddCost(eventId)
+        if (!resumed) return@LaunchedEffect
+        when (screen.handoverAction(handover)) {
+            HandoverAction.DROP -> incoming.sharedHandover.value = null
+            HandoverAction.ADD_COST -> onAddCost(eventId)
+            null -> Unit
         }
     }
     // Taken over from incoming first: clearing it there must not cancel the snackbar showing here.
-    val attachedHere = incoming.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId && it.bandId == state.band.id && resumed }
-    var attached by remember { mutableStateOf<SharedAttached?>(null) }
-    LaunchedEffect(attachedHere) {
-        if (attachedHere == null) return@LaunchedEffect
-        attached = attachedHere
-        incoming.sharedAttached.value = null
+    val sharedAttached by incoming.sharedAttached.collectAsState()
+    LaunchedEffect(sharedAttached, resumed) {
+        if (resumed && screen.takeAttached(sharedAttached, state.band.id)) incoming.sharedAttached.value = null
     }
+    val attached = screen.attached
     val attachedText = attached?.let { pluralStringResource(Res.plurals.share_attached, it.attachmentIds.size, it.attachmentIds.size) }
     val attachFailed = stringResource(Res.string.share_attach_failed)
     val undoLabel = stringResource(Res.string.undo)
     LaunchedEffect(attached) {
         val done = attached ?: return@LaunchedEffect
+        // Forgotten before it shows: left half-shown (the screen replaced, a rotation), it would otherwise show again.
+        screen.attachedShown()
         if (done.attachmentIds.isEmpty()) {
             messages.snackbar.showSnackbar(attachFailed)
         } else {
@@ -230,7 +234,6 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
             val undone = result == SnackbarResult.ActionPerformed
             if (undone && bands.currentBandId == done.bandId) done.attachmentIds.forEach { fileStore.remove(done.owner, it) }
         }
-        attached = null
     }
 
     AppScaffold(
@@ -250,17 +253,11 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
             EmptyState(stringResource(Res.string.event_not_found), Modifier.padding(padding))
             return@AppScaffold
         }
-        val context = EventContext(
-            fileStore,
-            incoming,
-            state.view,
-            event,
-            settlement ?: return@AppScaffold,
-            state.me,
-            actions,
-            session.can,
-            onInviteMember,
-        )
+        if (settlement == null) return@AppScaffold
+        // Once per band state: the sections and their dialogs all take it.
+        val context = remember(state, event, settlement, actions, session, nav) {
+            EventContext(fileStore, incoming, state.view, event, settlement, state.me, actions, session.can, onInviteMember)
+        }
         val shareInfo = rememberShareInfo(state.band, event, messages.snackbar)
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
             EventTabs(tabs, pagerState)
@@ -291,18 +288,33 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
                         EventSection.on(tab).forEach { section ->
                             item(key = section.name) {
                                 when (section) {
-                                    EventSection.WHEN -> WhenAndWhere(context, onEdit = { editing = true }.takeIf { context.can.editEvent(event) })
+                                    EventSection.WHEN -> {
+                                        val edit = { screen.editing = true }
+                                        WhenAndWhere(context, onEdit = edit.takeIf { context.can.editEvent(event) })
+                                    }
+
                                     EventSection.DETAILS -> DetailsSection(context)
+
                                     EventSection.FILES -> FilesSection(context)
+
                                     EventSection.PARTICIPANTS -> ParticipantsSection(context)
+
                                     EventSection.SHARE_INFO -> ShareInfoButton(shareInfo)
+
                                     EventSection.STATUS -> StatusChip(context.settlement.status, event.archived, Modifier.fillMaxWidth().padding(top = 8.dp))
+
                                     EventSection.TOTALS -> Totals(context)
+
                                     EventSection.COLLECTED -> CollectedSection(context)
+
                                     EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
+
                                     EventSection.PROBLEMS -> Problems(context)
+
                                     EventSection.SUMMARY -> SummarySection(context)
+
                                     EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement)
+
                                     EventSection.HISTORY -> HistorySection(context, api, bands, sync)
                                 }
                             }
@@ -311,7 +323,10 @@ fun EventScreen(session: BandSession, eventId: String, nav: EventNav, section: E
                 }
             }
         }
-        if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceLookup(api, state.band, state.userId), onDismiss = { editing = false })
+        if (screen.editing) {
+            val places = rememberPlaceLookup(api, state.band, state.userId)
+            EditDetailsDialog(state.band, event, actions, places, onDismiss = { screen.editing = false })
+        }
     }
 }
 
