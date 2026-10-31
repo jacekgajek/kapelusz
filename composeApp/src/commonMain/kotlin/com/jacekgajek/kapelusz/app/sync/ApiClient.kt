@@ -44,6 +44,9 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.encodeURLPathPart
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
 
@@ -81,10 +84,6 @@ class ApiClient(
     private val baseUrl: String,
     /** Sent with every request (`appVersion`), so the server can tell an outdated app to update (ITERATION_2 §2). */
     private val appVersion: Int = 0,
-    /** The server answered "update required". */
-    private val onUpdateRequired: () -> Unit = {},
-    /** The server answered "signed out on all devices"; then a [SessionsRevokedException] is thrown. */
-    private val onSessionsRevoked: suspend () -> Unit = {},
     /**
      * The Android installation's id, sent with every request (`installation`), so the server doesn't send this device a
      * sync message about its own changes (ITERATION_7 §2.4); null on the web.
@@ -244,9 +243,14 @@ class ApiClient(
         return response
     }
 
+    private val _signals = MutableSharedFlow<ApiSignal>(extraBufferCapacity = 16)
+
+    /** What the server told this app besides answers: it is outdated, or signed out on all devices. */
+    val signals: SharedFlow<ApiSignal> = _signals.asSharedFlow()
+
     private suspend fun checkRevoked(code: String?) {
         if (code == ApiErrors.SESSIONS_REVOKED) {
-            onSessionsRevoked()
+            _signals.emit(ApiSignal.SessionsRevoked)
             throw SessionsRevokedException()
         }
     }
@@ -269,11 +273,20 @@ class ApiClient(
         val text = response.bodyAsText()
         if (response.status.value !in 200..299) {
             val error = errorOf(text)
-            if (error?.error == ApiErrors.UPDATE_REQUIRED) onUpdateRequired()
+            if (error?.error == ApiErrors.UPDATE_REQUIRED) _signals.emit(ApiSignal.UpdateRequired)
             // E.g. exchanging a token for a session (which bypasses [send]).
             checkRevoked(error?.error)
             throw ApiException(response.status.value, error?.error ?: "http_${response.status.value}", error?.message ?: text)
         }
         return text
     }
+}
+
+/** A signal from the server about this app as a whole, not an answer to one request. */
+sealed interface ApiSignal {
+    /** The server no longer serves this app version (ITERATION_2 §2). */
+    data object UpdateRequired : ApiSignal
+
+    /** The user signed out on all devices (ITERATION_3 R6); the request that learnt it threw [SessionsRevokedException]. */
+    data object SessionsRevoked : ApiSignal
 }

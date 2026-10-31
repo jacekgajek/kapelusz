@@ -63,9 +63,12 @@ class SyncEngine(
     /** Attachment files waiting for upload; none in tests that only cover operations. */
     private val uploads: AttachmentUploads? = null,
     private val clock: () -> Long = ::nowMillis,
-    /** A band made on this device is now on the server: maybe the user's first, so registering for messages pays. */
-    private val onBandCreated: () -> Unit = {},
 ) {
+    private val _events = MutableSharedFlow<SyncEvent>(extraBufferCapacity = 16)
+
+    /** What happened during a sync that others react to. */
+    val events: SharedFlow<SyncEvent> = _events.asSharedFlow()
+
     private val _status = MutableStateFlow(SyncStatus.IDLE)
     val status: StateFlow<SyncStatus> = _status.asStateFlow()
 
@@ -96,7 +99,12 @@ class SyncEngine(
      * The server will send this device a message when one of the user's bands changes (ITERATION_7 §2.3): the loop then
      * looks for news itself only every [MESSAGED_INTERVAL], in case a message got lost.
      */
-    var messaged: Boolean = false
+    private var messaged: Boolean = false
+
+    /** Told by the device's registration for messages whether the server will send them (then [messaged]). */
+    fun messaged(on: Boolean) {
+        messaged = on
+    }
 
     /** Starts the periodic loop (idempotent). */
     fun start() {
@@ -391,7 +399,7 @@ class SyncEngine(
             val owner = local.base.owner ?: return
             val created = api.createBand(CreateBandRequest(local.base.id, local.base.name, local.base.currency, owner.id, owner.name))
             bands.onCreated(bandId, created.band, created.version)
-            onBandCreated()
+            _events.emit(SyncEvent.BandCreated(bandId))
         }
         // Refused as a whole before: not again until the user decides (ITERATION_3 R9).
         if (bandId in _stuck.value) return
@@ -442,4 +450,10 @@ class SyncEngine(
             return pending.takeWhile { (holds[it.opId] ?: 0) <= now }.take(BATCH_SIZE).takeWhile { envelope -> envelope.op !is Undo || ++undos <= Limits.MAX_UNDOS_PER_PUSH }
         }
     }
+}
+
+/** Something a sync did that others react to. */
+sealed interface SyncEvent {
+    /** A band made on this device is now on the server: maybe the user's first, so registering for messages pays. */
+    data class BandCreated(val bandId: Id) : SyncEvent
 }
