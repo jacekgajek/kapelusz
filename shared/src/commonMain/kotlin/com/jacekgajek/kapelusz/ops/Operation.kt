@@ -50,6 +50,14 @@ sealed interface EventOp : Operation {
     override val eventId: Id
 }
 
+/** The event itself: its details, agenda, archiving, deletion. Leaders. */
+@Serializable
+sealed interface EventDetailsOp : EventOp
+
+/** What the event pays out before the shares: cost refunds and the band fund's cut. Leaders. */
+@Serializable
+sealed interface EventMoneyOp : EventOp
+
 /** The event's line-up: who takes part, with what share. Leaders. */
 @Serializable
 sealed interface LineupOp : EventOp
