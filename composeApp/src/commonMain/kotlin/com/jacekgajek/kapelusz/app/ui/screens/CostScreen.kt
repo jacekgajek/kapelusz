@@ -37,7 +37,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -91,12 +90,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Fast cost form: amount first, everything else optional. The form itself is [CostViewModel]; this draws it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CostScreen(
-    session: BandSession,
-    route: CostRoute,
-    nav: CostNav,
-    form: CostViewModel = viewModel(initializer = costViewModel(session, route, language)),
-) {
+fun CostScreen(session: BandSession, nav: CostNav, form: CostViewModel) {
     val state = session.state
     val band = state.band
     val messages = rememberMessages()
@@ -194,7 +188,7 @@ fun CostScreen(
 }
 
 /** The screen's [CostViewModel], scoped to its back-stack entry: the band's services it needs, and the typed amount's language. */
-private fun costViewModel(session: BandSession, route: CostRoute, language: String): CreationExtras.() -> CostViewModel = {
+internal fun costViewModel(session: BandSession, route: CostRoute, language: String): CreationExtras.() -> CostViewModel = {
     // Photos or PDFs shared to Kapelusz for a new cost of this event (ITERATION_6 §1): taken once, when the form opens.
     val sharedTo = route.forEventId?.takeIf { route.costId == null }
     CostViewModel(

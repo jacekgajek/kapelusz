@@ -32,7 +32,8 @@ jobs:
 
       # With headless Chrome for the web tests.
       - name: Test
-        run: ./gradlew check
+        # compileKotlinMetadata: the shared source set as the IDE and `build` see it, which `check` alone does not compile.
+        run: ./gradlew check compileKotlinMetadata
 
   # PAUSED during the refactoring (REFACTORING.md, 2026-10-31): nothing is deployed to AWS or uploaded to Google Play
   # while the code is being restructured. Uncomment this job as it was to resume.
