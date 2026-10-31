@@ -50,6 +50,7 @@ fun settlementText(band: Band, event: Event, settlement: Settlement, language: S
     fun money(amount: Money) = formatMoney(amount, band.currency, language)
     fun name(partyId: Id) = partyName(band, event, partyId, words.fundLabel)
     fun transfer(from: Id, to: Id, amount: Money) = "${name(from)} → ${name(to)}: ${money(amount)}"
+
     // A suggestion is between parties: a pair settling together by both names (ITERATION_5 §7).
     fun party(partyId: Id) = partyName(band, event, settlement, partyId, words.fundLabel, words.pair)
     // Blocks apart by an empty line, one item a line: easy to read in a chat.
@@ -99,8 +100,7 @@ private fun shareText(line: PartyLine, name: String, money: (Money) -> String, w
 }
 
 /** Fills "%1$s", "%2$s"… of a string resource read without arguments. */
-private fun fill(template: String, vararg args: String): String =
-    args.foldIndexed(template) { index, text, arg -> text.replace("%${index + 1}\$s", arg) }
+private fun fill(template: String, vararg args: String): String = args.foldIndexed(template) { index, text, arg -> text.replace("%${index + 1}\$s", arg) }
 
 private val EN_DAYS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 private val PL_DAYS = listOf("pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz.")
@@ -109,6 +109,9 @@ private val EN_SHORT_MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "
 /** `Sat 12 Sep` in English, `sob. 12.09` in Polish. */
 fun formatShortDate(date: LocalDate, language: String): String {
     val day = date.dayOfWeek.ordinal
-    return if (language == "pl") "${PL_DAYS[day]} ${date.day.toString().padStart(2, '0')}.${(date.month.ordinal + 1).toString().padStart(2, '0')}"
-    else "${EN_DAYS[day]} ${date.day} ${EN_SHORT_MONTHS[date.month.ordinal]}"
+    return if (language == "pl") {
+        "${PL_DAYS[day]} ${date.day.toString().padStart(2, '0')}.${(date.month.ordinal + 1).toString().padStart(2, '0')}"
+    } else {
+        "${EN_DAYS[day]} ${date.day} ${EN_SHORT_MONTHS[date.month.ordinal]}"
+    }
 }

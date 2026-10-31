@@ -16,8 +16,8 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Rejection
-import kotlinx.datetime.LocalDate
 import kotlin.test.fail
+import kotlinx.datetime.LocalDate
 
 fun pln(text: String) = Money.parse(text)
 
@@ -58,11 +58,10 @@ class Scenario(vararg memberNames: String) {
         return this
     }
 
-    fun rejected(op: Operation, actor: Actor = Actor.System): Rejection =
-        when (val result = Engine.apply(band, actor, op, "op${nextOp++}", nextOp.toLong())) {
-            is ApplyResult.Applied -> fail("Expected $op to be rejected but it was applied")
-            is ApplyResult.Rejected -> result.rejection
-        }
+    fun rejected(op: Operation, actor: Actor = Actor.System): Rejection = when (val result = Engine.apply(band, actor, op, "op${nextOp++}", nextOp.toLong())) {
+        is ApplyResult.Applied -> fail("Expected $op to be rejected but it was applied")
+        is ApplyResult.Rejected -> result.rejection
+    }
 
     fun event(id: Id, vararg participants: String, guests: List<Pair<String, Int>> = emptyList()): Scenario = apply(
         CreateEvent(

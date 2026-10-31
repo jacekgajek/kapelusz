@@ -26,7 +26,6 @@ object Engine {
     /** Refusals remembered per client install for re-reporting on retried pushes. */
     const val REMEMBERED_REJECTIONS = 20
 
-
     fun apply(band: Band, actor: Actor, op: Operation, opId: Id, timestamp: Long): ApplyResult {
         Permissions.check(band, actor, op)?.let { return ApplyResult.Rejected(it) }
         val memberId = (actor as? Actor.User)?.let { band.memberOfUser(it.userId)?.id }
@@ -65,6 +64,7 @@ object Engine {
                     state = result.band
                     accepted += envelope.opId
                 }
+
                 is ApplyResult.Rejected -> {
                     rejected[envelope.opId] = result.rejection
                     val remembered = (state.recentRejections[envelope.clientId].orEmpty() + RecordedRejection(envelope.opId, result.rejection))

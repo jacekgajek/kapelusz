@@ -6,13 +6,6 @@ import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -27,6 +20,13 @@ import java.util.Date
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 /**
  * Tells devices that a band changed, so they sync it (ITERATION_7 §2.2): only the band's id, no notification. Best
@@ -64,8 +64,11 @@ internal class DeviceMessenger(
         val reads = userIds.distinct().associateWith { userId -> CompletableFuture.supplyAsync({ registry.stored(userId) }, readers) }
         runCatching { CompletableFuture.allOf(*reads.values.toTypedArray()).get((deadline - clock()).coerceAtLeast(1), TimeUnit.MILLISECONDS) }
         val stored = reads.mapNotNull { (userId, read) ->
-            if (!read.isDone || read.isCompletedExceptionally) null.also { System.err.println("Sync message for band $bandId: devices of a member not read") }
-            else userId to read.join()
+            if (!read.isDone || read.isCompletedExceptionally) {
+                null.also { System.err.println("Sync message for band $bandId: devices of a member not read") }
+            } else {
+                userId to read.join()
+            }
         }
         val targets = stored.flatMap { (userId, devices) ->
             devices.filter { registry.fresh(it) && !(userId == from?.userId && it.installationId == from.installationId) }
@@ -123,7 +126,10 @@ class FcmSender(
     override fun send(tokens: List<String>, data: Map<String, String>): Map<String, SendResult>? {
         val failed = tokens.associateWith { SendResult.FAILED }
         val account = runCatching { account() }.getOrNull() ?: return null
-        val bearer = runCatching { bearer(account) }.getOrElse { System.err.println("FCM sign-in failed: $it"); return failed } ?: return failed
+        val bearer = runCatching { bearer(account) }.getOrElse {
+            System.err.println("FCM sign-in failed: $it")
+            return failed
+        } ?: return failed
         val deadline = clock() + deadlineMs
         val url = URI("$fcmUrl/v1/projects/${account.projectId}/messages:send")
         val calls = tokens.associateWith { token ->
@@ -142,10 +148,13 @@ class FcmSender(
             val response = call.join()
             when {
                 response.statusCode() == 200 -> SendResult.SENT
+
                 // The access token was refused (revoked key, clock skew): signed in again on the next message.
                 response.statusCode() == 401 -> SendResult.FAILED.also { synchronized(this) { accessToken = null } }
+
                 // UNREGISTERED (404), or a token FCM can't read at all (400 INVALID_ARGUMENT about the token).
                 response.statusCode() == 404 || (response.statusCode() == 400 && "registration token" in response.body()) -> SendResult.INVALID_TOKEN
+
                 else -> SendResult.FAILED.also { System.err.println("FCM ${response.statusCode()}: ${response.body().take(300)}") }
             }
         }
@@ -239,7 +248,10 @@ class StoredServiceAccount(private val store: BlobStore, private val clock: () -
         missingAt?.let { if (clock() - it < RETRY_MS) return null }
         return runCatching { store.get(StorageKeys.FCM_KEY)?.let { decode(ServiceAccount.serializer(), it.content) } }
             .onFailure { System.err.println("FCM key in ${StorageKeys.FCM_KEY}: $it") }.getOrNull()
-            .also { account = it; missingAt = if (it == null) clock() else null }
+            .also {
+                account = it
+                missingAt = if (it == null) clock() else null
+            }
     }
 
     companion object {

@@ -1,21 +1,21 @@
 package com.jacekgajek.kapelusz.app.data
 
-import kotlinx.coroutines.CoroutineExceptionHandler
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
 import com.jacekgajek.kapelusz.app.auth.SessionRepository
+import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import io.ktor.client.HttpClient
-import io.ktor.http.isSuccess
-import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsBytes
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.app.platform.MessageChannel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -34,9 +34,11 @@ class AppGraph(
     // A failure in the app's own background work is logged, never a crash (ITERATION_3 R4).
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e -> println("Unhandled in the app scope: $e") })
     val settings = SettingsRepository(store, scope)
+
     // The exchange runs only after construction, when api exists.
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis) { bearer -> api.createSession(bearer) }
     val bands = BandRepository(store, scope)
+
     /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
     val updateRequired = MutableStateFlow(false)
     val api: ApiClient = ApiClient(
@@ -50,8 +52,10 @@ class AppGraph(
         onSessionsRevoked = { scope.launch { account.signOutRevoked() } },
     )
     val uploads = AttachmentUploads(store, api, bands)
+
     /** Where event locations are, for the map (ITERATION_7 §8). */
     val places = PlacesLocator(store, api)
+
     // A band created here may be the user's first: the server keeps the device only while they are in one.
     val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads, onBandCreated = { messages.register() })
     val messages: DeviceMessages = DeviceMessages(messageChannel, sessions, api, sync, scope)

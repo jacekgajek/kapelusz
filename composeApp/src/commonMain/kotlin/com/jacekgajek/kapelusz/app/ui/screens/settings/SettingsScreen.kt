@@ -1,53 +1,35 @@
 package com.jacekgajek.kapelusz.app.ui.screens.settings
 
-import androidx.compose.material.icons.filled.PhoneAndroid
-import com.jacekgajek.kapelusz.app.generated.account_mine
-import com.jacekgajek.kapelusz.app.generated.account_mine_hint
-import com.jacekgajek.kapelusz.app.generated.blik_mine
-import com.jacekgajek.kapelusz.app.generated.blik_mine_hint
-import com.jacekgajek.kapelusz.app.ui.components.PaymentDetailDialog
-import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
-import com.jacekgajek.kapelusz.domain.BankAccount
-import androidx.compose.material.icons.filled.AccountBalance
-import com.jacekgajek.kapelusz.app.generated.blik_mine_off
-import com.jacekgajek.kapelusz.domain.BlikPhone
 import androidx.compose.foundation.BorderStroke
-import com.jacekgajek.kapelusz.app.generated.support_me
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.material.icons.filled.VolunteerActivism
-import androidx.compose.material.icons.filled.Policy
-import com.jacekgajek.kapelusz.app.generated.privacy_policy
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.runtime.rememberCoroutineScope
-import com.jacekgajek.kapelusz.app.generated.leave_band
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Groups
-import com.jacekgajek.kapelusz.app.generated.menu_roster
-import com.jacekgajek.kapelusz.app.generated.settings_member_count
-import org.jetbrains.compose.resources.pluralStringResource
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,19 +42,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.account
+import com.jacekgajek.kapelusz.app.generated.account_mine
+import com.jacekgajek.kapelusz.app.generated.account_mine_hint
 import com.jacekgajek.kapelusz.app.generated.agenda_template_title
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.band_name
+import com.jacekgajek.kapelusz.app.generated.blik_mine
+import com.jacekgajek.kapelusz.app.generated.blik_mine_hint
+import com.jacekgajek.kapelusz.app.generated.blik_mine_off
 import com.jacekgajek.kapelusz.app.generated.calendar_summary
 import com.jacekgajek.kapelusz.app.generated.calendar_title
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -83,18 +72,29 @@ import com.jacekgajek.kapelusz.app.generated.language
 import com.jacekgajek.kapelusz.app.generated.language_en
 import com.jacekgajek.kapelusz.app.generated.language_pl
 import com.jacekgajek.kapelusz.app.generated.language_system
+import com.jacekgajek.kapelusz.app.generated.leave_band
+import com.jacekgajek.kapelusz.app.generated.menu_roster
+import com.jacekgajek.kapelusz.app.generated.privacy_policy
 import com.jacekgajek.kapelusz.app.generated.settings
 import com.jacekgajek.kapelusz.app.generated.settings_band
+import com.jacekgajek.kapelusz.app.generated.settings_member_count
 import com.jacekgajek.kapelusz.app.generated.settings_personal
 import com.jacekgajek.kapelusz.app.generated.sign_out
 import com.jacekgajek.kapelusz.app.generated.sign_out_everywhere
+import com.jacekgajek.kapelusz.app.generated.support_me
 import com.jacekgajek.kapelusz.app.platform.storeListing
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.PaymentDetailDialog
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.label
+import com.jacekgajek.kapelusz.domain.BankAccount
+import com.jacekgajek.kapelusz.domain.BlikPhone
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The settings that open a page of their own (ITERATION_2 §8). */
@@ -125,15 +125,21 @@ fun SettingsScreen(
         SettingsPage.FUND -> SettingsPageScaffold(stringResource(Res.string.band_fund), onBack) {
             if (artist) LaunchedEffect(Unit) { onBack() } else FundSettings(fund)
         }
+
         SettingsPage.AGENDA -> SettingsPageScaffold(stringResource(Res.string.agenda_template_title), onBack) {
-            if (agenda != null) AgendaTemplateEditor(agenda.template, agenda.stored, agenda.onChange)
-            // No longer a leader (e.g. demoted meanwhile): nothing to edit here.
-            else LaunchedEffect(Unit) { onBack() }
+            if (agenda != null) {
+                AgendaTemplateEditor(agenda.template, agenda.stored, agenda.onChange)
+            } // No longer a leader (e.g. demoted meanwhile): nothing to edit here.
+            else {
+                LaunchedEffect(Unit) { onBack() }
+            }
         }
+
         // The app's own notifications are gone (ITERATION_6 §9): gigs reach the phone through the calendar.
         SettingsPage.CALENDAR -> SettingsPageScaffold(stringResource(Res.string.calendar_title), onBack) {
             CalendarSection(personal.calendar, showTitle = false, showIncludeAll = !artist)
         }
+
         null -> SettingsPageScaffold(stringResource(Res.string.settings), onBack, padded = false) {
             var choosingLanguage by remember { mutableStateOf(false) }
             var renaming by remember { mutableStateOf(false) }
@@ -143,12 +149,14 @@ fun SettingsScreen(
             // Grouped by whom they affect: the band's settings change things for everyone, the personal ones only for you.
             SectionHeader(stringResource(Res.string.settings_band), Modifier.padding(horizontal = 16.dp))
             SettingsItem(Icons.Default.Groups, stringResource(Res.string.band_name), band.name, onClick = band.onRename?.let { { renaming = true } })
-            if (!artist) SettingsItem(
-                Icons.Default.Savings,
-                stringResource(Res.string.band_fund),
-                fund.treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off),
-                chevron = true,
-            ) { onOpenPage(SettingsPage.FUND) }
+            if (!artist) {
+                SettingsItem(
+                    Icons.Default.Savings,
+                    stringResource(Res.string.band_fund),
+                    fund.treasurerName?.let { stringResource(Res.string.fund_summary_on, it) } ?: stringResource(Res.string.fund_summary_off),
+                    chevron = true,
+                ) { onOpenPage(SettingsPage.FUND) }
+            }
             if (personal.onBlikPhone != null) {
                 SettingsItem(Icons.Default.PhoneAndroid, stringResource(Res.string.blik_mine), personal.blikPhone?.let(BlikPhone::display) ?: stringResource(Res.string.blik_mine_off)) {
                     editingBlik = true
@@ -192,7 +200,10 @@ fun SettingsScreen(
             Column(Modifier.padding(horizontal = 16.dp)) {
                 SectionHeader(stringResource(Res.string.account))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    personal.picture?.let { Avatar(personal.account.orEmpty(), it, 40.dp, decorative = true); Spacer(Modifier.width(12.dp)) }
+                    personal.picture?.let {
+                        Avatar(personal.account.orEmpty(), it, 40.dp, decorative = true)
+                        Spacer(Modifier.width(12.dp))
+                    }
                     Text(personal.account.orEmpty(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 }
                 // Below the address, so a long one has the whole width; they wrap when both don't fit.
@@ -200,7 +211,10 @@ fun SettingsScreen(
                     // Signing out takes a moment (sync stops, data is cleared): a spinner at once, and no second tap. The
                     // screen goes away when it is done.
                     var signingOut by remember { mutableStateOf(false) }
-                    OutlinedButton(enabled = !signingOut, onClick = { signingOut = true; personal.onSignOut() }) {
+                    OutlinedButton(enabled = !signingOut, onClick = {
+                        signingOut = true
+                        personal.onSignOut()
+                    }) {
                         if (signingOut) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         if (signingOut) Spacer(Modifier.width(8.dp))
                         Text(stringResource(Res.string.sign_out))
@@ -229,7 +243,10 @@ fun SettingsScreen(
                         if (band.onDelete != null) {
                             OwnerCannotLeaveDialog(
                                 onOpenMembers = onOpenMembers,
-                                onDeleteBand = { leaving = false; scope.launch { deleteButton.bringIntoView() } },
+                                onDeleteBand = {
+                                    leaving = false
+                                    scope.launch { deleteButton.bringIntoView() }
+                                },
                                 onDismiss = { leaving = false },
                             )
                         } else {
@@ -270,7 +287,10 @@ fun SettingsScreen(
                             languages.forEach { (code, label) ->
                                 Row(
                                     Modifier.fillMaxWidth()
-                                        .selectable(selected = personal.language == code, onClick = { personal.onLanguage(code); choosingLanguage = false }, role = Role.RadioButton)
+                                        .selectable(selected = personal.language == code, onClick = {
+                                            personal.onLanguage(code)
+                                            choosingLanguage = false
+                                        }, role = Role.RadioButton)
                                         .padding(vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {

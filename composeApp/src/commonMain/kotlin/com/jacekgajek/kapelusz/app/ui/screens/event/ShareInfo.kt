@@ -1,9 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.app.AppConfig
-import com.jacekgajek.kapelusz.domain.Places
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -16,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.info_date
 import com.jacekgajek.kapelusz.app.generated.info_lineup
@@ -27,12 +24,15 @@ import com.jacekgajek.kapelusz.app.generated.share_info_copied
 import com.jacekgajek.kapelusz.app.generated.share_info_failed
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberShare
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
+import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.model.setTimes
+import com.jacekgajek.kapelusz.domain.EventLinks
+import com.jacekgajek.kapelusz.domain.Places
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import kotlinx.coroutines.launch

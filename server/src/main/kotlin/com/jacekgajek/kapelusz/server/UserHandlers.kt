@@ -53,11 +53,9 @@ internal class UserHandlers(
         return HttpResponse(204)
     }
 
-    fun loadUser(userId: String): UserRecord =
-        store.get(StorageKeys.user(userId))?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
+    fun loadUser(userId: String): UserRecord = store.get(StorageKeys.user(userId))?.let { decode(UserRecord.serializer(), it.content) } ?: UserRecord(userId)
 
-    fun pictureOf(userId: String): String? =
-        runCatching { store.get(StorageKeys.user(userId))?.let { decode(UserRecord.serializer(), it.content).pictureUrl } }.getOrNull()
+    fun pictureOf(userId: String): String? = runCatching { store.get(StorageKeys.user(userId))?.let { decode(UserRecord.serializer(), it.content).pictureUrl } }.getOrNull()
 
     /** Keeps [picture] with the user and puts it on their member in each of their bands (a Google photo only). */
     private fun rememberPicture(userId: String, picture: String) {

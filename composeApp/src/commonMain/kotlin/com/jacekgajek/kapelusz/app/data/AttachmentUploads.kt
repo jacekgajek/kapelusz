@@ -4,8 +4,8 @@ import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.platform.uploadFile
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiException
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +45,6 @@ class AttachmentUploads(
             .orEmpty()
     }
 
-    /** Keeps [base64] on the device until [upload] reaches the server. Call after its `AddAttachment` was applied. */
     /** Attachments whose file is queued but whose operation is not dispatched yet: not "removed", just not there yet. */
     private val attaching = mutableSetOf<Id>()
 
@@ -74,7 +73,10 @@ class AttachmentUploads(
     suspend fun uploadFor(bandId: Id) {
         for (upload in _pending.value.filter { it.bandId == bandId }) {
             // The band is gone from this device (deleted, or access lost): its files have nowhere to go.
-            val local = bands.local(bandId) ?: run { drop(upload); null } ?: continue
+            val local = bands.local(bandId) ?: run {
+                drop(upload)
+                null
+            } ?: continue
             if (local.pending.any { (it.op as? AddAttachment)?.attachment?.id == upload.attachmentId }) continue // not pushed yet
             if (upload.attachmentId in attaching) continue // its operation is being dispatched right now
             val onServer = local.base.allAttachments().any { it.id == upload.attachmentId }

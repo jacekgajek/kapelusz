@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:LocalServer.kt:LocalServer$bytes == null || method == "HEAD" || response.status == 204 || response.status == 304</ID>
+    <ID>MaxLineLength:FileBlobStore.kt:FileBlobStore$override fun presignGet: String</ID>
+    <ID>MaxLineLength:FileBlobStore.kt:FileBlobStore$override fun presignPut</ID>
+    <ID>MaxLineLength:FileHistoryStore.kt:FileHistoryStore$val keys = dir.listDirectoryEntries().map { it.name }.filter { !it.endsWith(TEMP) }.map { URLDecoder.decode(it, Charsets.UTF_8) }.filter { it in from..to }.sortedDescending()</ID>
+    <ID>MaxLineLength:LocalServer.kt:FileRoutes$mapOfNotNull("content-type" to (query["type"] ?: "application/octet-stream"), name?.let { "content-disposition" to "inline; filename=\"$it\"" })</ID>
+    <ID>MaxLineLength:LocalServer.kt:LocalServer$path.startsWith(FileRoutes.PREFIX) -> files.handle(method, path.removePrefix(FileRoutes.PREFIX), query, exchange.requestBody.readBytes())</ID>
+    <ID>MaxLineLength:LocalServer.kt:LocalServer$private</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$HttpRequest.newBuilder(URI("http://localhost:${again.port}/bands/b1/state?v=0")).header("authorization", "Bearer $session").build()</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$assertEquals(listOf("2026-10/2-y.json#001", "2026-10/2-y.json#000"), history.newestFirst("b1", "2026-10", "2026-10~").map { it.key }.toList())</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$history.put("b1", listOf("2026-09/1-x.json#000", "2026-10/2-y.json#000", "2026-10/2-y.json#001").map { HistoryRecord(it, "{\"k\":\"$it\"}") })</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$private</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$return part("""{"alg":"none","typ":"JWT"}""") + "." + part("""{"sub":"dev-$name","name":"$name","email":"$name@dev.local","exp":$expires}""") + "."</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$send("POST", "/bands", session, KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("b1", "Band", "PLN", "m1", "Alice")))</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$val created = send("POST", "/bands", session, KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("b1", "Band", "PLN", "m1", "Alice")))</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$val download = http.send(HttpRequest.newBuilder(URI(store.presignGet("bands/b1/attachments/a1.pdf", "application/pdf", "Faktura 1/2.pdf"))).build(), BodyHandlers.ofByteArray())</ID>
+    <ID>MaxLineLength:LocalServerTest.kt:LocalServerTest$val upload = { body: ByteArray -> http.send(HttpRequest.newBuilder(URI(put.url)).PUT(HttpRequest.BodyPublishers.ofByteArray(body)).build(), BodyHandlers.ofString()).statusCode() }</ID>
+    <ID>MaxLineLength:OfflinePlaceSearch.kt:OfflinePlaceSearch$override fun address</ID>
+    <ID>MaxLineLength:OfflinePlaceSearch.kt:OfflinePlaceSearch$override fun suggest: List&lt;PlaceSuggestion></ID>
+    <ID>SwallowedException:LocalServer.kt:LocalServer$e: IllegalArgumentException</ID>
+    <ID>TooGenericExceptionCaught:LocalServer.kt:LocalServer$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,17 +1,17 @@
 package com.jacekgajek.kapelusz
 
+import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameMember
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.isUndoable
-import com.jacekgajek.kapelusz.auth.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

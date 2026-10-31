@@ -37,9 +37,15 @@ fun NameSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifier
         modifier.fillMaxWidth(),
         placeholder = { Text(stringResource(placeholder)) },
         leadingIcon = { Icon(Icons.Default.Search, null) },
-        trailingIcon = if (query.isEmpty()) null else ({
-            IconButton(onClick = { onQuery("") }) { Icon(Icons.Default.Clear, stringResource(Res.string.search_close)) }
-        }),
+        trailingIcon = if (query.isEmpty()) {
+            null
+        } else {
+            (
+                {
+                    IconButton(onClick = { onQuery("") }) { Icon(Icons.Default.Clear, stringResource(Res.string.search_close)) }
+                }
+                )
+        },
         singleLine = true,
     )
 }

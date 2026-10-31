@@ -64,12 +64,16 @@ class Api(
         // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
         // need a 2xx answer; API Gateway adds the CORS headers.
         request.method == "OPTIONS" -> HttpResponse(204)
+
         // The calendar feed is fetched by calendar apps: no sign-in, no app version; the secret in the path is the key.
         request.isRead && CALENDAR_FEED.matches(request.path) -> calendarFeed(request)
+
         // Event links (ITERATION_6 §2) reach the API through the web app's CloudFront, without a sign-in.
         request.path.startsWith("/e/") -> eventLinkPage(request)
+
         !appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER]) ->
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of the app is too old; update it")
+
         else -> signedIn(request)
     }
 
@@ -181,8 +185,7 @@ class Api(
         const val HISTORY_PAGE = 100
 
         /** Google profile photos only: an https address on Google's image servers, of sensible length. */
-        fun isGooglePhoto(url: String): Boolean =
-            url.length <= 500 && Regex("https://[a-z0-9-]+\\.googleusercontent\\.com/[^\\s\"<>]*").matches(url)
+        fun isGooglePhoto(url: String): Boolean = url.length <= 500 && Regex("https://[a-z0-9-]+\\.googleusercontent\\.com/[^\\s\"<>]*").matches(url)
 
         /** A history page stays well below the 6 MB a Lambda response may have. */
         const val HISTORY_PAGE_BYTES = 1_500_000

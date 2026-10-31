@@ -47,8 +47,7 @@ internal class DeviceRegistry(private val store: BlobStore, private val clock: (
 
     fun fresh(device: StoredDevice): Boolean = clock() - device.lastSeen <= MAX_UNSEEN_MS
 
-    private fun load(userId: String): Pair<StoredDevices, String>? =
-        store.get(StorageKeys.devices(userId))?.let { decode(StoredDevices.serializer(), it.content) to it.etag }
+    private fun load(userId: String): Pair<StoredDevices, String>? = store.get(StorageKeys.devices(userId))?.let { decode(StoredDevices.serializer(), it.content) to it.etag }
 
     /**
      * Read, change, write if nothing changed meanwhile; devices unseen too long are dropped on the way. An emptied list

@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.Attachments
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -39,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,6 +48,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
+import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.attachment_open_in_app
 import com.jacekgajek.kapelusz.app.generated.attachment_rename
@@ -65,10 +67,8 @@ import com.jacekgajek.kapelusz.app.ui.components.zoomable
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /** A file of an attachment, or why there is none: while loading, it is not there yet. */
@@ -163,7 +163,9 @@ fun AttachmentViewer(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     when (val file = rememberFile(fileStore, attachment)) {
                         Loaded.Loading -> CircularProgressIndicator()
+
                         Loaded.Unavailable -> Text(stringResource(Res.string.attachment_unavailable), color = Color.White, modifier = Modifier.padding(32.dp))
+
                         is Loaded.File -> {
                             LaunchedEffect(file) { files[attachment.id] = file.bytes }
                             if (attachment.kind == AttachmentKind.PDF) {

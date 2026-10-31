@@ -5,25 +5,25 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
-import kotlinx.datetime.LocalDate
-import com.jacekgajek.kapelusz.model.KapeluszJson
-import com.jacekgajek.kapelusz.model.Band
-import kotlinx.serialization.Serializable
-import org.crac.Core
-import org.crac.Resource
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.URLDecoder
 import java.util.Base64
 import java.util.zip.GZIPOutputStream
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
+import org.crac.Core
+import org.crac.Resource
 
 /** API Gateway HTTP API, payload format 2.0 (only the fields we use). */
 @Serializable
@@ -146,7 +146,10 @@ class Handler : RequestStreamHandler {
         private val store = TimedBlobStore(S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data"), s3Timer)
         private val history = DynamoHistoryStore(System.getenv("HISTORY_TABLE") ?: "art-split-history", dbTimer)
         private val api = Api(
-            store, history, verifier, minAppVersion = Api.MIN_APP_VERSION,
+            store,
+            history,
+            verifier,
+            minAppVersion = Api.MIN_APP_VERSION,
             placeSearch = System.getenv("GOOGLE_PLACES_API_KEY")?.takeIf { it.isNotBlank() }?.let(::GooglePlaceSearch),
             geocodeCache = DynamoGeocodeCache(System.getenv("GEOCODE_TABLE") ?: "art-split-geocode", dbTimer),
             webIndex = System.getenv("WEB_BUCKET")?.takeIf { it.isNotBlank() }?.let { S3WebIndex(it) },

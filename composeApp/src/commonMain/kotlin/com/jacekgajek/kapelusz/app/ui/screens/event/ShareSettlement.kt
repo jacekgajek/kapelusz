@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.app.AppConfig
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -14,21 +12,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.share_awaited
 import com.jacekgajek.kapelusz.app.generated.share_settlement
 import com.jacekgajek.kapelusz.app.generated.share_settlement_copied
 import com.jacekgajek.kapelusz.app.generated.share_settlement_failed
 import com.jacekgajek.kapelusz.app.generated.share_text_all_settled
 import com.jacekgajek.kapelusz.app.generated.share_text_awaiting_rest
-import com.jacekgajek.kapelusz.app.generated.share_text_incomplete
 import com.jacekgajek.kapelusz.app.generated.share_text_done
+import com.jacekgajek.kapelusz.app.generated.share_text_fixed
 import com.jacekgajek.kapelusz.app.generated.share_text_from_fund
 import com.jacekgajek.kapelusz.app.generated.share_text_income
-import com.jacekgajek.kapelusz.app.generated.share_text_refunds
-import com.jacekgajek.kapelusz.app.generated.share_text_fixed
+import com.jacekgajek.kapelusz.app.generated.share_text_incomplete
 import com.jacekgajek.kapelusz.app.generated.share_text_percent
+import com.jacekgajek.kapelusz.app.generated.share_text_refunds
 import com.jacekgajek.kapelusz.app.generated.share_text_share_with_refunds
 import com.jacekgajek.kapelusz.app.generated.share_text_shares
 import com.jacekgajek.kapelusz.app.generated.share_text_still_to_pay
@@ -38,11 +38,11 @@ import com.jacekgajek.kapelusz.app.platform.rememberShare
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.SettlementWords
 import com.jacekgajek.kapelusz.app.ui.model.settlementText
+import com.jacekgajek.kapelusz.domain.EventLinks
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.app.generated.pair_names
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 

@@ -16,13 +16,16 @@ sealed interface AttachmentOwner {
     /** The event it is part of, if any: archived events are read-only. */
     val eventId: Id? get() = null
 
-    @Serializable @SerialName("cost")
+    @Serializable
+    @SerialName("cost")
     data class OfCost(val costId: Id) : AttachmentOwner
 
-    @Serializable @SerialName("holding")
+    @Serializable
+    @SerialName("holding")
     data class OfHolding(override val eventId: Id, val holdingId: Id) : AttachmentOwner
 
-    @Serializable @SerialName("event")
+    @Serializable
+    @SerialName("event")
     data class OfEvent(override val eventId: Id) : AttachmentOwner
 }
 
@@ -34,8 +37,7 @@ fun Band.attachmentsOf(owner: AttachmentOwner): List<Attachment>? = when (owner)
 }
 
 /** Every attachment in the band, wherever it is. */
-fun Band.allAttachments(): List<Attachment> =
-    costs.flatMap { it.attachments } + events.flatMap { event -> event.attachments + event.holdings.flatMap { it.attachments } }
+fun Band.allAttachments(): List<Attachment> = costs.flatMap { it.attachments } + events.flatMap { event -> event.attachments + event.holdings.flatMap { it.attachments } }
 
 /** Money a member spent on behalf of the band. Belongs to the member; events repay it via [Refund]s. */
 @Serializable

@@ -23,14 +23,17 @@ enum class Role {
      * §1.1). Below [MEMBER], which can do everything an artist can, but not "at least [VIEWER]" in what it sees: viewers
      * see everything.
      */
-    VIEWER, ARTIST, MEMBER,
+    VIEWER,
+    ARTIST,
+    MEMBER,
 
     /**
      * The band's leader ("Leader" in the app): runs the events and the money, and manages the members, roles and
      * invites. Also had an Leader role above it until 2026-10-25 (ITERATION_5 §11): merged, as a band's leader is its leader.
      */
     LEAD,
-    OWNER;
+    OWNER,
+    ;
 
     fun atLeast(other: Role) = ordinal >= other.ordinal
 }
@@ -114,21 +117,19 @@ data class Band(
      * The member (archived ones too) already called [name], ignoring letter case and surrounding spaces, other than
      * [except]: member names are unique (ITERATION_5 §12).
      */
-    fun memberNamed(name: String, except: Id? = null): Member? =
-        members.firstOrNull { it.id != except && it.name.trim().equals(name.trim(), ignoreCase = true) }
+    fun memberNamed(name: String, except: Id? = null): Member? = members.firstOrNull { it.id != except && it.name.trim().equals(name.trim(), ignoreCase = true) }
     fun event(id: Id): Event? = events.firstOrNull { it.id == id }
     fun cost(id: Id): Cost? = costs.firstOrNull { it.id == id }
     val owner: Member? get() = members.firstOrNull { it.role == Role.OWNER }
 
     companion object {
         /** A new band whose creator becomes the owner, linked to a fresh roster member. */
-        fun create(id: Id, name: String, currency: String, ownerMemberId: Id, ownerName: String, ownerUserId: String) =
-            Band(
-                id = id,
-                name = name,
-                currency = currency,
-                members = listOf(Member(ownerMemberId, ownerName, ownerUserId, Role.OWNER)),
-            )
+        fun create(id: Id, name: String, currency: String, ownerMemberId: Id, ownerName: String, ownerUserId: String) = Band(
+            id = id,
+            name = name,
+            currency = currency,
+            members = listOf(Member(ownerMemberId, ownerName, ownerUserId, Role.OWNER)),
+        )
     }
 }
 
@@ -153,5 +154,4 @@ val Band.effectiveAgendaTemplate: List<AgendaTemplateItem>
     get() = agendaTemplate ?: AgendaKind.entries.map { AgendaTemplateItem(it) }
 
 /** [band] with the photo of [userId]'s member set to [url] (unchanged if they are not a member). */
-fun Band.withPicture(userId: String, url: String?): Band =
-    copy(members = members.map { if (it.userId == userId && it.userId != null) it.copy(pictureUrl = url) else it })
+fun Band.withPicture(userId: String, url: String?): Band = copy(members = members.map { if (it.userId == userId && it.userId != null) it.copy(pictureUrl = url) else it })

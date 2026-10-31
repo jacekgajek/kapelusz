@@ -2,11 +2,11 @@ package com.jacekgajek.kapelusz.app.sync
 
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.ops.RenameBand
-import kotlinx.serialization.json.JsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.JsonElement
 
 /** The lenient reading of history entries (ITERATION_3 R12). */
 class HistoryDecoderTest {

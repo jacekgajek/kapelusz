@@ -1,12 +1,12 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.model.KapeluszJson
+import java.util.Base64
+import java.util.zip.GZIPInputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import java.util.Base64
-import java.util.zip.GZIPInputStream
 
 class HandlerTest {
     @Test

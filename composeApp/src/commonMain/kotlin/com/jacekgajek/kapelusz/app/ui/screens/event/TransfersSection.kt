@@ -1,18 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
-import com.jacekgajek.kapelusz.app.ui.components.settleLabel
-import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
-import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
-import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
-import com.jacekgajek.kapelusz.app.ui.components.payeeName
-import com.jacekgajek.kapelusz.domain.Payees
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import androidx.compose.runtime.key
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
@@ -28,36 +17,33 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.pair_names
-import com.jacekgajek.kapelusz.app.generated.transfer_recorded
-import com.jacekgajek.kapelusz.app.generated.settled_all
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.app.generated.copy_failed
-import com.jacekgajek.kapelusz.app.generated.amount_copied
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
-import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material.icons.filled.ContentCopy
 import com.jacekgajek.kapelusz.app.generated.amount
+import com.jacekgajek.kapelusz.app.generated.amount_copied
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.confirm
+import com.jacekgajek.kapelusz.app.generated.copy_failed
 import com.jacekgajek.kapelusz.app.generated.hand_over
 import com.jacekgajek.kapelusz.app.generated.hand_over_from
 import com.jacekgajek.kapelusz.app.generated.hand_over_hint
@@ -65,30 +51,43 @@ import com.jacekgajek.kapelusz.app.generated.hand_over_max
 import com.jacekgajek.kapelusz.app.generated.hand_over_to
 import com.jacekgajek.kapelusz.app.generated.keep_for_fund
 import com.jacekgajek.kapelusz.app.generated.note_optional
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.recorded_transfers
-import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.generated.remove
 import com.jacekgajek.kapelusz.app.generated.remove_transfer_confirm
 import com.jacekgajek.kapelusz.app.generated.remove_transfer_title
 import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.settle_all
 import com.jacekgajek.kapelusz.app.generated.settle_part
+import com.jacekgajek.kapelusz.app.generated.settled_all
 import com.jacekgajek.kapelusz.app.generated.to_settle
+import com.jacekgajek.kapelusz.app.generated.transfer_recorded
+import com.jacekgajek.kapelusz.app.platform.rememberCopy
+import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
+import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
+import com.jacekgajek.kapelusz.app.ui.components.payeeName
+import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.Payees
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Money
@@ -96,6 +95,7 @@ import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -118,12 +118,14 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
         }
         // One tap with Undo in the snackbar (ITERATION_5 §4.1), as Settle and Part are.
         val settledAll = stringResource(Res.string.settled_all)
-        if (context.can.settleAll(event)) Button(
-            onClick = { context.actions.runWithUndo(SettleSuggestions(event.id), settledAll) },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        ) {
-            Icon(Icons.Default.DoneAll, null)
-            Text(stringResource(Res.string.settle_all), Modifier.padding(start = 8.dp))
+        if (context.can.settleAll(event)) {
+            Button(
+                onClick = { context.actions.runWithUndo(SettleSuggestions(event.id), settledAll) },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Icon(Icons.Default.DoneAll, null)
+                Text(stringResource(Res.string.settle_all), Modifier.padding(start = 8.dp))
+            }
         }
     }
     val canHandOver = handOverSenders(context).isNotEmpty()
@@ -193,6 +195,7 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
     val to = partyName(band, context.event, settlement, suggestion.to, fundLabel, pair)
     // Read without arguments, so its placeholders stay for the amount known only on tap (as in SettlementWords).
     val recordedText = stringResource(Res.string.transfer_recorded)
+
     // "Recorded: Ania → Bartek 250,00 zł", said with Undo.
     fun recorded(amount: Money) = recordedText.replace("%1\$s", from).replace("%2\$s", to).replace("%3\$s", formatMoney(amount, context.currency, lang))
     // The names get the full width; the amount and the buttons go below them, so long names never squeeze the buttons.
@@ -209,9 +212,11 @@ private fun SuggestionRow(context: EventContext, suggestion: SuggestedTransfer) 
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
-                if (!keepsForFund) Row(verticalAlignment = Alignment.CenterVertically) {
-                    CopyAmountButton(context, suggestion.amount)
-                    MoneyText(suggestion.amount, context.currency, bold = true)
+                if (!keepsForFund) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CopyAmountButton(context, suggestion.amount)
+                        MoneyText(suggestion.amount, context.currency, bold = true)
+                    }
                 }
             }
             if (settles) {
@@ -267,8 +272,7 @@ private fun transferParties(context: EventContext): List<String> {
 }
 
 /** Recipients the user may record a transfer to from [from]: not artists, who never hold money (ITERATION_4 §1.1). */
-private fun handOverRecipients(context: EventContext, from: String): List<String> =
-    transferParties(context).filter { it != from && !Artists.isArtist(context.band, it) && context.can.recordTransfer(context.event, from, it) }
+private fun handOverRecipients(context: EventContext, from: String): List<String> = transferParties(context).filter { it != from && !Artists.isArtist(context.band, it) && context.can.recordTransfer(context.event, from, it) }
 
 /**
  * What [partyId] can hand over: what they hold, or for an artist only what they were paid too much (ITERATION_4 §1.1),
@@ -280,8 +284,7 @@ private fun handOverable(context: EventContext, partyId: String): Money {
 }
 
 /** Parties holding money the user may record a hand-over from (themselves for members, anyone for leads). */
-private fun handOverSenders(context: EventContext): List<String> =
-    transferParties(context).filter { handOverable(context, it).isPositive && handOverRecipients(context, it).isNotEmpty() }
+private fun handOverSenders(context: EventContext): List<String> = transferParties(context).filter { handOverable(context, it).isPositive && handOverRecipients(context, it).isNotEmpty() }
 
 /** Manual transfer, e.g. one holder handing all collected money to another who then pays everyone. */
 @Composable
@@ -363,5 +366,4 @@ private fun SuggestionText(context: EventContext, suggestion: SuggestedTransfer,
 }
 
 /** Records [amount] of a suggestion; a pair's is recorded between the real people (ITERATION_5 §7). */
-private fun settleOp(context: EventContext, suggestion: SuggestedTransfer, amount: Money) =
-    RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, amount, together = true)
+private fun settleOp(context: EventContext, suggestion: SuggestedTransfer, amount: Money) = RecordTransfer(context.event.id, newId(), suggestion.from, suggestion.to, amount, together = true)

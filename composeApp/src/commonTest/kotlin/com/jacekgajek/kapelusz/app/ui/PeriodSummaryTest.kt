@@ -3,19 +3,18 @@ package com.jacekgajek.kapelusz.app.ui
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.app.ui.model.FundSource
 import com.jacekgajek.kapelusz.app.ui.model.FundTotals
-import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
-import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
-import com.jacekgajek.kapelusz.domain.BandFund
-import com.jacekgajek.kapelusz.model.KapeluszJson
-import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.app.ui.model.PersonTotals
 import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.periodSummary
+import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
+import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.auth.Actor
+import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.IncomeSource
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -23,24 +22,25 @@ import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.AddParticipant
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetFundAmount
-import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.asTimeZone
 import kotlinx.datetime.atStartOfDayIn
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class PeriodSummaryTest {
 
@@ -92,7 +92,9 @@ class PeriodSummaryTest {
         assertEquals(listOf(CostCategory.FOOD to zl(300), CostCategory.TRAVEL to zl(200)), summary.categories)
         assertEquals(
             FundTotals(
-                into = zl(600), out = zl(300), balance = zl(300),
+                into = zl(600),
+                out = zl(300),
+                balance = zl(300),
                 // Who paid in, and whose costs it refunded (ITERATION_7 §5.1).
                 intoBy = listOf(FundSource.Of(bob) to zl(500), FundSource.Events to zl(100)),
                 outBy = listOf(FundSource.Of(bob) to zl(300)),

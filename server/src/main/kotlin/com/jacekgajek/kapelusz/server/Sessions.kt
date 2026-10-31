@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.model.KapeluszJson
-import kotlinx.serialization.Serializable
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.Serializable
 
 /**
  * Kapelusz's own session tokens, so the apps need Google only when signing in: a Google ID token lives one hour,
@@ -58,8 +58,7 @@ class SessionTokens(private val store: BlobStore, private val clock: () -> Long)
         return VerifiedUser(claims.sub, claims.email, claims.name, sessionSince = claims.since ?: (claims.exp - LIFETIME_MS))
     }
 
-    private fun mac(payload: String): ByteArray =
-        Mac.getInstance(ALGORITHM).apply { init(SecretKeySpec(key(), ALGORITHM)) }.doFinal(payload.toByteArray())
+    private fun mac(payload: String): ByteArray = Mac.getInstance(ALGORITHM).apply { init(SecretKeySpec(key(), ALGORITHM)) }.doFinal(payload.toByteArray())
 
     private fun key(): ByteArray = key ?: loadOrCreateKey().also { key = it }
 

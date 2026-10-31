@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
 import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
@@ -10,17 +9,18 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.sumOfMoney
+import kotlin.time.Instant
 import kotlinx.coroutines.yield
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -30,39 +30,42 @@ sealed interface SummaryPeriod {
     /** First and last day, both included; null: no limit. */
     fun range(today: LocalDate): Pair<LocalDate?, LocalDate?>
 
-    @Serializable @SerialName("last12")
+    @Serializable
+    @SerialName("last12")
     data object Last12Months : SummaryPeriod {
         override fun range(today: LocalDate) = today.minus(DatePeriod(years = 1)).plus(DatePeriod(days = 1)) to today
     }
 
-    @Serializable @SerialName("thisYear")
+    @Serializable
+    @SerialName("thisYear")
     data object ThisYear : SummaryPeriod {
         override fun range(today: LocalDate) = LocalDate(today.year, 1, 1) to today
     }
 
-    @Serializable @SerialName("lastYear")
+    @Serializable
+    @SerialName("lastYear")
     data object LastYear : SummaryPeriod {
         override fun range(today: LocalDate) = LocalDate(today.year - 1, 1, 1) to LocalDate(today.year - 1, 12, 31)
     }
 
-    @Serializable @SerialName("all")
+    @Serializable
+    @SerialName("all")
     data object AllTime : SummaryPeriod {
         override fun range(today: LocalDate) = null to null
     }
 
-    @Serializable @SerialName("custom")
+    @Serializable
+    @SerialName("custom")
     data class Custom(val from: LocalDate, val to: LocalDate) : SummaryPeriod {
         override fun range(today: LocalDate) = from to to
     }
 }
 
 /** The period [bandId]'s summary was last shown for; at first, or unreadable: the last 12 months. */
-fun AppSettings.summaryPeriod(bandId: String): SummaryPeriod =
-    summaryPeriods[bandId]?.let { runCatching { KapeluszJson.decodeFromString(SummaryPeriod.serializer(), it) }.getOrNull() }
-        ?: SummaryPeriod.Last12Months
+fun AppSettings.summaryPeriod(bandId: String): SummaryPeriod = summaryPeriods[bandId]?.let { runCatching { KapeluszJson.decodeFromString(SummaryPeriod.serializer(), it) }.getOrNull() }
+    ?: SummaryPeriod.Last12Months
 
-fun AppSettings.withSummaryPeriod(bandId: String, period: SummaryPeriod): AppSettings =
-    copy(summaryPeriods = summaryPeriods + (bandId to KapeluszJson.encodeToString(SummaryPeriod.serializer(), period)))
+fun AppSettings.withSummaryPeriod(bandId: String, period: SummaryPeriod): AppSettings = copy(summaryPeriods = summaryPeriods + (bandId to KapeluszJson.encodeToString(SummaryPeriod.serializer(), period)))
 
 /** What one person got in the period: their shares, and payments of their costs. */
 data class PersonTotals(val earned: Money, val refunded: Money) {
@@ -90,8 +93,10 @@ data class FundTotals(
 /** Whose money went into or out of the band fund. */
 sealed interface FundSource {
     data class Of(val member: Member) : FundSource
+
     /** Paid in from outside the band. */
     data object Outside : FundSource
+
     /** An event's part, or what the fund added to one. */
     data object Events : FundSource
 }

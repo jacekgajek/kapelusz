@@ -1,9 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.app.ui.components.CostIcon
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
-import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,15 +9,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_cost
 import com.jacekgajek.kapelusz.app.generated.artist_held_for_partner
@@ -36,38 +38,36 @@ import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.artist_to_receive
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.participants
+import com.jacekgajek.kapelusz.app.generated.settle_paid
+import com.jacekgajek.kapelusz.app.generated.settle_part
+import com.jacekgajek.kapelusz.app.generated.settle_received
 import com.jacekgajek.kapelusz.app.generated.to_settle
+import com.jacekgajek.kapelusz.app.generated.transfer_recorded
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
-import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
+import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
+import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
+import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.SettleTogether
-import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.app.data.newId
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
-import com.jacekgajek.kapelusz.app.generated.transfer_recorded
-import com.jacekgajek.kapelusz.app.generated.settle_part
-import com.jacekgajek.kapelusz.app.generated.settle_received
-import com.jacekgajek.kapelusz.app.generated.settle_paid
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.material3.FilledTonalButton
+import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.ops.RecordTransfer
 import org.jetbrains.compose.resources.stringResource
 
 // What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout, their own transfers
@@ -82,7 +82,13 @@ fun ArtistLineup(context: EventContext) {
         val name = partyName(context.band, event, participant.partyId, "")
         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val member = context.band.member(participant.partyId)
-            if (event.guest(participant.partyId) != null) GuestIcon() else if (member?.userId == null) NotInAppIcon() else Avatar(name, member.pictureUrl, decorative = true)
+            if (event.guest(participant.partyId) != null) {
+                GuestIcon()
+            } else if (member?.userId == null) {
+                NotInAppIcon()
+            } else {
+                Avatar(name, member.pictureUrl, decorative = true)
+            }
             Text(name)
         }
     }
@@ -110,8 +116,11 @@ fun ArtistPayout(context: EventContext) {
             // got too much (or owe from before they were an artist), they hand it back (To settle, ITERATION_7 §3.2).
             if (partner != null && kept.isPositive) PayoutRow(stringResource(Res.string.artist_kept_by_partner, partner), kept, context.currency)
             if (partner != null && heldForPartner.isPositive) PayoutRow(stringResource(Res.string.artist_held_for_partner, partner), heldForPartner, context.currency)
-            if (line.delta > heldForPartner) PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, context.currency, bold = true)
-            else PayoutRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), context.currency, bold = true)
+            if (line.delta > heldForPartner) {
+                PayoutRow(stringResource(Res.string.artist_to_hand_back), line.delta - heldForPartner, context.currency, bold = true)
+            } else {
+                PayoutRow(stringResource(Res.string.artist_still_to_receive), (-line.delta - kept).coerceAtLeast(Money.ZERO), context.currency, bold = true)
+            }
             // A pair kept by an event settled together before it ended (ITERATION_5 §7) is told in the past.
             if (partner != null) {
                 val text = if (me.settlesWith == partnerId) Res.string.artist_settles_with else Res.string.artist_settled_with
@@ -222,8 +231,10 @@ fun ArtistCosts(context: EventContext, onOpenCost: (String) -> Unit, onAddCost: 
             }
         }
     }
-    if (context.can.addCostIn(context.event)) TextButton(onClick = onAddCost) {
-        Icon(Icons.Default.Add, null)
-        Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
+    if (context.can.addCostIn(context.event)) {
+        TextButton(onClick = onAddCost) {
+            Icon(Icons.Default.Add, null)
+            Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
+        }
     }
 }

@@ -1,17 +1,18 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -21,11 +22,10 @@ import com.jacekgajek.kapelusz.app.generated.update_required_button
 import com.jacekgajek.kapelusz.app.generated.update_required_text
 import com.jacekgajek.kapelusz.app.generated.update_required_title
 import com.jacekgajek.kapelusz.app.platform.appReloader
-import com.jacekgajek.kapelusz.app.platform.storeListing
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 import com.jacekgajek.kapelusz.app.platform.rememberStoreUpdates
+import com.jacekgajek.kapelusz.app.platform.storeListing
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**

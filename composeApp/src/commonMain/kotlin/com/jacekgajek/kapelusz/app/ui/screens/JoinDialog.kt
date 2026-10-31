@@ -1,23 +1,16 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.Membership
-import androidx.compose.foundation.layout.padding
-import com.jacekgajek.kapelusz.app.generated.join_scan_qr
-import com.jacekgajek.kapelusz.app.generated.join_qr_not_invite
-import com.jacekgajek.kapelusz.app.platform.QrScan
-import com.jacekgajek.kapelusz.app.platform.rememberQrScanner
-import com.jacekgajek.kapelusz.app.generated.join_scan_failed
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.Icons
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,6 +26,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.InvitePreview
+import com.jacekgajek.kapelusz.app.data.Membership
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.check_code
@@ -45,8 +40,13 @@ import com.jacekgajek.kapelusz.app.generated.join_hint
 import com.jacekgajek.kapelusz.app.generated.join_holds_money
 import com.jacekgajek.kapelusz.app.generated.join_invalid_code
 import com.jacekgajek.kapelusz.app.generated.join_preview
+import com.jacekgajek.kapelusz.app.generated.join_qr_not_invite
+import com.jacekgajek.kapelusz.app.generated.join_scan_failed
+import com.jacekgajek.kapelusz.app.generated.join_scan_qr
 import com.jacekgajek.kapelusz.app.generated.join_still_plays
 import com.jacekgajek.kapelusz.app.generated.join_too_many_attempts
+import com.jacekgajek.kapelusz.app.platform.QrScan
+import com.jacekgajek.kapelusz.app.platform.rememberQrScanner
 import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.components.label
 import kotlinx.coroutines.launch
@@ -91,7 +91,9 @@ fun JoinDialog(membership: Membership, initialCode: String?, onJoined: () -> Uni
         scanning = false
         when (result) {
             QrScan.Cancelled -> {}
+
             QrScan.Failed -> error = Res.string.join_scan_failed
+
             is QrScan.Scanned -> {
                 // Nothing from before stays joinable under the new result.
                 preview = null
@@ -142,7 +144,10 @@ fun JoinDialog(membership: Membership, initialCode: String?, onJoined: () -> Uni
                 TextButton(enabled = !busy, onClick = {
                     scope.launch {
                         busy = true
-                        runSuspendCatching { membership.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
+                        runSuspendCatching { membership.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure {
+                            error = explain(it)
+                            preview = null
+                        }
                         busy = false
                     }
                 }) { Text(stringResource(Res.string.join)) }

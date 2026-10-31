@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.data
 
+import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** One file per key in an app-private directory; each write goes through its own temp file and an atomic rename. */
 class FileStore(private val directory: File) : KeyValueStore {

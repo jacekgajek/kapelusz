@@ -1,33 +1,33 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.ops.BandPart
-import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.Undo
-import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.ApplyResult
-import com.jacekgajek.kapelusz.ops.Engine
+import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.BandPart
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameBand
-import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
+import com.jacekgajek.kapelusz.ops.Undo
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.KSerializer
 
 class ApiTest {
     private val store = InMemoryBlobStore()
@@ -36,8 +36,7 @@ class ApiTest {
     /** Tokens are just user ids in tests. */
     private val api = Api(store, history, { token -> VerifiedUser(token, "$token@example.com", token) }, clock = { 1_790_000_000_000 })
 
-    private fun call(method: String, path: String, user: String? = "alice", body: String? = null, headers: Map<String, String> = emptyMap()) =
-        api.handle(HttpRequest(method, path, headers + listOfNotNull(user?.let { "authorization" to "Bearer $it" }), body))
+    private fun call(method: String, path: String, user: String? = "alice", body: String? = null, headers: Map<String, String> = emptyMap()) = api.handle(HttpRequest(method, path, headers + listOfNotNull(user?.let { "authorization" to "Bearer $it" }), body))
 
     private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
         assertEquals(200, status, body)
@@ -45,13 +44,17 @@ class ApiTest {
     }
 
     private fun createBand(user: String = "alice", bandId: String = "band1") = call(
-        "POST", "/bands", user,
+        "POST",
+        "/bands",
+        user,
         KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, "Night Owls", "PLN", "m-$user", user.replaceFirstChar { it.uppercase() })),
     )
 
     private var seq = 0L
     private fun push(bandId: String, user: String, vararg ops: Operation, clientId: String = "phone") = call(
-        "POST", "/bands/$bandId/ops", user,
+        "POST",
+        "/bands/$bandId/ops",
+        user,
         KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.map { OpEnvelope("op${++seq}", clientId, seq, seq, it) })),
     )
 
@@ -149,10 +152,15 @@ class ApiTest {
     @Test
     fun anAlreadySignedInUserSendsTheirKeptGoogleTokenForThePhoto() {
         val photo = "https://lh3.googleusercontent.com/a/alice-photo=s96-c"
-        val google = Api(store, InMemoryHistoryStore(), object : TokenVerifier {
-            override fun verify(token: String) = VerifiedUser(token, null, null)
-            override fun pictureOf(token: String, userId: String) = photo.takeIf { token == "old-google-token-of-$userId" }
-        }, clock = { 1_790_000_000_000 })
+        val google = Api(
+            store,
+            InMemoryHistoryStore(),
+            object : TokenVerifier {
+                override fun verify(token: String) = VerifiedUser(token, null, null)
+                override fun pictureOf(token: String, userId: String) = photo.takeIf { token == "old-google-token-of-$userId" }
+            },
+            clock = { 1_790_000_000_000 },
+        )
         createBand()
         fun send(user: String, token: String) = google.handle(HttpRequest("POST", "/me/picture", mapOf("authorization" to "Bearer $user"), """{"googleToken":"$token"}"""))
         assertEquals(400, send("alice", "old-google-token-of-bob").status, "someone else's token")
@@ -163,9 +171,17 @@ class ApiTest {
     @Test
     fun outsidersCannotMakeTheServerReadTheLogAndUndosAreBounded() {
         createBand()
-        fun undos(user: String, n: Int) = call("POST", "/bands/band1/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(
-            (1..n).map { OpEnvelope("u$it", "phone", 900L + it, 0, Undo("x$it", RenameBand("x"), BandChange(BandPart(), BandPart()), "2026-01/1-00000000-0000-0000-0000-000000000000.json")) },
-        )))
+        fun undos(user: String, n: Int) = call(
+            "POST",
+            "/bands/band1/ops",
+            user,
+            KapeluszJson.encodeToString(
+                PushRequest.serializer(),
+                PushRequest(
+                    (1..n).map { OpEnvelope("u$it", "phone", 900L + it, 0, Undo("x$it", RenameBand("x"), BandChange(BandPart(), BandPart()), "2026-01/1-00000000-0000-0000-0000-000000000000.json")) },
+                ),
+            ),
+        )
         assertEquals(404, undos("mallory", 5).status, "not a member: refused before any undo lookup")
         assertEquals(400, undos("alice", Api.MAX_UNDOS_PER_PUSH + 1).status)
     }
@@ -181,8 +197,15 @@ class ApiTest {
     fun bandsTheAccountLeftDoNotCountTowardsTheLimit() {
         createBand("alice", "shared")
         push("shared", "alice", com.jacekgajek.kapelusz.ops.AddMember("m-bob", "Bob"))
-        val invite = call("POST", "/bands/shared/invites", "alice", KapeluszJson.encodeToString(com.jacekgajek.kapelusz.api.CreateInviteRequest.serializer(),
-            com.jacekgajek.kapelusz.api.CreateInviteRequest("m-bob", com.jacekgajek.kapelusz.model.Role.MEMBER))).parse(com.jacekgajek.kapelusz.api.InviteInfo.serializer())
+        val invite = call(
+            "POST",
+            "/bands/shared/invites",
+            "alice",
+            KapeluszJson.encodeToString(
+                com.jacekgajek.kapelusz.api.CreateInviteRequest.serializer(),
+                com.jacekgajek.kapelusz.api.CreateInviteRequest("m-bob", com.jacekgajek.kapelusz.model.Role.MEMBER),
+            ),
+        ).parse(com.jacekgajek.kapelusz.api.InviteInfo.serializer())
         assertEquals(200, call("POST", "/invites/${invite.code}/accept", "bob").status)
         repeat(Api.MAX_BANDS_PER_USER - 1) { assertEquals(200, createBand("bob", "bob$it").status) }
         assertEquals(409, createBand("bob", "one-more").status)
@@ -197,8 +220,12 @@ class ApiTest {
 
     @Test
     fun bandCreationKeepsToTheLimits() {
-        fun create(bandId: String, ownerMemberId: String, name: String = "Night Owls") = call("POST", "/bands", "alice",
-            KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, name, "PLN", ownerMemberId, "Alice")))
+        fun create(bandId: String, ownerMemberId: String, name: String = "Night Owls") = call(
+            "POST",
+            "/bands",
+            "alice",
+            KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, name, "PLN", ownerMemberId, "Alice")),
+        )
         assertEquals(400, create("../evil", "m-alice").status)
         assertEquals(400, create("band2", "band-fund").status)
         assertEquals(400, create("band3", "m-alice", name = "x".repeat(200)).status)
@@ -209,8 +236,14 @@ class ApiTest {
     fun aPushThatWouldMakeTheBandTooLargeToLoadIsRefused() {
         val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
         createBand()
-        fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
-            KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400))))))))
+        fun add(i: Int) = small.handle(
+            HttpRequest(
+                "POST",
+                "/bands/band1/ops",
+                mapOf("authorization" to "Bearer alice"),
+                KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400)))))),
+            ),
+        )
         val responses = (1..10).map { add(it) }
         assertTrue(responses.all { it.status == 200 }, "the push goes through; only the operation is refused")
         val last = KapeluszJson.decodeFromString(PushResponse.serializer(), responses.last().body!!)
@@ -226,8 +259,14 @@ class ApiTest {
     fun theSizeCapCountsBytes() {
         val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)
         createBand()
-        fun add(i: Int) = small.handle(HttpRequest("POST", "/bands/band1/ops", mapOf("authorization" to "Bearer alice"),
-            KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "字".repeat(150))))))))
+        fun add(i: Int) = small.handle(
+            HttpRequest(
+                "POST",
+                "/bands/band1/ops",
+                mapOf("authorization" to "Bearer alice"),
+                KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "字".repeat(150)))))),
+            ),
+        )
         val rejected = (1..10).map { add(it) }.map { KapeluszJson.decodeFromString(PushResponse.serializer(), it.body!!) }.count { it.rejected.isNotEmpty() }
         assertTrue(rejected > 0, "150 characters each, but 450 bytes")
         val stored = store.objects.getValue(StorageKeys.band("band1")).content
@@ -284,7 +323,10 @@ class ApiTest {
     }
 
     private fun pushAs(user: String, vararg envelopes: OpEnvelope) = call(
-        "POST", "/bands/band1/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())),
+        "POST",
+        "/bands/band1/ops",
+        user,
+        KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes.toList())),
     )
 
     @Test

@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.ui.components.CostIcon
-import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -57,16 +55,18 @@ import com.jacekgajek.kapelusz.app.generated.filter_pending
 import com.jacekgajek.kapelusz.app.generated.filter_refunded
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.CostStatus
+import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Role
@@ -77,7 +77,9 @@ import org.jetbrains.compose.resources.stringResource
 fun CostStatus.labelRes(): StringResource = when (this) {
     // Not included anywhere yet, or included in an event not settled yet: either way the owner waits (ITERATION_4 §1.2).
     CostStatus.PENDING, CostStatus.REFUND_PLANNED -> Res.string.cost_status_pending
+
     CostStatus.PARTLY_REFUNDED -> Res.string.cost_status_partly
+
     CostStatus.REFUNDED -> Res.string.cost_status_refunded
 }
 
@@ -138,11 +140,13 @@ fun MyCostsScreen(
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs), onSettings, onRoster) },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (can.addCost()) ExtendedFloatingActionButton(
-                onClick = { onOpenCost(null) },
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text(stringResource(Res.string.add_cost)) },
-            )
+            if (can.addCost()) {
+                ExtendedFloatingActionButton(
+                    onClick = { onOpenCost(null) },
+                    icon = { Icon(Icons.Default.Add, null) },
+                    text = { Text(stringResource(Res.string.add_cost)) },
+                )
+            }
         },
     ) { padding ->
         LazyColumn(

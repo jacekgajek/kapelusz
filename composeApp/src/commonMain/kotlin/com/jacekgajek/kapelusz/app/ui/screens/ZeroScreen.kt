@@ -31,14 +31,14 @@ import com.jacekgajek.kapelusz.app.generated.join_band
 import com.jacekgajek.kapelusz.app.generated.new_band_title
 import com.jacekgajek.kapelusz.app.generated.open_band
 import com.jacekgajek.kapelusz.app.generated.open_band_failed
+import com.jacekgajek.kapelusz.app.generated.or_create_band
 import com.jacekgajek.kapelusz.app.generated.sign_in_again_title
+import com.jacekgajek.kapelusz.app.generated.sign_out
 import com.jacekgajek.kapelusz.app.generated.sync_error
 import com.jacekgajek.kapelusz.app.generated.sync_needs_sign_in
 import com.jacekgajek.kapelusz.app.generated.sync_offline
-import com.jacekgajek.kapelusz.app.sync.SyncStatus
-import com.jacekgajek.kapelusz.app.generated.or_create_band
-import com.jacekgajek.kapelusz.app.generated.sign_out
 import com.jacekgajek.kapelusz.app.generated.your_bands
+import com.jacekgajek.kapelusz.app.sync.SyncStatus
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import org.jetbrains.compose.resources.stringResource
@@ -71,8 +71,11 @@ fun ZeroScreen(
                         FilledTonalButton(onClick = onSignInAgain) { Text(stringResource(Res.string.sign_in_again_title)) }
                     }
                 }
+
                 SyncStatus.OFFLINE -> Text(stringResource(Res.string.sync_offline), color = MaterialTheme.colorScheme.error)
+
                 SyncStatus.ERROR -> Text(stringResource(Res.string.sync_error), color = MaterialTheme.colorScheme.error)
+
                 else -> {}
             }
             if (openError) Text(stringResource(Res.string.open_band_failed), color = MaterialTheme.colorScheme.error)

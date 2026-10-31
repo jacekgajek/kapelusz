@@ -1,9 +1,5 @@
 package com.jacekgajek.kapelusz.app
 
-import com.jacekgajek.kapelusz.app.data.Attachments
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.Incoming
-import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,15 +34,15 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.runtime.key
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -54,7 +50,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.data.SharedFiles
 import com.jacekgajek.kapelusz.app.data.SharedHandover
@@ -81,6 +80,7 @@ import com.jacekgajek.kapelusz.app.generated.share_skipped_unsupported
 import com.jacekgajek.kapelusz.app.generated.share_title
 import com.jacekgajek.kapelusz.app.generated.share_upcoming
 import com.jacekgajek.kapelusz.app.platform.PickResult
+import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -130,7 +130,9 @@ internal fun SharedFilesDialog(incoming: Incoming, bands: BandRepository, fileSt
             Skipped(shared)
             when {
                 shared.files.isEmpty() -> Text(stringResource(Res.string.share_nothing_usable), Modifier.padding(vertical = 16.dp))
+
                 event == null -> EventChoices(events, severalBands) { chosen = it }
+
                 else -> TargetChoices(event, state.userId, shared, enabled = !busy) { target ->
                     busy = true
                     scope.launch {
@@ -172,9 +174,12 @@ private fun FileThumbnails(shared: SharedFiles) {
     val shown = shared.files.take(MAX_THUMBNAILS)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         shown.forEach { file ->
-            if (file.kind == AttachmentKind.IMAGE) DraftThumbnail(file, onRemove = null, size = THUMBNAIL)
-            else ThumbnailBox(THUMBNAIL, onClick = null, name = file.fileName) {
-                Icon(Icons.Default.PictureAsPdf, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (file.kind == AttachmentKind.IMAGE) {
+                DraftThumbnail(file, onRemove = null, size = THUMBNAIL)
+            } else {
+                ThumbnailBox(THUMBNAIL, onClick = null, name = file.fileName) {
+                    Icon(Icons.Default.PictureAsPdf, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         if (shared.files.size > shown.size) Text("+${shared.files.size - shown.size}", style = MaterialTheme.typography.labelLarge)
@@ -246,6 +251,7 @@ private fun TargetChoices(chosen: ShareEvent, userId: String, shared: SharedFile
     val (band, event) = chosen
     val targets = ShareTargets.targets(band, userId, event)
     val needed = shared.files.size
+
     @Composable
     fun room(target: ShareTarget): String? = when {
         target.room >= needed -> null

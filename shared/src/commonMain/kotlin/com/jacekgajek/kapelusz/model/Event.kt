@@ -64,8 +64,7 @@ data class FundCut(val amount: Money? = null, val percent: Int? = null) {
          * [percent] of [profit], rounded down to whole units of the currency, so the fund never takes more than its
          * percentage and its money is a round sum to hand over; nothing from a loss.
          */
-        fun ofProfit(percent: Int, profit: Money): Money =
-            if (!profit.isPositive) Money.ZERO else Money(profit.minor * percent / 100 / 100 * 100)
+        fun ofProfit(percent: Int, profit: Money): Money = if (!profit.isPositive) Money.ZERO else Money(profit.minor * percent / 100 / 100 * 100)
     }
 }
 

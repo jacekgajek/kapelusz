@@ -97,7 +97,12 @@ internal fun OwnerCannotLeaveDialog(onOpenMembers: () -> Unit, onDeleteBand: () 
         icon = { Icon(Icons.AutoMirrored.Filled.Logout, null) },
         title = { Text(stringResource(Res.string.leave_band_owner_title)) },
         text = { Text(stringResource(Res.string.leave_band_owner_text)) },
-        confirmButton = { TextButton(onClick = { onDismiss(); onOpenMembers() }) { Text(stringResource(Res.string.menu_roster)) } },
+        confirmButton = {
+            TextButton(onClick = {
+                onDismiss()
+                onOpenMembers()
+            }) { Text(stringResource(Res.string.menu_roster)) }
+        },
         dismissButton = {
             TextButton(onClick = onDeleteBand, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                 Text(stringResource(Res.string.delete_band))

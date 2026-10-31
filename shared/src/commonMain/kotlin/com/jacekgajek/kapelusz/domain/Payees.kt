@@ -27,13 +27,11 @@ object Payees {
     }
 
     /** Who to send a hand-over to [to]: that member, or the band fund; empty without a number or an account. */
-    fun forHandOver(band: Band, to: Id): List<Payee> =
-        listOfNotNull(if (to == BAND_FUND) fund(band) else band.member(to)?.let(::member))
+    fun forHandOver(band: Band, to: Id): List<Payee> = listOfNotNull(if (to == BAND_FUND) fund(band) else band.member(to)?.let(::member))
 
     /** The band fund's own details, null without any (or with the fund off). */
     fun fund(band: Band): Payee? = Payee(null, band.fundBlikPhone, band.fundBankAccount)
         .takeIf { band.treasurerMemberId != null && (it.blikPhone != null || it.bankAccount != null) }
 
-    private fun member(member: Member): Payee? =
-        Payee(member, member.blikPhone, member.bankAccount).takeIf { it.blikPhone != null || it.bankAccount != null }
+    private fun member(member: Member): Payee? = Payee(member, member.blikPhone, member.bankAccount).takeIf { it.blikPhone != null || it.bankAccount != null }
 }

@@ -1,12 +1,11 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.ops.OpEnvelope
-import com.jacekgajek.kapelusz.app.data.nowMillis
-import com.jacekgajek.kapelusz.api.HistoryEntry
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.jacekgajek.kapelusz.api.HistoryEntry
+import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.redo
@@ -16,6 +15,7 @@ import com.jacekgajek.kapelusz.app.generated.undo_confirm
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.describe
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.isUndoable

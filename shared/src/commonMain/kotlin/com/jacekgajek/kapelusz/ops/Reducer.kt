@@ -1,23 +1,23 @@
 package com.jacekgajek.kapelusz.ops
 
+import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.BankAccount
 import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.Viewers
+import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Places
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SettleTogether
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
-import com.jacekgajek.kapelusz.model.BAND_FUND
+import com.jacekgajek.kapelusz.domain.Viewers
+import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
-import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
@@ -54,41 +54,57 @@ object Reducer {
         }
         val result = when (op) {
             is RenameBand -> band.copy(name = op.name.validName("Band name"))
+
             is AddMember -> addMember(band, op)
+
             is RenameMember -> {
                 val name = op.name.validName("Member name")
                 band.validFreeName(name, except = op.memberId)
                 band.updateMember(op.memberId) { it.copy(name = name) }
             }
+
             is SetMemberArchived -> setMemberArchived(band, op)
+
             is DeleteMember -> deleteMember(band, op, ctx)
+
             is SetMemberRole -> setMemberRole(band, op)
+
             is SetMemberShare -> setMemberShare(band, op, ctx)
+
             is LinkUser -> linkUser(band, op)
+
             is UnlinkUser -> unlinkUser(band, op)
+
             is SetTreasurer -> setTreasurer(band, op)
+
             is SetBlikPhone -> {
                 val phone = op.phone?.let { BlikPhone.normalize(it) }
                 invalidIf(op.phone != null && phone == null, RejectionReason.INVALID_PHONE) { "Not a phone number" }
                 band.updateMember(op.memberId) { it.copy(blikPhone = phone) }
             }
+
             is SetBankAccount -> band.updateMember(op.memberId) { it.copy(bankAccount = account(op.account)) }
+
             is SetFundBlikPhone -> {
                 invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "The band fund is off" }
                 val phone = op.phone?.let { BlikPhone.normalize(it) }
                 invalidIf(op.phone != null && phone == null, RejectionReason.INVALID_PHONE) { "Not a phone number" }
                 band.copy(fundBlikPhone = phone)
             }
+
             is ScheduleBandDeletion -> {
                 conflictIf(band.deletion != null, RejectionReason.CHANGED_SINCE) { "The band is already to be deleted" }
                 band.copy(deletion = op.deletion)
             }
+
             // Two leaders keeping it at once: the second has nothing left to do.
             is CancelBandDeletion -> band.copy(deletion = null)
+
             is SetFundBankAccount -> {
                 invalidIf(band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "The band fund is off" }
                 band.copy(fundBankAccount = account(op.account))
             }
+
             is DisableBandFund -> {
                 conflictIf(!BandFund.canDisable(band), RejectionReason.FUND_NOT_EMPTY) { "The band fund still holds or owes money" }
                 // Its default goes, and percentages become the amounts they came to (ITERATION_7 §5.2): one still following
@@ -102,15 +118,20 @@ object Reducer {
                     events = band.events.map { if (it.fundPercent != null) it.copy(fundAmount = it.fund, fundPercent = null, updatedAt = ctx.timestamp) else it },
                 )
             }
+
             is TransferOwnership -> transferOwnership(band, op)
+
             is InviteToSettleTogether -> {
                 val from = band.member(op.fromMemberId).orNotFound { "Member ${op.fromMemberId}" }
                 val to = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
                 conflictIf(!SettleTogether.mayInvite(band, from, to), RejectionReason.CANNOT_SETTLE_TOGETHER) { "${from.id} cannot invite ${to.id} to settle together" }
                 band.updateMember(from.id) { it.copy(invitedToSettle = to.id) }
             }
+
             is CancelSettleTogether -> band.dropInvite(op.fromMemberId, op.toMemberId)
+
             is DeclineSettleTogether -> band.dropInvite(op.fromMemberId, op.toMemberId)
+
             is AcceptSettleTogether -> {
                 band.dropInvite(op.fromMemberId, op.toMemberId)
                     .updateMember(op.fromMemberId) { it.copy(settlesWith = op.toMemberId) }
@@ -118,6 +139,7 @@ object Reducer {
                     // Both still may settle together (§7.2).
                     .also { conflictIf(SettleTogether.tidy(it) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
             }
+
             is StopSettlingTogether -> {
                 conflictIf(band.member(op.memberId)?.settlesWith != op.partnerId, RejectionReason.NOT_FOUND) { "${op.memberId} does not settle with ${op.partnerId}" }
                 SettleTogether.keepSettled(band, op.memberId, op.partnerId)
@@ -125,6 +147,7 @@ object Reducer {
             }
 
             is CreateEvent -> createEvent(band, op, ctx)
+
             is UpdateEvent -> band.updateEvent(op.eventId) { event ->
                 val location = if (op.location != null) op.location.value.blankToNull() else event.location
                 event.copy(
@@ -134,13 +157,16 @@ object Reducer {
                     notes = if (op.notes != null) op.notes.value.blankToNull() else event.notes,
                 )
             }
+
             is SetEventArchived -> band.updateEvent(op.eventId) { event ->
                 conflictIf(op.archived && !event.archived && !SettlementCalculator.settle(band, event).canArchive, RejectionReason.EVENT_UNSETTLED) {
                     "Event ${event.id} is not settled"
                 }
                 event.copy(archived = op.archived)
             }
+
             is SetEventAgenda -> band.updateEvent(op.eventId) { it.copy(agenda = validAgenda(op.agenda)) }
+
             is SetAgendaTemplate -> {
                 invalidIf(op.items.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }
                 op.items.forEach { validAgendaLabel(it.kind, it.label) }
@@ -148,25 +174,34 @@ object Reducer {
                 // Exactly the built-in times is stored as "the defaults", so built-in times added later apply too.
                 band.copy(agendaTemplate = items.takeUnless { it == AgendaKind.entries.map { kind -> AgendaTemplateItem(kind) } })
             }
+
             is DeleteEvent -> deleteEvent(band, op)
+
             is AddParticipant -> addParticipant(band, op, ctx)
+
             is AddGuest -> addGuest(band, op)
+
             is RenameGuest -> band.updateEvent(op.eventId) { event ->
                 event.guest(op.guestId).orNotFound { "Guest ${op.guestId}" }
                 event.copy(guests = event.guests.map { if (it.id == op.guestId) it.copy(name = op.name.validName("Guest name")) else it })
             }
+
             is SetWeight -> band.updateEvent(op.eventId) { event ->
                 event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
                 validateWeight(op.weight)
                 event.copy(participants = event.participants.map { if (it.partyId == op.partyId) it.copy(weight = op.weight) else it })
             }
+
             is SetFixedShare -> band.updateEvent(op.eventId) { event ->
                 val participant = event.participant(op.partyId).orNotFound { "Participant ${op.partyId}" }
                 val share = validShare(op.weight ?: participant.weight, op.amount, op.percent)
                 event.copy(participants = event.participants.map { if (it.partyId == op.partyId) share.applyTo(it) else it })
             }
+
             is RemoveParticipant -> removeParticipant(band, op)
+
             is ChangeLineup -> changeLineup(band, op, ctx)
+
             is UnknownOperation -> reject(RejectionCode.INVALID, RejectionReason.INVALID_INPUT, "Unknown operation")
 
             is AddHolding -> band.updateEvent(op.eventId) { event ->
@@ -177,6 +212,7 @@ object Reducer {
                 validatePositive(op.amount, "Holding amount")
                 event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull(), recordedBy = ctx.memberId))
             }
+
             is UpdateHolding -> band.updateEvent(op.eventId) { event ->
                 event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
                 op.amount?.let { validatePositive(it.value, "Holding amount") }
@@ -191,6 +227,7 @@ object Reducer {
                     },
                 )
             }
+
             is ReceiveAwaited -> band.updateEvent(op.eventId) { event ->
                 val awaited = event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
                 invalidIf(!awaited.awaited, RejectionReason.INVALID_INPUT) { "Only an awaited fee can be received" }
@@ -210,12 +247,14 @@ object Reducer {
                 val rest = if (full) emptyList() else listOf(awaited.copy(amount = awaited.amount - op.amount))
                 event.copy(holdings = event.holdings.flatMap { if (it.id == awaited.id) rest + received else listOf(it) })
             }
+
             is RemoveHolding -> band.updateEvent(op.eventId) { event ->
                 event.holdings.firstOrNull { it.id == op.holdingId }.orNotFound { "Holding ${op.holdingId}" }
                 event.copy(holdings = event.holdings.filterNot { it.id == op.holdingId })
             }
 
             is SetRefund -> setRefund(band, op)
+
             is SetFundAmount -> band.updateEvent(op.eventId) { event ->
                 op.percent?.let(::validateFundPercent)
                 // 0% is no cut at all, like an amount of 0.
@@ -226,32 +265,45 @@ object Reducer {
                 }
                 event.copy(fundAmount = amount, fundPercent = percent)
             }
+
             is SetFundDefault -> setFundDefault(band, op, ctx)
+
             is AddFundEntry -> addFundEntry(band, op)
+
             is UpdateFundEntry -> updateFundEntry(band, op)
+
             is RemoveFundEntry -> {
                 band.fundEntries.firstOrNull { it.id == op.entryId }.orNotFound { "Fund entry ${op.entryId}" }
                 band.copy(fundEntries = band.fundEntries.filterNot { it.id == op.entryId })
             }
 
-            is RecordTransfer -> if (op.together) recordTogether(band, op, ctx) else band.updateEvent(op.eventId) { event ->
-                invalidIf(event.transfers.any { it.id == op.transferId }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
-                validateTransferParty(band, event, op.from)
-                validateTransferParty(band, event, op.to)
-                invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
-                validatePositive(op.amount, "Transfer amount")
-                validateArtistsPaid(band, event, listOf(SuggestedTransfer(op.from, op.to, op.amount)))
-                event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
+            is RecordTransfer -> if (op.together) {
+                recordTogether(band, op, ctx)
+            } else {
+                band.updateEvent(op.eventId) { event ->
+                    invalidIf(event.transfers.any { it.id == op.transferId }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }
+                    validateTransferParty(band, event, op.from)
+                    validateTransferParty(band, event, op.to)
+                    invalidIf(op.from == op.to, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }
+                    validatePositive(op.amount, "Transfer amount")
+                    validateArtistsPaid(band, event, listOf(SuggestedTransfer(op.from, op.to, op.amount)))
+                    event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))
+                }
             }
+
             is SettleSuggestions -> settleSuggestions(band, op, ctx)
+
             is RemoveTransfer -> band.updateEvent(op.eventId) { event ->
                 event.transfers.firstOrNull { it.id == op.transferId }.orNotFound { "Transfer ${op.transferId}" }
                 event.copy(transfers = event.transfers.filterNot { it.id == op.transferId })
             }
 
             is AddCost -> addCost(band, op, ctx)
+
             is UpdateCost -> updateCost(band, op, ctx)
+
             is DeleteCost -> deleteCost(band, op, ctx)
+
             is AddAttachment -> band.updateAttachments(op.owner) { attachments ->
                 val max = if (op.owner is AttachmentOwner.OfEvent) MAX_EVENT_ATTACHMENTS else MAX_ATTACHMENTS
                 invalidIf(attachments.size >= max, RejectionReason.TOO_MANY_ATTACHMENTS) { "At most $max attachments here" }
@@ -265,15 +317,18 @@ object Reducer {
                 // A device's file name can be anything: kept short rather than refused.
                 attachments + op.attachment.copy(fileName = op.attachment.fileName?.trim()?.take(Attachment.MAX_FILE_NAME)?.ifEmpty { null })
             }
+
             is RemoveAttachment -> band.updateAttachments(op.owner) { attachments ->
                 attachments.firstOrNull { it.id == op.attachmentId }.orNotFound { "Attachment ${op.attachmentId}" }
                 attachments.filterNot { it.id == op.attachmentId }
             }
+
             is RenameAttachment -> band.updateAttachments(op.owner) { attachments ->
                 attachments.firstOrNull { it.id == op.attachmentId }.orNotFound { "Attachment ${op.attachmentId}" }
                 val name = validFileName(op.fileName)
                 attachments.map { if (it.id == op.attachmentId) it.copy(fileName = name) else it }
             }
+
             is Undo -> Undoing.apply(band, op)
         }
         // While the fund is off (ITERATION_3 R10), a change may not leave it holding or owing money: that needs a treasurer.
@@ -350,8 +405,7 @@ object Reducer {
         return cut.takeUnless { it.amount == null && (it.percent ?: 0) == 0 }
     }
 
-    private fun validateFundPercent(percent: Int) =
-        invalidIf(percent !in 0..FundCut.MAX_PERCENT, RejectionReason.INVALID_SHARE) { "A percentage must be between 0 and ${FundCut.MAX_PERCENT}" }
+    private fun validateFundPercent(percent: Int) = invalidIf(percent !in 0..FundCut.MAX_PERCENT, RejectionReason.INVALID_SHARE) { "A percentage must be between 0 and ${FundCut.MAX_PERCENT}" }
 
     private fun setMemberShare(band: Band, op: SetMemberShare, ctx: OpContext): Band {
         validateActiveMember(band, op.memberId)
@@ -365,10 +419,14 @@ object Reducer {
             result = result.updateEvent(eventId) {
                 it.copy(
                     participants = it.participants.map { p ->
-                        if (p.partyId != op.memberId) p
-                        // A fixed amount or a percentage keeps the weight underneath, so switching back restores it (as in events).
-                        else if (share.byWeight) share.applyTo(p)
-                        else share.applyTo(p).copy(weight = p.weight)
+                        if (p.partyId != op.memberId) {
+                            p
+                        } // A fixed amount or a percentage keeps the weight underneath, so switching back restores it (as in events).
+                        else if (share.byWeight) {
+                            share.applyTo(p)
+                        } else {
+                            share.applyTo(p).copy(weight = p.weight)
+                        }
                     },
                     updatedAt = ctx.timestamp,
                 )
@@ -429,8 +487,10 @@ object Reducer {
             members = band.members.map {
                 when (it.id) {
                     target.id -> it.copy(role = Role.OWNER)
+
                     // The previous owner keeps every right but ownership (ITERATION_5 §11).
                     currentOwner?.id -> it.copy(role = Role.LEAD)
+
                     else -> it
                 }
             },
@@ -526,8 +586,11 @@ object Reducer {
         val removed = op.remove.fold(band) { result, partyId -> removeParticipant(result, RemoveParticipant(op.eventId, partyId)) }
         return op.add.fold(removed) { result, p ->
             val guest = guests[p.partyId]
-            if (guest != null) addGuest(result, AddGuest(op.eventId, guest.id, guest.name, p.weight, p.fixedShare, p.percent))
-            else addParticipant(result, AddParticipant(op.eventId, p.partyId, p.weight, p.fixedShare, p.percent), ctx)
+            if (guest != null) {
+                addGuest(result, AddGuest(op.eventId, guest.id, guest.name, p.weight, p.fixedShare, p.percent))
+            } else {
+                addParticipant(result, AddParticipant(op.eventId, p.partyId, p.weight, p.fixedShare, p.percent), ctx)
+            }
         }
     }
 
@@ -776,7 +839,9 @@ object Reducer {
     /** The attachments of a cost, a collected entry or an event (ITERATION_4 §2.1), changed by [transform]. */
     private inline fun Band.updateAttachments(owner: AttachmentOwner, transform: (List<Attachment>) -> List<Attachment>): Band = when (owner) {
         is AttachmentOwner.OfCost -> updateCost(owner.costId) { it.copy(attachments = transform(it.attachments)) }
+
         is AttachmentOwner.OfEvent -> updateEvent(owner.eventId) { it.copy(attachments = transform(it.attachments)) }
+
         is AttachmentOwner.OfHolding -> updateEvent(owner.eventId) { event ->
             val holding = event.holdings.firstOrNull { it.id == owner.holdingId }.orNotFound { "Holding ${owner.holdingId}" }
             val updated = holding.copy(attachments = transform(holding.attachments))
@@ -788,19 +853,16 @@ object Reducer {
      * Someone becoming a viewer may not still play in an unsettled event or hold the band fund (V5-M1 B2): a viewer
      * records no transfers, so money they hold would be stuck.
      */
-    private fun validateCanWatchOnly(band: Band, memberId: Id) =
-        conflictIf(!Viewers.mayBecome(band, memberId), RejectionReason.VIEWER_STILL_PLAYS) { "Settle their events or hand over the band fund first" }
+    private fun validateCanWatchOnly(band: Band, memberId: Id) = conflictIf(!Viewers.mayBecome(band, memberId), RejectionReason.VIEWER_STILL_PLAYS) { "Settle their events or hand over the band fund first" }
 
     /** A viewer only watches: they don't play in events (and so never get a share or a transfer). */
-    private fun validateNotViewer(band: Band, memberId: Id) =
-        invalidIf(band.member(memberId)?.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Viewers take no part in events" }
+    private fun validateNotViewer(band: Band, memberId: Id) = invalidIf(band.member(memberId)?.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Viewers take no part in events" }
 
     /** The change is a lead's (or above), or the server's own, which is allowed everything. */
     private fun isLead(band: Band, ctx: OpContext) = ctx.memberId == null || band.member(ctx.memberId)?.role?.atLeast(Role.LEAD) == true
 
     /** Someone becoming an artist (ITERATION_4 §1.1) may not hold money in an unsettled event or the band fund. */
-    private fun validateHoldsNoMoney(band: Band, memberId: Id) =
-        conflictIf(Artists.holdsMoney(band, memberId), RejectionReason.HOLDS_MONEY) { "Settle their events or hand over the band fund first" }
+    private fun validateHoldsNoMoney(band: Band, memberId: Id) = conflictIf(Artists.holdsMoney(band, memberId), RejectionReason.HOLDS_MONEY) { "Settle their events or hand over the band fund first" }
 
     // ---- helpers ----
 
@@ -851,4 +913,3 @@ object Reducer {
         return copy(costs = costs.map { if (it.id == costId) updated else it })
     }
 }
-

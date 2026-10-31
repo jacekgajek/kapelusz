@@ -80,8 +80,10 @@ internal fun CalendarSection(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Google Calendar adds a calendar by URL only on its website; on a phone that page cannot, so the app says
             // where to add it instead. The https address (not webcal://, which Google may fetch over plain http).
-            if (!isAndroidApp()) Button(onClick = { uriHandler.openUri("https://calendar.google.com/calendar/r?cid=" + urlEncode(current.url)) }) {
-                Text(stringResource(Res.string.calendar_add_google))
+            if (!isAndroidApp()) {
+                Button(onClick = { uriHandler.openUri("https://calendar.google.com/calendar/r?cid=" + urlEncode(current.url)) }) {
+                    Text(stringResource(Res.string.calendar_add_google))
+                }
             }
             OutlinedButton(onClick = { scope.launch { copied = copy(current.url) } }) { Text(stringResource(if (copied) Res.string.link_copied else Res.string.copy_link)) }
         }
@@ -103,7 +105,10 @@ internal fun CalendarSection(
             title = stringResource(Res.string.calendar_reset_title),
             text = stringResource(Res.string.calendar_reset_text),
             confirmLabel = stringResource(Res.string.calendar_reset),
-            onConfirm = { copied = false; run(CalendarSubscriptionChange(reset = true)) },
+            onConfirm = {
+                copied = false
+                run(CalendarSubscriptionChange(reset = true))
+            },
             onDismiss = { confirmReset = false },
         )
     }
@@ -113,6 +118,6 @@ internal fun CalendarSection(
 private fun urlEncode(value: String): String = buildString {
     value.encodeToByteArray().forEach { byte ->
         val c = byte.toInt().toChar()
-        if (c.isLetterOrDigit() && byte >= 0 || c in "-_.~") append(c) else append("%" + (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))
+        if ((c.isLetterOrDigit() && byte >= 0) || c in "-_.~") append(c) else append("%" + (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))
     }
 }

@@ -1,12 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.ops.RejectionReason
-import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
@@ -16,27 +10,32 @@ import com.jacekgajek.kapelusz.api.InvitePreview
 import com.jacekgajek.kapelusz.api.InvitesResponse
 import com.jacekgajek.kapelusz.api.MeResponse
 import com.jacekgajek.kapelusz.api.PushRequest
+import com.jacekgajek.kapelusz.api.PushResponse
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.OpEnvelope
+import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
-import kotlinx.serialization.KSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.KSerializer
 
 class InviteAndHistoryTest {
     private val store = InMemoryBlobStore()
     private var now = 1_790_000_000_000
     private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now })
 
-    private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap()) =
-        api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
+    private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap()) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
 
     private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
         assertEquals(200, status, body)
@@ -49,8 +48,7 @@ class InviteAndHistoryTest {
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op1", "phone", 1, 1, AddMember("m-bob", "Bob"))))))
     }
 
-    private fun invite(memberId: String = "m-bob", role: Role = Role.MEMBER, by: String = "alice") =
-        call("POST", "/bands/band1/invites", by, KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(memberId, role)))
+    private fun invite(memberId: String = "m-bob", role: Role = Role.MEMBER, by: String = "alice") = call("POST", "/bands/band1/invites", by, KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(memberId, role)))
 
     @Test
     fun inviteLifecycle() {
@@ -76,8 +74,7 @@ class InviteAndHistoryTest {
     @Test
     fun anArtistInviteWaitsUntilTheirMoneyIsSettled() {
         setup()
-        fun push(id: String, seq: Long, op: com.jacekgajek.kapelusz.ops.Operation) =
-            call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope(id, "phone", seq, 1, op)))))
+        fun push(id: String, seq: Long, op: com.jacekgajek.kapelusz.ops.Operation) = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope(id, "phone", seq, 1, op)))))
         val artist = invite(role = Role.ARTIST).parse(InviteInfo.serializer())
         push("e", 2, com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", kotlinx.datetime.LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice"), com.jacekgajek.kapelusz.model.Participant("m-bob"))))
         push("h", 3, com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-bob", com.jacekgajek.kapelusz.model.Money(10000), com.jacekgajek.kapelusz.model.IncomeSource.DOOR))
@@ -218,11 +215,21 @@ class InviteAndHistoryTest {
     fun aBlikNumberIsSavedButNotInTheHistory() {
         setup()
         now += 1
-        val pushed = call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(
-            OpEnvelope("blik", "phone", 2, 0, com.jacekgajek.kapelusz.ops.SetBlikPhone("m-alice", "600 123 456")),
-            OpEnvelope("account", "phone", 3, 0, com.jacekgajek.kapelusz.ops.SetBankAccount("m-alice", "61 1090 1014 0000 0712 1981 2874")),
-            OpEnvelope("rename", "phone", 4, 0, RenameBand("New name")),
-        )))).parse(PushResponse.serializer())
+        val pushed = call(
+            "POST",
+            "/bands/band1/ops",
+            "alice",
+            KapeluszJson.encodeToString(
+                PushRequest.serializer(),
+                PushRequest(
+                    listOf(
+                        OpEnvelope("blik", "phone", 2, 0, com.jacekgajek.kapelusz.ops.SetBlikPhone("m-alice", "600 123 456")),
+                        OpEnvelope("account", "phone", 3, 0, com.jacekgajek.kapelusz.ops.SetBankAccount("m-alice", "61 1090 1014 0000 0712 1981 2874")),
+                        OpEnvelope("rename", "phone", 4, 0, RenameBand("New name")),
+                    ),
+                ),
+            ),
+        ).parse(PushResponse.serializer())
         assertEquals(listOf("blik", "account", "rename"), pushed.accepted)
         assertEquals("600123456", pushed.band.member("m-alice")!!.blikPhone)
         assertEquals("61109010140000071219812874", pushed.band.member("m-alice")!!.bankAccount)
@@ -234,9 +241,19 @@ class InviteAndHistoryTest {
 
         // Nor in the members' snapshots of other changes.
         now += 1
-        call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(
-            OpEnvelope("rename-alice", "phone", 5, 0, com.jacekgajek.kapelusz.ops.RenameMember("m-alice", "Ala")),
-        )))).parse(PushResponse.serializer())
+        call(
+            "POST",
+            "/bands/band1/ops",
+            "alice",
+            KapeluszJson.encodeToString(
+                PushRequest.serializer(),
+                PushRequest(
+                    listOf(
+                        OpEnvelope("rename-alice", "phone", 5, 0, com.jacekgajek.kapelusz.ops.RenameMember("m-alice", "Ala")),
+                    ),
+                ),
+            ),
+        ).parse(PushResponse.serializer())
         val change = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer())
             .entries.first { entry -> entry.ops.any { it.opId == "rename-alice" } }.changes.getValue("rename-alice")
         assertEquals("Ala", change.after.members.getValue("m-alice")!!.name)
@@ -296,8 +313,14 @@ class InviteAndHistoryTest {
     @Test
     fun onlyGooglePhotoAddressesAreKept() {
         assertTrue(Api.isGooglePhoto("https://lh3.googleusercontent.com/a/ACg8ocK=s96-c"))
-        for (bad in listOf("http://lh3.googleusercontent.com/a/x", "https://lh3.googleusercontent.com.evil.io/a", "https://evil.io/lh3.googleusercontent.com/a",
-            "https://user@lh3.googleusercontent.com/a", "https://lh3.googleusercontent.com/" + "a".repeat(500), "https://lh3.googleusercontent.com/a\"<script>")) {
+        for (bad in listOf(
+            "http://lh3.googleusercontent.com/a/x",
+            "https://lh3.googleusercontent.com.evil.io/a",
+            "https://evil.io/lh3.googleusercontent.com/a",
+            "https://user@lh3.googleusercontent.com/a",
+            "https://lh3.googleusercontent.com/" + "a".repeat(500),
+            "https://lh3.googleusercontent.com/a\"<script>",
+        )) {
             assertFalse(Api.isGooglePhoto(bad), bad)
         }
     }

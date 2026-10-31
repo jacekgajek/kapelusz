@@ -1,0 +1,37 @@
+# On top of detekt's defaults. Formatting is ktlint's job (.editorconfig), so detekt's formatting/style duplicates are off.
+style:
+  MaxLineLength:
+    maxLineLength: 140
+    excludeCommentStatements: true
+  ReturnCount:
+    active: false
+  UnusedPrivateFunction:
+    ignoreAnnotated: ["Preview"]
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+  WildcardImport:
+    active: true
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ["Composable"]
+  TopLevelPropertyNaming:
+    active: false
+complexity:
+  LongParameterList:
+    allowedFunctionParameters: 7
+    allowedConstructorParameters: 7
+    ignoreAnnotated: ["Composable"]
+  LongMethod:
+    allowedLines: 80
+  TooManyFunctions:
+    active: false
+  CyclomaticComplexMethod:
+    allowedComplexity: 20
+Compose:
+  active: true
+  CompositionLocalAllowlist:
+    active: false
+  ModifierMissing:
+    active: false

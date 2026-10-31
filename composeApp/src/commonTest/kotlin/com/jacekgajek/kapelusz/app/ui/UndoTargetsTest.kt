@@ -25,7 +25,10 @@ class UndoTargetsTest {
     @Test
     fun aNewChangeAfterAnUndoEndsRedo() {
         // A, B, undo B, C — shown newest first.
-        val a = change("A"); val b = change("B"); val undoB = undo("uB", b); val c = change("C")
+        val a = change("A")
+        val b = change("B")
+        val undoB = undo("uB", b)
+        val c = change("C")
         val targets = undoTargets(listOf(c, undoB, b, a))
         assertEquals("C", targets.undo?.opId)
         assertNull(targets.redo)
@@ -34,7 +37,11 @@ class UndoTargetsTest {
 
     @Test
     fun undoStepsBackAndRedoGoesForward() {
-        val a = change("A"); val b = change("B"); val undoB = undo("uB", b); val c = change("C"); val undoC = undo("uC", c)
+        val a = change("A")
+        val b = change("B")
+        val undoB = undo("uB", b)
+        val c = change("C")
+        val undoC = undo("uC", c)
         val afterUndoC = undoTargets(listOf(undoC, c, undoB, b, a))
         assertEquals("A", afterUndoC.undo?.opId, "B is already undone, so the next step back is A")
         assertEquals("uC", afterUndoC.redo?.opId)
@@ -48,14 +55,17 @@ class UndoTargetsTest {
 
     @Test
     fun changesThatCannotBeUndoneAreSteppedOver() {
-        val a = change("A"); val joined = change("join")
+        val a = change("A")
+        val joined = change("join")
         val targets = undoTargets(listOf(joined, a)) { it.opId != "join" }
         assertEquals("A", targets.undo?.opId)
     }
 
     @Test
     fun anUndoShowsAtOnceSoTheNextTapStepsFurtherBack() {
-        val a = change("A"); val b = change("B"); val c = change("C")
+        val a = change("A")
+        val b = change("B")
+        val c = change("C")
         val server = listOf(c, b, a)
         val undoC = pendingUndoLine(Undo("C", RenameBand("C"), none), "u1", "u", "m")
         val undoB = pendingUndoLine(Undo("B", RenameBand("B"), none), "u2", "u", "m")

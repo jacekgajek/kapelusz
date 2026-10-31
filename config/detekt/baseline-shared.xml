@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:Reducer.kt:Reducer$event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null</ID>
+    <ID>ComplexCondition:Reducer.kt:Reducer$ownEvent != null &amp;&amp; ownRefund != null &amp;&amp; newAmount != cost.amount &amp;&amp; !ownEvent.archived &amp;&amp; ownEvent.transfers.isEmpty()</ID>
+    <ID>CyclomaticComplexMethod:Limits.kt:Limits$fun violation: Rejection?</ID>
+    <ID>CyclomaticComplexMethod:Limits.kt:Limits$private fun events: Rejection?</ID>
+    <ID>CyclomaticComplexMethod:Permissions.kt:Permissions$private fun requiredRole: Role</ID>
+    <ID>CyclomaticComplexMethod:Places.kt:Places$fun target: MapTarget?</ID>
+    <ID>CyclomaticComplexMethod:Reducer.kt:Reducer$fun apply: Band</ID>
+    <ID>CyclomaticComplexMethod:Reducer.kt:Reducer$private fun updateCost: Band</ID>
+    <ID>CyclomaticComplexMethod:SettleTogether.kt:SettleTogether$fun split: List&lt;SuggestedTransfer></ID>
+    <ID>CyclomaticComplexMethod:SettlementCalculator.kt:SettlementCalculator$fun settle: Settlement</ID>
+    <ID>CyclomaticComplexMethod:Undo.kt:Undoing$fun problems: Set&lt;String></ID>
+    <ID>ExplicitItLambdaMultipleParameters:AwaitedFeeTest.kt:AwaitedFeeTest${ sum, it -> sum + it.amount }</ID>
+    <ID>ExplicitItLambdaMultipleParameters:Reducer.kt:Reducer${ part, it -> Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId) }</ID>
+    <ID>LargeClass:Reducer.kt:Reducer</ID>
+    <ID>LongMethod:Reducer.kt:Reducer$fun apply: Band</ID>
+    <ID>LoopWithTooManyJumpStatements:SettlementCalculator.kt:SettlementCalculator$while</ID>
+    <ID>MaxLineLength:AgendaTest.kt:AgendaTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", AgendaKind.ARRIVAL, label = long)))).reason, "also on a built-in entry")</ID>
+    <ID>MaxLineLength:AgendaTest.kt:AgendaTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("i".repeat(65), AgendaKind.ARRIVAL)))).reason)</ID>
+    <ID>MaxLineLength:AgendaTest.kt:AgendaTest$assertEquals(listOf(AgendaKind.ARRIVAL, AgendaKind.SOUND_CHECK, AgendaKind.CONCERT_START), scenario.band.effectiveAgendaTemplate.map { it.kind })</ID>
+    <ID>MaxLineLength:AgendaTest.kt:AgendaTest$assertEquals(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = "Sound check")), scenario.band.effectiveAgendaTemplate)</ID>
+    <ID>MaxLineLength:AgendaTest.kt:AgendaTest$val time = KapeluszJson.decodeFromString(AgendaTime.serializer(), """{"id":"a","kind":"LOAD_IN","label":"Load-in","time":"18:00"}""")</ID>
+    <ID>MaxLineLength:ApiModels.kt:InvitePreview$data</ID>
+    <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "back-11", "carol", "bob", pln("11")), alice).reason)</ID>
+    <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "from-carol", "carol", "bob", pln("10")), alice).reason)</ID>
+    <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "more", "carol", "alice", owes + pln("1")), carol).reason)</ID>
+    <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(RecordTransfer("gig", "over", "alice", "carol", pln("1")), alice).reason, "never more than owed")</ID>
+    <ID>MaxLineLength:ArtistAndWaitingCostsTest.kt:ArtistAndWaitingCostsTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "t", "alice", "bob", pln("100")), carol).reason, "not someone else's")</ID>
+    <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("1")), alice).reason)</ID>
+    <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(ReceiveAwaited("gig", "door", "x", "alice", pln("1"))).reason, "not an awaited fee")</ID>
+    <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(com.jacekgajek.kapelusz.ops.AddMember(ORGANISER, "Org")).reason, "a reserved id")</ID>
+    <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1"))).reason, "fund off")</ID>
+    <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(UpdateHolding("gig", "f2-bob", amount = Change(pln("2"))), bob).reason)</ID>
+    <ID>MaxLineLength:AwaitedFeeTest.kt:AwaitedFeeTest$val scenario = gig().apply(AddAttachment(AttachmentOwner.OfHolding("gig", "fee"), Attachment("contract", AttachmentKind.PDF, "contract.pdf", 1_000)))</ID>
+    <ID>MaxLineLength:Band.kt:Band$fun</ID>
+    <ID>MaxLineLength:Band.kt:fun</ID>
+    <ID>MaxLineLength:BandFund.kt:BandFund$fun</ID>
+    <ID>MaxLineLength:BankAccount.kt:BankAccount$fun</ID>
+    <ID>MaxLineLength:BankAccountTest.kt:BankAccountTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(SetBankAccount("bob", ACCOUNT), scenario.userFor("alice", Role.OWNER)).reason)</ID>
+    <ID>MaxLineLength:BankAccountTest.kt:BankAccountTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(SetBankAccount("vera", ACCOUNT), scenario.userFor("vera", Role.VIEWER)).reason)</ID>
+    <ID>MaxLineLength:BankAccountTest.kt:BankAccountTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(SetFundBankAccount(null), carol).reason, "other members only see them")</ID>
+    <ID>MaxLineLength:BlikPhoneTest.kt:BlikPhoneTest$assertEquals(true, BlikPhone.pays(scenario.band, null, "alice", com.jacekgajek.kapelusz.model.BAND_FUND), "the fund's holder pays from it")</ID>
+    <ID>MaxLineLength:Cost.kt:fun</ID>
+    <ID>MaxLineLength:CostLedger.kt:CostLedger$fun</ID>
+    <ID>MaxLineLength:Engine.kt:Engine$fun</ID>
+    <ID>MaxLineLength:Engine.kt:Engine$val</ID>
+    <ID>MaxLineLength:Engine.kt:Engine$val result = if (applied is ApplyResult.Applied &amp;&amp; check != null) check(state, applied.band)?.let { ApplyResult.Rejected(it) } ?: applied else applied</ID>
+    <ID>MaxLineLength:Event.kt:FundCut.Companion$fun</ID>
+    <ID>MaxLineLength:FilesTest.kt:FilesTest$assertEquals(RejectionReason.NOT_UNDOABLE, scenario.rejected(Undo("u", remove, BandChange.between(before, scenario.band))).reason, "its file is deleted")</ID>
+    <ID>MaxLineLength:FilesTest.kt:FilesTest$assertEquals(listOf("Umowa klub.pdf", "confirmation.pdf"), scenario.band.event("gig")!!.holdings.single().attachments.map { it.fileName })</ID>
+    <ID>MaxLineLength:FixedShareTest.kt:FixedShareTest$KapeluszJson.decodeFromString(Operation.serializer(), """{"type":"SetFixedShare","eventId":"gig","partyId":"carol","amount":null}""")</ID>
+    <ID>MaxLineLength:FixedShareTest.kt:FixedShareTest$assertEquals(100, gig().apply(SetFixedShare("gig", "bob", pln("80"))).apply(SetFixedShare("gig", "bob", null)).band.event("gig")!!.participant("bob")!!.weight)</ID>
+    <ID>MaxLineLength:FixedShareTest.kt:FixedShareTest$listOf(SetFixedShare("gig", "carol", pln("100")), SetFixedShare("gig", "carol", null), SetFixedShare("gig", "carol", null, 50))</ID>
+    <ID>MaxLineLength:FixedShareTest.kt:FixedShareTest$scenario.rejected(CreateEvent("e2", "e2", DATE, participants = listOf(Participant("alice", fixedShare = Money(Limits.MAX_AMOUNT + 1))))).reason</ID>
+    <ID>MaxLineLength:FundAndEdgeCasesTest.kt:FundAndEdgeCasesTest$assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e")).reason)</ID>
+    <ID>MaxLineLength:FundAndEdgeCasesTest.kt:FundAndEdgeCasesTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddFundEntry("x", DATE, "Strings", pln("-40"))).reason, "out only for a cost")</ID>
+    <ID>MaxLineLength:FundAndEdgeCasesTest.kt:FundAndEdgeCasesTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddFundEntry("x", DATE, "Strings", pln("-40"), costId = "strings", paidBy = "bob")).reason)</ID>
+    <ID>MaxLineLength:FundAndEdgeCasesTest.kt:FundAndEdgeCasesTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(UpdateFundEntry("r", paidBy = Change("bob"))).reason, "a refund's cost names whose")</ID>
+    <ID>MaxLineLength:FundAndEdgeCasesTest.kt:FundAndEdgeCasesTest$scenario.apply(SetEventArchived("e", false)).apply(AddCost("c", "bob", pln("10"), DATE, incurredForEventId = "e")).apply(SetRefund("e", "c", pln("10")))</ID>
+    <ID>MaxLineLength:GoldenTest.kt:GoldenTest$mapOf("alice" to pln("129.60"), "bob" to pln("129.60"), "carol" to pln("159.60"), "dave" to pln("451.60"), "frank" to pln("129.60"))</ID>
+    <ID>MaxLineLength:Limits.kt:Limits$if (after.fundDefault != before.fundDefault) after.fundDefault?.amount?.let { amount(it, "Band fund default")?.let { r -> return r } }</ID>
+    <ID>MaxLineLength:Limits.kt:Limits$private</ID>
+    <ID>MaxLineLength:Limits.kt:Limits$private fun text: Rejection?</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(AddHolding("gig", "h", "alice", tooMuch, IncomeSource.HAT, null)).reason)</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(com.jacekgajek.kapelusz.ops.SetFundAmount("gig", Money(Long.MIN_VALUE))).reason)</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(AddCost("c", "alice", Money(100), DATE, description = "d".repeat(Limits.MAX_TEXT + 1))).reason)</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(UpdateEvent("gig", name = Change("x".repeat(Limits.MAX_NAME + 1)))).reason)</ID>
+    <ID>MaxLineLength:LimitsTest.kt:LimitsTest$val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.auth.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)</ID>
+    <ID>MaxLineLength:Lineup.kt:Lineup$val here = event.guests.firstOrNull { it.name.trim().equals(guest.name.trim(), ignoreCase = true) &amp;&amp; event.participant(it.id) != null }</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(ChangeLineup("gig", add = listOf(Participant("dave")), guests = listOf(Guest("dave", "Dave")))).reason)</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(ChangeLineup("gig", add = listOf(Participant("carol")), guests = listOf(Guest("x", "X")))).reason)</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(ChangeLineup("gig", add = listOf(Participant("carol")), remove = listOf("carol"))).reason)</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(RejectionReason.VIEWER_NOT_PARTICIPANT, scenario.rejected(ChangeLineup("gig", add = listOf(Participant("carol")))).reason)</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(listOf("Cyryl", "Ćma", "Ewa", "lena", "Lz", "Łukasz", "Mark", "Müller", "Zenon", "Źdźbło", "Żaneta"), names.sortedWith(Names.order))</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$assertEquals(listOf("adam", "lukasz", "zoe", "bea", "zed"), SettlementCalculator.partyOrder(scenario.band, scenario.band.event("gig")!!))</ID>
+    <ID>MaxLineLength:LineupTest.kt:LineupTest$participants = listOf(Participant("carol", 150), Participant("dave"), Participant("helper2"), Participant("roadie", 50))</ID>
+    <ID>MaxLineLength:MemberShareTest.kt:MemberShareTest$assertEquals(listOf("gig"), MemberShares.stillDefault(scenario.band, member).map { it.id }, "the same 300, whatever the hidden percentage")</ID>
+    <ID>MaxLineLength:MemberShares.kt:MemberShares$fun</ID>
+    <ID>MaxLineLength:Operation.kt:SetFixedShare$data</ID>
+    <ID>MaxLineLength:Operation.kt:SetMemberShare$data</ID>
+    <ID>MaxLineLength:Payees.kt:Payees$private fun member: Payee?</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$if (op is ScheduleBandDeletion) return forbidden(RejectionReason.ROLE_REQUIRED, "Only the owner deletes the band, through the server")</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$is AttachmentOwner.OfCost -> if (adding &amp;&amp; band.cost(owner.costId)?.memberId == me.id) Role.ARTIST else ownCost(band, me, owner.costId)</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null &amp;&amp; it == me.id }, Role.ARTIST)</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$is SettleSuggestions -> ownIf(op.partyId != null &amp;&amp; (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$ownsParty(band, me, op.from) || ownsParty(band, me, op.to) || (op.together &amp;&amp; partnerIn(band, me, op.eventId).let { it != null &amp;&amp; (it == op.from || it == op.to) })</ID>
+    <ID>MaxLineLength:Permissions.kt:Permissions$private</ID>
+    <ID>MaxLineLength:Places.kt:Places$.</ID>
+    <ID>MaxLineLength:Places.kt:Places$?:</ID>
+    <ID>MaxLineLength:Places.kt:Places$fun</ID>
+    <ID>MaxLineLength:Places.kt:Places$fun after</ID>
+    <ID>MaxLineLength:Places.kt:Places$if (byte >= 0 &amp;&amp; (c.isLetterOrDigit() || c in "-_.~")) append(c) else append("%" + (byte.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))</ID>
+    <ID>MaxLineLength:Places.kt:Places$val</ID>
+    <ID>MaxLineLength:Places.kt:Places$val searched = searchedInPath ?: listOf("q", "query", "destination", "daddr", "ll").firstNotNullOfOrNull { params[it]?.takeIf { value -> value.isNotBlank() } }</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Legnicka 36, 53-673 Wrocław", Places.placeText("Legnicka 36", "Legnicka 36, 53-673 Wrocław, Polska", "Polska"), "an address picked: not twice")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Ryman Auditorium, Nashville", Places.label(PlaceSuggestion("p", "Ryman Auditorium", "Broadway, Nashville, TN, USA")), "not the state")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Ryman, 116 5th Ave N, Nashville, TN 37219, USA", Places.placeText("Ryman", "116 5th Ave N, Nashville, TN 37219, USA", null))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("https://maps.app.goo.gl/real", Places.parse("https://google.evil.io/maps/x and https://maps.app.goo.gl/real")?.url, "the first real Maps link")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("https://maps.google.com/?q=52.23,21.01", Places.parse("See maps.google.com: https://maps.google.com/?q=52.23,21.01.")?.url)</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("https://www.google.com/maps/dir/?api=1&amp;destination=52.229700%2C%2021.012200", Places.navigateUrl(base.copy(location = "52.229700, 21.012200")))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(MapTarget("A%-1B", null, null), Places.target("https://www.google.com/maps/place/A%-1B"), "a malformed escape kept as it is")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(MapTarget("Klub Stodoła", "52.2119581" to "21.0062814", null), Places.target(place), "the place's own pin, not the map's centre")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(MapTarget(null, null, "Hala Stulecia Wrocław"), Places.target("https://www.google.com/maps/search/?api=1&amp;query=Hala+Stulecia+Wroc%C5%82aw"))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(MapTarget(null, null, "Hala Stulecia, Wrocław"), Places.target("https://www.google.com/maps/dir/Home/Hala+Stulecia,+Wroc%C5%82aw/@51.1,17.0,12z/data=!4m8!1d17.07!2d51.10"), "directions: the destination")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(MapTarget(null, null, "Ołówek"), Places.target("https://www.google.pl/maps?q=O%C5%82%C3%B3wek&amp;ll=51.1,17.0"), "the searched text; ll is only the map's centre")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(MapTarget(null, null, "pizza"), Places.target("https://www.google.com/maps/search/pizza/@52.2,21.0,14z"), "a search, not a place at the map's centre")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(SharedPlace("Klub Stodoła", "https://maps.app.goo.gl/abc123"), Places.parse("Klub Stodoła\nhttps://maps.app.goo.gl/abc123"))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(SharedPlace(null, "https://www.google.com/maps/place/Warsaw/@52.2,21.0,12z"), Places.parse("https://www.google.com/maps/place/Warsaw/@52.2,21.0,12z"))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$for</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$val dropped = "https://www.google.com/maps/place/52%C2%B013'47.0%22N+21%C2%B000'43.9%22E/@52.2297,21.0122,17z/data=!3m1!4b1!4m4!3m3!8m2!3d52.229722!4d21.012194"</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$val place = "https://www.google.com/maps/place/Klub+Stodo%C5%82a/@52.2121,21.0055,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0x1!8m2!3d52.2119581!4d21.0062814!16s%2Fg%2F1?entry=tts"</ID>
+    <ID>MaxLineLength:PlayedPlaces.kt:PlayedPlaces$fun</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$apply(CreateEvent("new", "New", LocalDate(2026, 3, 1), location = "Pod Sowami, Wrocław", participants = listOf(Participant("alice"), Participant("bob"))))</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$apply(CreateEvent("old", "Old", LocalDate(2025, 3, 1), location = "Piwnica Artystyczna \"Pod Sowami\", Kraszewskiego 26, 50-229 Wrocław", participants = listOf(Participant("alice"))))</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$apply(CreateEvent("pin", "Field", LocalDate(2026, 4, 1), location = "Łąka, 51.000000, 17.000000", participants = listOf(Participant("alice"))))</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$assertEquals(listOf("Pod Sowami" to listOf("new", "old"), "Łąka" to listOf("pin")), places.map { it.title to it.events.map { e -> e.id } })</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$assertEquals(listOf("new", "pin", "lost"), PlayedPlaces.played(scenario.band, null, LocalDate(2026, 1, 1), today, today).map { it.id }, "the period")</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$assertEquals(listOf("old", "new", "pin", "lost"), PlayedPlaces.played(scenario.band, scenario.band.member("alice"), null, null, today).map { it.id }, "no gigs to come")</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$listOf("Piwnica Artystyczna \"Pod Sowami\", Kraszewskiego 26, 50-229 Wrocław", "Pod Sowami, Wrocław", "Atlantis", "Future Hall")</ID>
+    <ID>MaxLineLength:PlayedPlacesTest.kt:PlayedPlacesTest$val at = mapOf("pod sowami, wrocław" to (51.10781 to 17.03312), "piwnica artystyczna \"pod sowami\", kraszewskiego 26, 50-229 wrocław" to (51.10779 to 17.03308))</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$.</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$Transfer("${ctx.opId}-$index" + if (part > 0) "-$part" else "", it.from, it.to, it.amount, null, ctx.timestamp, ctx.memberId)</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$Transfer(if (index == 0) op.transferId else "${op.transferId}-$index", part.from, part.to, part.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId)</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$attachments + op.attachment.copy(fileName = op.attachment.fileName?.trim()?.take(Attachment.MAX_FILE_NAME)?.ifEmpty { null })</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(!MemberDeletion.possible(band, member.id), RejectionReason.MEMBER_HAS_HISTORY) { "Something in the band refers to this member; archive instead" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(!SettleTogether.mayInvite(band, from, to), RejectionReason.CANNOT_SETTLE_TOGETHER) { "${from.id} cannot invite ${to.id} to settle together" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(!settlement.canSettle, RejectionReason.CANNOT_SETTLE) { "Event cannot be settled (status ${settlement.status}, problems ${settlement.problems})" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(band.events.any { it.archived &amp;&amp; it.refundOf(cost.id) != null }, RejectionReason.ARCHIVED_EVENT) { "Cost is refunded by an archived event" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(band.fundEntries.any { it.costId == cost.id }, RejectionReason.COST_REFUNDED_FROM_FUND) { "Cost was refunded from the band fund" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(band.member(op.memberId)?.settlesWith != op.partnerId, RejectionReason.NOT_FOUND) { "${op.memberId} does not settle with ${op.partnerId}" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(event.archived &amp;&amp; op !is SetEventArchived &amp;&amp; op !is DeleteEvent, RejectionReason.ARCHIVED_EVENT) { "Event ${event.id} is archived" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(event.holdings.any { it.partyId == op.partyId }, RejectionReason.PARTICIPANT_HAS_MONEY) { "Participant holds event money; remove it (and its transfers) first" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(event.refunds.any { band.cost(it.costId)?.memberId == op.partyId }, RejectionReason.PARTICIPANT_HAS_REFUNDS) { "Participant has refunds here; defer them first" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(event.transfers.any { it.from == op.partyId || it.to == op.partyId }, RejectionReason.PARTICIPANT_HAS_TRANSFERS) { "Participant has recorded transfers" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$conflictIf(member(fromMemberId)?.invitedToSettle != toMemberId, RejectionReason.NOT_FOUND) { "No invitation from $fromMemberId to $toMemberId" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull(), recordedBy = ctx.memberId))</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$event.copy(transfers = event.transfers + Transfer(op.transferId, op.from, op.to, op.amount, op.note.blankToNull(), ctx.timestamp, ctx.memberId))</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$events = band.events.map { if (it.fundPercent != null) it.copy(fundAmount = it.fund, fundPercent = null, updatedAt = ctx.timestamp) else it }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$if (event.participant(cost.memberId) == null || event.archived || event.transfers.isNotEmpty() || event.refundOf(cost.id) != null) return band</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(!CostLedger.isRefundableAt(cost, event), RejectionReason.NOT_REFUNDABLE_HERE) { "Costs can only be refunded at events their owner takes part in" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(!op.attachment.id.matches(Regex("[A-Za-z0-9_-]{1,64}")), RejectionReason.INVALID_INPUT) { "Invalid attachment id" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(-op.amount > CostLedger.outstanding(band, cost), RejectionReason.REFUND_TOO_LARGE) { "Refund exceeds the outstanding amount" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(-updated.amount > CostLedger.outstanding(band, cost) - entry.amount, RejectionReason.REFUND_TOO_LARGE) { "Refund exceeds the outstanding amount" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(Artists.isArtist(band, op.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(band.allAttachments().any { it.id == op.attachment.id }, RejectionReason.DUPLICATE_ID) { "Attachment ${op.attachment.id} already exists" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(cut != null &amp;&amp; band.treasurerMemberId == null, RejectionReason.NO_TREASURER) { "Choose a treasurer before using the band fund" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(event.guest(op.guestId) != null || band.member(op.guestId) != null, RejectionReason.DUPLICATE_ID) { "Id ${op.guestId} already in use" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(event.holdings.any { it.id == op.holdingId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.holdingId} already exists" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(event.holdings.any { it.id == op.receivedId }, RejectionReason.DUPLICATE_ID) { "Holding ${op.receivedId} already exists" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(event.participant(memberId) == null, RejectionReason.NOT_A_PARTICIPANT) { "The cost's owner does not take part in the event" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(event.transfers.any { it.id == op.transferId }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(guests.keys.any { id -> op.add.none { it.partyId == id } }, RejectionReason.INVALID_INPUT) { "A new guest without a share" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(newAmount &lt; CostLedger.refunded(result, cost.id), RejectionReason.COST_BELOW_REFUNDED) { "Cost amount is below what was already refunded" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(op.archived &amp;&amp; band.treasurerMemberId == op.memberId, RejectionReason.TREASURER_MUST_STAY) { "Choose another treasurer first" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(op.from == op.to || settlement.party(op.from)?.let { op.to in it.partyIds } == true, RejectionReason.SAME_PARTY) { "Cannot transfer to the same party" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(op.items.size > AgendaTime.MAX_TIMES, RejectionReason.INVALID_INPUT) { "At most ${AgendaTime.MAX_TIMES} agenda times" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(op.participants.map { it.partyId }.toSet().size != op.participants.size, RejectionReason.INVALID_INPUT) { "Duplicate participants" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(op.partyId != ORGANISER &amp;&amp; event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(size!! > op.attachment.kind.maxBytes, RejectionReason.ATTACHMENT_TOO_LARGE) { "Attachment exceeds ${op.attachment.kind.maxBytes} bytes" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(target.userId == null || target.role != Role.LEAD, RejectionReason.OWNERSHIP_NEEDS_LEADER) { "Ownership can only go to a linked leader" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(transfers.any { t -> event.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ${op.transferId} already exists" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(transfers.any { t -> now.transfers.any { it.id == t.id } }, RejectionReason.DUPLICATE_ID) { "Transfer ids already exist" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$invalidIf(updated.amount.isPositive != entry.amount.isPositive, RejectionReason.INVALID_AMOUNT) { "A fund entry keeps its direction" }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$participants = op.participants.map { validShare(it.weight, it.fixedShare, it.percent).applyTo(it).copy(addedBy = ctx.memberId) }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$percent?.let { invalidIf(it !in 0..SharePercent.MAX, RejectionReason.INVALID_SHARE) { "A percentage must be between 0 and ${SharePercent.MAX}" } }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$private</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$private fun String.validName: String</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$private fun validateFundPercent</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$private fun validatePositive</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$private fun validateWeight</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$private inline</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$return band.copy(fundEntries = band.fundEntries + FundEntry(op.entryId, op.date, op.description.validName("Description"), op.amount, op.costId, op.paidBy))</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$return band.updateMember(op.memberId) { it.copy(userId = null, role = Role.MEMBER, pictureUrl = null, blikPhone = null, bankAccount = null) }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$val adjusted = (newAmount - refundedElsewhere).let { if (isLead(band, ctx) || it &lt; ownRefund.amount) it else ownRefund.amount }</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$val parts = SettleTogether.split(result, SettlementCalculator.settle(result, now), suggestion.from, suggestion.to, suggestion.amount)</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), awaited.recordedBy ?: ctx.memberId)</ID>
+    <ID>MaxLineLength:Reducer.kt:Reducer$var result = band.updateMember(op.memberId) { it.copy(shareWeight = share.weight, shareFixed = share.fixed, sharePercent = share.percent) }</ID>
+    <ID>MaxLineLength:ReducerTest.kt:ReducerTest$.</ID>
+    <ID>MaxLineLength:ReducerTest.kt:ReducerTest$assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig")).reason)</ID>
+    <ID>MaxLineLength:ReducerTest.kt:ReducerTest$val</ID>
+    <ID>MaxLineLength:Rejection.kt:internal fun &lt;T : Any> T?.orNotFound: T</ID>
+    <ID>MaxLineLength:Rejection.kt:internal fun reject: Nothing</ID>
+    <ID>MaxLineLength:Scenario.kt:Scenario$fun</ID>
+    <ID>MaxLineLength:SettleTogether.kt:SettleTogether$.</ID>
+    <ID>MaxLineLength:SettleTogether.kt:SettleTogether$fun</ID>
+    <ID>MaxLineLength:SettleTogether.kt:SettleTogether$member.copy(settlesWith = member.settlesWith.takeIf { keepsPair }, invitedToSettle = member.invitedToSettle.takeIf { keepsInvite })</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, scenario.rejected(InviteToSettleTogether("alice", "bob"), alice).reason, "inviting already")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, scenario.rejected(InviteToSettleTogether("alice", "carol"), alice).reason, "invited already")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, scenario.rejected(InviteToSettleTogether("bob", "alice"), bob).reason, "one at a time")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, scenario.rejected(InviteToSettleTogether("bob", "dave"), bob).reason, "no account")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.CANNOT_SETTLE_TOGETHER, viewers.rejected(InviteToSettleTogether("bob", "carol"), viewers.userFor("bob", Role.MEMBER)).reason)</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AcceptSettleTogether("bob", "carol"), bob).reason, "the invited one answers")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(InviteToSettleTogether("bob", "carol"), alice).reason, "not even the owner for others")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RecordTransfer("gig", "x", "bob", "dave", pln("50"), together = true), carol).reason)</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(RejectionReason.ROLE_REQUIRED, viewers.rejected(InviteToSettleTogether("carol", "bob"), viewers.userFor("carol", Role.VIEWER)).reason)</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(listOf("bob" to pln("10"), "carol" to pln("10")), back.map { it.from to it.amount }.sortedBy { it.first }, "each their own")</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(listOf("bob" to pln("100"), "carol" to pln("100")), scenario.band.event("gig")!!.transfers.map { it.to to it.amount }.sortedBy { it.first })</ID>
+    <ID>MaxLineLength:SettleTogetherTest.kt:SettleTogetherTest$assertEquals(listOf(SuggestedTransfer("bob", "alice", pln("100")), SuggestedTransfer("bob", "carol", pln("100"))), scenario.settle("open").suggestions)</ID>
+    <ID>MaxLineLength:SettlementCalculator.kt:SettlementCalculator$byPercent.isNotEmpty() -> splitByWeight(rest, byPercent.map { it.copy(weight = it.percent!!) }, byPercent.sumOf { it.percent!!.toLong() })</ID>
+    <ID>MaxLineLength:SharePercentTest.kt:SharePercentTest$val s = gig().apply(SetFundAmount("gig", Money.ZERO, percent = 10)).apply(SetFixedShare("gig", "alice", null, percent = 50)).settle("gig")</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$)</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$event.holdings.filter { it.partyId !in parties &amp;&amp; it.partyId != ORGANISER &amp;&amp; it.partyId != BAND_FUND }.forEach { add("holding ${it.id} at ${event.id}") }</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$event.participants.filter { it.partyId !in memberIds &amp;&amp; it.partyId !in guestIds }.forEach { add("participant ${it.partyId} at ${event.id}") }</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$event.transfers.filter { t -> listOf(t.from, t.to).any { it != BAND_FUND &amp;&amp; it !in parties } }.forEach { add("transfer ${it.id} at ${event.id}") }</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$invalidIf(!isUndoable(op.original) || op.change.isEmpty || op.change.restoresAttachments, RejectionReason.NOT_UNDOABLE) { "This change cannot be undone" }</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$invitedToSettle = if (current == null || member.invitedToSettle != later?.invitedToSettle) member.invitedToSettle else current.invitedToSettle</ID>
+    <ID>MaxLineLength:Undo.kt:Undoing$settlesWith = if (current == null || member.settlesWith != later?.settlesWith) member.settlesWith else current.settlesWith</ID>
+    <ID>MaxLineLength:Undo.kt:private</ID>
+    <ID>MaxLineLength:UndoTest.kt:UndoTest$assertEquals(RejectionReason.NOT_UNDOABLE, scenario.rejected(Undo("x", RenameBand("x"), BandChange(BandPart(), BandPart()))).reason, "nothing recorded")</ID>
+    <ID>MaxLineLength:UndoTest.kt:UndoTest$assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(undoTransfer, Actor.User("user-bob")).reason, "removing a transfer needs a lead")</ID>
+    <ID>MaxLineLength:UndoTest.kt:UndoTest$listOf(OpEnvelope("o1", "phone", 1, 1, UpdateEvent("gig", name = Change("X"))), OpEnvelope("o2", "phone", 2, 2, RenameBand("Y")))</ID>
+    <ID>MaxLineLength:UndoTest.kt:UndoTest$val unlinked = (Engine.apply(undone, Actor.System, com.jacekgajek.kapelusz.ops.UnlinkUser("bob"), "x", 10) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band</ID>
+    <ID>MaxLineLength:UndoTest.kt:UndoTest$val withPhoto = scenario.band.copy(members = scenario.band.members.map { if (it.id == "bob") it.copy(pictureUrl = "https://lh3.googleusercontent.com/b") else it })</ID>
+    <ID>MaxLineLength:ViewerTest.kt:ViewerTest$val band = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol").apply(AddHolding("gig", "h", "alice", pln("300"), DOOR)).band</ID>
+    <ID>NestedBlockDepth:Limits.kt:Limits$private fun events: Rejection?</ID>
+  </CurrentIssues>
+</SmellBaseline>

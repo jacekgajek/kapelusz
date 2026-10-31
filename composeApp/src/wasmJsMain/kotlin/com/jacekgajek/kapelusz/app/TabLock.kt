@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app
 
-import kotlinx.coroutines.await
 import kotlin.js.Promise
+import kotlinx.coroutines.await
 
 // Web Locks API: the page holding "kapelusz-active-tab" is the only one using the stored data. Two tabs would share
 // one device id and overwrite each other's saved bands, silently losing changes.

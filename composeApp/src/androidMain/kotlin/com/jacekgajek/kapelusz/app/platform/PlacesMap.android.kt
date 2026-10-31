@@ -1,19 +1,10 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import androidx.compose.runtime.Composable
-import kotlin.math.tan
-import kotlin.math.log2
-import kotlin.math.ln
-import kotlin.math.exp
-import kotlin.math.atan
-import kotlin.math.PI
-import com.google.android.gms.maps.GoogleMapOptions
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -21,9 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.CameraMoveStartedReason
@@ -34,34 +28,40 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.played_concerts
 import com.jacekgajek.kapelusz.domain.PlayedPlaces
+import kotlin.math.PI
+import kotlin.math.atan
+import kotlin.math.exp
+import kotlin.math.ln
+import kotlin.math.log2
+import kotlin.math.tan
 import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
-actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Place) -> Unit, modifier: Modifier, bottomInset: Dp) =
-    BoxWithConstraints(modifier) {
-        // The fit is worked out from the map's own size, so the map opens on it: no first guess that the camera then
-        // corrects once the map has loaded (slow phones showed both).
-        val view = DpSize(maxWidth, maxHeight - bottomInset)
-        val camera = rememberCameraPositionState { position = fitted(places, view) }
-        // Fitted as places come in, until the user pans or zooms: then the map stays where they put it.
-        var moved by remember { mutableStateOf(false) }
-        LaunchedEffect(camera.isMoving) {
-            if (camera.isMoving && camera.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) moved = true
-        }
-        LaunchedEffect(view, places.map { it.latitude to it.longitude }) {
-            if (moved || places.isEmpty()) return@LaunchedEffect
-            val target = fitted(places, view)
-            if (target != camera.position) camera.move(CameraUpdateFactory.newCameraPosition(target))
-        }
-        val background = MaterialTheme.colorScheme.surface.toArgb()
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = camera,
-            contentPadding = PaddingValues(bottom = bottomInset),
-            // Before the tiles are drawn: the screen's colour, not a white box (in dark mode most of all).
-            googleMapOptionsFactory = { GoogleMapOptions().backgroundColor(background) },
-        ) {
-            places.forEach { place -> key(place.latitude, place.longitude) {
+actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Place) -> Unit, modifier: Modifier, bottomInset: Dp) = BoxWithConstraints(modifier) {
+    // The fit is worked out from the map's own size, so the map opens on it: no first guess that the camera then
+    // corrects once the map has loaded (slow phones showed both).
+    val view = DpSize(maxWidth, maxHeight - bottomInset)
+    val camera = rememberCameraPositionState { position = fitted(places, view) }
+    // Fitted as places come in, until the user pans or zooms: then the map stays where they put it.
+    var moved by remember { mutableStateOf(false) }
+    LaunchedEffect(camera.isMoving) {
+        if (camera.isMoving && camera.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) moved = true
+    }
+    LaunchedEffect(view, places.map { it.latitude to it.longitude }) {
+        if (moved || places.isEmpty()) return@LaunchedEffect
+        val target = fitted(places, view)
+        if (target != camera.position) camera.move(CameraUpdateFactory.newCameraPosition(target))
+    }
+    val background = MaterialTheme.colorScheme.surface.toArgb()
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = camera,
+        contentPadding = PaddingValues(bottom = bottomInset),
+        // Before the tiles are drawn: the screen's colour, not a white box (in dark mode most of all).
+        googleMapOptionsFactory = { GoogleMapOptions().backgroundColor(background) },
+    ) {
+        places.forEach { place ->
+            key(place.latitude, place.longitude) {
                 // Just pins: the text shows only for the one tapped.
                 Marker(
                     state = rememberUpdatedMarkerState(LatLng(place.latitude, place.longitude)),
@@ -69,11 +69,13 @@ actual fun PlacesMap(places: List<PlayedPlaces.Place>, onPlace: (PlayedPlaces.Pl
                     snippet = pluralStringResource(Res.plurals.played_concerts, place.events.size, place.events.size),
                     onInfoWindowClick = { onPlace(place) },
                 )
-            } }
+            }
         }
     }
+}
 
 private const val SINGLE_ZOOM = 15f
+
 /** Room around the markers (a pin is about 40 dp tall, drawn above its point). */
 private val EDGE = 48.dp
 

@@ -103,7 +103,8 @@ class UndoTest {
     fun theEngineRecordsWhatEachOperationChanged() {
         val scenario = Scenario("Alice").event("gig", "Alice")
         val result = Engine.applyBatch(
-            scenario.band, Actor.System,
+            scenario.band,
+            Actor.System,
             listOf(OpEnvelope("o1", "phone", 1, 1, UpdateEvent("gig", name = Change("X"))), OpEnvelope("o2", "phone", 2, 2, RenameBand("Y"))),
         )
         assertEquals(setOf("gig"), result.changes.getValue("o1").after.events.keys)

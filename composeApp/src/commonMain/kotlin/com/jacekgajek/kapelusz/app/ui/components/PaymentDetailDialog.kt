@@ -49,7 +49,11 @@ fun PaymentDetailDialog(kind: PaymentKind, title: String, hint: String, current:
                     label = { Text(stringResource(if (kind == PaymentKind.BLIK) Res.string.blik_phone else Res.string.account_number)) },
                     singleLine = true,
                     isError = invalid,
-                    supportingText = if (invalid) { { Text(stringResource(if (kind == PaymentKind.BLIK) Res.string.blik_invalid else Res.string.account_invalid)) } } else null,
+                    supportingText = if (invalid) {
+                        { Text(stringResource(if (kind == PaymentKind.BLIK) Res.string.blik_invalid else Res.string.account_invalid)) }
+                    } else {
+                        null
+                    },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, keyboardType = kind.keyboard),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -65,10 +69,12 @@ fun PaymentDetailDialog(kind: PaymentKind, title: String, hint: String, current:
         },
         dismissButton = {
             Row {
-                if (current != null) TextButton(onClick = {
-                    onSave(null)
-                    onDismiss()
-                }) { Text(stringResource(Res.string.blik_remove)) }
+                if (current != null) {
+                    TextButton(onClick = {
+                        onSave(null)
+                        onDismiss()
+                    }) { Text(stringResource(Res.string.blik_remove)) }
+                }
                 TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
             }
         },

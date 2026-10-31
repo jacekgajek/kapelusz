@@ -44,24 +44,30 @@ sealed interface Operation {
  * newer version. Read as this, so History and a phone's unsent changes still load; never applied. Keeps the event it
  * was about, so an event's History still lists it.
  */
-@Serializable @SerialName("Unknown")
+@Serializable
+@SerialName("Unknown")
 data class UnknownOperation(override val eventId: Id? = null) : Operation
 
 // ---- Band & roster (leader) ----
 
-@Serializable @SerialName("RenameBand")
+@Serializable
+@SerialName("RenameBand")
 data class RenameBand(val name: String) : Operation
 
-@Serializable @SerialName("AddMember")
+@Serializable
+@SerialName("AddMember")
 data class AddMember(val memberId: Id, val name: String) : Operation
 
-@Serializable @SerialName("RenameMember")
+@Serializable
+@SerialName("RenameMember")
 data class RenameMember(val memberId: Id, val name: String) : Operation
 
-@Serializable @SerialName("SetMemberArchived")
+@Serializable
+@SerialName("SetMemberArchived")
 data class SetMemberArchived(val memberId: Id, val archived: Boolean) : Operation
 
-@Serializable @SerialName("DeleteMember")
+@Serializable
+@SerialName("DeleteMember")
 data class DeleteMember(val memberId: Id) : Operation
 
 /**
@@ -69,82 +75,100 @@ data class DeleteMember(val memberId: Id) : Operation
  * applied, in the same step, to their share in [events] (chosen by the user: events not settled where they still had
  * the old default).
  */
-@Serializable @SerialName("SetMemberShare")
-data class SetMemberShare(val memberId: Id, val weight: Int, val fixedShare: Money?, val events: List<Id> = emptyList(), val percent: Int? = null) :
-    Operation
+@Serializable
+@SerialName("SetMemberShare")
+data class SetMemberShare(val memberId: Id, val weight: Int, val fixedShare: Money?, val events: List<Id> = emptyList(), val percent: Int? = null) : Operation
 
-@Serializable @SerialName("SetMemberRole")
+@Serializable
+@SerialName("SetMemberRole")
 data class SetMemberRole(val memberId: Id, val role: Role) : Operation
 
 /** Applied by the server when a user accepts an invite. */
-@Serializable @SerialName("LinkUser")
+@Serializable
+@SerialName("LinkUser")
 data class LinkUser(val memberId: Id, val userId: String, val role: Role) : Operation
 
-@Serializable @SerialName("UnlinkUser")
+@Serializable
+@SerialName("UnlinkUser")
 data class UnlinkUser(val memberId: Id) : Operation
 
 /** The member's own BLIK phone number (ITERATION_5 §8); null removes it. */
-@Serializable @SerialName("SetBlikPhone")
+@Serializable
+@SerialName("SetBlikPhone")
 data class SetBlikPhone(val memberId: Id, val phone: String?) : Operation
 
 /** The member's own bank account number (ITERATION_7 §7); null removes it. */
-@Serializable @SerialName("SetBankAccount")
+@Serializable
+@SerialName("SetBankAccount")
 data class SetBankAccount(val memberId: Id, val account: String?) : Operation
 
-@Serializable @SerialName("SetTreasurer")
+@Serializable
+@SerialName("SetTreasurer")
 data class SetTreasurer(val memberId: Id) : Operation
 
 /** Turns the band fund off (only while it holds nothing); choosing a holder with [SetTreasurer] turns it on again. */
-@Serializable @SerialName("DisableBandFund")
+@Serializable
+@SerialName("DisableBandFund")
 data object DisableBandFund : Operation
 
 /**
  * The owner's request to delete the band (ITERATION_7 §9), applied only by the server (`DELETE /bands/{id}`), which
  * sets the times by its own clock.
  */
-@Serializable @SerialName("ScheduleBandDeletion")
+@Serializable
+@SerialName("ScheduleBandDeletion")
 data class ScheduleBandDeletion(val deletion: BandDeletion) : Operation
 
 /** A leader keeps the band: the deletion asked for doesn't happen (ITERATION_7 §9). */
-@Serializable @SerialName("CancelBandDeletion")
+@Serializable
+@SerialName("CancelBandDeletion")
 data object CancelBandDeletion : Operation
 
 /** The BLIK number to pay into the band fund (ITERATION_7 §7); null removes it. */
-@Serializable @SerialName("SetFundBlikPhone")
+@Serializable
+@SerialName("SetFundBlikPhone")
 data class SetFundBlikPhone(val phone: String?) : Operation
 
 /** The bank account to pay into the band fund (ITERATION_7 §7); null removes it. */
-@Serializable @SerialName("SetFundBankAccount")
+@Serializable
+@SerialName("SetFundBankAccount")
 data class SetFundBankAccount(val account: String?) : Operation
 
-@Serializable @SerialName("TransferOwnership")
+@Serializable
+@SerialName("TransferOwnership")
 data class TransferOwnership(val toMemberId: Id) : Operation
 
 // ---- Settling together (ITERATION_5 §7): each for themselves ----
 
 /** [fromMemberId] invites [toMemberId] to settle together. */
-@Serializable @SerialName("InviteToSettleTogether")
+@Serializable
+@SerialName("InviteToSettleTogether")
 data class InviteToSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
 
 /** The inviter takes the invitation back. */
-@Serializable @SerialName("CancelSettleTogether")
+@Serializable
+@SerialName("CancelSettleTogether")
 data class CancelSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
 
 /** The invited member says yes: from now on the two settle together. */
-@Serializable @SerialName("AcceptSettleTogether")
+@Serializable
+@SerialName("AcceptSettleTogether")
 data class AcceptSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
 
 /** The invited member says no. */
-@Serializable @SerialName("DeclineSettleTogether")
+@Serializable
+@SerialName("DeclineSettleTogether")
 data class DeclineSettleTogether(val fromMemberId: Id, val toMemberId: Id) : Operation
 
 /** [memberId] stops settling together with [partnerId]. */
-@Serializable @SerialName("StopSettlingTogether")
+@Serializable
+@SerialName("StopSettlingTogether")
 data class StopSettlingTogether(val memberId: Id, val partnerId: Id) : Operation
 
 // ---- Events (lead) ----
 
-@Serializable @SerialName("CreateEvent")
+@Serializable
+@SerialName("CreateEvent")
 data class CreateEvent(
     override val eventId: Id,
     val name: String,
@@ -160,14 +184,17 @@ data class CreateEvent(
 ) : Operation
 
 /** Replaces an event's agenda times (lead+); last write wins, like other event details. */
-@Serializable @SerialName("SetEventAgenda")
+@Serializable
+@SerialName("SetEventAgenda")
 data class SetEventAgenda(override val eventId: Id, val agenda: List<AgendaTime>) : Operation
 
 /** The agenda times new events get (leader+); existing events keep theirs. */
-@Serializable @SerialName("SetAgendaTemplate")
+@Serializable
+@SerialName("SetAgendaTemplate")
 data class SetAgendaTemplate(val items: List<AgendaTemplateItem>) : Operation
 
-@Serializable @SerialName("UpdateEvent")
+@Serializable
+@SerialName("UpdateEvent")
 data class UpdateEvent(
     override val eventId: Id,
     val name: Change<String>? = null,
@@ -176,13 +203,16 @@ data class UpdateEvent(
     val notes: Change<String?>? = null,
 ) : Operation
 
-@Serializable @SerialName("SetEventArchived")
+@Serializable
+@SerialName("SetEventArchived")
 data class SetEventArchived(override val eventId: Id, val archived: Boolean) : Operation
 
-@Serializable @SerialName("DeleteEvent")
+@Serializable
+@SerialName("DeleteEvent")
 data class DeleteEvent(override val eventId: Id) : Operation
 
-@Serializable @SerialName("AddParticipant")
+@Serializable
+@SerialName("AddParticipant")
 data class AddParticipant(
     override val eventId: Id,
     val memberId: Id,
@@ -191,7 +221,8 @@ data class AddParticipant(
     val percent: Int? = null,
 ) : Operation
 
-@Serializable @SerialName("AddGuest")
+@Serializable
+@SerialName("AddGuest")
 data class AddGuest(
     override val eventId: Id,
     val guestId: Id,
@@ -201,10 +232,12 @@ data class AddGuest(
     val percent: Int? = null,
 ) : Operation
 
-@Serializable @SerialName("RenameGuest")
+@Serializable
+@SerialName("RenameGuest")
 data class RenameGuest(override val eventId: Id, val guestId: Id, val name: String) : Operation
 
-@Serializable @SerialName("SetWeight")
+@Serializable
+@SerialName("SetWeight")
 data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int) : Operation
 
 /**
@@ -212,11 +245,12 @@ data class SetWeight(override val eventId: Id, val partyId: Id, val weight: Int)
  * the profit (ITERATION_7 §6); neither goes back to the weight. [weight], when set, is applied in the same step, so
  * going back to a different weight is one change to undo.
  */
-@Serializable @SerialName("SetFixedShare")
-data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: Money?, val weight: Int? = null, val percent: Int? = null) :
-    Operation
+@Serializable
+@SerialName("SetFixedShare")
+data class SetFixedShare(override val eventId: Id, val partyId: Id, val amount: Money?, val weight: Int? = null, val percent: Int? = null) : Operation
 
-@Serializable @SerialName("RemoveParticipant")
+@Serializable
+@SerialName("RemoveParticipant")
 data class RemoveParticipant(override val eventId: Id, val partyId: Id) : Operation
 
 /**
@@ -224,7 +258,8 @@ data class RemoveParticipant(override val eventId: Id, val partyId: Id) : Operat
  * From an event…, each with its participant in [add]); participants (members or guests) [remove]d. All or nothing, as one
  * change.
  */
-@Serializable @SerialName("ChangeLineup")
+@Serializable
+@SerialName("ChangeLineup")
 data class ChangeLineup(
     override val eventId: Id,
     val add: List<Participant> = emptyList(),
@@ -234,7 +269,8 @@ data class ChangeLineup(
 
 // ---- Holdings (lead, or member for themselves) ----
 
-@Serializable @SerialName("AddHolding")
+@Serializable
+@SerialName("AddHolding")
 data class AddHolding(
     override val eventId: Id,
     val holdingId: Id,
@@ -248,10 +284,12 @@ data class AddHolding(
  * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, in full or [amount] of it (ITERATION_4 §2.2):
  * that much becomes [partyId]'s collected money, as entry [receivedId]; the rest stays awaited.
  */
-@Serializable @SerialName("ReceiveAwaited")
+@Serializable
+@SerialName("ReceiveAwaited")
 data class ReceiveAwaited(override val eventId: Id, val holdingId: Id, val receivedId: Id, val partyId: Id, val amount: Money) : Operation
 
-@Serializable @SerialName("UpdateHolding")
+@Serializable
+@SerialName("UpdateHolding")
 data class UpdateHolding(
     override val eventId: Id,
     val holdingId: Id,
@@ -260,16 +298,19 @@ data class UpdateHolding(
     val note: Change<String?>? = null,
 ) : Operation
 
-@Serializable @SerialName("RemoveHolding")
+@Serializable
+@SerialName("RemoveHolding")
 data class RemoveHolding(override val eventId: Id, val holdingId: Id) : Operation
 
 // ---- Refunds & band fund (lead) ----
 
 /** Sets how much of a cost this event refunds; zero removes the refund (defers the cost). */
-@Serializable @SerialName("SetRefund")
+@Serializable
+@SerialName("SetRefund")
 data class SetRefund(override val eventId: Id, val costId: Id, val amount: Money) : Operation
 
-@Serializable @SerialName("SetFundAmount")
+@Serializable
+@SerialName("SetFundAmount")
 data class SetFundAmount(
     override val eventId: Id,
     /** Ignored when [percent] is set. */
@@ -279,10 +320,12 @@ data class SetFundAmount(
 ) : Operation
 
 /** The band's fund default for new events (ITERATION_7 §5.2), applied to [events] too, as a member's default share is. */
-@Serializable @SerialName("SetFundDefault")
+@Serializable
+@SerialName("SetFundDefault")
 data class SetFundDefault(val cut: FundCut?, val events: List<Id> = emptyList()) : Operation
 
-@Serializable @SerialName("AddFundEntry")
+@Serializable
+@SerialName("AddFundEntry")
 data class AddFundEntry(
     val entryId: Id,
     val date: LocalDate,
@@ -293,7 +336,8 @@ data class AddFundEntry(
     val paidBy: Id? = null,
 ) : Operation
 
-@Serializable @SerialName("UpdateFundEntry")
+@Serializable
+@SerialName("UpdateFundEntry")
 data class UpdateFundEntry(
     val entryId: Id,
     val date: Change<LocalDate>? = null,
@@ -302,7 +346,8 @@ data class UpdateFundEntry(
     val paidBy: Change<Id?>? = null,
 ) : Operation
 
-@Serializable @SerialName("RemoveFundEntry")
+@Serializable
+@SerialName("RemoveFundEntry")
 data class RemoveFundEntry(val entryId: Id) : Operation
 
 // ---- Transfers ----
@@ -313,7 +358,8 @@ data class RemoveFundEntry(val entryId: Id) : Operation
  * [com.jacekgajek.kapelusz.domain.SettleTogether.split] says, against the state it is applied to, as [transferId] and
  * `transferId-1` (ITERATION_5 §7).
  */
-@Serializable @SerialName("RecordTransfer")
+@Serializable
+@SerialName("RecordTransfer")
 data class RecordTransfer(
     override val eventId: Id,
     val transferId: Id,
@@ -328,15 +374,18 @@ data class RecordTransfer(
  * Records the event's current suggested transfers, computed against the state the op is applied to.
  * [partyId] `null` = Settle All; otherwise only suggestions involving that party.
  */
-@Serializable @SerialName("SettleSuggestions")
+@Serializable
+@SerialName("SettleSuggestions")
 data class SettleSuggestions(override val eventId: Id, val partyId: Id? = null) : Operation
 
-@Serializable @SerialName("RemoveTransfer")
+@Serializable
+@SerialName("RemoveTransfer")
 data class RemoveTransfer(override val eventId: Id, val transferId: Id) : Operation
 
 // ---- Costs (member for their own, lead for anyone's) ----
 
-@Serializable @SerialName("AddCost")
+@Serializable
+@SerialName("AddCost")
 data class AddCost(
     val costId: Id,
     val memberId: Id,
@@ -347,7 +396,8 @@ data class AddCost(
     val description: String? = null,
 ) : Operation
 
-@Serializable @SerialName("UpdateCost")
+@Serializable
+@SerialName("UpdateCost")
 data class UpdateCost(
     val costId: Id,
     val amount: Change<Money>? = null,
@@ -357,18 +407,21 @@ data class UpdateCost(
     val description: Change<String?>? = null,
 ) : Operation
 
-@Serializable @SerialName("DeleteCost")
+@Serializable
+@SerialName("DeleteCost")
 data class DeleteCost(val costId: Id) : Operation
 
 /** Attaches a file to a cost, a collected entry or an event ([owner], ITERATION_4 §2.1). */
-@Serializable @SerialName("AddAttachment")
+@Serializable
+@SerialName("AddAttachment")
 data class AddAttachment(val owner: AttachmentOwner, val attachment: Attachment) : Operation {
     constructor(costId: Id, attachment: Attachment) : this(AttachmentOwner.OfCost(costId), attachment)
 
     override val eventId: Id? get() = owner.eventId
 }
 
-@Serializable @SerialName("RemoveAttachment")
+@Serializable
+@SerialName("RemoveAttachment")
 data class RemoveAttachment(val owner: AttachmentOwner, val attachmentId: Id) : Operation {
     constructor(costId: Id, attachmentId: Id) : this(AttachmentOwner.OfCost(costId), attachmentId)
 
@@ -376,7 +429,8 @@ data class RemoveAttachment(val owner: AttachmentOwner, val attachmentId: Id) : 
 }
 
 /** Gives an attachment another file name (ITERATION_4 §2.1). */
-@Serializable @SerialName("RenameAttachment")
+@Serializable
+@SerialName("RenameAttachment")
 data class RenameAttachment(val owner: AttachmentOwner, val attachmentId: Id, val fileName: String) : Operation {
     override val eventId: Id? get() = owner.eventId
 }
@@ -387,5 +441,6 @@ data class RenameAttachment(val owner: AttachmentOwner, val attachmentId: Id, va
  * Undoes the operation [undoneOpId] ([original]) by putting back what it touched ([change]). [entry] names the
  * history entry it is in; the server takes [original] and [change] from there, so a client cannot make them up.
  */
-@Serializable @SerialName("Undo")
+@Serializable
+@SerialName("Undo")
 data class Undo(val undoneOpId: Id, val original: Operation, val change: BandChange, val entry: String? = null) : Operation

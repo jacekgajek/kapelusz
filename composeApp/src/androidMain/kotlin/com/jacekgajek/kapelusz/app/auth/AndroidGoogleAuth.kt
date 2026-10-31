@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.app.auth
 
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Lifecycle
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -19,16 +17,18 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
 import com.jacekgajek.kapelusz.app.generated.sign_in_google
+import com.jacekgajek.kapelusz.app.platform.AndroidPlatform
+import java.lang.ref.WeakReference
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import java.lang.ref.WeakReference
 
 /**
  * Google sign-in through Android Credential Manager. Tokens are requested with the *web* client id as
@@ -56,8 +56,7 @@ object AndroidGoogleAuth : GoogleAuth {
         CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
     }
 
-    internal suspend fun signIn(activity: Activity): String? =
-        requestToken(activity, GetSignInWithGoogleOption.Builder(AppConfig.GOOGLE_WEB_CLIENT_ID).build())
+    internal suspend fun signIn(activity: Activity): String? = requestToken(activity, GetSignInWithGoogleOption.Builder(AppConfig.GOOGLE_WEB_CLIENT_ID).build())
 
     private suspend fun requestToken(activity: Activity, option: CredentialOption): String? = try {
         val result = CredentialManager.create(activity).getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())

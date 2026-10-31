@@ -1,108 +1,79 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
-import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
-import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.backhandler.BackHandler
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.input.ImeAction
-import com.jacekgajek.kapelusz.app.generated.search_close
-import com.jacekgajek.kapelusz.app.generated.search_events
-import com.jacekgajek.kapelusz.app.generated.search_no_results
-import com.jacekgajek.kapelusz.app.generated.search_placeholder
-import com.jacekgajek.kapelusz.app.ui.model.EventSearch
-import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import com.jacekgajek.kapelusz.app.ui.model.searchWords
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
-import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
-import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
-import androidx.compose.ui.semantics.selected
-import com.jacekgajek.kapelusz.domain.EventStatus
-import com.jacekgajek.kapelusz.model.AgendaTime
-import com.jacekgajek.kapelusz.domain.SettleTogether
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
-import com.jacekgajek.kapelusz.app.ui.model.setTimes
-import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
-import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
-import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
-import com.jacekgajek.kapelusz.app.generated.upcoming_event
-import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
-import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.continue_event
 import com.jacekgajek.kapelusz.app.generated.create
@@ -117,23 +88,52 @@ import com.jacekgajek.kapelusz.app.generated.my_get
 import com.jacekgajek.kapelusz.app.generated.my_hand_over
 import com.jacekgajek.kapelusz.app.generated.new_event
 import com.jacekgajek.kapelusz.app.generated.new_event_lineup_hint
+import com.jacekgajek.kapelusz.app.generated.search_close
+import com.jacekgajek.kapelusz.app.generated.search_events
+import com.jacekgajek.kapelusz.app.generated.search_no_results
+import com.jacekgajek.kapelusz.app.generated.search_placeholder
 import com.jacekgajek.kapelusz.app.generated.tab_events
+import com.jacekgajek.kapelusz.app.generated.upcoming_event
+import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.BandDeletionNotice
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
+import com.jacekgajek.kapelusz.app.ui.model.EventSearch
 import com.jacekgajek.kapelusz.app.ui.model.EventSummary
 import com.jacekgajek.kapelusz.app.ui.model.MyNumber
 import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
+import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.app.ui.model.searchWords
+import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
+import com.jacekgajek.kapelusz.app.ui.model.setTimes
+import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
+import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
+import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
+import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
+import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
+import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
+import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.SettleTogether
+import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
+import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -197,11 +197,13 @@ fun EventsScreen(
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }, onSettings, onRoster) },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (Can(band, state.userId).createEvent()) ExtendedFloatingActionButton(
-                onClick = { creating = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text(stringResource(Res.string.new_event)) },
-            )
+            if (Can(band, state.userId).createEvent()) {
+                ExtendedFloatingActionButton(
+                    onClick = { creating = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(stringResource(Res.string.new_event)) },
+                )
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -212,14 +214,22 @@ fun EventsScreen(
             // The band is to be deleted (ITERATION_7 §9): said to everyone, kept by a leader.
             if (!searching && band.deletion != null) {
                 item(key = "deletion") {
-                    BandDeletionNotice(band, { actions.run(CancelBandDeletion); Unit }.takeIf { Can(band, state.userId).allowed(CancelBandDeletion) })
+                    BandDeletionNotice(
+                        band,
+                        {
+                            actions.run(CancelBandDeletion)
+                            Unit
+                        }.takeIf { Can(band, state.userId).allowed(CancelBandDeletion) },
+                    )
                 }
             }
             // What the band still lacks, for its leaders (ITERATION_5 §11): until it's there, or (no one in the app) hidden.
             // While searching, only the search and its results: the cards would push them under the keyboard.
-            if (!searching) bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
-                item(key = "band-hint") {
-                    BandHintCard(hint, onRoster, onHide = { preferences.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
+            if (!searching) {
+                bandHint(band, state.me, hiddenNoApp = band.id in settings.hiddenNoAppHints)?.let { hint ->
+                    item(key = "band-hint") {
+                        BandHintCard(hint, onRoster, onHide = { preferences.update { it.copy(hiddenNoAppHints = it.hiddenNoAppHints + band.id) } })
+                    }
                 }
             }
             // Until answered (ITERATION_5 §7): there are no pushes, and nobody visits the roster to check.
@@ -254,21 +264,28 @@ fun EventsScreen(
                         onQuery = { query = it },
                         onClose = ::closeSearch,
                     )
-                } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { searching = true; focusSearch = true }) {
-                        Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.search_events))
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = {
+                            searching = true
+                            focusSearch = true
+                        }) {
+                            Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.search_events))
+                        }
+                        // Artists only ever see their own events: no "only mine" to switch.
+                        if (!artist) {
+                            FilterChip(
+                                selected = settings.onlyMyEvents,
+                                onClick = { preferences.update { it.copy(onlyMyEvents = !it.onlyMyEvents) } },
+                                label = { Text(stringResource(Res.string.filter_only_mine)) },
+                            )
+                        }
+                        FilterChip(
+                            selected = settings.showArchived,
+                            onClick = { preferences.update { it.copy(showArchived = !it.showArchived) } },
+                            label = { Text(stringResource(Res.string.filter_show_archived)) },
+                        )
                     }
-                    // Artists only ever see their own events: no "only mine" to switch.
-                    if (!artist) FilterChip(
-                        selected = settings.onlyMyEvents,
-                        onClick = { preferences.update { it.copy(onlyMyEvents = !it.onlyMyEvents) } },
-                        label = { Text(stringResource(Res.string.filter_only_mine)) },
-                    )
-                    FilterChip(
-                        selected = settings.showArchived,
-                        onClick = { preferences.update { it.copy(showArchived = !it.showArchived) } },
-                        label = { Text(stringResource(Res.string.filter_show_archived)) },
-                    )
                 }
             }
             if (searching && words.isNotEmpty()) {
@@ -278,10 +295,14 @@ fun EventsScreen(
                 val text = when {
                     // Hidden by the archived filter: say so, as for others.
                     artist && band.events.any { it.participant(state.me?.id ?: "") != null } -> Res.string.events_filtered_empty
+
                     artist -> Res.string.events_empty_artist
+
                     // "Create the first one!" only to those who can.
                     band.events.isEmpty() && Can(band, state.userId).createEvent() -> Res.string.events_empty
+
                     band.events.isEmpty() -> Res.string.events_empty_cannot_create
+
                     else -> Res.string.events_filtered_empty
                 }
                 item { Text(stringResource(text), Modifier.padding(vertical = 32.dp)) }
@@ -301,7 +322,10 @@ fun EventsScreen(
                 val eventId = newId()
                 val ok = actions.run(
                     CreateEvent(
-                        eventId, fields.name.trim(), fields.date, fields.location.ifBlank { null },
+                        eventId,
+                        fields.name.trim(),
+                        fields.date,
+                        fields.location.ifBlank { null },
                         // Nobody yet (ITERATION_8 §1.2a): the event offers another event's line-up, or one by one.
                         agenda = fields.agenda,
                         // The band's fund default (ITERATION_7 §5.2), while the fund is on.
@@ -369,12 +393,14 @@ private fun EventRow(band: Band, summary: EventSummary, showStatus: Boolean, onC
                 val number = summary.myNumber
                 when {
                     summary.settlement.status == EventStatus.DRAFT -> {}
+
                     // An artist holds no money: only what they got too much is theirs to hand back (V5-M1 C7, ITERATION_7 §3.2).
                     !showStatus && number is MyNumber.HandOver -> Text(
                         stringResource(Res.string.artist_to_hand_back) + ": " + formatMoney(number.amount, band.currency, language),
                         color = MoneyColors.negative,
                         style = MaterialTheme.typography.labelLarge,
                     )
+
                     else -> MyNumberText(number, band.currency)
                 }
             }
@@ -390,12 +416,15 @@ private fun MyNumberText(number: MyNumber, currency: String) {
             color = MoneyColors.positive,
             style = MaterialTheme.typography.labelLarge,
         )
+
         is MyNumber.HandOver -> Text(
             stringResource(Res.string.my_hand_over, formatMoney(number.amount, currency, language)),
             color = MoneyColors.negative,
             style = MaterialTheme.typography.labelLarge,
         )
+
         MyNumber.Even -> Text(stringResource(Res.string.my_even), style = MaterialTheme.typography.labelLarge)
+
         MyNumber.NotParticipating -> {}
     }
 }
@@ -423,7 +452,10 @@ private fun NewEventDialog(band: Band, places: PlaceLookup?, onDismiss: () -> Un
             }
         },
         confirmButton = {
-            TextButton(enabled = fields.name.isNotBlank(), onClick = { onDismiss(); onCreate(fields) }) {
+            TextButton(enabled = fields.name.isNotBlank(), onClick = {
+                onDismiss()
+                onCreate(fields)
+            }) {
                 Text(stringResource(Res.string.create))
             }
         },

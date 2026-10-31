@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.data
 
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 
 class SettingsRepositoryTest {
     private suspend fun loaded(stored: String): AppSettings {

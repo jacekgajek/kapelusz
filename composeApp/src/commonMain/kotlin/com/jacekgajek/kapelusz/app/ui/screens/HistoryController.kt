@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.data.BandRepository
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.model.Band
@@ -66,7 +66,8 @@ class HistoryController(
     @Composable
     fun LineRow(band: Band, line: HistoryLine, arrows: HistoryArrows) {
         HistoryRow(
-            band, line,
+            band,
+            line,
             undone = line.opId in arrows.undone,
             onUndo = arrows.undo?.takeIf { it.first === line }?.let { { confirming = it.second } },
             onRedo = arrows.redo?.takeIf { it.first === line }?.let { { confirming = it.second } },
@@ -81,7 +82,10 @@ class HistoryController(
             confirming = null
             if (actions.run(undo)) {
                 bands.lastOpId?.let { pending = pending + pendingUndoLine(undo, it, userId, memberId) }
-                scope.launch { sync.syncNow(); reload++ }
+                scope.launch {
+                    sync.syncNow()
+                    reload++
+                }
             }
         })
     }

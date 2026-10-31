@@ -19,10 +19,9 @@ object Lineup {
      * [partyId] has money in [event] (collected, transfers, refunds of their costs): taking them out is refused
      * ([com.jacekgajek.kapelusz.ops.RemoveParticipant]), so their tick is locked.
      */
-    fun locked(band: Band, event: Event, partyId: Id): Boolean =
-        event.holdings.any { it.partyId == partyId } ||
-            event.transfers.any { it.from == partyId || it.to == partyId } ||
-            event.refunds.any { band.cost(it.costId)?.memberId == partyId }
+    fun locked(band: Band, event: Event, partyId: Id): Boolean = event.holdings.any { it.partyId == partyId } ||
+        event.transfers.any { it.from == partyId || it.to == partyId } ||
+        event.refunds.any { band.cost(it.costId)?.memberId == partyId }
 
     /**
      * The picker's changes, on top of the event as it is now, so a change synced from elsewhere meanwhile stays: who
@@ -40,8 +39,11 @@ object Lineup {
 
         fun toggled(event: Event, id: Id): Draft {
             val inEvent = event.participant(id) != null
-            return if (id in ticked(event)) copy(added = added - id, removed = if (inEvent) removed + id else removed)
-            else copy(added = if (inEvent) added else added + id, removed = removed - id)
+            return if (id in ticked(event)) {
+                copy(added = added - id, removed = if (inEvent) removed + id else removed)
+            } else {
+                copy(added = if (inEvent) added else added + id, removed = removed - id)
+            }
         }
 
         /** The changes that make [ticked] the ticks for [event]. */
@@ -76,6 +78,7 @@ object Lineup {
                         shares[copy.id] = participant.copy(partyId = copy.id, addedBy = null)
                     }
                 }
+
                 participant.partyId in candidates -> {
                     ticked += participant.partyId
                     if (event.participant(participant.partyId) == null) shares[participant.partyId] = participant.copy(addedBy = null)

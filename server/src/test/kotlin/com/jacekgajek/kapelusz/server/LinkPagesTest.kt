@@ -7,11 +7,11 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 class LinkPagesTest {
     private val store = InMemoryBlobStore()
@@ -29,12 +29,13 @@ class LinkPagesTest {
     private var index: String? = page
     private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now }, webIndex = { index })
 
-    private fun call(method: String, path: String, user: String? = null, body: String? = null) =
-        api.handle(HttpRequest(method, path, listOfNotNull(user?.let { "authorization" to "Bearer $it" }).toMap(), body))
+    private fun call(method: String, path: String, user: String? = null, body: String? = null) = api.handle(HttpRequest(method, path, listOfNotNull(user?.let { "authorization" to "Bearer $it" }).toMap(), body))
 
     private var seq = 0L
     private fun push(vararg ops: Operation) = call(
-        "POST", "/bands/band1/ops", "alice",
+        "POST",
+        "/bands/band1/ops",
+        "alice",
         KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.map { OpEnvelope("op${++seq}", "phone", seq, seq, it) })),
     ).also { assertEquals(200, it.status, it.body) }
 
@@ -74,7 +75,9 @@ class LinkPagesTest {
         setup()
         call("POST", "/bands", "mallory", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band2", "Spoof", "PLN", "m-mallory", "Mallory")))
         val spoof = call(
-            "POST", "/bands/band2/ops", "mallory",
+            "POST",
+            "/bands/band2/ops",
+            "mallory",
             KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("x1", "phone", 1, 1, CreateEvent("ev1", "Cancelled, refunds at evil.example", LocalDate(2026, 1, 1)))))),
         )
         assertEquals(200, spoof.status, spoof.body)

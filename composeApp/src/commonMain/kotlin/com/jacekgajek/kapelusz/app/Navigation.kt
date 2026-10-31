@@ -1,8 +1,5 @@
 package com.jacekgajek.kapelusz.app
 
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.data.Membership
-import com.jacekgajek.kapelusz.app.data.BandRepository
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,27 +37,28 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import com.jacekgajek.kapelusz.app.data.AppGraph
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Membership
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.sync_refused
 import com.jacekgajek.kapelusz.app.generated.tab_events
 import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.tab_my_costs
 import com.jacekgajek.kapelusz.app.generated.tab_settle
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.CostRoute
 import com.jacekgajek.kapelusz.app.ui.EventRoute
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.FundRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
-import com.jacekgajek.kapelusz.app.ui.SummaryRoute
-import com.jacekgajek.kapelusz.app.ui.screens.PlayedScreen
-import com.jacekgajek.kapelusz.app.ui.PlayedRoute
-import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
 import com.jacekgajek.kapelusz.app.ui.MyCostsRoute
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
+import com.jacekgajek.kapelusz.app.ui.PlayedRoute
 import com.jacekgajek.kapelusz.app.ui.RosterRoute
 import com.jacekgajek.kapelusz.app.ui.SettingsRoute
 import com.jacekgajek.kapelusz.app.ui.SettleRoute
+import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.components.AppBanner
 import com.jacekgajek.kapelusz.app.ui.components.StuckPushBanner
 import com.jacekgajek.kapelusz.app.ui.components.labelRes
@@ -72,8 +70,10 @@ import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.HistoryScreen
 import com.jacekgajek.kapelusz.app.ui.screens.MyCostsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.NewBandScreen
+import com.jacekgajek.kapelusz.app.ui.screens.PlayedScreen
 import com.jacekgajek.kapelusz.app.ui.screens.RosterScreen
 import com.jacekgajek.kapelusz.app.ui.screens.SettleScreen
+import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
@@ -167,12 +167,16 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
             }
             composable<FundRoute> { entry ->
                 val addedCost by entry.savedStateHandle.getStateFlow<String?>(ADDED_COST, null).collectAsState()
-                if (artist) BackToEvents(navController) else BandFundScreen(
-                    graph.changes, graph.settings, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) },
-                    onAddCost = { navController.navigate(CostRoute()) },
-                    addedCost = addedCost,
-                    onAddedCostSeen = { entry.savedStateHandle[ADDED_COST] = null },
-                )
+                if (artist) {
+                    BackToEvents(navController)
+                } else {
+                    BandFundScreen(
+                        graph.changes, graph.settings, state, toSettings, toRoster, { navController.navigate(EventRoute(it)) },
+                        onAddCost = { navController.navigate(CostRoute()) },
+                        addedCost = addedCost,
+                        onAddedCostSeen = { entry.savedStateHandle[ADDED_COST] = null },
+                    )
+                }
             }
             composable<EventRoute> { entry ->
                 EventScreen(
@@ -282,14 +286,16 @@ private fun MainScaffold(navController: NavHostController, sync: SyncEngine, ban
                         StuckPushBanner(stuck, { bands.pendingAsJson(bandId) }, { membership.discardStuck(bandId) }, { snackbar.showSnackbar(it) })
                     }
                     if (current != null) AppBanner(eventList = current == Tab.EVENTS)
-                    if (!wide && current != null) NavigationBar {
-                        tabs.forEach { tab ->
-                            NavigationBarItem(
-                                selected = tab == current,
-                                onClick = { select(tab) },
-                                icon = { Icon(tab.icon, contentDescription = null) },
-                                label = { Text(stringResource(tab.label)) },
-                            )
+                    if (!wide && current != null) {
+                        NavigationBar {
+                            tabs.forEach { tab ->
+                                NavigationBarItem(
+                                    selected = tab == current,
+                                    onClick = { select(tab) },
+                                    icon = { Icon(tab.icon, contentDescription = null) },
+                                    label = { Text(stringResource(tab.label)) },
+                                )
+                            }
                         }
                     }
                 }

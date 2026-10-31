@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
+import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
@@ -18,14 +19,13 @@ import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
+import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
-import com.jacekgajek.kapelusz.ops.SetRefund
-import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
-import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.isUndoable
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -189,7 +189,9 @@ class SettleTogetherTest {
             RecordTransfer("gig", "t1", "bob", "alice", pln("100"), together = true),
             RecordTransfer("gig", "t2", "carol", "alice", pln("100"), together = true),
             RecordTransfer("gig", "t3", "dave", "carol", pln("100"), together = true),
-        )) assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(op, carol).reason, "$op")
+        )) {
+            assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(op, carol).reason, "$op")
+        }
     }
 
     @Test

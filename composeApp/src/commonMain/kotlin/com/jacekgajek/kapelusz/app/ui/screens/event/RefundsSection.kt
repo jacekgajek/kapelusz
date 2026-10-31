@@ -1,19 +1,20 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import androidx.compose.foundation.layout.Box
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
-import com.jacekgajek.kapelusz.app.ui.components.CostIcon
-import com.jacekgajek.kapelusz.app.generated.add_cost
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Icon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -28,26 +29,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.add_cost
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.defer
+import com.jacekgajek.kapelusz.app.generated.open_cost
 import com.jacekgajek.kapelusz.app.generated.pending_from_earlier
+import com.jacekgajek.kapelusz.app.generated.pending_hint
+import com.jacekgajek.kapelusz.app.generated.refund_amount_here
+import com.jacekgajek.kapelusz.app.generated.refund_here
+import com.jacekgajek.kapelusz.app.generated.refund_how_much
 import com.jacekgajek.kapelusz.app.generated.refund_max
 import com.jacekgajek.kapelusz.app.generated.refund_of
 import com.jacekgajek.kapelusz.app.generated.refunds
 import com.jacekgajek.kapelusz.app.generated.refunds_empty
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
-import com.jacekgajek.kapelusz.app.generated.refund_amount_here
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.filled.Tune
+import com.jacekgajek.kapelusz.app.ui.components.CostIcon
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
-import com.jacekgajek.kapelusz.app.generated.refund_here
-import com.jacekgajek.kapelusz.app.generated.pending_hint
-import androidx.compose.material.icons.filled.Edit
-import com.jacekgajek.kapelusz.app.generated.refund_how_much
-import com.jacekgajek.kapelusz.app.generated.open_cost
-import androidx.compose.foundation.layout.size
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
@@ -57,14 +57,14 @@ import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.domain.CostLedger
-import com.jacekgajek.kapelusz.model.Cost
-import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
+import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.CostStatuses
+import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.SetRefund
 import org.jetbrains.compose.resources.stringResource
 
@@ -80,7 +80,9 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
     // lost (and is not added twice).
     val me = context.me
     // Not on an archived event (nothing is refunded there any more), nor for viewers (they have no costs).
-    val mine = if (canEdit || me == null || me.role == Role.VIEWER || event.archived) emptyList() else {
+    val mine = if (canEdit || me == null || me.role == Role.VIEWER || event.archived) {
+        emptyList()
+    } else {
         // Also ones added for this event that cannot be refunded here (their owner does not take part).
         val forThisEvent = band.costs.filter { it.eventId == event.id && CostLedger.outstanding(band, it).isPositive }
         (CostLedger.pendingFromEarlier(band, event) + forThisEvent).distinct().filter { it.memberId == me.id }
@@ -140,9 +142,11 @@ fun RefundsSection(context: EventContext, onAddCost: () -> Unit, onOpenCost: (St
 
     // A cost for this event, its refund included here (ITERATION_2 §7).
     if (mine.isNotEmpty()) MyWaitingCosts(context, mine, onOpenCost)
-    if (context.can.addCostIn(event)) TextButton(onClick = onAddCost) {
-        Icon(Icons.Default.Add, null)
-        Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
+    if (context.can.addCostIn(event)) {
+        TextButton(onClick = onAddCost) {
+            Icon(Icons.Default.Add, null)
+            Text(stringResource(Res.string.add_cost), Modifier.padding(start = 8.dp))
+        }
     }
 
     editing?.let { cost -> RefundDialog(context, cost, onOpenCost, onDismiss = { editing = null }) }
@@ -250,8 +254,14 @@ private fun CostFiles(context: EventContext, cost: Cost) {
     // Under the text, past the category icon.
     Box(Modifier.padding(start = 52.dp)) {
         AttachmentsSection(
-            context.fileStore, AttachmentOwner.OfCost(cost.id), cost.attachments,
-            drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
+            context.fileStore,
+            AttachmentOwner.OfCost(cost.id),
+            cost.attachments,
+            drafts = emptyList(),
+            onDrafts = {},
+            editable = false,
+            actions = context.actions,
+            title = null,
         )
     }
 }

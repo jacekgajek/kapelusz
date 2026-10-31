@@ -3,9 +3,9 @@ package com.jacekgajek.kapelusz.app.ui
 import com.jacekgajek.kapelusz.app.ui.screens.event.InfoWords
 import com.jacekgajek.kapelusz.app.ui.screens.event.eventInfoText
 import com.jacekgajek.kapelusz.model.Event
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.datetime.LocalDate
 
 /** The shared gig info (ITERATION_5 §3): parts apart by a blank line, missing ones left out, the address last. */
 class EventInfoTextTest {
@@ -14,8 +14,11 @@ class EventInfoTextTest {
     @Test
     fun everythingTheEventHas() {
         val event = Event(
-            "e", "Wynaturzenie", LocalDate(2026, 11, 7),
-            location = "Klub Pod Jaszczurami", notes = "Setlista:\n1. Intro\n",
+            "e",
+            "Wynaturzenie",
+            LocalDate(2026, 11, 7),
+            location = "Klub Pod Jaszczurami",
+            notes = "Setlista:\n1. Intro\n",
         )
         val text = eventInfoText(event, listOf("Przyjazd 18:00", "Koncert 20:00"), listOf("Ania", "Bartek", "Kasia"), words, "pl")
         assertEquals(

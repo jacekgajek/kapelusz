@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.data
 
-import kotlinx.coroutines.await
 import kotlin.js.Promise
+import kotlinx.coroutines.await
 
 /**
  * One operation ([op]: `get`, `put` or `delete`) in its own transaction. The connection is opened once per page and

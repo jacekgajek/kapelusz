@@ -6,19 +6,19 @@ import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
 import com.jacekgajek.kapelusz.app.ui.model.foldForSearch
 import com.jacekgajek.kapelusz.app.ui.model.searchWords
 import com.jacekgajek.kapelusz.app.ui.model.searchableSummaries
-import com.jacekgajek.kapelusz.model.Participant
-import com.jacekgajek.kapelusz.ops.AddMember
-import kotlinx.coroutines.test.runTest
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetEventArchived
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 class EventSearchTest {
 

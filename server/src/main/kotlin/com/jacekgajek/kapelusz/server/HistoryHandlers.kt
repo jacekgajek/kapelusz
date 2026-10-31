@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz.server
 
-import com.jacekgajek.kapelusz.ops.SetBankAccount
-import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.HistoryResponse
 import com.jacekgajek.kapelusz.model.Band
@@ -9,14 +7,16 @@ import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.BandPart
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.SetBankAccount
+import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.ops.Undo
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import java.time.YearMonth
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 
 /**
  * A band's history: an entry per accepted push, stored as a record per operation ([HistoryStore]); pages of it, and the

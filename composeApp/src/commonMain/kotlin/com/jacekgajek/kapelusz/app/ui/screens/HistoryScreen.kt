@@ -1,23 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
-import com.jacekgajek.kapelusz.app.generated.history_undone
-import com.jacekgajek.kapelusz.app.generated.redo
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.material.icons.automirrored.filled.Redo
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import kotlinx.datetime.LocalDateTime
-import com.jacekgajek.kapelusz.app.generated.undo
-import com.jacekgajek.kapelusz.app.ui.components.rememberActions
-import com.jacekgajek.kapelusz.app.ui.model.Can
-import com.jacekgajek.kapelusz.ops.BandChange
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,12 +13,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,31 +34,45 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.app.sync.HistoryItem
-import com.jacekgajek.kapelusz.app.sync.ReadOp
-import com.jacekgajek.kapelusz.app.generated.history_newer_version
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.nowMillis
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
+import com.jacekgajek.kapelusz.app.generated.history_newer_version
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
+import com.jacekgajek.kapelusz.app.generated.history_undone
 import com.jacekgajek.kapelusz.app.generated.load_more
 import com.jacekgajek.kapelusz.app.generated.next_month
 import com.jacekgajek.kapelusz.app.generated.previous_month
+import com.jacekgajek.kapelusz.app.generated.redo
+import com.jacekgajek.kapelusz.app.generated.undo
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.HistoryItem
+import com.jacekgajek.kapelusz.app.sync.ReadOp
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.describe
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.OpEnvelope
+import kotlin.time.Instant
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
 
 /** Calendar month as the API expects it, e.g. "2026-10"; [offset] months back from now (UTC). */
@@ -155,8 +155,11 @@ fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync:
             val loaded = history.shown(withPending = offset == 0)
             when {
                 history.failed -> Text(stringResource(Res.string.history_unavailable), Modifier.padding(padding16), color = MaterialTheme.colorScheme.error)
+
                 loaded == null -> CircularProgressIndicator(Modifier.padding(padding16))
+
                 loaded.isEmpty() -> Text(stringResource(Res.string.history_empty), Modifier.padding(padding16))
+
                 else -> LazyColumn(contentPadding = padding16, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Undo steps back from the newest change, redo forward (ITERATION_2 §7.2); both only from this month.
                     val arrows = history.arrows(loaded, Can(state.band, state.userId), enabled = offset == 0)
@@ -166,10 +169,16 @@ fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync:
                     }
                     if (next != null) {
                         item {
-                            if (loadingMore) CircularProgressIndicator(Modifier.padding(8.dp).size(24.dp))
-                            else Column {
-                                if (loadMoreFailed) Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                                TextButton(onClick = { loadMoreFailed = false; loadMore() }) { Text(stringResource(Res.string.load_more)) }
+                            if (loadingMore) {
+                                CircularProgressIndicator(Modifier.padding(8.dp).size(24.dp))
+                            } else {
+                                Column {
+                                    if (loadMoreFailed) Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                                    TextButton(onClick = {
+                                        loadMoreFailed = false
+                                        loadMore()
+                                    }) { Text(stringResource(Res.string.load_more)) }
+                                }
                             }
                         }
                     }

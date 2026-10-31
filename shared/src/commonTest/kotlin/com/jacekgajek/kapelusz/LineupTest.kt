@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz
 
+import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.domain.Lineup
 import com.jacekgajek.kapelusz.domain.Names
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
@@ -20,7 +21,6 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnknownOperation
 import com.jacekgajek.kapelusz.ops.isUndoable
-import com.jacekgajek.kapelusz.api.HistoryEntry
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -125,8 +125,15 @@ class LineupTest {
         // gig: Alice, Bob, guest Helper; Bob has money here. old: Carol (150), Dave, guests Helper and Roadie (50).
         val scenario = band()
             .apply(AddHolding("gig", "h", "bob", pln("100"), DOOR))
-            .apply(com.jacekgajek.kapelusz.ops.CreateEvent("old", "old", DATE, guests = listOf(Guest("helper2", "helper"), Guest("roadie", "Roadie")),
-                participants = listOf(Participant("carol", 150), Participant("dave"), Participant("helper2"), Participant("roadie", 50))))
+            .apply(
+                com.jacekgajek.kapelusz.ops.CreateEvent(
+                    "old",
+                    "old",
+                    DATE,
+                    guests = listOf(Guest("helper2", "helper"), Guest("roadie", "Roadie")),
+                    participants = listOf(Participant("carol", 150), Participant("dave"), Participant("helper2"), Participant("roadie", 50)),
+                ),
+            )
         val band = scenario.band
         val gig = band.event("gig")!!
         var next = 0

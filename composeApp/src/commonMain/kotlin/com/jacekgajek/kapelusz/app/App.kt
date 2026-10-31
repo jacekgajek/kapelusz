@@ -1,25 +1,14 @@
 package com.jacekgajek.kapelusz.app
 
-import com.jacekgajek.kapelusz.app.generated.event_link_offline
-import com.jacekgajek.kapelusz.app.data.LinkedEvent
-import com.jacekgajek.kapelusz.app.data.linkedEvent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.event_link_opening
-import com.jacekgajek.kapelusz.app.generated.event_link_no_access
-import com.jacekgajek.kapelusz.app.generated.cancel
-import com.jacekgajek.kapelusz.app.generated.ok
-import org.jetbrains.compose.resources.stringResource
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -31,7 +20,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -40,12 +31,20 @@ import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.LinkedEvent
+import com.jacekgajek.kapelusz.app.data.linkedEvent
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.event_link_no_access
+import com.jacekgajek.kapelusz.app.generated.event_link_offline
+import com.jacekgajek.kapelusz.app.generated.event_link_opening
+import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
 import com.jacekgajek.kapelusz.app.ui.HistoryRoute
-import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.LocalAppLocale
 import com.jacekgajek.kapelusz.app.ui.NewBandRoute
+import com.jacekgajek.kapelusz.app.ui.SummaryRoute
 import com.jacekgajek.kapelusz.app.ui.components.LoadingScreen
 import com.jacekgajek.kapelusz.app.ui.components.LocalTopBarState
 import com.jacekgajek.kapelusz.app.ui.components.SignInAgainDialog
@@ -58,6 +57,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.UpdateRequiredScreen
 import com.jacekgajek.kapelusz.app.ui.screens.ZeroScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun App(graph: AppGraph, onNavHostReady: suspend (NavController) -> Unit = {}) {
@@ -114,6 +114,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     LaunchedEffect(readyBandId, bandState is BandState.NoBand) {
         when {
             bandState is BandState.NoBand -> shownBandId = shownBandId?.let { NO_BAND }
+
             readyBandId != null && readyBandId != shownBandId -> {
                 // Unless the switch already set up its screens (an event link opening one of its events).
                 if (shownBandId != null && graph.incoming.navigatedForBand != readyBandId) navController.resetTo(EventsRoute)
@@ -153,13 +154,17 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 graph.incoming.pendingJoinCode.value = null
                 if (bandState is BandState.Ready) navController.resetTo(EventsRoute)
             },
-            onDismiss = { joining = false; graph.incoming.pendingJoinCode.value = null },
+            onDismiss = {
+                joining = false
+                graph.incoming.pendingJoinCode.value = null
+            },
         )
     }
     LostAccessDialog(graph.sync)
     EventLinkOpening(graph)
     when (bandState) {
         BandState.Loading -> LoadingScreen()
+
         BandState.NoBand -> ZeroScreen(
             bands = index?.bands.orEmpty(),
             syncStatus = syncStatus,
@@ -167,10 +172,14 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             onSignInAgain = { signingInAgain = true },
             defaultYourName = defaultName,
             onOpen = { openBand(it, false) },
-            onCreate = { name, currency, yourName -> graph.bands.createBand(name, currency, yourName); graph.sync.requestSync() },
+            onCreate = { name, currency, yourName ->
+                graph.bands.createBand(name, currency, yourName)
+                graph.sync.requestSync()
+            },
             onSignOut = { graph.account.signOutInBackground() },
             onJoin = { joining = true },
         )
+
         is BandState.Ready -> CompositionLocalProvider(
             LocalTopBarState provides TopBarState(
                 syncStatus = syncStatus,
@@ -188,6 +197,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
                 artist = bandState.band.isArtist(session?.userId),
             ),
         ) { Navigation(graph, bandState, navController, defaultName) }
+
         is BandState.Unreadable -> UnreadableDataScreen(onStartOver = { scope.launch { graph.bands.startOver() } })
     }
 }
@@ -216,6 +226,7 @@ private fun EventLinkOpening(graph: AppGraph) {
                 }
                 graph.incoming.pendingOpenEvent.value = found.bandId to eventId
             }
+
             else -> failed = found
         }
         // Last: clearing it ends this effect.

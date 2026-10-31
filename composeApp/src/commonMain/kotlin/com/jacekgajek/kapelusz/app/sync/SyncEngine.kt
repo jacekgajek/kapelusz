@@ -114,7 +114,13 @@ class SyncEngine(
     }
 
     /** Until the next round: [interval] (or [MESSAGED_INTERVAL] when messages come) after a good one, else [backoff]. */
-    internal fun waitAfter(ok: Boolean, backoff: Long): Long = if (!ok) backoff else if (messaged) MESSAGED_INTERVAL else interval
+    internal fun waitAfter(ok: Boolean, backoff: Long): Long = if (!ok) {
+        backoff
+    } else if (messaged) {
+        MESSAGED_INTERVAL
+    } else {
+        interval
+    }
 
     /** Pauses the periodic loop, e.g. while the Android app is in the background. */
     fun stop() {
@@ -134,6 +140,7 @@ class SyncEngine(
         if (drain?.isActive == true) return
         drain = scope.launch {
             var backoff = 5_000L
+
             // Not what can't go: bands whose changes the server refuses, or no session, or too old an app.
             fun waiting() = (bands.bandsToPush() - _stuck.value.keys).isNotEmpty() || uploads?.bandsWithUploads().orEmpty().isNotEmpty()
             fun blocked() = _status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED
@@ -161,8 +168,9 @@ class SyncEngine(
             runSuspendCatching {
                 runLock.withLock {
                     if (_status.value == SyncStatus.NEEDS_SIGN_IN || _status.value == SyncStatus.UPDATE_REQUIRED) return@withLock
-                    if (bands.local(bandId) != null) syncBand(bandId, pull = true)
-                    else {
+                    if (bands.local(bandId) != null) {
+                        syncBand(bandId, pull = true)
+                    } else {
                         checkBandList(api.me().bands)
                         if (bands.local(bandId) == null && bands.index.value?.bands.orEmpty().any { it.id == bandId }) {
                             api.state(bandId, null)?.let { bands.storeFromServer(it.band, it.version) }
@@ -232,8 +240,7 @@ class SyncEngine(
      * A band whose push is stuck is not in sync, even when it is not the open one (whose banner says why): the status
      * shows an error. The round still counts as done, since retrying sooner cannot help.
      */
-    private fun shown(result: SyncStatus): SyncStatus =
-        if (result == SyncStatus.SYNCED && _stuck.value.keys.any { bands.local(it) != null }) SyncStatus.ERROR else result
+    private fun shown(result: SyncStatus): SyncStatus = if (result == SyncStatus.SYNCED && _stuck.value.keys.any { bands.local(it) != null }) SyncStatus.ERROR else result
 
     /**
      * Every band the user belongs to, not only the open one: e.g. "sync soon" once the app has left the screen, or an event
@@ -310,10 +317,13 @@ class SyncEngine(
 
     private fun classify(e: Throwable): SyncStatus = when {
         e is ApiException && e.code == ApiErrors.UPDATE_REQUIRED -> SyncStatus.UPDATE_REQUIRED
+
         else -> when (e) {
             is NeedsSignInException -> SyncStatus.NEEDS_SIGN_IN
+
             // An answer this app cannot read is not a network problem (ITERATION_3 R9).
             is ApiException, is SyncProtocolException, is SerializationException -> SyncStatus.ERROR
+
             else -> SyncStatus.OFFLINE
         }
     }

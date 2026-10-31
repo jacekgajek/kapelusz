@@ -27,8 +27,7 @@ class InMemoryBlobStore : BlobStore {
 
     override fun exists(key: String): Boolean = objects.containsKey(key) || key in files
 
-    override fun presignPut(key: String, contentType: String, contentLength: Long) =
-        PresignedRequest("memory://put/$key?length=$contentLength", mapOf("content-type" to contentType, "if-none-match" to "*"))
+    override fun presignPut(key: String, contentType: String, contentLength: Long) = PresignedRequest("memory://put/$key?length=$contentLength", mapOf("content-type" to contentType, "if-none-match" to "*"))
 
     override fun presignGet(key: String, contentType: String, fileName: String) = "memory://get/$key"
 

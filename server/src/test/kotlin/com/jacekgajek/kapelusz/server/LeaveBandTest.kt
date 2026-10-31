@@ -2,8 +2,8 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.BandStateResponse
-import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
+import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.InviteInfo
@@ -17,19 +17,18 @@ import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.UnlinkUser
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 class LeaveBandTest {
     private val store = InMemoryBlobStore()
     private val history = InMemoryHistoryStore()
     private val api = Api(store, history, { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
 
-    private fun call(method: String, path: String, user: String, body: String? = null) =
-        api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
+    private fun call(method: String, path: String, user: String, body: String? = null) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
 
     private fun invite(member: String) = KapeluszJson.decodeFromString(
         InviteInfo.serializer(),

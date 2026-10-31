@@ -38,12 +38,10 @@ expect suspend fun webInstallState(): WebInstallState?
 private val otherIosBrowsers = Regex("CriOS|FxiOS|EdgiOS|OPiOS|OPT/|YaBrowser|DuckDuckGo|GSA/|Brave|FBAN|FBAV|Instagram")
 
 /** iPhone, iPod or iPad, including iPadOS, which reports itself as a Mac with a touch screen. */
-fun isAppleMobile(userAgent: String, maxTouchPoints: Int): Boolean =
-    Regex("iPhone|iPad|iPod").containsMatchIn(userAgent) || ("Macintosh" in userAgent && maxTouchPoints > 1)
+fun isAppleMobile(userAgent: String, maxTouchPoints: Int): Boolean = Regex("iPhone|iPad|iPod").containsMatchIn(userAgent) || ("Macintosh" in userAgent && maxTouchPoints > 1)
 
 /** Safari itself (not Chrome, Firefox or an app's browser on iOS), where "Add to Home Screen" is in the Share menu. */
-fun isIosSafari(userAgent: String, maxTouchPoints: Int): Boolean =
-    isAppleMobile(userAgent, maxTouchPoints) && "Safari/" in userAgent && !otherIosBrowsers.containsMatchIn(userAgent)
+fun isIosSafari(userAgent: String, maxTouchPoints: Int): Boolean = isAppleMobile(userAgent, maxTouchPoints) && "Safari/" in userAgent && !otherIosBrowsers.containsMatchIn(userAgent)
 
 /**
  * The hint to show, or null. A newer deploy comes first; then the install hint of this device: "Add to Home Screen" in
@@ -59,7 +57,9 @@ fun webHint(state: WebInstallState, dismissed: Set<WebHint>): WebHint? {
     val install = when {
         isAppleMobile(browser.userAgent, browser.maxTouchPoints) ->
             WebHint.HomeScreen.takeIf { isIosSafari(browser.userAgent, browser.maxTouchPoints) && !browser.standalone }
+
         !browser.androidAppInstalled -> WebHint.AndroidApp
+
         else -> null
     }
     return listOfNotNull(newVersion, install).firstOrNull { it !in dismissed }

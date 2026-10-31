@@ -21,11 +21,11 @@ import com.google.android.play.core.install.model.ActivityResult
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
+import kotlin.coroutines.resume
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 @Composable
 actual fun rememberStoreUpdates(): StoreUpdates? {
@@ -55,9 +55,12 @@ private class PlayStoreUpdates(private val activity: Activity) : StoreUpdates {
     private val listener = InstallStateUpdatedListener { install ->
         when (install.installStatus()) {
             InstallStatus.PENDING, InstallStatus.DOWNLOADING -> _state.value = StoreUpdateState.DOWNLOADING
+
             InstallStatus.DOWNLOADED -> _state.value = StoreUpdateState.DOWNLOADED
+
             // Cancelled or failed: what Play offers now, asked afresh.
             InstallStatus.CANCELED, InstallStatus.FAILED -> check()
+
             else -> Unit
         }
     }
@@ -110,8 +113,7 @@ private class PlayStoreUpdates(private val activity: Activity) : StoreUpdates {
         return result != null && result != ActivityResult.RESULT_IN_APP_UPDATE_FAILED
     }
 
-    private fun offered(info: AppUpdateInfo, type: Int) =
-        info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && info.isUpdateTypeAllowed(type)
+    private fun offered(info: AppUpdateInfo, type: Int) = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && info.isUpdateTypeAllowed(type)
 
     private companion object {
         const val PREFS = "kapelusz-store-updates"

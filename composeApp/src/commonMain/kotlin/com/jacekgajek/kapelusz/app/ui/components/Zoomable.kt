@@ -26,10 +26,10 @@ import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.unit.IntSize
+import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 /** Something that zooms and moves under the fingers: a picture ([ZoomState]) or a PDF's pages. */
 interface ZoomTarget {
@@ -146,8 +146,11 @@ internal fun Modifier.zoomGestures(target: ZoomTarget, pass: PointerEventPass = 
                             // A mouse is decided on its first move: the pager's slop for it is tiny and would win.
                             val slop = if (event.changes.any { it.type == PointerType.Mouse }) 0f else viewConfiguration.touchSlop
                             if (moved.getDistance() > slop) {
-                                if (abs(moved.x) > abs(moved.y) && target.atEdge(moved.x, size)) theirs = true
-                                else mine = true
+                                if (abs(moved.x) > abs(moved.y) && target.atEdge(moved.x, size)) {
+                                    theirs = true
+                                } else {
+                                    mine = true
+                                }
                                 pan = moved
                             }
                         }

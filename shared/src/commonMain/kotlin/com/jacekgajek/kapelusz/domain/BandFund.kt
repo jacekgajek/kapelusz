@@ -3,9 +3,9 @@ package com.jacekgajek.kapelusz.domain
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.model.isOn
-import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Transfer
+import com.jacekgajek.kapelusz.model.isOn
 import com.jacekgajek.kapelusz.model.sum
 import com.jacekgajek.kapelusz.model.sumOfMoney
 
@@ -31,12 +31,10 @@ object BandFund {
     fun isHandedOver(event: Event): Boolean = moved(event) == event.fund
 
     /** Events a changed fund default can still be applied to (ITERATION_7 §5.2): not archived, not settled. */
-    fun canApplyDefault(band: Band, event: Event): Boolean =
-        !event.archived && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
+    fun canApplyDefault(band: Band, event: Event): Boolean = !event.archived && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
 
     /** Events that still have the band's fund default, to offer a new one to (as a member's default share is). */
-    fun stillDefault(band: Band): List<Event> =
-        band.events.filter { canApplyDefault(band, it) && band.fundDefault.isOn(it) }
+    fun stillDefault(band: Band): List<Event> = band.events.filter { canApplyDefault(band, it) && band.fundDefault.isOn(it) }
 
     /** Money the event has actually moved into the fund so far (negative: out of it): transfers and fees paid to it. */
     fun moved(event: Event): Money = transferred(event.transfers) + heldBy(event)

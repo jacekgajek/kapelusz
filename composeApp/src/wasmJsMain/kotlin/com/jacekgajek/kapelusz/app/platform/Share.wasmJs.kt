@@ -1,10 +1,10 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import kotlinx.coroutines.await
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import kotlin.js.Promise
+import kotlinx.coroutines.await
 
 // Web Share API where available (phones), otherwise the clipboard. Resolves to "shared", "copied" or "failed".
 private fun shareOrCopy(text: String): Promise<JsString> = js(

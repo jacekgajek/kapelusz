@@ -1,15 +1,15 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AttachmentKind
+import kotlin.js.Promise
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
-import kotlin.js.Promise
 
 /** What the JS picker resolves to: either [error] or a prepared file. */
 private external interface PickedJs : JsAny {
@@ -77,11 +77,17 @@ private fun pickAndPrepare(): Promise<JsArray<PickedJs>?> = js(
 private fun toResult(picked: PickedJs): PickResult = when (picked.error) {
     null -> {
         val kind = AttachmentKind.valueOf(picked.kind)
-        if (picked.size > kind.maxBytes) PickResult.TooLarge
-        else PickResult.Picked(PreparedFile(kind, picked.name, picked.size.toLong(), picked.base64))
+        if (picked.size > kind.maxBytes) {
+            PickResult.TooLarge
+        } else {
+            PickResult.Picked(PreparedFile(kind, picked.name, picked.size.toLong(), picked.base64))
+        }
     }
+
     "too_large" -> PickResult.TooLarge
+
     "unsupported" -> PickResult.Unsupported
+
     else -> PickResult.Failed
 }
 

@@ -94,7 +94,9 @@ fun isUndoable(op: Operation): Boolean = when (op) {
     is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
     is UnknownOperation,
     -> false
+
     is Undo -> isUndoable(op.original)
+
     else -> true
 }
 
@@ -216,8 +218,7 @@ internal object Undoing {
  * Each setting the change made (from [before] to [after]) is still as it left it in [current]; settings it didn't touch
  * may have changed since, e.g. the fund's account set after a rename (ITERATION_7 §7).
  */
-private fun settingsUnchanged(before: BandSettings?, after: BandSettings?, current: BandSettings): Boolean =
-    before == null || after == null || settingFields.all { field -> field(before) == field(after) || field(current) == field(after) }
+private fun settingsUnchanged(before: BandSettings?, after: BandSettings?, current: BandSettings): Boolean = before == null || after == null || settingFields.all { field -> field(before) == field(after) || field(current) == field(after) }
 
 /** [current] with the settings the change made set back to [before]; the others as they are now. */
 private fun restoreSettings(before: BandSettings?, after: BandSettings?, current: BandSettings): BandSettings {
@@ -234,7 +235,12 @@ private fun restoreSettings(before: BandSettings?, after: BandSettings?, current
 }
 
 private val settingFields: List<(BandSettings) -> Any?> = listOf(
-    { it.name }, { it.treasurerMemberId }, { it.agendaTemplate }, { it.fundDefault }, { it.fundBlikPhone }, { it.fundBankAccount },
+    { it.name },
+    { it.treasurerMemberId },
+    { it.agendaTemplate },
+    { it.fundDefault },
+    { it.fundBlikPhone },
+    { it.fundBankAccount },
 )
 
 private val Band.settings get() = BandSettings(name, treasurerMemberId, agendaTemplate, fundDefault, fundBlikPhone, fundBankAccount)
@@ -258,6 +264,7 @@ private fun <T> diff(before: List<T>, after: List<T>, id: (T) -> Id): Diff<T> {
 }
 
 /** Ids of the attachments in a part of the band: on costs, on events and on their collected entries. */
-private fun BandPart.attachmentIds(): Set<Id> =
-    (costs.values.filterNotNull().flatMap { it.attachments } +
-        events.values.filterNotNull().flatMap { event -> event.attachments + event.holdings.flatMap { it.attachments } }).map { it.id }.toSet()
+private fun BandPart.attachmentIds(): Set<Id> = (
+    costs.values.filterNotNull().flatMap { it.attachments } +
+        events.values.filterNotNull().flatMap { event -> event.attachments + event.holdings.flatMap { it.attachments } }
+    ).map { it.id }.toSet()

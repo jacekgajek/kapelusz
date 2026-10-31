@@ -32,8 +32,7 @@ object BankAccount {
     private fun polish(stored: String) = stored.length == NRB_DIGITS && stored.all { it in '0'..'9' }
 
     /** For reading: a Polish number as its two check digits and then fours, any other in fours. */
-    fun display(stored: String): String =
-        if (polish(stored)) (listOf(stored.take(2)) + stored.drop(2).chunked(4)).joinToString(" ") else stored.chunked(4).joinToString(" ")
+    fun display(stored: String): String = if (polish(stored)) (listOf(stored.take(2)) + stored.drop(2).chunked(4)).joinToString(" ") else stored.chunked(4).joinToString(" ")
 
     /** For pasting into a bank app: as stored, without spaces. */
     fun copyText(stored: String): String = stored

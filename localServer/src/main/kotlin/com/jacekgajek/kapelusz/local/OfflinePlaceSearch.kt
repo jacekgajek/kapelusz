@@ -12,8 +12,7 @@ import java.util.Base64
  */
 class OfflinePlaceSearch : PlaceSearch {
 
-    override fun suggest(query: String, language: String?, session: String?): List<PlaceSuggestion> =
-        listOf(PlaceSuggestion(ID_PREFIX + encoder.encodeToString(query.toByteArray()), query, ADDRESS))
+    override fun suggest(query: String, language: String?, session: String?): List<PlaceSuggestion> = listOf(PlaceSuggestion(ID_PREFIX + encoder.encodeToString(query.toByteArray()), query, ADDRESS))
 
     override fun details(placeId: String, language: String?, session: String?): PlaceAddress? {
         val name = placeId.removePrefix(ID_PREFIX).takeIf { placeId.startsWith(ID_PREFIX) }

@@ -1,24 +1,23 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.platform.rememberCopy
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.domain.EventLinks
-import com.jacekgajek.kapelusz.app.AppConfig
-import androidx.compose.material.icons.filled.Link
-import com.jacekgajek.kapelusz.app.generated.event_link_copy
-import com.jacekgajek.kapelusz.app.generated.event_link_copied
-import com.jacekgajek.kapelusz.app.generated.copy_failed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,55 +26,56 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import com.jacekgajek.kapelusz.ops.SetEventAgenda
-import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
-import com.jacekgajek.kapelusz.model.AgendaTime
-import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
-import com.jacekgajek.kapelusz.app.ui.model.displayLabel
-import com.jacekgajek.kapelusz.app.ui.components.TimePickerDialog
-import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
-import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
-import com.jacekgajek.kapelusz.app.generated.agenda_label
-import com.jacekgajek.kapelusz.app.generated.agenda_add_time
-import com.jacekgajek.kapelusz.app.data.newId
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.AppConfig
+import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.agenda_add_time
+import com.jacekgajek.kapelusz.app.generated.agenda_label
 import com.jacekgajek.kapelusz.app.generated.archive
 import com.jacekgajek.kapelusz.app.generated.archive_not_settled
 import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.copy_failed
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_event_confirm
 import com.jacekgajek.kapelusz.app.generated.delete_event_title
 import com.jacekgajek.kapelusz.app.generated.delete_files_too
 import com.jacekgajek.kapelusz.app.generated.edit_details
 import com.jacekgajek.kapelusz.app.generated.event_date
+import com.jacekgajek.kapelusz.app.generated.event_link_copied
+import com.jacekgajek.kapelusz.app.generated.event_link_copy
 import com.jacekgajek.kapelusz.app.generated.event_location
 import com.jacekgajek.kapelusz.app.generated.event_name
 import com.jacekgajek.kapelusz.app.generated.more
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.unarchive
+import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
+import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
+import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
+import com.jacekgajek.kapelusz.app.ui.components.TimePickerDialog
+import com.jacekgajek.kapelusz.app.ui.model.displayLabel
+import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
+import com.jacekgajek.kapelusz.domain.EventLinks
+import com.jacekgajek.kapelusz.domain.Settlement
+import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.domain.Settlement
+import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteEvent
+import com.jacekgajek.kapelusz.ops.SetEventAgenda
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -149,12 +149,18 @@ fun EventMenu(event: Event, settlement: Settlement, actions: Actions, manage: Bo
                 }
             },
             enabled = canArchive,
-            onClick = { open = false; actions.run(SetEventArchived(event.id, !event.archived)) },
+            onClick = {
+                open = false
+                actions.run(SetEventArchived(event.id, !event.archived))
+            },
         )
         DropdownMenuItem(
             text = { Text(stringResource(Res.string.delete)) },
             enabled = event.transfers.isEmpty(),
-            onClick = { open = false; confirmDelete = true },
+            onClick = {
+                open = false
+                confirmDelete = true
+            },
         )
     }
     if (confirmDelete) {

@@ -7,8 +7,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 class InMemoryHistoryStore : HistoryStore {
     val bands = ConcurrentHashMap<String, ConcurrentSkipListMap<String, String>>()
 
-    override fun newestFirst(bandId: String, from: String, to: String): Sequence<HistoryRecord> =
-        bands[bandId]?.subMap(from, true, to, true)?.descendingMap()?.map { (key, content) -> HistoryRecord(key, content) }?.asSequence().orEmpty()
+    override fun newestFirst(bandId: String, from: String, to: String): Sequence<HistoryRecord> = bands[bandId]?.subMap(from, true, to, true)?.descendingMap()?.map { (key, content) -> HistoryRecord(key, content) }?.asSequence().orEmpty()
 
     override fun put(bandId: String, records: List<HistoryRecord>) {
         val band = bands.computeIfAbsent(bandId) { ConcurrentSkipListMap() }

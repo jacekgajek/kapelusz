@@ -1,48 +1,29 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.generated.location_pick_map
-import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
-import com.jacekgajek.kapelusz.app.platform.MapPickerDialog
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
-import com.jacekgajek.kapelusz.app.generated.map_reading
-import com.jacekgajek.kapelusz.app.generated.map_unreadable
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material3.IconButton
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
-import com.jacekgajek.kapelusz.app.generated.location_clear
-import com.jacekgajek.kapelusz.api.PlaceSuggestion
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
-import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.generated.places_powered_by_google
-import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,27 +32,46 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.app.data.newId
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.agenda_add_time
 import com.jacekgajek.kapelusz.app.generated.agenda_label
 import com.jacekgajek.kapelusz.app.generated.event_date
 import com.jacekgajek.kapelusz.app.generated.event_location
 import com.jacekgajek.kapelusz.app.generated.event_name
+import com.jacekgajek.kapelusz.app.generated.location_clear
+import com.jacekgajek.kapelusz.app.generated.location_pick_map
 import com.jacekgajek.kapelusz.app.generated.map_no_link
 import com.jacekgajek.kapelusz.app.generated.map_paste
+import com.jacekgajek.kapelusz.app.generated.map_reading
+import com.jacekgajek.kapelusz.app.generated.map_unreadable
+import com.jacekgajek.kapelusz.app.generated.places_powered_by_google
+import com.jacekgajek.kapelusz.app.platform.MapPickerDialog
+import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.platform.rememberPaste
+import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
 import com.jacekgajek.kapelusz.app.ui.components.TimePickerDialog
+import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.displayLabel
 import com.jacekgajek.kapelusz.app.ui.model.formatAgendaTime
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.model.AgendaTime
+import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Role
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
@@ -238,13 +238,17 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
                 Row {
                     // Any spot, also one without an address (ITERATION_6 §3).
                     if (mapPickerAvailable) IconButton(onClick = { picking = true }) { Icon(Icons.Default.Place, stringResource(Res.string.location_pick_map)) }
-                    if (state.location.isNotEmpty()) IconButton(onClick = {
-                        typed = null
-                        onState(state.copy(location = ""))
-                    }) { Icon(Icons.Default.Clear, stringResource(Res.string.location_clear)) }
+                    if (state.location.isNotEmpty()) {
+                        IconButton(onClick = {
+                            typed = null
+                            onState(state.copy(location = ""))
+                        }) { Icon(Icons.Default.Clear, stringResource(Res.string.location_clear)) }
+                    }
                 }
             }
-        } else null,
+        } else {
+            null
+        },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         modifier = Modifier.fillMaxWidth(),
     )
@@ -268,9 +272,11 @@ private fun LocationField(state: EventFieldsState, places: PlaceLookup?, onState
                         // The name and town at once; the full address when the server has it, unless edited meanwhile.
                         val short = Places.label(place)
                         onState(state.copy(location = short))
-                        if (places != null) scope.launch {
-                            val full = runSuspendCatching { places.details(place) }.getOrNull()
-                            if (full != null && current.location == short) onState(current.copy(location = full))
+                        if (places != null) {
+                            scope.launch {
+                                val full = runSuspendCatching { places.details(place) }.getOrNull()
+                                if (full != null && current.location == short) onState(current.copy(location = full))
+                            }
                         }
                     }.padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {

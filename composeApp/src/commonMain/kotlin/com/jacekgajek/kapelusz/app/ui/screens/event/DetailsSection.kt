@@ -27,14 +27,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.details
 import com.jacekgajek.kapelusz.app.generated.details_add
+import com.jacekgajek.kapelusz.app.generated.details_discard
+import com.jacekgajek.kapelusz.app.generated.details_discard_title
 import com.jacekgajek.kapelusz.app.generated.details_hint
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.show_all
 import com.jacekgajek.kapelusz.app.generated.show_less
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import com.jacekgajek.kapelusz.app.generated.details_discard
-import com.jacekgajek.kapelusz.app.generated.details_discard_title
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.ops.Change

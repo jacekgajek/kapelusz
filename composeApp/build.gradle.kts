@@ -15,10 +15,9 @@ plugins {
 val localProperties = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties")).asText
     .map { text -> Properties().apply { load(text.reader()) } }
 
-fun setting(env: String, property: String) =
-    providers.environmentVariable(env).filter { it.isNotBlank() }
-        .orElse(localProperties.map { it.getProperty(property).orEmpty() }.filter { it.isNotBlank() })
-        .orElse(providers.gradleProperty(property))
+fun setting(env: String, property: String) = providers.environmentVariable(env).filter { it.isNotBlank() }
+    .orElse(localProperties.map { it.getProperty(property).orEmpty() }.filter { it.isNotBlank() })
+    .orElse(providers.gradleProperty(property))
 
 /** A Chrome or Chromium for the wasm browser tests, or null if this machine has none. */
 fun headlessChrome(): String? {
@@ -82,7 +81,8 @@ val generateAppConfig = tasks.register("generateAppConfig") {
             |    /** Shown in a corner of the app, e.g. "0.5.0 (7)"; local builds say "dev". */
             |    val VERSION_LABEL: String get() = if (VERSION_CODE > 0) "${'$'}VERSION_NAME (${'$'}VERSION_CODE)" else "${'$'}VERSION_NAME (dev)"
             |}
-            |""".trimMargin(),
+            |
+            """.trimMargin(),
         )
     }
 }

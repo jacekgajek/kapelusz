@@ -13,8 +13,7 @@ class EventSearch(summaries: List<EventSummary>) {
     private val entries = summaries.map { it to foldForSearch(listOfNotNull(it.event.name, it.event.location).joinToString("\n")) }
 
     /** The summaries matching every word of [words] (from [searchWords]), in their order. */
-    fun find(words: List<String>): List<EventSummary> =
-        entries.filter { (_, text) -> words.all { it in text } }.map { it.first }
+    fun find(words: List<String>): List<EventSummary> = entries.filter { (_, text) -> words.all { it in text } }.map { it.first }
 }
 
 /**

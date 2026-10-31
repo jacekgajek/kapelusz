@@ -37,7 +37,12 @@ fun CreateBandForm(onCreate: (name: String, currency: String, yourName: String) 
         // Once only: the screen stays tappable while it fades out, and a second tap would create a second band.
         var created by remember { mutableStateOf(false) }
         Button(
-            onClick = { if (!created) { created = true; onCreate(name, currency, yourName) } },
+            onClick = {
+                if (!created) {
+                    created = true
+                    onCreate(name, currency, yourName)
+                }
+            },
             enabled = name.isNotBlank() && yourName.isNotBlank() && !created,
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(Res.string.create_band)) }

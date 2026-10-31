@@ -55,14 +55,16 @@ fun FundPaymentDetails(blikPhone: String?, bankAccount: String?, onSave: ((Payme
         }
     }
     editing?.let { kind ->
-        if (onSave != null) PaymentDetailDialog(
-            kind,
-            stringResource(if (kind == PaymentKind.BLIK) Res.string.fund_blik else Res.string.fund_account),
-            stringResource(Res.string.fund_payment_hint),
-            if (kind == PaymentKind.BLIK) blikPhone else bankAccount,
-            onSave = { onSave(kind, it) },
-            onDismiss = { editing = null },
-        )
+        if (onSave != null) {
+            PaymentDetailDialog(
+                kind,
+                stringResource(if (kind == PaymentKind.BLIK) Res.string.fund_blik else Res.string.fund_account),
+                stringResource(Res.string.fund_payment_hint),
+                if (kind == PaymentKind.BLIK) blikPhone else bankAccount,
+                onSave = { onSave(kind, it) },
+                onDismiss = { editing = null },
+            )
+        }
     }
 }
 

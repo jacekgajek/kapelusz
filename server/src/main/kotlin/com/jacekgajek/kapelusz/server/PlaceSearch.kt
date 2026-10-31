@@ -1,16 +1,21 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
-import java.util.concurrent.Executors
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
-import com.jacekgajek.kapelusz.api.LocationsResponse
 import com.jacekgajek.kapelusz.api.LocatedPlace
+import com.jacekgajek.kapelusz.api.LocationsResponse
 import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
 import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.domain.Places
+import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Role
+import java.net.URI
+import java.net.URLEncoder
+import java.net.http.HttpClient
+import java.net.http.HttpResponse.BodyHandlers
+import java.time.Duration
+import java.util.concurrent.Executors
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -19,11 +24,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import java.net.URI
-import java.net.URLEncoder
-import java.net.http.HttpClient
-import java.net.http.HttpResponse.BodyHandlers
-import java.time.Duration
 
 /** A place's address as Google gives it: the [name] (for a place), the full [address], and its [country] to leave out. */
 data class PlaceAddress(val name: String?, val address: String?, val country: String?)
@@ -113,9 +113,11 @@ class GooglePlaceSearch(private val apiKey: String) : PlaceSearch {
         val root = json.parseToJsonElement(response.body()).jsonObject
         return when (val status = root["status"]?.jsonPrimitive?.content) {
             "ZERO_RESULTS" -> null
+
             "OK" -> root["results"]?.jsonArray?.firstOrNull()?.jsonObject?.get("geometry")?.jsonObject?.get("location")?.jsonObject?.let { at ->
                 Located(at.getValue("lat").jsonPrimitive.content.toDouble(), at.getValue("lng").jsonPrimitive.content.toDouble())
             }
+
             // Over the quota, a refused key: not an answer about the place, so not remembered.
             else -> error("Geocoding API $status: ${root["error_message"]?.jsonPrimitive?.content}")
         }
@@ -217,11 +219,15 @@ internal class PlacesHandlers(private val bands: BandAccess, private val search:
                     else -> target.name!!
                 }
             }
+
             // A link to a place by its id: its name and full address, as for a picked suggestion.
             target.query?.startsWith("place_id:") == true -> search.details(target.query!!.removePrefix("place_id:").takeIf { token.matches(it) } ?: unreadable(), request.language(), null)
                 ?.let { place -> (place.name ?: place.address)?.let { Places.placeText(it, place.address, place.country) } } ?: unreadable()
+
             target.query != null -> target.query!!
+
             pin != null -> coordinates(pin)
+
             else -> unreadable()
         }
         return ok(PlaceText.serializer(), PlaceText(text))

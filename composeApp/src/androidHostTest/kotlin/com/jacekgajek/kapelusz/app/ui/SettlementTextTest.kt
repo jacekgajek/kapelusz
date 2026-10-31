@@ -27,11 +27,11 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
-import kotlinx.datetime.LocalDate
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 /**
  * The shared settlement text (ITERATION_3 §2.1) with the real words of each UI language, read from the string
@@ -87,9 +87,8 @@ class SettlementTextTest {
         )
 
     // Money keeps its no-break spaces in the text; plain spaces here, for readable expectations.
-    private fun text(band: Band, language: String) =
-        settlementText(band, band.event("gig")!!, SettlementCalculator.settle(band, band.event("gig")!!), language, words(if (language == "pl") "values-pl" else "values"))
-            .replace('\u00A0', ' ')
+    private fun text(band: Band, language: String) = settlementText(band, band.event("gig")!!, SettlementCalculator.settle(band, band.event("gig")!!), language, words(if (language == "pl") "values-pl" else "values"))
+        .replace('\u00A0', ' ')
 
     @Test
     fun anOpenEventWithTheBandFundInEnglish() {

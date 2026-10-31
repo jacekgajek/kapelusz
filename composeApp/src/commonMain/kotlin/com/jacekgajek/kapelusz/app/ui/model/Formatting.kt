@@ -1,8 +1,8 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
 import com.jacekgajek.kapelusz.model.Money
-import kotlinx.datetime.LocalDate
 import kotlin.math.absoluteValue
+import kotlinx.datetime.LocalDate
 
 /** Locale-aware money text: `1 000,00 zł` in Polish, `1,000.00 PLN` in English. */
 fun formatMoney(money: Money, currency: String, language: String): String {
@@ -16,8 +16,7 @@ fun formatMoney(money: Money, currency: String, language: String): String {
 }
 
 /** Amount as typed in a text field, e.g. `129,60` in Polish. */
-fun formatMoneyInput(money: Money, language: String): String =
-    money.toString().let { if (language == "pl") it.replace('.', ',') else it }
+fun formatMoneyInput(money: Money, language: String): String = money.toString().let { if (language == "pl") it.replace('.', ',') else it }
 
 private val EN_MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 

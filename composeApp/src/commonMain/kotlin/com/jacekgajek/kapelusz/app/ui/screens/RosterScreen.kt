@@ -1,15 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
-import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
-import com.jacekgajek.kapelusz.app.ui.components.FormerMember
-import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
-import com.jacekgajek.kapelusz.app.ui.components.EditButton
-import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
-import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,11 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -61,10 +52,10 @@ import androidx.compose.ui.unit.sp
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.newId
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.settle_together_title
-import com.jacekgajek.kapelusz.app.generated.role_row
 import com.jacekgajek.kapelusz.app.generated.add_member
 import com.jacekgajek.kapelusz.app.generated.archive
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -74,12 +65,17 @@ import com.jacekgajek.kapelusz.app.generated.change_own_role_title
 import com.jacekgajek.kapelusz.app.generated.close
 import com.jacekgajek.kapelusz.app.generated.copy_link
 import com.jacekgajek.kapelusz.app.generated.create_invite
+import com.jacekgajek.kapelusz.app.generated.delete
+import com.jacekgajek.kapelusz.app.generated.delete_member
+import com.jacekgajek.kapelusz.app.generated.delete_member_linked
+import com.jacekgajek.kapelusz.app.generated.delete_member_text
+import com.jacekgajek.kapelusz.app.generated.delete_member_title
+import com.jacekgajek.kapelusz.app.generated.deleted_member
 import com.jacekgajek.kapelusz.app.generated.invite_active_until
-import com.jacekgajek.kapelusz.app.ui.components.QrCode
-import com.jacekgajek.kapelusz.app.generated.invite_qr
 import com.jacekgajek.kapelusz.app.generated.invite_copied
 import com.jacekgajek.kapelusz.app.generated.invite_failed
 import com.jacekgajek.kapelusz.app.generated.invite_hint
+import com.jacekgajek.kapelusz.app.generated.invite_qr
 import com.jacekgajek.kapelusz.app.generated.invite_role
 import com.jacekgajek.kapelusz.app.generated.invites_unavailable
 import com.jacekgajek.kapelusz.app.generated.link_copied
@@ -99,8 +95,11 @@ import com.jacekgajek.kapelusz.app.generated.reject_holds_money
 import com.jacekgajek.kapelusz.app.generated.reject_viewer_still_plays
 import com.jacekgajek.kapelusz.app.generated.revoke_invite
 import com.jacekgajek.kapelusz.app.generated.role
+import com.jacekgajek.kapelusz.app.generated.role_row
 import com.jacekgajek.kapelusz.app.generated.roster_archived
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.generated.search_people_none
+import com.jacekgajek.kapelusz.app.generated.settle_together_title
 import com.jacekgajek.kapelusz.app.generated.share_invite
 import com.jacekgajek.kapelusz.app.generated.share_invite_text
 import com.jacekgajek.kapelusz.app.generated.unarchive
@@ -109,60 +108,61 @@ import com.jacekgajek.kapelusz.app.generated.unlink_confirm
 import com.jacekgajek.kapelusz.app.platform.ShareResult
 import com.jacekgajek.kapelusz.app.platform.rememberCopy
 import com.jacekgajek.kapelusz.app.platform.rememberShare
+import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.ui.components.Actions
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
+import com.jacekgajek.kapelusz.app.ui.components.Crowd
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
+import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.FormerMember
+import com.jacekgajek.kapelusz.app.ui.components.NameSearchField
+import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.QrCode
+import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
 import com.jacekgajek.kapelusz.app.ui.components.RolePicker
+import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
+import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
+import com.jacekgajek.kapelusz.app.ui.components.UndoStack
+import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import com.jacekgajek.kapelusz.app.ui.components.nameTakenError
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
-import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Artists
+import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.MemberShares
+import com.jacekgajek.kapelusz.domain.Names
 import com.jacekgajek.kapelusz.domain.Viewers
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.RenameMember
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
-import androidx.compose.material3.ButtonDefaults
-import com.jacekgajek.kapelusz.app.generated.delete
-import com.jacekgajek.kapelusz.app.generated.deleted_member
-import com.jacekgajek.kapelusz.app.generated.delete_member_linked
-import com.jacekgajek.kapelusz.app.generated.delete_member_text
-import com.jacekgajek.kapelusz.app.generated.delete_member_title
-import com.jacekgajek.kapelusz.app.generated.delete_member
-import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
-import com.jacekgajek.kapelusz.app.ui.components.UndoStack
-import com.jacekgajek.kapelusz.domain.MemberDeletion
-import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import kotlin.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
-import com.jacekgajek.kapelusz.app.generated.search_people_none
-import com.jacekgajek.kapelusz.app.ui.components.Crowd
-import com.jacekgajek.kapelusz.app.ui.components.RoleGroup
-import com.jacekgajek.kapelusz.app.ui.components.NameSearchField
-import com.jacekgajek.kapelusz.domain.Names
-import com.jacekgajek.kapelusz.domain.sortedByName
 import org.jetbrains.compose.resources.stringResource
 
 /** The band roster. Leaders manage it here (roles, invites, links); others see it read-only. */
@@ -186,7 +186,10 @@ fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBac
     val reloadInvites: () -> Unit = {
         scope.launch {
             runSuspendCatching { api.invites(band.id).invites }
-                .onSuccess { invites = it; invitesFailed = false }
+                .onSuccess {
+                    invites = it
+                    invitesFailed = false
+                }
                 .onFailure { invitesFailed = true }
         }
     }
@@ -221,11 +224,13 @@ fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBac
             }
         },
         floatingActionButton = {
-            if (isAdmin) ExtendedFloatingActionButton(
-                onClick = { adding = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text(stringResource(Res.string.add_member)) },
-            )
+            if (isAdmin) {
+                ExtendedFloatingActionButton(
+                    onClick = { adding = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(stringResource(Res.string.add_member)) },
+                )
+            }
         },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).listWidth()) {
@@ -262,8 +267,10 @@ fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBac
                     )
                 }
                 // A search reaching former members opens them (ITERATION_8 §2).
-                if (showArchived || (searchable && query.isNotBlank())) items(archived, key = { it.id }) { member ->
-                    MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), namesOnly = namesOnly)
+                if (showArchived || (searchable && query.isNotBlank())) {
+                    items(archived, key = { it.id }) { member ->
+                        MemberRow(member, invites?.firstOrNull { it.memberId == member.id }, band.currency, onClick = open(member), namesOnly = namesOnly)
+                    }
                 }
             }
         }
@@ -288,9 +295,11 @@ fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBac
             title = { Text(member.name) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (canShare) Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(shareLine(member, band.currency), Modifier.weight(1f))
-                        EditButton(onClick = { sharing = member.id })
+                    if (canShare) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(shareLine(member, band.currency), Modifier.weight(1f))
+                            EditButton(onClick = { sharing = member.id })
+                        }
                     }
                     if (me != null && hasSettleTogether(band, me, member)) SettleTogetherSection(band, me, member, actions)
                 }
@@ -324,8 +333,7 @@ private fun shareText(member: Member, currency: String): String? = shareText(mem
 
 /** "Share: 1 share" in a member's dialog, where the share can be edited: said even when normal. */
 @Composable
-private fun shareLine(member: Member, currency: String): String =
-    stringResource(Res.string.member_share_line, shareText(member, currency) ?: sharesText(member.shareWeight))
+private fun shareLine(member: Member, currency: String): String = stringResource(Res.string.member_share_line, shareText(member, currency) ?: sharesText(member.shareWeight))
 
 /**
  * A member's default share (ITERATION_4 §2.3). Saving it offers to use it in their events not settled yet where they
@@ -409,31 +417,38 @@ private fun MemberRow(
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(member.name, color = if (member.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
-                if (isMyPartner) Icon(
-                    Icons.Default.Group,
-                    stringResource(Res.string.settle_together_title),
-                    Modifier.padding(start = 6.dp).size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (isMyPartner) {
+                    Icon(
+                        Icons.Default.Group,
+                        stringResource(Res.string.settle_together_title),
+                        Modifier.padding(start = 6.dp).size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         },
-        supportingContent = if (namesOnly) null else ({
-            Column {
-                if (member.userId != null && member.role == Role.OWNER) Text(member.role.label())
-                // Former members have no group of their own role.
-                if (member.archived) Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
-                if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
-                // A normal share goes unsaid: it is everyone's, until changed.
-                shareText(member, currency)?.let { Text(it) }
-            }
-        }),
+        supportingContent = if (namesOnly) {
+            null
+        } else {
+            (
+                {
+                    Column {
+                        if (member.userId != null && member.role == Role.OWNER) Text(member.role.label())
+                        // Former members have no group of their own role.
+                        if (member.archived) Text(if (member.userId != null) member.role.label() else stringResource(Res.string.not_linked))
+                        if (invite != null) Text(stringResource(Res.string.invite_active_until, invite.code, expiryText(invite)))
+                        // A normal share goes unsaid: it is everyone's, until changed.
+                        shareText(member, currency)?.let { Text(it) }
+                    }
+                }
+                )
+        },
     )
     HorizontalDivider()
 }
 
 @Composable
-private fun expiryText(invite: InviteInfo): String =
-    formatDate(Instant.fromEpochMilliseconds(invite.expiresAt).toLocalDateTime(TimeZone.currentSystemDefault()).date, language)
+private fun expiryText(invite: InviteInfo): String = formatDate(Instant.fromEpochMilliseconds(invite.expiresAt).toLocalDateTime(TimeZone.currentSystemDefault()).date, language)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -541,7 +556,10 @@ private fun MemberDialog(
                                         inviteBusy = true
                                         scope.launch {
                                             runSuspendCatching { api.revokeInvite(band.id, current.code) }
-                                                .onSuccess { shownInvite = null; onInvitesChanged() }
+                                                .onSuccess {
+                                                    shownInvite = null
+                                                    onInvitesChanged()
+                                                }
                                                 .onFailure { message = failedText }
                                             inviteBusy = false
                                         }
@@ -571,7 +589,10 @@ private fun MemberDialog(
                             inviteBusy = true
                             scope.launch {
                                 runSuspendCatching { api.createInvite(band.id, member.id, inviteRole) }
-                                    .onSuccess { shownInvite = it; onInvitesChanged() }
+                                    .onSuccess {
+                                        shownInvite = it
+                                        onInvitesChanged()
+                                    }
                                     .onFailure { message = failedText }
                                 inviteBusy = false
                             }
@@ -589,8 +610,11 @@ private fun MemberDialog(
                 if (!isOwner && !isMe) {
                     OutlinedButton(onClick = {
                         // Archiving ends their settling together (ITERATION_5 §7): said first.
-                        if (!member.archived && member.settlesWith != null) confirmArchive = true
-                        else actions.run(SetMemberArchived(member.id, !member.archived))
+                        if (!member.archived && member.settlesWith != null) {
+                            confirmArchive = true
+                        } else {
+                            actions.run(SetMemberArchived(member.id, !member.archived))
+                        }
                     }) {
                         Text(stringResource(if (member.archived) Res.string.unarchive else Res.string.archive))
                     }
@@ -645,10 +669,13 @@ private fun MemberDialog(
                     pickingRole = false
                     when {
                         role == member.role -> {}
+
                         // Changing your own role can take away the rights you are using right now: ask first.
                         isMe -> confirmOwnRole = role
+
                         // So does a change that ends their settling together (ITERATION_5 §7).
                         pairEndsWarningNeeded(member, role) -> confirmRole = role
+
                         else -> actions.run(SetMemberRole(member.id, role))
                     }
                 }, stringResource(Res.string.role), Modifier.verticalScroll(rememberScrollState()))

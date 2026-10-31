@@ -33,8 +33,7 @@ object SettleTogether {
     fun inviterOf(band: Band, memberId: Id): Member? = band.members.firstOrNull { it.invitedToSettle == memberId }
 
     /** [from] may invite [to] now. */
-    fun mayInvite(band: Band, from: Member, to: Member): Boolean =
-        from.id != to.id && canInvite(from) && canPair(to) && !isTaken(band, from.id) && !isTaken(band, to.id)
+    fun mayInvite(band: Band, from: Member, to: Member): Boolean = from.id != to.id && canInvite(from) && canPair(to) && !isTaken(band, from.id) && !isTaken(band, to.id)
 
     private fun validPair(a: Member, b: Member) = canPair(a) && canPair(b) && a.settlesWith == b.id && b.settlesWith == a.id
 
@@ -52,8 +51,11 @@ object SettleTogether {
             val keepsInvite = invitee != null && invitee.id != member.id && canInvite(member) && canPair(invitee) &&
                 member.settlesWith == null && invitee.settlesWith == null && invitee.invitedToSettle == null &&
                 band.members.count { it.invitedToSettle == invitee.id } == 1 && band.members.none { it.invitedToSettle == member.id }
-            if (keepsPair == (member.settlesWith != null) && keepsInvite == (member.invitedToSettle != null)) member
-            else member.copy(settlesWith = member.settlesWith.takeIf { keepsPair }, invitedToSettle = member.invitedToSettle.takeIf { keepsInvite })
+            if (keepsPair == (member.settlesWith != null) && keepsInvite == (member.invitedToSettle != null)) {
+                member
+            } else {
+                member.copy(settlesWith = member.settlesWith.takeIf { keepsPair }, invitedToSettle = member.invitedToSettle.takeIf { keepsInvite })
+            }
         }
         if (members == band.members) return band
         val ended = band.members.filter { it.settlesWith != null && members.first { m -> m.id == it.id }.settlesWith == null }
@@ -71,8 +73,11 @@ object SettleTogether {
             .map { it.id }.toSet()
         return band.copy(
             events = band.events.map { event ->
-                if (event.id !in settled || pair in event.settledTogether) event
-                else event.copy(settledTogether = event.settledTogether + listOf(pair))
+                if (event.id !in settled || pair in event.settledTogether) {
+                    event
+                } else {
+                    event.copy(settledTogether = event.settledTogether + listOf(pair))
+                }
             },
         )
     }
@@ -125,13 +130,17 @@ object SettleTogether {
         val senders = side(from)
         val paid: List<Pair<Id, Long>> = when {
             senders.size == 1 -> listOf(from to amount.minor)
+
             to == BAND_FUND && treasurer in senders -> listOf(treasurer!! to amount.minor)
+
             else -> {
                 // An artist holds no money (ITERATION_4 §1.1), but pays back what they were paid too much (e.g. a refund
                 // accepted after their payout made their share smaller): that, and no more, is theirs to send.
-                fun holds(id: Id) =
-                    if (Artists.isArtist(band, id)) (line(id)?.delta?.minor ?: 0).coerceAtLeast(0)
-                    else (line(id)?.balance?.minor ?: 0).coerceAtLeast(0)
+                fun holds(id: Id) = if (Artists.isArtist(band, id)) {
+                    (line(id)?.delta?.minor ?: 0).coerceAtLeast(0)
+                } else {
+                    (line(id)?.balance?.minor ?: 0).coerceAtLeast(0)
+                }
                 val byHolding = senders.sortedByDescending { holds(it) }
                 var left = amount.minor
                 val parts = byHolding.map { id ->
@@ -147,7 +156,9 @@ object SettleTogether {
         val receivers = side(to)
         val received: List<Pair<Id, Long>> = when {
             receivers.size == 1 -> listOf(to to amount.minor)
+
             from == BAND_FUND && treasurer in receivers -> listOf(treasurer!! to amount.minor)
+
             else -> {
                 val byOwed = receivers.sortedBy { line(it)?.delta?.minor ?: 0 }
                 val first = byOwed[0]
