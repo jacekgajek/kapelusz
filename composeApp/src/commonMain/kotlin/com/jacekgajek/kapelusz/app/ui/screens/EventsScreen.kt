@@ -42,7 +42,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -116,23 +115,17 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.settlement.EventStatus
 import com.jacekgajek.kapelusz.settlement.SettleTogether
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
-import com.jacekgajek.kapelusz.view.EventSearch
 import com.jacekgajek.kapelusz.view.EventSummary
 import com.jacekgajek.kapelusz.view.MyNumber
 import com.jacekgajek.kapelusz.view.eventSummaries
 import com.jacekgajek.kapelusz.view.partyName
-import com.jacekgajek.kapelusz.view.searchWords
-import com.jacekgajek.kapelusz.view.searchableSummaries
 import com.jacekgajek.kapelusz.view.unsettledEvent
 import com.jacekgajek.kapelusz.view.upcomingEvent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
+fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, events: EventsViewModel) {
     val state = session.state
     val changes = session.changes
     val api = session.api
@@ -142,7 +135,6 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
     val band = state.band
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages, undos = null)
-    var creating by remember { mutableStateOf(false) }
     // Artists see the events they play (archived ones too, with the filter) and nothing about the band's money
     // (ITERATION_4 §1.1).
     val artist = session.artist
@@ -152,31 +144,12 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
     val summaries = remember(band, state.me, onlyMine, settings.showArchived) {
         eventSummaries(state.view, state.me, settings.showArchived, onlyMine)
     }
-    // Searching (ITERATION_6 §6): all events the user may see, whatever the filters, prepared in the background once
-    // the search opens; kept until the band changes, then built again (the old results shown meanwhile).
-    var searching by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
-    var search by remember { mutableStateOf<EventSearch?>(null) }
-    LaunchedEffect(searching, band, state.me, artist) {
-        if (!searching) {
-            search = null
-            return@LaunchedEffect
-        }
-        val me = state.me
-        search = withContext(Dispatchers.Default) { EventSearch(searchableSummaries(state.view, me, artist) { yield() }) }
-    }
-    val words = remember(query) { searchWords(query) }
-    // Until something is typed, the list as it was, filters included. Results of a search being built again leave out
-    // events deleted meanwhile.
-    val found = remember(search, words) { search?.find(words) }
-    val results = if (searching && words.isNotEmpty()) found?.filter { band.event(it.event.id) != null } else summaries
-    // The keyboard only when the search icon is tapped, not each time the row comes back (scrolling, coming back).
-    var focusSearch by remember { mutableStateOf(false) }
-    fun closeSearch() {
-        searching = false
-        query = ""
-    }
-    BackHandler(enabled = searching) { closeSearch() }
+    // Searching (ITERATION_6 §6) is the ViewModel's: prepared in the background once opened.
+    val searching = events.searching
+    val query = events.query
+    val words = events.words
+    val results = events.results(summaries)
+    BackHandler(enabled = searching, onBack = events::closeSearch)
     val today = today()
     val continueEvent = remember(band, today, artist) { if (artist) null else unsettledEvent(state.view, today) }
     // One card per event: an open gig tonight is unsettled business, not also "upcoming".
@@ -190,7 +163,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
         floatingActionButton = {
             if (session.can.createEvent()) {
                 ExtendedFloatingActionButton(
-                    onClick = { creating = true },
+                    onClick = { events.creating = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
                     text = { Text(stringResource(Res.string.new_event)) },
                 )
@@ -249,18 +222,15 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
                 if (searching) {
                     SearchField(
                         query,
-                        building = search == null && words.isNotEmpty(),
-                        focus = focusSearch,
-                        onFocused = { focusSearch = false },
-                        onQuery = { query = it },
-                        onClose = ::closeSearch,
+                        building = events.building,
+                        focus = events.focusSearch,
+                        onFocused = events::searchFocused,
+                        onQuery = { events.query = it },
+                        onClose = events::closeSearch,
                     )
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = {
-                            searching = true
-                            focusSearch = true
-                        }) {
+                        IconButton(onClick = events::openSearch) {
                             Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.search_events))
                         }
                         // Artists only ever see their own events: no "only mine" to switch.
@@ -304,11 +274,11 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav) {
         }
     }
 
-    if (creating) {
+    if (events.creating) {
         NewEventDialog(
             band,
             places = rememberPlaceLookup(api, band, state.userId),
-            onDismiss = { creating = false },
+            onDismiss = { events.creating = false },
             onCreate = { fields ->
                 val eventId = newId()
                 val ok = actions.run(
