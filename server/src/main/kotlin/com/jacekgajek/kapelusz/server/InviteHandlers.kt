@@ -17,20 +17,20 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.rules.RoleChanges
 import com.jacekgajek.kapelusz.view.BandView
-import java.security.SecureRandom
 
-/** Invite codes: leaders create them for an unlinked member, and whoever has the code joins the band as that member. */
+/** Invites: leaders create codes for an unlinked member, and whoever has the code joins the band as that member (stored by [Invites]). */
 internal class InviteHandlers(
     private val store: BlobStore,
     private val clock: () -> Long,
     private val bands: BandAccess,
-    private val users: UserHandlers,
-    private val history: HistoryHandlers,
+    private val users: UserRecords,
+    private val codes: Invites,
+    private val history: HistoryLog,
     private val messenger: SyncMessenger?,
 ) {
     fun list(user: VerifiedUser, bandId: String): HttpResponse {
         bands.loadForLeader(user, bandId)
-        val active = loadCodes(bandId).mapNotNull { load(it)?.info }.filter { it.expiresAt > clock() }
+        val active = codes.loadCodes(bandId).mapNotNull { codes.load(it)?.info }.filter { it.expiresAt > clock() }
         return ok(InvitesResponse.serializer(), InvitesResponse(active))
     }
 
@@ -46,22 +46,15 @@ internal class InviteHandlers(
             else -> Unit
         }
         // A new code for the same member replaces the old one.
-        loadCodes(bandId).forEach { code -> if (load(code)?.info?.memberId == member.id) delete(bandId, code) }
-        // A precondition failure here is a code collision: draw another one.
-        val info = retryOnConflict(exhausted = { throw busy("Could not create an invite code") }) {
-            val info = InviteInfo(newCode(), bandId, member.id, request.role, clock() + Api.INVITE_LIFETIME_MS)
-            store.put(StorageKeys.invite(info.code), encode(StoredInvite.serializer(), StoredInvite(info, user.userId)), ifNoneMatch = true)
-            info
-        }
-        updateCodes(bandId) { it + info.code }
-        return ok(InviteInfo.serializer(), info)
+        codes.loadCodes(bandId).forEach { code -> if (codes.load(code)?.info?.memberId == member.id) codes.delete(bandId, code) }
+        return ok(InviteInfo.serializer(), codes.create(bandId, member.id, request.role, user.userId))
     }
 
     fun revoke(user: VerifiedUser, bandId: String, code: String): HttpResponse {
         bands.loadForLeader(user, bandId)
         // Codes are stored upper-case, as preview and accept read them (V5-M1 A10d).
         val stored = code.uppercase()
-        if (load(stored)?.info?.bandId == bandId) delete(bandId, stored)
+        if (codes.load(stored)?.info?.bandId == bandId) codes.delete(bandId, stored)
         return HttpResponse(204)
     }
 
@@ -88,7 +81,7 @@ internal class InviteHandlers(
             val issuer = band.memberOfUser(stored.createdBy)
             val member = band.member(invite.memberId)
             if (issuer == null || issuer.archived || !issuer.role.atLeast(Role.LEAD) || member == null || member.archived) {
-                delete(band.id, invite.code)
+                codes.delete(band.id, invite.code)
                 throw notFound()
             }
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
@@ -115,66 +108,22 @@ internal class InviteHandlers(
         users.addBandToUser(user.userId, bandId)
         // Again now that the band is listed: a sign-in at the same moment may have missed it.
         users.pictureOf(user.userId)?.let { url -> runCatching { bands.setMemberPicture(bandId, user.userId, url) } }
-        revokeFor(bandId, memberId)
+        codes.revokeFor(bandId, memberId)
     }
 
     /**
-     * Cancels all invites for a member. Called whenever the member's account link changes, so no leftover code (from a
-     * race or an interrupted request) can link someone after a leader unlinked them.
-     */
-    fun revokeFor(bandId: String, memberId: String) {
-        loadCodes(bandId).forEach { code ->
-            val invite = load(code)
-            if (invite == null || invite.info.memberId == memberId) delete(bandId, code)
-        }
-    }
-
-    /**
-     * Looks up an active invite. Every lookup first reserves one of the user's [Api.MAX_JOIN_ATTEMPTS] attempts per hour
-     * with a conditional write, so parallel requests cannot get around the limit. A real join needs two (preview, accept).
+     * Looks up an active invite. Every lookup first reserves one of the user's attempts ([InviteCodes.reserveJoinAttempt]);
+     * a real join needs two (preview, accept).
      */
     private fun find(user: VerifiedUser, rawCode: String): StoredInvite {
-        reserveJoinAttempt(user.userId)
+        codes.reserveJoinAttempt(user.userId)
         val code = rawCode.uppercase()
-        return code.takeIf { it.matches(Regex("[${Api.INVITE_ALPHABET}]{${Api.INVITE_LENGTH}}")) }?.let { load(it) }
+        return code.takeIf { it.matches(Regex("[${Api.INVITE_ALPHABET}]{${Api.INVITE_LENGTH}}")) }?.let { codes.load(it) }
             ?.takeIf { it.info.expiresAt > clock() }
             ?: throw notFound()
     }
 
-    private fun reserveJoinAttempt(userId: String) {
-        // Exhausted: parallel requests kept counting first, so there are plenty of attempts in this hour anyway.
-        store.joinAttempts(userId).update(exhausted = { throw tooManyAttempts() }) { stored ->
-            val current = stored?.takeIf { clock() - it.windowStart < Api.ATTEMPT_WINDOW_MS }
-            if (current != null && current.failures >= Api.MAX_JOIN_ATTEMPTS) throw tooManyAttempts()
-            current?.copy(failures = current.failures + 1) ?: JoinAttempts(clock(), 1)
-        }
-    }
-
-    private fun tooManyAttempts() = ApiError(429, ApiErrors.TOO_MANY_ATTEMPTS, "Too many attempts, try again later")
-
     private fun notFound() = ApiError(404, ApiErrors.INVITE_NOT_FOUND, "No such invite")
-
-    private fun load(code: String): StoredInvite? = store.get(StorageKeys.invite(code))?.let { decode(StoredInvite.serializer(), it.content) }
-
-    /** The band's invite codes, active or not. */
-    fun loadCodes(bandId: String): List<String> = store.inviteCodes(bandId).get()?.codes ?: emptyList()
-
-    private fun updateCodes(bandId: String, change: (List<String>) -> List<String>) {
-        store.inviteCodes(bandId).update(exhausted = { throw busy("Could not update invites") }) { stored ->
-            InviteCodes(change(stored?.codes.orEmpty()))
-        }
-    }
-
-    private fun delete(bandId: String, code: String) {
-        store.delete(StorageKeys.invite(code))
-        updateCodes(bandId) { codes -> codes - code }
-    }
-
-    private fun newCode(): String = (1..Api.INVITE_LENGTH).map { Api.INVITE_ALPHABET[random.nextInt(Api.INVITE_ALPHABET.length)] }.joinToString("")
-
-    companion object {
-        private val random = SecureRandom()
-    }
 
     private fun holdsMoney() = ApiError(409, ApiErrors.HOLDS_MONEY, "They still hold band money: settle it first")
 

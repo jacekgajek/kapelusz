@@ -13,7 +13,7 @@ internal class BandAccess(private val store: BlobStore, private val clock: () ->
     /**
      * The band and its ETag; null if there is none, or it was just deleted, its time having come (ITERATION_7 §9).
      * [deleteIfDue] false reads it as it is: for the deletion itself, and where a deletion would run on a thread pool
-     * it uses too ([LinkPages]).
+     * it uses too ([EventPointers]).
      */
     fun load(bandId: String, deleteIfDue: Boolean = true): Pair<Band, String>? {
         val loaded = store.get(StorageKeys.band(bandId))?.let { decode(Band.serializer(), it.content) to it.etag } ?: return null

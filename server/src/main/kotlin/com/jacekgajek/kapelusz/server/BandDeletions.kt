@@ -12,10 +12,10 @@ internal class BandDeletions(
     private val store: BlobStore,
     private val clock: () -> Long,
     private val bands: BandAccess,
-    private val users: UserHandlers,
-    private val invites: InviteHandlers,
-    private val linkPages: LinkPages,
-    private val history: HistoryHandlers,
+    private val users: UserRecords,
+    private val invites: Invites,
+    private val pointers: EventPointers,
+    private val history: HistoryLog,
     private val messenger: SyncMessenger?,
 ) {
     @Volatile private var lastSweep = 0L
@@ -39,7 +39,7 @@ internal class BandDeletions(
         runCatching { invites.loadCodes(bandId).forEach { code -> runCatching { store.delete(StorageKeys.invite(code)) } } }
         runCatching { store.deleteAll(store.list(StorageKeys.bandPrefix(bandId)).filter { it != StorageKeys.deleted(bandId) }) }
             .onFailure { System.err.println("Could not delete the files of band $bandId: $it") }
-        runCatching { linkPages.forget(bandId, band.events.map { it.id }) }
+        runCatching { pointers.forget(bandId, band.events.map { it.id }) }
         runCatching { history.deleteBand(bandId) }.onFailure { System.err.println("Could not delete the history of band $bandId: $it") }
         runCatching { note(bandId) }
         // The members' apps let go of it at once (ITERATION_7 §2.3); former members' apps did already.

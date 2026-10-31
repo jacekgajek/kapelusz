@@ -2,9 +2,7 @@ package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
 import java.util.Locale
-import java.util.concurrent.Executors
 import kotlinx.datetime.number
-import kotlinx.serialization.Serializable
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
@@ -39,61 +37,21 @@ class S3WebIndex(private val bucket: String, private val s3: S3Client = S3BlobSt
     }
 }
 
-/** Which band an event is in, `events/{eventId}.json`: link cards find an event without reading every band. */
-@Serializable
-data class EventPointer(val bandId: String)
-
 /**
  * Event links as web pages (ITERATION_6 §2): the web app's page, with a card for link readers (WhatsApp, Messenger,
  * Slack) in its `og:` tags: the event's name and date; an unknown or deleted one keeps the page's own, generic tags.
  * Nothing else about the band is given away: anyone with a link sees the card. Join links keep the generic card: one
  * naming the band would tell anyone, unsigned and without the app's limit on guesses, whether a code is valid.
  */
-internal class LinkPages(private val store: BlobStore, private val index: WebIndex?, private val clock: () -> Long, private val bands: BandAccess) {
-
+internal class LinkPages(private val index: WebIndex?, private val bands: BandAccess, private val pointers: EventPointers) {
     fun event(eventId: String): HttpResponse {
         val card = runCatching {
-            val bandId = pointer(eventId)
+            val bandId = pointers.bandOf(eventId)
             val event = bandId?.let { bands.load(it)?.first?.event(eventId) }
             // Numbers only: link readers don't say the reader's language (ITERATION_6 §2).
             event?.let { Card(it.name, String.format(Locale.ROOT, "%02d.%02d.%04d", it.date.day, it.date.month.number, it.date.year)) }
         }.getOrNull()
         return page(card)
-    }
-
-    /**
-     * Records where events a push created are, so their links find them; in parallel, as a push can create hundreds.
-     * The first band to have an event id keeps it: another band giving an event the same id (anyone who saw the link
-     * could) must not take over its card. Unless that band no longer has the event.
-     */
-    fun pointTo(bandId: String, eventIds: Collection<String>) = inParallel(eventIds) { eventId ->
-        val key = StorageKeys.eventPointer(eventId)
-        val content = encode(EventPointer.serializer(), EventPointer(bandId))
-        try {
-            store.put(key, content, ifNoneMatch = true)
-        } catch (e: PreconditionFailed) {
-            val existing = store.get(key) ?: return@inParallel
-            val owner = decode(EventPointer.serializer(), existing.content).bandId
-            if (owner != bandId && bands.load(owner, deleteIfDue = false)?.first?.event(eventId) == null) {
-                runCatching { store.put(key, content, ifMatch = existing.etag) }
-            }
-        }
-    }
-
-    /** Takes away the pointers of [eventIds] (deleted, or their band deleted) where they still point to [bandId]. */
-    fun forget(bandId: String, eventIds: Collection<String>) = inParallel(eventIds) { eventId ->
-        if (pointer(eventId) == bandId) store.delete(StorageKeys.eventPointer(eventId))
-    }
-
-    private fun pointer(eventId: String): String? = store.get(StorageKeys.eventPointer(eventId))?.let { decode(EventPointer.serializer(), it.content).bandId }
-
-    private fun inParallel(eventIds: Collection<String>, write: (String) -> Unit) {
-        if (eventIds.isEmpty()) return
-        eventIds.map { eventId ->
-            writers.submit {
-                runCatching { write(eventId) }.onFailure { System.err.println("Could not update the pointer of event $eventId: $it") }
-            }
-        }.forEach { it.get() }
     }
 
     private class Card(val title: String, val description: String?)
@@ -106,8 +64,6 @@ internal class LinkPages(private val store: BlobStore, private val index: WebInd
     }
 
     companion object {
-        private val writers by lazy { Executors.newFixedThreadPool(8) { task -> Thread(task, "event-pointers").apply { isDaemon = true } } }
-
         private val title = Regex("""\s*<meta property="og:title" content="[^"]*">""")
         private val description = Regex("""\s*<meta property="og:description" content="[^"]*">""")
 
