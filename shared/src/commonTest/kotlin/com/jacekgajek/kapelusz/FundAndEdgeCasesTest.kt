@@ -30,6 +30,7 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -78,14 +79,14 @@ class FundAndEdgeCasesTest {
             .apply(AddCost("c", "bob", pln("322"), DATE))
             .apply(AddFundEntry("f", DATE, "Refund Bob's train", pln("-300"), costId = "c"))
         val cost = { scenario.band.cost("c")!! }
-        assertEquals(CostStatus.PARTLY_REFUNDED, CostLedger.status(scenario.band, cost()))
+        assertEquals(CostStatus.PARTLY_REFUNDED, BandView(scenario.band).costStatuses.status(cost()))
         assertEquals(pln("22"), CostLedger.outstanding(scenario.band, cost()))
         assertEquals(pln("-300"), BandFund.balance(scenario.band))
 
         assertEquals(RejectionCode.INVALID, scenario.rejected(UpdateFundEntry("f", amount = Change(pln("-323")))).code)
         assertEquals(RejectionCode.INVALID, scenario.rejected(UpdateFundEntry("f", amount = Change(pln("10")))).code)
         scenario.apply(UpdateFundEntry("f", amount = Change(pln("-322"))))
-        assertEquals(CostStatus.REFUNDED, CostLedger.status(scenario.band, cost()))
+        assertEquals(CostStatus.REFUNDED, BandView(scenario.band).costStatuses.status(cost()))
 
         assertEquals(RejectionCode.INVALID, scenario.rejected(AddFundEntry("g", DATE, "again", pln("-1"), costId = "c")).code)
     }
@@ -97,16 +98,16 @@ class FundAndEdgeCasesTest {
             .apply(AddHolding("e", "h", "alice", pln("100"), DOOR))
             .apply(AddCost("c", "bob", pln("50"), DATE, incurredForEventId = "e"))
         val cost = { scenario.band.cost("c")!! }
-        assertEquals(CostStatus.REFUND_PLANNED, CostLedger.status(scenario.band, cost()))
-        assertEquals(pln("50"), CostLedger.unpaid(scenario.band, cost()))
+        assertEquals(CostStatus.REFUND_PLANNED, BandView(scenario.band).costStatuses.status(cost()))
+        assertEquals(pln("50"), BandView(scenario.band).costStatuses.unpaid(cost()))
         assertEquals(pln("0"), CostLedger.outstanding(scenario.band, cost()), "already assigned, cannot be assigned again")
 
         scenario.apply(SettleSuggestions("e"))
-        assertEquals(CostStatus.REFUNDED, CostLedger.status(scenario.band, cost()))
-        assertEquals(pln("0"), CostLedger.unpaid(scenario.band, cost()))
+        assertEquals(CostStatus.REFUNDED, BandView(scenario.band).costStatuses.status(cost()))
+        assertEquals(pln("0"), BandView(scenario.band).costStatuses.unpaid(cost()))
 
         scenario.apply(AddHolding("e", "h2", "alice", pln("10"), DOOR))
-        assertEquals(CostStatus.REFUND_PLANNED, CostLedger.status(scenario.band, cost()), "reopened event: not final any more")
+        assertEquals(CostStatus.REFUND_PLANNED, BandView(scenario.band).costStatuses.status(cost()), "reopened event: not final any more")
     }
 
     /** Paying part of a suggested transfer leaves the rest suggested. */

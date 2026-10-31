@@ -27,6 +27,7 @@ import com.jacekgajek.kapelusz.ops.StopSettlingTogether
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.isUndoable
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -371,7 +372,7 @@ class SettleTogetherTest {
         scenario.apply(AddHolding("gig", "h", "bob", pln("400"), DOOR))
         scenario.apply(AddHolding("open", "h", "bob", pln("300"), DOOR))
         scenario.apply(SettleSuggestions("gig"))
-        assertEquals(1, SettleTogether.openEventsTogether(scenario.band, "bob", "carol"))
+        assertEquals(1, SettleTogether.openEventsTogether(BandView(scenario.band), "bob", "carol"))
         scenario.apply(StopSettlingTogether("bob", "carol"), scenario.userFor("bob", Role.MEMBER))
         assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
         assertEquals(listOf(listOf("bob", "carol")), scenario.band.event("gig")!!.settledTogether)

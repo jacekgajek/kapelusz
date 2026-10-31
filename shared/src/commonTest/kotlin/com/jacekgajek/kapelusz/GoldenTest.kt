@@ -22,6 +22,7 @@ import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -105,7 +106,7 @@ class GoldenTest {
             .apply(AddCost("gear", "carol", pln("4970"), DATE))
             .apply(SetRefund("carried-over", "gear", pln("2070")))
         fun cost() = scenario.band.cost("gear")!!
-        assertEquals(CostStatus.PARTLY_REFUNDED, CostLedger.status(scenario.band, cost()))
+        assertEquals(CostStatus.PARTLY_REFUNDED, BandView(scenario.band).costStatuses.status(cost()))
         assertEquals(pln("2900"), CostLedger.outstanding(scenario.band, cost()))
 
         scenario.event("southgate", *all)
@@ -118,7 +119,7 @@ class GoldenTest {
             .apply(AddHolding("grand-hotel", "h1", "carol", pln("400"), MERCH))
             .apply(AddHolding("grand-hotel", "h2", "carol", pln("1500"), CONTRACT))
             .apply(SetRefund("grand-hotel", "gear", pln("1900")))
-        assertEquals(CostStatus.REFUNDED, CostLedger.status(scenario.band, cost()))
+        assertEquals(CostStatus.REFUNDED, BandView(scenario.band).costStatuses.status(cost()))
         listOf("carried-over", "southgate", "grand-hotel").forEach {
             assertEquals(EventStatus.SETTLED, scenario.settle(it).status, it)
         }

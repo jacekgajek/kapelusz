@@ -60,7 +60,6 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.screens.costStatusText
 import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.CostStatuses
 import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
@@ -68,6 +67,7 @@ import com.jacekgajek.kapelusz.domain.SuggestedTransfer
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.RecordTransfer
+import com.jacekgajek.kapelusz.view.CostStatuses
 import org.jetbrains.compose.resources.stringResource
 
 // What an artist sees of an event they play (ITERATION_4 §1.1): who plays, their own payout, their own transfers

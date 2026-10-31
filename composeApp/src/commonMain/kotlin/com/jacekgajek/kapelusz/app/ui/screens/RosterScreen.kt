@@ -159,6 +159,7 @@ import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.rules.RoleChanges
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -346,7 +347,7 @@ private fun MemberShareDialog(band: Band, member: Member, actions: Actions, onDi
     // The new default as a participant has it, while asking whether to use it in events too.
     var applying by remember { mutableStateOf<Participant?>(null) }
     // Not on every slider step: it settles each event.
-    val stillOld = remember(band, member) { MemberShares.stillDefault(band, member) }
+    val stillOld = remember(band, member) { MemberShares.stillDefault(BandView(band), member) }
     fun save(share: Participant, events: List<Event>) {
         if (actions.run(SetMemberShare(member.id, share.weight, share.fixedShare, events.map { it.id }, share.percent))) onDismiss()
     }
@@ -578,7 +579,7 @@ private fun MemberDialog(
                         // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
                         FilledTonalButton(enabled = !inviteBusy, onClick = {
                             // Told before asking the server, which refuses for the same reasons.
-                            when (RoleChanges.refusal(band, member.id, inviteRole)) {
+                            when (RoleChanges.refusal(BandView(band), member.id, inviteRole)) {
                                 RejectionReason.HOLDS_MONEY -> {
                                     message = holdsMoneyText
                                     return@FilledTonalButton

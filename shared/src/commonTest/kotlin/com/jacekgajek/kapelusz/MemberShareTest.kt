@@ -16,6 +16,7 @@ import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.Undo
+import com.jacekgajek.kapelusz.view.BandView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -69,7 +70,11 @@ class MemberShareTest {
             .apply(SetWeight("gig", "bob", 75)).apply(SetFixedShare("gig", "bob", pln("300")))
             .apply(SetMemberShare("bob", 100, pln("300")))
         val member = scenario.band.member("bob")!!
-        assertEquals(listOf("gig"), MemberShares.stillDefault(scenario.band, member).map { it.id }, "the same 300, whatever the hidden percentage")
+        assertEquals(
+            listOf("gig"),
+            MemberShares.stillDefault(BandView(scenario.band), member).map { it.id },
+            "the same 300, whatever the hidden percentage",
+        )
         scenario.apply(SetMemberShare("bob", 100, pln("400"), events = listOf("gig")))
         val bob = scenario.band.event("gig")!!.participant("bob")!!
         assertEquals(pln("400"), bob.fixedShare)

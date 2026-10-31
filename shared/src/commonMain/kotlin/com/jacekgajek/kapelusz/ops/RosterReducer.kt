@@ -9,6 +9,7 @@ import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.Transfer
+import com.jacekgajek.kapelusz.view.BandView
 
 /** The roster: members, their roles, accounts, default shares and payment details. Pure state transitions and their validation; see [Reducer]. */
 internal object RosterReducer {
@@ -80,8 +81,9 @@ internal object RosterReducer {
         var result = band.updateMember(op.memberId) { it.copy(shareWeight = share.weight, shareFixed = share.fixed, sharePercent = share.percent) }
         // Events that changed since the user chose them (archived, settled, the member removed, e.g. on another phone)
         // are left alone rather than losing the new default with them.
+        val view = BandView(band)
         for (eventId in op.events.distinct()) {
-            band.event(eventId)?.takeIf { MemberShares.canApply(band, it, member) } ?: continue
+            band.event(eventId)?.takeIf { MemberShares.canApply(view, it, member) } ?: continue
             result = result.updateEvent(eventId) {
                 it.copy(
                     participants = it.participants.map { p ->

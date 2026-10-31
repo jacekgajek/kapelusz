@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.domain
 
-import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.view.BandView
 
 /** A member's default share and the events it may be applied to (ITERATION_4 §2.3). */
 object MemberShares {
@@ -16,8 +16,8 @@ object MemberShares {
     }
 
     /** Events a changed default can still be applied to: not archived, not settled, the member in it. */
-    fun canApply(band: Band, event: Event, member: Member): Boolean = !event.archived && event.participant(member.id) != null && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
+    fun canApply(view: BandView, event: Event, member: Member): Boolean = !event.archived && event.participant(member.id) != null && !view.isSettled(event)
 
     /** Events where the member still has their default share, to offer the new one to. */
-    fun stillDefault(band: Band, member: Member): List<Event> = band.events.filter { event -> canApply(band, event, member) && isDefault(member, event.participant(member.id)!!) }
+    fun stillDefault(view: BandView, member: Member): List<Event> = view.band.events.filter { event -> canApply(view, event, member) && isDefault(member, event.participant(member.id)!!) }
 }

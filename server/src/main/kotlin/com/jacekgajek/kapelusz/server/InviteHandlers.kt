@@ -16,6 +16,7 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.rules.RoleChanges
+import com.jacekgajek.kapelusz.view.BandView
 import java.security.SecureRandom
 
 /** Invite codes: leaders create them for an unlinked member, and whoever has the code joins the band as that member. */
@@ -39,7 +40,7 @@ internal class InviteHandlers(
         badRequestIf(member.userId != null) { "This member is already linked to an account" }
         badRequestIf(member.archived) { "This member is archived" }
         badRequestIf(request.role == Role.OWNER) { "Invites cannot grant ownership" }
-        when (RoleChanges.refusal(band, member.id, request.role)) {
+        when (RoleChanges.refusal(BandView(band), member.id, request.role)) {
             RejectionReason.HOLDS_MONEY -> throw holdsMoney()
             RejectionReason.VIEWER_STILL_PLAYS -> throw stillPlays()
             else -> Unit

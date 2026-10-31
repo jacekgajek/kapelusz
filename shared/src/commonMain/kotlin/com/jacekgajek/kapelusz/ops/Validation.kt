@@ -15,6 +15,7 @@ import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.SharePercent
 import com.jacekgajek.kapelusz.rules.RoleChanges
+import com.jacekgajek.kapelusz.view.BandView
 
 // Validation shared by the reducers: names, amounts, shares, members, agenda. Each throws [RejectedException] through
 // [invalidIf], [conflictIf] or [orNotFound]; see [Reducer].
@@ -24,7 +25,7 @@ internal fun validateNotViewer(band: Band, memberId: Id) = invalidIf(band.member
 
 /** A member may get [role] only when nothing they hold or play in stands in the way; see [RoleChanges]. */
 internal fun validateRoleChange(band: Band, memberId: Id, role: Role) {
-    RoleChanges.refusal(band, memberId, role)?.let { reason ->
+    RoleChanges.refusal(BandView(band), memberId, role)?.let { reason ->
         reject(RejectionCode.CONFLICT, reason, "Settle their events or hand over the band fund first")
     }
 }
