@@ -21,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -50,7 +49,7 @@ class AppGraph(
         installation = messageChannel?.installationId,
     )
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis, SessionApi(transport)::createSession)
-    val bands = BandRepository(store, scope)
+    val bands = BandRepository(BandStore(store, scope))
 
     /** The server no longer serves this app version (ITERATION_2 §2); part of [state]. */
     private val updateRequired = MutableStateFlow(false)

@@ -143,7 +143,7 @@ class BandRepositoryTest {
         repository.createBand("The Band", "PLN", "Alice")
         val bandId = ready(repository).band.id
         testScheduler.advanceUntilIdle()
-        store.values[BandRepository.bandKey("alice", bandId)] = "{ not valid"
+        store.values[BandStore.bandKey("alice", bandId)] = "{ not valid"
 
         val reloaded = BandRepository(store, TestScope(testScheduler), ids(), clock = { 42 })
         reloaded.load("alice")
@@ -152,7 +152,7 @@ class BandRepositoryTest {
 
         reloaded.startOver()
         assertEquals(BandState.NoBand, reloaded.state.value)
-        assertNull(store.values[BandRepository.bandKey("alice", bandId)])
+        assertNull(store.values[BandStore.bandKey("alice", bandId)])
         assertEquals("{ not valid", store.values[state.backupKey], "the backup survives starting over")
     }
 
@@ -203,7 +203,8 @@ class BandRepositoryTest {
         repository.createBand("The Band", "PLN", "Alice")
         repository.dispatch(AddMember("bob", "Bob"))
         repository.flush()
-        val saved = KapeluszJson.decodeFromString(LocalBand.serializer(), store.values.getValue(BandRepository.bandKey("alice", repository.currentBandId!!)))
+        val raw = store.values.getValue(BandStore.bandKey("alice", repository.currentBandId!!))
+        val saved = KapeluszJson.decodeFromString(LocalBand.serializer(), raw)
         assertEquals(2L, saved.nextSeq)
     }
 
@@ -221,7 +222,7 @@ class BandRepositoryTest {
         repository.forgetDeleted(deleted)
         assertEquals(kept, repository.currentBandId)
         assertEquals(listOf("Kept"), repository.index.value!!.bands.map { it.name })
-        assertEquals(null, store.read(BandRepository.bandKey("alice", deleted)))
+        assertEquals(null, store.read(BandStore.bandKey("alice", deleted)))
         assertTrue(store.values.keys.none { it.contains(deleted) }, "no backup is kept for a band deleted on purpose")
     }
 
@@ -232,13 +233,14 @@ class BandRepositoryTest {
         val store = InMemoryStore()
         val band = Band.create("b1", "Night Owls", "PLN", "m1", "Alice", "alice")
         val old = LocalBand(base = band, version = "\"etag-1\"", clientId = "c", userId = "alice")
-        store.write(BandRepository.bandKey("alice", "b1"), KapeluszJson.encodeToString(LocalBand.serializer(), old))
-        store.write(BandRepository.indexKey("alice"), KapeluszJson.encodeToString(BandIndex.serializer(), BandIndex("alice", "b1", listOf(BandSummary("b1", "Night Owls", "Alice", Role.OWNER)))))
+        store.write(BandStore.bandKey("alice", "b1"), KapeluszJson.encodeToString(LocalBand.serializer(), old))
+        val index = BandIndex("alice", "b1", listOf(BandSummary("b1", "Night Owls", "Alice", Role.OWNER)))
+        store.write(BandStore.indexKey("alice"), KapeluszJson.encodeToString(BandIndex.serializer(), index))
         val repository = BandRepository(store, this, ids())
         repository.load("alice")
         assertNull(repository.local("b1")!!.version)
         repository.flush()
-        val saved = KapeluszJson.decodeFromString(LocalBand.serializer(), store.read(BandRepository.bandKey("alice", "b1"))!!)
+        val saved = KapeluszJson.decodeFromString(LocalBand.serializer(), store.read(BandStore.bandKey("alice", "b1"))!!)
         assertEquals(BandRepository.CURRENT_SCHEMA, saved.schema)
     }
 
@@ -251,8 +253,9 @@ class BandRepositoryTest {
         val pending = """[{"opId":"o1","clientId":"c","seq":1,"timestamp":1,"op":{"type":"MoveMember","memberId":"m1","toIndex":0}},""" +
             """{"opId":"o2","clientId":"c","seq":2,"timestamp":2,"op":{"type":"RenameBand","name":"Owls"}}]"""
         val raw = KapeluszJson.encodeToString(LocalBand.serializer(), stored).replaceFirst("{", "{\"pending\":$pending,")
-        store.write(BandRepository.bandKey("alice", "b1"), raw)
-        store.write(BandRepository.indexKey("alice"), KapeluszJson.encodeToString(BandIndex.serializer(), BandIndex("alice", "b1", listOf(BandSummary("b1", "Night Owls", "Alice", Role.OWNER)))))
+        store.write(BandStore.bandKey("alice", "b1"), raw)
+        val index = BandIndex("alice", "b1", listOf(BandSummary("b1", "Night Owls", "Alice", Role.OWNER)))
+        store.write(BandStore.indexKey("alice"), KapeluszJson.encodeToString(BandIndex.serializer(), index))
         val repository = BandRepository(store, this, ids())
         repository.load("alice")
         assertEquals(listOf("o2"), repository.local("b1")!!.pending.map { it.opId })
@@ -300,7 +303,7 @@ class BandRepositoryTest {
         assertNull(repository.dispatch(AddMember("bob", "Bob")))
         testScheduler.runCurrent() // the write fails, without crashing
         failing.full = false
-        testScheduler.advanceTimeBy(BandRepository.FLUSH_RETRY_MS + 1)
+        testScheduler.advanceTimeBy(BandStore.FLUSH_RETRY_MS + 1)
         testScheduler.runCurrent()
         val stored = failing.values.getValue("band-alice-$bandId")
         assertTrue("Bob" in stored, "written once the device has space again")

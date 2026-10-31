@@ -12,6 +12,7 @@ import com.jacekgajek.kapelusz.app.data.AttachmentUploads
 import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.BandStore
 import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
 import com.jacekgajek.kapelusz.app.data.PendingUpload
@@ -350,7 +351,7 @@ class SyncEngineTest {
         assertEquals(LostBand("Lost Band", deleted = false), message.await())
         assertEquals("Kept and renamed", server.bands.getValue(kept).name)
         assertEquals(listOf("Kept and renamed"), repository.index.value!!.bands.map { it.name })
-        assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
+        assertTrue(store.values.keys.any { it.startsWith(BandStore.bandKey("alice", lost) + "-unsent-") }, "unsent changes are kept")
     }
 
     /** ITERATION_5 §2: a change held for its Undo snackbar is not sent, nor anything after it; Undo takes it back. */
@@ -878,7 +879,7 @@ class SyncEngineTest {
         assertEquals(emptyMap(), sync.stuck.value)
         assertEquals(emptyList(), repository.local(stuck)!!.pending)
         assertEquals("Stuck Band", assertIs<BandState.Ready>(repository.state.value).band.name)
-        assertTrue(store.values.keys.any { it.startsWith(BandRepository.bandKey("alice", stuck) + "-unsent-") }, "a backup is kept")
+        assertTrue(store.values.keys.any { it.startsWith(BandStore.bandKey("alice", stuck) + "-unsent-") }, "a backup is kept")
 
         server.refusePushes.clear()
         repository.dispatch(RenameBand("Sent at last"))

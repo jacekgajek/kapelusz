@@ -489,6 +489,10 @@ reviews; the full lists with context are in the appendices. Items marked ⚠ loo
     scheduled for a signed-out user (exits early).
 11. `AttachmentUploads.kt:100`: the whole base64 file is held in memory for the upload; no size guard on this path.
 12. `AppGraph.kt:38,50,56`: forward references inside lambdas; safe only while nothing invokes them during construction.
+13. `BandStore.flush` (3.4) captures the user once but reads the repository's objects live: a `load()` of another user
+   while a write is suspended could write the new user's data under the old keys (pre-existing shape). Same family:
+   `loseAccess`/`startOver` remove a file outside `writeLock`, so an in-flight write can re-create it. Fix: check the
+   user per write and run `remove` under the lock, once the sync state machine (3.5) settles.
 
 ### 8.4 Shared
 
