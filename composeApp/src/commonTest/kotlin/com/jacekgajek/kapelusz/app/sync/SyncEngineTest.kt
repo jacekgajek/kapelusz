@@ -1,13 +1,5 @@
 package com.jacekgajek.kapelusz.app.sync
 
-import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
-import com.jacekgajek.kapelusz.api.AttachmentUploadResponse
-import com.jacekgajek.kapelusz.api.BandStateResponse
-import com.jacekgajek.kapelusz.api.BandSummary
-import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.api.MeResponse
-import com.jacekgajek.kapelusz.api.PushRequest
-import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.app.attachments.AttachmentUploads
 import com.jacekgajek.kapelusz.app.attachments.PendingUpload
 import com.jacekgajek.kapelusz.app.bands.BandRepository
@@ -15,12 +7,10 @@ import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.bands.BandStore
 import com.jacekgajek.kapelusz.app.storage.InMemoryStore
 import com.jacekgajek.kapelusz.app.storage.KeyValueStore
-import com.jacekgajek.kapelusz.engine.ApplyResult
-import com.jacekgajek.kapelusz.engine.Engine
+import com.jacekgajek.kapelusz.app.testing.FakeServer
 import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
-import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
@@ -28,7 +18,6 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
-import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddMember
@@ -36,16 +25,10 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo
-import com.jacekgajek.kapelusz.ops.UnlinkUser
-import com.jacekgajek.kapelusz.rules.Actor
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.TextContent
-import io.ktor.http.headersOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -58,161 +41,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
-
-/** A tiny in-memory server running the real shared [Engine], behind Ktor's mock HTTP engine. */
-internal class FakeServer {
-    val bands = mutableMapOf<String, Band>()
-    var version = 0
-    var unauthorizedOnce = false
-
-    /** The server no longer serves this app version. */
-    var updateRequired = false
-    var requests = 0
-    val appVersionsSeen = mutableListOf<String?>()
-
-    /** Bands their owner deleted: former members get band_deleted. */
-    val deletedBands = mutableSetOf<String>()
-
-    /** False simulates a server from before attachments: the route does not exist. */
-    var attachmentsRoute = true
-
-    /** Simulates no network; a Throwable that is not an Exception, like the browser's JsException. */
-    var offline = false
-    val tokensSeen = mutableListOf<String>()
-
-    /** Bands whose pushes are refused as a whole (`400`), e.g. too many devices. */
-    val refusePushes = mutableSetOf<String>()
-    val pushedBands = mutableListOf<String>()
-
-    /** Leaves already done, and whether the next one's answer is lost on the way (it is done all the same). */
-    val leaves = mutableListOf<String>()
-    var loseLeaveAnswer = false
-
-    /** Answers /me with something that is not its JSON (a proxy's page, a broken deploy). */
-    var unreadableMe = false
-
-    val client = HttpClient(
-        MockEngine { request ->
-            if (offline) throw object : Throwable("Failed to fetch") {}
-            requests++
-            appVersionsSeen += request.url.parameters["appVersion"]
-            if (updateRequired) {
-                return@MockEngine respond("""{"error":"update_required","message":"Too old"}""", HttpStatusCode.UpgradeRequired, headersOf(HttpHeaders.ContentType, "application/json"))
-            }
-            val token = request.headers[HttpHeaders.Authorization]!!.removePrefix("Bearer ")
-            tokensSeen += token
-            if (unauthorizedOnce) {
-                unauthorizedOnce = false
-                return@MockEngine respond("""{"error":"unauthorized","message":"expired"}""", HttpStatusCode.Unauthorized)
-            }
-            val user = token.substringBefore(':')
-            val body = (request.body as? TextContent)?.text
-            val path = request.url.encodedPath
-            val json = headersOf(HttpHeaders.ContentType, "application/json")
-            val bandInPath = path.split('/').getOrNull(2)
-            if (path.startsWith("/bands/") && bandInPath in deletedBands) {
-                return@MockEngine respond("""{"error":"band_deleted","message":"Deleted"}""", HttpStatusCode.NotFound, json)
-            }
-            if (path.startsWith("/bands/") && bandInPath !in bands) {
-                return@MockEngine respond("""{"error":"band_not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
-            }
-            fun <T> ok(serializer: KSerializer<T>, value: T) = respond(KapeluszJson.encodeToString(serializer, value), HttpStatusCode.OK, json)
-            when {
-                path == "/me" && unreadableMe -> respond("""{"userId":""", HttpStatusCode.OK, json)
-
-                path == "/me" -> ok(
-                    MeResponse.serializer(),
-                    MeResponse(
-                        user,
-                        bands = bands.values.mapNotNull { band ->
-                            band.memberOfUser(user)?.let { BandSummary(band.id, band.name, it.name, it.role) }
-                        },
-                    ),
-                )
-
-                path == "/bands" -> {
-                    val create = KapeluszJson.decodeFromString(CreateBandRequest.serializer(), body!!)
-                    val band = Band.create(create.bandId, create.name, create.currency, create.ownerMemberId, create.ownerName, user)
-                    bands[band.id] = band
-                    ok(BandStateResponse.serializer(), BandStateResponse("v${++version}", band))
-                }
-
-                path.endsWith("/state") -> {
-                    val band = bands.getValue(path.split('/')[2])
-                    if (request.headers[HttpHeaders.IfNoneMatch] == "v$version") {
-                        respond("", HttpStatusCode.NotModified)
-                    } else {
-                        ok(BandStateResponse.serializer(), BandStateResponse("v$version", band))
-                    }
-                }
-
-                path.endsWith("/ops") && bandInPath in refusePushes -> {
-                    pushedBands += bandInPath!!
-                    respond("""{"error":"too_many_devices","message":"Too many devices"}""", HttpStatusCode.BadRequest, json)
-                }
-
-                path.endsWith("/ops") -> {
-                    val bandId = path.split('/')[2]
-                    pushedBands += bandId
-                    val push = KapeluszJson.decodeFromString(PushRequest.serializer(), body!!)
-                    val result = Engine.applyBatch(bands.getValue(bandId), Actor.User(user), push.ops)
-                    bands[bandId] = result.band
-                    ok(PushResponse.serializer(), PushResponse("v${++version}", result.band, result.accepted, result.rejected, result.duplicates))
-                }
-
-                path.endsWith("/leave") -> {
-                    val bandId = path.split('/')[2]
-                    val band = bands.getValue(bandId)
-                    val me = band.memberOfUser(user)
-                    if (me == null) {
-                        respond("""{"error":"band_not_found","message":"No such band"}""", HttpStatusCode.NotFound, json)
-                    } else {
-                        leaves += user
-                        serverSide(bandId, UnlinkUser(me.id))
-                        if (loseLeaveAnswer) {
-                            loseLeaveAnswer = false
-                            throw object : Throwable("Connection reset") {}
-                        }
-                        respond("", HttpStatusCode.NoContent)
-                    }
-                }
-
-                request.method == HttpMethod.Get && path.matches(Regex("/bands/[^/]+/attachments/[^/]+")) ->
-                    respond("""{"url":"https://s3.test/get/${path.substringAfterLast('/')}"}""", HttpStatusCode.OK, json)
-
-                path.endsWith("/attachments") && !attachmentsRoute -> respond("""{"error":"not_found","message":"No route"}""", HttpStatusCode.NotFound, json)
-
-                path.endsWith("/attachments") -> {
-                    val upload = KapeluszJson.decodeFromString(AttachmentUploadRequest.serializer(), body!!)
-                    val listed = bands.getValue(path.split('/')[2]).allAttachments().any { it.id == upload.attachmentId }
-                    if (!listed) {
-                        respond("""{"error":"attachment_not_found","message":"No such attachment"}""", HttpStatusCode.NotFound, json)
-                    } else {
-                        ok(AttachmentUploadResponse.serializer(), AttachmentUploadResponse("https://s3.test/${upload.attachmentId}", mapOf("content-type" to "image/jpeg")))
-                    }
-                }
-
-                else -> respond("", HttpStatusCode.NotFound)
-            }
-        },
-    )
-
-    /** Changes made by someone else directly on the server. */
-    fun serverSide(bandId: String, vararg ops: Operation) {
-        bands[bandId] = ops.fold(bands.getValue(bandId)) { band, op -> (Engine.apply(band, Actor.System, op, "srv", 0) as ApplyResult.Applied).band }
-        version++
-    }
-}
 
 class SyncEngineTest {
     private var tokenCount = 0
@@ -696,12 +532,6 @@ class SyncEngineTest {
         assertEquals(5_000, sync.waitAfter(ok = false, backoff = 5_000), "a failed round still retries soon")
     }
 
-    /** Real time: the mock HTTP engine answers on a thread of its own. */
-    private suspend fun eventually(what: String, condition: () -> Boolean) = withContext(Dispatchers.Default) {
-        withTimeout(5_000) { while (!condition()) delay(20) }
-        assertTrue(condition(), what)
-    }
-
     @Test
     fun aMessageAboutAnotherBandFetchesItQuietly() = runTest {
         val server = FakeServer()
@@ -716,7 +546,8 @@ class SyncEngineTest {
 
         sync.start()
         sync.bandChanged(other)
-        eventually("the other band is fetched") { repository.local(other)?.base?.name == "Renamed by Zed" }
+        runCurrent()
+        assertEquals("Renamed by Zed", repository.local(other)?.base?.name, "the other band is fetched")
         assertEquals("Own band", assertIs<BandState.Ready>(repository.state.value).band.name, "and the open band stays open")
         sync.stop()
     }
@@ -730,11 +561,15 @@ class SyncEngineTest {
         repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
         repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
         sync.pauseAfterSending()
-        eventually("the change went out") { server.bands.getValue(bandId).costs.size == 1 && repository.local(bandId)!!.pending.isEmpty() }
-        // The round that sent it may still be finishing (a CI run counted one more request): counted once it settled.
-        withContext(Dispatchers.Default) { delay(200) }
+        runCurrent()
+        assertEquals(1, server.bands.getValue(bandId).costs.size, "the change went out")
+        assertTrue(repository.local(bandId)!!.pending.isEmpty())
+        // The drain is over once nothing waits: a minute later nothing has been asked, and nothing in the next hour.
+        advanceTimeBy(60_000)
+        runCurrent()
         val requests = server.requests
-        withContext(Dispatchers.Default) { delay(300) }
+        advanceTimeBy(3_600_000)
+        runCurrent()
         assertEquals(requests, server.requests, "then nothing more while hidden")
     }
 
@@ -747,10 +582,13 @@ class SyncEngineTest {
         repository.dispatch(AddCost("c1", "m-alice", Money(5000), LocalDate(2026, 10, 1)))
         repository.release(bandId, *repository.local(bandId)!!.pending.map { it.opId }.toTypedArray())
         sync.pauseAfterSending()
-        eventually("the push was tried, and refused") { bandId in sync.stuck.value }
-        withContext(Dispatchers.Default) { delay(200) }
+        runCurrent()
+        assertTrue(bandId in sync.stuck.value, "the push was tried, and refused")
+        advanceTimeBy(60_000)
+        runCurrent()
         val requests = server.requests
-        withContext(Dispatchers.Default) { delay(300) }
+        advanceTimeBy(3_600_000)
+        runCurrent()
         assertEquals(requests, server.requests, "stuck: nothing more while hidden")
     }
 

@@ -5,8 +5,8 @@ import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.platform.FakePlatform
 import com.jacekgajek.kapelusz.app.storage.InMemoryStore
 import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.sync.FakeServer
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.testing.FakeServer
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.Money

@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.security.KeyPairGenerator
 import java.util.Base64
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.AfterTest
@@ -22,6 +23,7 @@ class FcmSenderTest {
     private val tokenCalls = AtomicInteger()
     private var refuseSignIn = false
     private val pool = Executors.newCachedThreadPool()
+    private val slow = CountDownLatch(1)
     private val bodies = java.util.Collections.synchronizedList(mutableListOf<String>())
     private val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
         executor = pool
@@ -37,7 +39,8 @@ class FcmSenderTest {
             check(exchange.requestHeaders.getFirst("authorization") == "Bearer at-1")
             val (status, answer) = when {
                 "\"slow\"" in body -> {
-                    Thread.sleep(5_000)
+                    // Never in time: held until the test is over (the pool's shutdown interrupts it).
+                    runCatching { slow.await() }
                     200 to "{}"
                 }
 
@@ -66,6 +69,7 @@ class FcmSenderTest {
     @AfterTest
     fun stop() {
         server.stop(0)
+        slow.countDown()
         pool.shutdownNow()
     }
 
