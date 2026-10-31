@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
@@ -6,10 +8,17 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
 }
 
-// API URL and Google client id compiled into the app (ITERATION_1 §6.3); environment variables win over gradle.properties.
-// A blank variable counts as missing: CI sets an empty one for an unset repository variable (ITERATION_3 R5).
+// API URL and Google client id compiled into the app (ITERATION_1 §6.3): environment variables win over this machine's
+// local.properties (e.g. the local server for the IDE's Run and Debug, LOCAL_DEVELOPMENT.md), which wins over
+// gradle.properties. A blank variable counts as missing: CI sets an empty one for an unset repository variable
+// (ITERATION_3 R5).
+val localProperties = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties")).asText
+    .map { text -> Properties().apply { load(text.reader()) } }
+
 fun setting(env: String, property: String) =
-    providers.environmentVariable(env).filter { it.isNotBlank() }.orElse(providers.gradleProperty(property))
+    providers.environmentVariable(env).filter { it.isNotBlank() }
+        .orElse(localProperties.map { it.getProperty(property).orEmpty() }.filter { it.isNotBlank() })
+        .orElse(providers.gradleProperty(property))
 
 /** A Chrome or Chromium for the wasm browser tests, or null if this machine has none. */
 fun headlessChrome(): String? {
@@ -25,6 +34,8 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     val apiUrl = setting("KAPELUSZ_API_URL", "kapelusz.apiUrl")
     val webClientId = setting("KAPELUSZ_GOOGLE_WEB_CLIENT_ID", "kapelusz.googleWebClientId")
     val webUrl = setting("KAPELUSZ_WEB_URL", "kapelusz.webUrl")
+    // Sign-in as a made-up user, for the local server (LOCAL_DEVELOPMENT.md); never set for a release.
+    val devSignIn = setting("KAPELUSZ_DEV_SIGN_IN", "kapelusz.devSignIn").orElse("false").map { it.toBoolean() }
     // Without a key (local builds, unless set) there is no map to pick a place on.
     val mapsKey = setting("KAPELUSZ_GOOGLE_MAPS_ANDROID_KEY", "kapelusz.googleMapsAndroidKey").orElse("")
     val versionName = providers.gradleProperty("kapelusz.versionName")
@@ -35,10 +46,19 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     inputs.property("apiUrl", apiUrl)
     inputs.property("webUrl", webUrl)
     inputs.property("webClientId", webClientId)
+    inputs.property("devSignIn", devSignIn)
+    // What scripts/deploy.sh builds (and any other release): asked for by name, so known before the build runs.
+    val release = gradle.startParameter.taskNames.any { it.contains("Release") || it.endsWith("wasmJsBrowserDistribution") }
+    inputs.property("release", release)
     inputs.property("hasMapsKey", mapsKey.map { it.isNotBlank() })
     val output = layout.buildDirectory.dir("generated/appConfig/kotlin")
     outputs.dir(output)
     doLast {
+        // A release (Google Play, the website) never signs in without Google, and dev sign-in only goes with a local server.
+        check(!devSignIn.get() || !release) { "kapelusz.devSignIn is set (local.properties or KAPELUSZ_DEV_SIGN_IN): no release with it" }
+        check(!devSignIn.get() || Regex("http://(10\\.0\\.2\\.2|localhost|127\\.0\\.0\\.1)(:\\d+)?/?").matches(apiUrl.get())) {
+            "kapelusz.devSignIn is only for a local API (LOCAL_DEVELOPMENT.md), not ${apiUrl.get()}"
+        }
         val file = output.get().file("com/jacekgajek/kapelusz/app/AppConfig.kt").asFile
         file.parentFile.mkdirs()
         file.writeText(
@@ -55,6 +75,9 @@ val generateAppConfig = tasks.register("generateAppConfig") {
             |
             |    /** Whether the Android app has a Google Maps key (ITERATION_6 §3), so a place can be picked on a map. */
             |    const val HAS_MAPS_KEY = ${mapsKey.get().isNotBlank()}
+            |
+            |    /** Sign-in as a made-up user instead of Google's, for the local server (LOCAL_DEVELOPMENT.md). */
+            |    const val DEV_SIGN_IN = ${devSignIn.get()}
             |
             |    /** Shown in a corner of the app, e.g. "0.5.0 (7)"; local builds say "dev". */
             |    val VERSION_LABEL: String get() = if (VERSION_CODE > 0) "${'$'}VERSION_NAME (${'$'}VERSION_CODE)" else "${'$'}VERSION_NAME (dev)"
