@@ -6,9 +6,6 @@ import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.InvitePreview
 import com.jacekgajek.kapelusz.api.InvitesResponse
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.domain.Artists
-import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.RejectionReason
@@ -17,6 +14,8 @@ import com.jacekgajek.kapelusz.model.withPicture
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
+import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.rules.RoleChanges
 import java.security.SecureRandom
 
 /** Invite codes: leaders create them for an unlinked member, and whoever has the code joins the band as that member. */
@@ -40,8 +39,11 @@ internal class InviteHandlers(
         badRequestIf(member.userId != null) { "This member is already linked to an account" }
         badRequestIf(member.archived) { "This member is archived" }
         badRequestIf(request.role == Role.OWNER) { "Invites cannot grant ownership" }
-        if (request.role == Role.ARTIST && Artists.holdsMoney(band, member.id)) throw holdsMoney()
-        if (request.role == Role.VIEWER && !Viewers.mayBecome(band, member.id)) throw stillPlays()
+        when (RoleChanges.refusal(band, member.id, request.role)) {
+            RejectionReason.HOLDS_MONEY -> throw holdsMoney()
+            RejectionReason.VIEWER_STILL_PLAYS -> throw stillPlays()
+            else -> Unit
+        }
         // A new code for the same member replaces the old one.
         loadCodes(bandId).forEach { code -> if (load(code)?.info?.memberId == member.id) delete(bandId, code) }
         // A precondition failure here is a code collision: draw another one.

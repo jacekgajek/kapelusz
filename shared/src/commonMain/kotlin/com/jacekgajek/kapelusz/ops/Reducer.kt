@@ -16,7 +16,7 @@ data class OpContext(val opId: Id, val timestamp: Long, val memberId: Id?) {
 
 /**
  * Pure state transitions with data validation. Permissions are checked separately by
- * [com.jacekgajek.kapelusz.auth.Permissions]. Throws [RejectedException] for invalid operations.
+ * [com.jacekgajek.kapelusz.rules.Permissions]. Throws [RejectedException] for invalid operations.
  *
  * The work is done by one reducer per kind of operation ([BandReducer], [RosterReducer], …), each an exhaustive `when`
  * over its group; this dispatches to them and applies what holds for every change: archived events are read-only, the

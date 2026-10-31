@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.wire
 
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.AgendaKind
@@ -85,6 +84,7 @@ import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 

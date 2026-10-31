@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.OpEnvelope
@@ -18,6 +17,7 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

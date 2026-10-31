@@ -1,4 +1,4 @@
-package com.jacekgajek.kapelusz.auth
+package com.jacekgajek.kapelusz.rules
 
 import com.jacekgajek.kapelusz.domain.CostLedger
 import com.jacekgajek.kapelusz.domain.SettleTogether
@@ -15,58 +15,55 @@ import com.jacekgajek.kapelusz.ops.AcceptSettleTogether
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddFundEntry
-import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.AddParticipant
+import com.jacekgajek.kapelusz.ops.AttachmentOp
+import com.jacekgajek.kapelusz.ops.BandOp
 import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CancelSettleTogether
-import com.jacekgajek.kapelusz.ops.ChangeLineup
-import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.ops.CostOp
 import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.DeleteCost
-import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.DisableBandFund
+import com.jacekgajek.kapelusz.ops.EventDetailsOp
+import com.jacekgajek.kapelusz.ops.EventMoneyOp
+import com.jacekgajek.kapelusz.ops.FundOp
+import com.jacekgajek.kapelusz.ops.HoldingOp
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
+import com.jacekgajek.kapelusz.ops.LineupOp
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.PairOp
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.RemoveHolding
-import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
-import com.jacekgajek.kapelusz.ops.RenameGuest
 import com.jacekgajek.kapelusz.ops.RenameMember
+import com.jacekgajek.kapelusz.ops.RosterOp
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetBankAccount
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
-import com.jacekgajek.kapelusz.ops.SetEventAgenda
-import com.jacekgajek.kapelusz.ops.SetEventArchived
-import com.jacekgajek.kapelusz.ops.SetFixedShare
-import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetFundBankAccount
 import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetMemberShare
-import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
-import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.StopSettlingTogether
+import com.jacekgajek.kapelusz.ops.TransferOp
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnknownOperation
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.ops.UpdateCost
-import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateHolding
 
@@ -102,51 +99,69 @@ object Permissions {
 
     fun isAllowed(band: Band, actor: Actor, op: Operation): Boolean = check(band, actor, op) == null
 
-    /** Lowest role allowed to perform [op] for this actor; "own" exceptions lower it to MEMBER. */
+    /** Lowest role allowed to perform [op] for this actor; "own" exceptions lower it to MEMBER (or ARTIST). */
     private fun requiredRole(band: Band, me: Member, op: Operation): Role = when (op) {
         // Undo is allowed to whoever may make the original change (ITERATION_2 §7.2), and the reverse one where that
         // needs more: a member may record their own transfer, but only leads remove transfers.
         is Undo -> maxOf(requiredRole(band, me, op.original), reverseRole(band, me, op.original))
 
-        is TransferOwnership -> Role.OWNER
-
         // Never applied (ITERATION_8 §2); the reducer refuses it for anyone.
         is UnknownOperation -> Role.OWNER
 
-        // Any leader keeps the band (ITERATION_7 §9); asking for the deletion is the owner's, through the server.
-        is CancelBandDeletion -> Role.LEAD
+        is BandOp -> bandRole(band, me, op)
 
+        is RosterOp -> rosterRole(op)
+
+        // Only for oneself (checked in [check]), from artists up (ITERATION_6 §11).
+        is PairOp -> Role.ARTIST
+
+        is EventDetailsOp, is LineupOp, is EventMoneyOp -> Role.LEAD
+
+        is HoldingOp -> holdingRole(band, me, op)
+
+        is TransferOp -> transferRole(band, me, op)
+
+        is CostOp -> costRole(band, me, op)
+
+        is FundOp -> fundRole(band, me, op)
+
+        is AttachmentOp -> attachmentRole(band, me, op)
+    }
+
+    private fun bandRole(band: Band, me: Member, op: BandOp): Role = when (op) {
+        is TransferOwnership -> Role.OWNER
+
+        // Asking for the deletion is the owner's, through the server; any leader keeps the band (ITERATION_7 §9).
         is ScheduleBandDeletion -> Role.OWNER
 
-        is RenameBand, is AddMember, is RenameMember, is SetMemberArchived, is DeleteMember,
-        is SetMemberRole, is UnlinkUser, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is LinkUser,
+        is CancelBandDeletion -> Role.LEAD
+
+        // Where to pay into the fund (ITERATION_7 §7): its holder, who keeps the money, and leads.
+        is SetFundBlikPhone, is SetFundBankAccount -> ownIf(band.treasurerMemberId == me.id)
+
+        is RenameBand, is SetTreasurer, is DisableBandFund, is SetAgendaTemplate, is SetFundDefault -> Role.LEAD
+    }
+
+    private fun rosterRole(op: RosterOp): Role = when (op) {
+        // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8). Only for
+        // oneself (checked in [check]).
+        is SetBlikPhone, is SetBankAccount -> Role.ARTIST
+
+        is AddMember, is RenameMember, is SetMemberArchived, is DeleteMember, is SetMemberRole, is SetMemberShare,
+        is LinkUser, is UnlinkUser,
         -> Role.LEAD
+    }
 
-        is CreateEvent, is UpdateEvent, is SetEventArchived, is SetEventAgenda, is DeleteEvent, is AddParticipant, is AddGuest,
-        is RenameGuest, is SetWeight, is SetFixedShare, is RemoveParticipant, is ChangeLineup, is SetRefund, is SetFundAmount,
-        is SetMemberShare, is SetFundDefault,
-        -> Role.LEAD
-
-        // The treasurer keeps the fund's ledger (ITERATION_7 §3.3): they hold its money. Refunding a cost from it decides
-        // about someone's cost, so stays with leads.
-        is AddFundEntry -> fundEntry(band, me, op.costId)
-
-        is UpdateFundEntry -> band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD
-
-        is RemoveFundEntry -> band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD
-
-        // Who recorded a transfer takes it back, e.g. a Paid tapped by mistake (ITERATION_7 §3.3); leads any.
-        is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null && it == me.id }, Role.ARTIST)
+    private fun holdingRole(band: Band, me: Member, op: HoldingOp): Role = when (op) {
+        is AddHolding -> ownIf(op.partyId == me.id && band.event(op.eventId)?.participant(me.id) != null)
 
         // An organiser's fee paid to someone: they say it arrived (ITERATION_7 §3.3), the treasurer for the fund.
         is ReceiveAwaited -> ownIf(ownsParty(band, me, op.partyId))
 
-        is AddHolding -> ownIf(op.partyId == me.id && band.event(op.eventId)?.participant(me.id) != null)
+        is UpdateHolding, is RemoveHolding -> ownIf(ownHolding(band, me, op.eventId, op.holdingId))
+    }
 
-        is UpdateHolding -> ownIf(ownHolding(band, me, op.eventId, op.holdingId))
-
-        is RemoveHolding -> ownIf(ownHolding(band, me, op.eventId, op.holdingId))
-
+    private fun transferRole(band: Band, me: Member, op: TransferOp): Role = when (op) {
         // Either partner settles a pair's transfer (ITERATION_5 §7). Artists too mark their own as paid or received
         // (ITERATION_7 §3.2), only as themselves: a pair's transfer is split by what each holds, so it could move their
         // partner's money.
@@ -157,27 +172,31 @@ object Permissions {
 
         is SettleSuggestions -> ownIf(op.partyId != null && (ownsParty(band, me, op.partyId) || op.partyId == partnerIn(band, me, op.eventId)))
 
-        // Only for oneself (checked above), from artists up (ITERATION_6 §11).
-        is InviteToSettleTogether, is CancelSettleTogether, is StopSettlingTogether, is AcceptSettleTogether, is DeclineSettleTogether -> Role.ARTIST
+        // Who recorded a transfer takes it back, e.g. a Paid tapped by mistake (ITERATION_7 §3.3); leads any.
+        is RemoveTransfer -> ownIf(band.event(op.eventId)?.transfers?.firstOrNull { it.id == op.transferId }?.recordedBy.let { it != null && it == me.id }, Role.ARTIST)
+    }
 
-        // Artists are paid too, so they give their number as well; viewers are never paid (ITERATION_5 §8).
-        is SetBlikPhone, is SetBankAccount -> Role.ARTIST
-
-        // Where to pay into the fund (ITERATION_7 §7): its holder, who keeps the money, and leads.
-        is SetFundBlikPhone, is SetFundBankAccount -> ownIf(band.treasurerMemberId == me.id)
-
+    private fun costRole(band: Band, me: Member, op: CostOp): Role = when (op) {
         // Artists too look after their own costs (ITERATION_4 §1.1); money held stays from members up.
         is AddCost -> ownIf(op.memberId == me.id, Role.ARTIST)
 
-        is UpdateCost -> ownCost(band, me, op.costId)
+        is UpdateCost, is DeleteCost -> ownCost(band, me, op.costId)
+    }
 
-        is DeleteCost -> ownCost(band, me, op.costId)
+    /**
+     * The treasurer keeps the fund's ledger (ITERATION_7 §3.3): they hold its money. Refunding a cost from it decides
+     * about someone's cost, so stays with leads.
+     */
+    private fun fundRole(band: Band, me: Member, op: FundOp): Role = when (op) {
+        is AddFundEntry -> fundEntry(band, me, op.costId)
 
-        is AddAttachment -> ownAttachments(band, me, op.owner, adding = true)
+        is UpdateFundEntry, is RemoveFundEntry ->
+            band.fundEntries.firstOrNull { it.id == op.entryId }?.let { fundEntry(band, me, it.costId) } ?: Role.LEAD
+    }
 
+    private fun attachmentRole(band: Band, me: Member, op: AttachmentOp): Role = when (op) {
+        is AddAttachment, is RenameAttachment -> ownAttachments(band, me, op.owner, adding = true)
         is RemoveAttachment -> ownAttachments(band, me, op.owner)
-
-        is RenameAttachment -> ownAttachments(band, me, op.owner, adding = true)
     }
 
     /** Whom [me] settles together with in this event: only where both take part (ITERATION_5 §7). */

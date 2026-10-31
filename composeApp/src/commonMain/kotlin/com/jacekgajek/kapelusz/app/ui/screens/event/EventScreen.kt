@@ -107,12 +107,10 @@ import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.agendaLine
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.Settlement
@@ -126,6 +124,8 @@ import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.SetFundAmount
+import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.rules.isArtist
 import kotlin.math.abs
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -143,7 +143,7 @@ class EventContext(
     val settlement: Settlement,
     val me: Member?,
     val actions: Actions,
-    val can: Can,
+    val can: Capabilities,
     /** Opens Band members at [memberId]'s dialog, to invite them (ITERATION_5 §12). */
     val onInviteMember: (memberId: String) -> Unit = {},
 ) {
@@ -248,7 +248,7 @@ fun EventScreen(
         topBar = {
             BackTopBar(event?.name ?: "", onBack) {
                 if (event != null && settlement != null) {
-                    val can = Can(state.band, state.userId)
+                    val can = Capabilities(state.band, state.userId)
                     // For everyone (Copy link); archiving and deleting for who may. Also on archived events, which are
                     // otherwise read-only: restoring them is in it.
                     EventMenu(event, settlement, actions, manage = can.archiveEvents(), onDeleted = onBack)
@@ -268,7 +268,17 @@ fun EventScreen(
             }
             return@Scaffold
         }
-        val context = EventContext(fileStore, incoming, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId), onInviteMember)
+        val context = EventContext(
+            fileStore,
+            incoming,
+            state.band,
+            event,
+            settlement ?: return@Scaffold,
+            state.me,
+            actions,
+            Capabilities(state.band, state.userId),
+            onInviteMember,
+        )
         val shareInfo = rememberShareInfo(state.band, event, snackbar)
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
             EventTabs(tabs, pagerState)

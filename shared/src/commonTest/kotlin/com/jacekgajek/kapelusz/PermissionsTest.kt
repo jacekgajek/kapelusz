@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.RejectionCode
@@ -26,6 +24,8 @@ import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
+import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.rules.Permissions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -8,7 +8,6 @@ import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.periodSummary
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.BAND_FUND
@@ -32,6 +31,7 @@ import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

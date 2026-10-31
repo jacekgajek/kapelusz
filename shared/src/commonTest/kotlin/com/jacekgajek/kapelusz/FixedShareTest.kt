@@ -1,7 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.SettlementProblem
 import com.jacekgajek.kapelusz.domain.SuggestedTransfer
@@ -26,6 +24,8 @@ import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.isUndoable
+import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.rules.Permissions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

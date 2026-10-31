@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz
 
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.RejectionReason
@@ -16,6 +15,7 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

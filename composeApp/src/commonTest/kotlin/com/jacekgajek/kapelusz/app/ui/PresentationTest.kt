@@ -11,7 +11,6 @@ import com.jacekgajek.kapelusz.app.ui.model.initials
 import com.jacekgajek.kapelusz.app.ui.model.toItem
 import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
 import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.model.AgendaKind
 import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Band
@@ -27,6 +26,7 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.datetime.LocalDate

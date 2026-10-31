@@ -135,20 +135,19 @@ import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
 import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.components.sharesText
-import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.MemberDeletion
 import com.jacekgajek.kapelusz.domain.MemberShares
 import com.jacekgajek.kapelusz.domain.Names
-import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.DeleteMember
@@ -158,6 +157,8 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import com.jacekgajek.kapelusz.rules.Capabilities
+import com.jacekgajek.kapelusz.rules.RoleChanges
 import kotlin.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -173,7 +174,7 @@ fun RosterScreen(changes: Changes, api: ApiClient, state: BandState.Ready, onBac
     // Deleting a member can be undone from its snackbar (ITERATION_7 §3.1).
     val undos = remember { UndoStack() }
     val actions = rememberActions(changes, snackbar, undos)
-    val can = Can(band, state.userId)
+    val can = Capabilities(band, state.userId)
     val isAdmin = can.manageRoster()
     // Artists see names only: no roles or shares, only settling together behind a tap (ITERATION_6 §11).
     val namesOnly = can.artist
@@ -461,7 +462,7 @@ private fun MemberDialog(
     invitesLoaded: Boolean,
     invitesFailed: Boolean,
     invite: InviteInfo?,
-    can: Can,
+    can: Capabilities,
     actions: Actions,
     onInvitesChanged: () -> Unit,
     /** Opens the default share (ITERATION_4 §2.3); null for those who may not change it. */
@@ -576,15 +577,19 @@ private fun MemberDialog(
                         RolePicker(inviteRole, { inviteRole = it }, stringResource(Res.string.invite_role))
                         // Once at a time: two quick taps would make two codes, and the one shown could be the replaced one.
                         FilledTonalButton(enabled = !inviteBusy, onClick = {
-                            // Someone holding band money cannot become an artist (ITERATION_4 §1.1).
-                            if (inviteRole == Role.ARTIST && Artists.holdsMoney(band, member.id)) {
-                                message = holdsMoneyText
-                                return@FilledTonalButton
-                            }
-                            // Nor a viewer while playing in an unsettled event or holding the fund (V5-M1 B2).
-                            if (inviteRole == Role.VIEWER && !Viewers.mayBecome(band, member.id)) {
-                                message = stillPlaysText
-                                return@FilledTonalButton
+                            // Told before asking the server, which refuses for the same reasons.
+                            when (RoleChanges.refusal(band, member.id, inviteRole)) {
+                                RejectionReason.HOLDS_MONEY -> {
+                                    message = holdsMoneyText
+                                    return@FilledTonalButton
+                                }
+
+                                RejectionReason.VIEWER_STILL_PLAYS -> {
+                                    message = stillPlaysText
+                                    return@FilledTonalButton
+                                }
+
+                                else -> Unit
                             }
                             inviteBusy = true
                             scope.launch {

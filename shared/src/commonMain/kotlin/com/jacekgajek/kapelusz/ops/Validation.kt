@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.ops
 
-import com.jacekgajek.kapelusz.domain.Artists
 import com.jacekgajek.kapelusz.domain.BankAccount
 import com.jacekgajek.kapelusz.domain.Viewers
 import com.jacekgajek.kapelusz.model.AgendaKind
@@ -11,24 +10,24 @@ import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.RejectionCode
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.SharePercent
+import com.jacekgajek.kapelusz.rules.RoleChanges
 
 // Validation shared by the reducers: names, amounts, shares, members, agenda. Each throws [RejectedException] through
 // [invalidIf], [conflictIf] or [orNotFound]; see [Reducer].
 
-/**
- * Someone becoming a viewer may not still play in an unsettled event or hold the band fund (V5-M1 B2): a viewer
- * records no transfers, so money they hold would be stuck.
- */
-internal fun validateCanWatchOnly(band: Band, memberId: Id) = conflictIf(!Viewers.mayBecome(band, memberId), RejectionReason.VIEWER_STILL_PLAYS) { "Settle their events or hand over the band fund first" }
-
 /** A viewer only watches: they don't play in events (and so never get a share or a transfer). */
 internal fun validateNotViewer(band: Band, memberId: Id) = invalidIf(band.member(memberId)?.role == Role.VIEWER, RejectionReason.VIEWER_NOT_PARTICIPANT) { "Viewers take no part in events" }
 
-/** Someone becoming an artist (ITERATION_4 §1.1) may not hold money in an unsettled event or the band fund. */
-internal fun validateHoldsNoMoney(band: Band, memberId: Id) = conflictIf(Artists.holdsMoney(band, memberId), RejectionReason.HOLDS_MONEY) { "Settle their events or hand over the band fund first" }
+/** A member may get [role] only when nothing they hold or play in stands in the way; see [RoleChanges]. */
+internal fun validateRoleChange(band: Band, memberId: Id, role: Role) {
+    RoleChanges.refusal(band, memberId, role)?.let { reason ->
+        reject(RejectionCode.CONFLICT, reason, "Settle their events or hand over the band fund first")
+    }
+}
 
 internal fun validateActiveMember(band: Band, memberId: Id) {
     val member = band.member(memberId).orNotFound { "Member $memberId" }

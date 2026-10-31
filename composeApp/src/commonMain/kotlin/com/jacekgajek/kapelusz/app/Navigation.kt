@@ -63,7 +63,6 @@ import com.jacekgajek.kapelusz.app.ui.components.AppBanner
 import com.jacekgajek.kapelusz.app.ui.components.StuckPushBanner
 import com.jacekgajek.kapelusz.app.ui.components.labelRes
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
 import com.jacekgajek.kapelusz.app.ui.screens.BandFundScreen
 import com.jacekgajek.kapelusz.app.ui.screens.CostScreen
 import com.jacekgajek.kapelusz.app.ui.screens.EventsScreen
@@ -79,6 +78,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
 import com.jacekgajek.kapelusz.model.RejectionReason
+import com.jacekgajek.kapelusz.rules.isArtist
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 

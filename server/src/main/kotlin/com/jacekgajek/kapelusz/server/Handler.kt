@@ -3,7 +3,6 @@ package com.jacekgajek.kapelusz.server
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
 import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
@@ -14,6 +13,7 @@ import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
+import com.jacekgajek.kapelusz.rules.Actor
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream

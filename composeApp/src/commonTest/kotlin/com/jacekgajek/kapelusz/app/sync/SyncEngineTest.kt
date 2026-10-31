@@ -16,7 +16,6 @@ import com.jacekgajek.kapelusz.app.data.InMemoryStore
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
 import com.jacekgajek.kapelusz.app.data.PendingUpload
 import com.jacekgajek.kapelusz.app.platform.ByteCache
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.KapeluszJson
@@ -39,6 +38,7 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import com.jacekgajek.kapelusz.rules.Actor
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond

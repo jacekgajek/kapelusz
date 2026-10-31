@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui
 
 import com.jacekgajek.kapelusz.app.ui.model.fundKeptBy
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
@@ -15,6 +14,7 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.datetime.LocalDate

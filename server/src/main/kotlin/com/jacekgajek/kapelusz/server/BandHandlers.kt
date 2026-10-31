@@ -5,7 +5,6 @@ import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.BandDeletion
@@ -16,10 +15,10 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.withPicture
 import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.Engine
-import com.jacekgajek.kapelusz.ops.Limits
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
+import com.jacekgajek.kapelusz.rules.Actor
 
 /** A band's state: creating, reading, changing it by operations (push), and deleting it. */
 internal class BandHandlers(
@@ -41,7 +40,7 @@ internal class BandHandlers(
         StorageKeys.safe(request.bandId)
         users.requireRoomForBand(user.userId, request.bandId)
         val draft = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
-        Limits.violation(draft.copy(name = "", members = emptyList()), draft)?.let { throw ApiError(400, ApiErrors.BAD_REQUEST, it.message) }
+        Engine.validateNew(draft)?.let { throw ApiError(400, ApiErrors.BAD_REQUEST, it.message) }
         badRequestIf(!request.currency.matches(Regex("[A-Z]{3}"))) { "Currency must be an ISO code" }
         val band = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)
             .withPicture(user.userId, users.pictureOf(user.userId))

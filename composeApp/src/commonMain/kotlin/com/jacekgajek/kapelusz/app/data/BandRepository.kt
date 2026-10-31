@@ -2,7 +2,6 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
@@ -14,6 +13,7 @@ import com.jacekgajek.kapelusz.ops.ApplyResult
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.UnknownOperation
+import com.jacekgajek.kapelusz.rules.Actor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

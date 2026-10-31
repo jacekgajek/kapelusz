@@ -60,7 +60,7 @@ class LimitsTest {
         assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(AddGuest("gig", "bob", "Bob?")).reason)
         // Notes longer than today's limit (from before it): other changes to the event still work.
         val long = scenario.band.copy(events = scenario.band.events.map { it.copy(notes = "n".repeat(Limits.MAX_NOTES + 10)) })
-        val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.auth.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)
+        val applied = com.jacekgajek.kapelusz.ops.Engine.apply(long, com.jacekgajek.kapelusz.rules.Actor.System, AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null), "op", 1)
         kotlin.test.assertIs<com.jacekgajek.kapelusz.ops.ApplyResult.Applied>(applied)
     }
 
