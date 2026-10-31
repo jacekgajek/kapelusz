@@ -79,6 +79,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.SettleScreen
 import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
 import com.jacekgajek.kapelusz.app.ui.screens.costViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
+import com.jacekgajek.kapelusz.app.ui.screens.event.EventViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsPage
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SettingsScreen
 import com.jacekgajek.kapelusz.app.ui.screens.settings.settingsFor
@@ -184,7 +185,8 @@ internal fun Navigation(graph: AppGraph, state: BandState.Ready, navController: 
                 val route = entry.toRoute<EventRoute>()
                 // The section to show: the route's at first, or one asked for later (files shared to this event); cleared once shown.
                 val asked by entry.savedStateHandle.getStateFlow(AppNavigator.EVENT_SECTION, route.section?.name).collectAsState()
-                EventScreen(session, route.eventId, navigator, section = asked?.let(EventSection::valueOf)) {
+                val screen = entry.screenViewModel { EventViewModel(route.eventId, session.bands.state) }
+                EventScreen(session, navigator, screen, section = asked?.let(EventSection::valueOf)) {
                     entry.savedStateHandle[AppNavigator.EVENT_SECTION] = null
                 }
             }
