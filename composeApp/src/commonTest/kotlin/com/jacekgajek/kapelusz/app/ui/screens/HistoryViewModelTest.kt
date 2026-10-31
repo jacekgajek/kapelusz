@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.InMemoryStore
+import com.jacekgajek.kapelusz.app.bands.BandRepository
+import com.jacekgajek.kapelusz.app.bands.BandState
+import com.jacekgajek.kapelusz.app.storage.InMemoryStore
 import com.jacekgajek.kapelusz.app.sync.HistoryItem
 import com.jacekgajek.kapelusz.app.sync.HistoryPage
 import com.jacekgajek.kapelusz.app.sync.ReadOp

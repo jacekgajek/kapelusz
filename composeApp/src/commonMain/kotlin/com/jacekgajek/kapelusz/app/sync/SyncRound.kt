@@ -3,10 +3,10 @@ package com.jacekgajek.kapelusz.app.sync
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.CreateBandRequest
-import com.jacekgajek.kapelusz.app.data.AttachmentUploads
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.LocalBand
-import com.jacekgajek.kapelusz.app.data.nowMillis
+import com.jacekgajek.kapelusz.app.attachments.AttachmentUploads
+import com.jacekgajek.kapelusz.app.bands.BandRepository
+import com.jacekgajek.kapelusz.app.bands.LocalBand
+import com.jacekgajek.kapelusz.app.util.nowMillis
 import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Id

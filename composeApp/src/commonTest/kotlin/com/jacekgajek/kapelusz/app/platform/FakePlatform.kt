@@ -5,8 +5,8 @@ import androidx.compose.runtime.ProvidedValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
-import com.jacekgajek.kapelusz.app.data.InMemoryStore
-import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.storage.InMemoryStore
+import com.jacekgajek.kapelusz.app.storage.KeyValueStore
 
 /**
  * A [Platform] for tests: the web kind, in-memory store and cache, nobody signed in, a clipboard and sharing that

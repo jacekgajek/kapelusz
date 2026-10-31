@@ -43,8 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.Attachments
-import com.jacekgajek.kapelusz.app.data.EventTab
+import com.jacekgajek.kapelusz.app.attachments.Attachments
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_place
 import com.jacekgajek.kapelusz.app.generated.add_times
@@ -78,6 +77,7 @@ import com.jacekgajek.kapelusz.app.generated.total_refunds
 import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.when_where
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.settings.EventTab
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.EventNav
 import com.jacekgajek.kapelusz.app.ui.EventSection

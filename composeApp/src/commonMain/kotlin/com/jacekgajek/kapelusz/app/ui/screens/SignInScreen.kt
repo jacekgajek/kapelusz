@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.auth.SignInButton
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.app_name
 import com.jacekgajek.kapelusz.app.generated.sign_in_failed
@@ -26,6 +25,7 @@ import com.jacekgajek.kapelusz.app.generated.sign_in_intro
 import com.jacekgajek.kapelusz.app.generated.signed_out_everywhere
 import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import com.jacekgajek.kapelusz.app.ui.components.formWidth
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 

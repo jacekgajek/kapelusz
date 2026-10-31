@@ -6,8 +6,8 @@ import androidx.compose.ui.Modifier
 import com.jacekgajek.kapelusz.app.auth.GoogleAuth
 import com.jacekgajek.kapelusz.app.auth.WebGoogleAuth
 import com.jacekgajek.kapelusz.app.auth.WebSignInButton
-import com.jacekgajek.kapelusz.app.data.IndexedDbStore
-import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.storage.IndexedDbStore
+import com.jacekgajek.kapelusz.app.storage.KeyValueStore
 
 /** The web app's [Platform]: the browser. */
 class WebPlatform : Platform {

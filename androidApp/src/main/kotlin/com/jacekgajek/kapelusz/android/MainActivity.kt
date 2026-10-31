@@ -1,16 +1,7 @@
 package com.jacekgajek.kapelusz.android
 
-import com.jacekgajek.kapelusz.text.EventLinks
 import android.content.Intent
 import android.net.Uri
-import androidx.core.content.IntentCompat
-import androidx.lifecycle.lifecycleScope
-import com.jacekgajek.kapelusz.app.intents.AppIntent
-import com.jacekgajek.kapelusz.app.intents.SharedFiles
-import com.jacekgajek.kapelusz.app.platform.PickResult
-import com.jacekgajek.kapelusz.app.platform.prepareShared
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,11 +10,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.content.IntentCompat
+import androidx.lifecycle.lifecycleScope
 import com.jacekgajek.kapelusz.app.AndroidAppRuntime
 import com.jacekgajek.kapelusz.app.App
 import com.jacekgajek.kapelusz.app.AppLoading
+import com.jacekgajek.kapelusz.app.intents.AppIntent
+import com.jacekgajek.kapelusz.app.intents.SharedFiles
+import com.jacekgajek.kapelusz.app.platform.PickResult
+import com.jacekgajek.kapelusz.app.platform.prepareShared
 import com.jacekgajek.kapelusz.app.sync.BackgroundSyncWorker
+import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
+import com.jacekgajek.kapelusz.text.EventLinks
 import java.lang.ref.WeakReference
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val runtime by lazy { AndroidAppRuntime.get(this) }

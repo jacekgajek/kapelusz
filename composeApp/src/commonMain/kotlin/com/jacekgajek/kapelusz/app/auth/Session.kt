@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.auth
 
 import com.jacekgajek.kapelusz.api.SessionResponse
-import com.jacekgajek.kapelusz.app.data.KeyValueStore
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.storage.KeyValueStore
 import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.history.KapeluszJson
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi

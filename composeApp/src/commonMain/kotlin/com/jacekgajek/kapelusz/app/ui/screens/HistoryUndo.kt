@@ -5,7 +5,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.redo
@@ -13,6 +12,7 @@ import com.jacekgajek.kapelusz.app.generated.redo_confirm
 import com.jacekgajek.kapelusz.app.generated.undo
 import com.jacekgajek.kapelusz.app.generated.undo_confirm
 import com.jacekgajek.kapelusz.app.ui.text.describe
+import com.jacekgajek.kapelusz.app.util.nowMillis
 import com.jacekgajek.kapelusz.engine.isUndoable
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band

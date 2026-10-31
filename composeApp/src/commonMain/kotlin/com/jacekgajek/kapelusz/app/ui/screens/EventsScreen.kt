@@ -62,9 +62,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppSettings
-import com.jacekgajek.kapelusz.app.data.newId
-import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.artist_to_hand_back
 import com.jacekgajek.kapelusz.app.generated.cancel
@@ -87,6 +84,7 @@ import com.jacekgajek.kapelusz.app.generated.search_no_results
 import com.jacekgajek.kapelusz.app.generated.search_placeholder
 import com.jacekgajek.kapelusz.app.generated.tab_events
 import com.jacekgajek.kapelusz.app.generated.upcoming_event
+import com.jacekgajek.kapelusz.app.settings.AppSettings
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.TabNav
 import com.jacekgajek.kapelusz.app.ui.components.AppScaffold
@@ -107,6 +105,8 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
 import com.jacekgajek.kapelusz.app.ui.text.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.text.setTimes
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
+import com.jacekgajek.kapelusz.app.util.newId
+import com.jacekgajek.kapelusz.app.util.today
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate

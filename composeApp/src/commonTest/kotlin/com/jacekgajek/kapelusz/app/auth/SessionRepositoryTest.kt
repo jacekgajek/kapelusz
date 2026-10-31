@@ -1,7 +1,7 @@
 package com.jacekgajek.kapelusz.app.auth
 
 import com.jacekgajek.kapelusz.api.SessionResponse
-import com.jacekgajek.kapelusz.app.data.InMemoryStore
+import com.jacekgajek.kapelusz.app.storage.InMemoryStore
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.ApiSignal
 import com.jacekgajek.kapelusz.app.sync.ApiTransport

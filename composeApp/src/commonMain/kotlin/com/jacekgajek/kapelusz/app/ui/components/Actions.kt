@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jacekgajek.kapelusz.app.data.Changes
+import com.jacekgajek.kapelusz.app.bands.Changes
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.model.Rejection

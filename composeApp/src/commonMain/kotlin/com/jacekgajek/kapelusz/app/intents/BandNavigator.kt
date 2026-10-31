@@ -2,15 +2,15 @@ package com.jacekgajek.kapelusz.app.intents
 
 import androidx.compose.runtime.MutableState
 import androidx.navigation.NavHostController
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.BandState
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import com.jacekgajek.kapelusz.app.bands.BandRepository
+import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.resetTo
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.CostRoute
 import com.jacekgajek.kapelusz.app.ui.EventRoute
 import com.jacekgajek.kapelusz.app.ui.EventSection
 import com.jacekgajek.kapelusz.app.ui.EventsRoute
+import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import kotlinx.coroutines.flow.first
 
 /**
