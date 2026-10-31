@@ -57,6 +57,7 @@ fun settingsFor(
     val session by account.session.collectAsState()
     val appSettings by preferences.settings.collectAsState()
     val stillDefault = remember(band) { BandFund.stillDefault(band).map { it.id to it.name } }
+
     // A refusal can't happen here: each action is offered only where it is allowed.
     fun dispatch(op: Operation) {
         changes.dispatch(op)
@@ -67,7 +68,10 @@ fun settingsFor(
             onRename = { name: String -> dispatch(RenameBand(name)) }.takeIf { can.allowed(RenameBand("probe")) },
             memberCount = band.members.count { !it.archived },
             otherMembers = band.members.count { it.userId != null && it.userId != state.userId },
-            onLeave = suspend { membership.leaveBand(); onBandGone() }.takeIf { me != null },
+            onLeave = suspend {
+                membership.leaveBand()
+                onBandGone()
+            }.takeIf { me != null },
             // Leaving unlinks the account, as a leader's Unlink does: the same pair warning as on the roster.
             leaveWarnings = me?.let { member ->
                 listOfNotNull(
@@ -75,7 +79,10 @@ fun settingsFor(
                     stringResource(Res.string.leave_band_treasurer).takeIf { band.treasurerMemberId == member.id },
                 )
             }.orEmpty(),
-            onDelete = suspend { membership.deleteBand(); onBandGone() }.takeIf { me?.role == Role.OWNER },
+            onDelete = suspend {
+                membership.deleteBand()
+                onBandGone()
+            }.takeIf { me?.role == Role.OWNER },
             deletionNotice = band.deletion?.let {
                 { BandDeletionNotice(band, { dispatch(CancelBandDeletion) }.takeIf { can.allowed(CancelBandDeletion) }) }
             },

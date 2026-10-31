@@ -7,9 +7,9 @@ import com.jacekgajek.kapelusz.api.AttachmentUrlResponse
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddAttachment
@@ -21,20 +21,19 @@ import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
-import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.KSerializer
 
 class AttachmentTest {
     private val store = InMemoryBlobStore()
     private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 })
     private var seq = 0L
 
-    private fun call(method: String, path: String, user: String, body: String? = null) =
-        api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
+    private fun call(method: String, path: String, user: String, body: String? = null) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body))
 
     private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
         assertEquals(200, status, body)
@@ -42,12 +41,24 @@ class AttachmentTest {
     }
 
     private fun push(user: String, vararg ops: Operation) = call(
-        "POST", "/bands/band1/ops", user,
-        KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.map { seq++; OpEnvelope("op$seq", "phone", seq, 1, it) })),
+        "POST",
+        "/bands/band1/ops",
+        user,
+        KapeluszJson.encodeToString(
+            PushRequest.serializer(),
+            PushRequest(
+                ops.map {
+                    seq++
+                    OpEnvelope("op$seq", "phone", seq, 1, it)
+                },
+            ),
+        ),
     ).parse(PushResponse.serializer())
 
     private fun upload(user: String, attachmentId: String = "a1") = call(
-        "POST", "/bands/band1/attachments", user,
+        "POST",
+        "/bands/band1/attachments",
+        user,
         KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest(attachmentId)),
     )
 

@@ -1,11 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import androidx.compose.runtime.key
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.currentStateAsState
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,7 +19,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_awaited
@@ -45,9 +45,9 @@ import com.jacekgajek.kapelusz.app.generated.awaited_welched_text
 import com.jacekgajek.kapelusz.app.generated.awaited_welched_title
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.collected_by
 import com.jacekgajek.kapelusz.app.generated.collected_empty
 import com.jacekgajek.kapelusz.app.generated.collected_money
-import com.jacekgajek.kapelusz.app.generated.collected_by
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_entry_title
 import com.jacekgajek.kapelusz.app.generated.delete_files_too
@@ -60,8 +60,8 @@ import com.jacekgajek.kapelusz.app.generated.received_by
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
@@ -122,8 +122,10 @@ fun CollectedSection(context: EventContext) {
         // Laid out like Refund here under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                if (context.can.editHolding(event, holding)) TextButton(onClick = { welching = holding }) {
-                    Text(stringResource(Res.string.awaited_welched), color = MaterialTheme.colorScheme.error)
+                if (context.can.editHolding(event, holding)) {
+                    TextButton(onClick = { welching = holding }) {
+                        Text(stringResource(Res.string.awaited_welched), color = MaterialTheme.colorScheme.error)
+                    }
                 }
                 OutlinedButton(onClick = { receiving = holding }) { Text(stringResource(Res.string.receive_awaited)) }
             }
@@ -131,18 +133,28 @@ fun CollectedSection(context: EventContext) {
         // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
         if (holding.attachments.isNotEmpty()) {
             AttachmentsSection(
-                context.fileStore, AttachmentOwner.OfHolding(event.id, holding.id), holding.attachments,
-                drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
+                context.fileStore,
+                AttachmentOwner.OfHolding(event.id, holding.id),
+                holding.attachments,
+                drafts = emptyList(),
+                onDrafts = {},
+                editable = false,
+                actions = context.actions,
+                title = null,
             )
         }
     }
-    if (allowedParties.isNotEmpty()) TextButton(onClick = { adding = true }) {
-        Icon(Icons.Default.Add, null)
-        Text(stringResource(Res.string.add_money), Modifier.padding(start = 8.dp))
+    if (allowedParties.isNotEmpty()) {
+        TextButton(onClick = { adding = true }) {
+            Icon(Icons.Default.Add, null)
+            Text(stringResource(Res.string.add_money), Modifier.padding(start = 8.dp))
+        }
     }
-    if (context.can.recordAwaited(event)) TextButton(onClick = { addingAwaited = true }) {
-        Icon(Icons.Default.Schedule, null)
-        Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
+    if (context.can.recordAwaited(event)) {
+        TextButton(onClick = { addingAwaited = true }) {
+            Icon(Icons.Default.Schedule, null)
+            Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
+        }
     }
     if (addingAwaited) HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = { addingAwaited = false })
     welching?.let { tapped ->
@@ -166,8 +178,11 @@ fun CollectedSection(context: EventContext) {
     receiving?.let { holding ->
         // Received meanwhile (e.g. on another phone): nothing left to receive.
         val current = event.holdings.firstOrNull { it.id == holding.id }
-        if (current == null || receiveParties.isEmpty()) LaunchedEffect(Unit) { receiving = null }
-        else ReceiveDialog(context, current, receiveParties, onDismiss = { receiving = null })
+        if (current == null || receiveParties.isEmpty()) {
+            LaunchedEffect(Unit) { receiving = null }
+        } else {
+            ReceiveDialog(context, current, receiveParties, onDismiss = { receiving = null })
+        }
     }
 
     // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): its dialog, with them.
@@ -185,10 +200,16 @@ fun CollectedSection(context: EventContext) {
     if (adding) {
         // A sync may have taken away whom the user can record for (removed from the event, a role changed): close.
         val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull()
-        val close = { adding = false; sharedDrafts = emptyList() }
-        if (defaultParty == null) LaunchedEffect(Unit) { close() }
-        // Files shared while it was open already: it starts again with them, rather than taking only what still fits.
-        else key(sharedDrafts) { HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts) }
+        val close = {
+            adding = false
+            sharedDrafts = emptyList()
+        }
+        if (defaultParty == null) {
+            LaunchedEffect(Unit) { close() }
+        } // Files shared while it was open already: it starts again with them, rather than taking only what still fits.
+        else {
+            key(sharedDrafts) { HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts) }
+        }
     }
     editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, allowedParties, onDismiss = { editing = null }) }
 }
@@ -272,7 +293,11 @@ private fun HoldingDialog(
                 if (initial != null) {
                     // Its files go with it, for good (no undo), so that is asked first.
                     TextButton(onClick = {
-                        if (current?.attachments.isNullOrEmpty()) { if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss() } else confirmDelete = true
+                        if (current?.attachments.isNullOrEmpty()) {
+                            if (context.actions.run(RemoveHolding(event.id, initial.id))) onDismiss()
+                        } else {
+                            confirmDelete = true
+                        }
                     }) {
                         Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error)
                     }

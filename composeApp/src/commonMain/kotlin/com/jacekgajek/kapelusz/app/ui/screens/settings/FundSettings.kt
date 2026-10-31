@@ -3,34 +3,17 @@ package com.jacekgajek.kapelusz.app.ui.screens.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Percent
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import com.jacekgajek.kapelusz.app.generated.cancel
-import com.jacekgajek.kapelusz.app.generated.fund_default
-import com.jacekgajek.kapelusz.app.generated.fund_default_apply_text
-import com.jacekgajek.kapelusz.app.generated.fund_default_hint
-import com.jacekgajek.kapelusz.app.generated.fund_default_none
-import com.jacekgajek.kapelusz.app.generated.member_share_apply_no
-import com.jacekgajek.kapelusz.app.generated.member_share_apply_title
-import com.jacekgajek.kapelusz.app.generated.member_share_apply_yes
-import com.jacekgajek.kapelusz.app.generated.save
-import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
-import com.jacekgajek.kapelusz.app.ui.components.FundPaymentDetails
-import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
-import com.jacekgajek.kapelusz.app.generated.fund_pay_in
-import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
-import com.jacekgajek.kapelusz.app.ui.model.formatMoney
-import com.jacekgajek.kapelusz.model.FundCut
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,21 +24,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.fund_cannot_disable
+import com.jacekgajek.kapelusz.app.generated.fund_default
+import com.jacekgajek.kapelusz.app.generated.fund_default_apply_text
+import com.jacekgajek.kapelusz.app.generated.fund_default_hint
+import com.jacekgajek.kapelusz.app.generated.fund_default_none
 import com.jacekgajek.kapelusz.app.generated.fund_disable_confirm
 import com.jacekgajek.kapelusz.app.generated.fund_disable_text
 import com.jacekgajek.kapelusz.app.generated.fund_disable_title
 import com.jacekgajek.kapelusz.app.generated.fund_disabled_hint
 import com.jacekgajek.kapelusz.app.generated.fund_enable
 import com.jacekgajek.kapelusz.app.generated.fund_explanation
+import com.jacekgajek.kapelusz.app.generated.fund_pay_in
 import com.jacekgajek.kapelusz.app.generated.fund_status
 import com.jacekgajek.kapelusz.app.generated.fund_summary_off
 import com.jacekgajek.kapelusz.app.generated.fund_summary_on
 import com.jacekgajek.kapelusz.app.generated.fund_treasurer
 import com.jacekgajek.kapelusz.app.generated.fund_treasurer_choose
 import com.jacekgajek.kapelusz.app.generated.fund_treasurer_hint
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_no
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_title
+import com.jacekgajek.kapelusz.app.generated.member_share_apply_yes
+import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
+import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
+import com.jacekgajek.kapelusz.app.ui.components.FundPaymentDetails
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
+import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.model.FundCut
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -86,7 +86,15 @@ internal fun FundSettings(fund: BandFundSettings) {
                     value = enabled || enabling,
                     enabled = !enabled || onDisable != null,
                     role = Role.Switch,
-                    onValueChange = { on -> if (on) enabling = true else if (enabled) confirmDisable = true else enabling = false },
+                    onValueChange = { on ->
+                        if (on) {
+                            enabling = true
+                        } else if (enabled) {
+                            confirmDisable = true
+                        } else {
+                            enabling = false
+                        }
+                    },
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -172,7 +180,9 @@ private fun FundDefaultDialog(fundDefault: FundCut?, setting: FundDefaultSetting
                     val cut = editor.cut
                     when {
                         cut == fundDefault -> onDismiss()
+
                         setting.stillDefault.isEmpty() -> save(cut, emptyList())
+
                         else -> {
                             applying = cut
                             asking = true

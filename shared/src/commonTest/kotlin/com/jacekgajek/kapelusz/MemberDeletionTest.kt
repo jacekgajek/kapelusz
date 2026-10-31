@@ -1,21 +1,21 @@
 package com.jacekgajek.kapelusz
 
 import com.jacekgajek.kapelusz.domain.MemberDeletion
-import com.jacekgajek.kapelusz.model.Participant
-import com.jacekgajek.kapelusz.ops.BandChange
-import com.jacekgajek.kapelusz.ops.Undo
-import com.jacekgajek.kapelusz.ops.RenameMember
-import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.model.IncomeSource
+import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddFundEntry
+import com.jacekgajek.kapelusz.ops.AddHolding
+import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.BandChange
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
 import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.RenameMember
 import com.jacekgajek.kapelusz.ops.SetTreasurer
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import kotlin.test.Test
 import kotlin.test.assertEquals

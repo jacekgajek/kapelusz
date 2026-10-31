@@ -2,9 +2,9 @@ package com.jacekgajek.kapelusz.app.platform
 
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
+import kotlin.js.Promise
 import kotlinx.coroutines.await
 import kotlinx.serialization.json.Json
-import kotlin.js.Promise
 
 private fun userAgent(): String = js("navigator.userAgent || ''")
 

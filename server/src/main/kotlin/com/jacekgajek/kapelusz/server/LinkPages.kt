@@ -1,13 +1,13 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
+import java.util.Locale
+import java.util.concurrent.Executors
 import kotlinx.datetime.number
 import kotlinx.serialization.Serializable
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
-import java.util.Locale
-import java.util.concurrent.Executors
 
 /** The web app's `index.html`, which link pages are made of. */
 fun interface WebIndex {

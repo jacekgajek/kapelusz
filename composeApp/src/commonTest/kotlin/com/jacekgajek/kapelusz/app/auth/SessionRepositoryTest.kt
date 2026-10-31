@@ -11,13 +11,13 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import kotlinx.coroutines.test.runTest
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalEncodingApi::class)
 fun fakeIdToken(sub: String, expSeconds: Long, email: String = "$sub@example.com"): String {
@@ -32,7 +32,9 @@ class SessionRepositoryTest {
     private var googleSignOuts = 0
     private val google = object : GoogleAuth {
         override suspend fun refresh(): String? = refreshed.also { refreshCalls++ }
-        override suspend fun signOut() { googleSignOuts++ }
+        override suspend fun signOut() {
+            googleSignOuts++
+        }
     }
 
     @Test
@@ -126,8 +128,7 @@ class SessionRepositoryTest {
         exchanges += bearer
         SessionResponse("as1.session-${exchanges.size}", now + 30L * 24 * 3600 * 1000)
     }
-    private fun withSessions(store: InMemoryStore = InMemoryStore()) =
-        SessionRepository(store, google, clock = { now }) { bearer -> sessionServer(bearer) }
+    private fun withSessions(store: InMemoryStore = InMemoryStore()) = SessionRepository(store, google, clock = { now }) { bearer -> sessionServer(bearer) }
 
     @Test
     fun usesAServerSessionAndNeedsGoogleOnlyAtSignIn() = runTest {
@@ -156,7 +157,10 @@ class SessionRepositoryTest {
     @Test
     fun fallsBackToTheGoogleTokenWithoutSessions() = runTest {
         // An older server (no /session) or no network: requests keep using the Google token, as before.
-        sessionServer = { exchanges += it; throw IllegalStateException("404") }
+        sessionServer = {
+            exchanges += it
+            throw IllegalStateException("404")
+        }
         val sessions = withSessions()
         val google = fakeIdToken("sub-1", now / 1000 + 3600)
         sessions.signedIn(google)
@@ -165,7 +169,10 @@ class SessionRepositoryTest {
         assertEquals(1, exchanges.size, "not retried on every request")
 
         now += SessionRepository.REFRESH_RETRY_MS
-        sessionServer = { exchanges += it; SessionResponse("as1.late", now + 1000L * 24 * 3600 * 1000) }
+        sessionServer = {
+            exchanges += it
+            SessionResponse("as1.late", now + 1000L * 24 * 3600 * 1000)
+        }
         assertEquals("as1.late", sessions.validToken())
     }
 
@@ -193,10 +200,12 @@ class SessionRepositoryTest {
 
     /** A server that refuses everything as "signed out on all devices", and the paths it was asked for. */
     private val revokedPaths = mutableListOf<String>()
-    private val revokedServer = HttpClient(MockEngine { request ->
-        revokedPaths += request.url.encodedPath
-        respond("""{"error":"sessions_revoked","message":"Signed out on all devices"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
-    })
+    private val revokedServer = HttpClient(
+        MockEngine { request ->
+            revokedPaths += request.url.encodedPath
+            respond("""{"error":"sessions_revoked","message":"Signed out on all devices"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
+        },
+    )
 
     /** The app's wiring: requests use the repository's tokens, and a revoke signs out. */
     private fun revokedApi(store: InMemoryStore): Pair<SessionRepository, ApiClient> {
@@ -214,8 +223,13 @@ class SessionRepositoryTest {
         val store = InMemoryStore()
         val (sessions, api) = revokedApi(store)
         // Signed in earlier: a session from the server, and the Google token still fresh enough to buy another.
-        store.write(SessionRepository.KEY, KapeluszJson.encodeToString(Session.serializer(),
-            Session.fromIdToken(fakeIdToken("sub-1", now / 1000 + 3600)).copy(apiToken = "as1.old", apiExpiresAt = now + 25L * 24 * 3600 * 1000)))
+        store.write(
+            SessionRepository.KEY,
+            KapeluszJson.encodeToString(
+                Session.serializer(),
+                Session.fromIdToken(fakeIdToken("sub-1", now / 1000 + 3600)).copy(apiToken = "as1.old", apiExpiresAt = now + 25L * 24 * 3600 * 1000),
+            ),
+        )
         sessions.load()
 
         assertFailsWith<SessionsRevokedException> { api.me() }

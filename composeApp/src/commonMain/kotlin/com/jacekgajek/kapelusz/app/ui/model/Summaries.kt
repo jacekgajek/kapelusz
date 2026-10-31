@@ -1,12 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui.model
 
-import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.domain.SettleTogether
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
@@ -54,15 +54,14 @@ fun myNumber(event: Event, settlement: Settlement, me: Member?): MyNumber {
 }
 
 /** Event list rows, newest first, filtered by the user's list settings. */
-fun eventSummaries(band: Band, me: Member?, settings: AppSettings): List<EventSummary> =
-    band.events
-        .filter { settings.showArchived || !it.archived }
-        .map { event ->
-            val settlement = SettlementCalculator.settle(band, event)
-            EventSummary(event, settlement, myNumber(event, settlement, me))
-        }
-        .filter { !settings.onlyMyEvents || it.isMine }
-        .sortedWith(EVENT_ORDER)
+fun eventSummaries(band: Band, me: Member?, settings: AppSettings): List<EventSummary> = band.events
+    .filter { settings.showArchived || !it.archived }
+    .map { event ->
+        val settlement = SettlementCalculator.settle(band, event)
+        EventSummary(event, settlement, myNumber(event, settlement, me))
+    }
+    .filter { !settings.onlyMyEvents || it.isMine }
+    .sortedWith(EVENT_ORDER)
 
 /** The event list's order: newest first. */
 internal val EVENT_ORDER: Comparator<EventSummary> = compareByDescending<EventSummary> { it.event.date }.thenByDescending { it.event.updatedAt }
@@ -94,26 +93,26 @@ fun partyName(band: Band, event: Event?, settlement: Settlement, partyId: Id, fu
     return pairPattern.replace("%1\$s", names[0]).replace("%2\$s", names[1])
 }
 
-fun initials(name: String): String =
-    name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
+fun initials(name: String): String = name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
 
 /**
  * The "Continue" card (ITERATION_2 §3.1): the most recent unsettled event, i.e. not archived and open, at a loss, or a
  * draft whose date has passed (a gig with no money entered yet). Future events are not "unsettled business". Latest
  * date first; on the same date, the one edited last.
  */
-fun unsettledEvent(band: Band, today: LocalDate): Event? =
-    band.events
-        .filter { !it.archived && it.date <= today }
-        .filter { event ->
-            when (SettlementCalculator.settle(band, event).status) {
-                // Awaiting payment too: the organiser still owes (ITERATION_4 §2.2).
-                EventStatus.OPEN, EventStatus.LOSS, EventStatus.AWAITING -> true
-                EventStatus.DRAFT -> event.date < today
-                EventStatus.SETTLED -> false
-            }
+fun unsettledEvent(band: Band, today: LocalDate): Event? = band.events
+    .filter { !it.archived && it.date <= today }
+    .filter { event ->
+        when (SettlementCalculator.settle(band, event).status) {
+            // Awaiting payment too: the organiser still owes (ITERATION_4 §2.2).
+            EventStatus.OPEN, EventStatus.LOSS, EventStatus.AWAITING -> true
+
+            EventStatus.DRAFT -> event.date < today
+
+            EventStatus.SETTLED -> false
         }
-        .maxWithOrNull(compareBy<Event> { it.date }.thenBy { it.updatedAt })
+    }
+    .maxWithOrNull(compareBy<Event> { it.date }.thenBy { it.updatedAt })
 
 /**
  * The "Upcoming" card (ITERATION_2 §3.2): the nearest non-archived event from [today] on that [me] takes part in, or,

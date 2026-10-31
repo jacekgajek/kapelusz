@@ -1,33 +1,33 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import androidx.compose.runtime.rememberCoroutineScope
-import com.jacekgajek.kapelusz.ops.Undo
-import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.CollapsibleHeader
+import com.jacekgajek.kapelusz.app.ui.screens.HistoryController
 import com.jacekgajek.kapelusz.app.ui.screens.historyMonth
 import com.jacekgajek.kapelusz.app.ui.screens.toLines
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import org.jetbrains.compose.resources.stringResource
 
@@ -57,8 +57,11 @@ fun HistorySection(context: EventContext, api: ApiClient, bands: BandRepository,
     Column {
         when {
             history.failed -> Text(stringResource(Res.string.history_unavailable), color = MaterialTheme.colorScheme.error)
+
             loaded == null -> CircularProgressIndicator(Modifier.size(24.dp))
+
             loaded.isEmpty() -> Text(stringResource(Res.string.history_empty))
+
             else -> {
                 // Undo steps back through this event's changes, redo forward (ITERATION_2 §7.2).
                 val arrows = history.arrows(loaded, context.can)

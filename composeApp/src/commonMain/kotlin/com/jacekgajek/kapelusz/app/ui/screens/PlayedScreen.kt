@@ -1,14 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.PlacesLocator
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import androidx.compose.foundation.clickable
-import com.jacekgajek.kapelusz.app.generated.played_unplaced_hint
-import com.jacekgajek.kapelusz.app.generated.played_unplaced
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.PluralStringResource
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +11,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
@@ -51,6 +45,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.LocatedPlaces
+import com.jacekgajek.kapelusz.app.data.PlacesLocator
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
@@ -62,6 +58,8 @@ import com.jacekgajek.kapelusz.app.generated.played_missing
 import com.jacekgajek.kapelusz.app.generated.played_missing_hint
 import com.jacekgajek.kapelusz.app.generated.played_show_on_map
 import com.jacekgajek.kapelusz.app.generated.played_title
+import com.jacekgajek.kapelusz.app.generated.played_unplaced
+import com.jacekgajek.kapelusz.app.generated.played_unplaced_hint
 import com.jacekgajek.kapelusz.app.platform.PlacesMap
 import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -70,6 +68,8 @@ import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Event
+import org.jetbrains.compose.resources.PluralStringResource
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -113,10 +113,12 @@ fun PlayedScreen(preferences: SettingsRepository, locator: PlacesLocator, state:
                 var panel by remember { mutableStateOf(0) }
                 val density = LocalDensity.current
                 if (first != null) PlacesMap(places, openPlace, Modifier.fillMaxSize(), bottomInset = with(density) { (if (hasStatus) panel else 0).toDp() })
-                if (hasStatus) Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { panel = it.height }, tonalElevation = 3.dp) {
-                    // At most a third of the map: the list of missing concerts scrolls.
-                    Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        PlacesStatus(located, finding, notFound, unplaced, onOpenEvent)
+                if (hasStatus) {
+                    Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { panel = it.height }, tonalElevation = 3.dp) {
+                        // At most a third of the map: the list of missing concerts scrolls.
+                        Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            PlacesStatus(located, finding, notFound, unplaced, onOpenEvent)
+                        }
                     }
                 }
             }
@@ -176,8 +178,10 @@ private fun PlaceDetails(place: PlayedPlaces.Place, onOpenEvent: (String) -> Uni
         Text(place.title, style = MaterialTheme.typography.titleMedium)
         Text(place.address, style = MaterialTheme.typography.bodySmall)
         Text(pluralStringResource(Res.plurals.played_concerts, place.events.size, place.events.size), Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelLarge)
-        if (!mapPickerAvailable) TextButton(onClick = { uri.openUri("https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}") }) {
-            Text(stringResource(Res.string.played_show_on_map))
+        if (!mapPickerAvailable) {
+            TextButton(onClick = { uri.openUri("https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}") }) {
+                Text(stringResource(Res.string.played_show_on_map))
+            }
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         place.events.forEach { ConcertRow(it, null, onOpenEvent) }

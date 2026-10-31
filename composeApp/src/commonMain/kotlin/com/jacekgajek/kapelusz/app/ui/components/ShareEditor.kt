@@ -70,8 +70,13 @@ class ShareEditorState(mode: ShareMode, weight: Int, percent: Int, amount: Strin
     /** [participant] with this share, as the reducer stores it: 0% is no share, a weight of 0. Only when [valid]. */
     fun applyTo(participant: Participant): Participant = when (mode) {
         ShareMode.WEIGHT -> participant.copy(weight = weight, fixedShare = null, percent = null)
-        ShareMode.PERCENT -> if (percent == 0) participant.copy(weight = 0, fixedShare = null, percent = null)
-            else participant.copy(weight = weight, fixedShare = null, percent = percent)
+
+        ShareMode.PERCENT -> if (percent == 0) {
+            participant.copy(weight = 0, fixedShare = null, percent = null)
+        } else {
+            participant.copy(weight = weight, fixedShare = null, percent = percent)
+        }
+
         ShareMode.FIXED -> participant.copy(weight = weight, fixedShare = parsedAmount, percent = null)
     }
 }
@@ -128,6 +133,7 @@ fun ShareEditor(state: ShareEditorState, currency: String, percentTaken: Int = 0
                 below()
                 Text(stringResource(Res.string.share_weight_hint), style = MaterialTheme.typography.bodySmall)
             }
+
             ShareMode.PERCENT -> {
                 Text(stringResource(Res.string.share_of_profit, "${state.percent}%"), style = MaterialTheme.typography.titleMedium)
                 Slider(
@@ -148,6 +154,7 @@ fun ShareEditor(state: ShareEditorState, currency: String, percentTaken: Int = 0
                 }
                 Text(stringResource(Res.string.share_percent_hint), style = MaterialTheme.typography.bodySmall)
             }
+
             ShareMode.FIXED -> {
                 MoneyField(state.amount, { state.amount = it }, stringResource(Res.string.share_fixed_amount))
                 Text(stringResource(Res.string.share_fixed_hint), style = MaterialTheme.typography.bodySmall)

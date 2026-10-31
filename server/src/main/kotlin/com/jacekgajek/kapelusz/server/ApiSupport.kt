@@ -3,10 +3,10 @@ package com.jacekgajek.kapelusz.server
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.ErrorResponse
 import com.jacekgajek.kapelusz.model.KapeluszJson
-import kotlinx.serialization.KSerializer
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import kotlinx.serialization.KSerializer
 
 /** An error answer: thrown anywhere in a handler, turned into [error] by [Api.handle]. [code] is one of [ApiErrors]. */
 internal class ApiError(val status: Int, val code: String, message: String) : RuntimeException(message)
@@ -35,11 +35,9 @@ internal inline fun <T> retryOnConflict(exhausted: () -> T, attempt: () -> T): T
 
 private val JSON = mapOf("content-type" to "application/json")
 
-internal fun <T> ok(serializer: KSerializer<T>, value: T, headers: Map<String, String> = emptyMap()) =
-    HttpResponse(200, encode(serializer, value), headers + JSON)
+internal fun <T> ok(serializer: KSerializer<T>, value: T, headers: Map<String, String> = emptyMap()) = HttpResponse(200, encode(serializer, value), headers + JSON)
 
-internal fun error(status: Int, code: String, message: String) =
-    HttpResponse(status, encode(ErrorResponse.serializer(), ErrorResponse(code, message)), JSON)
+internal fun error(status: Int, code: String, message: String) = HttpResponse(status, encode(ErrorResponse.serializer(), ErrorResponse(code, message)), JSON)
 
 internal fun <T> parse(request: HttpRequest, serializer: KSerializer<T>): T {
     val body = request.body ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "Missing body")

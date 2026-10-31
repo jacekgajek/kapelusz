@@ -2,8 +2,8 @@ package com.jacekgajek.kapelusz.app.data
 
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.PushResponse
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
@@ -11,15 +11,15 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetRefund
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 class BandRepositoryTest {
     private var nextId = 0
@@ -319,8 +319,13 @@ class BandRepositoryTest {
             val values = mutableMapOf<String, String>()
             var full = false
             override suspend fun read(key: String) = values[key]
-            override suspend fun write(key: String, value: String) { if (full) error("No space left on device"); values[key] = value }
-            override suspend fun remove(key: String) { values.remove(key) }
+            override suspend fun write(key: String, value: String) {
+                if (full) error("No space left on device")
+                values[key] = value
+            }
+            override suspend fun remove(key: String) {
+                values.remove(key)
+            }
         }
         val repository = BandRepository(failing, this, ids())
         repository.load("alice")

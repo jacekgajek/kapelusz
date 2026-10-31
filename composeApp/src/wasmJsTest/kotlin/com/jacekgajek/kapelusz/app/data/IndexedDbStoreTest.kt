@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.data
 
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.coroutines.test.runTest
 
 /** The web storage in a real browser's IndexedDB (ITERATION_3 R14). Runs in headless Chrome. */
 class IndexedDbStoreTest {

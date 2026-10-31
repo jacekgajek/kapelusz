@@ -97,7 +97,9 @@ internal class BandHandlers(
                     val size = encode(Band.serializer(), after).utf8Size()
                     if (size > maxBandBytes && size > encode(Band.serializer(), before).utf8Size()) {
                         Rejection(RejectionCode.CONFLICT, "The band would be too large; remove old entries or attachments", RejectionReason.LIMIT_REACHED)
-                    } else null
+                    } else {
+                        null
+                    }
                 }
                 encoded = if (result.band == band) null else encode(Band.serializer(), result.band)
             }

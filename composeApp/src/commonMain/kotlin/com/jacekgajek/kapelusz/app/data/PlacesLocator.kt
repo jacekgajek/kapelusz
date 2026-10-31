@@ -63,6 +63,7 @@ class PlacesLocator(private val store: KeyValueStore, private val api: ApiClient
     private companion object {
         const val KEY = "kapelusz-places"
         val SERIALIZER = MapSerializer(String.serializer(), PairSerializer(Double.serializer(), Double.serializer()))
+
         /** 25 new addresses a round: a band's history of a few hundred concerts is placed within a minute. */
         const val MAX_ROUNDS = 12
         const val ROUND_DELAY_MS = 1_500L

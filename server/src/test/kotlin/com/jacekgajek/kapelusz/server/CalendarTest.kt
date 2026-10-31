@@ -11,16 +11,17 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.OpEnvelope
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 class CalendarTest {
     private val store = InMemoryBlobStore()
+
     // 2026-10-21 12:00 UTC
     private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_792_584_000_000 })
 
@@ -29,8 +30,11 @@ class CalendarTest {
     )
 
     private fun subscription(user: String, change: CalendarSubscriptionChange? = null): CalendarSubscription {
-        val response = if (change == null) call("GET", "/me/calendar", user)
-        else call("POST", "/me/calendar", user, KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), change))
+        val response = if (change == null) {
+            call("GET", "/me/calendar", user)
+        } else {
+            call("POST", "/me/calendar", user, KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), change))
+        }
         assertEquals(200, response.status, response.body)
         return KapeluszJson.decodeFromString(CalendarSubscription.serializer(), response.body!!)
     }
@@ -41,9 +45,14 @@ class CalendarTest {
         call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))
         val ops = listOf(
             AddMember("m-bob", "Bob"),
-            CreateEvent("gig", "Club gig, Oakfield", LocalDate(2026, 10, 25), location = "Oakfield; Main St",
+            CreateEvent(
+                "gig",
+                "Club gig, Oakfield",
+                LocalDate(2026, 10, 25),
+                location = "Oakfield; Main St",
                 participants = listOf(Participant("m-alice")),
-                agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0)), AgendaTime("e", label = "End", time = LocalTime(1, 30)))),
+                agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0)), AgendaTime("e", label = "End", time = LocalTime(1, 30))),
+            ),
             CreateEvent("allday", "Rehearsal", LocalDate(2026, 10, 28), participants = listOf(Participant("m-alice"))),
             CreateEvent("one", "Radio", LocalDate(2026, 10, 30), location = "Klub Stodoła, Batorego 10, 02-591 Warszawa", participants = listOf(Participant("m-alice")), agenda = listOf(AgendaTime("s", AgendaKind.CONCERT_START, time = LocalTime(23, 30)))),
             CreateEvent("bobs", "Bob's gig", LocalDate(2026, 10, 26), participants = listOf(Participant("m-bob"))),
@@ -103,8 +112,13 @@ class CalendarTest {
     @Test
     fun timestampsAreUtcAndEqualTimesStillLastAnHour() {
         setup()
-        val gig = CreateEvent("same", "Same times", LocalDate(2026, 11, 2), participants = listOf(Participant("m-alice")),
-            agenda = listOf(AgendaTime("x", label = "A", time = LocalTime(20, 0)), AgendaTime("y", label = "B", time = LocalTime(20, 0))))
+        val gig = CreateEvent(
+            "same",
+            "Same times",
+            LocalDate(2026, 11, 2),
+            participants = listOf(Participant("m-alice")),
+            agenda = listOf(AgendaTime("x", label = "A", time = LocalTime(20, 0)), AgendaTime("y", label = "B", time = LocalTime(20, 0))),
+        )
         call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("same", "phone", 100, 1, gig)))))
         val ics = feed(subscription("alice").url).body!!.replace("\r\n ", "")
         assertTrue(Regex("DTSTAMP:\\d{8}T\\d{6}Z").containsMatchIn(ics), ics)

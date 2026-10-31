@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz.app.sync
 
 import com.jacekgajek.kapelusz.api.HistoryEntry
-import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.ops.BandChange
+import com.jacekgajek.kapelusz.ops.OpEnvelope
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -69,6 +69,5 @@ object HistoryDecoder {
 
     private fun JsonElement.stringOrNull(): String? = runCatching { jsonPrimitive.contentOrNull }.getOrNull()
 
-    private fun <T> decodeOrNull(serializer: KSerializer<T>, json: JsonElement): T? =
-        runCatching { KapeluszJson.decodeFromJsonElement(serializer, json) }.getOrNull()
+    private fun <T> decodeOrNull(serializer: KSerializer<T>, json: JsonElement): T? = runCatching { KapeluszJson.decodeFromJsonElement(serializer, json) }.getOrNull()
 }

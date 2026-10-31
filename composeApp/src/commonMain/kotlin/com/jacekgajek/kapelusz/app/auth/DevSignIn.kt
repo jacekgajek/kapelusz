@@ -15,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.data.nowMillis
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Google sign-in, or with `kapelusz.devSignIn` (LOCAL_DEVELOPMENT.md) a sign-in as any made-up user, for the local
@@ -43,14 +43,16 @@ private fun DevSignInButton(onIdToken: (String) -> Unit, modifier: Modifier) {
 }
 
 /** The user id a name signs in as: `dev-` and its letters and digits, so the same name is the same user. */
-internal fun devUserId(name: String): String? =
-    name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40).takeIf { it.isNotEmpty() }?.let { "dev-$it" }
+internal fun devUserId(name: String): String? = name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40).takeIf { it.isNotEmpty() }?.let { "dev-$it" }
 
 /** An unsigned JWT shaped like Google's ID token, valid for a year, so the app never asks to renew it. */
 @OptIn(ExperimentalEncodingApi::class)
 internal fun devIdToken(name: String, now: Long): String {
     val base64 = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT)
-    val header = buildJsonObject { put("alg", "none"); put("typ", "JWT") }
+    val header = buildJsonObject {
+        put("alg", "none")
+        put("typ", "JWT")
+    }
     val id = requireNotNull(devUserId(name)) { "No letters or digits in the name" }
     val claims = buildJsonObject {
         put("sub", id)

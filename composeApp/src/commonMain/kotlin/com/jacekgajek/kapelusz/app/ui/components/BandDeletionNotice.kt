@@ -22,9 +22,9 @@ import com.jacekgajek.kapelusz.app.generated.band_deletion_notice
 import com.jacekgajek.kapelusz.app.generated.band_deletion_notice_leader
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.model.Band
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
 
 /**

@@ -2,18 +2,18 @@ package com.jacekgajek.kapelusz.app.ui
 
 import com.jacekgajek.kapelusz.app.data.AppSettings
 import com.jacekgajek.kapelusz.app.ui.model.MyNumber
+import com.jacekgajek.kapelusz.app.ui.model.TemplateDraft
 import com.jacekgajek.kapelusz.app.ui.model.eventSummaries
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMonth
 import com.jacekgajek.kapelusz.app.ui.model.initials
-import com.jacekgajek.kapelusz.app.ui.model.TemplateDraft
 import com.jacekgajek.kapelusz.app.ui.model.toItem
-import com.jacekgajek.kapelusz.model.AgendaKind
-import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.app.ui.model.unsettledEvent
 import com.jacekgajek.kapelusz.app.ui.model.upcomingEvent
 import com.jacekgajek.kapelusz.auth.Actor
+import com.jacekgajek.kapelusz.model.AgendaKind
+import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
@@ -27,9 +27,9 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetEventArchived
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.datetime.LocalDate
 
 class PresentationTest {
 
@@ -99,13 +99,15 @@ class PresentationTest {
             AddHolding("gig", "h", holder, Money(30000), IncomeSource.DOOR),
             *before,
         ).let { band ->
-            band.copy(members = band.members.map {
-                when (it.id) {
-                    "bob" -> it.copy(userId = "ub", settlesWith = "carol")
-                    "carol" -> it.copy(userId = "uc", role = Role.ARTIST, settlesWith = "bob")
-                    else -> it
-                }
-            })
+            band.copy(
+                members = band.members.map {
+                    when (it.id) {
+                        "bob" -> it.copy(userId = "ub", settlesWith = "carol")
+                        "carol" -> it.copy(userId = "uc", role = Role.ARTIST, settlesWith = "bob")
+                        else -> it
+                    }
+                },
+            )
         }
         fun number(band: Band, id: String) = eventSummaries(band, band.member(id), AppSettings()).single().myNumber
 

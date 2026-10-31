@@ -1,15 +1,14 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -22,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,28 +29,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.cancel
-import com.jacekgajek.kapelusz.app.generated.ok
-import com.jacekgajek.kapelusz.app.generated.search_people
-import org.jetbrains.compose.resources.StringResource
-import com.jacekgajek.kapelusz.domain.Names
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.range_from_to
 import com.jacekgajek.kapelusz.app.generated.range_pick_end
 import com.jacekgajek.kapelusz.app.generated.range_pick_start
+import com.jacekgajek.kapelusz.app.generated.search_people
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.domain.Names
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Read-only field showing a date; the calendar button opens a date picker. */
@@ -161,13 +161,20 @@ fun <T> Dropdown(
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         var query by remember { mutableStateOf("") }
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false; query = "" }) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = {
+            expanded = false
+            query = ""
+        }) {
             val searchable = options.size > Crowd.THRESHOLD
             if (searchable) NameSearchField(query, { query = it }, Modifier.padding(horizontal = 8.dp), placeholder = searchHint)
             options.forEach { option ->
                 val text = optionLabel(option)
                 if (!searchable || Names.matches(text, query)) {
-                    DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(option); expanded = false; query = "" })
+                    DropdownMenuItem(text = { Text(text) }, onClick = {
+                        onSelect(option)
+                        expanded = false
+                        query = ""
+                    })
                 }
             }
         }
@@ -183,7 +190,12 @@ fun TimePickerDialog(initial: LocalTime?, title: String, onTime: (LocalTime) -> 
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { TimePicker(state) },
-        confirmButton = { TextButton(onClick = { onTime(LocalTime(state.hour, state.minute)); onDismiss() }) { Text(stringResource(Res.string.ok)) } },
+        confirmButton = {
+            TextButton(onClick = {
+                onTime(LocalTime(state.hour, state.minute))
+                onDismiss()
+            }) { Text(stringResource(Res.string.ok)) }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
 }

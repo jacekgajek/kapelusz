@@ -3,11 +3,11 @@ package com.jacekgajek.kapelusz.local
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.server.TokenVerifier
 import com.jacekgajek.kapelusz.server.VerifiedUser
+import java.util.Base64
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
-import java.util.Base64
 
 /**
  * Accepts the unsigned tokens of the app's development sign-in (`DevSignIn` in composeApp) instead of Google's:
@@ -25,7 +25,9 @@ class DevTokenVerifier(private val clock: () -> Long = System::currentTimeMillis
         val expires = claims["exp"]?.jsonPrimitive?.longOrNull ?: return null
         if (expires * 1000 <= clock()) return null
         return VerifiedUser(
-            subject, claims["email"]?.jsonPrimitive?.content, claims["name"]?.jsonPrimitive?.content,
+            subject,
+            claims["email"]?.jsonPrimitive?.content,
+            claims["name"]?.jsonPrimitive?.content,
             issuedAt = (claims["iat"]?.jsonPrimitive?.longOrNull ?: 0) * 1000,
         )
     }

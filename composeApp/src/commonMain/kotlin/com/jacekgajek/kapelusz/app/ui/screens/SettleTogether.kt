@@ -67,7 +67,9 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
                 Text(stringResource(Res.string.settle_together_you_with, other.name))
                 OutlinedButton(onClick = { stopping = other }) { Text(stringResource(Res.string.settle_together_stop)) }
             }
+
             partner != null -> Text(stringResource(Res.string.settle_together_with, partner.name))
+
             // You invited them, or you're looking at yourself with an invitation sent.
             me.invitedToSettle != null && (member.id == me.id || me.invitedToSettle == member.id) -> {
                 val invitee = band.member(me.invitedToSettle!!)
@@ -76,12 +78,15 @@ fun SettleTogetherSection(band: Band, me: Member, member: Member, actions: Actio
                     Text(stringResource(Res.string.settle_together_cancel))
                 }
             }
+
             // They invited you, or you're looking at yourself, invited.
             (member.id == me.id && SettleTogether.inviterOf(band, me.id) != null) || member.invitedToSettle == me.id -> {
                 val from = SettleTogether.inviterOf(band, me.id)!!
                 InvitationAnswer(from, me, actions)
             }
+
             member.invitedToSettle != null || inviter != null -> Text(stringResource(Res.string.settle_together_pending_other))
+
             SettleTogether.mayInvite(band, me, member) -> {
                 SettleTogetherHint(me)
                 FilledTonalButton(onClick = { actions.run(InviteToSettleTogether(me.id, member.id)) }) {
@@ -140,8 +145,7 @@ private fun InvitationAnswer(from: Member, me: Member, actions: Actions) {
 }
 
 /** A new [role] for [member] ends their pair: a viewer (ITERATION_5 §7.2; artists pair too since ITERATION_6 §11). */
-fun pairEndsWarningNeeded(member: Member, role: Role): Boolean =
-    member.settlesWith != null && role == Role.VIEWER
+fun pairEndsWarningNeeded(member: Member, role: Role): Boolean = member.settlesWith != null && role == Role.VIEWER
 
 /**
  * The line a confirmation adds when archiving, unlinking or a new [role] (null: not a role change) ends [member]'s pair

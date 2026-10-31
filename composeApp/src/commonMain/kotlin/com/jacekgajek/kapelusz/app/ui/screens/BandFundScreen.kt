@@ -1,44 +1,31 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.domain.sortedByName
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
-import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.semantics.Role as SemanticsRole
-import com.jacekgajek.kapelusz.model.Role
-import kotlinx.datetime.LocalDate
-import com.jacekgajek.kapelusz.model.Member
-import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.model.Cost
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Checkbox
-import androidx.compose.material.icons.filled.PeopleAlt
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -50,68 +37,74 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.ok
-import com.jacekgajek.kapelusz.app.generated.fund_no_costs
-import com.jacekgajek.kapelusz.app.generated.fund_choose_cost
-import com.jacekgajek.kapelusz.app.generated.fund_add_cost
-import com.jacekgajek.kapelusz.app.generated.fund_each
-import com.jacekgajek.kapelusz.app.generated.fund_people
-import com.jacekgajek.kapelusz.app.generated.fund_select_all
-import com.jacekgajek.kapelusz.app.generated.fund_several
-import com.jacekgajek.kapelusz.app.generated.fund_outside
-import com.jacekgajek.kapelusz.app.generated.fund_paid_by
-import com.jacekgajek.kapelusz.app.generated.fund_entry_outside
-import com.jacekgajek.kapelusz.app.generated.fund_entry_from
-import com.jacekgajek.kapelusz.app.generated.fund_oldest_first
-import com.jacekgajek.kapelusz.app.generated.fund_newest_first
-import com.jacekgajek.kapelusz.app.generated.fund_history_empty
-import com.jacekgajek.kapelusz.app.generated.fund_history
-import com.jacekgajek.kapelusz.app.generated.fund_entry_refund_to
-import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.cost_date
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.description
+import com.jacekgajek.kapelusz.app.generated.fund_add_cost
 import com.jacekgajek.kapelusz.app.generated.fund_add_entry
 import com.jacekgajek.kapelusz.app.generated.fund_balance
+import com.jacekgajek.kapelusz.app.generated.fund_choose_cost
+import com.jacekgajek.kapelusz.app.generated.fund_each
+import com.jacekgajek.kapelusz.app.generated.fund_entry_from
+import com.jacekgajek.kapelusz.app.generated.fund_entry_outside
+import com.jacekgajek.kapelusz.app.generated.fund_entry_refund_to
+import com.jacekgajek.kapelusz.app.generated.fund_handed_over
 import com.jacekgajek.kapelusz.app.generated.fund_held_by
-import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
-import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.generated.fund_history
+import com.jacekgajek.kapelusz.app.generated.fund_history_empty
 import com.jacekgajek.kapelusz.app.generated.fund_in
+import com.jacekgajek.kapelusz.app.generated.fund_newest_first
+import com.jacekgajek.kapelusz.app.generated.fund_no_costs
 import com.jacekgajek.kapelusz.app.generated.fund_no_treasurer
 import com.jacekgajek.kapelusz.app.generated.fund_no_treasurer_admin
 import com.jacekgajek.kapelusz.app.generated.fund_not_handed_over
+import com.jacekgajek.kapelusz.app.generated.fund_oldest_first
 import com.jacekgajek.kapelusz.app.generated.fund_out
+import com.jacekgajek.kapelusz.app.generated.fund_outside
+import com.jacekgajek.kapelusz.app.generated.fund_paid_by
+import com.jacekgajek.kapelusz.app.generated.fund_people
 import com.jacekgajek.kapelusz.app.generated.fund_refund_cost
-import com.jacekgajek.kapelusz.app.generated.fund_handed_over
+import com.jacekgajek.kapelusz.app.generated.fund_select_all
+import com.jacekgajek.kapelusz.app.generated.fund_several
 import com.jacekgajek.kapelusz.app.generated.fund_waiting
+import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.open_settings
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.tab_fund
 import com.jacekgajek.kapelusz.app.generated.unnamed_cost
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.DateField
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
+import com.jacekgajek.kapelusz.app.ui.components.PaymentKind
+import com.jacekgajek.kapelusz.app.ui.components.PaymentRow
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.model.Can
@@ -120,10 +113,16 @@ import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.domain.BandFund
 import com.jacekgajek.kapelusz.domain.CostLedger
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Cost
+import com.jacekgajek.kapelusz.model.CostCategory
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.FundEntry
+import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
 import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.Change
@@ -131,6 +130,7 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RemoveFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import kotlin.math.abs
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
 /** The band fund ("Kasa zespołowa"): balance, contributions from events, and manual entries. */
@@ -174,14 +174,16 @@ fun BandFundScreen(
         topBar = { TabTopBar(stringResource(Res.string.tab_fund), onSettings, onRoster) },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (canEdit) ExtendedFloatingActionButton(
-                onClick = {
-                    refunding = null
-                    adding = true
-                },
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text(stringResource(Res.string.fund_add_entry)) },
-            )
+            if (canEdit) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        refunding = null
+                        adding = true
+                    },
+                    icon = { Icon(Icons.Default.Add, null) },
+                    text = { Text(stringResource(Res.string.fund_add_entry)) },
+                )
+            }
         },
     ) { padding ->
         val treasurer = band.treasurerMemberId?.let { band.member(it) }
@@ -227,12 +229,14 @@ fun BandFundScreen(
                 }
             }
             // Where to pay in, for everyone, once set (ITERATION_7 §7): only shown here, set in the fund's settings.
-            if (band.fundBlikPhone != null || band.fundBankAccount != null) item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp, 8.dp)) {
-                        val fund = stringResource(Res.string.band_fund)
-                        PaymentRow(PaymentKind.BLIK, null, band.fundBlikPhone, fund)
-                        PaymentRow(PaymentKind.ACCOUNT, null, band.fundBankAccount, fund)
+            if (band.fundBlikPhone != null || band.fundBankAccount != null) {
+                item {
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp, 8.dp)) {
+                            val fund = stringResource(Res.string.band_fund)
+                            PaymentRow(PaymentKind.BLIK, null, band.fundBlikPhone, fund)
+                            PaymentRow(PaymentKind.ACCOUNT, null, band.fundBankAccount, fund)
+                        }
                     }
                 }
             }
@@ -264,6 +268,7 @@ fun BandFundScreen(
                             MoneyText(event.fund, band.currency, colored = true)
                         }
                     }
+
                     is FundRow.OfEntry -> {
                         val entry = row.entry
                         val editable = canEdit && can.allowed(UpdateFundEntry(entry.id))
@@ -291,21 +296,23 @@ fun BandFundScreen(
 
     // Several people's contributions are added one by one: each its own entry, Undo and History line.
     val save = { ops: List<Operation> -> ops.all { actions.run(it) } }
-    if (adding) FundEntryDialog(
-        band, null, state.me?.id,
-        refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(-1), costId = "probe")),
-        refund = refunding,
-        onAddCost = {
-            adding = false
-            refunding = null
-            onAddCost()
-        },
-        onSave = save, onDelete = null, actions = actions,
-        onDismiss = {
-            adding = false
-            refunding = null
-        },
-    )
+    if (adding) {
+        FundEntryDialog(
+            band, null, state.me?.id,
+            refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(-1), costId = "probe")),
+            refund = refunding,
+            onAddCost = {
+                adding = false
+                refunding = null
+                onAddCost()
+            },
+            onSave = save, onDelete = null, actions = actions,
+            onDismiss = {
+                adding = false
+                refunding = null
+            },
+        )
+    }
     editing?.let { entry ->
         FundEntryDialog(band, entry, state.me?.id, onSave = save, onDelete = { actions.run(RemoveFundEntry(entry.id)) }, onDismiss = { editing = null }, actions = actions)
     }
@@ -405,8 +412,10 @@ private fun FundEntryDialog(
                             if (chosen.size > 2) several else chosen.joinToString(", ") { name(it) }
                         }
                         // Several people paying the same, e.g. this month's fee: one entry each.
-                        if (initial == null) IconButton(onClick = { choosingPeople = true }, Modifier.padding(top = FIELD_LABEL_INSET)) {
-                            Icon(Icons.Default.PeopleAlt, stringResource(Res.string.fund_several))
+                        if (initial == null) {
+                            IconButton(onClick = { choosingPeople = true }, Modifier.padding(top = FIELD_LABEL_INSET)) {
+                                Icon(Icons.Default.PeopleAlt, stringResource(Res.string.fund_several))
+                            }
                         }
                     }
                 } else if (initial == null) {
@@ -449,7 +458,9 @@ private fun FundEntryDialog(
                         if (left.isNotEmpty()) payers = left
                         left.isEmpty()
                     }
+
                     initial == null -> onSave(listOf(AddFundEntry(newId(), date, description.trim(), signed!!, costId)))
+
                     else -> onSave(
                         listOf(
                             UpdateFundEntry(

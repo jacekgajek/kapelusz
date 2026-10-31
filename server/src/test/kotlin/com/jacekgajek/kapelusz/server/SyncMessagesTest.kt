@@ -38,8 +38,7 @@ class SyncMessagesTest {
     private val sender = FakeSender()
     private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now }, messageSender = sender)
 
-    private fun call(method: String, path: String, user: String, body: String? = null, installation: String? = null) =
-        api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, installation?.let { mapOf("installation" to it) }.orEmpty()))
+    private fun call(method: String, path: String, user: String, body: String? = null, installation: String? = null) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, installation?.let { mapOf("installation" to it) }.orEmpty()))
 
     /** Whether messages will come, as the server answers the registration. */
     private fun register(user: String, installation: String, token: String = "token-$installation-0123456789"): Boolean {
@@ -139,7 +138,10 @@ class SyncMessagesTest {
     @Test
     fun theRegistryKeepsTenDevicesAndForgetsUnseenOnes() {
         setup()
-        repeat(12) { i -> now += 1000; register("bob", "bob-device-$i") }
+        repeat(12) { i ->
+            now += 1000
+            register("bob", "bob-device-$i")
+        }
         val bobs = KapeluszJson.decodeFromString(StoredDevices.serializer(), store.get("users/bob-devices.json")!!.content).devices
         assertEquals(DeviceRegistry.MAX_DEVICES, bobs.size)
         assertTrue("bob-device-11" in bobs.map { it.installationId } && "bob-phone" !in bobs.map { it.installationId }, "the longest unseen gave way")

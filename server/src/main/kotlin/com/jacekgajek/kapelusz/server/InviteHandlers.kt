@@ -90,6 +90,7 @@ internal class InviteHandlers(
             }
             val linked = when (val result = Engine.apply(band, Actor.System, LinkUser(invite.memberId, user.userId, invite.role), "invite-${invite.code}", clock())) {
                 is ApplyResult.Applied -> result.band.withPicture(user.userId, users.pictureOf(user.userId))
+
                 // Became an artist while holding money meanwhile (ITERATION_4 §1.1): the invite stays for when it is settled.
                 is ApplyResult.Rejected -> when (result.rejection.reason) {
                     RejectionReason.HOLDS_MONEY -> throw holdsMoney()
@@ -153,12 +154,10 @@ internal class InviteHandlers(
 
     private fun notFound() = ApiError(404, ApiErrors.INVITE_NOT_FOUND, "No such invite")
 
-    private fun load(code: String): StoredInvite? =
-        store.get(StorageKeys.invite(code))?.let { decode(StoredInvite.serializer(), it.content) }
+    private fun load(code: String): StoredInvite? = store.get(StorageKeys.invite(code))?.let { decode(StoredInvite.serializer(), it.content) }
 
     /** The band's invite codes, active or not. */
-    fun loadCodes(bandId: String): List<String> =
-        store.get(StorageKeys.bandInvites(bandId))?.let { decode(InviteCodes.serializer(), it.content).codes } ?: emptyList()
+    fun loadCodes(bandId: String): List<String> = store.get(StorageKeys.bandInvites(bandId))?.let { decode(InviteCodes.serializer(), it.content).codes } ?: emptyList()
 
     private fun updateCodes(bandId: String, change: (List<String>) -> List<String>) {
         val key = StorageKeys.bandInvites(bandId)

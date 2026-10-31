@@ -13,18 +13,15 @@ object PlayedPlaces {
     fun key(location: String): String = location.trim().replace(Regex("\\s+"), " ").lowercase()
 
     /** The events [me] sees: an artist only those they play in. */
-    fun visible(band: Band, me: Member?): List<Event> =
-        band.events.filter { me?.role != Role.ARTIST || it.participant(me.id) != null }
+    fun visible(band: Band, me: Member?): List<Event> = band.events.filter { me?.role != Role.ARTIST || it.participant(me.id) != null }
 
     /** Concerts in [from]..[to] (open ends: all) already played by [today], with a location; gigs to come never. */
-    fun played(band: Band, me: Member?, from: LocalDate?, to: LocalDate?, today: LocalDate): List<Event> =
-        visible(band, me).filter { event ->
-            event.date <= today && (from == null || event.date >= from) && (to == null || event.date <= to) && !event.location.isNullOrBlank()
-        }
+    fun played(band: Band, me: Member?, from: LocalDate?, to: LocalDate?, today: LocalDate): List<Event> = visible(band, me).filter { event ->
+        event.date <= today && (from == null || event.date >= from) && (to == null || event.date <= to) && !event.location.isNullOrBlank()
+    }
 
     /** The locations to look up: those without a pin of their own, once each. */
-    fun toLocate(events: List<Event>): List<String> =
-        events.mapNotNull { it.location?.takeIf(String::isNotBlank) }.filter { Places.pinIn(it) == null }.distinctBy(::key)
+    fun toLocate(events: List<Event>): List<String> = events.mapNotNull { it.location?.takeIf(String::isNotBlank) }.filter { Places.pinIn(it) == null }.distinctBy(::key)
 
     /**
      * One place on the map: concerts whose coordinates match to about 10 m. [title] is the newest concert's location up

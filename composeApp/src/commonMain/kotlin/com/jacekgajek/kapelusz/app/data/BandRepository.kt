@@ -1,14 +1,11 @@
 package com.jacekgajek.kapelusz.app.data
 
-import com.jacekgajek.kapelusz.ops.UnknownOperation
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.CancellationException
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.auth.Actor
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.ApplyResult
@@ -16,7 +13,10 @@ import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Rejection
+import com.jacekgajek.kapelusz.ops.UnknownOperation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -207,6 +207,7 @@ class BandRepository(
         val envelope = OpEnvelope(idGenerator(), current.clientId, current.nextSeq, clock(), op)
         return when (val result = Engine.apply(shown, Actor.User(current.userId), op, envelope.opId, envelope.timestamp)) {
             is ApplyResult.Rejected -> result.rejection
+
             is ApplyResult.Applied -> {
                 val holds = holdFor?.let { current.holds + (envelope.opId to clock() + it) } ?: current.holds
                 locals[bandId] = current.copy(pending = current.pending + envelope, nextSeq = current.nextSeq + 1, holds = holds)
@@ -257,13 +258,13 @@ class BandRepository(
 
     fun onPulled(bandId: Id, band: Band, version: String) = rebase(bandId) { it.copy(base = band, version = version) }
 
-    /** Updates the band list from the server's `/me`, keeping bands created offline that the server does not know yet. */
     /** Bands on this device that the server no longer lists (not ones created offline): access lost, or deleted. */
     fun unlisted(bands: List<BandSummary>): List<Id> {
         val listed = bands.map { it.id }.toSet()
         return locals.filter { (id, local) -> id !in listed && !local.needsCreate }.keys.toList()
     }
 
+    /** Updates the band list from the server's `/me`, keeping bands created offline that the server does not know yet. */
     fun onBandList(bands: List<BandSummary>) = updateIndex { index ->
         val offline = index.bands.filter { summary -> summary.id !in bands.map { it.id } && locals[summary.id]?.needsCreate == true }
         index.copy(bands = bands + offline)
@@ -305,7 +306,6 @@ class BandRepository(
         store.write("${bandKey(requireUser(), bandId)}-unsent-${clock()}", KapeluszJson.encodeToString(LocalBand.serializer(), local))
     }
 
-    /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
     /** Forgets a band deleted on purpose (nothing is kept) and opens another of the user's bands, if any. */
     suspend fun forgetDeleted(bandId: Id) {
         locals.remove(bandId)
@@ -315,6 +315,7 @@ class BandRepository(
         open(_index.value?.bands?.firstOrNull { hasStored(it.id) }?.id)
     }
 
+    /** After [BandState.Unreadable]: drops the unreadable band (its backup stays). */
     suspend fun startOver() {
         val bandId = currentBandId
         if (bandId != null) store.remove(bandKey(requireUser(), bandId))
@@ -339,9 +340,12 @@ class BandRepository(
         val raw = store.read(key) ?: return null
         return try {
             KapeluszJson.decodeFromString(LocalBand.serializer(), raw).let(::withoutUnknown).also { replay(it) }.let { local ->
-                if (local.schema >= CURRENT_SCHEMA) local
-                // Forget the version: the next pull gets the full state instead of "not modified".
-                else local.copy(version = null, schema = CURRENT_SCHEMA).also { dirty += bandId }
+                if (local.schema >= CURRENT_SCHEMA) {
+                    local
+                } // Forget the version: the next pull gets the full state instead of "not modified".
+                else {
+                    local.copy(version = null, schema = CURRENT_SCHEMA).also { dirty += bandId }
+                }
             }
         } catch (e: Exception) {
             // Never lose the only copy: keep the unreadable data as a backup before offering to start over.

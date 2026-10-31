@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.server
 
+import java.security.MessageDigest
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 import software.amazon.awssdk.services.dynamodb.model.BatchGetItemRequest
@@ -7,7 +8,6 @@ import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest
 import software.amazon.awssdk.services.dynamodb.model.KeysAndAttributes
 import software.amazon.awssdk.services.dynamodb.model.PutRequest
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest
-import java.security.MessageDigest
 
 /** Where an address is. */
 data class Located(val latitude: Double, val longitude: Double)
@@ -22,8 +22,7 @@ interface GeocodeCache {
 
     companion object {
         /** An address's key: the SHA-256 of its normalised text, so the table holds no addresses as such. */
-        fun key(normalised: String): String =
-            MessageDigest.getInstance("SHA-256").digest(normalised.toByteArray()).joinToString("") { "%02x".format(it) }
+        fun key(normalised: String): String = MessageDigest.getInstance("SHA-256").digest(normalised.toByteArray()).joinToString("") { "%02x".format(it) }
 
         const val NOT_FOUND_DAYS = 30L
     }

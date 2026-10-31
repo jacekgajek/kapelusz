@@ -1,12 +1,11 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,14 +19,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.auth.SignInButton
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.app_name
 import com.jacekgajek.kapelusz.app.generated.sign_in_failed
 import com.jacekgajek.kapelusz.app.generated.sign_in_intro
 import com.jacekgajek.kapelusz.app.generated.signed_out_everywhere
+import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import com.jacekgajek.kapelusz.app.ui.components.VersionLabel
 
 @Composable
 fun SignInScreen(onIdToken: suspend (String) -> Unit, signedOutEverywhere: Boolean = false) {

@@ -11,11 +11,11 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Engine
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 class CanTest {
     private fun Band.apply(vararg ops: Operation): Band = ops.fold(this) { band, op ->
@@ -23,9 +23,12 @@ class CanTest {
     }
 
     private val band = Band.create("b", "Band", "PLN", "owner", "Owner", "u-owner").apply(
-        AddMember("lead", "Lead"), LinkUser("lead", "u-lead", Role.LEAD),
-        AddMember("member", "Member"), LinkUser("member", "u-member", Role.MEMBER),
-        AddMember("viewer", "Viewer"), LinkUser("viewer", "u-viewer", Role.VIEWER),
+        AddMember("lead", "Lead"),
+        LinkUser("lead", "u-lead", Role.LEAD),
+        AddMember("member", "Member"),
+        LinkUser("member", "u-member", Role.MEMBER),
+        AddMember("viewer", "Viewer"),
+        LinkUser("viewer", "u-viewer", Role.VIEWER),
         CreateEvent("e", "Gig", LocalDate(2026, 9, 13), participants = listOf(Participant("lead"), Participant("member"))),
     )
     private val event = band.event("e")!!

@@ -47,5 +47,4 @@ data class TemplateDraft(val kind: AgendaKind?, val text: String)
  * Back to a template entry: a built-in one stays built-in (shown in each user's language) as long as its text is
  * untouched; edited, it becomes a custom label. Entries keep their kind when moved or when others are removed.
  */
-fun TemplateDraft.toItem(builtInLabel: (AgendaKind) -> String): AgendaTemplateItem =
-    if (kind != null && text.trim() == builtInLabel(kind)) AgendaTemplateItem(kind) else AgendaTemplateItem(label = text.trim())
+fun TemplateDraft.toItem(builtInLabel: (AgendaKind) -> String): AgendaTemplateItem = if (kind != null && text.trim() == builtInLabel(kind)) AgendaTemplateItem(kind) else AgendaTemplateItem(label = text.trim())

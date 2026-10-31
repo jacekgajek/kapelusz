@@ -28,6 +28,7 @@ object Names {
             when {
                 // The plain letter, then a mark above every other letter, so "Lz" comes before "Ła"; ź and ż apart.
                 polish >= 0 -> append(POLISH_BASE[polish]).append((0xF000 + polish).toChar())
+
                 else -> append(plain(c))
             }
         }

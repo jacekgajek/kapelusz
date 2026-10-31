@@ -1,12 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.app.ui.components.settleLabel
-import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.Payees
-import com.jacekgajek.kapelusz.app.ui.components.listWidth
-import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,14 +27,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.events_to_settle
 import com.jacekgajek.kapelusz.app.generated.nothing_to_settle
 import com.jacekgajek.kapelusz.app.generated.open_event
+import com.jacekgajek.kapelusz.app.generated.pair_names
 import com.jacekgajek.kapelusz.app.generated.settle
 import com.jacekgajek.kapelusz.app.generated.settle_part
 import com.jacekgajek.kapelusz.app.generated.tab_settle
@@ -48,21 +43,26 @@ import com.jacekgajek.kapelusz.app.generated.you_hold
 import com.jacekgajek.kapelusz.app.generated.your_transfers
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.PartialSettleDialog
+import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
-import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
 import com.jacekgajek.kapelusz.app.ui.components.TabTopBar
+import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.Payees
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
-import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.BAND_FUND
+import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import org.jetbrains.compose.resources.stringResource
@@ -93,6 +93,7 @@ fun SettleScreen(
         val suggestions = settlement.suggestions.filter { (it.from in myParties || it.to in myParties) && can.settleSuggestion(event, it.from, it.to) }
         if (settlement.canSettle && suggestions.isNotEmpty()) Triple(event, settlement, suggestions) else null
     }
+
     // What the user holds is their own, also in a pair; only what the pair still has to pass on counts (§7).
     fun held(settlement: Settlement): Money? {
         val own = settlement.line(me?.id ?: "")?.delta?.takeIf { it.isPositive } ?: return null
@@ -135,33 +136,35 @@ fun SettleScreen(
                             TextButton(onClick = { onOpenEvent(event.id) }) { Text(stringResource(Res.string.open_event)) }
                         }
                         // Keyed by the parties: an open "Part" dialog stays with its people when a sync reorders the list.
-                        suggestions.forEach { suggestion -> key(suggestion.from, suggestion.to) {
-                            val from = partyName(band, event, settlement, suggestion.from, fundLabel, pair)
-                            val to = partyName(band, event, settlement, suggestion.to, fundLabel, pair)
-                            var partial by remember { mutableStateOf(false) }
-                            // Names over the full width; the amount and the buttons below, so long names never squeeze them.
-                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    TransferParties(from, to, Modifier.weight(1f))
-                                    // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
-                                    val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
-                                        band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
-                                    if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
+                        suggestions.forEach { suggestion ->
+                            key(suggestion.from, suggestion.to) {
+                                val from = partyName(band, event, settlement, suggestion.from, fundLabel, pair)
+                                val to = partyName(band, event, settlement, suggestion.to, fundLabel, pair)
+                                var partial by remember { mutableStateOf(false) }
+                                // Names over the full width; the amount and the buttons below, so long names never squeeze them.
+                                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        TransferParties(from, to, Modifier.weight(1f))
+                                        // Only where you pay (ITERATION_5 §8); none when the fund's holder keeps it.
+                                        val keepsForFund = suggestion.to == BAND_FUND && band.treasurerMemberId != null &&
+                                            band.treasurerMemberId in (settlement.party(suggestion.from)?.partyIds ?: listOf(suggestion.from))
+                                        if (!keepsForFund && BlikPhone.pays(band, settlement, me?.id, suggestion.from)) PaymentButtons(Payees.forTransfer(band, settlement, suggestion.from, suggestion.to, suggestion.amount, me?.id))
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
+                                        TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
+                                        FilledTonalButton(onClick = {
+                                            actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))
+                                        }) { Text(stringResource(settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))) }
+                                    }
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    MoneyText(suggestion.amount, band.currency, bold = true, modifier = Modifier.weight(1f))
-                                    TextButton(onClick = { partial = true }) { Text(stringResource(Res.string.settle_part)) }
-                                    FilledTonalButton(onClick = {
-                                        actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, suggestion.amount, together = true))
-                                    }) { Text(stringResource(settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to))) }
+                                if (partial) {
+                                    PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
+                                        actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it, together = true))
+                                    }, onDismiss = { partial = false }, confirmLabel = settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to), actions = actions)
                                 }
                             }
-                            if (partial) {
-                                PartialSettleDialog(from, to, suggestion.amount, band.currency, onConfirm = {
-                                    actions.run(RecordTransfer(event.id, newId(), suggestion.from, suggestion.to, it, together = true))
-                                }, onDismiss = { partial = false }, confirmLabel = settleLabel(band, settlement, me?.id, suggestion.from, suggestion.to), actions = actions)
-                            }
-                        } }
+                        }
                     }
                 }
             }

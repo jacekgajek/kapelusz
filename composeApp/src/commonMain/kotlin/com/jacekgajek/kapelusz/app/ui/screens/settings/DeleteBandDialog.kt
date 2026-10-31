@@ -62,14 +62,20 @@ internal fun DeleteBandDialog(bandName: String, otherMembers: Int, onDelete: sus
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.delete_band_everything))
                 Text(
-                    if (otherMembers > 0) pluralStringResource(Res.plurals.delete_band_members, otherMembers, otherMembers)
-                    else stringResource(Res.string.delete_band_no_members),
+                    if (otherMembers > 0) {
+                        pluralStringResource(Res.plurals.delete_band_members, otherMembers, otherMembers)
+                    } else {
+                        stringResource(Res.string.delete_band_no_members)
+                    },
                 )
                 Text(stringResource(Res.string.delete_band_unsynced))
                 Text(stringResource(Res.string.delete_band_final), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleSmall)
                 OutlinedTextField(
                     typed,
-                    { typed = it; failed = false },
+                    {
+                        typed = it
+                        failed = false
+                    },
                     label = { Text(stringResource(Res.string.delete_band_type_name, bandName)) },
                     singleLine = true,
                     enabled = !working,

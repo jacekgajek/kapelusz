@@ -58,7 +58,8 @@ enum class PaymentKind(
     val keyboard: KeyboardType,
 ) {
     BLIK(Icons.Default.PhoneAndroid, Res.string.blik_title, Res.string.blik_pay_to, Res.string.blik_numbers, Res.string.blik_copy, KeyboardType.Phone),
-    ACCOUNT(Icons.Default.AccountBalance, Res.string.account_title, Res.string.account_pay_to, Res.string.account_numbers, Res.string.account_copy, KeyboardType.Ascii);
+    ACCOUNT(Icons.Default.AccountBalance, Res.string.account_title, Res.string.account_pay_to, Res.string.account_numbers, Res.string.account_copy, KeyboardType.Ascii),
+    ;
 
     /** [payee]'s number of this kind, as stored. */
     fun of(payee: Payee): String? = when (this) {

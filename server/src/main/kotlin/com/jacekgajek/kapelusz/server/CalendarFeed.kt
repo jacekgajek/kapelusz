@@ -59,8 +59,10 @@ object CalendarFeed {
                 "DTSTART;VALUE=DATE:${date(event.date)}",
                 "DTEND;VALUE=DATE:${date(event.date.plus(DatePeriod(days = 1)))}",
             ) + commonLines(band, event, times, webUrl) + "END:VEVENT"
+
             // One time: an hour from it.
             times.size == 1 -> at(event.date, times.first().time!!).let { it to plusHour(it) }
+
             // Several: from the earliest to the latest; equal times still get an hour (DTEND must be later).
             else -> at(event.date, times.first().time!!).let { start ->
                 val last = at(event.date, times.last().time!!)
@@ -98,8 +100,7 @@ object CalendarFeed {
     }
 
     /** Times before 05:00 are on the next day (a gig ending after midnight). */
-    private fun at(date: LocalDate, time: LocalTime): LocalDateTime =
-        (if (time.hour < NEXT_DAY_BEFORE_HOUR) date.plus(DatePeriod(days = 1)) else date).atTime(time)
+    private fun at(date: LocalDate, time: LocalTime): LocalDateTime = (if (time.hour < NEXT_DAY_BEFORE_HOUR) date.plus(DatePeriod(days = 1)) else date).atTime(time)
 
     private fun plusHour(start: LocalDateTime): LocalDateTime {
         val hour = start.hour + 1

@@ -1,11 +1,13 @@
 package com.jacekgajek.kapelusz.app.auth
 
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.api.SessionResponse
 import com.jacekgajek.kapelusz.app.data.KeyValueStore
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.sync.SessionsRevokedException
-import kotlinx.coroutines.CancellationException
 import com.jacekgajek.kapelusz.model.KapeluszJson
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,8 +17,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /** The signed-in Google user and their current ID token. */
 @Serializable

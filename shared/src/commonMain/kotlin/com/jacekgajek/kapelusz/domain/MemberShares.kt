@@ -16,10 +16,8 @@ object MemberShares {
     }
 
     /** Events a changed default can still be applied to: not archived, not settled, the member in it. */
-    fun canApply(band: Band, event: Event, member: Member): Boolean =
-        !event.archived && event.participant(member.id) != null && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
+    fun canApply(band: Band, event: Event, member: Member): Boolean = !event.archived && event.participant(member.id) != null && SettlementCalculator.settle(band, event).status != EventStatus.SETTLED
 
     /** Events where the member still has their default share, to offer the new one to. */
-    fun stillDefault(band: Band, member: Member): List<Event> =
-        band.events.filter { event -> canApply(band, event, member) && isDefault(member, event.participant(member.id)!!) }
+    fun stillDefault(band: Band, member: Member): List<Event> = band.events.filter { event -> canApply(band, event, member) && isDefault(member, event.participant(member.id)!!) }
 }

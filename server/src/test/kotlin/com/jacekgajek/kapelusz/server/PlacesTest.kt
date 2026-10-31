@@ -1,25 +1,25 @@
 package com.jacekgajek.kapelusz.server
 
-import com.jacekgajek.kapelusz.api.MapLinkRequest
-import kotlinx.datetime.LocalDate
-import com.jacekgajek.kapelusz.model.Participant
-import com.jacekgajek.kapelusz.ops.CreateEvent
-import com.jacekgajek.kapelusz.api.LocationsResponse
-import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
 import com.jacekgajek.kapelusz.api.InviteInfo
+import com.jacekgajek.kapelusz.api.LocationsResponse
+import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
+import com.jacekgajek.kapelusz.api.PlaceText
 import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.model.KapeluszJson
+import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 /** ITERATION_5 §9: place suggestions for Location, through the server. */
 class PlacesTest {
@@ -32,11 +32,9 @@ class PlacesTest {
             return listOf(PlaceSuggestion("p1", "Stodoła", "Stefana Batorego 10, 02-591 Warszawa, Polska"))
         }
 
-        override fun details(placeId: String, language: String?, session: String?) =
-            if (placeId == "olowek") PlaceAddress("Ołówek", "Legnicka 36, 53-673 Wrocław, Polska", "Polska") else null
+        override fun details(placeId: String, language: String?, session: String?) = if (placeId == "olowek") PlaceAddress("Ołówek", "Legnicka 36, 53-673 Wrocław, Polska", "Polska") else null
 
-        override fun address(latitude: String, longitude: String, language: String?) =
-            if (latitude.startsWith("51.1")) PlaceAddress(null, "Legnicka 36, 53-673 Wrocław, Polska", "Polska") else null
+        override fun address(latitude: String, longitude: String, language: String?) = if (latitude.startsWith("51.1")) PlaceAddress(null, "Legnicka 36, 53-673 Wrocław, Polska", "Polska") else null
 
         override fun follow(url: String): String? {
             followed += url
@@ -53,14 +51,14 @@ class PlacesTest {
             return if (address.startsWith("Stodoła")) Located(52.2, 21.0) else null
         }
     }
+
     // Asked from parallel lookups.
     private val located: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
 
     private fun api(search: PlaceSearch?) = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, placeSearch = search)
     private val api = api(search)
 
-    private fun call(user: String, query: Map<String, String>, method: String = "GET", path: String = "/bands/band1/places", body: String? = null, on: Api = api) =
-        on.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
+    private fun call(user: String, query: Map<String, String>, method: String = "GET", path: String = "/bands/band1/places", body: String? = null, on: Api = api) = on.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
 
     /** Alice owns the band; Bob is a plain member. */
     private fun setup() {
@@ -105,8 +103,7 @@ class PlacesTest {
         return KapeluszJson.decodeFromString(PlaceText.serializer(), response.body!!).text
     }
 
-    private fun resolve(user: String, url: String) =
-        call(user, emptyMap(), "POST", "/bands/band1/places/resolve", KapeluszJson.encodeToString(MapLinkRequest.serializer(), MapLinkRequest(url)))
+    private fun resolve(user: String, url: String) = call(user, emptyMap(), "POST", "/bands/band1/places/resolve", KapeluszJson.encodeToString(MapLinkRequest.serializer(), MapLinkRequest(url)))
 
     @Test
     fun aPickedPlaceBecomesItsNameAndFullAddress() {
@@ -132,8 +129,7 @@ class PlacesTest {
         assertEquals(403, resolve("bob", "https://maps.app.goo.gl/pin").status)
     }
 
-    private fun push(user: String, vararg ops: com.jacekgajek.kapelusz.ops.Operation) =
-        call(user, emptyMap(), "POST", "/bands/band1/ops", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.mapIndexed { i, op -> OpEnvelope("map-$i", "map", i + 1L, 1, op) })))
+    private fun push(user: String, vararg ops: com.jacekgajek.kapelusz.ops.Operation) = call(user, emptyMap(), "POST", "/bands/band1/ops", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops.mapIndexed { i, op -> OpEnvelope("map-$i", "map", i + 1L, 1, op) })))
 
     private fun locations(user: String, on: Api) = KapeluszJson.decodeFromString(LocationsResponse.serializer(), call(user, emptyMap(), path = "/bands/band1/locations", on = on).body!!)
 

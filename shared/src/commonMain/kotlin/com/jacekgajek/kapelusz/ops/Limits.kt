@@ -168,17 +168,13 @@ object Limits {
         else -> null
     }
 
-    private fun text(value: String, max: Int, what: String): Rejection? =
-        if (value.length > max) invalid("$what is longer than $max characters") else null
+    private fun text(value: String, max: Int, what: String): Rejection? = if (value.length > max) invalid("$what is longer than $max characters") else null
 
     /** Either sign: fund amounts and entries can be negative. */
-    private fun amount(value: Money, what: String): Rejection? =
-        if (value.minor > MAX_AMOUNT || value.minor < -MAX_AMOUNT) Rejection(RejectionCode.INVALID, "$what is too large", RejectionReason.INVALID_AMOUNT) else null
+    private fun amount(value: Money, what: String): Rejection? = if (value.minor > MAX_AMOUNT || value.minor < -MAX_AMOUNT) Rejection(RejectionCode.INVALID, "$what is too large", RejectionReason.INVALID_AMOUNT) else null
 
     /** Only growth past a limit counts: a band above it from before can still shrink. */
-    private fun count(before: Int, after: Int, max: Int, what: String): Rejection? =
-        if (after > max && after > before) Rejection(RejectionCode.CONFLICT, "At most $max $what", RejectionReason.LIMIT_REACHED) else null
+    private fun count(before: Int, after: Int, max: Int, what: String): Rejection? = if (after > max && after > before) Rejection(RejectionCode.CONFLICT, "At most $max $what", RejectionReason.LIMIT_REACHED) else null
 
     private fun invalid(message: String) = Rejection(RejectionCode.INVALID, message, RejectionReason.INVALID_INPUT)
-
 }

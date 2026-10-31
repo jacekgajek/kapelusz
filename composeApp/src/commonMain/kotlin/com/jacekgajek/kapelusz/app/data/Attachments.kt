@@ -3,8 +3,6 @@ package com.jacekgajek.kapelusz.app.data
 import com.jacekgajek.kapelusz.app.platform.ByteCache
 import com.jacekgajek.kapelusz.app.platform.FileCache
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.model.Attachment
@@ -17,6 +15,8 @@ import com.jacekgajek.kapelusz.ops.RejectionCode
 import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RenameAttachment
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -56,8 +56,11 @@ class Attachments(
                 return Rejection(RejectionCode.CONFLICT, "Could not store the file on this device: $e", RejectionReason.STORAGE_FAILED)
             }
             // Another band opened meanwhile (the file was being stored): this attachment belongs to the first one.
-            val rejection = if (bands.currentBandId == bandId) dispatch(AddAttachment(owner, attachment))
-            else Rejection(RejectionCode.CONFLICT, "Another band was opened", RejectionReason.NOT_FOUND)
+            val rejection = if (bands.currentBandId == bandId) {
+                dispatch(AddAttachment(owner, attachment))
+            } else {
+                Rejection(RejectionCode.CONFLICT, "Another band was opened", RejectionReason.NOT_FOUND)
+            }
             if (rejection != null) {
                 uploads.cancel(attachment.id)
                 return rejection

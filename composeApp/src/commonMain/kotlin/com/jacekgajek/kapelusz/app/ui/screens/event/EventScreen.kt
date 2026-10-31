@@ -1,51 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.sync.ApiClient
-import com.jacekgajek.kapelusz.app.data.Attachments
-import com.jacekgajek.kapelusz.app.data.Incoming
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
-import com.jacekgajek.kapelusz.app.data.BandRepository
-import com.jacekgajek.kapelusz.app.data.Changes
-import androidx.compose.material3.SnackbarDuration
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.currentStateAsState
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.jacekgajek.kapelusz.app.data.SharedAttached
-import com.jacekgajek.kapelusz.app.generated.share_attach_failed
-import com.jacekgajek.kapelusz.app.generated.share_attached
-import com.jacekgajek.kapelusz.app.generated.undo
-import org.jetbrains.compose.resources.pluralStringResource
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import com.jacekgajek.kapelusz.app.generated.amount
-import com.jacekgajek.kapelusz.app.generated.attachment_hint_event
-import com.jacekgajek.kapelusz.app.generated.cancel
-import com.jacekgajek.kapelusz.app.generated.band_fund
-import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
-import com.jacekgajek.kapelusz.app.generated.fund_direction_from
-import com.jacekgajek.kapelusz.app.generated.fund_direction_to
-import com.jacekgajek.kapelusz.app.generated.tab_gig
-import com.jacekgajek.kapelusz.app.generated.tab_money
-import com.jacekgajek.kapelusz.app.generated.total_awaited
-import com.jacekgajek.kapelusz.app.generated.total_from_fund
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import kotlin.math.abs
-import com.jacekgajek.kapelusz.model.FundCut
-import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
-import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
-import kotlinx.coroutines.flow.first
-import com.jacekgajek.kapelusz.app.generated.save
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
-import com.jacekgajek.kapelusz.app.ui.components.EditButton
-import com.jacekgajek.kapelusz.app.ui.components.MoneyField
-import com.jacekgajek.kapelusz.app.ui.components.parseMoney
-import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
-import com.jacekgajek.kapelusz.ops.SetFundAmount
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -56,80 +11,125 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import kotlinx.coroutines.launch
-import com.jacekgajek.kapelusz.app.generated.tab_settlement
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Tab
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.data.BandRepository
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.data.EventTab
+import com.jacekgajek.kapelusz.app.data.Incoming
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
+import com.jacekgajek.kapelusz.app.data.SharedAttached
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.add_times
 import com.jacekgajek.kapelusz.app.generated.add_place
-import com.jacekgajek.kapelusz.app.generated.when_where
+import com.jacekgajek.kapelusz.app.generated.add_times
+import com.jacekgajek.kapelusz.app.generated.amount
+import com.jacekgajek.kapelusz.app.generated.attachment_hint_event
+import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.event_files
 import com.jacekgajek.kapelusz.app.generated.event_not_found
+import com.jacekgajek.kapelusz.app.generated.fund_amount_from_hint
+import com.jacekgajek.kapelusz.app.generated.fund_direction_from
+import com.jacekgajek.kapelusz.app.generated.fund_direction_to
+import com.jacekgajek.kapelusz.app.generated.navigate
 import com.jacekgajek.kapelusz.app.generated.problem_loss
 import com.jacekgajek.kapelusz.app.generated.problem_loss_fixed
 import com.jacekgajek.kapelusz.app.generated.problem_no_shares
-import com.jacekgajek.kapelusz.app.generated.problem_over_percent
 import com.jacekgajek.kapelusz.app.generated.problem_no_treasurer
+import com.jacekgajek.kapelusz.app.generated.problem_over_percent
+import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.generated.share_attach_failed
+import com.jacekgajek.kapelusz.app.generated.share_attached
+import com.jacekgajek.kapelusz.app.generated.tab_gig
+import com.jacekgajek.kapelusz.app.generated.tab_money
+import com.jacekgajek.kapelusz.app.generated.tab_settlement
+import com.jacekgajek.kapelusz.app.generated.total_awaited
+import com.jacekgajek.kapelusz.app.generated.total_from_fund
 import com.jacekgajek.kapelusz.app.generated.total_fund
 import com.jacekgajek.kapelusz.app.generated.total_income
 import com.jacekgajek.kapelusz.app.generated.total_net
 import com.jacekgajek.kapelusz.app.generated.total_refunds
+import com.jacekgajek.kapelusz.app.generated.undo
+import com.jacekgajek.kapelusz.app.generated.when_where
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
+import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.FundCutEditor
+import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.StatusChip
-import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.rememberActions
 import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
 import com.jacekgajek.kapelusz.app.ui.components.UndoStack
-import com.jacekgajek.kapelusz.app.ui.model.formatDate
+import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.parseMoney
+import com.jacekgajek.kapelusz.app.ui.components.rememberActions
+import com.jacekgajek.kapelusz.app.ui.components.rememberFundCutEditorState
+import com.jacekgajek.kapelusz.app.ui.model.Can
 import com.jacekgajek.kapelusz.app.ui.model.agendaLine
-import com.jacekgajek.kapelusz.domain.Places
-import com.jacekgajek.kapelusz.app.generated.navigate
-import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material3.AssistChip
-import androidx.compose.ui.platform.LocalUriHandler
+import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
+import com.jacekgajek.kapelusz.app.ui.model.isArtist
+import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
+import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.Settlement
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
 import com.jacekgajek.kapelusz.domain.SettlementProblem
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.FundCut
 import com.jacekgajek.kapelusz.model.MAX_EVENT_ATTACHMENTS
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.app.ui.model.Can
-import com.jacekgajek.kapelusz.app.ui.model.isArtist
-import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
+import com.jacekgajek.kapelusz.ops.SetFundAmount
+import kotlin.math.abs
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
@@ -216,6 +216,7 @@ fun EventScreen(
         when {
             // Gone meanwhile (or hidden from an artist): the files must not turn up there later.
             event == null -> incoming.sharedHandover.value = null
+
             handover?.toCost == true -> onAddCost(eventId)
         }
     }
@@ -327,10 +328,19 @@ fun EventScreen(
  * found by its index on its page (e.g. where shared files were attached).
  */
 private enum class EventSection(vararg val tabs: EventTab) {
-    WHEN(EventTab.GIG), DETAILS(EventTab.GIG), FILES(EventTab.GIG), PARTICIPANTS(EventTab.GIG), SHARE_INFO(EventTab.GIG),
+    WHEN(EventTab.GIG),
+    DETAILS(EventTab.GIG),
+    FILES(EventTab.GIG),
+    PARTICIPANTS(EventTab.GIG),
+    SHARE_INFO(EventTab.GIG),
     STATUS(EventTab.MONEY, EventTab.SETTLEMENT),
-    TOTALS(EventTab.MONEY), COLLECTED(EventTab.MONEY), REFUNDS(EventTab.MONEY),
-    PROBLEMS(EventTab.SETTLEMENT), SUMMARY(EventTab.SETTLEMENT), TO_SETTLE(EventTab.SETTLEMENT), HISTORY(EventTab.SETTLEMENT),
+    TOTALS(EventTab.MONEY),
+    COLLECTED(EventTab.MONEY),
+    REFUNDS(EventTab.MONEY),
+    PROBLEMS(EventTab.SETTLEMENT),
+    SUMMARY(EventTab.SETTLEMENT),
+    TO_SETTLE(EventTab.SETTLEMENT),
+    HISTORY(EventTab.SETTLEMENT),
     ;
 
     companion object {
@@ -507,15 +517,21 @@ private fun Problems(context: EventContext) {
                     when (problem) {
                         // Fixed shares and percentages count towards the loss too (ITERATION_3 §2.4), so lowering them is a way out.
                         SettlementProblem.LOSS -> stringResource(
-                            if (context.settlement.fixedTotal.isZero && context.settlement.percentTotal.isZero) Res.string.problem_loss
-                            else Res.string.problem_loss_fixed,
+                            if (context.settlement.fixedTotal.isZero && context.settlement.percentTotal.isZero) {
+                                Res.string.problem_loss
+                            } else {
+                                Res.string.problem_loss_fixed
+                            },
                             formatMoney(context.settlement.shortfall, context.currency, language),
                         )
+
                         SettlementProblem.NO_SHARES -> stringResource(Res.string.problem_no_shares)
+
                         SettlementProblem.OVER_PERCENT -> stringResource(
                             Res.string.problem_over_percent,
                             "${context.event.participants.sumOf { it.percent ?: 0 } + (context.event.fundPercent ?: 0)}%",
                         )
+
                         SettlementProblem.NO_TREASURER -> stringResource(Res.string.problem_no_treasurer)
                     },
                     color = MaterialTheme.colorScheme.onErrorContainer,

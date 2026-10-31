@@ -1,18 +1,22 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,37 +36,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.app.auth.SignInButton
-import kotlinx.coroutines.launch
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.back
-import com.jacekgajek.kapelusz.app.generated.menu_roster
-import com.jacekgajek.kapelusz.app.generated.menu_settings
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.join_band
+import com.jacekgajek.kapelusz.app.generated.menu_roster
+import com.jacekgajek.kapelusz.app.generated.menu_settings
 import com.jacekgajek.kapelusz.app.generated.new_band
+import com.jacekgajek.kapelusz.app.generated.settings
 import com.jacekgajek.kapelusz.app.generated.sign_in_again_text
 import com.jacekgajek.kapelusz.app.generated.sign_in_again_title
 import com.jacekgajek.kapelusz.app.generated.sign_in_again_wrong_account
 import com.jacekgajek.kapelusz.app.generated.sign_in_failed
-import com.jacekgajek.kapelusz.app.generated.settings
 import com.jacekgajek.kapelusz.app.generated.stuck_push_title
+import com.jacekgajek.kapelusz.app.generated.summary_title
 import com.jacekgajek.kapelusz.app.generated.sync_error
-import com.jacekgajek.kapelusz.app.generated.update_required_title
 import com.jacekgajek.kapelusz.app.generated.sync_needs_sign_in
 import com.jacekgajek.kapelusz.app.generated.sync_offline
 import com.jacekgajek.kapelusz.app.generated.sync_synced
 import com.jacekgajek.kapelusz.app.generated.sync_syncing
+import com.jacekgajek.kapelusz.app.generated.update_required_title
 import com.jacekgajek.kapelusz.app.sync.SyncStatus
-import com.jacekgajek.kapelusz.api.BandSummary
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import androidx.compose.material.icons.filled.ManageAccounts
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.History
-import com.jacekgajek.kapelusz.app.generated.summary_title
 
 /** What every tab's top bar shows besides the title: sync state and the band switcher. */
 class TopBarState(
@@ -113,18 +113,27 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extra
                             } else {
                                 null
                             },
-                            onClick = { menuOpen = false; if (band.id != bar.currentBandId) bar.onSelectBand(band.id) },
+                            onClick = {
+                                menuOpen = false
+                                if (band.id != bar.currentBandId) bar.onSelectBand(band.id)
+                            },
                         )
                     }
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.new_band)) },
                         leadingIcon = { Icon(Icons.Default.Add, null) },
-                        onClick = { menuOpen = false; bar.onNewBand() },
+                        onClick = {
+                            menuOpen = false
+                            bar.onNewBand()
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.join_band)) },
                         leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
-                        onClick = { menuOpen = false; bar.onJoinBand() },
+                        onClick = {
+                            menuOpen = false
+                            bar.onJoinBand()
+                        },
                     )
                     HorizontalDivider()
                 }
@@ -132,23 +141,39 @@ fun TabTopBar(title: String, onSettings: () -> Unit, onRoster: () -> Unit, extra
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.menu_roster)) },
                     leadingIcon = { Icon(Icons.Default.ManageAccounts, null) },
-                    onClick = { menuOpen = false; onRoster() },
+                    onClick = {
+                        menuOpen = false
+                        onRoster()
+                    },
                 )
                 // Artists too: only their own numbers.
-                if (bar != null) DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.summary_title)) },
-                    leadingIcon = { Icon(Icons.Default.BarChart, null) },
-                    onClick = { menuOpen = false; bar.onSummary() },
-                )
-                if (onHistory != null && bar?.artist != true) DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.history)) },
-                    leadingIcon = { Icon(Icons.Default.History, null) },
-                    onClick = { menuOpen = false; onHistory() },
-                )
+                if (bar != null) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.summary_title)) },
+                        leadingIcon = { Icon(Icons.Default.BarChart, null) },
+                        onClick = {
+                            menuOpen = false
+                            bar.onSummary()
+                        },
+                    )
+                }
+                if (onHistory != null && bar?.artist != true) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.history)) },
+                        leadingIcon = { Icon(Icons.Default.History, null) },
+                        onClick = {
+                            menuOpen = false
+                            onHistory()
+                        },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.menu_settings)) },
                     leadingIcon = { Icon(Icons.Default.Settings, null) },
-                    onClick = { menuOpen = false; onSettings() },
+                    onClick = {
+                        menuOpen = false
+                        onSettings()
+                    },
                 )
             }
         },

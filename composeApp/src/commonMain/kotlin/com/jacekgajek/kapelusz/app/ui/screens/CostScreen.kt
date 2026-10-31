@@ -1,15 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.Attachments
-import com.jacekgajek.kapelusz.app.data.Incoming
-import com.jacekgajek.kapelusz.app.data.Changes
-import com.jacekgajek.kapelusz.domain.sortedByName
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import com.jacekgajek.kapelusz.app.generated.open_event
-import androidx.compose.material3.FilterChipDefaults
-import com.jacekgajek.kapelusz.app.ui.components.icon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,13 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,16 +35,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.Saver
-import kotlinx.datetime.LocalDate
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
+import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.Changes
+import com.jacekgajek.kapelusz.app.data.Incoming
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -59,9 +55,9 @@ import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.category
 import com.jacekgajek.kapelusz.app.generated.cost_date
 import com.jacekgajek.kapelusz.app.generated.cost_event
-import com.jacekgajek.kapelusz.app.generated.search_by_title
 import com.jacekgajek.kapelusz.app.generated.cost_locked
 import com.jacekgajek.kapelusz.app.generated.cost_no_event
+import com.jacekgajek.kapelusz.app.generated.cost_not_found
 import com.jacekgajek.kapelusz.app.generated.cost_planned_at
 import com.jacekgajek.kapelusz.app.generated.cost_refunded_at
 import com.jacekgajek.kapelusz.app.generated.cost_refunded_fund
@@ -70,40 +66,44 @@ import com.jacekgajek.kapelusz.app.generated.delete_cost_confirm
 import com.jacekgajek.kapelusz.app.generated.delete_cost_title
 import com.jacekgajek.kapelusz.app.generated.description_optional
 import com.jacekgajek.kapelusz.app.generated.edit_cost
-import com.jacekgajek.kapelusz.app.generated.cost_not_found
+import com.jacekgajek.kapelusz.app.generated.open_event
 import com.jacekgajek.kapelusz.app.generated.paid_by
 import com.jacekgajek.kapelusz.app.generated.paid_by_name
 import com.jacekgajek.kapelusz.app.generated.save
+import com.jacekgajek.kapelusz.app.generated.search_by_title
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DateField
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
+import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
+import com.jacekgajek.kapelusz.app.ui.components.UndoStack
+import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.rememberActions
-import com.jacekgajek.kapelusz.app.ui.components.UndoSnackbars
-import com.jacekgajek.kapelusz.app.ui.components.UndoStack
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.auth.Actor
 import com.jacekgajek.kapelusz.auth.Permissions
 import com.jacekgajek.kapelusz.domain.CostStatuses
-import com.jacekgajek.kapelusz.model.AttachmentOwner
-import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.domain.sortedByName
 import com.jacekgajek.kapelusz.model.Attachment
-import com.jacekgajek.kapelusz.ops.AddAttachment
+import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.UpdateCost
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
 /** Fast cost form: amount first, everything else optional. [costId] `null` adds a new cost. */
@@ -228,11 +228,16 @@ fun CostScreen(
                     existing == null && payers.size > 1 -> Dropdown(paidBy, payers.map { it.id }, { paidBy = it }, stringResource(Res.string.paid_by)) { id ->
                         id?.let { band.member(it)?.name }.orEmpty()
                     }
+
                     // A single possible payer (always the case for members) is shown, not chosen, like a fixed event.
                     existing == null -> OutlinedTextField(
-                        paidBy?.let { band.member(it)?.name }.orEmpty(), {}, readOnly = true,
-                        label = { Text(stringResource(Res.string.paid_by)) }, modifier = Modifier.fillMaxWidth(),
+                        paidBy?.let { band.member(it)?.name }.orEmpty(),
+                        {},
+                        readOnly = true,
+                        label = { Text(stringResource(Res.string.paid_by)) },
+                        modifier = Modifier.fillMaxWidth(),
                     )
+
                     existing != null && existing.memberId != state.me?.id -> Text(
                         stringResource(Res.string.paid_by_name, band.member(existing.memberId)?.name.orEmpty()),
                         style = MaterialTheme.typography.titleSmall,
@@ -243,8 +248,11 @@ fun CostScreen(
                 DateField(date, { if (editable) date = it }, stringResource(Res.string.cost_date))
                 if (forEvent != null) {
                     OutlinedTextField(
-                        "${forEvent.name} · ${formatDate(forEvent.date, lang)}", {}, readOnly = true,
-                        label = { Text(stringResource(Res.string.cost_event)) }, modifier = Modifier.fillMaxWidth(),
+                        "${forEvent.name} · ${formatDate(forEvent.date, lang)}",
+                        {},
+                        readOnly = true,
+                        label = { Text(stringResource(Res.string.cost_event)) },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
                     Dropdown(eventId, events, { if (editable) eventId = it }, stringResource(Res.string.cost_event), searchHint = Res.string.search_by_title) { id ->

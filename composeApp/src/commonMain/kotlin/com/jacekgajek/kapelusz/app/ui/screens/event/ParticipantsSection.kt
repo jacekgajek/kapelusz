@@ -1,21 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
-import com.jacekgajek.kapelusz.app.generated.participants_guests
-import androidx.compose.runtime.LaunchedEffect
-import com.jacekgajek.kapelusz.app.generated.guest_is_member
-import com.jacekgajek.kapelusz.app.generated.guest_add_member_instead
-import com.jacekgajek.kapelusz.app.generated.guest_add_anyway
-import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
-import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
-import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
-import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
-import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
-import com.jacekgajek.kapelusz.app.ui.components.FormerMember
-import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
-import com.jacekgajek.kapelusz.app.generated.guest_add_as_guest
-import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import androidx.compose.foundation.clickable
-import com.jacekgajek.kapelusz.app.ui.components.Avatar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -25,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilterChip
@@ -34,7 +21,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,47 +34,58 @@ import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.add_guest
 import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.guest_add_anyway
+import com.jacekgajek.kapelusz.app.generated.guest_add_as_guest
+import com.jacekgajek.kapelusz.app.generated.guest_add_member_instead
+import com.jacekgajek.kapelusz.app.generated.guest_is_member
 import com.jacekgajek.kapelusz.app.generated.guest_name
-import com.jacekgajek.kapelusz.app.generated.ok
-import com.jacekgajek.kapelusz.app.generated.participants
-import com.jacekgajek.kapelusz.app.generated.participants_count
+import com.jacekgajek.kapelusz.app.generated.guest_removed
 import com.jacekgajek.kapelusz.app.generated.lineup_add
 import com.jacekgajek.kapelusz.app.generated.lineup_changed
-import com.jacekgajek.kapelusz.app.generated.lineup_start_from
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.GroupAdd
 import com.jacekgajek.kapelusz.app.generated.lineup_not_taking_part
-import com.jacekgajek.kapelusz.app.ui.components.Crowd
-import com.jacekgajek.kapelusz.domain.Lineup
-import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
-import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
-import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
-import com.jacekgajek.kapelusz.app.ui.model.partyName
-import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
-import com.jacekgajek.kapelusz.ops.AddGuest
-import com.jacekgajek.kapelusz.ops.ChangeLineup
-import androidx.compose.runtime.key
-import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
-import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.generated.lineup_start_from
+import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
+import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.participant_removed
-import com.jacekgajek.kapelusz.app.generated.guest_removed
-import com.jacekgajek.kapelusz.model.Guest
-import com.jacekgajek.kapelusz.ops.AddParticipant
-import com.jacekgajek.kapelusz.ops.Limits
-import com.jacekgajek.kapelusz.ops.RemoveParticipant
-import com.jacekgajek.kapelusz.ops.SetWeight
+import com.jacekgajek.kapelusz.app.generated.participants
+import com.jacekgajek.kapelusz.app.generated.participants_count
+import com.jacekgajek.kapelusz.app.generated.participants_guests
 import com.jacekgajek.kapelusz.app.generated.share_resulting
 import com.jacekgajek.kapelusz.app.generated.share_resulting_one
+import com.jacekgajek.kapelusz.app.ui.components.Avatar
+import com.jacekgajek.kapelusz.app.ui.components.Crowd
+import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
+import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.FormerMember
+import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
+import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
+import com.jacekgajek.kapelusz.app.ui.components.NotInAppIcon
+import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
+import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.ShareMode
-import com.jacekgajek.kapelusz.app.ui.components.shareText
-import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
+import com.jacekgajek.kapelusz.app.ui.components.shareText
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.model.partyName
+import com.jacekgajek.kapelusz.domain.Lineup
 import com.jacekgajek.kapelusz.domain.SettlementCalculator
+import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
+import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.ops.AddGuest
+import com.jacekgajek.kapelusz.ops.AddParticipant
+import com.jacekgajek.kapelusz.ops.ChangeLineup
+import com.jacekgajek.kapelusz.ops.Limits
+import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.SetFixedShare
+import com.jacekgajek.kapelusz.ops.SetMemberArchived
+import com.jacekgajek.kapelusz.ops.SetWeight
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -151,16 +151,20 @@ fun ParticipantsSection(context: EventContext) {
     val picker = notTakingPart.isNotEmpty() && (!chips || empty)
     if (canManage) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
-            if (empty) AssistChip(
-                onClick = { choosingSource = true },
-                label = { Text(stringResource(Res.string.lineup_start_from)) },
-                leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
-            )
-            if (picker) AssistChip(
-                onClick = { picking = true },
-                label = { Text(stringResource(Res.string.lineup_add, notTakingPart.size)) },
-                leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
-            )
+            if (empty) {
+                AssistChip(
+                    onClick = { choosingSource = true },
+                    label = { Text(stringResource(Res.string.lineup_start_from)) },
+                    leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
+                )
+            }
+            if (picker) {
+                AssistChip(
+                    onClick = { picking = true },
+                    label = { Text(stringResource(Res.string.lineup_add, notTakingPart.size)) },
+                    leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
+                )
+            }
             AssistChip(
                 onClick = { addingGuest = true },
                 label = { Text(stringResource(Res.string.add_guest)) },
@@ -223,11 +227,17 @@ private fun ParticipantRow(context: EventContext, participant: Participant, canM
             Modifier.weight(1f).let { if (invite != null) it.clickable(onClickLabel = inviteLabel, onClick = invite) else it },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-        if (guest) GuestIcon() else if (notInApp) NotInAppIcon() else Avatar(name, band.member(partyId)?.pictureUrl, decorative = true)
-        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(name)
-            share?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
+            if (guest) {
+                GuestIcon()
+            } else if (notInApp) {
+                NotInAppIcon()
+            } else {
+                Avatar(name, band.member(partyId)?.pictureUrl, decorative = true)
+            }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(name)
+                share?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
         }
         if (canManage) {
             EditButton(name, onEdit)
@@ -251,16 +261,20 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
                 // Probably the member, typed as a guest (ITERATION_5 §12): offered as a participant; a guest still possible.
                 val former = context.band.formerMemberNamed(name)
                 // Or someone who used to be in the band: welcomed back, and into this event.
-                if (former != null) FormerMember(former, context.actions) {
-                    // Viewers only watch: restored, but not in the event.
-                    if (former.role != Role.VIEWER && context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed, former.sharePercent))
-                    onDismiss()
+                if (former != null) {
+                    FormerMember(former, context.actions) {
+                        // Viewers only watch: restored, but not in the event.
+                        if (former.role != Role.VIEWER && context.event.participant(former.id) == null) context.actions.run(AddParticipant(context.event.id, former.id, former.shareWeight, former.shareFixed, former.sharePercent))
+                        onDismiss()
+                    }
                 }
                 context.band.memberNamed(name)?.takeIf { name.isNotBlank() && !it.archived }?.let { member ->
                     Text(stringResource(Res.string.guest_is_member, member.name), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                    if (context.event.participant(member.id) == null) TextButton(onClick = {
-                        if (context.actions.run(AddParticipant(context.event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent))) onDismiss()
-                    }) { Text(stringResource(Res.string.guest_add_member_instead, member.name)) }
+                    if (context.event.participant(member.id) == null) {
+                        TextButton(onClick = {
+                            if (context.actions.run(AddParticipant(context.event.id, member.id, member.shareWeight, member.shareFixed, member.sharePercent))) onDismiss()
+                        }) { Text(stringResource(Res.string.guest_add_member_instead, member.name)) }
+                    }
                 }
                 ShareEditor(editor, context.currency, percentTaken(context.event, NEW_GUEST)) {
                     val guest = editor.applyTo(Participant(NEW_GUEST))
@@ -276,11 +290,15 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
                 onClick = { if (onAdd(name.trim(), editor.applyTo(Participant(NEW_GUEST)))) onDismiss() },
             ) {
                 val member = context.band.memberNamed(name)?.takeIf { name.isNotBlank() }
-                Text(stringResource(when {
-                    member == null -> Res.string.ok
-                    member.archived -> Res.string.guest_add_as_guest
-                    else -> Res.string.guest_add_anyway
-                }))
+                Text(
+                    stringResource(
+                        when {
+                            member == null -> Res.string.ok
+                            member.archived -> Res.string.guest_add_as_guest
+                            else -> Res.string.guest_add_anyway
+                        },
+                    ),
+                )
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
@@ -291,8 +309,7 @@ private fun GuestDialog(context: EventContext, onDismiss: () -> Unit, onAdd: (St
 private const val NEW_GUEST = "new-guest"
 
 /** What the percentages of everyone but [partyId], the fund's included, already take of the profit (ITERATION_7 §6). */
-private fun percentTaken(event: Event, partyId: String): Int =
-    event.participants.filter { it.partyId != partyId }.sumOf { it.percent ?: 0 } + (event.fundPercent ?: 0)
+private fun percentTaken(event: Event, partyId: String): Int = event.participants.filter { it.partyId != partyId }.sumOf { it.percent ?: 0 } + (event.fundPercent ?: 0)
 
 /** What [partyId]'s share comes to in [preview]; by shares, also what one share does. */
 @Composable
@@ -323,7 +340,9 @@ private fun ShareDialog(context: EventContext, participant: Participant, onDismi
     val target = editor.applyTo(participant)
     val ops = when {
         !editor.valid || target == participant -> emptyList()
+
         participant.byWeight && target.byWeight -> listOf(SetWeight(event.id, participant.partyId, target.weight))
+
         else -> listOf(
             SetFixedShare(event.id, participant.partyId, target.fixedShare, target.weight.takeIf { it != participant.weight }, target.percent),
         )

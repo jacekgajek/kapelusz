@@ -25,16 +25,22 @@ enum class RejectionReason {
     NO_TREASURER,
     TREASURER_MUST_STAY,
     ARCHIVED_MEMBER,
+
     /** Archived events are read-only: restore it first (ITERATION_3 R10). */
     ARCHIVED_EVENT,
+
     /** Only settled events and drafts can be archived. */
     EVENT_UNSETTLED,
+
     /** Artists never hold money: no collected money, no band fund (ITERATION_4 §1.1). */
     ARTIST_HOLDS_NO_MONEY,
+
     /** Viewers see the band's money but take no part in events. */
     VIEWER_NOT_PARTICIPANT,
+
     /** Someone still playing in an unsettled event, or holding the band fund, cannot become a viewer (V5-M1 B2). */
     VIEWER_STILL_PLAYS,
+
     /** Someone holding money in an unsettled event, or the band fund, cannot become an artist. */
     HOLDS_MONEY,
     OWNER_ROLE_FIXED,
@@ -58,8 +64,10 @@ enum class RejectionReason {
     NOT_UNDOABLE,
     CHANGED_SINCE,
     LIMIT_REACHED,
+
     /** The device could not store it (full, or its storage failed); only ever reported locally. */
     STORAGE_FAILED,
+
     /** Someone in a pair or with an invitation waiting, or who can't settle together (ITERATION_5 §7). */
     CANNOT_SETTLE_TOGETHER,
 }
@@ -70,8 +78,7 @@ data class Rejection(val code: RejectionCode, val message: String, val reason: R
 
 class RejectedException(val rejection: Rejection) : Exception(rejection.message)
 
-internal fun reject(code: RejectionCode, reason: RejectionReason, message: String): Nothing =
-    throw RejectedException(Rejection(code, message, reason))
+internal fun reject(code: RejectionCode, reason: RejectionReason, message: String): Nothing = throw RejectedException(Rejection(code, message, reason))
 
 internal fun invalidIf(condition: Boolean, reason: RejectionReason, message: () -> String) {
     if (condition) reject(RejectionCode.INVALID, reason, message())
@@ -81,5 +88,4 @@ internal fun conflictIf(condition: Boolean, reason: RejectionReason, message: ()
     if (condition) reject(RejectionCode.CONFLICT, reason, message())
 }
 
-internal fun <T : Any> T?.orNotFound(what: () -> String): T =
-    this ?: reject(RejectionCode.NOT_FOUND, RejectionReason.NOT_FOUND, "${what()} not found")
+internal fun <T : Any> T?.orNotFound(what: () -> String): T = this ?: reject(RejectionCode.NOT_FOUND, RejectionReason.NOT_FOUND, "${what()} not found")

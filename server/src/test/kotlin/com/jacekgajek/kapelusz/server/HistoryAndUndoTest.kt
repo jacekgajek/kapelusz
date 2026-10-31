@@ -30,25 +30,25 @@ import com.jacekgajek.kapelusz.ops.RejectionReason
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import com.jacekgajek.kapelusz.ops.Undo
-import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.KSerializer
 
 /** The history byte budget, logs without changes, and how the server resolves undos from its log (ITERATION_3 R14). */
 class HistoryAndUndoTest {
     private val store = InMemoryBlobStore()
+
     /** In 2026-09; every push one millisecond later, so the log's order is the order of the pushes. */
     private var now = 1_790_000_000_000
     private val history = InMemoryHistoryStore()
     private val api = Api(store, history, { token -> VerifiedUser(token, null, null) }, clock = { now })
     private var seq = 0L
 
-    private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap(), api: Api = this.api) =
-        api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
+    private fun call(method: String, path: String, user: String, body: String? = null, query: Map<String, String> = emptyMap(), api: Api = this.api) = api.handle(HttpRequest(method, path, mapOf("authorization" to "Bearer $user"), body, query))
 
     private fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
         assertEquals(200, status, body)
@@ -57,12 +57,20 @@ class HistoryAndUndoTest {
 
     private fun push(user: String, vararg ops: Operation, bandId: String = "band1"): PushResponse {
         now++
-        val request = PushRequest(ops.map { seq++; OpEnvelope("op$seq", "phone", seq, 0, it) })
+        val request = PushRequest(
+            ops.map {
+                seq++
+                OpEnvelope("op$seq", "phone", seq, 0, it)
+            },
+        )
         return call("POST", "/bands/$bandId/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), request)).parse(PushResponse.serializer())
     }
 
     private fun createBand(bandId: String = "band1") = call(
-        "POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, "Night Owls", "PLN", "m-alice", "Alice")),
+        "POST",
+        "/bands",
+        "alice",
+        KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, "Night Owls", "PLN", "m-alice", "Alice")),
     ).parse(com.jacekgajek.kapelusz.api.BandStateResponse.serializer())
 
     /** Links [userId] to [memberId] the way an accepted invite does. */
@@ -73,9 +81,8 @@ class HistoryAndUndoTest {
         store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(Band.serializer(), linked), ifMatch = blob.etag)
     }
 
-    private fun log(user: String = "alice", month: String = "2026-09", before: String? = null, api: Api = this.api) =
-        call("GET", "/bands/band1/log", user, query = mapOfNotNull("month" to month, before?.let { "before" to it }), api = api)
-            .parse(HistoryResponse.serializer())
+    private fun log(user: String = "alice", month: String = "2026-09", before: String? = null, api: Api = this.api) = call("GET", "/bands/band1/log", user, query = mapOfNotNull("month" to month, before?.let { "before" to it }), api = api)
+        .parse(HistoryResponse.serializer())
 
     private fun mapOfNotNull(vararg pairs: Pair<String, String>?) = pairs.filterNotNull().toMap()
 
@@ -100,8 +107,7 @@ class HistoryAndUndoTest {
     }
 
     /** Stores [content] as the only operation of the push [name], the way the server records one. */
-    private fun record(bandId: String, name: String, vararg content: String) =
-        history.put(bandId, content.mapIndexed { index, it -> HistoryRecord("$name#${index.toString().padStart(3, '0')}", it) })
+    private fun record(bandId: String, name: String, vararg content: String) = history.put(bandId, content.mapIndexed { index, it -> HistoryRecord("$name#${index.toString().padStart(3, '0')}", it) })
 
     private fun undo(entry: String?, undoneOpId: String = "op2") = Undo(undoneOpId, RenameBand("claimed"), BandChange(BandPart(), BandPart()), entry)
 

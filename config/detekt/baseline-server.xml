@@ -1,0 +1,258 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:BlobStore.kt:S3BlobStore$e.statusCode() == 412 || e.statusCode() == 409 || (e.statusCode() == 404 &amp;&amp; ifMatch != null)</ID>
+    <ID>ComplexCondition:InviteHandlers.kt:InviteHandlers$issuer == null || issuer.archived || !issuer.role.atLeast(Role.LEAD) || member == null || member.archived</ID>
+    <ID>ExplicitItLambdaMultipleParameters:HistoryAndUndoTest.kt:HistoryAndUndoTest${ index, it -> HistoryRecord("$name#${index.toString().padStart(3, '0')}", it) }</ID>
+    <ID>LoopWithTooManyJumpStatements:CalendarFeed.kt:CalendarFeed$for</ID>
+    <ID>MatchingDeclarationName:ApiSupport.kt:ApiError : RuntimeException</ID>
+    <ID>MaxLineLength:Api.kt:Api$if (!revocations.isValid(user.userId, since)) throw ApiError(401, ApiErrors.SESSIONS_REVOKED, "Signed out on all devices; sign in again")</ID>
+    <ID>MaxLineLength:Api.kt:Api$private val bandHandlers = BandHandlers(store, clock, maxBandBytes, bands, users, history, invites, attachments, linkPages, messenger, deletions)</ID>
+    <ID>MaxLineLength:Api.kt:Api$private val deletions = BandDeletions(store, clock, bands, users, invites, linkPages, history, messenger).also { bands.whenDue = it::deleteNow }</ID>
+    <ID>MaxLineLength:Api.kt:Api.Companion$fun</ID>
+    <ID>MaxLineLength:ApiSupport.kt:internal</ID>
+    <ID>MaxLineLength:ApiSupport.kt:internal fun &lt;T> ok</ID>
+    <ID>MaxLineLength:ApiSupport.kt:internal fun error</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$(1..n).map { OpEnvelope("u$it", "phone", 900L + it, 0, Undo("x$it", RenameBand("x"), BandChange(BandPart(), BandPart()), "2026-01/1-00000000-0000-0000-0000-000000000000.json")) }</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest(bandId, "Night Owls", "PLN", "m-$user", user.replaceFirstChar { it.uppercase() }))</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "d".repeat(400))))))</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("c$i", "phone", 100L + i, 0, AddCost("c$i", "m-alice", com.jacekgajek.kapelusz.model.Money(100), LocalDate(2026, 9, 1), description = "字".repeat(150))))))</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$PushRequest(listOf(OpEnvelope("a", "phone", 1, 1, RenameBand("Renamed")), OpEnvelope("b", "phone", 2, 2, AddMember("bob", "Bob"))))</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$assertEquals(400, pushAs("alice", OpEnvelope("a", "phone", 1, 1, RenameBand("X")), OpEnvelope("b", "tablet", 1, 1, RenameBand("Y"))).status)</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band1")).content).memberOfUser("alice")?.pictureUrl)</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$assertEquals(photo, KapeluszJson.decodeFromString(Band.serializer(), store.objects.getValue(StorageKeys.band("band2")).content).memberOfUser("alice")?.pictureUrl)</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$assertTrue(call("GET", "/me", "bob").parse(com.jacekgajek.kapelusz.api.MeResponse.serializer()).bands.none { it.id == "shared" }, "archived: not listed")</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$fun send</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$private fun call</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$push("shared", "alice", com.jacekgajek.kapelusz.ops.SetMemberArchived("m-bob", false), com.jacekgajek.kapelusz.ops.UnlinkUser("m-bob"))</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$repeat(Api.MAX_DEVICES_PER_USER) { i -> assertEquals(200, pushAs("alice", OpEnvelope("op$i", "device-$i", 1, 1, RenameBand("N$i"))).status) }</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$val body = KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("a", "phone", 1, 1, RenameBand("X")))))</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$val google = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token.removeSuffix("-google"), null, null, picture = photo.takeIf { token.endsWith("-google") }) }, clock = { 1_790_000_000_000 })</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$val other = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null, picture = "https://evil.example/x.png") }, clock = { 1_790_000_000_000 })</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$val rejected = (1..10).map { add(it) }.map { KapeluszJson.decodeFromString(PushResponse.serializer(), it.body!!) }.count { it.rejected.isNotEmpty() }</ID>
+    <ID>MaxLineLength:ApiTest.kt:ApiTest$val small = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { 1_790_000_000_000 }, maxBandBytes = 3_000)</ID>
+    <ID>MaxLineLength:AppVersionTest.kt:AppVersionTest$HttpRequest("GET", "/me", mapOf("authorization" to "Bearer alice"), query = version?.let { mapOf(ApiErrors.APP_VERSION_PARAMETER to it) } ?: emptyMap())</ID>
+    <ID>MaxLineLength:AttachmentHandlers.kt:AttachmentHandlers$val presigned = store.presignPut(key, attachment.kind.contentType, attachment.sizeBytes ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "No size"))</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$assertEquals("memory://get/bands/band1/attachments/rider.pdf", call("GET", "/bands/band1/attachments/rider", "bob").parse(AttachmentUrlResponse.serializer()).url)</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-alice", Money(200000), com.jacekgajek.kapelusz.model.IncomeSource.CONTRACT)</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice")))</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$private fun call</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), linked), ifMatch = etag)</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val linked = (com.jacekgajek.kapelusz.ops.Engine.apply(band, com.jacekgajek.kapelusz.auth.Actor.System, LinkUser("m-bob", "bob", Role.VIEWER), "link", 0) as com.jacekgajek.kapelusz.ops.ApplyResult.Applied).band</ID>
+    <ID>MaxLineLength:AttachmentTest.kt:AttachmentTest$val tooLarge = push("alice", AddAttachment("c1", Attachment("big", AttachmentKind.IMAGE, "x.jpg", AttachmentKind.IMAGE.maxBytes + 1)))</ID>
+    <ID>MaxLineLength:Auth.kt:GoogleTokenVerifier$if (claims.audience.none { it in clientIds } || claims.issuer !in ISSUERS || claims.subject == null) throw BadJWTException("Not a token of this app")</ID>
+    <ID>MaxLineLength:BandDeletions.kt:BandDeletions$store.put(StorageKeys.SCHEDULED_DELETIONS, encode(ScheduledDeletions.serializer(), ScheduledDeletions(updated)), ifMatch = blob?.etag, ifNoneMatch = blob == null)</ID>
+    <ID>MaxLineLength:BandDeletions.kt:BandDeletions$val band = bands.load(bandId, deleteIfDue = false)?.first?.takeIf { it.deletion.let { d -> d != null &amp;&amp; d.deleteAt &lt;= clock() } } ?: return</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$Limits.violation(draft.copy(name = "", members = emptyList()), draft)?.let { throw ApiError(400, ApiErrors.BAD_REQUEST, it.message) }</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$Rejection(RejectionCode.CONFLICT, "The band would be too large; remove old entries or attachments", RejectionReason.LIMIT_REACHED)</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$fun</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$if (result.band != band) runCatching { messenger?.bandChanged(bandId, band.messagedUsers() + result.band.messagedUsers(), from) }</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$val</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$val draft = Band.create(request.bandId, request.name.trim(), request.currency, request.ownerMemberId, request.ownerName.trim(), user.userId)</ID>
+    <ID>MaxLineLength:BandHandlers.kt:BandHandlers$val unlinkedMembers = envelopes.filter { it.opId in result.accepted }.map { it.op }.mapNotNull { (it as? UnlinkUser)?.memberId }</ID>
+    <ID>MaxLineLength:BlobStore.kt:S3BlobStore$override</ID>
+    <ID>MaxLineLength:BlobStore.kt:TimedBlobStore$override fun put: String</ID>
+    <ID>MaxLineLength:CalendarFeed.kt:CalendarFeed$private</ID>
+    <ID>MaxLineLength:CalendarFeed.kt:CalendarFeed$return if (hour &lt; 24) LocalDateTime(start.date, LocalTime(hour, start.minute)) else LocalDateTime(start.date.plus(DatePeriod(days = 1)), LocalTime(0, start.minute))</ID>
+    <ID>MaxLineLength:CalendarFeed.kt:CalendarFeed$val description = listOfNotNull(agenda.ifEmpty { null }, event.notes, "${band.name} · ${EventLinks.url(webUrl, event.id)}").joinToString("\n\n")</ID>
+    <ID>MaxLineLength:CalendarHandlers.kt:CalendarHandlers$if (secret != current?.secret) store.put(StorageKeys.calendarSecret(secret), encode(CalendarOwner.serializer(), CalendarOwner(user.userId)))</ID>
+    <ID>MaxLineLength:CalendarHandlers.kt:CalendarHandlers$private fun newSecret: String</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$CreateEvent("one", "Radio", LocalDate(2026, 10, 30), location = "Klub Stodoła, Batorego 10, 02-591 Warszawa", participants = listOf(Participant("m-alice")), agenda = listOf(AgendaTime("s", AgendaKind.CONCERT_START, time = LocalTime(23, 30))))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0)), AgendaTime("e", label = "End", time = LocalTime(1, 30)))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$assertTrue("URL:https://www.google.com/maps/dir/?api=1&amp;destination=Klub%20Stodo%C5%82a%2C%20Batorego%2010%2C%2002-591%20Warszawa\r\n" in ics, "directions to the location, unescaped (a URI) and unfolded back whole")</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$assertTrue("· https://kapelusz.jacekgajek.com/e/one" in ics.substringAfter("UID:one@kapelusz").substringAfter("DESCRIPTION:").substringBefore("\r\n"), "the event's own link in its description")</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$b.copy(events = listOf(com.jacekgajek.kapelusz.model.Event("x\r\nURL:https://evil", "Gig", LocalDate(2026, 10, 25), participants = listOf(Participant("m")))))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("same", "phone", 100, 1, gig)))))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$com.jacekgajek.kapelusz.model.Event("mine", "Carol plays", LocalDate(2026, 10, 25), participants = listOf(Participant("c")))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$com.jacekgajek.kapelusz.model.Event("other", "Alice alone", LocalDate(2026, 10, 26), participants = listOf(Participant("m")))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$members = b.members + com.jacekgajek.kapelusz.model.Member("c", "Carol", userId = "carol", role = com.jacekgajek.kapelusz.model.Role.ARTIST)</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$store.put(StorageKeys.band("band1"), KapeluszJson.encodeToString(com.jacekgajek.kapelusz.model.Band.serializer(), removed), ifMatch = etag)</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$val (band, etag) = store.get(StorageKeys.band("band1"))!!.let { KapeluszJson.decodeFromString(com.jacekgajek.kapelusz.model.Band.serializer(), it.content) to it.etag }</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$val ics = CalendarFeed.build(listOf(band), "alice", false, LocalDate(2026, 10, 21), "https://web", kotlinx.datetime.LocalDateTime(2026, 10, 21, 12, 0))</ID>
+    <ID>MaxLineLength:CalendarTest.kt:CalendarTest$val ics = CalendarFeed.build(listOf(band), "carol", true, LocalDate(2026, 10, 21), "https://web", kotlinx.datetime.LocalDateTime(2026, 10, 21, 12, 0))</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$assertEquals(BandDeletion("m-alice", now, now + BandDeletion.DELAY_MS), state("bob").deletion, "the band works on, saying when it goes")</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$assertEquals(ScheduledDeletions(), KapeluszJson.decodeFromString(ScheduledDeletions.serializer(), store.get(StorageKeys.SCHEDULED_DELETIONS)!!.content))</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$fun invite</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$fun waiting</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$private fun call</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$private fun push</ID>
+    <ID>MaxLineLength:DeleteBandTest.kt:DeleteBandTest$private fun state</ID>
+    <ID>MaxLineLength:Devices.kt:DeviceHandlers$return ok(DeviceRegistrationResponse.serializer(), DeviceRegistrationResponse(messaging = inBand &amp;&amp; runCatching { messaging() }.getOrDefault(false)))</ID>
+    <ID>MaxLineLength:Devices.kt:DeviceRegistry$fun remove</ID>
+    <ID>MaxLineLength:Devices.kt:DeviceRegistry$private fun load: Pair&lt;StoredDevices, String>?</ID>
+    <ID>MaxLineLength:FcmSenderTest.kt:FcmSenderTest$"\"garbled\"" in body -> 400 to """{"error":{"status":"INVALID_ARGUMENT","message":"The registration token is not a valid FCM registration token"}}"""</ID>
+    <ID>MaxLineLength:FcmSenderTest.kt:FcmSenderTest$mapOf("good" to SendResult.SENT, "gone" to SendResult.INVALID_TOKEN, "garbled" to SendResult.INVALID_TOKEN, "broken" to SendResult.FAILED, "slow" to SendResult.FAILED)</ID>
+    <ID>MaxLineLength:FcmSenderTest.kt:FcmSenderTest$val body = (if (refuseSignIn) """{"error":"invalid_grant"}""" else """{"access_token":"at-1","expires_in":3600}""").toByteArray()</ID>
+    <ID>MaxLineLength:FcmSenderTest.kt:FcmSenderTest$val pem = "-----BEGIN PRIVATE KEY-----\n" + Base64.getMimeEncoder().encodeToString(keys.private.encoded) + "\n-----END PRIVATE KEY-----\n"</ID>
+    <ID>MaxLineLength:GeocodeCache.kt:DynamoGeocodeCache$var wanted: Map&lt;String, KeysAndAttributes> = mapOf(table to KeysAndAttributes.builder().keys(chunk.map { mapOf(KEY to text(it)) }).build())</ID>
+    <ID>MaxLineLength:GeocodeCache.kt:GeocodeCache.Companion$fun</ID>
+    <ID>MaxLineLength:GeocodeCache.kt:InMemoryGeocodeCache$answers[key]?.takeIf { (at, savedAt) -> at != null || clock() - savedAt &lt; GeocodeCache.NOT_FOUND_DAYS * DAY_MS }?.let { key to it.first }</ID>
+    <ID>MaxLineLength:GoogleTokenVerifierTest.kt:GoogleTokenVerifierTest$VerifiedUser("google-sub-1", "alice@example.com", "Alice", "https://lh3.googleusercontent.com/a/alice=s96-c", issuedAt = ISSUED_AT)</ID>
+    <ID>MaxLineLength:GoogleTokenVerifierTest.kt:GoogleTokenVerifierTest$assertEquals("https://lh3.googleusercontent.com/a/alice=s96-c", verifier.pictureOf(old, "google-sub-1"), "but its photo is still Alice's")</ID>
+    <ID>MaxLineLength:GoogleTokenVerifierTest.kt:GoogleTokenVerifierTest$assertNull(verifier.pictureOf(token(signingKey = RSAKeyGenerator(2048).keyID("k1").generate()), "google-sub-1"), "not signed by Google")</ID>
+    <ID>MaxLineLength:HandlerTest.kt:HandlerTest$private val bigJson = HttpResponse(200, """{"events":[${(1..200).joinToString(",") { "\"event $it\"" }}]}""", mapOf("content-type" to "application/json"))</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$assertEquals(400, call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "2", "before" to "1")).status)</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$assertEquals(400, call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to months)).status, months)</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$assertEquals(404, call("GET", "/bands/band1/log", "bob", query = mapOf("month" to "2026-09", "months" to "3")).status, "members only")</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$fun</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$private</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$private fun call</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$private fun undo</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$return call("POST", "/bands/$bandId/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), request)).parse(PushResponse.serializer())</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$val entry = HistoryEntry("alice", "m-alice", at, listOf(OpEnvelope("seeded$at", "alice/phone", at, at, RenameBand("x".repeat(chars)))), changes)</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "2")).parse(HistoryResponse.serializer())</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$val page = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "months" to "3")).parse(HistoryResponse.serializer())</ID>
+    <ID>MaxLineLength:HistoryAndUndoTest.kt:HistoryAndUndoTest$val turn = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2027-01", "months" to "2")).parse(HistoryResponse.serializer())</ID>
+    <ID>MaxLineLength:HistoryHandlers.kt:HistoryHandlers$?:</ID>
+    <ID>MaxLineLength:HistoryHandlers.kt:HistoryHandlers$if (entries.size == Api.HISTORY_PAGE || (last != null &amp;&amp; bytes + push.bytes > budget)) return Page(entries, last!!.removePrefix(prefix))</ID>
+    <ID>MaxLineLength:HistoryHandlers.kt:HistoryHandlers$val kept = recorded.takeIf { encode(MapSerializer(String.serializer(), BandChange.serializer()), it).utf8Size() &lt;= MAX_LOGGED_CHANGES } ?: emptyMap()</ID>
+    <ID>MaxLineLength:HistoryHandlers.kt:HistoryHandlers$val part = HistoryEntry(user.userId, memberId, now, listOf(envelope), kept[envelope.opId]?.let { mapOf(envelope.opId to it) } ?: emptyMap())</ID>
+    <ID>MaxLineLength:HistoryHandlers.kt:HistoryHandlers.Companion$private</ID>
+    <ID>MaxLineLength:HistoryStore.kt:DynamoHistoryStore$WriteRequest.builder().deleteRequest(DeleteRequest.builder().key(mapOf(BAND to text(bandId), KEY to text(key))).build()).build()</ID>
+    <ID>MaxLineLength:HistoryStore.kt:DynamoHistoryStore$val response = timer.timed { dynamo.batchWriteItem(BatchWriteItemRequest.builder().requestItems(mapOf(table to requests)).build()) }</ID>
+    <ID>MaxLineLength:InMemoryBlobStore.kt:InMemoryBlobStore$override fun presignPut</ID>
+    <ID>MaxLineLength:InMemoryHistoryStore.kt:InMemoryHistoryStore$override fun newestFirst: Sequence&lt;HistoryRecord></ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$OpEnvelope("account", "phone", 3, 0, com.jacekgajek.kapelusz.ops.SetBankAccount("m-alice", "61 1090 1014 0000 0712 1981 2874"))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$assertEquals(400, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("same", "phone", 20, 0, RenameBand("a")), OpEnvelope("same", "phone", 21, 0, RenameBand("b")))))).status, "op ids are unique in a push")</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$assertEquals(listOf(info.code), call("GET", "/bands/band1/invites", "alice").parse(InvitesResponse.serializer()).invites.map { it.code })</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op1", "phone", 1, 1, AddMember("m-bob", "Bob"))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op2", "phone", 2, 2, AddMember("m-carol", "Carol"))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op3", "phone", 3, 3, SetMemberRole("m-carol", Role.LEAD))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op4", "phone", 4, 4, SetMemberRole("m-carol", Role.MEMBER))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op5", "phone", 5, 5, SetMemberArchived("m-bob", true))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op9", "phone", 9, 9, SetMemberArchived("m-bob", true))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op9", "phone", 9, 9, UnlinkUser("m-bob"))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("r$i", "phone", 2L + i, 0, RenameBand("Name $i"))))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$fun</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$fun push</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$private fun call</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$private fun invite</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$push("e", 2, com.jacekgajek.kapelusz.ops.CreateEvent("gig", "Gig", kotlinx.datetime.LocalDate(2026, 10, 1), participants = listOf(com.jacekgajek.kapelusz.model.Participant("m-alice"), com.jacekgajek.kapelusz.model.Participant("m-bob"))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$push("h", 3, com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "m-bob", com.jacekgajek.kapelusz.model.Money(10000), com.jacekgajek.kapelusz.model.IncomeSource.DOOR))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$runCatching { Api(failing, InMemoryHistoryStore(), { VerifiedUser(it, null, null) }, clock = { now }).handle(HttpRequest("POST", "/invites/$code/accept", mapOf("authorization" to "Bearer bob"))) }</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$store.put(StorageKeys.bandInvites("band1"), KapeluszJson.encodeToString(InviteCodes.serializer(), InviteCodes(listOf(leftover.code))))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$store.put(StorageKeys.invite(leftover.code), KapeluszJson.encodeToString(StoredInvite.serializer(), StoredInvite(leftover, "alice")))</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$val attempts = KapeluszJson.decodeFromString(JoinAttempts.serializer(), store.objects.getValue(StorageKeys.joinAttempts("mallory")).content)</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$val entry = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09")).parse(HistoryResponse.serializer()).entries.first()</ID>
+    <ID>MaxLineLength:InviteAndHistoryTest.kt:InviteAndHistoryTest$val second = call("GET", "/bands/band1/log", "alice", query = mapOf("month" to "2026-09", "before" to first.next!!)).parse(HistoryResponse.serializer())</ID>
+    <ID>MaxLineLength:InviteHandlers.kt:InviteHandlers$fun</ID>
+    <ID>MaxLineLength:InviteHandlers.kt:InviteHandlers$private fun load: StoredInvite?</ID>
+    <ID>MaxLineLength:InviteHandlers.kt:InviteHandlers$private fun newCode: String</ID>
+    <ID>MaxLineLength:InviteHandlers.kt:InviteHandlers$runCatching { history.append(user, linked, band.id, listOf(OpEnvelope("invite-${invite.code}", "server", 0, clock(), LinkUser(invite.memberId, user.userId, invite.role))), emptyMap()) }</ID>
+    <ID>MaxLineLength:InviteHandlers.kt:InviteHandlers$val</ID>
+    <ID>MaxLineLength:InviteHandlers.kt:InviteHandlers$val current = blob?.let { decode(JoinAttempts.serializer(), it.content) }?.takeIf { clock() - it.windowStart &lt; Api.ATTEMPT_WINDOW_MS }</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(delete))).status)</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$assertEquals(200, call("POST", "/bands/band1/ops", "alice", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(unlink))).status)</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$call("POST", "/bands", "bob", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band2", "Larks", "PLN", "m-bob2", "Bob")))</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(member, Role.MEMBER))).body!!</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$call("POST", "/me/calendar", user, KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), CalendarSubscriptionChange()))</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$private fun band</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$private fun call</ID>
+    <ID>MaxLineLength:LeaveBandTest.kt:LeaveBandTest$store.put("users/$user.json", KapeluszJson.encodeToString(UserRecord.serializer(), record.copy(pictureUrl = "https://lh3.googleusercontent.com/a/$user")), ifMatch = blob.etag)</ID>
+    <ID>MaxLineLength:LinkPages.kt:LinkPages$internal</ID>
+    <ID>MaxLineLength:LinkPages.kt:LinkPages$private fun pointer: String?</ID>
+    <ID>MaxLineLength:LinkPages.kt:LinkPages$return HttpResponse(200, if (card == null) html else withCard(html, card.title, card.description), mapOf("content-type" to "text/html; charset=utf-8", "cache-control" to cache))</ID>
+    <ID>MaxLineLength:LinkPages.kt:S3WebIndex$class</ID>
+    <ID>MaxLineLength:LinkPagesTest.kt:LinkPagesTest$KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("x1", "phone", 1, 1, CreateEvent("ev1", "Cancelled, refunds at evil.example", LocalDate(2026, 1, 1))))))</ID>
+    <ID>MaxLineLength:LinkPagesTest.kt:LinkPagesTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:LinkPagesTest.kt:LinkPagesTest$call("POST", "/bands", "mallory", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band2", "Spoof", "PLN", "m-mallory", "Mallory")))</ID>
+    <ID>MaxLineLength:LinkPagesTest.kt:LinkPagesTest$private fun call</ID>
+    <ID>MaxLineLength:LinkPagesTest.kt:LinkPagesTest$private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now }, webIndex = { index })</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$"OK"</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$PlaceAddress(null, first["formatted_address"]?.jsonPrimitive?.content, (first["address_components"] as? JsonArray).country("types", "long_name"))</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$return runCatching { parse(json.parseToJsonElement(response.body()).jsonObject) }.getOrElse { unavailable("Place search answered oddly") }</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$uri.rawQuery?.split('&amp;')?.firstOrNull { it.startsWith("continue=") }?.removePrefix("continue=")?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$val next = response.headers().firstValue("location").orElse(null)?.let { runCatching { uri.resolve(it).toString() }.getOrNull() } ?: return null</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$val query = listOfNotNull("latlng=$latitude,$longitude", language?.let { "language=$it" }, "key=" + URLEncoder.encode(apiKey, Charsets.UTF_8)).joinToString("&amp;")</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:GooglePlaceSearch$val request = java.net.http.HttpRequest.newBuilder(URI("https://maps.googleapis.com/maps/api/geocode/json?$query")).timeout(TIMEOUT).GET().build()</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$.</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$if (!band.memberOfUser(user.userId)!!.role.atLeast(Role.LEAD)) throw ApiError(403, ApiErrors.FORBIDDEN, "Only who edits events searches places")</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$if (answers.isNotEmpty()) runCatching { cache.put(answers) }.onFailure { System.err.println("Geocode cache unwritable: ${it.message}") }</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$if (search == null || cache == null) return ok(LocationsResponse.serializer(), LocationsResponse(located, pending = addresses.values.toList()))</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$located = located + addresses.mapNotNull { (key, location) -> known[key]?.let { LocatedPlace(location, it.latitude, it.longitude) } }</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$target.query?.startsWith("place_id:") == true</ID>
+    <ID>MaxLineLength:PlaceSearch.kt:PlacesHandlers$val place = search.details(placeId, request.language(), request.session()) ?: throw ApiError(404, ApiErrors.NOT_FOUND, "No such place")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$CreateEvent("e1", "Gig", LocalDate(2026, 5, 1), location = "Stodoła, Batorego 10, Warszawa", participants = listOf(Participant("m-alice"), Participant("m-bob")))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Hala Stulecia", text(resolve("alice", "https://www.google.com/maps/search/?api=1&amp;query=Hala+Stulecia")), "a searched text, read without following")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Ołówek, Legnicka 36, 53-673 Wrocław", text(call("alice", mapOf("lang" to "pl", "session" to "s-1"), path = "/bands/band1/places/olowek")))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Ołówek, Legnicka 36, 53-673 Wrocław", text(resolve("alice", "https://maps.app.goo.gl/olowek")), "a place: its name and the address at its pin")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Ołówek, Legnicka 36, 53-673 Wrocław", text(resolve("alice", "https://www.google.com/maps/search/?api=1&amp;query=place_id:olowek")), "a place by its id: its full address")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals("Somewhere, 10.500000, 20.250000", text(resolve("alice", "https://maps.app.goo.gl/sea")), "no address there: the name and the pin")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(listOf("Atlantis", "Broken", "Stodoła, Batorego 10, Warszawa"), located.sorted(), "each address once (spelling aside), the pin never")</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$assertEquals(listOf("Somewhere, 51.100000, 17.000000", "Stodoła, Batorego 10, Warszawa"), first.located.map { it.location }.sorted())</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$call("alice", emptyMap(), "POST", "/bands", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$call("alice", emptyMap(), "POST", "/bands/band1/ops", KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(listOf(OpEnvelope("op1", "phone", 1, 1, AddMember("m-bob", "Bob"))))))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$private fun api</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$private fun call</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$private fun locations</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$private fun push</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$private fun resolve</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, placeSearch = search, geocodeCache = broken)</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, placeSearch = search, geocodeCache = cache)</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest$val invite = call("alice", emptyMap(), "POST", "/bands/band1/invites", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest("m-bob", Role.MEMBER)))</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest.&lt;no name provided>$"https://maps.app.goo.gl/olowek" to "https://www.google.com/maps/place/O%C5%82%C3%B3wek/@51.11,17.0,17z/data=!3m1!4b1!8m2!3d51.1167!4d17.0012"</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest.&lt;no name provided>$"https://maps.app.goo.gl/pin" to "https://www.google.com/maps/place/52%C2%B013'47.0%22N+21%C2%B000'43.9%22E/@52.2297,21.0122,17z/data=!8m2!3d52.2297222!4d21.0121944"</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest.&lt;no name provided>$override fun address</ID>
+    <ID>MaxLineLength:PlacesTest.kt:PlacesTest.&lt;no name provided>$override fun details</ID>
+    <ID>MaxLineLength:SessionTest.kt:SessionTest$assertEquals(ApiErrors.UNAUTHORIZED, KapeluszJson.decodeFromString(ErrorResponse.serializer(), call("GET", "/me", "nonsense").body!!).error)</ID>
+    <ID>MaxLineLength:SessionTest.kt:SessionTest$assertEquals(now, KapeluszJson.decodeFromString(UserRecord.serializer(), store.get(StorageKeys.user("alice"))!!.content).sessionsValidFrom)</ID>
+    <ID>MaxLineLength:SessionTest.kt:SessionTest$private fun call</ID>
+    <ID>MaxLineLength:Sessions.kt:SessionRevocations$store.put(key, encode(UserRecord.serializer(), record.copy(sessionsValidFrom = now)), ifMatch = blob?.etag, ifNoneMatch = blob == null)</ID>
+    <ID>MaxLineLength:Sessions.kt:SessionTokens$private fun mac: ByteArray</ID>
+    <ID>MaxLineLength:Sessions.kt:SessionTokens$store.get(StorageKeys.SESSION_KEY)?.let { return@retryOnConflict Base64.getDecoder().decode(KapeluszJson.decodeFromString(StoredKey.serializer(), it.content).key) }</ID>
+    <ID>MaxLineLength:Sessions.kt:SessionTokens$store.put(StorageKeys.SESSION_KEY, KapeluszJson.encodeToString(StoredKey.serializer(), StoredKey(Base64.getEncoder().encodeToString(fresh))), ifNoneMatch = true)</ID>
+    <ID>MaxLineLength:Sessions.kt:SessionTokens$val</ID>
+    <ID>MaxLineLength:Storage.kt:StorageKeys$fun attachment</ID>
+    <ID>MaxLineLength:SyncMessages.kt:DeviceMessenger$runCatching { CompletableFuture.allOf(*reads.values.toTypedArray()).get((deadline - clock()).coerceAtLeast(1), TimeUnit.MILLISECONDS) }</ID>
+    <ID>MaxLineLength:SyncMessages.kt:DeviceMessenger$stored.filter { (_, devices) -> devices.any { !registry.fresh(it) } }.forEach { (userId, _) -> runCatching { registry.prune(userId) } }</ID>
+    <ID>MaxLineLength:SyncMessages.kt:FcmSender$response.statusCode() == 404 || (response.statusCode() == 400 &amp;&amp; "registration token" in response.body()) -> SendResult.INVALID_TOKEN</ID>
+    <ID>MaxLineLength:SyncMessages.kt:FcmSender$val form = "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:jwt-bearer", Charsets.UTF_8) + "&amp;assertion=" + jwt.serialize()</ID>
+    <ID>MaxLineLength:SyncMessages.kt:FcmSender.Companion$SignedJWT(JWSHeader.Builder(JWSAlgorithm.RS256).keyID("prime").build(), claims).apply { sign(RSASSASigner(keys.private)) }.serialize()</ID>
+    <ID>MaxLineLength:SyncMessages.kt:FcmSender.Companion$privateKey("-----BEGIN PRIVATE KEY-----\n" + Base64.getMimeEncoder().encodeToString(keys.private.encoded) + "\n-----END PRIVATE KEY-----")</ID>
+    <ID>MaxLineLength:SyncMessages.kt:StoredServiceAccount$class</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$assertEquals(200, call("POST", "/bands/band1/ops", user, KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(envelopes)), installation).status)</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$assertEquals(400, call("PUT", "/me/devices/bob-phone", "bob", KapeluszJson.encodeToString(DeviceRegistration.serializer(), DeviceRegistration("has spaces in it, not a token"))).status)</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$assertEquals(400, call("PUT", "/me/devices/x", "bob", KapeluszJson.encodeToString(DeviceRegistration.serializer(), DeviceRegistration("token-0123456789abcdef"))).status, "short id")</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$assertTrue("bob-device-11" in bobs.map { it.installationId } &amp;&amp; "bob-phone" !in bobs.map { it.installationId }, "the longest unseen gave way")</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$call("POST", "/bands", "alice", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band1", "Night Owls", "PLN", "m-alice", "Alice")))</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$call("POST", "/bands", "erin", KapeluszJson.encodeToString(CreateBandRequest.serializer(), CreateBandRequest("band2", "Larks", "PLN", "m-erin2", "Erin")))</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest("m-erin", Role.MEMBER))).body!!</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$call("POST", "/bands/band1/invites", "alice", KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(member, Role.LEAD))).body!!</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$private fun call</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$private val api = Api(store, InMemoryHistoryStore(), { token -> VerifiedUser(token, null, null) }, clock = { now }, messageSender = sender)</ID>
+    <ID>MaxLineLength:SyncMessagesTest.kt:SyncMessagesTest$val response = call("PUT", "/me/devices/$installation", user, KapeluszJson.encodeToString(DeviceRegistration.serializer(), DeviceRegistration(token)))</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$fun loadUser: UserRecord</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$fun pictureOf: String?</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$store.put(key, encode(UserRecord.serializer(), UserRecord(userId, sessionsValidFrom = record.sessionsValidFrom)), ifMatch = blob.etag)</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$store.put(key, encode(UserRecord.serializer(), record.copy(bandIds = record.bandIds + bandId)), ifMatch = blob?.etag, ifNoneMatch = blob == null)</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$store.put(key, encode(UserRecord.serializer(), record.copy(pictureUrl = url)), ifMatch = blob?.etag, ifNoneMatch = blob == null)</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$user.picture?.let { picture -> runCatching { rememberPicture(user.userId, picture) }.onFailure { System.err.println("Could not update the photo: $it") } }</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$user.sessionSince?.let { since -> if (clock() - since > SessionTokens.MAX_AGE_MS) throw ApiError(401, ApiErrors.UNAUTHORIZED, "Sign in again") }</ID>
+    <ID>MaxLineLength:UserHandlers.kt:UserHandlers$val picture = verifier.pictureOf(token, user.userId) ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "Not a Google sign-in token of this user")</ID>
+    <ID>NestedBlockDepth:GeocodeCache.kt:DynamoGeocodeCache$override fun get: Map&lt;String, Located?></ID>
+    <ID>SwallowedException:ApiSupport.kt:e: PreconditionFailed</ID>
+    <ID>SwallowedException:ApiSupport.kt:e: StackOverflowError</ID>
+    <ID>SwallowedException:Auth.kt:GoogleTokenVerifier$e: Exception</ID>
+    <ID>SwallowedException:BandHandlers.kt:BandHandlers$e: PreconditionFailed</ID>
+    <ID>SwallowedException:BlobStore.kt:S3BlobStore$e: NoSuchKeyException</ID>
+    <ID>SwallowedException:Handler.kt:Handler$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:LinkPages.kt:LinkPages$e: PreconditionFailed</ID>
+    <ID>SwallowedException:LinkPages.kt:S3WebIndex$e: NoSuchKeyException</ID>
+    <ID>ThrowsCount:Api.kt:Api$private fun authenticate: VerifiedUser</ID>
+    <ID>ThrowsCount:AttachmentHandlers.kt:AttachmentHandlers$fun upload: HttpResponse</ID>
+    <ID>ThrowsCount:BandHandlers.kt:BandHandlers$fun create: HttpResponse</ID>
+    <ID>ThrowsCount:InviteHandlers.kt:InviteHandlers$fun accept: HttpResponse</ID>
+    <ID>ThrowsCount:InviteHandlers.kt:InviteHandlers$fun create: HttpResponse</ID>
+    <ID>TooGenericExceptionCaught:Auth.kt:GoogleTokenVerifier$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Handler.kt:Handler$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HistoryHandlers.kt:HistoryHandlers$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LinkPages.kt:S3WebIndex$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

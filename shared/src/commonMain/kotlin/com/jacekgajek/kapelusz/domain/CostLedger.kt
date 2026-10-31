@@ -20,8 +20,7 @@ enum class CostStatus { PENDING, REFUND_PLANNED, PARTLY_REFUNDED, REFUNDED }
 object CostLedger {
 
     /** Total assigned to refunds so far: event refunds plus fund entries linked to the cost. */
-    fun refunded(band: Band, costId: Id): Money =
-        band.events.sumOfMoney { event -> event.refundOf(costId)?.amount ?: Money.ZERO } + fundRefunds(band, costId)
+    fun refunded(band: Band, costId: Id): Money = band.events.sumOfMoney { event -> event.refundOf(costId)?.amount ?: Money.ZERO } + fundRefunds(band, costId)
 
     /** Part of the cost not assigned to any refund yet. */
     fun outstanding(band: Band, cost: Cost): Money = cost.amount - refunded(band, cost.id)
@@ -40,26 +39,23 @@ object CostLedger {
     fun isRefundableAt(cost: Cost, event: Event): Boolean = event.participant(cost.memberId) != null
 
     /** Largest refund the event may give for the cost, counting refunds everywhere except this event. */
-    fun maxRefundAt(band: Band, cost: Cost, event: Event): Money =
-        outstanding(band, cost) + (event.refundOf(cost.id)?.amount ?: Money.ZERO)
+    fun maxRefundAt(band: Band, cost: Cost, event: Event): Money = outstanding(band, cost) + (event.refundOf(cost.id)?.amount ?: Money.ZERO)
 
     /**
      * Outstanding costs of this event's participants, oldest first: the "Waiting" list of the event's
      * Refunds section (ITERATION_4 §1.2). Also one refunded here in part, e.g. raised by its owner after it was
      * included: the rest waits for a lead.
      */
-    fun pendingFromEarlier(band: Band, event: Event): List<Cost> =
-        band.costs
-            .filter { isRefundableAt(it, event) && outstanding(band, it).isPositive }
-            .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
+    fun pendingFromEarlier(band: Band, event: Event): List<Cost> = band.costs
+        .filter { isRefundableAt(it, event) && outstanding(band, it).isPositive }
+        .sortedWith(compareBy<Cost> { it.date }.thenBy { it.createdAt })
 
     /**
      * A member may change their own cost only while no part of it is final: no refund in an event with
      * recorded transfers and no refund from the band fund. Leads are not bound by this.
      */
-    fun isLockedForOwner(band: Band, cost: Cost): Boolean =
-        band.events.any { it.refundOf(cost.id) != null && it.transfers.isNotEmpty() } ||
-            band.fundEntries.any { it.costId == cost.id }
+    fun isLockedForOwner(band: Band, cost: Cost): Boolean = band.events.any { it.refundOf(cost.id) != null && it.transfers.isNotEmpty() } ||
+        band.fundEntries.any { it.costId == cost.id }
 }
 
 /**
@@ -73,9 +69,8 @@ class CostStatuses(private val band: Band) {
 
     fun isSettled(event: Event): Boolean = event.id in settledEventIds
 
-    fun paid(costId: Id): Money =
-        band.events.filter { it.id in settledEventIds }.sumOfMoney { it.refundOf(costId)?.amount ?: Money.ZERO } +
-            CostLedger.fundRefunds(band, costId)
+    fun paid(costId: Id): Money = band.events.filter { it.id in settledEventIds }.sumOfMoney { it.refundOf(costId)?.amount ?: Money.ZERO } +
+        CostLedger.fundRefunds(band, costId)
 
     fun unpaid(cost: Cost): Money = cost.amount - paid(cost.id)
 

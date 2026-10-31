@@ -3,10 +3,10 @@ package com.jacekgajek.kapelusz.app.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import kotlinx.coroutines.await
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.Promise
+import kotlinx.coroutines.await
 
 /** For the session only: the browser has no file cache the app could use for this, and a reload starts over. */
 actual object FileCache : ByteCache {

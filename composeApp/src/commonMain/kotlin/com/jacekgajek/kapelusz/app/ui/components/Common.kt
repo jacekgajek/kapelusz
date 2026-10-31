@@ -1,26 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
-import com.jacekgajek.kapelusz.app.data.Changes
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Handshake
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.jacekgajek.kapelusz.app.generated.former_member
-import com.jacekgajek.kapelusz.app.generated.former_member_restore
-import com.jacekgajek.kapelusz.app.generated.former_member_restored
-import com.jacekgajek.kapelusz.app.generated.section_collapsed
-import com.jacekgajek.kapelusz.app.generated.section_expanded
-import com.jacekgajek.kapelusz.model.Member
-import com.jacekgajek.kapelusz.ops.SetMemberArchived
-import com.jacekgajek.kapelusz.app.generated.name_taken
-import org.jetbrains.compose.resources.StringResource
-import com.jacekgajek.kapelusz.domain.BlikPhone
-import com.jacekgajek.kapelusz.domain.Settlement
-import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.app.generated.settle_paid
-import com.jacekgajek.kapelusz.app.generated.settle_received
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +18,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -75,19 +60,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.jacekgajek.kapelusz.app.AppConfig
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.amount_invalid
 import com.jacekgajek.kapelusz.app.generated.cancel
+import com.jacekgajek.kapelusz.app.generated.edit
+import com.jacekgajek.kapelusz.app.generated.former_member
+import com.jacekgajek.kapelusz.app.generated.former_member_restore
+import com.jacekgajek.kapelusz.app.generated.former_member_restored
+import com.jacekgajek.kapelusz.app.generated.name_taken
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
 import com.jacekgajek.kapelusz.app.generated.not_in_app_text
-import com.jacekgajek.kapelusz.app.generated.edit
 import com.jacekgajek.kapelusz.app.generated.ok
 import com.jacekgajek.kapelusz.app.generated.remove
+import com.jacekgajek.kapelusz.app.generated.section_collapsed
+import com.jacekgajek.kapelusz.app.generated.section_expanded
 import com.jacekgajek.kapelusz.app.generated.settle
+import com.jacekgajek.kapelusz.app.generated.settle_paid
 import com.jacekgajek.kapelusz.app.generated.settle_part_hint
 import com.jacekgajek.kapelusz.app.generated.settle_part_title
+import com.jacekgajek.kapelusz.app.generated.settle_received
 import com.jacekgajek.kapelusz.app.generated.status_archived
 import com.jacekgajek.kapelusz.app.generated.status_awaiting
 import com.jacekgajek.kapelusz.app.generated.status_draft
@@ -95,18 +88,25 @@ import com.jacekgajek.kapelusz.app.generated.status_loss
 import com.jacekgajek.kapelusz.app.generated.status_open
 import com.jacekgajek.kapelusz.app.generated.status_settled
 import com.jacekgajek.kapelusz.app.generated.transfer_a11y
+import com.jacekgajek.kapelusz.app.generated.undo_too_late
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.initials
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
+import com.jacekgajek.kapelusz.domain.BlikPhone
 import com.jacekgajek.kapelusz.domain.EventStatus
+import com.jacekgajek.kapelusz.domain.Settlement
+import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.Rejection
 import com.jacekgajek.kapelusz.ops.RejectionReason
+import com.jacekgajek.kapelusz.ops.SetMemberArchived
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import androidx.compose.runtime.DisposableEffect
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Language code of the current UI locale (`en`, `pl`), for formatting. */
@@ -340,8 +340,7 @@ fun FormerMember(member: Member, actions: Actions, onRestored: () -> Unit) {
 
 /** A member's name is free: null, or why not (a member already has it; ITERATION_5 §12). */
 @Composable
-fun nameTakenError(band: Band, name: String, except: String? = null): String? =
-    band.memberNamed(name, except)?.takeIf { name.isNotBlank() }?.let { stringResource(Res.string.name_taken, it.name) }
+fun nameTakenError(band: Band, name: String, except: String? = null): String? = band.memberNamed(name, except)?.takeIf { name.isNotBlank() }?.let { stringResource(Res.string.name_taken, it.name) }
 
 /** Decimal input for amounts; [onValid] receives the parsed amount or null when the text is not a valid amount. */
 @Composable
@@ -382,7 +381,7 @@ internal fun withoutGrouping(text: String): String {
         Regex("""[.,]\d{3}$""").containsMatchIn(text) -> null
         else -> separators.single()
     }
-    return text.filter { it != ',' && it != '.' || it == decimal }
+    return text.filter { (it != ',' && it != '.') || it == decimal }
 }
 
 @Composable
@@ -391,7 +390,12 @@ fun ConfirmDialog(title: String, text: String?, confirmLabel: String, onConfirm:
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = text?.let { { Text(it) } },
-        confirmButton = { TextButton(onClick = { onConfirm(); onDismiss() }) { Text(confirmLabel) } },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm()
+                onDismiss()
+            }) { Text(confirmLabel) }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
 }
@@ -430,7 +434,10 @@ fun TextInputDialog(
             }
         },
         confirmButton = {
-            TextButton(enabled = text.isNotBlank() && problem == null && allowed(text), onClick = { onConfirm(text.trim()); onDismiss() }) {
+            TextButton(enabled = text.isNotBlank() && problem == null && allowed(text), onClick = {
+                onConfirm(text.trim())
+                onDismiss()
+            }) {
                 Text(stringResource(Res.string.ok))
             }
         },

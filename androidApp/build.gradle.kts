@@ -30,12 +30,14 @@ android {
     // handed out (2026-10-27): no APK on the website any more.
     val uploadKeystore = providers.environmentVariable("ANDROID_UPLOAD_KEYSTORE_PATH").orNull
     signingConfigs {
-        if (uploadKeystore != null) create("upload") {
-            storeFile = file(uploadKeystore)
-            storePassword = providers.environmentVariable("ANDROID_UPLOAD_KEYSTORE_PASSWORD").get()
-            keyAlias = providers.environmentVariable("ANDROID_UPLOAD_KEY_ALIAS").get()
-            // A PKCS12 keystore has one password for the store and its keys; a separate key password is optional.
-            keyPassword = providers.environmentVariable("ANDROID_UPLOAD_KEY_PASSWORD").orNull?.takeIf { it.isNotBlank() } ?: storePassword
+        if (uploadKeystore != null) {
+            create("upload") {
+                storeFile = file(uploadKeystore)
+                storePassword = providers.environmentVariable("ANDROID_UPLOAD_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("ANDROID_UPLOAD_KEY_ALIAS").get()
+                // A PKCS12 keystore has one password for the store and its keys; a separate key password is optional.
+                keyPassword = providers.environmentVariable("ANDROID_UPLOAD_KEY_PASSWORD").orNull?.takeIf { it.isNotBlank() } ?: storePassword
+            }
         }
     }
 

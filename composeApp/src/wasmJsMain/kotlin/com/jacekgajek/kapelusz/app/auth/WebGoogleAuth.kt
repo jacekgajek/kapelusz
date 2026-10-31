@@ -19,10 +19,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.ui.components.language
+import kotlin.js.Promise
 import kotlinx.coroutines.await
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.js.Promise
 
 // Google Identity Services (https://accounts.google.com/gsi/client). The button is a real DOM element placed over the
 // Compose canvas, because Google requires its own rendered button for the sign-in flow.
@@ -85,7 +85,10 @@ object WebGoogleAuth : GoogleAuth {
         init()
         suspendCancellableCoroutine { continuation ->
             lateinit var handler: (String) -> Unit
-            handler = { token -> if (pending === handler) pending = null; if (continuation.isActive) continuation.resumeWith(Result.success(token)) }
+            handler = { token ->
+                if (pending === handler) pending = null
+                if (continuation.isActive) continuation.resumeWith(Result.success(token))
+            }
             pending = handler
             // Only clear our own handler: a sign-in button may have registered its own meanwhile.
             continuation.invokeOnCancellation { if (pending === handler) pending = null }

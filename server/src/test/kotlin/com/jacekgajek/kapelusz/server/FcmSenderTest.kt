@@ -30,10 +30,17 @@ class FcmSenderTest {
             bodies += body
             check(exchange.requestHeaders.getFirst("authorization") == "Bearer at-1")
             val (status, answer) = when {
-                "\"slow\"" in body -> { Thread.sleep(5_000); 200 to "{}" }
+                "\"slow\"" in body -> {
+                    Thread.sleep(5_000)
+                    200 to "{}"
+                }
+
                 "\"gone\"" in body -> 404 to """{"error":{"status":"NOT_FOUND","details":[{"errorCode":"UNREGISTERED"}]}}"""
+
                 "\"garbled\"" in body -> 400 to """{"error":{"status":"INVALID_ARGUMENT","message":"The registration token is not a valid FCM registration token"}}"""
+
                 "\"broken\"" in body -> 500 to "{}"
+
                 else -> 200 to """{"name":"projects/kapelusz-test/messages/1"}"""
             }
             val bytes = answer.toByteArray()

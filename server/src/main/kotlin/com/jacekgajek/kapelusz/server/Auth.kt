@@ -1,15 +1,15 @@
 package com.jacekgajek.kapelusz.server
 
-import com.nimbusds.jwt.proc.BadJWTException
-import com.nimbusds.jwt.proc.JWTClaimsSetVerifier
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.source.JWKSource
 import com.nimbusds.jose.jwk.source.JWKSourceBuilder
 import com.nimbusds.jose.proc.JWSVerificationKeySelector
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.JWTClaimsSet
+import com.nimbusds.jwt.proc.BadJWTException
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import com.nimbusds.jwt.proc.DefaultJWTProcessor
+import com.nimbusds.jwt.proc.JWTClaimsSetVerifier
 import java.net.URI
 
 /** [picture]: the Google profile photo, only known when signing in with a Google token (not with a session). */
@@ -55,7 +55,10 @@ class GoogleTokenVerifier(
         if (claims.getBooleanClaim("email_verified") == false) return null
         // A token without `iat` counts as issued at 0, i.e. before any "sign out on all devices".
         return VerifiedUser(
-            claims.subject, claims.getStringClaim("email"), claims.getStringClaim("name"), claims.getStringClaim("picture"),
+            claims.subject,
+            claims.getStringClaim("email"),
+            claims.getStringClaim("name"),
+            claims.getStringClaim("picture"),
             issuedAt = claims.issueTime?.time ?: 0,
         )
     }

@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -19,6 +19,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -29,22 +33,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import com.jacekgajek.kapelusz.app.generated.played_places
-import com.jacekgajek.kapelusz.app.generated.played_title
-import com.jacekgajek.kapelusz.domain.PlayedPlaces
-import org.jetbrains.compose.resources.pluralStringResource
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Map
-import com.jacekgajek.kapelusz.app.ui.model.FundSource
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,14 +50,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.data.BandState
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
 import com.jacekgajek.kapelusz.app.data.today
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.fund_outside
-import com.jacekgajek.kapelusz.app.generated.summary_fund_for_events
-import com.jacekgajek.kapelusz.app.generated.fund_from_events
 import com.jacekgajek.kapelusz.app.generated.back
 import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.fund_from_events
+import com.jacekgajek.kapelusz.app.generated.fund_outside
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
+import com.jacekgajek.kapelusz.app.generated.played_places
+import com.jacekgajek.kapelusz.app.generated.played_title
 import com.jacekgajek.kapelusz.app.generated.summary_all_time
 import com.jacekgajek.kapelusz.app.generated.summary_and_more
 import com.jacekgajek.kapelusz.app.generated.summary_band
@@ -75,6 +71,7 @@ import com.jacekgajek.kapelusz.app.generated.summary_empty
 import com.jacekgajek.kapelusz.app.generated.summary_events
 import com.jacekgajek.kapelusz.app.generated.summary_former_members
 import com.jacekgajek.kapelusz.app.generated.summary_fund_balance
+import com.jacekgajek.kapelusz.app.generated.summary_fund_for_events
 import com.jacekgajek.kapelusz.app.generated.summary_fund_in
 import com.jacekgajek.kapelusz.app.generated.summary_fund_out
 import com.jacekgajek.kapelusz.app.generated.summary_guests
@@ -102,6 +99,7 @@ import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.model.Can
+import com.jacekgajek.kapelusz.app.ui.model.FundSource
 import com.jacekgajek.kapelusz.app.ui.model.PeriodSummary
 import com.jacekgajek.kapelusz.app.ui.model.PersonTotals
 import com.jacekgajek.kapelusz.app.ui.model.SummaryPeriod
@@ -112,11 +110,13 @@ import com.jacekgajek.kapelusz.app.ui.model.periodSummary
 import com.jacekgajek.kapelusz.app.ui.model.summaryPeriod
 import com.jacekgajek.kapelusz.app.ui.model.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
+import com.jacekgajek.kapelusz.domain.PlayedPlaces
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** What a period brought (ITERATION_6 §7): you, the band, costs by category, members. Nothing to tap but invites. */
@@ -194,17 +194,19 @@ fun SummaryScreen(preferences: SettingsRepository, state: BandState.Ready, onBac
                 summaryContent(summary, artist, band.currency, state.me?.id, canInvite) { inviting = it }
             }
             // Where the period's concerts were (ITERATION_7 §8), by their locations (Google may merge a few later).
-            if (played.isNotEmpty()) item(key = "played") {
-                val count = played.distinctBy { PlayedPlaces.key(it.location!!) }.size
-                Column(Modifier.padding(top = 16.dp)) {
-                    SummaryHeader(stringResource(Res.string.played_title))
-                    Row(
-                        Modifier.fillMaxWidth().clickable(onClick = onOpenPlayed).padding(horizontal = Inset, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Default.Map, null, Modifier.padding(end = 12.dp))
-                        Text(pluralStringResource(Res.plurals.played_places, count, count), Modifier.weight(1f))
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+            if (played.isNotEmpty()) {
+                item(key = "played") {
+                    val count = played.distinctBy { PlayedPlaces.key(it.location!!) }.size
+                    Column(Modifier.padding(top = 16.dp)) {
+                        SummaryHeader(stringResource(Res.string.played_title))
+                        Row(
+                            Modifier.fillMaxWidth().clickable(onClick = onOpenPlayed).padding(horizontal = Inset, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.Map, null, Modifier.padding(end = 12.dp))
+                            Text(pluralStringResource(Res.plurals.played_places, count, count), Modifier.weight(1f))
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                        }
                     }
                 }
             }
@@ -229,18 +231,22 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
     onInvite: (Member) -> Unit,
 ) {
     val unsettled = summary.unsettled
-    if (unsettled.isNotEmpty()) item(key = "unsettled") {
-        val names = unsettled.take(3).joinToString(", ") { it.name } +
-            if (unsettled.size > 3) " " + stringResource(Res.string.summary_and_more, unsettled.size - 3) else ""
-        Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = Inset, end = Inset, top = 12.dp))
+    if (unsettled.isNotEmpty()) {
+        item(key = "unsettled") {
+            val names = unsettled.take(3).joinToString(", ") { it.name } +
+                if (unsettled.size > 3) " " + stringResource(Res.string.summary_and_more, unsettled.size - 3) else ""
+            Text(stringResource(Res.string.summary_unsettled, names), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = Inset, end = Inset, top = 12.dp))
+        }
     }
     val showMe = !summary.me.isZero || summary.myWaiting.isPositive
-    if (showMe) item(key = "you") {
-        Column {
-            SummaryHeader(stringResource(Res.string.summary_you))
-            AmountRow(Res.string.summary_earned, summary.me.earned, currency, 0)
-            AmountRow(Res.string.summary_refunded, summary.me.refunded, currency, 1)
-            AmountRow(Res.string.summary_waiting, summary.myWaiting, currency, 2)
+    if (showMe) {
+        item(key = "you") {
+            Column {
+                SummaryHeader(stringResource(Res.string.summary_you))
+                AmountRow(Res.string.summary_earned, summary.me.earned, currency, 0)
+                AmountRow(Res.string.summary_refunded, summary.me.refunded, currency, 1)
+                AmountRow(Res.string.summary_waiting, summary.myWaiting, currency, 2)
+            }
         }
     }
     // An artist sees only their own money (ITERATION_4 §1.1).
@@ -300,13 +306,15 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         item(key = "guests") { PersonRow(guests, currency, stringResource(Res.string.summary_guests), current.size) { GuestIcon(40.dp) } }
     }
     // Who has left the band, apart: nothing to invite them to until they're back.
-    if (former.isNotEmpty()) item(key = "former") {
-        Text(
-            stringResource(Res.string.summary_former_members),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = Inset, end = Inset, top = 16.dp, bottom = 4.dp).semantics { heading() },
-        )
+    if (former.isNotEmpty()) {
+        item(key = "former") {
+            Text(
+                stringResource(Res.string.summary_former_members),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Inset, end = Inset, top = 16.dp, bottom = 4.dp).semantics { heading() },
+            )
+        }
     }
     itemsIndexed(former, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
         PersonRow(totals, currency, member.name, index) { MemberAvatar(member) }
@@ -330,8 +338,7 @@ private fun Modifier.stripe(index: Int, inside: Modifier = Modifier): Modifier {
 }
 
 @Composable
-private fun AmountRow(label: StringResource, amount: Money, currency: String, index: Int, indent: Boolean = false) =
-    ValueRow(stringResource(label), formatMoney(amount, currency, language), index, indent)
+private fun AmountRow(label: StringResource, amount: Money, currency: String, index: Int, indent: Boolean = false) = ValueRow(stringResource(label), formatMoney(amount, currency, language), index, indent)
 
 /** A fund total that opens into its parts, one per [FundSource]; [events] names the events' part. */
 @Composable
@@ -347,18 +354,20 @@ private fun FundBreakdownRow(label: StringResource, amount: Money, parts: List<P
             Text(formatMoney(amount, currency, lang))
             if (parts.isNotEmpty()) Icon(if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, Modifier.padding(start = 4.dp).size(20.dp))
         }
-        if (open) parts.forEach { (source, part) ->
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 2.dp, bottom = 2.dp)) {
-                Text(
-                    when (source) {
-                        is FundSource.Of -> source.member.name
-                        FundSource.Outside -> stringResource(Res.string.fund_outside)
-                        FundSource.Events -> stringResource(events)
-                    },
-                    Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(formatMoney(part, currency, lang), style = MaterialTheme.typography.bodySmall)
+        if (open) {
+            parts.forEach { (source, part) ->
+                Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 2.dp, bottom = 2.dp)) {
+                    Text(
+                        when (source) {
+                            is FundSource.Of -> source.member.name
+                            FundSource.Outside -> stringResource(Res.string.fund_outside)
+                            FundSource.Events -> stringResource(events)
+                        },
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(formatMoney(part, currency, lang), style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
     }
@@ -394,12 +403,10 @@ private fun PersonRow(totals: PersonTotals, currency: String, name: String, inde
 }
 
 @Composable
-private fun PersonAmount(label: StringResource, amount: Money, currency: String) =
-    Row(Modifier.fillMaxWidth()) {
-        Text(stringResource(label), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        Text(formatMoney(amount, currency, language), style = MaterialTheme.typography.bodyMedium)
-    }
+private fun PersonAmount(label: StringResource, amount: Money, currency: String) = Row(Modifier.fillMaxWidth()) {
+    Text(stringResource(label), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+    Text(formatMoney(amount, currency, language), style = MaterialTheme.typography.bodyMedium)
+}
 
 @Composable
-private fun MemberAvatar(member: Member) =
-    if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)
+private fun MemberAvatar(member: Member) = if (member.userId == null) NotInAppIcon(40.dp) else Avatar(member.name, member.pictureUrl, 40.dp, decorative = true)

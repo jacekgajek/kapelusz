@@ -10,10 +10,10 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.jacekgajek.kapelusz.app.AndroidAppGraph
 import com.jacekgajek.kapelusz.app.platform.MessageChannel
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.security.SecureRandom
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Firebase Cloud Messaging for sync messages (ITERATION_7 §2.3). Off until signed in (automatic start is off in the

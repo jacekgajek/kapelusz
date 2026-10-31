@@ -1,11 +1,11 @@
 package com.jacekgajek.kapelusz.app.data
 
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 
 /** Time-ordered UUIDv7 entity id. */
 @OptIn(ExperimentalUuidApi::class)

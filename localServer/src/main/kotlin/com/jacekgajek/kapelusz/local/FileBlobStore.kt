@@ -76,11 +76,9 @@ class FileBlobStore(root: Path, private val baseUrl: () -> String) : BlobStore {
 
     override fun exists(key: String): Boolean = path(key).isRegularFile()
 
-    override fun presignPut(key: String, contentType: String, contentLength: Long) =
-        PresignedRequest("${baseUrl()}${FileRoutes.PREFIX}$key?length=$contentLength", mapOf("content-type" to contentType))
+    override fun presignPut(key: String, contentType: String, contentLength: Long) = PresignedRequest("${baseUrl()}${FileRoutes.PREFIX}$key?length=$contentLength", mapOf("content-type" to contentType))
 
-    override fun presignGet(key: String, contentType: String, fileName: String): String =
-        "${baseUrl()}${FileRoutes.PREFIX}$key?type=${encode(contentType)}&name=${encode(fileName)}"
+    override fun presignGet(key: String, contentType: String, fileName: String): String = "${baseUrl()}${FileRoutes.PREFIX}$key?type=${encode(contentType)}&name=${encode(fileName)}"
 
     private companion object {
         fun etag(bytes: ByteArray) = "\"" + MessageDigest.getInstance("MD5").digest(bytes).joinToString("") { "%02x".format(it) } + "\""

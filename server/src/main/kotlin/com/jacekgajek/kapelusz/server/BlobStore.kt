@@ -1,5 +1,8 @@
 package com.jacekgajek.kapelusz.server
 
+import java.time.Duration
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient
 import software.amazon.awssdk.regions.Region
@@ -7,19 +10,16 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.Delete
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
-import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.S3Exception
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
-import java.time.Duration
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
 
 data class Blob(val content: String, val etag: String)
 
@@ -101,9 +101,8 @@ class S3BlobStore(
         }
     }
 
-    override fun list(prefix: String): List<String> =
-        s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
-            .contents().map { it.key() }.sorted()
+    override fun list(prefix: String): List<String> = s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
+        .contents().map { it.key() }.sorted()
 
     override fun exists(key: String): Boolean = try {
         s3.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build())
@@ -176,8 +175,7 @@ class CallTimer(private val label: String) {
 class TimedBlobStore(private val store: BlobStore, private val timer: CallTimer) : BlobStore by store {
     override fun get(key: String): Blob? = timer.timed { store.get(key) }
 
-    override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String =
-        timer.timed { store.put(key, content, ifMatch, ifNoneMatch) }
+    override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String = timer.timed { store.put(key, content, ifMatch, ifNoneMatch) }
 
     override fun delete(key: String) = timer.timed { store.delete(key) }
 

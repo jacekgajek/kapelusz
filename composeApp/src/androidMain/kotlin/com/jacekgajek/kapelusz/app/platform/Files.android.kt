@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.platform
 
-import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.graphics.Bitmap
@@ -22,10 +21,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
+import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AttachmentKind
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -34,6 +31,9 @@ import java.net.URL
 import java.util.Base64
 import java.util.UUID
 import kotlin.math.max
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val MAX_EDGE = 1600
 private const val JPEG_QUALITY = 80
@@ -86,8 +86,7 @@ actual fun rememberAttachmentPicker(onResult: (List<PickResult>) -> Unit): Attac
  * Files shared to Kapelusz (ITERATION_6 §1), prepared like picked ones, one after another. Only content URIs (no
  * `file://` paths into the app's own files); [sharedType] is the share's type, for providers that don't tell one.
  */
-suspend fun prepareShared(context: Context, uris: List<Uri>, sharedType: String?): List<PickResult> =
-    uris.map { uri -> if (uri.scheme == "content") prepare(context, uri, fallbackType = sharedType) else PickResult.Failed }
+suspend fun prepareShared(context: Context, uris: List<Uri>, sharedType: String?): List<PickResult> = uris.map { uri -> if (uri.scheme == "content") prepare(context, uri, fallbackType = sharedType) else PickResult.Failed }
 
 /** Largest file read at all: photos are shrunk after reading, but not from any size. */
 private const val MAX_READ_BYTES = 40L * 1024 * 1024
@@ -95,14 +94,20 @@ private const val MAX_READ_BYTES = 40L * 1024 * 1024
 private suspend fun prepare(context: Context, uri: Uri, photo: Boolean = false, fallbackType: String? = null): PickResult = withContext(Dispatchers.IO) {
     try {
         val resolver = context.contentResolver
-        val type = if (photo) "image/jpeg" else resolver.getType(uri)?.takeIf { it != "application/octet-stream" }
-            ?: fallbackType?.takeIf { !it.contains('*') }.orEmpty()
+        val type = if (photo) {
+            "image/jpeg"
+        } else {
+            resolver.getType(uri)?.takeIf { it != "application/octet-stream" }
+                ?: fallbackType?.takeIf { !it.contains('*') }.orEmpty()
+        }
         var name: String? = null
         var size: Long? = null
-        if (!photo) resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                name = cursor.getString(0)
-                size = if (cursor.isNull(1)) null else cursor.getLong(1)
+        if (!photo) {
+            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    name = cursor.getString(0)
+                    size = if (cursor.isNull(1)) null else cursor.getLong(1)
+                }
             }
         }
         val limit = if (type == "application/pdf") AttachmentKind.PDF.maxBytes else MAX_READ_BYTES
@@ -113,12 +118,14 @@ private suspend fun prepare(context: Context, uri: Uri, photo: Boolean = false, 
                 if (bytes.size > AttachmentKind.PDF.maxBytes) return@withContext PickResult.TooLarge
                 PickResult.Picked(PreparedFile(AttachmentKind.PDF, name ?: "document.pdf", bytes.size.toLong(), encode(bytes)))
             }
+
             type.startsWith("image/") -> {
                 val jpeg = compress(bytes) ?: return@withContext PickResult.Unsupported
                 if (jpeg.size > AttachmentKind.IMAGE.maxBytes) return@withContext PickResult.TooLarge
                 val fileName = (name?.substringBeforeLast('.') ?: "photo-${System.currentTimeMillis()}") + ".jpg"
                 PickResult.Picked(PreparedFile(AttachmentKind.IMAGE, fileName, jpeg.size.toLong(), encode(jpeg)))
             }
+
             else -> PickResult.Unsupported
         }
     } catch (e: Exception) {
@@ -143,12 +150,24 @@ private fun compress(bytes: ByteArray): ByteArray? {
         postScale(scale, scale)
         when (ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
             ExifInterface.ORIENTATION_ROTATE_90 -> postRotate(90f)
+
             ExifInterface.ORIENTATION_ROTATE_180 -> postRotate(180f)
+
             ExifInterface.ORIENTATION_ROTATE_270 -> postRotate(270f)
+
             ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> postScale(-1f, 1f)
+
             ExifInterface.ORIENTATION_FLIP_VERTICAL -> postScale(1f, -1f)
-            ExifInterface.ORIENTATION_TRANSPOSE -> { postRotate(90f); postScale(-1f, 1f) }
-            ExifInterface.ORIENTATION_TRANSVERSE -> { postRotate(270f); postScale(-1f, 1f) }
+
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                postRotate(90f)
+                postScale(-1f, 1f)
+            }
+
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                postRotate(270f)
+                postScale(-1f, 1f)
+            }
         }
     }
     val output = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)

@@ -176,7 +176,12 @@ fun LineupPicker(context: EventContext, readOnly: Boolean, onDismiss: () -> Unit
         AlertDialog(
             onDismissRequest = { discarding = false },
             title = { Text(stringResource(Res.string.lineup_discard_title)) },
-            confirmButton = { TextButton(onClick = { discarding = false; onDismiss() }) { Text(stringResource(Res.string.lineup_discard)) } },
+            confirmButton = {
+                TextButton(onClick = {
+                    discarding = false
+                    onDismiss()
+                }) { Text(stringResource(Res.string.lineup_discard)) }
+            },
             dismissButton = { TextButton(onClick = { discarding = false }) { Text(stringResource(Res.string.lineup_keep_editing)) } },
         )
     }
@@ -202,7 +207,13 @@ private fun PickRowItem(context: EventContext, row: PickRow, ticked: Boolean, re
     ) {
         // Read only: no ticks (ITERATION_8 §1.2), the list is who isn't taking part.
         if (readOnly) Spacer(Modifier.width(12.dp)) else Checkbox(ticked, { onToggle() }, enabled = enabled)
-        if (row.guest) GuestIcon() else if (row.notInApp) NotInAppIcon() else Avatar(row.name, row.pictureUrl, decorative = true)
+        if (row.guest) {
+            GuestIcon()
+        } else if (row.notInApp) {
+            NotInAppIcon()
+        } else {
+            Avatar(row.name, row.pictureUrl, decorative = true)
+        }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(row.name)
             // The share only when not the default (ITERATION_8 §1.2); changed on the participant's row in the event.

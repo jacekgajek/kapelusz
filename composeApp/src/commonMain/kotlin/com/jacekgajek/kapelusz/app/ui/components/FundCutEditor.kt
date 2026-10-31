@@ -54,8 +54,11 @@ class FundCutEditorState(byPercent: Boolean, percent: Int, amount: String) {
 
     /** The cut to the fund chosen, null for nothing (0% or no amount); only when [valid]. */
     val cut: FundCut?
-        get() = if (byPercent) FundCut(percent = percent).takeIf { percent > 0 }
-        else parsedAmount?.takeIf { it.isPositive }?.let { FundCut(amount = it) }
+        get() = if (byPercent) {
+            FundCut(percent = percent).takeIf { percent > 0 }
+        } else {
+            parsedAmount?.takeIf { it.isPositive }?.let { FundCut(amount = it) }
+        }
 }
 
 @Composable

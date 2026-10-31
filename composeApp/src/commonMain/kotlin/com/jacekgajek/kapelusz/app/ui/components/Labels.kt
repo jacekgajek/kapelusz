@@ -1,30 +1,25 @@
 package com.jacekgajek.kapelusz.app.ui.components
 
-import com.jacekgajek.kapelusz.model.Cost
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Speaker
-import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.Icons
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.jacekgajek.kapelusz.app.generated.reject_name_taken
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.reject_invalid_account
-import com.jacekgajek.kapelusz.app.generated.reject_invalid_phone
-import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle_together
 import com.jacekgajek.kapelusz.app.generated.category_accommodation
 import com.jacekgajek.kapelusz.app.generated.category_equipment
 import com.jacekgajek.kapelusz.app.generated.category_food
@@ -35,25 +30,34 @@ import com.jacekgajek.kapelusz.app.generated.reject_already_participant
 import com.jacekgajek.kapelusz.app.generated.reject_archived_event
 import com.jacekgajek.kapelusz.app.generated.reject_archived_member
 import com.jacekgajek.kapelusz.app.generated.reject_artist_holds_no_money
+import com.jacekgajek.kapelusz.app.generated.reject_attachment_too_large
 import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle
+import com.jacekgajek.kapelusz.app.generated.reject_cannot_settle_together
+import com.jacekgajek.kapelusz.app.generated.reject_changed_since
 import com.jacekgajek.kapelusz.app.generated.reject_cost_below_refunded
 import com.jacekgajek.kapelusz.app.generated.reject_cost_refunded_from_fund
 import com.jacekgajek.kapelusz.app.generated.reject_duplicate_id
 import com.jacekgajek.kapelusz.app.generated.reject_empty_name
 import com.jacekgajek.kapelusz.app.generated.reject_event_has_transfers
 import com.jacekgajek.kapelusz.app.generated.reject_event_unsettled
+import com.jacekgajek.kapelusz.app.generated.reject_fund_not_empty
 import com.jacekgajek.kapelusz.app.generated.reject_holds_money
+import com.jacekgajek.kapelusz.app.generated.reject_invalid_account
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_amount
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_input
+import com.jacekgajek.kapelusz.app.generated.reject_invalid_phone
 import com.jacekgajek.kapelusz.app.generated.reject_invalid_share
 import com.jacekgajek.kapelusz.app.generated.reject_invite_only
+import com.jacekgajek.kapelusz.app.generated.reject_limit_reached
 import com.jacekgajek.kapelusz.app.generated.reject_member_has_history
 import com.jacekgajek.kapelusz.app.generated.reject_member_linked
+import com.jacekgajek.kapelusz.app.generated.reject_name_taken
 import com.jacekgajek.kapelusz.app.generated.reject_no_treasurer
 import com.jacekgajek.kapelusz.app.generated.reject_not_a_member
 import com.jacekgajek.kapelusz.app.generated.reject_not_a_participant
 import com.jacekgajek.kapelusz.app.generated.reject_not_found
 import com.jacekgajek.kapelusz.app.generated.reject_not_refundable_here
+import com.jacekgajek.kapelusz.app.generated.reject_not_undoable
 import com.jacekgajek.kapelusz.app.generated.reject_owner_role_fixed
 import com.jacekgajek.kapelusz.app.generated.reject_ownership_needs_leader
 import com.jacekgajek.kapelusz.app.generated.reject_participant_has_money
@@ -62,13 +66,8 @@ import com.jacekgajek.kapelusz.app.generated.reject_participant_has_transfers
 import com.jacekgajek.kapelusz.app.generated.reject_refund_too_large
 import com.jacekgajek.kapelusz.app.generated.reject_role_required
 import com.jacekgajek.kapelusz.app.generated.reject_same_party
-import com.jacekgajek.kapelusz.app.generated.reject_too_many_attachments
-import com.jacekgajek.kapelusz.app.generated.reject_attachment_too_large
-import com.jacekgajek.kapelusz.app.generated.reject_fund_not_empty
-import com.jacekgajek.kapelusz.app.generated.reject_not_undoable
-import com.jacekgajek.kapelusz.app.generated.reject_changed_since
-import com.jacekgajek.kapelusz.app.generated.reject_limit_reached
 import com.jacekgajek.kapelusz.app.generated.reject_storage_failed
+import com.jacekgajek.kapelusz.app.generated.reject_too_many_attachments
 import com.jacekgajek.kapelusz.app.generated.reject_treasurer_must_stay
 import com.jacekgajek.kapelusz.app.generated.reject_user_already_member
 import com.jacekgajek.kapelusz.app.generated.reject_viewer_not_participant
@@ -86,6 +85,7 @@ import com.jacekgajek.kapelusz.app.generated.source_other
 import com.jacekgajek.kapelusz.app.generated.source_own_contribution
 import com.jacekgajek.kapelusz.app.generated.source_sponsorship
 import com.jacekgajek.kapelusz.app.generated.source_tickets_online
+import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Role
@@ -139,8 +139,7 @@ fun CostCategory?.icon(): ImageVector = when (this) {
 
 /** A cost's category icon on its row; read out as the category where the row's text (a description) doesn't name it. */
 @Composable
-fun CostIcon(cost: Cost, modifier: Modifier = Modifier) =
-    IconCircle(cost.category.icon(), modifier, cost.category?.takeIf { cost.description != null }?.label())
+fun CostIcon(cost: Cost, modifier: Modifier = Modifier) = IconCircle(cost.category.icon(), modifier, cost.category?.takeIf { cost.description != null }?.label())
 
 @Composable
 fun Role.label(): String = stringResource(

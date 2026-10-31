@@ -1,34 +1,33 @@
 package com.jacekgajek.kapelusz.app.sync
 
-import com.jacekgajek.kapelusz.api.LocationsResponse
-import com.jacekgajek.kapelusz.api.PlaceText
-import com.jacekgajek.kapelusz.api.MapLinkRequest
-import io.ktor.http.encodeURLPathPart
-import com.jacekgajek.kapelusz.api.PlaceSuggestion
-import com.jacekgajek.kapelusz.api.PlacesResponse
-import com.jacekgajek.kapelusz.api.PictureRequest
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.AttachmentUploadRequest
 import com.jacekgajek.kapelusz.api.AttachmentUploadResponse
 import com.jacekgajek.kapelusz.api.AttachmentUrlResponse
-import com.jacekgajek.kapelusz.api.ApiErrors
-import com.jacekgajek.kapelusz.api.DeviceRegistration
-import com.jacekgajek.kapelusz.api.DeviceRegistrationResponse
 import com.jacekgajek.kapelusz.api.BandStateResponse
 import com.jacekgajek.kapelusz.api.CalendarSubscription
 import com.jacekgajek.kapelusz.api.CalendarSubscriptionChange
 import com.jacekgajek.kapelusz.api.CreateBandRequest
 import com.jacekgajek.kapelusz.api.CreateInviteRequest
+import com.jacekgajek.kapelusz.api.DeviceRegistration
+import com.jacekgajek.kapelusz.api.DeviceRegistrationResponse
 import com.jacekgajek.kapelusz.api.ErrorResponse
 import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.api.InviteInfo
 import com.jacekgajek.kapelusz.api.InvitePreview
 import com.jacekgajek.kapelusz.api.InvitesResponse
+import com.jacekgajek.kapelusz.api.LocationsResponse
+import com.jacekgajek.kapelusz.api.MapLinkRequest
 import com.jacekgajek.kapelusz.api.MeResponse
+import com.jacekgajek.kapelusz.api.PictureRequest
+import com.jacekgajek.kapelusz.api.PlaceSuggestion
+import com.jacekgajek.kapelusz.api.PlaceText
+import com.jacekgajek.kapelusz.api.PlacesResponse
 import com.jacekgajek.kapelusz.api.PushRequest
 import com.jacekgajek.kapelusz.api.PushResponse
 import com.jacekgajek.kapelusz.api.SessionResponse
-import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Id
+import com.jacekgajek.kapelusz.model.KapeluszJson
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.OpEnvelope
 import io.ktor.client.HttpClient
@@ -44,6 +43,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
+import io.ktor.http.encodeURLPathPart
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
 
@@ -97,7 +97,9 @@ class ApiClient(
 
     /** This installation's Firebase token (ITERATION_7 §2.4); the answer says whether sync messages will come. */
     suspend fun registerDevice(installationId: String, token: String): Boolean = call(
-        HttpMethod.Put, "/me/devices/$installationId", DeviceRegistrationResponse.serializer(),
+        HttpMethod.Put,
+        "/me/devices/$installationId",
+        DeviceRegistrationResponse.serializer(),
         body = KapeluszJson.encodeToString(DeviceRegistration.serializer(), DeviceRegistration(token)),
     ).messaging
 
@@ -115,21 +117,21 @@ class ApiClient(
     suspend fun calendar(): CalendarSubscription = call(HttpMethod.Get, "/me/calendar", CalendarSubscription.serializer())
 
     suspend fun changeCalendar(change: CalendarSubscriptionChange): CalendarSubscription = call(
-        HttpMethod.Post, "/me/calendar", CalendarSubscription.serializer(),
+        HttpMethod.Post,
+        "/me/calendar",
+        CalendarSubscription.serializer(),
         body = KapeluszJson.encodeToString(CalendarSubscriptionChange.serializer(), change),
     )
 
     /** A new Kapelusz session for [bearer] (a Google ID token or the current session); bypasses the token provider. */
-    suspend fun createSession(bearer: String): SessionResponse =
-        parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
+    suspend fun createSession(bearer: String): SessionResponse = parse(attempt(HttpMethod.Post, "/session", bearer) {}, SessionResponse.serializer())
 
     /** "Sign out on all devices" (ITERATION_3 R6): the server refuses every session of the user begun before now. */
     suspend fun revokeSessions() {
         text(send(HttpMethod.Post, "/sessions/revoke") {})
     }
 
-    suspend fun createBand(request: CreateBandRequest): BandStateResponse =
-        call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = KapeluszJson.encodeToString(CreateBandRequest.serializer(), request))
+    suspend fun createBand(request: CreateBandRequest): BandStateResponse = call(HttpMethod.Post, "/bands", BandStateResponse.serializer(), body = KapeluszJson.encodeToString(CreateBandRequest.serializer(), request))
 
     /** The band's state, or null when it has not changed since [knownVersion]. */
     suspend fun state(bandId: Id, knownVersion: String?): BandStateResponse? {
@@ -138,8 +140,7 @@ class ApiClient(
         return parse(response, BandStateResponse.serializer())
     }
 
-    suspend fun push(bandId: Id, ops: List<OpEnvelope>): PushResponse =
-        call(HttpMethod.Post, "/bands/$bandId/ops", PushResponse.serializer(), body = KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
+    suspend fun push(bandId: Id, ops: List<OpEnvelope>): PushResponse = call(HttpMethod.Post, "/bands/$bandId/ops", PushResponse.serializer(), body = KapeluszJson.encodeToString(PushRequest.serializer(), PushRequest(ops)))
 
     /** Deletes the band for everyone (owner only). */
     suspend fun deleteBand(bandId: Id) {
@@ -157,34 +158,42 @@ class ApiClient(
     suspend fun rawState(bandId: Id): String = text(send(HttpMethod.Get, "/bands/$bandId/raw") {})
 
     /** Places Google suggests for what was typed in Location (ITERATION_5 §9), in [language]; for leads up. */
-    suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> =
-        parse(send(HttpMethod.Get, "/bands/$bandId/places") {
+    suspend fun places(bandId: Id, query: String, language: String, session: String): List<PlaceSuggestion> = parse(
+        send(HttpMethod.Get, "/bands/$bandId/places") {
             parameter("q", query)
             parameter("lang", language)
             parameter("session", session)
-        }, PlacesResponse.serializer()).places
+        },
+        PlacesResponse.serializer(),
+    ).places
 
     /** Where the band's event locations are, for the "Where we played" map (ITERATION_7 §8); for any member. */
     suspend fun locations(bandId: Id): LocationsResponse = parse(send(HttpMethod.Get, "/bands/$bandId/locations") {}, LocationsResponse.serializer())
 
     /** What Location becomes for a picked place: its name and full address (ITERATION_5 §9.1), ending the [session]. */
-    suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String =
-        parse(send(HttpMethod.Get, "/bands/$bandId/places/${placeId.encodeURLPathPart()}") {
+    suspend fun placeText(bandId: Id, placeId: String, language: String, session: String): String = parse(
+        send(HttpMethod.Get, "/bands/$bandId/places/${placeId.encodeURLPathPart()}") {
             parameter("lang", language)
             parameter("session", session)
-        }, PlaceText.serializer()).text
+        },
+        PlaceText.serializer(),
+    ).text
 
     /** What Location becomes for a Google Maps link: the place and its address, or a pin's coordinates (ITERATION_5 §9.1). */
-    suspend fun resolveMapLink(bandId: Id, url: String, language: String): String =
-        parse(send(HttpMethod.Post, "/bands/$bandId/places/resolve") {
+    suspend fun resolveMapLink(bandId: Id, url: String, language: String): String = parse(
+        send(HttpMethod.Post, "/bands/$bandId/places/resolve") {
             parameter("lang", language)
             setBody(TextContent(KapeluszJson.encodeToString(MapLinkRequest.serializer(), MapLinkRequest(url)), ContentType.Application.Json))
-        }, PlaceText.serializer()).text
+        },
+        PlaceText.serializer(),
+    ).text
 
     suspend fun invites(bandId: Id): InvitesResponse = call(HttpMethod.Get, "/bands/$bandId/invites", InvitesResponse.serializer())
 
     suspend fun createInvite(bandId: Id, memberId: Id, role: Role): InviteInfo = call(
-        HttpMethod.Post, "/bands/$bandId/invites", InviteInfo.serializer(),
+        HttpMethod.Post,
+        "/bands/$bandId/invites",
+        InviteInfo.serializer(),
         body = KapeluszJson.encodeToString(CreateInviteRequest.serializer(), CreateInviteRequest(memberId, role)),
     )
 
@@ -209,16 +218,16 @@ class ApiClient(
 
     /** A URL to upload the file of an attachment the server already has. */
     suspend fun requestUpload(bandId: Id, attachmentId: Id): AttachmentUploadResponse = call(
-        HttpMethod.Post, "/bands/$bandId/attachments", AttachmentUploadResponse.serializer(),
+        HttpMethod.Post,
+        "/bands/$bandId/attachments",
+        AttachmentUploadResponse.serializer(),
         body = KapeluszJson.encodeToString(AttachmentUploadRequest.serializer(), AttachmentUploadRequest(attachmentId)),
     )
 
     /** A short-lived URL to open an attachment. */
-    suspend fun attachmentUrl(bandId: Id, attachmentId: Id): String =
-        call(HttpMethod.Get, "/bands/$bandId/attachments/$attachmentId", AttachmentUrlResponse.serializer()).url
+    suspend fun attachmentUrl(bandId: Id, attachmentId: Id): String = call(HttpMethod.Get, "/bands/$bandId/attachments/$attachmentId", AttachmentUrlResponse.serializer()).url
 
-    private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T =
-        parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)
+    private suspend fun <T> call(method: HttpMethod, path: String, serializer: KSerializer<T>, body: String? = null): T = parse(send(method, path) { if (body != null) setBody(TextContent(body, ContentType.Application.Json)) }, serializer)
 
     /**
      * Sends with the current token; on 401 refreshes the token once and retries. Not after "signed out on all
@@ -245,15 +254,14 @@ class ApiClient(
         }
     }
 
-    private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) =
-        http.request("$baseUrl$path") {
-            this.method = method
-            // A query parameter, not a header: a new header would need the API's CORS allow-list changed.
-            parameter(ApiErrors.APP_VERSION_PARAMETER, appVersion)
-            installation?.let { parameter(ApiErrors.INSTALLATION_PARAMETER, it) }
-            header(HttpHeaders.Authorization, "Bearer $bearer")
-            configure()
-        }
+    private suspend fun attempt(method: HttpMethod, path: String, bearer: String, configure: HttpRequestBuilder.() -> Unit) = http.request("$baseUrl$path") {
+        this.method = method
+        // A query parameter, not a header: a new header would need the API's CORS allow-list changed.
+        parameter(ApiErrors.APP_VERSION_PARAMETER, appVersion)
+        installation?.let { parameter(ApiErrors.INSTALLATION_PARAMETER, it) }
+        header(HttpHeaders.Authorization, "Bearer $bearer")
+        configure()
+    }
 
     private suspend fun <T> parse(response: HttpResponse, serializer: KSerializer<T>): T = KapeluszJson.decodeFromString(serializer, text(response))
 

@@ -1,9 +1,9 @@
 package com.jacekgajek.kapelusz
 
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
+import com.jacekgajek.kapelusz.domain.MapTarget
 import com.jacekgajek.kapelusz.domain.Places
 import com.jacekgajek.kapelusz.domain.SharedPlace
-import com.jacekgajek.kapelusz.domain.MapTarget
 import com.jacekgajek.kapelusz.model.Event
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -82,6 +82,5 @@ class PlacesTest {
         assertEquals("Klub Wrocław", Places.label(PlaceSuggestion("p", "Klub Wrocław", "Wrocław, Polska")), "the town already in the name")
         assertEquals("Ryman Auditorium, Nashville", Places.label(PlaceSuggestion("p", "Ryman Auditorium", "Broadway, Nashville, TN, USA")), "not the state")
         assertEquals("The Venue, London", Places.label(PlaceSuggestion("p", "The Venue", "1 High St, London SW1A 1AA, UK")))
-
     }
 }

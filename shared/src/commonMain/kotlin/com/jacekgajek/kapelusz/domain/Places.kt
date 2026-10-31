@@ -23,8 +23,7 @@ object Places {
     private val mapHost = Regex("""maps\.app\.goo\.gl|goo\.gl|(www\.|maps\.)?google\.(com|[a-z]{2}|com?\.[a-z]{2})""")
 
     /** A link an event may store: https, URI characters only (printable ASCII), at most [MAX_URL]. */
-    fun isValidUrl(url: String): Boolean =
-        url.startsWith("https://") && url.length <= MAX_URL && url.all { it in '!'..'~' && it != '"' && it != '<' && it != '>' && it != '\\' }
+    fun isValidUrl(url: String): Boolean = url.startsWith("https://") && url.length <= MAX_URL && url.all { it in '!'..'~' && it != '"' && it != '<' && it != '>' && it != '\\' }
 
     fun isMapLink(url: String): Boolean {
         val rest = url.removePrefix("https://")
@@ -107,8 +106,7 @@ object Places {
     }
 
     /** Where Navigate goes: directions to the location text, an address or a pin's coordinates. */
-    fun navigateUrl(event: Event): String? =
-        event.location?.takeIf { it.isNotBlank() }?.let { "https://www.google.com/maps/dir/?api=1&destination=${encode(it)}" }
+    fun navigateUrl(event: Event): String? = event.location?.takeIf { it.isNotBlank() }?.let { "https://www.google.com/maps/dir/?api=1&destination=${encode(it)}" }
 
     private val decimalPin = Regex("""^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$""")
     private val dataPin = Regex("""!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)""")
@@ -152,6 +150,7 @@ object Places {
     private fun decode(value: String): String {
         val bytes = mutableListOf<Byte>()
         val plain = StringBuilder()
+
         // Plain text is encoded in runs, so a character outside the BMP (a surrogate pair) stays whole.
         fun flush() {
             bytes += plain.toString().encodeToByteArray().toList()
@@ -167,8 +166,16 @@ object Places {
                     bytes += escape.toInt(16).toByte()
                     i += 3
                 }
-                c == '+' -> { plain.append(' '); i++ }
-                else -> { plain.append(c); i++ }
+
+                c == '+' -> {
+                    plain.append(' ')
+                    i++
+                }
+
+                else -> {
+                    plain.append(c)
+                    i++
+                }
             }
         }
         flush()

@@ -1,16 +1,7 @@
 package com.jacekgajek.kapelusz.app
 
-import org.jetbrains.compose.resources.preloadFont
-import org.jetbrains.compose.resources.ExperimentalResourceApi
-import com.jacekgajek.kapelusz.app.generated.fallback_text
-import com.jacekgajek.kapelusz.app.generated.fallback_symbols
-import com.jacekgajek.kapelusz.app.generated.Res
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.platform.LocalFontFamilyResolver
-import androidx.compose.runtime.Composable
-import com.jacekgajek.kapelusz.domain.EventLinks
-import kotlinx.coroutines.delay
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,18 +9,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.window.ComposeViewport
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.bindToNavigation
 import com.jacekgajek.kapelusz.app.auth.WebGoogleAuth
 import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.IndexedDbStore
+import com.jacekgajek.kapelusz.app.generated.Res
+import com.jacekgajek.kapelusz.app.generated.fallback_symbols
+import com.jacekgajek.kapelusz.app.generated.fallback_text
 import com.jacekgajek.kapelusz.app.ui.screens.OtherTabScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
+import com.jacekgajek.kapelusz.domain.EventLinks
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.preloadFont
 
 private enum class Phase { STARTING, OTHER_TAB, READY }
 
@@ -50,7 +50,11 @@ fun main() {
     val graph = AppGraph(IndexedDbStore(), WebGoogleAuth)
     // A hidden tab sends what waits, then stops looking for news; shown again, it syncs at once (ITERATION_7 §2.6).
     document.addEventListener("visibilitychange", {
-        if (documentHidden()) graph.sync.pauseAfterSending() else if (graph.sessions.session.value != null) graph.sync.start()
+        if (documentHidden()) {
+            graph.sync.pauseAfterSending()
+        } else if (graph.sessions.session.value != null) {
+            graph.sync.start()
+        }
     })
     // A join code waits in this tab's session storage until it is used or dismissed, so reloading before signing in
     // keeps it.
@@ -84,32 +88,34 @@ fun main() {
             }
         }
         // One loading screen for both waits, so its spinner doesn't start over in between.
-        if (!fontsReady || phase == Phase.STARTING) AppLoading() else when (phase) {
-            Phase.STARTING -> {}
-            Phase.OTHER_TAB -> KapeluszTheme {
-                Surface {
-                    OtherTabScreen(onUseHere = {
-                        scope.launch {
-                            TabLock.acquire(steal = true)
-                            // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
-                            delay(1500)
-                            graph.load()
-                            // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
-                            if (documentHidden()) graph.sync.pauseAfterSending()
-                            phase = Phase.READY
-                        }
-                    })
+        if (!fontsReady || phase == Phase.STARTING) {
+            AppLoading()
+        } else {
+            when (phase) {
+                Phase.STARTING -> {}
+
+                Phase.OTHER_TAB -> KapeluszTheme {
+                    Surface {
+                        OtherTabScreen(onUseHere = {
+                            scope.launch {
+                                TabLock.acquire(steal = true)
+                                // Give the other tab a moment to finish its last write before reading the data (ITERATION_3 R9).
+                                delay(1500)
+                                graph.load()
+                                // Opened or restored in the background: no looking for news until it is shown (ITERATION_7 §2.6).
+                                if (documentHidden()) graph.sync.pauseAfterSending()
+                                phase = Phase.READY
+                            }
+                        })
+                    }
                 }
+
+                Phase.READY -> App(graph, onNavHostReady = { window.bindToNavigation(it) })
             }
-            Phase.READY -> App(graph, onNavHostReady = { window.bindToNavigation(it) })
         }
     }
 }
 
-/**
- * A join link (`/join/ABC123`, served by CloudFront's SPA fallback) carries an invite code. It is taken once, and the
- * address is reset to the app root so a reload does not offer the same invite again.
- */
 /** An event link (`/e/<eventId>`, ITERATION_5 §10): taken once, the address reset to the app root like a join link. */
 private fun takeEventLinkFromUrl(): String? {
     val eventId = EventLinks.eventId(window.location.pathname) ?: return null
@@ -117,6 +123,10 @@ private fun takeEventLinkFromUrl(): String? {
     return eventId
 }
 
+/**
+ * A join link (`/join/ABC123`, served by CloudFront's SPA fallback) carries an invite code. It is taken once, and the
+ * address is reset to the app root so a reload does not offer the same invite again.
+ */
 private fun takeJoinCodeFromUrl(): String? {
     val match = Regex("^/join/([A-Za-z0-9]{6})/?$").find(window.location.pathname) ?: return null
     window.history.replaceState(null, "", "/" + window.location.hash)
@@ -144,7 +154,17 @@ private fun fallbackFontsReady(): Boolean {
     // Ready once registered, not merely downloaded: registering runs after the frame that sees a font arrive, and text
     // laid out in that frame would miss it.
     var registered by remember { mutableStateOf(0) }
-    LaunchedEffect(text) { text?.let { resolver.preload(FontFamily(it)); registered++ } }
-    LaunchedEffect(symbols) { symbols?.let { resolver.preload(FontFamily(it)); registered++ } }
+    LaunchedEffect(text) {
+        text?.let {
+            resolver.preload(FontFamily(it))
+            registered++
+        }
+    }
+    LaunchedEffect(symbols) {
+        symbols?.let {
+            resolver.preload(FontFamily(it))
+            registered++
+        }
+    }
     return registered == 2 || timedOut
 }

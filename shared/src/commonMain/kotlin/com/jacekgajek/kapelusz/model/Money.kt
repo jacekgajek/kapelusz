@@ -1,8 +1,8 @@
 package com.jacekgajek.kapelusz.model
 
-import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 import kotlin.math.absoluteValue
+import kotlinx.serialization.Serializable
 
 /** An amount in minor units of the band's currency (grosze for PLN). Never use floating point for money. */
 @Serializable

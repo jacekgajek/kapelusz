@@ -1,27 +1,19 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
-import com.jacekgajek.kapelusz.app.data.Attachments
 import androidx.compose.foundation.clickable
-import kotlinx.coroutines.delay
-import androidx.compose.runtime.LaunchedEffect
-import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlin.io.encoding.Base64
-import com.jacekgajek.kapelusz.app.ui.components.removeLabel
-import com.jacekgajek.kapelusz.app.platform.pdfInViewer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.runtime.key
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -30,27 +22,30 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.Surface
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
+import com.jacekgajek.kapelusz.app.data.Attachments
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.attachment_limit_partial
 import com.jacekgajek.kapelusz.app.generated.attachment_add_file
 import com.jacekgajek.kapelusz.app.generated.attachment_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_file_name
 import com.jacekgajek.kapelusz.app.generated.attachment_hint
+import com.jacekgajek.kapelusz.app.generated.attachment_limit_partial
 import com.jacekgajek.kapelusz.app.generated.attachment_not_available
 import com.jacekgajek.kapelusz.app.generated.attachment_open_failed
 import com.jacekgajek.kapelusz.app.generated.attachment_remove_confirm
@@ -66,6 +61,7 @@ import com.jacekgajek.kapelusz.app.generated.attachments
 import com.jacekgajek.kapelusz.app.generated.remove
 import com.jacekgajek.kapelusz.app.platform.PickResult
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.platform.pdfInViewer
 import com.jacekgajek.kapelusz.app.platform.rememberAttachmentPicker
 import com.jacekgajek.kapelusz.app.platform.rememberUrlOpener
 import com.jacekgajek.kapelusz.app.sync.ApiException
@@ -73,11 +69,15 @@ import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.TextInputDialog
+import com.jacekgajek.kapelusz.app.ui.components.removeLabel
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.MAX_ATTACHMENTS
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -142,8 +142,11 @@ fun AttachmentsSection(
     val removedText = stringResource(Res.string.attachment_removed)
     // At once with Undo where the screen shows the snackbar, else asked first (in a dialog, which would hide it).
     val remove = { attachment: Attachment ->
-        if (!undoRemoval) removing = attachment
-        else if (owner != null) actions.runWithUndo(RemoveAttachment(owner, attachment.id), removedText.replace("%1\$s", attachment.fileName ?: attachment.id))
+        if (!undoRemoval) {
+            removing = attachment
+        } else if (owner != null) {
+            actions.runWithUndo(RemoveAttachment(owner, attachment.id), removedText.replace("%1\$s", attachment.fileName ?: attachment.id))
+        }
     }
     val openInBrowser = { attachment: Attachment ->
         open {
@@ -190,7 +193,9 @@ fun AttachmentsSection(
         }
         drafts.filter { it.kind == AttachmentKind.PDF }.forEach { draft ->
             AttachmentRow(
-                draft.kind, draft.fileName, draft.sizeBytes,
+                draft.kind,
+                draft.fileName,
+                draft.sizeBytes,
                 status = stringResource(Res.string.attachment_waiting_for_save),
                 onOpen = null,
                 onRemove = { onDrafts(drafts - draft) }.takeIf { editable },
@@ -217,7 +222,9 @@ fun AttachmentsSection(
     viewing?.let { start ->
         val viewable = attachments.filter { it.kind == AttachmentKind.IMAGE || pdfInViewer }
         AttachmentViewer(
-            fileStore, viewable, start,
+            fileStore,
+            viewable,
+            start,
             onRename = { attachment: Attachment -> renaming = attachment }.takeIf { editable },
             onRemove = { attachment: Attachment -> remove(attachment) }.takeIf { removable },
             onOpenElsewhere = openInBrowser,
@@ -276,8 +283,11 @@ internal fun DraftThumbnail(draft: PreparedFile, onRemove: (() -> Unit)?, size: 
     Box {
         ThumbnailBox(size, onClick = null, name = draft.fileName) {
             // Keyed by the content: another photo with the same name and size must not show this one.
-            if (bytes != null) BytesImage(bytes, "draft-${draft.base64.hashCode()}-${draft.sizeBytes}", ContentScale.Crop, Modifier.fillMaxSize())
-            else Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (bytes != null) {
+                BytesImage(bytes, "draft-${draft.base64.hashCode()}-${draft.sizeBytes}", ContentScale.Crop, Modifier.fillMaxSize())
+            } else {
+                Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         if (onRemove != null) ThumbnailRemoveButton(draft.fileName, Modifier.align(Alignment.TopEnd), onRemove)
     }

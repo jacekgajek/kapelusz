@@ -188,10 +188,14 @@ object SettlementCalculator {
         val status = when {
             // No money in it yet (ITERATION_3 R10): an event the band fund pays for is not a draft, even with nothing collected.
             event.holdings.isEmpty() && event.transfers.isEmpty() && !fund.isNegative -> EventStatus.DRAFT
+
             SettlementProblem.LOSS in problems -> EventStatus.LOSS
+
             problems.isEmpty() && parties.all { it.isSettled } -> EventStatus.SETTLED
+
             // The organiser's fee holds no line: nobody has a surplus to pass on until it comes (ITERATION_4 §2.2).
             problems.isEmpty() && event.awaited.isPositive && parties.none { it.delta.isPositive } -> EventStatus.AWAITING
+
             else -> EventStatus.OPEN
         }
         val suggestions = if (status == EventStatus.OPEN && problems.isEmpty()) {

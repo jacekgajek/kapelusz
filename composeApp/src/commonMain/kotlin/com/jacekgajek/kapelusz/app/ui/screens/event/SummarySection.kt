@@ -25,8 +25,8 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.line_gets
 import com.jacekgajek.kapelusz.app.generated.line_hands_over
-import com.jacekgajek.kapelusz.app.generated.line_keeps_for_fund
 import com.jacekgajek.kapelusz.app.generated.line_holds
+import com.jacekgajek.kapelusz.app.generated.line_keeps_for_fund
 import com.jacekgajek.kapelusz.app.generated.line_payout
 import com.jacekgajek.kapelusz.app.generated.line_payout_fixed
 import com.jacekgajek.kapelusz.app.generated.line_payout_fixed_only
@@ -41,12 +41,12 @@ import com.jacekgajek.kapelusz.app.generated.summary
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
+import com.jacekgajek.kapelusz.app.ui.model.fundKeptBy
 import com.jacekgajek.kapelusz.app.ui.model.partyName
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
 import com.jacekgajek.kapelusz.domain.EventStatus
 import com.jacekgajek.kapelusz.domain.PartyLine
 import com.jacekgajek.kapelusz.model.BAND_FUND
-import com.jacekgajek.kapelusz.app.ui.model.fundKeptBy
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -91,10 +91,12 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                     when {
                         line.refunds.isZero && percent != null ->
                             stringResource(Res.string.line_payout_percent_only, formatMoney(line.target, currency, lang), percent)
+
                         line.refunds.isZero -> stringResource(
                             if (line.isFixed) Res.string.line_payout_fixed_only else Res.string.line_payout_share_only,
                             formatMoney(line.target, currency, lang),
                         )
+
                         percent != null -> stringResource(
                             Res.string.line_payout_percent,
                             formatMoney(line.target, currency, lang),
@@ -102,6 +104,7 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
                             formatMoney(line.refunds, currency, lang),
                             percent,
                         )
+
                         else -> stringResource(
                             if (line.isFixed) Res.string.line_payout_fixed else Res.string.line_payout,
                             formatMoney(line.target, currency, lang),
@@ -114,18 +117,20 @@ private fun SummaryRow(context: EventContext, line: PartyLine) {
             }
             Text(stringResource(Res.string.line_holds, formatMoney(line.balance, currency, lang)), style = MaterialTheme.typography.bodySmall)
             // Each partner's own numbers: their share and refunds, and what they hold.
-            if (open) line.partyIds.forEach { id ->
-                val own = context.settlement.line(id) ?: return@forEach
-                Text(
-                    stringResource(
-                        Res.string.pair_breakdown,
-                        partyName(context.band, context.event, id, fundLabel),
-                        formatMoney(own.target, currency, lang),
-                        formatMoney(own.balance, currency, lang),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (open) {
+                line.partyIds.forEach { id ->
+                    val own = context.settlement.line(id) ?: return@forEach
+                    Text(
+                        stringResource(
+                            Res.string.pair_breakdown,
+                            partyName(context.band, context.event, id, fundLabel),
+                            formatMoney(own.target, currency, lang),
+                            formatMoney(own.balance, currency, lang),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         // Information only (ITERATION_2 §7.4): transfers are recorded in To settle, one "X → Y" at a time or all at once.
@@ -141,26 +146,33 @@ private fun DeltaLabel(context: EventContext, line: PartyLine) {
     val lang = language
     when {
         context.settlement.status == EventStatus.DRAFT -> {}
+
         line.delta.isNegative -> Text(
             stringResource(Res.string.line_gets, formatMoney(-line.delta, currency, lang)),
             color = MoneyColors.positive,
             style = MaterialTheme.typography.labelLarge,
         )
+
         line.delta.isPositive -> {
             // The treasurer doesn't hand the fund's part to anyone: they keep it. Said apart, so the red amount is only
             // what leaves their pocket.
             val keeps = fundKeptBy(context.band, context.settlement, line)
             val handsOver = line.delta - keeps
-            if (handsOver.isPositive) Text(
-                stringResource(Res.string.line_hands_over, formatMoney(handsOver, currency, lang)),
-                color = MoneyColors.negative,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            if (keeps.isPositive) Text(
-                stringResource(Res.string.line_keeps_for_fund, formatMoney(keeps, currency, lang)),
-                style = MaterialTheme.typography.labelMedium,
-            )
+            if (handsOver.isPositive) {
+                Text(
+                    stringResource(Res.string.line_hands_over, formatMoney(handsOver, currency, lang)),
+                    color = MoneyColors.negative,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            if (keeps.isPositive) {
+                Text(
+                    stringResource(Res.string.line_keeps_for_fund, formatMoney(keeps, currency, lang)),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
         }
+
         else -> Text(stringResource(Res.string.line_settled), style = MaterialTheme.typography.labelLarge)
     }
 }

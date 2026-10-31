@@ -28,8 +28,11 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
     private val requestBase = ThreadLocal.withInitial { "http://localhost:$port" }
     private val store = FileBlobStore(dataDir.resolve("bucket")) { requestBase.get() }
     private val api = Api(
-        store, FileHistoryStore(dataDir.resolve("history")), DevTokenVerifier(),
-        placeSearch = OfflinePlaceSearch(), geocodeCache = InMemoryGeocodeCache(),
+        store,
+        FileHistoryStore(dataDir.resolve("history")),
+        DevTokenVerifier(),
+        placeSearch = OfflinePlaceSearch(),
+        geocodeCache = InMemoryGeocodeCache(),
     )
     private val files = FileRoutes(store)
     private val server = HttpServer.create(InetSocketAddress(host, port), 0).apply {
@@ -59,9 +62,12 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
             }
             when {
                 query == null -> Reply.error(400, ApiErrors.BAD_REQUEST, "Malformed query string")
+
                 // CORS preflight from the web app: answered here, as API Gateway does in front of the Lambda.
                 method == "OPTIONS" -> Reply(204)
+
                 path.startsWith(FileRoutes.PREFIX) -> files.handle(method, path.removePrefix(FileRoutes.PREFIX), query, exchange.requestBody.readBytes())
+
                 else -> Reply.of(api.handle(request(exchange, query)))
             }
         } catch (e: Exception) {
@@ -80,11 +86,10 @@ class LocalServer(dataDir: Path, port: Int, host: InetAddress = InetAddress.getL
         query = query,
     )
 
-    private fun query(exchange: HttpExchange): Map<String, String> =
-        exchange.requestURI.rawQuery.orEmpty().split('&').filter { '=' in it }.associate {
-            val (key, value) = it.split('=', limit = 2)
-            URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
-        }
+    private fun query(exchange: HttpExchange): Map<String, String> = exchange.requestURI.rawQuery.orEmpty().split('&').filter { '=' in it }.associate {
+        val (key, value) = it.split('=', limit = 2)
+        URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
+    }
 
     private fun send(exchange: HttpExchange, response: Reply, method: String) {
         val headers = exchange.responseHeaders
@@ -113,7 +118,8 @@ class Reply(val status: Int, val body: ByteArray? = null, val headers: Map<Strin
 
         /** The API's own error body, as the Lambda sends it. */
         fun error(status: Int, code: String, message: String) = Reply(
-            status, KapeluszJson.encodeToString(ErrorResponse.serializer(), ErrorResponse(code, message)).toByteArray(),
+            status,
+            KapeluszJson.encodeToString(ErrorResponse.serializer(), ErrorResponse(code, message)).toByteArray(),
             mapOf("content-type" to "application/json"),
         )
     }
@@ -128,11 +134,15 @@ class FileRoutes(private val store: FileBlobStore) {
             when {
                 // Signed for exactly this size, as S3's presigned PUT is.
                 length != body.size.toLong() -> Reply.text(403, "Size differs from the signed one")
+
                 runCatching { store.path(key) }.isFailure -> Reply.text(403, "Not a file of the data directory")
+
                 store.create(key, body) -> Reply(200)
+
                 else -> Reply.text(412, "Already exists")
             }
         }
+
         "GET", "HEAD" -> {
             // A key outside the data directory is no file of it.
             val path = runCatching { store.path(key) }.getOrNull()
@@ -141,11 +151,13 @@ class FileRoutes(private val store: FileBlobStore) {
             } else {
                 val name = query["name"]?.replace(Regex("[^A-Za-z0-9._ -]"), "_")
                 Reply(
-                    200, path.readBytes(),
+                    200,
+                    path.readBytes(),
                     mapOfNotNull("content-type" to (query["type"] ?: "application/octet-stream"), name?.let { "content-disposition" to "inline; filename=\"$it\"" }),
                 )
             }
         }
+
         else -> Reply.text(405, "Method not allowed")
     }
 
