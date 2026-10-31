@@ -177,6 +177,36 @@ kotlin {
     }
 }
 
+/**
+ * Every string key is used, and the Polish file has exactly the English keys (REFACTORING.md 6.2): a key nobody reads
+ * is noise, and a missing translation shows English to a Polish user without anyone noticing.
+ */
+val checkStringKeys = tasks.register("checkStringKeys") {
+    val resources = layout.projectDirectory.dir("src/commonMain/composeResources")
+    val sources = listOf(layout.projectDirectory.dir("src"), rootProject.layout.projectDirectory.dir("androidApp/src"))
+    val stamp = layout.buildDirectory.file("stringKeys/checked")
+    sources.forEach { inputs.dir(it) }
+    outputs.file(stamp)
+    doLast {
+        val declared = Regex("<(?:string|plurals) name=\"(\\w+)\"")
+        fun keys(dir: String) = resources.dir(dir).asFile.listFiles { f -> f.extension == "xml" }.orEmpty()
+            .flatMap { file -> declared.findAll(file.readText()).map { it.groupValues[1] } }.toSet()
+        val english = keys("values")
+        val polish = keys("values-pl")
+        val used = Regex("Res\\.(?:string|plurals)\\.(\\w+)")
+        val referenced = sources.flatMap { dir -> dir.asFile.walk().filter { it.extension == "kt" }.toList() }
+            .flatMap { file -> used.findAll(file.readText()).map { it.groupValues[1] } }.toSet()
+        val unused = english - referenced
+        val untranslated = english - polish
+        val stray = polish - english
+        check(unused.isEmpty() && untranslated.isEmpty() && stray.isEmpty()) {
+            "String keys: unused $unused; missing in values-pl $untranslated; only in values-pl $stray"
+        }
+        stamp.get().asFile.apply { parentFile.mkdirs() }.writeText("${english.size} keys\n")
+    }
+}
+tasks.named("check") { dependsOn(checkStringKeys) }
+
 compose.resources {
     publicResClass = false
     packageOfResClass = "com.jacekgajek.kapelusz.app.generated"

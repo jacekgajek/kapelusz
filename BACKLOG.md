@@ -139,4 +139,3 @@ and may drift; the symbol names are the stable part.
     code the no-backward-compat rule says not to carry.
 11. `AppGraph.kt:35`, `BandRepository.kt:493`: `println` logging; in a release build on Android nobody sees unhandled
     coroutine failures or storage write failures.
-12. Dead string keys `move_down`, `notifications_debts`, `share_fixed`, `share_weight`.
