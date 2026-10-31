@@ -250,7 +250,7 @@ private fun CostFiles(context: EventContext, cost: Cost) {
     // Under the text, past the category icon.
     Box(Modifier.padding(start = 52.dp)) {
         AttachmentsSection(
-            context.graph, AttachmentOwner.OfCost(cost.id), cost.attachments,
+            context.fileStore, AttachmentOwner.OfCost(cost.id), cost.attachments,
             drafts = emptyList(), onDrafts = {}, editable = false, actions = context.actions, title = null,
         )
     }

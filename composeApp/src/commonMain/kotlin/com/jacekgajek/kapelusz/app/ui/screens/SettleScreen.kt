@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
 import com.jacekgajek.kapelusz.app.ui.components.PaymentButtons
 import com.jacekgajek.kapelusz.domain.BlikPhone
@@ -31,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.newId
 import com.jacekgajek.kapelusz.app.data.today
@@ -70,7 +70,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Everything the current user still has to pay, receive or hand over, across events. */
 @Composable
 fun SettleScreen(
-    graph: AppGraph,
+    changes: Changes,
     state: BandState.Ready,
     onOpenEvent: (String) -> Unit,
     onSettings: () -> Unit,
@@ -79,7 +79,7 @@ fun SettleScreen(
     val band = state.band
     val me = state.me
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
+    val actions = rememberActions(changes, snackbar)
     val fundLabel = stringResource(Res.string.band_fund)
     val lang = language
 

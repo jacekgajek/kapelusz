@@ -23,6 +23,9 @@ class Account(
     private val messages: DeviceMessages,
     private val incoming: Incoming,
 ) {
+    /** The signed-in user; null while signed out. */
+    val session: StateFlow<Session?> get() = sessions.session
+
     /** The user was signed out because of "sign out on all devices" (ITERATION_3 R6); the sign-in screen says so. */
     val signedOutEverywhere = MutableStateFlow(false)
 

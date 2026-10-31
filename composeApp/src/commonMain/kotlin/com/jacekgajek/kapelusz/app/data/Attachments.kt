@@ -36,6 +36,9 @@ class Attachments(
     private val download: suspend (url: String) -> ByteArray = { error("No downloads here") },
     private val cache: ByteCache = FileCache,
 ) {
+    /** Files still waiting to be uploaded. */
+    val pending get() = uploads.pending
+
     /**
      * Attaches a prepared file to [owner]: the attachment is added like any change, and the file waits on the device
      * until the sync has uploaded it. [attachmentId] lets the caller take it off again.

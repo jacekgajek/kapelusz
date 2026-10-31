@@ -1,5 +1,12 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.data.Attachments
+import com.jacekgajek.kapelusz.app.data.Incoming
+import com.jacekgajek.kapelusz.app.data.SettingsRepository
+import com.jacekgajek.kapelusz.app.data.BandRepository
+import com.jacekgajek.kapelusz.app.data.Changes
 import androidx.compose.material3.SnackbarDuration
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.currentStateAsState
@@ -77,7 +84,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.EventTab
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -128,7 +134,10 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Everything a section of the event screen needs. */
 class EventContext(
-    val graph: AppGraph,
+    /** The attachment files of the event, its costs and collected money. */
+    val fileStore: Attachments,
+    /** Shared files on their way to a new collected entry. */
+    val incoming: Incoming,
     val band: Band,
     val event: Event,
     val settlement: Settlement,
@@ -143,7 +152,13 @@ class EventContext(
 
 @Composable
 fun EventScreen(
-    graph: AppGraph,
+    changes: Changes,
+    api: ApiClient,
+    bands: BandRepository,
+    sync: SyncEngine,
+    preferences: SettingsRepository,
+    incoming: Incoming,
+    fileStore: Attachments,
     state: BandState.Ready,
     eventId: String,
     onBack: () -> Unit,
@@ -153,7 +168,7 @@ fun EventScreen(
 ) {
     val snackbar = remember { SnackbarHostState() }
     val undos = remember { UndoStack() }
-    val actions = rememberActions(graph, snackbar, undos)
+    val actions = rememberActions(changes, snackbar, undos)
     // Artists only open the events they play, archived ones too (ITERATION_4 §1.1).
     val artist = state.band.isArtist(state.userId)
     val event = state.band.event(eventId)?.takeUnless { artist && state.me?.let { me -> it.participant(me.id) } == null }
@@ -164,12 +179,12 @@ fun EventScreen(
     // event opens on the page last used there; swiping or the tabs switch, and each page keeps its own scroll position.
     val bandId = state.band.id
     val tabs = if (artist) listOf(EventTab.GIG, EventTab.MONEY) else EventTab.entries
-    val stored = graph.settings.settings.collectAsState().value.eventTab(bandId, eventId)
+    val stored = preferences.settings.collectAsState().value.eventTab(bandId, eventId)
     val pagerState = rememberPagerState(initialPage = tabs.indexOf(stored).coerceAtLeast(0)) { tabs.size }
     val listStates = tabs.associateWith { rememberLazyListState() }
     LaunchedEffect(pagerState, tabs) {
         // getOrNull: a role changing to Artist meanwhile takes a page away before the pager catches up.
-        snapshotFlow { pagerState.settledPage }.collect { page -> tabs.getOrNull(page)?.let { tab -> graph.settings.update { it.withEventTab(bandId, eventId, tab) } } }
+        snapshotFlow { pagerState.settledPage }.collect { page -> tabs.getOrNull(page)?.let { tab -> preferences.update { it.withEventTab(bandId, eventId, tab) } } }
     }
     // The page and place of one section; not for artists, whose pages have other sections.
     suspend fun scrollTo(section: EventSection) {
@@ -184,7 +199,7 @@ fun EventScreen(
     // Files shared to Kapelusz (ITERATION_6 §1): the section they went to, or on to the new cost that takes them. Only
     // by the screen in front: one on its way out (the same event opened again) would take them along.
     val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
-    val sharedSection by graph.incoming.pendingEventSection.collectAsState()
+    val sharedSection by incoming.pendingEventSection.collectAsState()
     LaunchedEffect(sharedSection, event != null, resumed) {
         val (sectionEvent, name) = sharedSection ?: return@LaunchedEffect
         if (sectionEvent != eventId || !resumed) return@LaunchedEffect
@@ -193,24 +208,24 @@ fun EventScreen(
         if (event != null && section != null) {
             if (!artist) scrollTo(section) else section.tabs.firstOrNull { it in tabs }?.let { pagerState.scrollToPage(tabs.indexOf(it)) }
         }
-        graph.incoming.pendingEventSection.value = null
+        incoming.pendingEventSection.value = null
     }
-    val handover by graph.incoming.sharedHandover.collectAsState()
+    val handover by incoming.sharedHandover.collectAsState()
     LaunchedEffect(handover, event != null, resumed) {
         if (handover?.eventId != eventId || !resumed) return@LaunchedEffect
         when {
             // Gone meanwhile (or hidden from an artist): the files must not turn up there later.
-            event == null -> graph.incoming.sharedHandover.value = null
+            event == null -> incoming.sharedHandover.value = null
             handover?.toCost == true -> onAddCost(eventId)
         }
     }
-    // Taken over from the graph first: clearing it there must not cancel the snackbar showing here.
-    val attachedHere = graph.incoming.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId && it.bandId == state.band.id && resumed }
+    // Taken over from incoming first: clearing it there must not cancel the snackbar showing here.
+    val attachedHere = incoming.sharedAttached.collectAsState().value?.takeIf { it.eventId == eventId && it.bandId == state.band.id && resumed }
     var attached by remember { mutableStateOf<SharedAttached?>(null) }
     LaunchedEffect(attachedHere) {
         if (attachedHere == null) return@LaunchedEffect
         attached = attachedHere
-        graph.incoming.sharedAttached.value = null
+        incoming.sharedAttached.value = null
     }
     val attachedText = attached?.let { pluralStringResource(Res.plurals.share_attached, it.attachmentIds.size, it.attachmentIds.size) }
     val attachFailed = stringResource(Res.string.share_attach_failed)
@@ -223,7 +238,7 @@ fun EventScreen(
             val message = if (done.failed > 0) "$attachedText. $attachFailed" else attachedText.orEmpty()
             // With an action a snackbar stays until tapped by default: a while, with a cross to close it sooner.
             val undone = snackbar.showSnackbar(message, undoLabel, withDismissAction = true, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed
-            if (undone && graph.bands.currentBandId == done.bandId) done.attachmentIds.forEach { graph.attachments.remove(done.owner, it) }
+            if (undone && bands.currentBandId == done.bandId) done.attachmentIds.forEach { fileStore.remove(done.owner, it) }
         }
         attached = null
     }
@@ -252,7 +267,7 @@ fun EventScreen(
             }
             return@Scaffold
         }
-        val context = EventContext(graph, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId), onInviteMember)
+        val context = EventContext(fileStore, incoming, state.band, event, settlement ?: return@Scaffold, state.me, actions, Can(state.band, state.userId), onInviteMember)
         val shareInfo = rememberShareInfo(state.band, event, snackbar)
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
             EventTabs(tabs, pagerState)
@@ -295,7 +310,7 @@ fun EventScreen(
                                     EventSection.PROBLEMS -> Problems(context)
                                     EventSection.SUMMARY -> SummarySection(context)
                                     EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement)
-                                    EventSection.HISTORY -> HistorySection(context, graph)
+                                    EventSection.HISTORY -> HistorySection(context, api, bands, sync)
                                 }
                             }
                         }
@@ -303,7 +318,7 @@ fun EventScreen(
                 }
             }
         }
-        if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceLookup(graph, state.band, state.userId), onDismiss = { editing = false })
+        if (editing) EditDetailsDialog(state.band, event, actions, rememberPlaceLookup(api, state.band, state.userId), onDismiss = { editing = false })
     }
 }
 
@@ -521,7 +536,7 @@ private fun FilesSection(context: EventContext) {
     if (event.attachments.isEmpty() && !editable) return
     SectionTitle(stringResource(Res.string.event_files))
     AttachmentsSection(
-        context.graph, AttachmentOwner.OfEvent(event.id), event.attachments,
+        context.fileStore, AttachmentOwner.OfEvent(event.id), event.attachments,
         drafts = emptyList(), onDrafts = {}, editable = editable, actions = context.actions,
         max = MAX_EVENT_ATTACHMENTS, hint = Res.string.attachment_hint_event, title = null, undoRemoval = true,
     )

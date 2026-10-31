@@ -1,5 +1,9 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.sync.SyncEngine
+import com.jacekgajek.kapelusz.app.sync.ApiClient
+import com.jacekgajek.kapelusz.app.data.BandRepository
+import com.jacekgajek.kapelusz.app.data.Changes
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.app.generated.history_undone
@@ -49,7 +53,6 @@ import com.jacekgajek.kapelusz.api.HistoryEntry
 import com.jacekgajek.kapelusz.app.sync.HistoryItem
 import com.jacekgajek.kapelusz.app.sync.ReadOp
 import com.jacekgajek.kapelusz.app.generated.history_newer_version
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.BandState
 import com.jacekgajek.kapelusz.app.data.nowMillis
 import com.jacekgajek.kapelusz.app.generated.Res
@@ -95,15 +98,15 @@ fun HistoryItem.toLines(): List<HistoryLine> = ops.asReversed().map { op ->
 
 /** Band-wide history, one month at a time, newest first. */
 @Composable
-fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
+fun HistoryScreen(changes: Changes, api: ApiClient, bands: BandRepository, sync: SyncEngine, state: BandState.Ready, onBack: () -> Unit) {
     var offset by remember { mutableStateOf(0) }
     var next by remember { mutableStateOf<String?>(null) }
     var loadingMore by remember { mutableStateOf(false) }
     var loadMoreFailed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val actions = rememberActions(graph, snackbar)
-    val history = remember(state.band.id) { HistoryController(graph, state.band.id, state.userId, state.me?.id, scope) }
+    val actions = rememberActions(changes, snackbar)
+    val history = remember(state.band.id) { HistoryController(bands, sync, state.band.id, state.userId, state.me?.id, scope) }
     val month = historyMonth(offset)
     var linesMonth by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(state.band.id, month, history.reload) {
@@ -114,7 +117,7 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
         }
         history.failed = false
         history.load {
-            val response = graph.api.history(state.band.id, month)
+            val response = api.history(state.band.id, month)
             next = response.next
             linesMonth = month
             response.entries.flatMap { it.toLines() }
@@ -125,7 +128,7 @@ fun HistoryScreen(graph: AppGraph, state: BandState.Ready, onBack: () -> Unit) {
             loadingMore = true
             val refresh = history.reload
             val forMonth = month
-            runSuspendCatching { graph.api.history(state.band.id, forMonth, next) }
+            runSuspendCatching { api.history(state.band.id, forMonth, next) }
                 // Not onto a list that was refreshed or that shows another month meanwhile (read now: [offset] is state).
                 .onSuccess { response ->
                     if (refresh == history.reload && forMonth == historyMonth(offset)) {

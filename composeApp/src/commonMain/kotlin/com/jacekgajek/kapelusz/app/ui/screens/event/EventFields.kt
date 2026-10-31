@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens.event
 
+import com.jacekgajek.kapelusz.app.sync.ApiClient
 import com.jacekgajek.kapelusz.app.generated.location_pick_map
 import com.jacekgajek.kapelusz.app.platform.mapPickerAvailable
 import com.jacekgajek.kapelusz.app.platform.MapPickerDialog
@@ -13,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import com.jacekgajek.kapelusz.app.generated.location_clear
 import com.jacekgajek.kapelusz.api.PlaceSuggestion
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.data.runSuspendCatching
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Role
@@ -80,28 +80,28 @@ import org.jetbrains.compose.resources.stringResource
  * Google's place services for Location (ITERATION_5 §9), through the server, in the app's language. Each call throws
  * when it cannot (offline, not set up). A search and the details of the place picked from it are one Google session.
  */
-class PlaceLookup(private val graph: AppGraph, private val bandId: String, private val language: String) {
+class PlaceLookup(private val api: ApiClient, private val bandId: String, private val language: String) {
     private var session = newId()
 
-    suspend fun suggest(query: String): List<PlaceSuggestion> = graph.api.places(bandId, query, language, session)
+    suspend fun suggest(query: String): List<PlaceSuggestion> = api.places(bandId, query, language, session)
 
     /** The picked place's name and full address; a new search is a new session. */
     suspend fun details(place: PlaceSuggestion): String = try {
-        graph.api.placeText(bandId, place.placeId, language, session)
+        api.placeText(bandId, place.placeId, language, session)
     } finally {
         session = newId()
     }
 
     /** A Google Maps link read: the place and its address, or a pin's coordinates. */
-    suspend fun resolve(url: String): String = graph.api.resolveMapLink(bandId, url, language)
+    suspend fun resolve(url: String): String = api.resolveMapLink(bandId, url, language)
 }
 
 /** Place lookups for the band's event dialogs; null for who cannot edit events. */
 @Composable
-fun rememberPlaceLookup(graph: AppGraph, band: Band, userId: String): PlaceLookup? {
+fun rememberPlaceLookup(api: ApiClient, band: Band, userId: String): PlaceLookup? {
     val lang = language
     val allowed = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) == true
-    return remember(graph, band.id, lang, allowed) { if (allowed) PlaceLookup(graph, band.id, lang) else null }
+    return remember(api, band.id, lang, allowed) { if (allowed) PlaceLookup(api, band.id, lang) else null }
 }
 
 /** What the create and edit dialogs edit about an event. */

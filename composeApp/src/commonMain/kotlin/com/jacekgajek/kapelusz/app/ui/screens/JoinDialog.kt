@@ -1,5 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
+import com.jacekgajek.kapelusz.app.data.Membership
 import androidx.compose.foundation.layout.padding
 import com.jacekgajek.kapelusz.app.generated.join_scan_qr
 import com.jacekgajek.kapelusz.app.generated.join_qr_not_invite
@@ -32,7 +33,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.api.InvitePreview
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.check_code
@@ -57,7 +57,7 @@ private const val CODE_LENGTH = 6
 
 /** Join a band with an invite code: check the code, see what it grants, then accept. */
 @Composable
-fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDismiss: () -> Unit) {
+fun JoinDialog(membership: Membership, initialCode: String?, onJoined: () -> Unit, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf(initialCode.orEmpty().uppercase()) }
     var preview by remember { mutableStateOf<InvitePreview?>(null) }
@@ -76,7 +76,7 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
     fun check() = scope.launch {
         busy = true
         error = null
-        runSuspendCatching { graph.api.previewInvite(code) }.onSuccess { preview = it }.onFailure { error = explain(it) }
+        runSuspendCatching { membership.previewInvite(code) }.onSuccess { preview = it }.onFailure { error = explain(it) }
         busy = false
     }
 
@@ -142,7 +142,7 @@ fun JoinDialog(graph: AppGraph, initialCode: String?, onJoined: () -> Unit, onDi
                 TextButton(enabled = !busy, onClick = {
                     scope.launch {
                         busy = true
-                        runSuspendCatching { graph.membership.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
+                        runSuspendCatching { membership.joinBand(ready.code) }.onSuccess { onJoined() }.onFailure { error = explain(it); preview = null }
                         busy = false
                     }
                 }) { Text(stringResource(Res.string.join)) }

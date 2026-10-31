@@ -14,6 +14,9 @@ class Membership(
     private val sync: SyncEngine,
     private val messages: DeviceMessages,
 ) {
+    /** What an invite code leads to, before accepting it. Network errors and refusals surface as exceptions. */
+    suspend fun previewInvite(code: String) = api.previewInvite(code)
+
     /** Accepts an invite and opens the band. Network errors and refusals surface as exceptions. */
     suspend fun joinBand(code: String) {
         val joined = api.acceptInvite(code)

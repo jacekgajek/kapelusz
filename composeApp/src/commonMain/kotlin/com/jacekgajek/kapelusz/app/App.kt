@@ -146,7 +146,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
     var joining by remember { mutableStateOf(false) }
     if (joining || pendingJoinCode != null) {
         JoinDialog(
-            graph = graph,
+            membership = graph.membership,
             initialCode = pendingJoinCode,
             onJoined = {
                 joining = false
@@ -156,7 +156,7 @@ private fun BandContent(graph: AppGraph, bandState: BandState, navController: Na
             onDismiss = { joining = false; graph.incoming.pendingJoinCode.value = null },
         )
     }
-    LostAccessDialog(graph)
+    LostAccessDialog(graph.sync)
     EventLinkOpening(graph)
     when (bandState) {
         BandState.Loading -> LoadingScreen()

@@ -1,7 +1,6 @@
 package com.jacekgajek.kapelusz.app.ui.screens
 
 import com.jacekgajek.kapelusz.app.ui.components.CostIcon
-import com.jacekgajek.kapelusz.app.data.AppGraph
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -115,7 +114,6 @@ private enum class CostFilter(val label: StringResource) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MyCostsScreen(
-    graph: AppGraph,
     state: BandState.Ready,
     everyone: Boolean,
     onEveryone: (Boolean) -> Unit,
