@@ -19,7 +19,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -49,8 +52,8 @@ class AppGraph(
     val sessions: SessionRepository = SessionRepository(store, google, ::nowMillis, SessionApi(transport)::createSession)
     val bands = BandRepository(store, scope)
 
-    /** The server no longer serves this app version (ITERATION_2 §2): the app shows "update to continue". */
-    val updateRequired = MutableStateFlow(false)
+    /** The server no longer serves this app version (ITERATION_2 §2); part of [state]. */
+    private val updateRequired = MutableStateFlow(false)
     val api: ApiClient = ApiClient(transport) { refused -> sessions.validToken(forceRefresh = refused != null, refused = refused) }
     val uploads = AttachmentUploads(store, api, bands)
 
@@ -69,6 +72,13 @@ class AppGraph(
         check(response.status.isSuccess()) { "Download failed: ${response.status}" }
         response.bodyAsBytes()
     })
+
+    /** What the user sees: the one thing the app's root switches on; [currentState] is the same now, for a first frame. */
+    val state: Flow<AppState> = combine(updateRequired, sessions.session, bands.state, account.signedOutEverywhere, ::appState)
+
+    /** The state as it is this instant, read from its parts: what [App] starts from, so nothing stale shows first. */
+    val currentState: AppState
+        get() = appState(updateRequired.value, sessions.session.value, bands.state.value, account.signedOutEverywhere.value)
 
     private var loaded = false
     private val loadLock = Mutex()
