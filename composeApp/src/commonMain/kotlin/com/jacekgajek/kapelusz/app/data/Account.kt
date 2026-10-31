@@ -20,7 +20,7 @@ class Account(
     private val bands: BandRepository,
     private val uploads: AttachmentUploads,
     private val sync: SyncEngine,
-    private val messages: DeviceMessages,
+    private val devices: DeviceRegistration,
     private val intents: IntentInbox,
 ) {
     /** The signed-in user; null while signed out. */
@@ -44,7 +44,6 @@ class Account(
         _signedOutEverywhere.value = false
         sync.start()
         sync.resumeAfterSignIn()
-        messages.register()
     }
 
     /**
@@ -62,7 +61,7 @@ class Account(
      */
     suspend fun signOut(tellServer: Boolean = true) {
         sync.stop()
-        messages.unregister(tellServer)
+        devices.unregister(tellServer)
         sessions.signOut()
         intents.signedOut()
     }

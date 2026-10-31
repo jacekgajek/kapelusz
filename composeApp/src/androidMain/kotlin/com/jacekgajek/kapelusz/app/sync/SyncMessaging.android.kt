@@ -72,6 +72,6 @@ class SyncMessagingService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        AndroidAppGraph.get(applicationContext).messages.register()
+        AndroidAppGraph.get(applicationContext).devices.tokenChanged()
     }
 }

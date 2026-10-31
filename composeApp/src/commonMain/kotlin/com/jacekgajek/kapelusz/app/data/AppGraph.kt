@@ -10,7 +10,6 @@ import com.jacekgajek.kapelusz.app.sync.ApiSignal
 import com.jacekgajek.kapelusz.app.sync.ApiTransport
 import com.jacekgajek.kapelusz.app.sync.SessionApi
 import com.jacekgajek.kapelusz.app.sync.SyncEngine
-import com.jacekgajek.kapelusz.app.sync.SyncEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
@@ -61,13 +60,15 @@ class AppGraph(
     val locations = PlacesLocator(store, api)
 
     val sync: SyncEngine = SyncEngine(api, bands, scope, uploads = uploads)
-    val messages: DeviceMessages = DeviceMessages(messageChannel, sessions, api, sync, scope)
+
+    /** This device on the server's list for sync messages: registers by itself as the user's bands change. */
+    val devices = DeviceRegistration(messageChannel, sessions.session, bands.index, api, sync.events, sync.state, sync::messaged, scope)
     val changes = Changes(bands, sync)
 
     /** What the app was asked to do from outside (links, shared files), for the UI's router. */
     val intents = IntentInbox()
-    val account: Account = Account(scope, sessions, api, bands, uploads, sync, messages, intents)
-    val membership = Membership(scope, api, bands, sync, messages)
+    val account: Account = Account(scope, sessions, api, bands, uploads, sync, devices, intents)
+    val membership = Membership(scope, api, bands, sync)
     val attachments = Attachments(bands, uploads, api, sync, scope, changes::dispatch, download = { url ->
         // A presigned link: nothing of the app's own (no token) goes with it.
         val response = http.get(url)
@@ -100,9 +101,6 @@ class AppGraph(
                 }
             }
         }
-        scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            sync.events.collect { if (it is SyncEvent.BandCreated) scope.launch { messages.register() } }
-        }
     }
 
     /** Loads persisted state once per process; later calls (e.g. after Android activity recreation) are no-ops. */
@@ -119,7 +117,6 @@ class AppGraph(
         }
         if (sessions.session.value != null) sync.start()
         loaded = true
-        messages.register()
     }
 
     /**
