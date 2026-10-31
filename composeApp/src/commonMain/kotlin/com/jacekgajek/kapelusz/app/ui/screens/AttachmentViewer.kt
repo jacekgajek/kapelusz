@@ -63,6 +63,7 @@ import com.jacekgajek.kapelusz.app.platform.pdfPagePng
 import com.jacekgajek.kapelusz.app.platform.rememberCopyImage
 import com.jacekgajek.kapelusz.app.platform.rememberOpenPdf
 import com.jacekgajek.kapelusz.app.ui.components.ZoomState
+import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.zoomable
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
@@ -142,10 +143,7 @@ fun AttachmentViewer(
     onOpenElsewhere: (Attachment) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (attachments.isEmpty()) {
-        LaunchedEffect(Unit) { onDismiss() }
-        return
-    }
+    resolved(attachments.takeIf { it.isNotEmpty() }, onDismiss) ?: return
     val pager = rememberPagerState(start.coerceIn(0, attachments.lastIndex)) { attachments.size }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }

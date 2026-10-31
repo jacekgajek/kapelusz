@@ -70,6 +70,7 @@ import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
+import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
 import com.jacekgajek.kapelusz.app.ui.screens.AttachmentsSection
@@ -89,11 +90,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun CollectedSection(context: EventContext) {
     val event = context.event
-    var editing by remember { mutableStateOf<Holding?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    var addingAwaited by remember { mutableStateOf(false) }
-    var receiving by remember { mutableStateOf<Holding?>(null) }
-    var welching by remember { mutableStateOf<Holding?>(null) }
+    var dialog by remember { mutableStateOf<CollectedDialog?>(null) }
     val allowedParties = context.can.holdingParties(event)
     val receiveParties = context.can.receiveParties(event)
     val organiser = stringResource(Res.string.organiser)
@@ -103,8 +100,9 @@ fun CollectedSection(context: EventContext) {
     SectionTitle(stringResource(Res.string.collected_money))
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
     event.holdings.forEach { holding ->
+        val edit = { dialog = CollectedDialog.Editing(holding) }
         Row(
-            Modifier.fillMaxWidth().clickable(enabled = context.can.editHolding(event, holding)) { editing = holding }.padding(vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable(enabled = context.can.editHolding(event, holding), onClick = edit).padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
@@ -116,18 +114,20 @@ fun CollectedSection(context: EventContext) {
                 )
             }
             MoneyText(holding.amount)
-            if (context.can.editHolding(event, holding)) EditButton { editing = holding }
+            if (context.can.editHolding(event, holding)) EditButton(onClick = edit)
         }
         // A fee the organiser still owes (ITERATION_4 §2.2): paid (whoever got it takes it over), or never paid (it goes).
         // Laid out like Refund here under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 if (context.can.editHolding(event, holding)) {
-                    TextButton(onClick = { welching = holding }) {
+                    TextButton(onClick = { dialog = CollectedDialog.Welching(holding) }) {
                         Text(stringResource(Res.string.awaited_welched), color = MaterialTheme.colorScheme.error)
                     }
                 }
-                OutlinedButton(onClick = { receiving = holding }) { Text(stringResource(Res.string.receive_awaited)) }
+                OutlinedButton(onClick = { dialog = CollectedDialog.Receiving(holding) }) {
+                    Text(stringResource(Res.string.receive_awaited))
+                }
             }
         }
         // Its files (e.g. the contract, ITERATION_4 §2.1), for everyone who sees the money to open; changed in its dialog.
@@ -145,73 +145,82 @@ fun CollectedSection(context: EventContext) {
         }
     }
     if (allowedParties.isNotEmpty()) {
-        TextButton(onClick = { adding = true }) {
+        TextButton(onClick = { dialog = CollectedDialog.Adding() }) {
             Icon(Icons.Default.Add, null)
             Text(stringResource(Res.string.add_money), Modifier.padding(start = 8.dp))
         }
     }
     if (context.can.recordAwaited(event)) {
-        TextButton(onClick = { addingAwaited = true }) {
+        TextButton(onClick = { dialog = CollectedDialog.AddingAwaited }) {
             Icon(Icons.Default.Schedule, null)
             Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
         }
     }
-    if (addingAwaited) HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = { addingAwaited = false })
-    welching?.let { tapped ->
-        // As it is now: part of it may have come in meanwhile, on another phone.
-        val holding = event.holdings.firstOrNull { it.id == tapped.id }
-        if (holding == null) {
-            LaunchedEffect(Unit) { welching = null }
-            return@let
-        }
-        val files = holding.attachments.size
-        ConfirmDialog(
-            title = stringResource(Res.string.awaited_welched_title),
-            text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)) +
-                // Its files (the contract) go with it, for good.
-                files.takeIf { it > 0 }?.let { " " + stringResource(Res.string.delete_files_too, it) }.orEmpty(),
-            confirmLabel = stringResource(Res.string.awaited_welched),
-            onConfirm = { context.actions.run(RemoveHolding(event.id, holding.id)) },
-            onDismiss = { welching = null },
-        )
-    }
-    receiving?.let { holding ->
-        // Received meanwhile (e.g. on another phone): nothing left to receive.
-        val current = event.holdings.firstOrNull { it.id == holding.id }
-        if (current == null || receiveParties.isEmpty()) {
-            LaunchedEffect(Unit) { receiving = null }
-        } else {
-            ReceiveDialog(context, current, receiveParties, onDismiss = { receiving = null })
-        }
-    }
-
-    // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): its dialog, with them.
-    var sharedDrafts by remember { mutableStateOf(listOf<PreparedFile>()) }
+    // Photos or PDFs shared to Kapelusz for new received money here (ITERATION_6 §1): the new entry's dialog, with them.
     val handover by context.incoming.sharedHandover.collectAsState()
     // Only on the screen in front: one on its way out (the same event opened again) would take them along.
     val resumed = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.RESUMED)
     LaunchedEffect(handover, resumed) {
         if (handover?.let { it.eventId == event.id && !it.toCost } != true || !resumed) return@LaunchedEffect
-        sharedDrafts = context.incoming.takeSharedFiles(event.id, toCost = false)
         // One dialog at a time: the new entry's.
-        editing = null
-        adding = true
+        dialog = CollectedDialog.Adding(context.incoming.takeSharedFiles(event.id, toCost = false))
     }
-    if (adding) {
-        // A sync may have taken away whom the user can record for (removed from the event, a role changed): close.
-        val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull()
-        val close = {
-            adding = false
-            sharedDrafts = emptyList()
+    val close = { dialog = null }
+    when (val open = dialog) {
+        CollectedDialog.AddingAwaited -> HoldingDialog(context, initial = null, ORGANISER, listOf(ORGANISER), onDismiss = close)
+
+        is CollectedDialog.Welching -> {
+            // As it is now: part of it may have come in meanwhile, on another phone.
+            val holding = resolved(event.holdings.firstOrNull { it.id == open.holding.id }, close)
+            if (holding != null) WelchedDialog(context, holding, onDismiss = close)
         }
-        if (defaultParty == null) {
-            LaunchedEffect(Unit) { close() }
-        } // Files shared while it was open already: it starts again with them, rather than taking only what still fits.
-        else {
-            key(sharedDrafts) { HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = sharedDrafts) }
+
+        is CollectedDialog.Receiving -> {
+            // Received meanwhile (e.g. on another phone): nothing left to receive.
+            val current = resolved(event.holdings.firstOrNull { it.id == open.holding.id }?.takeIf { receiveParties.isNotEmpty() }, close)
+            if (current != null) ReceiveDialog(context, current, receiveParties, onDismiss = close)
         }
+
+        is CollectedDialog.Adding -> {
+            // A sync may have taken away whom the user can record for (removed from the event, a role changed): close.
+            val defaultParty = resolved(context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull(), close)
+            // Files shared while it was open already: it starts again with them, rather than taking only what still fits.
+            if (defaultParty != null) {
+                key(open.drafts) {
+                    HoldingDialog(context, initial = null, defaultParty, allowedParties, onDismiss = close, initialDrafts = open.drafts)
+                }
+            }
+        }
+
+        is CollectedDialog.Editing -> HoldingDialog(context, open.holding, open.holding.partyId, allowedParties, onDismiss = close)
+
+        null -> Unit
     }
-    editing?.let { holding -> HoldingDialog(context, holding, holding.partyId, allowedParties, onDismiss = { editing = null }) }
+}
+
+/** What is open over the collected money: one at a time. */
+private sealed interface CollectedDialog {
+    /** A new entry; [drafts]: files shared to the app for it. */
+    data class Adding(val drafts: List<PreparedFile> = emptyList()) : CollectedDialog
+    data object AddingAwaited : CollectedDialog
+    data class Editing(val holding: Holding) : CollectedDialog
+    data class Receiving(val holding: Holding) : CollectedDialog
+    data class Welching(val holding: Holding) : CollectedDialog
+}
+
+/** An awaited fee that will never come (ITERATION_4 §2.2): asked first, as its files (the contract) go with it. */
+@Composable
+private fun WelchedDialog(context: EventContext, holding: Holding, onDismiss: () -> Unit) {
+    val files = holding.attachments.size
+    ConfirmDialog(
+        title = stringResource(Res.string.awaited_welched_title),
+        text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)) +
+            // Its files (the contract) go with it, for good.
+            files.takeIf { it > 0 }?.let { " " + stringResource(Res.string.delete_files_too, it) }.orEmpty(),
+        confirmLabel = stringResource(Res.string.awaited_welched),
+        onConfirm = { context.actions.run(RemoveHolding(context.event.id, holding.id)) },
+        onDismiss = onDismiss,
+    )
 }
 
 @Composable
@@ -225,10 +234,7 @@ private fun HoldingDialog(
 ) {
     val event = context.event
     // Gone meanwhile (removed, or an awaited fee received on another phone): nothing left to edit (V5-M1 C4d).
-    if (initial != null && event.holdings.none { it.id == initial.id }) {
-        LaunchedEffect(Unit) { onDismiss() }
-        return
-    }
+    if (initial != null) resolved(event.holdings.firstOrNull { it.id == initial.id }, onDismiss) ?: return
     val lang = language
     var partyId by remember { mutableStateOf(defaultParty) }
     var amount by remember { mutableStateOf(initial?.let { formatMoneyInput(it.amount, lang) } ?: "") }

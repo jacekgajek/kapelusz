@@ -20,7 +20,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +53,7 @@ import com.jacekgajek.kapelusz.app.ui.components.costTitle
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.parseMoney
+import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.model.formatDate
 import com.jacekgajek.kapelusz.app.ui.model.formatMoney
 import com.jacekgajek.kapelusz.app.ui.model.formatMoneyInput
@@ -152,11 +152,7 @@ private fun CostDescription(context: EventContext, cost: Cost, modifier: Modifie
 private fun RefundDialog(context: EventContext, opened: Cost, onOpenCost: (String) -> Unit, onDismiss: () -> Unit) {
     val event = context.event
     // As it is now: its amount may have changed meanwhile, or it may be gone (V5-M1 C4d).
-    val cost = context.band.cost(opened.id)
-    if (cost == null) {
-        LaunchedEffect(Unit) { onDismiss() }
-        return
-    }
+    val cost = resolved(context.band.cost(opened.id), onDismiss) ?: return
     val max = CostLedger.maxRefundAt(context.band, cost, event)
     val lang = language
     var amount by remember { mutableStateOf(formatMoneyInput(event.refundOf(cost.id)?.amount ?: max, lang)) }
