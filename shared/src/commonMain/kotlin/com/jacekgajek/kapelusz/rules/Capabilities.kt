@@ -35,7 +35,6 @@ import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.ops.UpdateHolding
-import com.jacekgajek.kapelusz.rules.Artists
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import kotlinx.datetime.LocalDate
 
@@ -101,6 +100,7 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun attachTo(owner: AttachmentOwner) = allowed(AddAttachment(owner, PROBE_ATTACHMENT))
     fun detachFrom(owner: AttachmentOwner) = allowed(RemoveAttachment(owner, PROBE))
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
+    fun seeOthersDetails() = band.memberOfUser(userId)?.role?.atLeast(Role.MEMBER) ?: false
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
 
     /** Archived events are read-only until restored. */

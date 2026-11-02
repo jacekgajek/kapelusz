@@ -71,6 +71,9 @@ object NoClipboard : Clipboard {
 object NoSharing : Sharing {
     @Composable
     override fun rememberShare(): suspend (text: String) -> ShareResult = { ShareResult.FAILED }
+
+    @Composable
+    override fun rememberOpen(mimeType: String): suspend (bytes: ByteArray, fileName: String) -> Boolean = { _, _ -> false }
 }
 
 private object NoPicker : AttachmentPicker {

@@ -119,6 +119,8 @@ interface Sharing {
     /** Shares the text with the platform's share sheet (or copies it where there is none). */
     @Composable
     fun rememberShare(): suspend (text: String) -> ShareResult
+    @Composable
+    fun rememberOpen(mimeType: String = "application/pdf"): suspend (bytes: ByteArray, fileName: String) -> Boolean
 }
 
 /** Google Maps. */
@@ -156,10 +158,6 @@ interface PdfRenderer {
     /** One page of a PDF as a PNG, e.g. to copy it; null when it could not be rendered. */
     @Composable
     fun rememberPagePng(): suspend (bytes: ByteArray, page: Int) -> ByteArray?
-
-    /** Opens a PDF in the device's reader app; false when there is none. */
-    @Composable
-    fun rememberOpen(): suspend (bytes: ByteArray, fileName: String) -> Boolean
 }
 
 /** Scans a QR code with the camera, e.g. an invite's. */

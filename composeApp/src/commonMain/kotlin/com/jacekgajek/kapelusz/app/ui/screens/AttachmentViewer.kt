@@ -148,7 +148,7 @@ fun AttachmentViewer(
     val copyImage = platform.clipboard.rememberCopyImage()
     // Where PDFs are not rendered they never reach this screen; the fallbacks keep the calls below simple.
     val pdfPagePng = platform.pdf?.rememberPagePng() ?: remember { { _, _ -> null } }
-    val openPdf = platform.pdf?.rememberOpen() ?: remember { { _, _ -> false } }
+    val openPdf = platform.sharing.rememberOpen()
     // The PDF page mostly in view, per attachment: copy copies that page.
     val pdfPages = remember { mutableStateMapOf<String, Int>() }
     val files = remember { mutableStateMapOf<String, ByteArray>() }

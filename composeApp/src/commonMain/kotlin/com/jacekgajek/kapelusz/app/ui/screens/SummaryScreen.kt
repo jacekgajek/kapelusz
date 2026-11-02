@@ -12,29 +12,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,9 +53,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.conamobile.pdfkmp.PdfDocument
+import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.back
+import com.jacekgajek.kapelusz.app.generated.attachment_not_available
+import com.jacekgajek.kapelusz.app.generated.attachment_open_failed
 import com.jacekgajek.kapelusz.app.generated.band_fund
+import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.fund_from_events
 import com.jacekgajek.kapelusz.app.generated.fund_outside
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
@@ -82,8 +93,10 @@ import com.jacekgajek.kapelusz.app.generated.summary_total
 import com.jacekgajek.kapelusz.app.generated.summary_unsettled
 import com.jacekgajek.kapelusz.app.generated.summary_waiting
 import com.jacekgajek.kapelusz.app.generated.summary_you
+import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.settings.summaryPeriod
 import com.jacekgajek.kapelusz.app.settings.withSummaryPeriod
+import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.SummaryNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
@@ -92,6 +105,7 @@ import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
 import com.jacekgajek.kapelusz.app.ui.components.MemberAvatar
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -99,16 +113,22 @@ import com.jacekgajek.kapelusz.app.ui.components.listWidth
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
+import com.jacekgajek.kapelusz.app.util.PdfExporter
 import com.jacekgajek.kapelusz.app.util.today
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.text.PlayedPlaces
+import com.jacekgajek.kapelusz.view.BandView
 import com.jacekgajek.kapelusz.view.FundSource
 import com.jacekgajek.kapelusz.view.PeriodSummary
 import com.jacekgajek.kapelusz.view.PersonTotals
 import com.jacekgajek.kapelusz.view.SummaryPeriod
 import com.jacekgajek.kapelusz.view.periodSummary
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.StringResource
@@ -125,7 +145,7 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
     val onInviteMember: (String) -> Unit = nav::inviteMember
     val onOpenPlayed: () -> Unit = nav::played
     val band = state.band
-    val artist = session.artist
+    val canSeeOthersDetails = session.can.seeOthersDetails()
     val period = preferences.settings.collectAsState().value.summaryPeriod(band.id)
     val today = today()
     val (from, to) = period.range(today)
@@ -136,11 +156,16 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
         val me = state.me
         // An artist sees only their own events and money.
         shown = period to withContext(Dispatchers.Default) {
-            periodSummary(state.view, me, from, to, onlyEventsOf = me?.id?.takeIf { artist }) { yield() }
+            periodSummary(state.view, me, from, to, onlyEventsOf = me?.id?.takeIf { !canSeeOthersDetails }) { yield() }
         }
     }
     val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     var choosingRange by remember { mutableStateOf(false) }
+    var showPdfExportDialog by remember { mutableStateOf(false) }
+    var pdf by remember { mutableStateOf<PdfDocument?>(null) }
+    val platform = LocalPlatform.current
+    val sharePdf = platform.sharing.rememberOpen()
+    val scope = rememberCoroutineScope()
     var inviting by remember { mutableStateOf<Member?>(null) }
     val canInvite = session.can.manageRoster()
     fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
@@ -182,24 +207,14 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 }
             } else {
-                summaryContent(summary, artist, band.currency, state.me?.id, canInvite) { inviting = it }
+                summaryContent(summary, canSeeOthersDetails, band.currency, state.me?.id, canInvite) { inviting = it }
             }
             // Where the period's concerts were, by their locations (Google may merge a few later).
             if (played.isNotEmpty()) {
-                item(key = "played") {
-                    val count = played.distinctBy { PlayedPlaces.key(it.location!!) }.size
-                    Column(Modifier.padding(top = 16.dp)) {
-                        SummaryHeader(stringResource(Res.string.played_title))
-                        Row(
-                            Modifier.fillMaxWidth().clickable(onClick = onOpenPlayed).padding(horizontal = Inset, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.Map, null, Modifier.padding(end = 12.dp))
-                            Text(pluralStringResource(Res.plurals.played_places, count, count), Modifier.weight(1f))
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-                        }
-                    }
-                }
+                whereWePlayed(played, onOpenPlayed)
+            }
+            if (canSeeOthersDetails) {
+                pdfExport { showPdfExportDialog = true}
             }
         }
     }
@@ -208,14 +223,97 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
         val custom = period as? SummaryPeriod.Custom
         DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = { start, end -> choose(SummaryPeriod.Custom(start, end)) }, onDismiss = { choosingRange = false })
     }
+    if (showPdfExportDialog) {
+        PdfExportDialog(band, onDismiss = { showPdfExportDialog = false }, onShowPdf = { pdf = it })
+    }
+    pdf?.let {
+        scope.launch {
+            sharePdf(pdf!!.toByteArray(), "kapelusz_export.pdf")
+            pdf = null
+        }
+    }
     inviting?.let { member ->
         InviteMemberDialog(member.name, onInvite = { onInviteMember(member.id) }, onDismiss = { inviting = null })
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
+private fun LazyListScope.pdfExport(
+    openPdfExportDialog: () -> Unit,
+) {
+    item(key = "pdfExport") {
+        Column(Modifier.padding(top = 16.dp)) {
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = openPdfExportDialog).padding(horizontal = Inset, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.ImportExport, null, Modifier.padding(end = 12.dp))
+                Text("pdf_export", Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun PdfExportDialog(band: Band, onDismiss: () -> Unit, onShowPdf: (PdfDocument) -> Unit) {
+    var events by remember { mutableStateOf(true) }
+    val valid = events
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("pdf_export") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp)
+                        .toggleable(
+                            value = events,
+                            role = Role.Switch,
+                            onValueChange = { on -> events = on },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("events", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = events, onCheckedChange = null)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = valid, onClick = {
+                val options = PdfExporter.PdfGenerateOptions(events)
+                val pdf: PdfDocument = PdfExporter.generatePdf(band, options)
+                onDismiss()
+                onShowPdf(pdf)
+            }) { Text("generate_pdf") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
+
+private fun LazyListScope.whereWePlayed(
+    played: List<Event>,
+    onOpenPlayed: () -> Unit,
+) {
+    item(key = "played") {
+        val count = played.distinctBy { PlayedPlaces.key(it.location!!) }.size
+        Column(Modifier.padding(top = 16.dp)) {
+            SummaryHeader(stringResource(Res.string.played_title))
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onOpenPlayed).padding(horizontal = Inset, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.Map, null, Modifier.padding(end = 12.dp))
+                Text(pluralStringResource(Res.plurals.played_places, count, count), Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+            }
+        }
+    }
+}
+
+private fun LazyListScope.summaryContent(
     summary: PeriodSummary,
-    artist: Boolean,
+    canSeeOthersDetails: Boolean,
     currency: String,
     myId: String?,
     canInvite: Boolean,
@@ -241,12 +339,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.summaryContent(
         }
     }
     // An artist sees only their own money.
-    val empty = if (artist) summary.me.isZero else summary.isEmpty
+    val empty = if (!canSeeOthersDetails) summary.me.isZero else summary.isEmpty
     if (empty) {
         item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(horizontal = Inset, vertical = 32.dp)) }
         return
     }
-    if (artist) return
+    if (!canSeeOthersDetails) return
     item(key = "band") {
         Column {
             SummaryHeader(stringResource(Res.string.summary_band))

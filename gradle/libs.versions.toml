@@ -7,7 +7,7 @@ qrcode-kotlin = "4.5.0"
 kotlin = "2.4.21"
 compose-multiplatform = "1.12.2"
 compose-material3 = "1.9.0"
-agp = "9.4.1"
+agp = "9.5.0"
 kotlinx-serialization = "1.12.0"
 kotlinx-datetime = "0.8.0"
 kotlinx-coroutines = "1.11.0"
@@ -35,6 +35,7 @@ ktlint-gradle = "14.0.1"
 ktlint = "1.8.0"
 detekt = "2.0.0-alpha.6"
 detekt-compose-rules = "0.6.4"
+pdfkmp = "1.3.1"
 
 [libraries]
 detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version.ref = "detekt-compose-rules" }
@@ -75,6 +76,9 @@ maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = 
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
 play-app-update = { module = "com.google.android.play:app-update", version.ref = "play-app-update" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
+pdfkmp-compose-resources = { module = "io.github.conamobiledev:pdfkmp-compose-resources", version.ref = "pdfkmp" } # optional
+pdfkmp-viewer = { module = "io.github.conamobiledev:pdfkmp-viewer", version.ref = "pdfkmp" } # optional
 
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
