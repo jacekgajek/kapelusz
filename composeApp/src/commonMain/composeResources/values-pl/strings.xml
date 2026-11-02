@@ -776,5 +776,6 @@
     <string name="pdf_each_event_on_separate_page">Każde wydarzenie na osobnej stronie</string>
     <string name="pdf_events">Wydarzenia</string>
     <string name="pdf_no_events">Brak wydarzeń.</string>
+    <string name="pdf_export_failed">Nie udało się utworzyć PDF. Spróbuj ponownie.</string>
     <string name="pdf_generated_on">Wygenerowano %1$s</string>
 </resources>

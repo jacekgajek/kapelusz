@@ -749,6 +749,7 @@
     <string name="pdf_export">Export to PDF</string>
     <string name="pdf_export_events">Event details</string>
     <string name="pdf_generate">Generate</string>
+    <string name="pdf_export_failed">Could not make the PDF. Try again.</string>
     <string name="pdf_each_event_on_separate_page">Put events on separate pages</string>
     <string name="pdf_events">Events</string>
     <string name="pdf_no_events">No events yet.</string>

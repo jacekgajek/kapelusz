@@ -41,7 +41,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +61,7 @@ import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
 import com.jacekgajek.kapelusz.app.generated.pdf_each_event_on_separate_page
 import com.jacekgajek.kapelusz.app.generated.pdf_export
 import com.jacekgajek.kapelusz.app.generated.pdf_export_events
+import com.jacekgajek.kapelusz.app.generated.pdf_export_failed
 import com.jacekgajek.kapelusz.app.generated.pdf_generate
 import com.jacekgajek.kapelusz.app.generated.played_places
 import com.jacekgajek.kapelusz.app.generated.played_title
@@ -99,6 +99,8 @@ import com.jacekgajek.kapelusz.app.settings.withSummaryPeriod
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.SummaryNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
+import com.jacekgajek.kapelusz.app.ui.components.BusyButton
+import com.jacekgajek.kapelusz.app.ui.components.ButtonKind
 import com.jacekgajek.kapelusz.app.ui.components.DateRangeDialog
 import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
@@ -108,6 +110,7 @@ import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.listWidth
+import com.jacekgajek.kapelusz.app.ui.components.rememberTask
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
@@ -123,7 +126,6 @@ import com.jacekgajek.kapelusz.view.PersonTotals
 import com.jacekgajek.kapelusz.view.SummaryPeriod
 import com.jacekgajek.kapelusz.view.periodSummary
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.StringResource
@@ -163,7 +165,6 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
     val lang = language
     val platform = LocalPlatform.current
     val sharePdf = platform.sharing.rememberOpen()
-    val scope = rememberCoroutineScope()
     var inviting by remember { mutableStateOf<Member?>(null) }
     val canInvite = session.can.manageRoster()
     fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
@@ -223,10 +224,8 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
     }
     if (showPdfExportDialog) {
         PdfExportDialog(onDismiss = { showPdfExportDialog = false }) { options ->
-            scope.launch {
-                val pdf = withContext(Dispatchers.Default) { PdfExporter.generatePdf(state.view, options, resources, lang, today) }
-                sharePdf(pdf.toByteArray(), "kapelusz_export.pdf")
-            }
+            val pdf = withContext(Dispatchers.Default) { PdfExporter.generatePdf(state.view, options, resources, lang, today) }
+            sharePdf(pdf.toByteArray(), "kapelusz_export.pdf")
         }
     }
     inviting?.let { member ->
@@ -252,7 +251,9 @@ private fun LazyListScope.pdfExport(
 }
 
 @Composable
-private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: (PdfExporter.PdfGenerateOptions) -> Unit) {
+private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: suspend (PdfExporter.PdfGenerateOptions) -> Unit) {
+    // Open while the PDF is made, with a spinner on Generate; a failure is said here.
+    val task = rememberTask()
     var events by remember { mutableStateOf(true) }
     var bandFund by remember { mutableStateOf(true) }
     var eventsOnSeparatePages by remember { mutableStateOf(true) }
@@ -260,7 +261,7 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: (PdfExporter.PdfG
     val valid = events || bandFund
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!task.working) onDismiss() },
         title = { Text(stringResource(Res.string.pdf_export)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -282,21 +283,36 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: (PdfExporter.PdfG
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .toggleable(value = eventsOnSeparatePages, enabled = events, role = Role.Switch, onValueChange = { on -> eventsOnSeparatePages = on }),
+                        .toggleable(
+                            value = eventsOnSeparatePages,
+                            enabled = events,
+                            role = Role.Switch,
+                            onValueChange = { on -> eventsOnSeparatePages = on },
+                        ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(Res.string.pdf_each_event_on_separate_page), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = stringResource(Res.string.pdf_each_event_on_separate_page),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                     Switch(checked = eventsOnSeparatePages, enabled = events, onCheckedChange = null)
                 }
+                if (task.failed) Text(stringResource(Res.string.pdf_export_failed), color = MaterialTheme.colorScheme.error)
             }
         },
         confirmButton = {
-            TextButton(enabled = valid, onClick = {
-                onDismiss()
-                onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund, eventsOnSeparatePages))
-            }) { Text(stringResource(Res.string.pdf_generate)) }
+            BusyButton(
+                {
+                    onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund, eventsOnSeparatePages))
+                    onDismiss()
+                },
+                task = task,
+                enabled = valid,
+                kind = ButtonKind.TEXT,
+            ) { Text(stringResource(Res.string.pdf_generate)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !task.working) { Text(stringResource(Res.string.cancel)) } },
     )
 }
 
@@ -353,7 +369,17 @@ private fun LazyListScope.summaryContent(
         item(key = "empty") { Text(stringResource(Res.string.summary_empty), Modifier.padding(horizontal = Inset, vertical = 32.dp)) }
         return
     }
-    if (!canSeeOthersDetails) return
+    if (canSeeOthersDetails) {
+        bandSection(summary, currency)
+        costByCategorySection(summary, currency)
+        membersSection(summary, canInvite, myId, currency, onInvite)
+    }
+}
+
+private fun LazyListScope.bandSection(
+    summary: PeriodSummary,
+    currency: String,
+) {
     item(key = "band") {
         Column {
             SummaryHeader(stringResource(Res.string.summary_band))
@@ -362,7 +388,13 @@ private fun LazyListScope.summaryContent(
             AmountRow(Res.string.summary_collected, summary.collected, currency, 1)
             AmountRow(Res.string.summary_paid_out, summary.paidOut, currency, 2, indent = true)
             AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, 3, indent = true)
-            if (summary.fund != null || !summary.toFund.isZero) AmountRow(Res.string.summary_to_fund, summary.toFund, currency, 4, indent = true)
+            if (summary.fund != null || !summary.toFund.isZero) AmountRow(
+                Res.string.summary_to_fund,
+                summary.toFund,
+                currency,
+                4,
+                indent = true,
+            )
             summary.fund?.let { fund ->
                 SummaryHeader(stringResource(Res.string.band_fund))
                 // Each opens into who paid in, or whose costs it refunded.
@@ -372,22 +404,15 @@ private fun LazyListScope.summaryContent(
             }
         }
     }
-    if (summary.categories.isNotEmpty()) {
-        item(key = "categories") {
-            Column {
-                SummaryHeader(stringResource(Res.string.summary_categories))
-                // Fully refunded costs, from events or the fund, on the day they were.
-                AmountRow(Res.string.summary_total, summary.costs, currency, 0)
-            }
-        }
-        itemsIndexed(summary.categories, key = { _, it -> "category-" + it.first.name }) { index, (category, amount) ->
-            Row(Modifier.stripe(index + 1).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconCircle(category.icon())
-                Text(category.label(), Modifier.weight(1f).padding(start = 12.dp))
-                Text(formatMoney(amount, currency, language))
-            }
-        }
-    }
+}
+
+private fun LazyListScope.membersSection(
+    summary: PeriodSummary,
+    canInvite: Boolean,
+    myId: String?,
+    currency: String,
+    onInvite: (Member) -> Unit,
+) {
     val (former, current) = summary.members.partition { it.first.archived }
     // The heading over current and former members alike: "Former members" is part of it.
     if (summary.members.isNotEmpty() || summary.guests != null) item(key = "members") { SummaryHeader(stringResource(Res.string.summary_members)) }
@@ -396,7 +421,13 @@ private fun LazyListScope.summaryContent(
         // who may invite).
         val invite = canInvite && member.userId == null && member.id != myId
         val inviteLabel = stringResource(Res.string.not_in_app_invite)
-        PersonRow(totals, currency, member.name, index, if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier) {
+        PersonRow(
+            totals,
+            currency,
+            member.name,
+            index,
+            if (invite) Modifier.clickable(onClickLabel = inviteLabel, role = Role.Button) { onInvite(member) } else Modifier,
+        ) {
             MemberAvatar(member, 40.dp)
         }
     }
@@ -416,6 +447,28 @@ private fun LazyListScope.summaryContent(
     }
     itemsIndexed(former, key = { _, it -> "member-" + it.first.id }) { index, (member, totals) ->
         PersonRow(totals, currency, member.name, index) { MemberAvatar(member, 40.dp) }
+    }
+}
+
+private fun LazyListScope.costByCategorySection(
+    summary: PeriodSummary,
+    currency: String,
+) {
+    if (summary.categories.isNotEmpty()) {
+        item(key = "categories") {
+            Column {
+                SummaryHeader(stringResource(Res.string.summary_categories))
+                // Fully refunded costs, from events or the fund, on the day they were.
+                AmountRow(Res.string.summary_total, summary.costs, currency, 0)
+            }
+        }
+        itemsIndexed(summary.categories, key = { _, it -> "category-" + it.first.name }) { index, (category, amount) ->
+            Row(Modifier.stripe(index + 1).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconCircle(category.icon())
+                Text(category.label(), Modifier.weight(1f).padding(start = 12.dp))
+                Text(formatMoney(amount, currency, language))
+            }
+        }
     }
 }
 

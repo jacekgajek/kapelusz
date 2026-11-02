@@ -99,7 +99,8 @@ object PdfExporter {
                     balanceTitle = text(Res.string.fund_balance),
                     balance = text.money(BandFund.balance(view.band)),
                     entries = run {
-                        val all = view.band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
+                        // What the balance counts: money an event has moved, not a cut it has yet to hand over.
+                        val all = view.band.events.filter { !BandFund.moved(it).isZero }.map { FundRow.OfEvent(it) } +
                             view.band.fundEntries.map { FundRow.OfEntry(it) }
                         all.sortedBy { it.date }.map { fundEntryPage(view, it, text) }
                     },
@@ -134,7 +135,6 @@ object PdfExporter {
                 amount = text.money(row.entry.amount),
                 costIcon = cost?.category?.icon(),
                 date = formatDate(row.date, text.language),
-                isWithdraw = row.entry.amount.isNegative,
             )
         }
 
@@ -142,10 +142,9 @@ object PdfExporter {
             FundEntryPage(
                 description = row.event.name,
                 smallNote = row.event.location?.substringBefore(","),
-                amount = text.money(row.event.fund),
+                amount = text.money(BandFund.moved(row.event)),
                 costIcon = null,
                 date = formatDate(row.date, text.language),
-                isWithdraw = row.event.fund.isNegative,
             )
     }
     private sealed interface FundRow {
@@ -281,7 +280,6 @@ object PdfExporter {
                 spacer(height = 5.dp)
                 fund.entries.forEachIndexed { index, page -> fundEntry(index, page) }
             }
-
         }
     }
 
@@ -547,7 +545,6 @@ object PdfExporter {
         val description: String?,
         val smallNote: String?,
         val amount: String,
-        val isWithdraw: Boolean,
     )
 
     private class Line(val label: String, val detail: String? = null, val amount: String? = null, val amountNote: String? = null)

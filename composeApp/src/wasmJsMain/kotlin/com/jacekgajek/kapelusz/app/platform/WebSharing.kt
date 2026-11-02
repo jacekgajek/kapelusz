@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
@@ -8,6 +10,7 @@ import kotlin.js.Promise
 import kotlinx.coroutines.await
 
 // Web Share API where available (phones), otherwise the clipboard. Resolves to "shared", "copied" or "failed".
+@Suppress("unused")
 private fun shareOrCopy(text: String): Promise<JsString> = js(
     """(navigator.share
         ? navigator.share({ text: text }).then(() => 'shared', (e) => e && e.name === 'AbortError' ? 'shared' : 'failed')
@@ -36,6 +39,7 @@ object WebSharing : Sharing {
     }
 }
 
+@Suppress("unused")
 private fun downloadBase64(base64: String, name: String, mime: String): Unit = js(
     """(() => {
           const binary = atob(base64);
