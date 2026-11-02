@@ -59,6 +59,7 @@ import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.fund_from_events
 import com.jacekgajek.kapelusz.app.generated.fund_outside
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
+import com.jacekgajek.kapelusz.app.generated.pdf_each_event_on_separate_page
 import com.jacekgajek.kapelusz.app.generated.pdf_export
 import com.jacekgajek.kapelusz.app.generated.pdf_export_events
 import com.jacekgajek.kapelusz.app.generated.pdf_generate
@@ -254,6 +255,8 @@ private fun LazyListScope.pdfExport(
 private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: (PdfExporter.PdfGenerateOptions) -> Unit) {
     var events by remember { mutableStateOf(true) }
     var bandFund by remember { mutableStateOf(true) }
+    var eventsOnSeparatePages by remember { mutableStateOf(true) }
+
     val valid = events || bandFund
 
     AlertDialog(
@@ -277,12 +280,20 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: (PdfExporter.PdfG
                     Text(stringResource(Res.string.band_fund), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = bandFund, onCheckedChange = null)
                 }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp)
+                        .toggleable(value = eventsOnSeparatePages, enabled = events, role = Role.Switch, onValueChange = { on -> eventsOnSeparatePages = on }),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(Res.string.pdf_each_event_on_separate_page), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = eventsOnSeparatePages, enabled = events, onCheckedChange = null)
+                }
             }
         },
         confirmButton = {
             TextButton(enabled = valid, onClick = {
                 onDismiss()
-                onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund))
+                onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund, eventsOnSeparatePages))
             }) { Text(stringResource(Res.string.pdf_generate)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

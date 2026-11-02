@@ -3,14 +3,16 @@ package com.jacekgajek.kapelusz.app.util
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.conamobile.pdfkmp.PdfDocument
 import com.conamobile.pdfkmp.dsl.ContainerScope
+import com.conamobile.pdfkmp.dsl.DocumentScope
+import com.conamobile.pdfkmp.dsl.PageScope
 import com.conamobile.pdfkmp.font.BundledFonts
+import com.conamobile.pdfkmp.geometry.Padding
 import com.conamobile.pdfkmp.layout.PageBreakStrategy
 import com.conamobile.pdfkmp.pdf
 import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.style.PdfFont
 import com.conamobile.pdfkmp.unit.dp
 import com.conamobile.pdfkmp.unit.sp
-import com.conamobile.pdfkmp.vector.VectorImage
 import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.app_name
 import com.jacekgajek.kapelusz.app.generated.awaited_payment
@@ -21,6 +23,7 @@ import com.jacekgajek.kapelusz.app.generated.details
 import com.jacekgajek.kapelusz.app.generated.event_files
 import com.jacekgajek.kapelusz.app.generated.fund_balance
 import com.jacekgajek.kapelusz.app.generated.fund_entry_outside
+import com.jacekgajek.kapelusz.app.generated.fund_entry_refund_to
 import com.jacekgajek.kapelusz.app.generated.organiser
 import com.jacekgajek.kapelusz.app.generated.participants
 import com.jacekgajek.kapelusz.app.generated.participants_guests
@@ -53,6 +56,7 @@ import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import com.jacekgajek.kapelusz.view.BandView
 import com.jacekgajek.kapelusz.view.partyName
@@ -70,7 +74,7 @@ object PdfExporter {
     /** Rows a section may have and still be kept on one page: a longer one would not fit and is left to flow on. */
     private const val KEEP_LINES = 25
 
-    class PdfGenerateOptions(val events: Boolean, val bandFund: Boolean)
+    class PdfGenerateOptions(val events: Boolean, val bandFund: Boolean, val eventsOnSeparatePages: Boolean)
 
     suspend fun generatePdf(
         view: BandView,
@@ -88,17 +92,21 @@ object PdfExporter {
             noEvents = text(Res.string.pdf_no_events),
             headings = Headings.of(text),
             events = if (options.events) view.band.events.sortedBy { it.date }.map { eventPage(view, it, text) } else emptyList(),
-            fundReport = if (options.bandFund)
+            eventsOnSeparatePages = options.eventsOnSeparatePages,
+            fundReport = if (options.bandFund) {
                 FundReport(
                     title = text(Res.string.band_fund),
                     balanceTitle = text(Res.string.fund_balance),
-                    balance = text(Res.string.fund_balance),
+                    balance = text.money(BandFund.balance(view.band)),
                     entries = run {
                         val all = view.band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
                             view.band.fundEntries.map { FundRow.OfEntry(it) }
-                        all.sortedBy { it.date }.map { fundEntryPage(view ,it, text) }
+                        all.sortedBy { it.date }.map { fundEntryPage(view, it, text) }
                     },
-                ) else null
+                )
+            } else {
+                null
+            },
         )
         return render(report)
     }
@@ -107,33 +115,38 @@ object PdfExporter {
         view: BandView,
         row: FundRow,
         text: Texts,
-    ): FundEntryPage {
-        return when (row) {
-            is FundRow.OfEntry ->{
-                val cost = row.entry.costId?.let { view.cost(it) }
-                val paidBy = row.entry.paidBy?.let { view.member(it) }?.name
-                    ?: text(Res.string.fund_entry_outside)
-                val smallNote = row.entry.description + cost?.description?.let { " · $it" }
-                FundEntryPage(
-                    description = paidBy,
-                    smallNote = smallNote,
-                    amount = text.money(row.entry.amount),
-                    costIcon = cost?.category?.icon(),
-                    date = formatDate(row.date, text.language),
-                    isWithdraw = row.entry.amount.isNegative,
-                )
-            }
-            is FundRow.OfEvent ->
-                FundEntryPage(
-                    description = row.event.name,
-                    smallNote = row.event.location,
-                    amount = text.money(row.event.fund),
-                    costIcon = null,
-                    date = formatDate(row.date, text.language),
-                    isWithdraw = row.event.fund.isNegative,
-                )
+    ): FundEntryPage = when (row) {
+        is FundRow.OfEntry -> {
+            val cost = row.entry.costId?.let { view.cost(it) }
+            val isWithdraw = row.entry.amount.isNegative
 
+            val (description, smallNote) = if (isWithdraw) {
+                val costPayer = cost?.memberId?.let { view.member(it) }?.name
+                row.entry.description to
+                    costPayer?.let { text(Res.string.fund_entry_refund_to, it) }
+            } else {
+                (row.entry.paidBy?.let { view.member(it) }?.name ?: text(Res.string.fund_entry_outside)) to
+                    row.entry.description
+            }
+            FundEntryPage(
+                description = description,
+                smallNote = smallNote,
+                amount = text.money(row.entry.amount),
+                costIcon = cost?.category?.icon(),
+                date = formatDate(row.date, text.language),
+                isWithdraw = row.entry.amount.isNegative,
+            )
         }
+
+        is FundRow.OfEvent ->
+            FundEntryPage(
+                description = row.event.name,
+                smallNote = row.event.location?.substringBefore(","),
+                amount = text.money(row.event.fund),
+                costIcon = null,
+                date = formatDate(row.date, text.language),
+                isWithdraw = row.event.fund.isNegative,
+            )
     }
     private sealed interface FundRow {
         val date: LocalDate
@@ -220,31 +233,35 @@ object PdfExporter {
         defaultTextStyle = defaultTextStyle.copy(font = Fonts.regular)
         // Long details or many rows flow on to the next page rather than leaving a gap.
         defaultPageBreakStrategy = PageBreakStrategy.Slice
-        page {
-            spacing = 4.dp
-            header {
-                row {
-                    weighted(1f) { text("${report.title} · ${report.band}") { font = Fonts.bold } }
-                    text(report.generatedOn) { color = PdfColor.Gray }
-                }
-                divider()
-                spacer(height = 8.dp)
-            }
-            footer { context ->
-                text("${context.pageNumber} / ${context.totalPages}") {
-                    fontSize = 9.sp
-                    color = PdfColor.Gray
-                }
-            }
-            report.eventsTitle?.let { title ->
+        report.eventsTitle?.let { title ->
+            reportPage(report) {
                 text(title) {
                     fontSize = 20.sp
                     font = Fonts.bold
                 }
-                if (report.events.isEmpty()) text(report.noEvents)
-                report.events.forEach { event(it, report.headings) }
+                if (report.events.isEmpty()) {
+                    text(report.noEvents)
+                } else {
+                    event(report.events.first(), report.headings)
+                }
+                if (!report.eventsOnSeparatePages) {
+                    report.events.drop(1).forEach {
+                        spacer(height = 8.dp)
+                        divider()
+                        event(it, report.headings)
+                    }
+                }
             }
-            report.fundReport?.let { fund ->
+            if (report.eventsOnSeparatePages) {
+                report.events.drop(1).forEach {
+                    reportPage(report) {
+                        event(it, report.headings)
+                    }
+                }
+            }
+        }
+        report.fundReport?.let { fund ->
+            reportPage(report) {
                 text(fund.title) {
                     fontSize = 20.sp
                     font = Fonts.bold
@@ -261,16 +278,41 @@ object PdfExporter {
                         font = Fonts.bold
                     }
                 }
+                spacer(height = 5.dp)
                 fund.entries.forEachIndexed { index, page -> fundEntry(index, page) }
             }
+
+        }
+    }
+
+    private fun DocumentScope.reportPage(report: Report, content: PageScope.() -> Unit) {
+        page {
+            spacing = 4.dp
+            padding = Padding.all(80.dp)
+
+            header {
+                row {
+                    weighted(1f) { text("${report.title} · ${report.band}") { font = Fonts.bold } }
+                    text(report.generatedOn) { color = PdfColor.Gray }
+                }
+                divider()
+                spacer(height = 8.dp)
+            }
+            footer { context ->
+                text("${context.pageNumber} / ${context.totalPages}") {
+                    fontSize = 9.sp
+                    color = PdfColor.Gray
+                }
+            }
+            content()
         }
     }
 
     private fun ContainerScope.fundEntry(index: Int, page: FundEntryPage) {
         box(
-            background = if (index and 1 == 1) PdfColor.LightGray else null
+            background = if (index and 1 == 1) PdfColor.LightGray else null,
+            padding = Padding.all(6.dp),
         ) {
-            spacer(height = 12.dp)
             keepTogether {
                 row {
                     weighted(1f) {
@@ -286,19 +328,21 @@ object PdfExporter {
                     }
                 }
                 spacer(height = 3.dp)
-                page.costIcon?.let {
-//                    vector(it) // does not compile
-                }
-                page.smallNote?.let {
-                    text(it) {
-                        fontSize = 9.sp
-                        color = PdfColor.DarkGray
+                row {
+                    page.costIcon?.let {
+                        vector(it.toVectorImage(), width = 9.dp, height = 9.dp)
+                        spacer(width = 2.dp)
+                    }
+                    page.smallNote?.let {
+                        text(it) {
+                            fontSize = 9.sp
+                            color = PdfColor.DarkGray
+                        }
                     }
                 }
             }
         }
     }
-
 
     private fun ContainerScope.event(event: EventPage, headings: Headings) {
         spacer(height = 12.dp)
@@ -347,8 +391,6 @@ object PdfExporter {
             },
         )
         tab(headings.money, money)
-        spacer(height = 8.dp)
-        divider()
     }
 
     /** Part of a tab: its [title] (none for the totals) and [content], about [lines] lines long. */
@@ -473,6 +515,7 @@ object PdfExporter {
         val noEvents: String,
         val headings: Headings,
         val events: List<EventPage>,
+        val eventsOnSeparatePages: Boolean,
         val fundReport: FundReport?,
     )
 
