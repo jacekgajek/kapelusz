@@ -745,4 +745,11 @@
     <string name="map_pick_hint">Tap where it is</string>
     <string name="map_pick_use">Use this place</string>
     <string name="map_satellite">Satellite</string>
+    <!-- PDF export on Summary -->
+    <string name="pdf_export">Export to PDF</string>
+    <string name="pdf_export_events">Event details</string>
+    <string name="pdf_generate">Generate</string>
+    <string name="pdf_events">Events</string>
+    <string name="pdf_no_events">No events yet.</string>
+    <string name="pdf_generated_on">Generated on %1$s</string>
 </resources>

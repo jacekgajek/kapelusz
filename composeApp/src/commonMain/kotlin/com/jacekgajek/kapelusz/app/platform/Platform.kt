@@ -119,6 +119,7 @@ interface Sharing {
     /** Shares the text with the platform's share sheet (or copies it where there is none). */
     @Composable
     fun rememberShare(): suspend (text: String) -> ShareResult
+
     @Composable
     fun rememberOpen(mimeType: String = "application/pdf"): suspend (bytes: ByteArray, fileName: String) -> Boolean
 }

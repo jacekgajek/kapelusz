@@ -53,16 +53,15 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.conamobile.pdfkmp.PdfDocument
-import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.attachment_not_available
-import com.jacekgajek.kapelusz.app.generated.attachment_open_failed
 import com.jacekgajek.kapelusz.app.generated.band_fund
 import com.jacekgajek.kapelusz.app.generated.cancel
 import com.jacekgajek.kapelusz.app.generated.fund_from_events
 import com.jacekgajek.kapelusz.app.generated.fund_outside
 import com.jacekgajek.kapelusz.app.generated.not_in_app_invite
+import com.jacekgajek.kapelusz.app.generated.pdf_export
+import com.jacekgajek.kapelusz.app.generated.pdf_export_events
+import com.jacekgajek.kapelusz.app.generated.pdf_generate
 import com.jacekgajek.kapelusz.app.generated.played_places
 import com.jacekgajek.kapelusz.app.generated.played_title
 import com.jacekgajek.kapelusz.app.generated.summary_all_time
@@ -96,7 +95,6 @@ import com.jacekgajek.kapelusz.app.generated.summary_you
 import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.settings.summaryPeriod
 import com.jacekgajek.kapelusz.app.settings.withSummaryPeriod
-import com.jacekgajek.kapelusz.app.sync.ApiException
 import com.jacekgajek.kapelusz.app.ui.BandSession
 import com.jacekgajek.kapelusz.app.ui.SummaryNav
 import com.jacekgajek.kapelusz.app.ui.components.BackTopBar
@@ -105,7 +103,6 @@ import com.jacekgajek.kapelusz.app.ui.components.GuestIcon
 import com.jacekgajek.kapelusz.app.ui.components.IconCircle
 import com.jacekgajek.kapelusz.app.ui.components.InviteMemberDialog
 import com.jacekgajek.kapelusz.app.ui.components.MemberAvatar
-import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.icon
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
@@ -115,13 +112,10 @@ import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.screens.settings.SectionHeader
 import com.jacekgajek.kapelusz.app.util.PdfExporter
 import com.jacekgajek.kapelusz.app.util.today
-import com.jacekgajek.kapelusz.model.Attachment
-import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.text.PlayedPlaces
-import com.jacekgajek.kapelusz.view.BandView
 import com.jacekgajek.kapelusz.view.FundSource
 import com.jacekgajek.kapelusz.view.PeriodSummary
 import com.jacekgajek.kapelusz.view.PersonTotals
@@ -133,6 +127,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.rememberResourceEnvironment
 import org.jetbrains.compose.resources.stringResource
 
 /** What a period brought: you, the band, costs by category, members. Nothing to tap but invites. */
@@ -162,7 +157,9 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
     val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
     var choosingRange by remember { mutableStateOf(false) }
     var showPdfExportDialog by remember { mutableStateOf(false) }
-    var pdf by remember { mutableStateOf<PdfDocument?>(null) }
+    // Strings in the PDF as in the app, whatever language it is set to.
+    val resources = rememberResourceEnvironment()
+    val lang = language
     val platform = LocalPlatform.current
     val sharePdf = platform.sharing.rememberOpen()
     val scope = rememberCoroutineScope()
@@ -214,7 +211,7 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
                 whereWePlayed(played, onOpenPlayed)
             }
             if (canSeeOthersDetails) {
-                pdfExport { showPdfExportDialog = true}
+                pdfExport { showPdfExportDialog = true }
             }
         }
     }
@@ -224,12 +221,11 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
         DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = { start, end -> choose(SummaryPeriod.Custom(start, end)) }, onDismiss = { choosingRange = false })
     }
     if (showPdfExportDialog) {
-        PdfExportDialog(band, onDismiss = { showPdfExportDialog = false }, onShowPdf = { pdf = it })
-    }
-    pdf?.let {
-        scope.launch {
-            sharePdf(pdf!!.toByteArray(), "kapelusz_export.pdf")
-            pdf = null
+        PdfExportDialog(onDismiss = { showPdfExportDialog = false }) { options ->
+            scope.launch {
+                val pdf = withContext(Dispatchers.Default) { PdfExporter.generatePdf(state.view, options, resources, lang, today) }
+                sharePdf(pdf.toByteArray(), "kapelusz_export.pdf")
+            }
         }
     }
     inviting?.let { member ->
@@ -247,45 +243,47 @@ private fun LazyListScope.pdfExport(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Default.ImportExport, null, Modifier.padding(end = 12.dp))
-                Text("pdf_export", Modifier.weight(1f))
+                Text(stringResource(Res.string.pdf_export), Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
             }
         }
     }
 }
 
-
 @Composable
-private fun PdfExportDialog(band: Band, onDismiss: () -> Unit, onShowPdf: (PdfDocument) -> Unit) {
+private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: (PdfExporter.PdfGenerateOptions) -> Unit) {
     var events by remember { mutableStateOf(true) }
-    val valid = events
+    var bandFund by remember { mutableStateOf(true) }
+    val valid = events || bandFund
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("pdf_export") },
+        title = { Text(stringResource(Res.string.pdf_export)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .toggleable(
-                            value = events,
-                            role = Role.Switch,
-                            onValueChange = { on -> events = on },
-                        ),
+                        .toggleable(value = events, role = Role.Switch, onValueChange = { on -> events = on }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("events", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(Res.string.pdf_export_events), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = events, onCheckedChange = null)
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp)
+                        .toggleable(value = bandFund, role = Role.Switch, onValueChange = { on -> bandFund = on }),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(Res.string.band_fund), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = bandFund, onCheckedChange = null)
                 }
             }
         },
         confirmButton = {
             TextButton(enabled = valid, onClick = {
-                val options = PdfExporter.PdfGenerateOptions(events)
-                val pdf: PdfDocument = PdfExporter.generatePdf(band, options)
                 onDismiss()
-                onShowPdf(pdf)
-            }) { Text("generate_pdf") }
+                onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund))
+            }) { Text(stringResource(Res.string.pdf_generate)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )

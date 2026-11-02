@@ -26,6 +26,7 @@ object WebSharing : Sharing {
             }
         }
     }
+
     @Composable
     override fun rememberOpen(mimeType: String): suspend (bytes: ByteArray, fileName: String) -> Boolean = remember {
         { bytes: ByteArray, name: String ->

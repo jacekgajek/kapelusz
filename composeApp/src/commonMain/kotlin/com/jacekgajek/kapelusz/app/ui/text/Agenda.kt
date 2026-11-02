@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.model.AgendaTemplateItem
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Event
 import kotlinx.datetime.LocalTime
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The label of an agenda time: the built-in one in the user's language, or the custom label. */
@@ -20,13 +21,13 @@ fun AgendaTime.displayLabel(): String = kind?.label() ?: label.orEmpty()
 fun AgendaTemplateItem.displayLabel(): String = kind?.label() ?: label.orEmpty()
 
 @Composable
-fun AgendaKind.label(): String = stringResource(
-    when (this) {
-        AgendaKind.ARRIVAL -> Res.string.agenda_arrival
-        AgendaKind.SOUND_CHECK -> Res.string.agenda_sound_check
-        AgendaKind.CONCERT_START -> Res.string.agenda_concert_start
-    },
-)
+fun AgendaKind.label(): String = stringResource(labelRes())
+
+fun AgendaKind.labelRes(): StringResource = when (this) {
+    AgendaKind.ARRIVAL -> Res.string.agenda_arrival
+    AgendaKind.SOUND_CHECK -> Res.string.agenda_sound_check
+    AgendaKind.CONCERT_START -> Res.string.agenda_concert_start
+}
 
 /** `17:00`, or `01:30 (+1)` for a time after midnight. 24-hour clock in both languages. */
 fun formatAgendaTime(item: AgendaTime): String = item.time?.let { formatTime(it) + if (item.isNextDay) " (+1)" else "" }.orEmpty()

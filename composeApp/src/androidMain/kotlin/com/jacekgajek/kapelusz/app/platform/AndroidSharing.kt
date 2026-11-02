@@ -5,7 +5,6 @@ import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.work.Data
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -21,6 +20,7 @@ object AndroidSharing : Sharing {
             }
         }
     }
+
     @Composable
     override fun rememberOpen(mimeType: String): suspend (bytes: ByteArray, fileName: String) -> Boolean {
         val context = LocalContext.current
