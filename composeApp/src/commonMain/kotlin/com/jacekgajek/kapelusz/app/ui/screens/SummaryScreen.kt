@@ -388,13 +388,15 @@ private fun LazyListScope.bandSection(
             AmountRow(Res.string.summary_collected, summary.collected, currency, 1)
             AmountRow(Res.string.summary_paid_out, summary.paidOut, currency, 2, indent = true)
             AmountRow(Res.string.summary_refunds_at_events, summary.refundedAtEvents, currency, 3, indent = true)
-            if (summary.fund != null || !summary.toFund.isZero) AmountRow(
-                Res.string.summary_to_fund,
-                summary.toFund,
-                currency,
-                4,
-                indent = true,
-            )
+            if (summary.fund != null || !summary.toFund.isZero) {
+                AmountRow(
+                    label = Res.string.summary_to_fund,
+                    amount = summary.toFund,
+                    currency = currency,
+                    index = 4,
+                    indent = true,
+                )
+            }
             summary.fund?.let { fund ->
                 SummaryHeader(stringResource(Res.string.band_fund))
                 // Each opens into who paid in, or whose costs it refunded.
