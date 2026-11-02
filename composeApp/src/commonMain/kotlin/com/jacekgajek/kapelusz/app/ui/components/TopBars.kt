@@ -103,45 +103,43 @@ fun TabTopBar(title: String, extraActions: @Composable () -> Unit = {}) {
         title = { Text(title) },
         actions = {
             extraActions()
-            bar?.let { SyncIndicator(it) }
+            SyncIndicator(bar)
             IconButton(onClick = { menuOpen = true }) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(Res.string.settings))
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                if (bar != null) {
-                    bar.bands.forEach { band ->
-                        DropdownMenuItem(
-                            text = { Text(band.name) },
-                            leadingIcon = { if (band.id == bar.currentBandId) Icon(Icons.Default.Check, null) else Icon(Icons.Default.Groups, null) },
-                            trailingIcon = if (band.id in bar.stuckBandIds) {
-                                { Icon(Icons.Default.Warning, stringResource(Res.string.stuck_push_title), tint = MaterialTheme.colorScheme.error) }
-                            } else {
-                                null
-                            },
-                            onClick = {
-                                menuOpen = false
-                                if (band.id != bar.currentBandId) bar.onSelectBand(band.id)
-                            },
-                        )
-                    }
+                bar.bands.forEach { band ->
                     DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.new_band)) },
-                        leadingIcon = { Icon(Icons.Default.Add, null) },
+                        text = { Text(band.name) },
+                        leadingIcon = { if (band.id == bar.currentBandId) Icon(Icons.Default.Check, null) else Icon(Icons.Default.Groups, null) },
+                        trailingIcon = if (band.id in bar.stuckBandIds) {
+                            { Icon(Icons.Default.Warning, stringResource(Res.string.stuck_push_title), tint = MaterialTheme.colorScheme.error) }
+                        } else {
+                            null
+                        },
                         onClick = {
                             menuOpen = false
-                            bar.onNewBand()
+                            if (band.id != bar.currentBandId) bar.onSelectBand(band.id)
                         },
                     )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.join_band)) },
-                        leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
-                        onClick = {
-                            menuOpen = false
-                            bar.onJoinBand()
-                        },
-                    )
-                    HorizontalDivider()
                 }
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.new_band)) },
+                    leadingIcon = { Icon(Icons.Default.Add, null) },
+                    onClick = {
+                        menuOpen = false
+                        bar.onNewBand()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.join_band)) },
+                    leadingIcon = { Icon(Icons.Default.GroupAdd, null) },
+                    onClick = {
+                        menuOpen = false
+                        bar.onJoinBand()
+                    },
+                )
+                HorizontalDivider()
                 // Icons for easier hunting. Artists too: names only, to settle together.
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.menu_roster)) },
@@ -152,17 +150,15 @@ fun TabTopBar(title: String, extraActions: @Composable () -> Unit = {}) {
                     },
                 )
                 // Artists too: only their own numbers.
-                if (bar != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.summary_title)) },
-                        leadingIcon = { Icon(Icons.Default.BarChart, null) },
-                        onClick = {
-                            menuOpen = false
-                            bar.onSummary()
-                        },
-                    )
-                }
-                if (onHistory != null && bar?.artist != true) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.summary_title)) },
+                    leadingIcon = { Icon(Icons.Default.BarChart, null) },
+                    onClick = {
+                        menuOpen = false
+                        bar.onSummary()
+                    },
+                )
+                if (onHistory != null && !bar.artist) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.history)) },
                         leadingIcon = { Icon(Icons.Default.History, null) },
