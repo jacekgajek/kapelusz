@@ -100,27 +100,6 @@ object AndroidPdf : PdfRenderer {
         val context = LocalContext.current.applicationContext
         return remember(context) { { bytes, page -> pagePng(context, bytes, page) } }
     }
-
-    @Composable
-    override fun rememberOpen(): suspend (bytes: ByteArray, fileName: String) -> Boolean {
-        val context = LocalContext.current
-        return remember(context) {
-            { bytes, fileName ->
-                runCatching {
-                    val uri = withContext(Dispatchers.IO) { shareable(context, "open", fileName, "pdf", bytes) }
-                    val view = Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(uri, "application/pdf")
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    try {
-                        context.startActivity(view)
-                        true
-                    } catch (ignored: ActivityNotFoundException) {
-                        false
-                    }
-                }.getOrDefault(false)
-            }
-        }
-    }
 }
 
 /** Pages rendered this wide: sharp enough on a phone, zoomed in too, without huge bitmaps. */

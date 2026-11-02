@@ -141,6 +141,7 @@ kotlin {
             implementation(libs.coil.network.ktor3)
             // The invite's QR code: only the encoder; it's drawn in Compose.
             implementation(libs.qrcode.kotlin)
+            implementation(libs.pdfkmp)
         }
         androidMain.dependencies {
             // Scanning an invite's QR code in Join band: Play services' own scanner, no camera permission.

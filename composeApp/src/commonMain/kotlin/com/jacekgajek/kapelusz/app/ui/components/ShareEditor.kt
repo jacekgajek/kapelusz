@@ -39,6 +39,9 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.SharePercent
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.ResourceEnvironment
+import org.jetbrains.compose.resources.getPluralString
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -204,3 +207,35 @@ private const val DEFAULT_PERCENT = 10
 
 /** About half the thumb: where the track's ends are, for [SliderMarks]. */
 private val SLIDER_THUMB_INSET = 10.dp
+
+/** As [shareText], outside composition (e.g. in a PDF), in [environment]'s language. */
+suspend fun shareText(
+    environment: ResourceEnvironment,
+    language: String,
+    weight: Int,
+    fixedShare: Money?,
+    percent: Int?,
+    currency: String,
+): String? = when {
+    fixedShare != null -> getString(environment, Res.string.member_share_fixed, formatMoney(fixedShare, currency, language))
+    percent != null -> getString(environment, Res.string.share_of_profit, "$percent%")
+    weight != DEFAULT_WEIGHT -> sharesText(environment, language, weight)
+    else -> null
+}
+
+/** As [sharesText], outside composition. */
+private suspend fun sharesText(environment: ResourceEnvironment, language: String, weight: Int): String {
+    val number = sharesNumber(weight, language)
+    return when {
+        weight == 0 -> getString(environment, Res.string.share_none)
+
+        weight % DEFAULT_WEIGHT == 0 -> {
+            val count = weight / DEFAULT_WEIGHT
+            getPluralString(environment, Res.plurals.share_count, count, count.toString())
+        }
+
+        weight < DEFAULT_WEIGHT && weight % WEIGHT_STEP == 0 -> getString(environment, Res.string.share_part, number)
+
+        else -> getString(environment, Res.string.share_parts, number)
+    }
+}

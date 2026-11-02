@@ -54,17 +54,31 @@ val language: String @Composable get() = Locale.current.language
 
 @Composable
 fun StatusChip(status: EventStatus, archived: Boolean = false, modifier: Modifier = Modifier) {
-    val (label, container) = when {
-        archived -> Res.string.status_archived to MaterialTheme.colorScheme.surfaceVariant
-        status == EventStatus.DRAFT -> Res.string.status_draft to MaterialTheme.colorScheme.surfaceVariant
-        status == EventStatus.OPEN -> Res.string.status_open to MaterialTheme.colorScheme.tertiaryContainer
-        status == EventStatus.SETTLED -> Res.string.status_settled to MaterialTheme.colorScheme.secondaryContainer
-        status == EventStatus.AWAITING -> Res.string.status_awaiting to MaterialTheme.colorScheme.tertiaryContainer
-        else -> Res.string.status_loss to MaterialTheme.colorScheme.errorContainer
+    val container = when {
+        archived -> MaterialTheme.colorScheme.surfaceVariant
+        status == EventStatus.DRAFT -> MaterialTheme.colorScheme.surfaceVariant
+        status == EventStatus.OPEN -> MaterialTheme.colorScheme.tertiaryContainer
+        status == EventStatus.SETTLED -> MaterialTheme.colorScheme.secondaryContainer
+        status == EventStatus.AWAITING -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.errorContainer
     }
+    val label = statusLabelRes(status, archived)
     // A label, not a button: an AssistChip would be announced (and focusable) as something to tap.
     Surface(modifier, color = container, shape = MaterialTheme.shapes.small) {
         Text(stringResource(label), Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** An event's status in words; an archived event is Archived whatever its money says. */
+fun statusLabelRes(status: EventStatus, archived: Boolean): StringResource = when {
+    archived -> Res.string.status_archived
+
+    else -> when (status) {
+        EventStatus.DRAFT -> Res.string.status_draft
+        EventStatus.OPEN -> Res.string.status_open
+        EventStatus.SETTLED -> Res.string.status_settled
+        EventStatus.AWAITING -> Res.string.status_awaiting
+        EventStatus.LOSS -> Res.string.status_loss
     }
 }
 

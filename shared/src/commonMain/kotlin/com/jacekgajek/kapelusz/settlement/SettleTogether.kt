@@ -97,7 +97,7 @@ object SettleTogether {
             .flatMap { (a, b) -> listOf(a to b, b to a) }.toMap()
         // Only pairs that may still be (a stored pair with a viewer, say, counts no more).
         val current = band.members
-            .filter { member -> member.settlesWith != null && event.participant(member.id) != null && event.participant(member.settlesWith!!) != null }
+            .filter { member -> member.settlesWith != null && event.participant(member.id) != null && event.participant(member.settlesWith) != null }
             .filter { member -> band.member(member.settlesWith!!)?.let { validPair(member, it) } == true }
             .filter { it.id !in kept && it.settlesWith !in kept }
             .associate { it.id to it.settlesWith!! }

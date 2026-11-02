@@ -94,30 +94,30 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun IncomeSource.label(): String = stringResource(
-    when (this) {
-        IncomeSource.TICKETS_ONLINE -> Res.string.source_tickets_online
-        IncomeSource.DOOR -> Res.string.source_door
-        IncomeSource.HAT -> Res.string.source_hat
-        IncomeSource.MERCH -> Res.string.source_merch
-        IncomeSource.CONTRACT -> Res.string.source_contract
-        IncomeSource.SPONSORSHIP -> Res.string.source_sponsorship
-        IncomeSource.OWN_CONTRIBUTION -> Res.string.source_own_contribution
-        IncomeSource.OTHER -> Res.string.source_other
-    },
-)
+fun IncomeSource.label(): String = stringResource(labelRes())
+
+fun IncomeSource.labelRes(): StringResource = when (this) {
+    IncomeSource.TICKETS_ONLINE -> Res.string.source_tickets_online
+    IncomeSource.DOOR -> Res.string.source_door
+    IncomeSource.HAT -> Res.string.source_hat
+    IncomeSource.MERCH -> Res.string.source_merch
+    IncomeSource.CONTRACT -> Res.string.source_contract
+    IncomeSource.SPONSORSHIP -> Res.string.source_sponsorship
+    IncomeSource.OWN_CONTRIBUTION -> Res.string.source_own_contribution
+    IncomeSource.OTHER -> Res.string.source_other
+}
 
 @Composable
-fun CostCategory.label(): String = stringResource(
-    when (this) {
-        CostCategory.TRAVEL -> Res.string.category_travel
-        CostCategory.ACCOMMODATION -> Res.string.category_accommodation
-        CostCategory.EQUIPMENT -> Res.string.category_equipment
-        CostCategory.FOOD -> Res.string.category_food
-        CostCategory.PROMOTION -> Res.string.category_promotion
-        CostCategory.OTHER -> Res.string.category_other
-    },
-)
+fun CostCategory.label(): String = stringResource(labelRes())
+
+fun CostCategory.labelRes(): StringResource = when (this) {
+    CostCategory.TRAVEL -> Res.string.category_travel
+    CostCategory.ACCOMMODATION -> Res.string.category_accommodation
+    CostCategory.EQUIPMENT -> Res.string.category_equipment
+    CostCategory.FOOD -> Res.string.category_food
+    CostCategory.PROMOTION -> Res.string.category_promotion
+    CostCategory.OTHER -> Res.string.category_other
+}
 
 /** An icon in a tinted circle, as tall as a two-line row: a cost's category, received money. */
 @Composable

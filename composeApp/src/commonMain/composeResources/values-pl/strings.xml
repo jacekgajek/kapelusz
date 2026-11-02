@@ -769,4 +769,13 @@
     <string name="map_pick_hint">Dotknij miejsca na mapie</string>
     <string name="map_pick_use">Wybierz to miejsce</string>
     <string name="map_satellite">Satelita</string>
+    <!-- PDF export on Summary -->
+    <string name="pdf_export">Eksport do PDF</string>
+    <string name="pdf_export_events">Szczegóły wydarzeń</string>
+    <string name="pdf_generate">Generuj</string>
+    <string name="pdf_each_event_on_separate_page">Każde wydarzenie na osobnej stronie</string>
+    <string name="pdf_events">Wydarzenia</string>
+    <string name="pdf_no_events">Brak wydarzeń.</string>
+    <string name="pdf_export_failed">Nie udało się utworzyć PDF. Spróbuj ponownie.</string>
+    <string name="pdf_generated_on">Wygenerowano %1$s</string>
 </resources>
