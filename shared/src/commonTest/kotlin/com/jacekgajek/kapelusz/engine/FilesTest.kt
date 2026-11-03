@@ -19,63 +19,69 @@ import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.pln
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 
 /** Files on collected entries and on events. */
-class FilesTest {
-    private val entry = AttachmentOwner.OfHolding("gig", "h")
-    private val gigFiles = AttachmentOwner.OfEvent("gig")
+class FilesTest :
+    ExpectSpec({
 
-    private fun pdf(id: String, name: String = "$id.pdf") = Attachment(id, AttachmentKind.PDF, name, 1_000)
+        val entry = AttachmentOwner.OfHolding("gig", "h")
+        val gigFiles = AttachmentOwner.OfEvent("gig")
 
-    private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
-        .apply(AddHolding("gig", "h", "bob", pln("2000"), CONTRACT))
+        fun pdf(id: String, name: String = "$id.pdf") = Attachment(id, AttachmentKind.PDF, name, 1_000)
 
-    @Test
-    fun entryFilesFollowWhoMayEditTheEntry() {
-        val scenario = gig()
-        val bob = scenario.userFor("bob", Role.MEMBER)
-        val carol = scenario.userFor("carol", Role.MEMBER)
-        val alice = scenario.userFor("alice", Role.OWNER)
-        scenario.apply(AddAttachment(entry, pdf("contract")), bob)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddAttachment(entry, pdf("x")), carol).reason, "not her money")
-        scenario.apply(AddAttachment(entry, pdf("confirmation")), alice)
-        scenario.apply(RenameAttachment(entry, "contract", "  Umowa klub.pdf "), bob)
-        assertEquals(listOf("Umowa klub.pdf", "confirmation.pdf"), scenario.band.event("gig")!!.holdings.single().attachments.map { it.fileName })
-        assertEquals(RejectionReason.EMPTY_NAME, scenario.rejected(RenameAttachment(entry, "contract", " "), bob).reason)
-        scenario.apply(RemoveAttachment(entry, "confirmation"), bob)
-        assertEquals(listOf("contract"), scenario.band.event("gig")!!.holdings.single().attachments.map { it.id })
-    }
+        fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
+            .apply(AddHolding("gig", "h", "bob", pln("2000"), CONTRACT))
 
-    @Test
-    fun eventFilesAreForLeads() {
-        val scenario = gig()
-        val bob = scenario.userFor("bob", Role.MEMBER)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddAttachment(gigFiles, pdf("rider")), bob).reason)
-        repeat(MAX_EVENT_ATTACHMENTS) { scenario.apply(AddAttachment(gigFiles, pdf("f$it"))) }
-        assertEquals(RejectionReason.TOO_MANY_ATTACHMENTS, scenario.rejected(AddAttachment(gigFiles, pdf("one-more"))).reason)
-        assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(AddAttachment(entry, pdf("f0"))).reason, "ids are unique in the band")
-        repeat(MAX_ATTACHMENTS) { scenario.apply(AddAttachment(entry, pdf("e$it"))) }
-        assertEquals(RejectionReason.TOO_MANY_ATTACHMENTS, scenario.rejected(AddAttachment(entry, pdf("one-more"))).reason)
-    }
+        expect("entry files follow who may edit the entry") {
+            val scenario = gig()
+            val bob = scenario.userFor("bob", Role.MEMBER)
+            val carol = scenario.userFor("carol", Role.MEMBER)
+            val alice = scenario.userFor("alice", Role.OWNER)
+            scenario.apply(AddAttachment(entry, pdf("contract")), bob)
+            withClue("not her money") {
+                scenario.rejected(AddAttachment(entry, pdf("x")), carol).reason shouldBe RejectionReason.ROLE_REQUIRED
+            }
+            scenario.apply(AddAttachment(entry, pdf("confirmation")), alice)
+            scenario.apply(RenameAttachment(entry, "contract", "  Umowa klub.pdf "), bob)
+            scenario.band.event("gig")!!.holdings.single().attachments.map { it.fileName } shouldBe
+                listOf("Umowa klub.pdf", "confirmation.pdf")
+            scenario.rejected(RenameAttachment(entry, "contract", " "), bob).reason shouldBe RejectionReason.EMPTY_NAME
+            scenario.apply(RemoveAttachment(entry, "confirmation"), bob)
+            scenario.band.event("gig")!!.holdings.single().attachments.map { it.id } shouldBe listOf("contract")
+        }
 
-    @Test
-    fun longDeviceNamesAreShortenedAndArchivedEventsAreReadOnly() {
-        val scenario = gig()
-        scenario.apply(AddAttachment(gigFiles, pdf("long", "x".repeat(500))))
-        assertEquals(Attachment.MAX_FILE_NAME, scenario.band.event("gig")!!.attachments.single().fileName!!.length)
-        scenario.apply(SettleSuggestions("gig")).apply(SetEventArchived("gig", true))
-        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(AddAttachment(gigFiles, pdf("late"))).reason)
-        assertEquals(RejectionReason.ARCHIVED_EVENT, scenario.rejected(RenameAttachment(entry, "x", "y")).reason)
-    }
+        expect("event files are for leads") {
+            val scenario = gig()
+            val bob = scenario.userFor("bob", Role.MEMBER)
+            scenario.rejected(AddAttachment(gigFiles, pdf("rider")), bob).reason shouldBe RejectionReason.ROLE_REQUIRED
+            repeat(MAX_EVENT_ATTACHMENTS) { scenario.apply(AddAttachment(gigFiles, pdf("f$it"))) }
+            scenario.rejected(AddAttachment(gigFiles, pdf("one-more"))).reason shouldBe RejectionReason.TOO_MANY_ATTACHMENTS
+            withClue("ids are unique in the band") {
+                scenario.rejected(AddAttachment(entry, pdf("f0"))).reason shouldBe RejectionReason.DUPLICATE_ID
+            }
+            repeat(MAX_ATTACHMENTS) { scenario.apply(AddAttachment(entry, pdf("e$it"))) }
+            scenario.rejected(AddAttachment(entry, pdf("one-more"))).reason shouldBe RejectionReason.TOO_MANY_ATTACHMENTS
+        }
 
-    @Test
-    fun removingAnEntryWithFilesCannotBeUndone() {
-        val scenario = gig().apply(AddAttachment(entry, pdf("contract")))
-        val before = scenario.band
-        val remove = RemoveHolding("gig", "h")
-        scenario.apply(remove)
-        assertEquals(RejectionReason.NOT_UNDOABLE, scenario.rejected(Undo("u", remove, BandChange.between(before, scenario.band))).reason, "its file is deleted")
-    }
-}
+        expect("long device names are shortened and archived events are read-only") {
+            val scenario = gig()
+            scenario.apply(AddAttachment(gigFiles, pdf("long", "x".repeat(500))))
+            scenario.band.event("gig")!!.attachments.single().fileName!!.length shouldBe Attachment.MAX_FILE_NAME
+            scenario.apply(SettleSuggestions("gig")).apply(SetEventArchived("gig", true))
+            scenario.rejected(AddAttachment(gigFiles, pdf("late"))).reason shouldBe RejectionReason.ARCHIVED_EVENT
+            scenario.rejected(RenameAttachment(entry, "x", "y")).reason shouldBe RejectionReason.ARCHIVED_EVENT
+        }
+
+        expect("removing an entry with files cannot be undone") {
+            val scenario = gig().apply(AddAttachment(entry, pdf("contract")))
+            val before = scenario.band
+            val remove = RemoveHolding("gig", "h")
+            scenario.apply(remove)
+            withClue("its file is deleted") {
+                scenario.rejected(Undo("u", remove, BandChange.between(before, scenario.band))).reason shouldBe RejectionReason.NOT_UNDOABLE
+            }
+        }
+    })

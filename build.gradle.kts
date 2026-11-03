@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.android.kmp.library) apply false
     alias(libs.plugins.shadow) apply false
     alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.kotest) apply false
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
 }

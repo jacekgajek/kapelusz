@@ -1,33 +1,39 @@
 package com.jacekgajek.kapelusz.server
 
 import com.jacekgajek.kapelusz.api.ApiErrors
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 
-class AppVersionTest {
-    private fun api(min: Int) = ApiHarness(minAppVersion = min).api
+private fun appVersionApi(min: Int) = ApiHarness(minAppVersion = min).api
 
-    private fun me(api: Api, version: String?) = api.handle(
-        HttpRequest("GET", "/me", mapOf("authorization" to "Bearer alice"), query = version?.let { mapOf(ApiErrors.APP_VERSION_PARAMETER to it) } ?: emptyMap()),
-    )
+private fun me(api: Api, version: String?) = api.handle(
+    HttpRequest(
+        "GET",
+        "/me",
+        mapOf("authorization" to "Bearer alice"),
+        query = version?.let { mapOf(ApiErrors.APP_VERSION_PARAMETER to it) } ?: emptyMap(),
+    ),
+)
 
-    @Test
-    fun everyAppIsServedWhileNoMinimumIsSet() {
-        val api = api(0)
-        assertEquals(200, me(api, null).status, "apps from before version 2 send no version")
-        assertEquals(200, me(api, "3").status)
-    }
+class AppVersionTest :
+    ExpectSpec({
 
-    @Test
-    fun olderAppsMustUpdate() {
-        val api = api(12)
-        val tooOld = me(api, "11")
-        assertEquals(426, tooOld.status)
-        assertTrue(tooOld.body!!.contains(ApiErrors.UPDATE_REQUIRED))
-        assertEquals(426, me(api, null).status, "no version: from before version 2")
-        assertEquals(200, me(api, "12").status)
-        assertEquals(200, me(api, "0").status, "local development builds")
-        assertEquals(204, api.handle(HttpRequest("OPTIONS", "/me")).status, "CORS preflights are not blocked")
-    }
-}
+        expect("every app is served while no minimum is set") {
+            val api = appVersionApi(0)
+            withClue("apps from before version 2 send no version") { me(api, null).status shouldBe 200 }
+            me(api, "3").status shouldBe 200
+        }
+
+        expect("older apps must update") {
+            val api = appVersionApi(12)
+            val tooOld = me(api, "11")
+            tooOld.status shouldBe 426
+            tooOld.body!! shouldContain ApiErrors.UPDATE_REQUIRED
+            withClue("no version: from before version 2") { me(api, null).status shouldBe 426 }
+            me(api, "12").status shouldBe 200
+            withClue("local development builds") { me(api, "0").status shouldBe 200 }
+            withClue("CORS preflights are not blocked") { api.handle(HttpRequest("OPTIONS", "/me")).status shouldBe 204 }
+        }
+    })

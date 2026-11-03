@@ -4,48 +4,48 @@ import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.RejectionCode
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 
 /** The settings screen's state ([SettingsViewModel]): the dialog cell, refusals kept until shown, signing out once. */
-class SettingsViewModelTest {
-    private val refusal = Rejection(RejectionCode.FORBIDDEN, "no")
-    private val sent = mutableListOf<Operation>()
-    private var refuse = false
-    private val screen = SettingsViewModel { op ->
-        sent += op
-        refusal.takeIf { refuse }
-    }
+class SettingsViewModelTest :
+    ExpectSpec({
+        isolationMode = IsolationMode.InstancePerRoot
+        val refusal = Rejection(RejectionCode.FORBIDDEN, "no")
+        val sent = mutableListOf<Operation>()
+        var refuse = false
+        val screen = SettingsViewModel { op ->
+            sent += op
+            refusal.takeIf { refuse }
+        }
 
-    @Test
-    fun aRefusedChangeIsKeptForTheScreenUntilShown() {
-        screen.dispatch(RenameBand("Band"))
-        assertNull(screen.refusal)
-        refuse = true
-        screen.dispatch(RenameBand("Other"))
-        assertEquals(refusal, screen.refusal)
-        assertEquals(2, sent.size, "every change reaches the band; the refusal is only told")
-        screen.refusalShown()
-        assertNull(screen.refusal)
-    }
+        expect("a refused change is kept for the screen until shown") {
+            screen.dispatch(RenameBand("Band"))
+            screen.refusal.shouldBeNull()
+            refuse = true
+            screen.dispatch(RenameBand("Other"))
+            screen.refusal shouldBe refusal
+            withClue("every change reaches the band; the refusal is only told") { sent.size shouldBe 2 }
+            screen.refusalShown()
+            screen.refusal.shouldBeNull()
+        }
 
-    @Test
-    fun oneDialogAtATime() {
-        screen.open(SettingsDialog.RENAMING)
-        screen.open(SettingsDialog.LANGUAGE)
-        assertEquals(SettingsDialog.LANGUAGE, screen.dialog)
-        screen.dismiss()
-        assertNull(screen.dialog)
-    }
+        expect("one dialog at a time") {
+            screen.open(SettingsDialog.RENAMING)
+            screen.open(SettingsDialog.LANGUAGE)
+            screen.dialog shouldBe SettingsDialog.LANGUAGE
+            screen.dismiss()
+            screen.dialog.shouldBeNull()
+        }
 
-    @Test
-    fun signingOutStartsOnceAndStaysBusy() {
-        var started = 0
-        screen.signOut { started++ }
-        screen.signOut { started++ }
-        assertTrue(screen.signingOut)
-        assertEquals(1, started)
-    }
-}
+        expect("signing out starts once and stays busy") {
+            var started = 0
+            screen.signOut { started++ }
+            screen.signOut { started++ }
+            screen.signingOut shouldBe true
+            started shouldBe 1
+        }
+    })

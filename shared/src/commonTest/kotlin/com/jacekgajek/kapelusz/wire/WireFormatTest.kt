@@ -8,8 +8,9 @@ import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.UnknownOperation
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 import kotlinx.serialization.builtins.ListSerializer
 
 /**
@@ -20,53 +21,51 @@ import kotlinx.serialization.builtins.ListSerializer
  * Regenerating the fixtures is a deliberate act: run [WireFixtureDump] and copy its output. Do it only for a change
  * of the format itself, never to make a refactoring step pass.
  */
-class WireFormatTest {
-    @Test
-    fun everyOperationEncodesAsBefore() {
-        assertEquals(WireFixtures.OPERATIONS.size, WireSamples.everyOperation.size, "one fixture per operation kind")
-        WireSamples.everyOperation.forEachIndexed { i, op ->
-            val json = KapeluszJson.encodeToString(Operation.serializer(), op)
-            assertEquals(WireFixtures.OPERATIONS[i], json, "operation $i (${op::class.simpleName})")
+class WireFormatTest :
+    ExpectSpec({
+        expect("every operation encodes as before") {
+            withClue("one fixture per operation kind") { WireSamples.everyOperation.size shouldBe WireFixtures.OPERATIONS.size }
+            WireSamples.everyOperation.forEachIndexed { i, op ->
+                val json = KapeluszJson.encodeToString(Operation.serializer(), op)
+                withClue("operation $i (${op::class.simpleName})") { json shouldBe WireFixtures.OPERATIONS[i] }
+            }
         }
-    }
 
-    @Test
-    fun everyOperationDecodesFromBefore() {
-        WireSamples.everyOperation.forEachIndexed { i, op ->
-            assertEquals(op, KapeluszJson.decodeFromString(Operation.serializer(), WireFixtures.OPERATIONS[i]), "operation $i")
+        expect("every operation decodes from before") {
+            WireSamples.everyOperation.forEachIndexed { i, op ->
+                withClue("operation $i") {
+                    KapeluszJson.decodeFromString(Operation.serializer(), WireFixtures.OPERATIONS[i]) shouldBe op
+                }
+            }
         }
-    }
 
-    @Test
-    fun theOperationLogEncodesAsBefore() {
-        assertEquals(WireFixtures.LOG, KapeluszJson.encodeToString(ListSerializer(OpEnvelope.serializer()), WireSamples.log))
-        assertEquals(WireSamples.log, KapeluszJson.decodeFromString(ListSerializer(OpEnvelope.serializer()), WireFixtures.LOG))
-    }
+        expect("the operation log encodes as before") {
+            KapeluszJson.encodeToString(ListSerializer(OpEnvelope.serializer()), WireSamples.log) shouldBe WireFixtures.LOG
+            KapeluszJson.decodeFromString(ListSerializer(OpEnvelope.serializer()), WireFixtures.LOG) shouldBe WireSamples.log
+        }
 
-    @Test
-    fun replayingTheLogGivesTheBandStoredBefore() {
-        val band = WireSamples.storedBand()
-        assertEquals(WireFixtures.BAND, KapeluszJson.encodeToString(Band.serializer(), band))
-        assertEquals(band, KapeluszJson.decodeFromString(Band.serializer(), WireFixtures.BAND))
-    }
+        expect("replaying the log gives the band stored before") {
+            val band = WireSamples.storedBand()
+            KapeluszJson.encodeToString(Band.serializer(), band) shouldBe WireFixtures.BAND
+            KapeluszJson.decodeFromString(Band.serializer(), WireFixtures.BAND) shouldBe band
+        }
 
-    @Test
-    fun aHistoryEntryEncodesAsBefore() {
-        assertEquals(WireFixtures.HISTORY_ENTRY, KapeluszJson.encodeToString(HistoryEntry.serializer(), WireSamples.historyEntry))
-        assertEquals(WireSamples.historyEntry, KapeluszJson.decodeFromString(HistoryEntry.serializer(), WireFixtures.HISTORY_ENTRY))
-    }
+        expect("a history entry encodes as before") {
+            KapeluszJson.encodeToString(HistoryEntry.serializer(), WireSamples.historyEntry) shouldBe WireFixtures.HISTORY_ENTRY
+            KapeluszJson.decodeFromString(HistoryEntry.serializer(), WireFixtures.HISTORY_ENTRY) shouldBe WireSamples.historyEntry
+        }
 
-    @Test
-    fun readingIsLenient() {
-        // A field from a newer version is ignored; an enum value it does not know becomes the field's default.
-        val cost = """{"type":"AddCost","costId":"c1","memberId":"bob","amount":100,"date":"2026-09-13","category":"NEW_KIND","extra":1}"""
-        assertEquals(AddCost("c1", "bob", Money(100), WireSamples.date), KapeluszJson.decodeFromString(Operation.serializer(), cost))
-    }
+        expect("reading is lenient") {
+            // A field from a newer version is ignored; an enum value it does not know becomes the field's default.
+            val cost =
+                """{"type":"AddCost","costId":"c1","memberId":"bob","amount":100""" +
+                    ""","date":"2026-09-13","category":"NEW_KIND","extra":1}"""
+            KapeluszJson.decodeFromString(Operation.serializer(), cost) shouldBe AddCost("c1", "bob", Money(100), WireSamples.date)
+        }
 
-    @Test
-    fun anOperationOfAnUnknownKindDecodesAsUnknown() {
-        val json = """{"type":"MoveMember","memberId":"bob","eventId":"gig"}"""
-        assertEquals(UnknownOperation("gig"), KapeluszJson.decodeFromString(Operation.serializer(), json))
-        assertEquals(UnknownOperation(), KapeluszJson.decodeFromString(Operation.serializer(), """{"type":"Whatever"}"""))
-    }
-}
+        expect("an operation of an unknown kind decodes as unknown") {
+            val json = """{"type":"MoveMember","memberId":"bob","eventId":"gig"}"""
+            KapeluszJson.decodeFromString(Operation.serializer(), json) shouldBe UnknownOperation("gig")
+            KapeluszJson.decodeFromString(Operation.serializer(), """{"type":"Whatever"}""") shouldBe UnknownOperation()
+        }
+    })

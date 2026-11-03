@@ -3,29 +3,27 @@ package com.jacekgajek.kapelusz.app.runtime
 import com.jacekgajek.kapelusz.app.auth.Session
 import com.jacekgajek.kapelusz.app.auth.fakeIdToken
 import com.jacekgajek.kapelusz.app.bands.BandState
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 
 /** What the app's root shows, from its parts ([appState]). */
-class AppStateTest {
-    private val session = Session.fromIdToken(fakeIdToken("sub-1", 2_000_000_000))
+class AppStateTest :
+    ExpectSpec({
+        val session = Session.fromIdToken(fakeIdToken("sub-1", 2_000_000_000))
 
-    @Test
-    fun anOutdatedAppIsToldFirstWhateverElseIsTrue() {
-        assertEquals(AppState.UpdateRequired, appState(updateRequired = true, session, BandState.NoBand, signedOutEverywhere = false))
-        assertEquals(AppState.UpdateRequired, appState(updateRequired = true, null, BandState.Loading, signedOutEverywhere = true))
-    }
+        expect("an outdated app is told first whatever else is true") {
+            appState(updateRequired = true, session, BandState.NoBand, signedOutEverywhere = false) shouldBe AppState.UpdateRequired
+            appState(updateRequired = true, null, BandState.Loading, signedOutEverywhere = true) shouldBe AppState.UpdateRequired
+        }
 
-    @Test
-    fun withoutASessionTheSignInScreenSaysWhyWhenSignedOutEverywhere() {
-        assertEquals(AppState.SignedOut(everywhere = false), appState(false, null, BandState.Loading, signedOutEverywhere = false))
-        assertEquals(AppState.SignedOut(everywhere = true), appState(false, null, BandState.NoBand, signedOutEverywhere = true))
-    }
+        expect("without a session the sign-in screen says why when signed out everywhere") {
+            appState(false, null, BandState.Loading, signedOutEverywhere = false) shouldBe AppState.SignedOut(everywhere = false)
+            appState(false, null, BandState.NoBand, signedOutEverywhere = true) shouldBe AppState.SignedOut(everywhere = true)
+        }
 
-    @Test
-    fun aSessionShowsTheBandAsItStands() {
-        assertEquals(AppState.SignedIn(session, BandState.NoBand), appState(false, session, BandState.NoBand, signedOutEverywhere = true))
-        val loading = appState(false, session, BandState.Loading, signedOutEverywhere = false)
-        assertEquals(AppState.SignedIn(session, BandState.Loading), loading)
-    }
-}
+        expect("a session shows the band as it stands") {
+            appState(false, session, BandState.NoBand, signedOutEverywhere = true) shouldBe AppState.SignedIn(session, BandState.NoBand)
+            val loading = appState(false, session, BandState.Loading, signedOutEverywhere = false)
+            loading shouldBe AppState.SignedIn(session, BandState.Loading)
+        }
+    })

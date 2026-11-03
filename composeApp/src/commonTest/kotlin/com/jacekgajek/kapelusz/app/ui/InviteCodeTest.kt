@@ -1,30 +1,28 @@
 package com.jacekgajek.kapelusz.app.ui
 
 import com.jacekgajek.kapelusz.app.ui.screens.inviteCode
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 
 /** What a scanned invite QR code gives the Join dialog. */
-class InviteCodeTest {
+class InviteCodeTest :
+    ExpectSpec({
+        expect("a join link's code") {
+            inviteCode("https://kapelusz.jacekgajek.com/join/T2KTHM") shouldBe "T2KTHM"
+            inviteCode(" https://kapelusz.jacekgajek.com/join/t2kthm/ ") shouldBe "T2KTHM"
+            inviteCode("https://kapelusz.jacekgajek.com/join/T2KTHM?utm=qr") shouldBe "T2KTHM"
+        }
 
-    @Test
-    fun aJoinLinksCode() {
-        assertEquals("T2KTHM", inviteCode("https://kapelusz.jacekgajek.com/join/T2KTHM"))
-        assertEquals("T2KTHM", inviteCode(" https://kapelusz.jacekgajek.com/join/t2kthm/ "))
-        assertEquals("T2KTHM", inviteCode("https://kapelusz.jacekgajek.com/join/T2KTHM?utm=qr"))
-    }
+        expect("a bare code") {
+            inviteCode("abc123") shouldBe "ABC123"
+        }
 
-    @Test
-    fun aBareCode() {
-        assertEquals("ABC123", inviteCode("abc123"))
-    }
-
-    @Test
-    fun anythingElseIsNoInvite() {
-        assertNull(inviteCode("https://example.com/menu"))
-        assertNull(inviteCode("https://kapelusz.jacekgajek.com/join/TOOLONG1"))
-        assertNull(inviteCode("hello!"))
-        assertNull(inviteCode("ĄBC123"), "only A–Z and 0–9")
-    }
-}
+        expect("anything else is no invite") {
+            inviteCode("https://example.com/menu").shouldBeNull()
+            inviteCode("https://kapelusz.jacekgajek.com/join/TOOLONG1").shouldBeNull()
+            inviteCode("hello!").shouldBeNull()
+            withClue("only A–Z and 0–9") { inviteCode("ĄBC123").shouldBeNull() }
+        }
+    })

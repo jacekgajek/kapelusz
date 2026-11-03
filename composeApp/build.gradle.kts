@@ -6,6 +6,9 @@ plugins {
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
+    // KSP before Kotest: Kotest's plugin generates the test entry points for wasm through it.
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotest)
 }
 
 // API URL and Google client id compiled into the app: environment variables win over this machine's
@@ -164,9 +167,13 @@ kotlin {
             implementation(libs.ktor.client.js)
         }
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.assertions.core)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.kotest.runner.junit5)
         }
         // Compose UI smoke tests run in the browser (REFACTORING.md 4.6): the app has no JVM target, and the Android
         // host tests have no Activity to put a composition in.
@@ -175,6 +182,11 @@ kotlin {
             implementation(compose.uiTest)
         }
     }
+}
+
+// Kotest runs on the JVM through the JUnit Platform.
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 /**

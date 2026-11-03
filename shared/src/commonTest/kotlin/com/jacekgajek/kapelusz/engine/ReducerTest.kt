@@ -31,186 +31,190 @@ import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.pln
 import com.jacekgajek.kapelusz.rules.Actor
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 
-class ReducerTest {
+class ReducerTest :
+    ExpectSpec({
 
-    private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob")
+        fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob")
 
-    @Test
-    fun costIncurredForEventIsPreIncludedOnlyForParticipants() {
-        val scenario = gig()
-            .apply(AddCost("bob-cost", "bob", pln("40"), DATE, incurredForEventId = "gig"))
-        assertEquals(listOf(Refund("bob-cost", pln("40"))), scenario.band.event("gig")!!.refunds)
-        // Only for an event its owner takes part in.
-        assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig")).reason)
+        expect("cost incurred for event is pre-included only for participants") {
+            val scenario = gig()
+                .apply(AddCost("bob-cost", "bob", pln("40"), DATE, incurredForEventId = "gig"))
+            scenario.band.event("gig")!!.refunds shouldBe listOf(Refund("bob-cost", pln("40")))
+            // Only for an event its owner takes part in.
+            scenario.rejected(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig")).reason shouldBe
+                RejectionReason.NOT_A_PARTICIPANT
 
-        scenario.apply(AddParticipant("gig", "carol"))
-        scenario.apply(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig"))
-        assertEquals(pln("25"), scenario.band.event("gig")!!.refundOf("carol-cost")!!.amount)
-    }
+            scenario.apply(AddParticipant("gig", "carol"))
+            scenario.apply(AddCost("carol-cost", "carol", pln("25"), DATE, incurredForEventId = "gig"))
+            scenario.band.event("gig")!!.refundOf("carol-cost")!!.amount shouldBe pln("25")
+        }
 
-    @Test
-    fun editingCostAmountKeepsFullRefundAtOwnEvent() {
-        val scenario = gig()
-            .apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
-            .apply(UpdateCost("c", amount = Change(pln("55"))))
-        assertEquals(pln("55"), scenario.band.event("gig")!!.refundOf("c")!!.amount)
-    }
+        expect("editing cost amount keeps full refund at own event") {
+            val scenario = gig()
+                .apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
+                .apply(UpdateCost("c", amount = Change(pln("55"))))
+            scenario.band.event("gig")!!.refundOf("c")!!.amount shouldBe pln("55")
+        }
 
-    @Test
-    fun costCannotDropBelowRefunded() {
-        val scenario = gig()
-            .apply(AddCost("c", "bob", pln("40"), DATE))
-            .apply(SetRefund("gig", "c", pln("30")))
-        assertEquals(RejectionCode.INVALID, scenario.rejected(UpdateCost("c", amount = Change(pln("20")))).code)
-    }
+        expect("cost cannot drop below refunded") {
+            val scenario = gig()
+                .apply(AddCost("c", "bob", pln("40"), DATE))
+                .apply(SetRefund("gig", "c", pln("30")))
+            scenario.rejected(UpdateCost("c", amount = Change(pln("20")))).code shouldBe RejectionCode.INVALID
+        }
 
-    @Test
-    fun refundRules() {
-        val scenario = gig().apply(AddCost("c", "carol", pln("40"), DATE)).apply(AddCost("b", "bob", pln("40"), DATE))
-        assertEquals(RejectionCode.INVALID, scenario.rejected(SetRefund("gig", "c", pln("10"))).code, "non-participant")
-        assertEquals(RejectionCode.INVALID, scenario.rejected(SetRefund("gig", "b", pln("41"))).code, "exceeds")
-        scenario.apply(SetRefund("gig", "b", pln("40"))).apply(SetRefund("gig", "b", Money.ZERO))
-        assertTrue(scenario.band.event("gig")!!.refunds.isEmpty())
-    }
+        expect("refund rules") {
+            val scenario = gig().apply(AddCost("c", "carol", pln("40"), DATE)).apply(AddCost("b", "bob", pln("40"), DATE))
+            withClue("non-participant") { scenario.rejected(SetRefund("gig", "c", pln("10"))).code shouldBe RejectionCode.INVALID }
+            withClue("exceeds") { scenario.rejected(SetRefund("gig", "b", pln("41"))).code shouldBe RejectionCode.INVALID }
+            scenario.apply(SetRefund("gig", "b", pln("40"))).apply(SetRefund("gig", "b", Money.ZERO))
+            scenario.band.event("gig")!!.refunds.shouldBeEmpty()
+        }
 
-    @Test
-    fun deletingCostRemovesItsRefunds() {
-        val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig")).apply(DeleteCost("c"))
-        assertTrue(scenario.band.event("gig")!!.refunds.isEmpty())
-    }
+        expect("deleting cost removes its refunds") {
+            val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig")).apply(DeleteCost("c"))
+            scenario.band.event("gig")!!.refunds.shouldBeEmpty()
+        }
 
-    @Test
-    fun eventWithTransfersCannotBeDeleted() {
-        val scenario = gig()
-            .apply(AddHolding("gig", "h", "alice", pln("100"), DOOR))
-            .apply(RecordTransfer("gig", "t", "alice", "bob", pln("50")))
-        assertEquals(RejectionCode.CONFLICT, scenario.rejected(DeleteEvent("gig")).code)
-    }
+        expect("event with transfers cannot be deleted") {
+            val scenario = gig()
+                .apply(AddHolding("gig", "h", "alice", pln("100"), DOOR))
+                .apply(RecordTransfer("gig", "t", "alice", "bob", pln("50")))
+            scenario.rejected(DeleteEvent("gig")).code shouldBe RejectionCode.CONFLICT
+        }
 
-    @Test
-    fun deletingEventDetachesItsCosts() {
-        val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig")).apply(DeleteEvent("gig"))
-        assertNull(scenario.band.cost("c")!!.eventId)
-    }
+        expect("deleting event detaches its costs") {
+            val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig")).apply(DeleteEvent("gig"))
+            scenario.band.cost("c")!!.eventId.shouldBeNull()
+        }
 
-    @Test
-    fun participantWithEntriesCannotBeRemoved() {
-        val scenario = gig().apply(AddHolding("gig", "h", "bob", pln("100"), DOOR))
-        val rejection = scenario.rejected(RemoveParticipant("gig", "bob"))
-        assertEquals(RejectionCode.CONFLICT, rejection.code)
-        assertEquals(RejectionReason.PARTICIPANT_HAS_MONEY, rejection.reason)
-        scenario.apply(RemoveParticipant("gig", "alice"))
-        assertNull(scenario.band.event("gig")!!.participant("alice"))
-    }
+        expect("participant with entries cannot be removed") {
+            val scenario = gig().apply(AddHolding("gig", "h", "bob", pln("100"), DOOR))
+            val rejection = scenario.rejected(RemoveParticipant("gig", "bob"))
+            rejection.code shouldBe RejectionCode.CONFLICT
+            rejection.reason shouldBe RejectionReason.PARTICIPANT_HAS_MONEY
+            scenario.apply(RemoveParticipant("gig", "alice"))
+            scenario.band.event("gig")!!.participant("alice").shouldBeNull()
+        }
 
-    @Test
-    fun fundRequiresTreasurer() {
-        assertEquals(RejectionCode.INVALID, gig().rejected(SetFundAmount("gig", pln("10"))).code)
-    }
+        expect("fund requires treasurer") {
+            gig().rejected(SetFundAmount("gig", pln("10"))).code shouldBe RejectionCode.INVALID
+        }
 
-    @Test
-    fun memberWithHistoryCannotBeDeleted() {
-        val scenario = gig()
-        assertEquals(RejectionCode.CONFLICT, scenario.rejected(DeleteMember("bob")).code)
-        scenario.apply(DeleteMember("carol"))
-        assertNull(scenario.band.member("carol"))
-    }
+        expect("member with history cannot be deleted") {
+            val scenario = gig()
+            scenario.rejected(DeleteMember("bob")).code shouldBe RejectionCode.CONFLICT
+            scenario.apply(DeleteMember("carol"))
+            scenario.band.member("carol").shouldBeNull()
+        }
 
-    @Test
-    fun ownershipTransfer() {
-        val scenario = gig()
-        scenario.userFor("bob", Role.LEAD)
-        assertEquals(RejectionCode.INVALID, scenario.rejected(SetMemberRole("alice", Role.LEAD)).code)
-        scenario.apply(TransferOwnership("bob"))
-        assertEquals(Role.OWNER, scenario.band.member("bob")!!.role)
-        assertEquals(Role.LEAD, scenario.band.member("alice")!!.role)
-    }
+        expect("ownership transfer") {
+            val scenario = gig()
+            scenario.userFor("bob", Role.LEAD)
+            scenario.rejected(SetMemberRole("alice", Role.LEAD)).code shouldBe RejectionCode.INVALID
+            scenario.apply(TransferOwnership("bob"))
+            scenario.band.member("bob")!!.role shouldBe Role.OWNER
+            scenario.band.member("alice")!!.role shouldBe Role.LEAD
+        }
 
-    @Test
-    fun eventUpdatesArePatchesAndStampUpdatedAt() {
-        val scenario = gig().apply(UpdateEvent("gig", location = Change("Hall")))
-        val before = scenario.band.event("gig")!!
-        scenario.apply(UpdateEvent("gig", notes = Change("bring cables")))
-        val after = scenario.band.event("gig")!!
-        assertEquals("Hall", after.location)
-        assertEquals("bring cables", after.notes)
-        assertTrue(after.updatedAt > before.updatedAt)
-    }
+        expect("event updates are patches and stamp updatedAt") {
+            val scenario = gig().apply(UpdateEvent("gig", location = Change("Hall")))
+            val before = scenario.band.event("gig")!!
+            scenario.apply(UpdateEvent("gig", notes = Change("bring cables")))
+            val after = scenario.band.event("gig")!!
+            after.location shouldBe "Hall"
+            after.notes shouldBe "bring cables"
+            after.updatedAt shouldBeGreaterThan before.updatedAt
+        }
 
-    @Test
-    fun batchIsIdempotentAndRejectionsAdvanceSequence() {
-        val band = gig().band
-        val owner = Actor.User("user-alice")
-        val batch = listOf(
-            OpEnvelope("a", "phone", 1, 1, RenameBand("New name")),
-            OpEnvelope("b", "phone", 2, 2, DeleteEvent("missing")),
-            OpEnvelope("c", "phone", 3, 3, AddCost("c", "bob", pln("10"), DATE)),
-        )
-        val first = Engine.applyBatch(band, owner, batch)
-        assertEquals(listOf("a", "c"), first.accepted)
-        assertEquals(RejectionCode.NOT_FOUND, first.rejected.getValue("b").code)
-        assertEquals(3L, first.band.lastSeq["phone"])
+        expect("batch is idempotent and rejections advance sequence") {
+            val band = gig().band
+            val owner = Actor.User("user-alice")
+            val batch = listOf(
+                OpEnvelope("a", "phone", 1, 1, RenameBand("New name")),
+                OpEnvelope("b", "phone", 2, 2, DeleteEvent("missing")),
+                OpEnvelope("c", "phone", 3, 3, AddCost("c", "bob", pln("10"), DATE)),
+            )
+            val first = Engine.applyBatch(band, owner, batch)
+            first.accepted shouldBe listOf("a", "c")
+            first.rejected.getValue("b").code shouldBe RejectionCode.NOT_FOUND
+            first.band.lastSeq["phone"] shouldBe 3L
 
-        val retry = Engine.applyBatch(first.band, owner, batch + OpEnvelope("d", "phone", 4, 4, RenameBand("Newer")))
-        assertEquals(listOf("a", "c"), retry.duplicates)
-        assertEquals(RejectionCode.NOT_FOUND, retry.rejected.getValue("b").code, "a retried refusal is reported again")
-        assertEquals(listOf("d"), retry.accepted)
-        assertEquals(1, retry.band.costs.size)
-        assertEquals("Newer", retry.band.name)
-    }
+            val retry = Engine.applyBatch(first.band, owner, batch + OpEnvelope("d", "phone", 4, 4, RenameBand("Newer")))
+            retry.duplicates shouldBe listOf("a", "c")
+            withClue("a retried refusal is reported again") { retry.rejected.getValue("b").code shouldBe RejectionCode.NOT_FOUND }
+            retry.accepted shouldBe listOf("d")
+            retry.band.costs.size shouldBe 1
+            retry.band.name shouldBe "Newer"
+        }
 
-    @Test
-    fun guestIdCannotShadowMember() {
-        val op = CreateEvent("x", "x", DATE, guests = listOf(Guest("bob", "Fake")), participants = listOf(Participant("bob")))
-        assertEquals(RejectionCode.INVALID, gig().rejected(op).code)
-    }
+        expect("guest id cannot shadow member") {
+            val op = CreateEvent("x", "x", DATE, guests = listOf(Guest("bob", "Fake")), participants = listOf(Participant("bob")))
+            gig().rejected(op).code shouldBe RejectionCode.INVALID
+        }
 
-    @Test
-    fun movingCostToAnotherEventPreIncludesItThere() {
-        val scenario = gig().event("other-gig", "Bob")
-            .apply(AddCost("c", "bob", pln("40"), DATE))
-            .apply(UpdateCost("c", incurredForEventId = Change("other-gig")))
-        assertEquals(pln("40"), scenario.band.event("other-gig")!!.refundOf("c")!!.amount)
-        assertNull(scenario.band.event("gig")!!.refundOf("c"))
-    }
+        expect("moving cost to another event pre-includes it there") {
+            val scenario = gig().event("other-gig", "Bob")
+                .apply(AddCost("c", "bob", pln("40"), DATE))
+                .apply(UpdateCost("c", incurredForEventId = Change("other-gig")))
+            scenario.band.event("other-gig")!!.refundOf("c")!!.amount shouldBe pln("40")
+            scenario.band.event("gig")!!.refundOf("c").shouldBeNull()
+        }
 
-    @Test
-    fun costChangesStampTheEventsTheyRefund() {
-        val scenario = gig()
-        val created = scenario.band.event("gig")!!.updatedAt
-        scenario.apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
-        val afterAdd = scenario.band.event("gig")!!.updatedAt
-        assertTrue(afterAdd > created)
-        scenario.apply(DeleteCost("c"))
-        assertTrue(scenario.band.event("gig")!!.updatedAt > afterAdd)
-    }
+        expect("cost changes stamp the events they refund") {
+            val scenario = gig()
+            val created = scenario.band.event("gig")!!.updatedAt
+            scenario.apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
+            val afterAdd = scenario.band.event("gig")!!.updatedAt
+            afterAdd shouldBeGreaterThan created
+            scenario.apply(DeleteCost("c"))
+            scenario.band.event("gig")!!.updatedAt shouldBeGreaterThan afterAdd
+        }
 
-    @Test
-    fun aMembersCostDoesNotReopenASettledOrArchivedEvent() {
-        val scenario = gig().apply(com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "alice", pln("100"), com.jacekgajek.kapelusz.model.IncomeSource.HAT, null))
-            .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
-        scenario.apply(AddCost("late", "bob", pln("30"), DATE, incurredForEventId = "gig"))
-        assertEquals(null, scenario.band.event("gig")!!.refundOf("late"), "money moved: a lead decides")
-        scenario.apply(com.jacekgajek.kapelusz.ops.SetEventArchived("gig", true))
-        scenario.apply(AddCost("later", "bob", pln("20"), DATE))
-        // Archived events are read-only: not even a cost can be assigned to one.
-        assertEquals(
-            com.jacekgajek.kapelusz.model.RejectionReason.ARCHIVED_EVENT,
-            scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason,
-        )
-    }
+        expect("a member's cost does not reopen a settled or archived event") {
+            val scenario = gig().apply(
+                com.jacekgajek.kapelusz.ops.AddHolding(
+                    "gig",
+                    "h",
+                    "alice",
+                    pln("100"),
+                    com.jacekgajek.kapelusz.model.IncomeSource.HAT,
+                    null,
+                ),
+            )
+                .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
+            scenario.apply(AddCost("late", "bob", pln("30"), DATE, incurredForEventId = "gig"))
+            withClue("money moved: a lead decides") { scenario.band.event("gig")!!.refundOf("late").shouldBeNull() }
+            scenario.apply(com.jacekgajek.kapelusz.ops.SetEventArchived("gig", true))
+            scenario.apply(AddCost("later", "bob", pln("20"), DATE))
+            // Archived events are read-only: not even a cost can be assigned to one.
+            scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason shouldBe
+                com.jacekgajek.kapelusz.model.RejectionReason.ARCHIVED_EVENT
+        }
 
-    @Test
-    fun aMembersAmountChangeDoesNotRaiseTheRefundOfASettledEvent() {
-        val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
-            .apply(com.jacekgajek.kapelusz.ops.AddHolding("gig", "h", "alice", pln("100"), com.jacekgajek.kapelusz.model.IncomeSource.HAT, null))
-            .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
-        scenario.apply(UpdateCost("c", amount = Change(pln("60"))))
-        assertEquals(pln("40"), scenario.band.event("gig")!!.refundOf("c")!!.amount, "settled: the refund stays; a lead decides")
-    }
-}
+        expect("a member's amount change does not raise the refund of a settled event") {
+            val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
+                .apply(
+                    com.jacekgajek.kapelusz.ops.AddHolding(
+                        "gig",
+                        "h",
+                        "alice",
+                        pln("100"),
+                        com.jacekgajek.kapelusz.model.IncomeSource.HAT,
+                        null,
+                    ),
+                )
+                .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
+            scenario.apply(UpdateCost("c", amount = Change(pln("60"))))
+            withClue("settled: the refund stays; a lead decides") {
+                scenario.band.event("gig")!!.refundOf("c")!!.amount shouldBe pln("40")
+            }
+        }
+    })

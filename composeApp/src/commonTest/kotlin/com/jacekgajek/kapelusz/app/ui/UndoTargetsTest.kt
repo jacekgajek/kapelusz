@@ -12,75 +12,80 @@ import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.Undo
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 
-class UndoTargetsTest {
-    private val none = BandChange(BandPart(), BandPart())
-    private fun line(id: String, op: Operation) = HistoryLine(HistoryEntry("u", "m", 0, emptyList()), OpEnvelope(id, "c", 0, 0, op), id)
-    private fun change(id: String) = line(id, RenameBand(id))
-    private fun undo(id: String, target: HistoryLine) = line(id, Undo(target.opId, target.envelope!!.op, none))
+private val none = BandChange(BandPart(), BandPart())
 
-    @Test
-    fun aNewChangeAfterAnUndoEndsRedo() {
-        // A, B, undo B, C — shown newest first.
-        val a = change("A")
-        val b = change("B")
-        val undoB = undo("uB", b)
-        val c = change("C")
-        val targets = undoTargets(listOf(c, undoB, b, a))
-        assertEquals("C", targets.undo?.opId)
-        assertNull(targets.redo)
-        assertEquals(setOf("B"), targets.undone)
-    }
+private fun line(id: String, op: Operation) = HistoryLine(HistoryEntry("u", "m", 0, emptyList()), OpEnvelope(id, "c", 0, 0, op), id)
 
-    @Test
-    fun undoStepsBackAndRedoGoesForward() {
-        val a = change("A")
-        val b = change("B")
-        val undoB = undo("uB", b)
-        val c = change("C")
-        val undoC = undo("uC", c)
-        val afterUndoC = undoTargets(listOf(undoC, c, undoB, b, a))
-        assertEquals("A", afterUndoC.undo?.opId, "B is already undone, so the next step back is A")
-        assertEquals("uC", afterUndoC.redo?.opId)
+private fun change(id: String) = line(id, RenameBand(id))
 
-        val redoC = undo("rC", undoC)
-        val afterRedo = undoTargets(listOf(redoC, undoC, c, undoB, b, a))
-        assertEquals("C", afterRedo.undo?.opId)
-        assertNull(afterRedo.redo, "redo is not offered for a redo")
-        assertEquals(setOf("uC", "B"), afterRedo.undone)
-    }
+private fun undo(id: String, target: HistoryLine) = line(id, Undo(target.opId, target.envelope!!.op, none))
 
-    @Test
-    fun changesThatCannotBeUndoneAreSteppedOver() {
-        val a = change("A")
-        val joined = change("join")
-        val targets = undoTargets(listOf(joined, a)) { it.opId != "join" }
-        assertEquals("A", targets.undo?.opId)
-    }
+class UndoTargetsTest :
+    ExpectSpec({
 
-    @Test
-    fun anUndoShowsAtOnceSoTheNextTapStepsFurtherBack() {
-        val a = change("A")
-        val b = change("B")
-        val c = change("C")
-        val server = listOf(c, b, a)
-        val undoC = pendingUndoLine(Undo("C", RenameBand("C"), none), "u1", "u", "m")
-        val undoB = pendingUndoLine(Undo("B", RenameBand("B"), none), "u2", "u", "m")
-        val shown = withPending(server, listOf(undoC, undoB))
-        assertEquals(listOf("u2", "u1", "C", "B", "A"), shown.map { it.opId }, "newest first")
-        assertEquals("A", undoTargets(shown).undo?.opId)
-        // Once the server has an undo, its own line replaces the one shown at once.
-        assertEquals(listOf("u2", "u1", "C", "B", "A"), withPending(listOf(undoC) + server, listOf(undoC, undoB)).map { it.opId })
-    }
+        context("what undo and redo step to") {
+            expect("a new change after an undo ends redo") {
+                // A, B, undo B, C — shown newest first.
+                val a = change("A")
+                val b = change("B")
+                val undoB = undo("uB", b)
+                val c = change("C")
+                val targets = undoTargets(listOf(c, undoB, b, a))
+                targets.undo?.opId shouldBe "C"
+                targets.redo.shouldBeNull()
+                targets.undone shouldBe setOf("B")
+            }
 
-    @Test
-    fun aSentUndoNoLongerNeedsItsOwnLine() {
-        val undoC = pendingUndoLine(Undo("C", RenameBand("C"), none), "u1", "u", "m")
-        val undoB = pendingUndoLine(Undo("B", RenameBand("B"), none), "u2", "u", "m")
-        // u1 was sent (accepted, so in the server's history, or refused); u2 is still waiting to be sent.
-        assertEquals(listOf("u2"), stillPending(listOf(undoC, undoB), unsent = setOf("u2")).map { it.opId })
-    }
-}
+            expect("undo steps back and redo goes forward") {
+                val a = change("A")
+                val b = change("B")
+                val undoB = undo("uB", b)
+                val c = change("C")
+                val undoC = undo("uC", c)
+                val afterUndoC = undoTargets(listOf(undoC, c, undoB, b, a))
+                withClue("B is already undone, so the next step back is A") { afterUndoC.undo?.opId shouldBe "A" }
+                afterUndoC.redo?.opId shouldBe "uC"
+
+                val redoC = undo("rC", undoC)
+                val afterRedo = undoTargets(listOf(redoC, undoC, c, undoB, b, a))
+                afterRedo.undo?.opId shouldBe "C"
+                withClue("redo is not offered for a redo") { afterRedo.redo.shouldBeNull() }
+                afterRedo.undone shouldBe setOf("uC", "B")
+            }
+
+            expect("changes that cannot be undone are stepped over") {
+                val a = change("A")
+                val joined = change("join")
+                val targets = undoTargets(listOf(joined, a)) { it.opId != "join" }
+                targets.undo?.opId shouldBe "A"
+            }
+        }
+
+        context("undos not yet in the server's history") {
+            expect("an undo shows at once so the next tap steps further back") {
+                val a = change("A")
+                val b = change("B")
+                val c = change("C")
+                val server = listOf(c, b, a)
+                val undoC = pendingUndoLine(Undo("C", RenameBand("C"), none), "u1", "u", "m")
+                val undoB = pendingUndoLine(Undo("B", RenameBand("B"), none), "u2", "u", "m")
+                val shown = withPending(server, listOf(undoC, undoB))
+                withClue("newest first") { shown.map { it.opId } shouldBe listOf("u2", "u1", "C", "B", "A") }
+                undoTargets(shown).undo?.opId shouldBe "A"
+                // Once the server has an undo, its own line replaces the one shown at once.
+                withPending(listOf(undoC) + server, listOf(undoC, undoB)).map { it.opId } shouldBe listOf("u2", "u1", "C", "B", "A")
+            }
+
+            expect("a sent undo no longer needs its own line") {
+                val undoC = pendingUndoLine(Undo("C", RenameBand("C"), none), "u1", "u", "m")
+                val undoB = pendingUndoLine(Undo("B", RenameBand("B"), none), "u2", "u", "m")
+                // u1 was sent (accepted, so in the server's history, or refused); u2 is still waiting to be sent.
+                stillPending(listOf(undoC, undoB), unsent = setOf("u2")).map { it.opId } shouldBe listOf("u2")
+            }
+        }
+    })

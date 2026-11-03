@@ -25,113 +25,135 @@ import com.jacekgajek.kapelusz.ops.UpdateHolding
 import com.jacekgajek.kapelusz.pln
 import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.EventStatus
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.inspectors.forAll
+import io.kotest.matchers.shouldBe
 
 /** A fee the organiser has not paid yet. */
-class AwaitedFeeTest {
+class AwaitedFeeTest :
+    ExpectSpec({
 
-    /** Bob took 2000 at the door; the 3000 contract is awaited; three equal shares of 1666.67 (rounding aside). */
-    private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
-        .apply(AddHolding("gig", "door", "bob", pln("2000"), DOOR))
-        .apply(AddHolding("gig", "fee", ORGANISER, pln("3000"), CONTRACT))
+        expect("the fee counts in shares but only money held moves") {
+            val scenario = gig()
+            val open = scenario.settle("gig")
+            open.income shouldBe pln("5000")
+            open.status shouldBe EventStatus.OPEN
+            // Bob passes on only his surplus over his share; nobody is told to pay the fee.
+            withClue(open.suggestions.toString()) { open.suggestions.forAll { it.from shouldBe "bob" } }
+            open.suggestions.fold(pln("0")) { sum, it -> sum + it.amount } shouldBe open.line("bob")!!.delta
 
-    @Test
-    fun theFeeCountsInSharesButOnlyMoneyHeldMoves() {
-        val scenario = gig()
-        val open = scenario.settle("gig")
-        assertEquals(pln("5000"), open.income)
-        assertEquals(EventStatus.OPEN, open.status)
-        // Bob passes on only his surplus over his share; nobody is told to pay the fee.
-        assertTrue(open.suggestions.all { it.from == "bob" }, open.suggestions.toString())
-        assertEquals(open.line("bob")!!.delta, open.suggestions.fold(pln("0")) { sum, it -> sum + it.amount })
+            scenario.apply(SettleSuggestions("gig"))
+            scenario.settle("gig").status shouldBe EventStatus.AWAITING
+            scenario.rejected(SetEventArchived("gig", true)).reason shouldBe RejectionReason.EVENT_UNSETTLED
 
-        scenario.apply(SettleSuggestions("gig"))
-        assertEquals(EventStatus.AWAITING, scenario.settle("gig").status)
-        assertEquals(RejectionReason.EVENT_UNSETTLED, scenario.rejected(SetEventArchived("gig", true)).reason)
+            scenario.apply(ReceiveAwaited("gig", "fee", "paid", "alice", pln("3000")))
+            val paid = scenario.settle("gig")
+            paid.status shouldBe EventStatus.OPEN
+            paid.suggestions.forAll { it.from shouldBe "alice" }
+            scenario.apply(SettleSuggestions("gig")).apply(SetEventArchived("gig", true))
+            scenario.settle("gig").status shouldBe EventStatus.SETTLED
+        }
 
-        scenario.apply(ReceiveAwaited("gig", "fee", "paid", "alice", pln("3000")))
-        val paid = scenario.settle("gig")
-        assertEquals(EventStatus.OPEN, paid.status)
-        assertTrue(paid.suggestions.all { it.from == "alice" })
-        scenario.apply(SettleSuggestions("gig")).apply(SetEventArchived("gig", true))
-        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
-    }
+        expect("part of the fee can come and the contract follows the last part") {
+            val scenario = gig().apply(
+                AddAttachment(AttachmentOwner.OfHolding("gig", "fee"), Attachment("contract", AttachmentKind.PDF, "contract.pdf", 1_000)),
+            )
+            scenario.apply(ReceiveAwaited("gig", "fee", "first", "carol", pln("1000")))
+            val event = scenario.band.event("gig")!!
+            event.awaited shouldBe pln("2000")
+            withClue("still with what is awaited") {
+                event.holdings.single { it.id == "fee" }.attachments.map { it.id } shouldBe listOf("contract")
+            }
+            scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("2001"))).reason shouldBe RejectionReason.INVALID_AMOUNT
+            scenario.apply(ReceiveAwaited("gig", "fee", "rest", "carol", pln("2000")))
+            val after = scenario.band.event("gig")!!
+            after.awaited shouldBe pln("0")
+            after.holdings.single { it.id == "rest" }.attachments.map { it.id } shouldBe listOf("contract")
+            withClue("income unchanged by the arrival") { scenario.settle("gig").income shouldBe pln("5000") }
+        }
 
-    @Test
-    fun partOfTheFeeCanComeAndTheContractFollowsTheLastPart() {
-        val scenario = gig().apply(AddAttachment(AttachmentOwner.OfHolding("gig", "fee"), Attachment("contract", AttachmentKind.PDF, "contract.pdf", 1_000)))
-        scenario.apply(ReceiveAwaited("gig", "fee", "first", "carol", pln("1000")))
-        val event = scenario.band.event("gig")!!
-        assertEquals(pln("2000"), event.awaited)
-        assertEquals(listOf("contract"), event.holdings.single { it.id == "fee" }.attachments.map { it.id }, "still with what is awaited")
-        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("2001"))).reason)
-        scenario.apply(ReceiveAwaited("gig", "fee", "rest", "carol", pln("2000")))
-        val after = scenario.band.event("gig")!!
-        assertEquals(pln("0"), after.awaited)
-        assertEquals(listOf("contract"), after.holdings.single { it.id == "rest" }.attachments.map { it.id })
-        assertEquals(pln("5000"), scenario.settle("gig").income, "income unchanged by the arrival")
-    }
+        expect("paid to the band's account") {
+            val scenario = gig().apply(SetTreasurer("alice")).apply(ReceiveAwaited("gig", "fee", "paid", BAND_FUND, pln("3000")))
+            val settlement = scenario.settle("gig")
+            settlement.lines.any { it.partyId == BAND_FUND } shouldBe true
+            withClue("paid out of the fund") { settlement.suggestions.any { it.from == BAND_FUND } shouldBe true }
+            scenario.apply(SettleSuggestions("gig"))
+            scenario.settle("gig").status shouldBe EventStatus.SETTLED
+            withClue("paid out in full") { BandFund.balance(scenario.band) shouldBe pln("0") }
+            BandFund.isHandedOver(scenario.band.event("gig")!!) shouldBe true
+        }
 
-    @Test
-    fun paidToTheBandsAccount() {
-        val scenario = gig().apply(SetTreasurer("alice")).apply(ReceiveAwaited("gig", "fee", "paid", BAND_FUND, pln("3000")))
-        val settlement = scenario.settle("gig")
-        assertTrue(settlement.lines.any { it.partyId == BAND_FUND })
-        assertTrue(settlement.suggestions.any { it.from == BAND_FUND }, "paid out of the fund")
-        scenario.apply(SettleSuggestions("gig"))
-        assertEquals(EventStatus.SETTLED, scenario.settle("gig").status)
-        assertEquals(pln("0"), BandFund.balance(scenario.band), "paid out in full")
-        assertTrue(BandFund.isHandedOver(scenario.band.event("gig")!!))
-    }
+        expect("leads record it and who got it receives it") {
+            val scenario = gig()
+            val bob = scenario.userFor("bob", Role.MEMBER)
+            val alice = scenario.userFor("alice", Role.OWNER)
+            scenario.userFor("carol", Role.ARTIST)
+            scenario.rejected(
+                AddHolding("gig", "f2", ORGANISER, pln("1"), CONTRACT),
+                bob,
+            ).reason shouldBe RejectionReason.ROLE_REQUIRED
+            // Paid to Bob: he says it arrived, but not that someone else got it.
+            scenario.rejected(
+                ReceiveAwaited("gig", "fee", "x", "alice", pln("1")),
+                bob,
+            ).reason shouldBe RejectionReason.ROLE_REQUIRED
+            scenario.rejected(
+                ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1")),
+                bob,
+            ).reason shouldBe RejectionReason.ROLE_REQUIRED
+            scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("1")), bob)
+            scenario.rejected(
+                ReceiveAwaited("gig", "fee", "x", "carol", pln("1")),
+                alice,
+            ).reason shouldBe RejectionReason.ARTIST_HOLDS_NO_MONEY
+            scenario.apply(AddHolding("gig", "f2", ORGANISER, pln("100"), CONTRACT), alice)
+            withClue("the lead to remind") {
+                scenario.band.event("gig")!!.holdings.single { it.id == "f2" }.recordedBy shouldBe "alice"
+            }
+            // Received by Bob, it is still the lead's record: he can't make the fee or its contract vanish.
+            scenario.apply(ReceiveAwaited("gig", "f2", "f2-bob", "bob", pln("100")), bob)
+            scenario.rejected(RemoveHolding("gig", "f2-bob"), bob).reason shouldBe RejectionReason.ROLE_REQUIRED
+            scenario.rejected(
+                UpdateHolding("gig", "f2-bob", amount = Change(pln("2"))),
+                bob,
+            ).reason shouldBe RejectionReason.ROLE_REQUIRED
+            withClue("not an awaited fee") {
+                scenario.rejected(ReceiveAwaited("gig", "door", "x", "alice", pln("1"))).reason shouldBe RejectionReason.INVALID_INPUT
+            }
+        }
 
-    @Test
-    fun leadsRecordItAndWhoGotItReceivesIt() {
-        val scenario = gig()
-        val bob = scenario.userFor("bob", Role.MEMBER)
-        val alice = scenario.userFor("alice", Role.OWNER)
-        scenario.userFor("carol", Role.ARTIST)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(AddHolding("gig", "f2", ORGANISER, pln("1"), CONTRACT), bob).reason)
-        // Paid to Bob: he says it arrived, but not that someone else got it.
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("1")), bob).reason)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1")), bob).reason)
-        scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("1")), bob)
-        assertEquals(RejectionReason.ARTIST_HOLDS_NO_MONEY, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("1")), alice).reason)
-        scenario.apply(AddHolding("gig", "f2", ORGANISER, pln("100"), CONTRACT), alice)
-        assertEquals("alice", scenario.band.event("gig")!!.holdings.single { it.id == "f2" }.recordedBy, "the lead to remind")
-        // Received by Bob, it is still the lead's record: he can't make the fee or its contract vanish.
-        scenario.apply(ReceiveAwaited("gig", "f2", "f2-bob", "bob", pln("100")), bob)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(RemoveHolding("gig", "f2-bob"), bob).reason)
-        assertEquals(RejectionReason.ROLE_REQUIRED, scenario.rejected(UpdateHolding("gig", "f2-bob", amount = Change(pln("2"))), bob).reason)
-        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(ReceiveAwaited("gig", "door", "x", "alice", pln("1"))).reason, "not an awaited fee")
-    }
+        expect("receiving can be undone") {
+            val scenario = gig()
+            val before = scenario.band
+            val receive = ReceiveAwaited("gig", "fee", "paid", "alice", pln("3000"))
+            scenario.apply(receive)
+            scenario.apply(Undo("u", receive, BandChange.between(before, scenario.band)))
+            scenario.band.event("gig")!!.awaited shouldBe pln("3000")
+        }
 
-    @Test
-    fun receivingCanBeUndone() {
-        val scenario = gig()
-        val before = scenario.band
-        val receive = ReceiveAwaited("gig", "fee", "paid", "alice", pln("3000"))
-        scenario.apply(receive)
-        scenario.apply(Undo("u", receive, BandChange.between(before, scenario.band)))
-        assertEquals(pln("3000"), scenario.band.event("gig")!!.awaited)
-    }
+        expect("receiving is checked") {
+            val scenario = gig()
+            withClue("fund off") {
+                scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1"))).reason shouldBe RejectionReason.NO_TREASURER
+            }
+            scenario.rejected(ReceiveAwaited("gig", "fee", "x", "nobody", pln("1"))).reason shouldBe RejectionReason.NOT_A_PARTICIPANT
+            scenario.rejected(ReceiveAwaited("gig", "fee", "door", "alice", pln("1"))).reason shouldBe RejectionReason.DUPLICATE_ID
+            scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("0"))).reason shouldBe RejectionReason.INVALID_AMOUNT
+            withClue("a reserved id") {
+                scenario.rejected(com.jacekgajek.kapelusz.ops.AddMember(ORGANISER, "Org")).reason shouldBe RejectionReason.INVALID_INPUT
+            }
+        }
 
-    @Test
-    fun receivingIsChecked() {
-        val scenario = gig()
-        assertEquals(RejectionReason.NO_TREASURER, scenario.rejected(ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1"))).reason, "fund off")
-        assertEquals(RejectionReason.NOT_A_PARTICIPANT, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "nobody", pln("1"))).reason)
-        assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(ReceiveAwaited("gig", "fee", "door", "alice", pln("1"))).reason)
-        assertEquals(RejectionReason.INVALID_AMOUNT, scenario.rejected(ReceiveAwaited("gig", "fee", "x", "alice", pln("0"))).reason)
-        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(com.jacekgajek.kapelusz.ops.AddMember(ORGANISER, "Org")).reason, "a reserved id")
-    }
+        expect("a fee held by the fund keeps it in use") {
+            val scenario = gig().apply(SetTreasurer("alice")).apply(ReceiveAwaited("gig", "fee", "paid", BAND_FUND, pln("3000")))
+            BandFund.balance(scenario.band) shouldBe pln("3000")
+            withClue("to pay out") { BandFund.notHandedOver(scenario.band) shouldBe pln("-3000") }
+            scenario.rejected(com.jacekgajek.kapelusz.ops.DisableBandFund).reason shouldBe RejectionReason.FUND_NOT_EMPTY
+        }
+    })
 
-    @Test
-    fun aFeeHeldByTheFundKeepsItInUse() {
-        val scenario = gig().apply(SetTreasurer("alice")).apply(ReceiveAwaited("gig", "fee", "paid", BAND_FUND, pln("3000")))
-        assertEquals(pln("3000"), BandFund.balance(scenario.band))
-        assertEquals(pln("-3000"), BandFund.notHandedOver(scenario.band), "to pay out")
-        assertEquals(RejectionReason.FUND_NOT_EMPTY, scenario.rejected(com.jacekgajek.kapelusz.ops.DisableBandFund).reason)
-    }
-}
+/** Bob took 2000 at the door; the 3000 contract is awaited; three equal shares of 1666.67 (rounding aside). */
+private fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob", "Carol")
+    .apply(AddHolding("gig", "door", "bob", pln("2000"), DOOR))
+    .apply(AddHolding("gig", "fee", ORGANISER, pln("3000"), CONTRACT))

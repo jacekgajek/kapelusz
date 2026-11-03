@@ -9,53 +9,57 @@ import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.rules.Actor
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.engine.coroutines.coroutineTestScope
+import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.LocalDate
 
 /** Where an event link leads ([linkedEvent]): the user's band that has the event, found on the device or after a sync. */
-class EventLinkOpenerTest {
-    private var nextId = 0
-    private fun ids() = { "id${nextId++}" }
+class EventLinkOpenerTest :
+    ExpectSpec({
+        isolationMode = IsolationMode.InstancePerRoot
+        coroutineTestScope = true
+        var nextId = 0
 
-    private suspend fun TestScope.aliceWithGig(): BandRepository {
-        val repository = BandRepository(InMemoryStore(), this, ids())
-        repository.load("alice")
-        repository.createBand("Night Owls", "PLN", "Alice")
-        repository.dispatch(CreateEvent("gig", "Gig", LocalDate(2026, 9, 13)))
-        return repository
-    }
+        fun ids() = { "id${nextId++}" }
 
-    @Test
-    fun foundOnTheDeviceWithoutAskingTheServer() = runTest {
-        val repository = aliceWithGig()
-        var synced = 0
-        val found = linkedEvent("gig", "alice", repository) {
-            synced++
-            true
+        suspend fun aliceWithGig(scope: CoroutineScope): BandRepository {
+            val repository = BandRepository(InMemoryStore(), scope, ids())
+            repository.load("alice")
+            repository.createBand("Night Owls", "PLN", "Alice")
+            repository.dispatch(CreateEvent("gig", "Gig", LocalDate(2026, 9, 13)))
+            return repository
         }
-        assertEquals(LinkedEvent.Found(repository.currentBandId!!), found)
-        assertEquals(0, synced)
-    }
 
-    @Test
-    fun foundAfterASyncBringsTheBandOrElseNoAccessOrUnreachable() = runTest {
-        val repository = aliceWithGig()
-        val other = Band.create("b2", "Other", "PLN", "m-zed", "Zed", "zed")
-        val found = linkedEvent("later", "alice", repository) {
-            // The sync brings a band where alice may open the event.
-            val joined = listOf(AddMember("m-alice", "Alice"), LinkUser("m-alice", "alice", Role.MEMBER))
-            val ops = joined + CreateEvent("later", "Later", LocalDate(2026, 10, 1))
-            val band = ops.fold(other) { band, op -> (Engine.apply(band, Actor.System, op, "srv", 0) as ApplyResult.Applied).band }
-            repository.adoptFromServer(band, "v1")
-            true
+        expect("found on the device without asking the server") {
+            val repository = aliceWithGig(coroutineTestScope)
+            var synced = 0
+            val found = linkedEvent("gig", "alice", repository) {
+                synced++
+                true
+            }
+            found shouldBe LinkedEvent.Found(repository.currentBandId!!)
+            synced shouldBe 0
         }
-        assertEquals(LinkedEvent.Found("b2"), found)
-        assertEquals(LinkedEvent.NoAccess, linkedEvent("nowhere", "alice", repository) { true })
-        assertEquals(LinkedEvent.Unreachable, linkedEvent("nowhere", "alice", repository) { false })
-        assertEquals(LinkedEvent.Unreachable, linkedEvent("nowhere", "alice", repository) { error("offline") })
-        assertEquals(LinkedEvent.Unreachable, linkedEvent("gig", null, repository) { true }, "signed out")
-    }
-}
+
+        expect("found after a sync brings the band or else no access or unreachable") {
+            val repository = aliceWithGig(coroutineTestScope)
+            val other = Band.create("b2", "Other", "PLN", "m-zed", "Zed", "zed")
+            val found = linkedEvent("later", "alice", repository) {
+                // The sync brings a band where alice may open the event.
+                val joined = listOf(AddMember("m-alice", "Alice"), LinkUser("m-alice", "alice", Role.MEMBER))
+                val ops = joined + CreateEvent("later", "Later", LocalDate(2026, 10, 1))
+                val band = ops.fold(other) { band, op -> (Engine.apply(band, Actor.System, op, "srv", 0) as ApplyResult.Applied).band }
+                repository.adoptFromServer(band, "v1")
+                true
+            }
+            found shouldBe LinkedEvent.Found("b2")
+            linkedEvent("nowhere", "alice", repository) { true } shouldBe LinkedEvent.NoAccess
+            linkedEvent("nowhere", "alice", repository) { false } shouldBe LinkedEvent.Unreachable
+            linkedEvent("nowhere", "alice", repository) { error("offline") } shouldBe LinkedEvent.Unreachable
+            withClue("signed out") { linkedEvent("gig", null, repository) { true } shouldBe LinkedEvent.Unreachable }
+        }
+    })

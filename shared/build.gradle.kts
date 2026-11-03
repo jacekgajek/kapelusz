@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.kmp.library)
+    // KSP before Kotest: Kotest's plugin generates the test entry points for wasm through it.
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotest)
 }
 
 kotlin {
@@ -26,8 +29,17 @@ kotlin {
             api(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.assertions.core)
+        }
+        jvmTest.dependencies {
+            implementation(libs.kotest.runner.junit5)
         }
     }
+}
+
+// Kotest runs on the JVM through the JUnit Platform.
+tasks.named<Test>("jvmTest") {
+    useJUnitPlatform()
 }
