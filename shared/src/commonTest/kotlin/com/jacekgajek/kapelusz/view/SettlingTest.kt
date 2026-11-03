@@ -12,75 +12,74 @@ import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.pln
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.settlement.SuggestedTransfer
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 
 /** The Settle tab's lists, as [Settling] computes them for each role. */
-class SettlingTest {
-    // Alice (owner) collected 100 at a gig with Bob (member) and Carol (viewer, not playing): Alice hands 50 to Bob.
-    private val scenario = Scenario("Alice", "Bob", "Carol")
-        .apply {
-            userFor("bob", Role.MEMBER)
-            userFor("carol", Role.VIEWER)
-        }
-        .event("gig", "Alice", "Bob")
-        .apply(AddHolding("gig", "h1", "alice", pln("100"), IncomeSource.HAT))
-
-    private fun settling(memberId: String): Settling {
-        val view = BandView(scenario.band)
-        val member = scenario.band.member(memberId)!!
-        return Settling(view, member, Capabilities(scenario.band, member.userId!!), DATE)
-    }
-
-    @Test
-    fun aMemberSeesTheirOwnTransfersAndNothingForLeads() {
-        val bob = settling("bob")
-        assertEquals(listOf("gig"), bob.mine.map { it.event.id })
-        assertEquals(listOf(SuggestedTransfer("alice", "bob", pln("50"))), bob.mine.single().suggestions)
-        assertEquals(emptyList(), bob.forLeads)
-        assertFalse(bob.isEmpty)
-    }
-
-    @Test
-    fun aLeadSeesEveryOpenEventToo() {
-        val alice = settling("alice")
-        assertEquals(listOf("gig"), alice.mine.map { it.event.id }, "she pays")
-        assertEquals(listOf("gig"), alice.forLeads.map { it.event.id })
-        assertEquals(emptyList(), alice.holding, "listed under her own transfers, not again as holding")
-        assertEquals(pln("50"), alice.held(alice.mine.single().settlement), "of the 100 she holds, 50 is hers to keep")
-    }
-
-    @Test
-    fun aViewerSeesNothing() {
-        val carol = settling("carol")
-        assertTrue(carol.isEmpty)
-    }
-
-    @Test
-    fun theFundsHolderKeepsWhatTheyWouldHandToTheFund() {
-        val withFund = Scenario("Alice", "Bob").event("gig", "Alice", "Bob")
-            .apply(SetTreasurer("alice"))
-            .apply(SetFundAmount("gig", pln("30")))
+class SettlingTest :
+    ExpectSpec({
+        // Alice (owner) collected 100 at a gig with Bob (member) and Carol (viewer, not playing): Alice hands 50 to Bob.
+        // Scenario is mutable, so each test builds its own.
+        fun scenario() = Scenario("Alice", "Bob", "Carol")
+            .apply {
+                userFor("bob", Role.MEMBER)
+                userFor("carol", Role.VIEWER)
+            }
+            .event("gig", "Alice", "Bob")
             .apply(AddHolding("gig", "h1", "alice", pln("100"), IncomeSource.HAT))
-        val settlement = withFund.settle("gig")
-        assertTrue(Settling.keepsForFund(withFund.band, settlement, SuggestedTransfer("alice", BAND_FUND, pln("30"))))
-        assertFalse(Settling.keepsForFund(withFund.band, settlement, SuggestedTransfer("bob", BAND_FUND, pln("30"))))
-        assertFalse(Settling.keepsForFund(withFund.band, settlement, SuggestedTransfer("alice", "bob", pln("35"))))
-    }
 
-    @Test
-    fun handingOverGoesFromWhoHoldsToWhoMayReceive() {
-        val view = BandView(scenario.band)
-        val gig = scenario.band.event("gig")!!
-        val alice = HandOver(view, gig, view.settlement(gig), Capabilities(scenario.band, "user-alice"))
-        assertEquals(listOf("alice"), alice.senders, "only Alice holds money")
-        assertEquals(pln("100"), alice.amount("alice"))
-        assertEquals(Money.ZERO, alice.amount("bob"))
-        assertEquals(listOf("bob"), alice.recipients("alice"), "no fund without a treasurer, never herself")
-        val bob = HandOver(view, gig, view.settlement(gig), Capabilities(scenario.band, "user-bob"))
-        assertEquals(listOf("alice"), bob.senders, "a member records the transfers they are a side of: Alice handing to them")
-        assertEquals(listOf("bob"), bob.recipients("alice"))
-    }
-}
+        fun settling(scenario: Scenario, memberId: String): Settling {
+            val view = BandView(scenario.band)
+            val member = scenario.band.member(memberId)!!
+            return Settling(view, member, Capabilities(scenario.band, member.userId!!), DATE)
+        }
+
+        expect("a member sees their own transfers and nothing for leads") {
+            val bob = settling(scenario(), "bob")
+            bob.mine.map { it.event.id } shouldBe listOf("gig")
+            bob.mine.single().suggestions shouldBe listOf(SuggestedTransfer("alice", "bob", pln("50")))
+            bob.forLeads shouldBe emptyList()
+            bob.isEmpty shouldBe false
+        }
+
+        expect("a lead sees every open event too") {
+            val alice = settling(scenario(), "alice")
+            withClue("she pays") { alice.mine.map { it.event.id } shouldBe listOf("gig") }
+            alice.forLeads.map { it.event.id } shouldBe listOf("gig")
+            withClue("listed under her own transfers, not again as holding") { alice.holding shouldBe emptyList() }
+            withClue("of the 100 she holds, 50 is hers to keep") { alice.held(alice.mine.single().settlement) shouldBe pln("50") }
+        }
+
+        expect("a viewer sees nothing") {
+            val carol = settling(scenario(), "carol")
+            carol.isEmpty shouldBe true
+        }
+
+        expect("the fund's holder keeps what they would hand to the fund") {
+            val withFund = Scenario("Alice", "Bob").event("gig", "Alice", "Bob")
+                .apply(SetTreasurer("alice"))
+                .apply(SetFundAmount("gig", pln("30")))
+                .apply(AddHolding("gig", "h1", "alice", pln("100"), IncomeSource.HAT))
+            val settlement = withFund.settle("gig")
+            Settling.keepsForFund(withFund.band, settlement, SuggestedTransfer("alice", BAND_FUND, pln("30"))) shouldBe true
+            Settling.keepsForFund(withFund.band, settlement, SuggestedTransfer("bob", BAND_FUND, pln("30"))) shouldBe false
+            Settling.keepsForFund(withFund.band, settlement, SuggestedTransfer("alice", "bob", pln("35"))) shouldBe false
+        }
+
+        expect("handing over goes from who holds to who may receive") {
+            val scenario = scenario()
+            val view = BandView(scenario.band)
+            val gig = scenario.band.event("gig")!!
+            val alice = HandOver(view, gig, view.settlement(gig), Capabilities(scenario.band, "user-alice"))
+            withClue("only Alice holds money") { alice.senders shouldBe listOf("alice") }
+            alice.amount("alice") shouldBe pln("100")
+            alice.amount("bob") shouldBe Money.ZERO
+            withClue("no fund without a treasurer, never herself") { alice.recipients("alice") shouldBe listOf("bob") }
+            val bob = HandOver(view, gig, view.settlement(gig), Capabilities(scenario.band, "user-bob"))
+            withClue("a member records the transfers they are a side of: Alice handing to them") {
+                bob.senders shouldBe listOf("alice")
+            }
+            bob.recipients("alice") shouldBe listOf("bob")
+        }
+    })

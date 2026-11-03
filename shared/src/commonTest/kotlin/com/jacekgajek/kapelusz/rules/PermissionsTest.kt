@@ -31,131 +31,125 @@ import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.pln
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.rules.Permissions
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 
-class PermissionsTest {
+class PermissionsTest :
+    ExpectSpec({
 
-    private val scenario = Scenario("Owner", "Admin", "Lead", "Member", "Viewer", "Other")
-        .event("gig", "Owner", "Lead", "Member", "Other")
-        .apply(AddHolding("gig", "h-other", "other", "100".let(::pln), DOOR))
+        // The scenario is mutable and the tests change it: every test gets a fresh instance of the spec.
+        isolationMode = IsolationMode.InstancePerRoot
 
-    private val owner = Actor.User("user-owner")
-    private val admin = scenario.userFor("admin", Role.LEAD)
-    private val lead = scenario.userFor("lead", Role.LEAD)
-    private val member = scenario.userFor("member", Role.MEMBER)
-    private val viewer = scenario.userFor("viewer", Role.VIEWER)
+        val scenario = Scenario("Owner", "Admin", "Lead", "Member", "Viewer", "Other")
+            .event("gig", "Owner", "Lead", "Member", "Other")
+            .apply(AddHolding("gig", "h-other", "other", "100".let(::pln), DOOR))
 
-    private fun allowed(actor: Actor, op: Operation) = Permissions.isAllowed(scenario.band, actor, op)
+        val owner = Actor.User("user-owner")
+        val admin = scenario.userFor("admin", Role.LEAD)
+        val lead = scenario.userFor("lead", Role.LEAD)
+        val member = scenario.userFor("member", Role.MEMBER)
+        val viewer = scenario.userFor("viewer", Role.VIEWER)
 
-    @Test
-    fun viewerIsReadOnly() {
-        assertFalse(allowed(viewer, AddCost("c", "viewer", pln("1"), DATE)))
-        assertFalse(allowed(viewer, RecordTransfer("gig", "t", "viewer", "member", pln("1"))))
-    }
+        fun allowed(actor: Actor, op: Operation) = Permissions.isAllowed(scenario.band, actor, op)
 
-    @Test
-    fun memberActsOnlyForThemselves() {
-        assertTrue(allowed(member, AddCost("c", "member", pln("1"), DATE)))
-        assertFalse(allowed(member, AddCost("c", "other", pln("1"), DATE)))
-        assertTrue(allowed(member, AddHolding("gig", "h", "member", pln("1"), DOOR)))
-        assertFalse(allowed(member, AddHolding("gig", "h", "other", pln("1"), DOOR)))
-        assertTrue(allowed(member, RecordTransfer("gig", "t", "other", "member", pln("1"))))
-        assertFalse(allowed(member, RecordTransfer("gig", "t", "other", "lead", pln("1"))))
-        assertTrue(allowed(member, SettleSuggestions("gig", "member")))
-        assertFalse(allowed(member, SettleSuggestions("gig")))
-        assertFalse(allowed(member, CreateEvent("e2", "e2", DATE)))
-        assertFalse(allowed(member, SetRefund("gig", "c", pln("1"))))
-    }
+        expect("viewer is read-only") {
+            allowed(viewer, AddCost("c", "viewer", pln("1"), DATE)) shouldBe false
+            allowed(viewer, RecordTransfer("gig", "t", "viewer", "member", pln("1"))) shouldBe false
+        }
 
-    @Test
-    fun memberHoldingRequiresParticipation() {
-        val outsider = scenario.userFor("viewer", Role.VIEWER)
-        scenario.apply(SetMemberRole("viewer", Role.MEMBER))
-        assertFalse(allowed(outsider, AddHolding("gig", "h", "viewer", pln("1"), DOOR)))
-    }
+        expect("member acts only for themselves") {
+            allowed(member, AddCost("c", "member", pln("1"), DATE)) shouldBe true
+            allowed(member, AddCost("c", "other", pln("1"), DATE)) shouldBe false
+            allowed(member, AddHolding("gig", "h", "member", pln("1"), DOOR)) shouldBe true
+            allowed(member, AddHolding("gig", "h", "other", pln("1"), DOOR)) shouldBe false
+            allowed(member, RecordTransfer("gig", "t", "other", "member", pln("1"))) shouldBe true
+            allowed(member, RecordTransfer("gig", "t", "other", "lead", pln("1"))) shouldBe false
+            allowed(member, SettleSuggestions("gig", "member")) shouldBe true
+            allowed(member, SettleSuggestions("gig")) shouldBe false
+            allowed(member, CreateEvent("e2", "e2", DATE)) shouldBe false
+            allowed(member, SetRefund("gig", "c", pln("1"))) shouldBe false
+        }
 
-    @Test
-    fun ownCostLocksOnceRefundedInEventWithTransfers() {
-        scenario.apply(AddCost("c", "member", pln("10"), DATE, incurredForEventId = "gig"))
-        val edit = UpdateCost("c", amount = Change(pln("12")))
-        assertTrue(allowed(member, edit))
+        expect("member holding requires participation") {
+            val outsider = scenario.userFor("viewer", Role.VIEWER)
+            scenario.apply(SetMemberRole("viewer", Role.MEMBER))
+            allowed(outsider, AddHolding("gig", "h", "viewer", pln("1"), DOOR)) shouldBe false
+        }
 
-        scenario.apply(RecordTransfer("gig", "t", "other", "member", pln("10")))
-        assertFalse(allowed(member, edit))
-        assertTrue(allowed(lead, edit))
-    }
+        expect("own cost locks once refunded in event with transfers") {
+            scenario.apply(AddCost("c", "member", pln("10"), DATE, incurredForEventId = "gig"))
+            val edit = UpdateCost("c", amount = Change(pln("12")))
+            allowed(member, edit) shouldBe true
 
-    @Test
-    fun leaderRunsEventsAndTheRoster() {
-        // One role since the Leader role was merged into it.
-        assertTrue(allowed(lead, CreateEvent("e2", "e2", DATE)))
-        assertTrue(allowed(lead, SettleSuggestions("gig")))
-        assertTrue(allowed(lead, AddHolding("gig", "h", "other", pln("1"), DOOR)))
-        assertTrue(allowed(lead, AddMember("x", "X")))
-        assertTrue(allowed(lead, SetMemberRole("member", Role.LEAD)))
-        assertFalse(allowed(member, AddMember("x", "X")))
-    }
+            scenario.apply(RecordTransfer("gig", "t", "other", "member", pln("10")))
+            allowed(member, edit) shouldBe false
+            allowed(lead, edit) shouldBe true
+        }
 
-    @Test
-    fun leadersManageTheRosterButOnlyTheOwnerTransfersOwnership() {
-        assertTrue(allowed(admin, AddMember("x", "X")))
-        assertTrue(allowed(admin, SetMemberRole("member", Role.LEAD)))
-        assertFalse(allowed(admin, TransferOwnership("admin")))
-        assertTrue(allowed(owner, TransferOwnership("admin")))
-    }
+        expect("leader runs events and the roster") {
+            // One role since the Leader role was merged into it.
+            allowed(lead, CreateEvent("e2", "e2", DATE)) shouldBe true
+            allowed(lead, SettleSuggestions("gig")) shouldBe true
+            allowed(lead, AddHolding("gig", "h", "other", pln("1"), DOOR)) shouldBe true
+            allowed(lead, AddMember("x", "X")) shouldBe true
+            allowed(lead, SetMemberRole("member", Role.LEAD)) shouldBe true
+            allowed(member, AddMember("x", "X")) shouldBe false
+        }
 
-    @Test
-    fun outsidersArchivedMembersAndLinkingAreForbidden() {
-        val stranger = Permissions.check(scenario.band, Actor.User("stranger"), AddCost("c", "member", pln("1"), DATE))!!
-        assertEquals(RejectionCode.FORBIDDEN, stranger.code)
-        assertEquals(RejectionReason.NOT_A_MEMBER, stranger.reason)
-        assertEquals(RejectionReason.ROLE_REQUIRED, Permissions.check(scenario.band, member, CreateEvent("e2", "e2", DATE))!!.reason)
-        assertFalse(allowed(owner, LinkUser("other", "someone", Role.MEMBER)))
-        assertTrue(allowed(Actor.System, LinkUser("other", "someone", Role.MEMBER)))
+        expect("leaders manage the roster but only the owner transfers ownership") {
+            allowed(admin, AddMember("x", "X")) shouldBe true
+            allowed(admin, SetMemberRole("member", Role.LEAD)) shouldBe true
+            allowed(admin, TransferOwnership("admin")) shouldBe false
+            allowed(owner, TransferOwnership("admin")) shouldBe true
+        }
 
-        scenario.apply(SetMemberArchived("member", true))
-        assertFalse(allowed(member, AddCost("c", "member", pln("1"), DATE)))
-    }
+        expect("outsiders, archived members and linking are forbidden") {
+            val stranger = Permissions.check(scenario.band, Actor.User("stranger"), AddCost("c", "member", pln("1"), DATE))!!
+            stranger.code shouldBe RejectionCode.FORBIDDEN
+            stranger.reason shouldBe RejectionReason.NOT_A_MEMBER
+            Permissions.check(scenario.band, member, CreateEvent("e2", "e2", DATE))!!.reason shouldBe RejectionReason.ROLE_REQUIRED
+            allowed(owner, LinkUser("other", "someone", Role.MEMBER)) shouldBe false
+            allowed(Actor.System, LinkUser("other", "someone", Role.MEMBER)) shouldBe true
 
-    @Test
-    fun treasurerActsForBandFund() {
-        val toFund = RecordTransfer("gig", "t", "other", BAND_FUND, pln("1"))
-        assertFalse(allowed(member, toFund))
-        assertFalse(allowed(member, SettleSuggestions("gig", BAND_FUND)))
+            scenario.apply(SetMemberArchived("member", true))
+            allowed(member, AddCost("c", "member", pln("1"), DATE)) shouldBe false
+        }
 
-        scenario.apply(SetTreasurer("member"))
-        assertTrue(allowed(member, toFund))
-        assertTrue(allowed(member, RecordTransfer("gig", "t", BAND_FUND, "other", pln("1"))))
-        assertTrue(allowed(member, SettleSuggestions("gig", BAND_FUND)))
-        assertFalse(allowed(member, SettleSuggestions("gig")))
-    }
+        expect("treasurer acts for band fund") {
+            val toFund = RecordTransfer("gig", "t", "other", BAND_FUND, pln("1"))
+            allowed(member, toFund) shouldBe false
+            allowed(member, SettleSuggestions("gig", BAND_FUND)) shouldBe false
 
-    @Test
-    fun whoRecordedATransferRemovesIt() {
-        scenario.apply(RecordTransfer("gig", "mine", "other", "member", pln("10")), member)
-        scenario.apply(RecordTransfer("gig", "theirs", "other", "member", pln("10")))
-        assertTrue(allowed(member, RemoveTransfer("gig", "mine")), "a Paid tapped by mistake")
-        assertFalse(allowed(member, RemoveTransfer("gig", "theirs")))
-        assertTrue(allowed(lead, RemoveTransfer("gig", "mine")))
-    }
+            scenario.apply(SetTreasurer("member"))
+            allowed(member, toFund) shouldBe true
+            allowed(member, RecordTransfer("gig", "t", BAND_FUND, "other", pln("1"))) shouldBe true
+            allowed(member, SettleSuggestions("gig", BAND_FUND)) shouldBe true
+            allowed(member, SettleSuggestions("gig")) shouldBe false
+        }
 
-    @Test
-    fun theTreasurerKeepsTheFundsLedger() {
-        val entry = AddFundEntry("e", DATE, "Membership fee", pln("40"), paidBy = "other")
-        assertFalse(allowed(member, entry))
-        scenario.apply(SetTreasurer("member"))
-        assertTrue(allowed(member, entry))
-        scenario.apply(entry, member)
-        assertTrue(allowed(member, UpdateFundEntry("e", amount = Change(pln("45")))))
-        assertTrue(allowed(member, RemoveFundEntry("e")))
-        // Refunding a cost decides about it: leads only.
-        scenario.apply(AddCost("c", "other", pln("10"), DATE))
-        assertFalse(allowed(member, AddFundEntry("r", DATE, "Refund", pln("-10"), costId = "c")))
-        scenario.apply(AddFundEntry("r", DATE, "Refund", pln("-10"), costId = "c"))
-        assertFalse(allowed(member, RemoveFundEntry("r")))
-        assertTrue(allowed(lead, RemoveFundEntry("r")))
-    }
-}
+        expect("who recorded a transfer removes it") {
+            scenario.apply(RecordTransfer("gig", "mine", "other", "member", pln("10")), member)
+            scenario.apply(RecordTransfer("gig", "theirs", "other", "member", pln("10")))
+            withClue("a Paid tapped by mistake") { allowed(member, RemoveTransfer("gig", "mine")) shouldBe true }
+            allowed(member, RemoveTransfer("gig", "theirs")) shouldBe false
+            allowed(lead, RemoveTransfer("gig", "mine")) shouldBe true
+        }
+
+        expect("the treasurer keeps the fund's ledger") {
+            val entry = AddFundEntry("e", DATE, "Membership fee", pln("40"), paidBy = "other")
+            allowed(member, entry) shouldBe false
+            scenario.apply(SetTreasurer("member"))
+            allowed(member, entry) shouldBe true
+            scenario.apply(entry, member)
+            allowed(member, UpdateFundEntry("e", amount = Change(pln("45")))) shouldBe true
+            allowed(member, RemoveFundEntry("e")) shouldBe true
+            // Refunding a cost decides about it: leads only.
+            scenario.apply(AddCost("c", "other", pln("10"), DATE))
+            allowed(member, AddFundEntry("r", DATE, "Refund", pln("-10"), costId = "c")) shouldBe false
+            scenario.apply(AddFundEntry("r", DATE, "Refund", pln("-10"), costId = "c"))
+            allowed(member, RemoveFundEntry("r")) shouldBe false
+            allowed(lead, RemoveFundEntry("r")) shouldBe true
+        }
+    })

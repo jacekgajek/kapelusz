@@ -15,77 +15,80 @@ import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetEventAgenda
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.rules.Permissions
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalTime
 
-class AgendaTest {
-    @Test
-    fun theDefaultTemplateIsArrivalAndConcertStart() {
-        val scenario = Scenario("Alice")
-        assertEquals(listOf(AgendaKind.ARRIVAL, AgendaKind.SOUND_CHECK, AgendaKind.CONCERT_START), scenario.band.effectiveAgendaTemplate.map { it.kind })
-        scenario.apply(SetAgendaTemplate(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = " Sound check "))))
-        assertEquals(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = "Sound check")), scenario.band.effectiveAgendaTemplate)
-        assertEquals(RejectionReason.EMPTY_NAME, scenario.rejected(SetAgendaTemplate(listOf(AgendaTemplateItem(label = " ")))).reason)
-    }
+class AgendaTest :
+    ExpectSpec({
 
-    @Test
-    fun eventsKeepTheirOwnTimes() {
-        val agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0)), AgendaTime("s", AgendaKind.CONCERT_START))
-        val scenario = Scenario("Alice", "Bob")
-            .apply(CreateEvent("e", "Gig", DATE, participants = listOf(Participant("alice")), agenda = agenda))
-        assertEquals(agenda, scenario.band.event("e")!!.agenda)
+        expect("the default template is arrival and concert start") {
+            val scenario = Scenario("Alice")
+            scenario.band.effectiveAgendaTemplate.map { it.kind } shouldBe
+                listOf(AgendaKind.ARRIVAL, AgendaKind.SOUND_CHECK, AgendaKind.CONCERT_START)
+            scenario.apply(SetAgendaTemplate(listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = " Sound check "))))
+            scenario.band.effectiveAgendaTemplate shouldBe
+                listOf(AgendaTemplateItem(AgendaKind.ARRIVAL), AgendaTemplateItem(label = "Sound check"))
+            scenario.rejected(SetAgendaTemplate(listOf(AgendaTemplateItem(label = " ")))).reason shouldBe RejectionReason.EMPTY_NAME
+        }
 
-        val withDinner = agenda + AgendaTime("d", label = "Dinner", time = LocalTime(19, 0))
-        scenario.apply(SetEventAgenda("e", withDinner))
-        scenario.apply(SetAgendaTemplate(emptyList()))
-        assertEquals(withDinner, scenario.band.event("e")!!.agenda, "a template change does not touch existing events")
-        assertEquals(RejectionReason.DUPLICATE_ID, scenario.rejected(SetEventAgenda("e", withDinner + withDinner.last())).reason)
-    }
+        expect("events keep their own times") {
+            val agenda = listOf(AgendaTime("a", AgendaKind.ARRIVAL, time = LocalTime(17, 0)), AgendaTime("s", AgendaKind.CONCERT_START))
+            val scenario = Scenario("Alice", "Bob")
+                .apply(CreateEvent("e", "Gig", DATE, participants = listOf(Participant("alice")), agenda = agenda))
+            scenario.band.event("e")!!.agenda shouldBe agenda
 
-    @Test
-    fun earlyMorningTimesAreTheNextDay() {
-        val end = AgendaTime("x", label = "End", time = LocalTime(1, 30))
-        assertTrue(end.isNextDay)
-        assertEquals(25 * 60 + 30, end.minutesOfEventDay)
-        assertEquals(10 * 60, AgendaTime("y", label = "Rehearsal", time = LocalTime(10, 0)).minutesOfEventDay)
-    }
+            val withDinner = agenda + AgendaTime("d", label = "Dinner", time = LocalTime(19, 0))
+            scenario.apply(SetEventAgenda("e", withDinner))
+            scenario.apply(SetAgendaTemplate(emptyList()))
+            withClue("a template change does not touch existing events") { scenario.band.event("e")!!.agenda shouldBe withDinner }
+            scenario.rejected(SetEventAgenda("e", withDinner + withDinner.last())).reason shouldBe RejectionReason.DUPLICATE_ID
+        }
 
-    @Test
-    fun participantsRememberWhoAddedThem() {
-        val scenario = Scenario("Alice", "Bob")
-        val alice = Actor.User(scenario.band.member("alice")!!.userId ?: "u-alice")
-        scenario.apply(CreateEvent("e", "Gig", DATE, participants = listOf(Participant("alice"))), alice)
-        scenario.apply(AddParticipant("e", "bob"), alice)
-        assertEquals(listOf("alice", "alice"), scenario.band.event("e")!!.participants.map { it.addedBy })
-    }
+        expect("early morning times are the next day") {
+            val end = AgendaTime("x", label = "End", time = LocalTime(1, 30))
+            end.isNextDay shouldBe true
+            end.minutesOfEventDay shouldBe 25 * 60 + 30
+            AgendaTime("y", label = "Rehearsal", time = LocalTime(10, 0)).minutesOfEventDay shouldBe 10 * 60
+        }
 
-    @Test
-    fun permissions() {
-        val scenario = Scenario("Alice", "Bob").apply(CreateEvent("e", "Gig", DATE))
-        val band = scenario.band
-        val owner = Actor.User(band.members.first { it.userId != null }.userId!!)
-        assertTrue(Permissions.isAllowed(band, owner, SetAgendaTemplate(emptyList())))
-        assertTrue(Permissions.isAllowed(band, owner, SetEventAgenda("e", emptyList())))
-        assertFalse(Permissions.isAllowed(band, Actor.User("stranger"), SetEventAgenda("e", emptyList())))
-    }
+        expect("participants remember who added them") {
+            val scenario = Scenario("Alice", "Bob")
+            val alice = Actor.User(scenario.band.member("alice")!!.userId ?: "u-alice")
+            scenario.apply(CreateEvent("e", "Gig", DATE, participants = listOf(Participant("alice"))), alice)
+            scenario.apply(AddParticipant("e", "bob"), alice)
+            scenario.band.event("e")!!.participants.map { it.addedBy } shouldBe listOf("alice", "alice")
+        }
 
-    @Test
-    fun labelsAndIdsAreBounded() {
-        val scenario = Scenario("Alice").apply(CreateEvent("e", "Gig", DATE))
-        val long = "x".repeat(AgendaTime.MAX_LABEL + 1)
-        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", label = long)))).reason)
-        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", AgendaKind.ARRIVAL, label = long)))).reason, "also on a built-in entry")
-        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("i".repeat(65), AgendaKind.ARRIVAL)))).reason)
-        val tooMany = (1..AgendaTime.MAX_TIMES + 1).map { AgendaTime("t$it", label = "T$it") }
-        assertEquals(RejectionReason.INVALID_INPUT, scenario.rejected(SetEventAgenda("e", tooMany)).reason)
-    }
+        expect("permissions") {
+            val scenario = Scenario("Alice", "Bob").apply(CreateEvent("e", "Gig", DATE))
+            val band = scenario.band
+            val owner = Actor.User(band.members.first { it.userId != null }.userId!!)
+            Permissions.isAllowed(band, owner, SetAgendaTemplate(emptyList())) shouldBe true
+            Permissions.isAllowed(band, owner, SetEventAgenda("e", emptyList())) shouldBe true
+            Permissions.isAllowed(band, Actor.User("stranger"), SetEventAgenda("e", emptyList())) shouldBe false
+        }
 
-    @Test
-    fun aKindFromANewerVersionDoesNotBreakReading() {
-        val time = KapeluszJson.decodeFromString(AgendaTime.serializer(), """{"id":"a","kind":"LOAD_IN","label":"Load-in","time":"18:00"}""")
-        assertEquals(AgendaTime("a", kind = null, label = "Load-in", time = LocalTime(18, 0)), time)
-    }
-}
+        expect("labels and ids are bounded") {
+            val scenario = Scenario("Alice").apply(CreateEvent("e", "Gig", DATE))
+            val long = "x".repeat(AgendaTime.MAX_LABEL + 1)
+            scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", label = long)))).reason shouldBe RejectionReason.INVALID_INPUT
+            withClue("also on a built-in entry") {
+                scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("a", AgendaKind.ARRIVAL, label = long)))).reason shouldBe
+                    RejectionReason.INVALID_INPUT
+            }
+            scenario.rejected(SetEventAgenda("e", listOf(AgendaTime("i".repeat(65), AgendaKind.ARRIVAL)))).reason shouldBe
+                RejectionReason.INVALID_INPUT
+            val tooMany = (1..AgendaTime.MAX_TIMES + 1).map { AgendaTime("t$it", label = "T$it") }
+            scenario.rejected(SetEventAgenda("e", tooMany)).reason shouldBe RejectionReason.INVALID_INPUT
+        }
+
+        expect("a kind from a newer version does not break reading") {
+            val time = KapeluszJson.decodeFromString(
+                AgendaTime.serializer(),
+                """{"id":"a","kind":"LOAD_IN","label":"Load-in","time":"18:00"}""",
+            )
+            time shouldBe AgendaTime("a", kind = null, label = "Load-in", time = LocalTime(18, 0))
+        }
+    })

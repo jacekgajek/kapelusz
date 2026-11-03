@@ -1,26 +1,27 @@
 package com.jacekgajek.kapelusz.app.settings
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.matchers.shouldBe
 
 /** Each event opens on the tab last used there. */
-class EventTabTest {
+class EventTabTest :
+    ExpectSpec({
+        expect("the tab is remembered per event") {
+            val settings = AppSettings().withEventTab("b", "gig", EventTab.MONEY)
+            settings.eventTab("b", "gig") shouldBe EventTab.MONEY
+            withClue("another event: Gig") { settings.eventTab("b", "other") shouldBe EventTab.GIG }
+            withClue("the same id in another band") { settings.eventTab("other-band", "gig") shouldBe EventTab.GIG }
+            settings.withEventTab("b", "gig", EventTab.GIG).eventTab("b", "gig") shouldBe EventTab.GIG
+            settings.withEventTab("b", "gig", EventTab.SETTLEMENT).eventTab("b", "gig") shouldBe EventTab.SETTLEMENT
+        }
 
-    @Test
-    fun theTabIsRememberedPerEvent() {
-        val settings = AppSettings().withEventTab("b", "gig", EventTab.MONEY)
-        assertEquals(EventTab.MONEY, settings.eventTab("b", "gig"))
-        assertEquals(EventTab.GIG, settings.eventTab("b", "other"), "another event: Gig")
-        assertEquals(EventTab.GIG, settings.eventTab("other-band", "gig"), "the same id in another band")
-        assertEquals(EventTab.GIG, settings.withEventTab("b", "gig", EventTab.GIG).eventTab("b", "gig"))
-        assertEquals(EventTab.SETTLEMENT, settings.withEventTab("b", "gig", EventTab.SETTLEMENT).eventTab("b", "gig"))
-    }
-
-    @Test
-    fun onlyTheMostRecentAreKept() {
-        val many = (0..AppSettings.MAX_EVENT_TABS).fold(AppSettings()) { settings, i -> settings.withEventTab("b", "e$i", EventTab.MONEY) }
-        assertEquals(AppSettings.MAX_EVENT_TABS, many.eventTabs.size)
-        assertEquals(EventTab.GIG, many.eventTab("b", "e0"), "the oldest dropped")
-        assertEquals(EventTab.MONEY, many.eventTab("b", "e${AppSettings.MAX_EVENT_TABS}"))
-    }
-}
+        expect("only the most recent are kept") {
+            val many = (0..AppSettings.MAX_EVENT_TABS).fold(AppSettings()) { settings, i ->
+                settings.withEventTab("b", "e$i", EventTab.MONEY)
+            }
+            many.eventTabs.size shouldBe AppSettings.MAX_EVENT_TABS
+            withClue("the oldest dropped") { many.eventTab("b", "e0") shouldBe EventTab.GIG }
+            many.eventTab("b", "e${AppSettings.MAX_EVENT_TABS}") shouldBe EventTab.MONEY
+        }
+    })

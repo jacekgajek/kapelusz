@@ -24,7 +24,8 @@ import com.jacekgajek.kapelusz.server.places.PlaceSearch
 import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
 import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
 import com.jacekgajek.kapelusz.server.store.StorageKeys
-import kotlin.test.assertEquals
+import io.kotest.assertions.withClue
+import io.kotest.matchers.shouldBe
 import kotlinx.serialization.KSerializer
 
 /**
@@ -75,7 +76,7 @@ open class ApiHarness(
 
     /** The body of a 200 answer, decoded; anything else fails the test with the body. */
     fun <T> HttpResponse.parse(serializer: KSerializer<T>): T {
-        assertEquals(200, status, body)
+        withClue(body) { status shouldBe 200 }
         return KapeluszJson.decodeFromString(serializer, body!!)
     }
 
@@ -114,7 +115,7 @@ open class ApiHarness(
 
     /** [user] joins as [memberId] through an invite. */
     fun join(user: String, memberId: String, role: Role = Role.MEMBER, bandId: String = "band1") {
-        assertEquals(200, call("POST", "/invites/${inviteCode(memberId, role, bandId = bandId)}/accept", user).status)
+        call("POST", "/invites/${inviteCode(memberId, role, bandId = bandId)}/accept", user).status shouldBe 200
     }
 
     /** Links [userId] to [memberId] in the stored band directly, the way an accepted invite does. */

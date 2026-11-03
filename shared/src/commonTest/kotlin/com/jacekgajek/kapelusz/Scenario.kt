@@ -16,7 +16,7 @@ import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
-import kotlin.test.fail
+import io.kotest.assertions.fail
 import kotlinx.datetime.LocalDate
 
 fun pln(text: String) = Money.parse(text)

@@ -13,143 +13,138 @@ import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.UpdateFundEntry
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.engine.coroutines.coroutineTestScope
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.LocalDate
 
 /** The band fund's entry form, without a dialog. */
-class FundEntryFormTest {
-    private val today = LocalDate(2026, 10, 31)
-    private var nextId = 0
+class FundEntryFormTest :
+    ExpectSpec({
+        coroutineTestScope = true
+        val today = LocalDate(2026, 10, 31)
+        var nextId = 0
 
-    /** Alice (owner, the user, the fund's holder), Bob, Carol; Bob's cost of 40 with nothing refunded yet. */
-    private suspend fun TestScope.repository(): BandRepository {
-        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
-        repository.load("user-alice")
-        repository.createBand("Band", "PLN", "Alice")
-        assertNull(repository.dispatch(AddMember("bob", "Bob")))
-        assertNull(repository.dispatch(AddMember("carol", "Carol")))
-        assertNull(repository.dispatch(SetTreasurer(me(repository))))
-        assertNull(repository.dispatch(AddCost("c1", "bob", Money.parse("40"), today, description = "Cable")))
-        return repository
-    }
+        fun ready(repository: BandRepository) = repository.state.value.shouldBeInstanceOf<BandState.Ready>()
 
-    private fun me(repository: BandRepository) = ready(repository).me!!.id
+        fun me(repository: BandRepository) = ready(repository).me!!.id
 
-    private fun ready(repository: BandRepository) = assertIs<BandState.Ready>(repository.state.value)
+        fun band(repository: BandRepository): Band = ready(repository).band
 
-    private fun band(repository: BandRepository): Band = ready(repository).band
+        /** Alice (owner, the user, the fund's holder), Bob, Carol; Bob's cost of 40 with nothing refunded yet. */
+        suspend fun repository(scope: CoroutineScope): BandRepository {
+            val repository = BandRepository(InMemoryStore(), scope, { "id${nextId++}" })
+            repository.load("user-alice")
+            repository.createBand("Band", "PLN", "Alice")
+            repository.dispatch(AddMember("bob", "Bob")).shouldBeNull()
+            repository.dispatch(AddMember("carol", "Carol")).shouldBeNull()
+            repository.dispatch(SetTreasurer(me(repository))).shouldBeNull()
+            repository.dispatch(AddCost("c1", "bob", Money.parse("40"), today, description = "Cable")).shouldBeNull()
+            return repository
+        }
 
-    private fun form(repository: BandRepository, refund: String? = null, initialId: String? = null) = FundEntryForm(
-        band(repository),
-        initial = initialId?.let { id -> band(repository).fundEntries.first { it.id == id } },
-        me = me(repository),
-        refundsCosts = true,
-        today = today,
-        amountText = { it.toString() },
-        costName = { it.description ?: "Cost" },
-        refund = refund,
-    )
+        fun form(repository: BandRepository, refund: String? = null, initialId: String? = null) = FundEntryForm(
+            band(repository),
+            initial = initialId?.let { id -> band(repository).fundEntries.first { it.id == id } },
+            me = me(repository),
+            refundsCosts = true,
+            today = today,
+            amountText = { it.toString() },
+            costName = { it.description ?: "Cost" },
+            refund = refund,
+        )
 
-    @Test
-    fun moneyInIsFromTheUserByDefaultAndNeedsAnAmountAndADescription() = runTest {
-        val repository = repository()
-        val form = form(repository)
-        assertTrue(form.incoming)
-        assertEquals(listOf(me(repository)), form.payers)
-        assertFalse(form.ready)
-        form.amount = "50"
-        assertFalse(form.ready, "a description too")
-        form.description = "October fee"
-        assertTrue(form.ready)
-        assertNull(form.save { repository.dispatch(it) })
-        val entry = band(repository).fundEntries.single()
-        assertEquals(Money.parse("50"), entry.amount)
-        assertEquals(me(repository), entry.paidBy)
-    }
+        expect("money in is from the user by default and needs an amount and a description") {
+            val repository = repository(coroutineTestScope)
+            val form = form(repository)
+            form.incoming shouldBe true
+            form.payers shouldBe listOf(me(repository))
+            form.ready shouldBe false
+            form.amount = "50"
+            withClue("a description too") { form.ready shouldBe false }
+            form.description = "October fee"
+            form.ready shouldBe true
+            form.save { repository.dispatch(it) }.shouldBeNull()
+            val entry = band(repository).fundEntries.single()
+            entry.amount shouldBe Money.parse("50")
+            entry.paidBy shouldBe me(repository)
+        }
 
-    @Test
-    fun severalPeopleAreOneEntryEachAndARefusalKeepsTheRest() = runTest {
-        val repository = repository()
-        val form = form(repository)
-        form.amount = "20"
-        form.description = "Fee"
-        form.choosePeople(band(repository), setOf("bob", "carol", me(repository)))
-        assertEquals(listOf(me(repository), "bob", "carol"), form.payers, "in the people's order")
-        assertEquals(3, form.operations().size)
-        // Bob's entry is refused (e.g. the server's limit): Alice's went through, Bob and Carol stay ticked.
-        val refusal = Rejection(RejectionCode.INVALID, "no")
-        val refused = form.save { op -> if ((op as AddFundEntry).paidBy == "bob") refusal else repository.dispatch(op) }
-        assertEquals(refusal, refused)
-        assertEquals(listOf("bob", "carol"), form.payers)
-        assertEquals(1, band(repository).fundEntries.size)
-        assertNull(form.save { repository.dispatch(it) })
-        assertEquals(3, band(repository).fundEntries.size)
-    }
+        expect("several people are one entry each and a refusal keeps the rest") {
+            val repository = repository(coroutineTestScope)
+            val form = form(repository)
+            form.amount = "20"
+            form.description = "Fee"
+            form.choosePeople(band(repository), setOf("bob", "carol", me(repository)))
+            withClue("in the people's order") { form.payers shouldBe listOf(me(repository), "bob", "carol") }
+            form.operations() shouldHaveSize 3
+            // Bob's entry is refused (e.g. the server's limit): Alice's went through, Bob and Carol stay ticked.
+            val refusal = Rejection(RejectionCode.INVALID, "no")
+            val refused = form.save { op -> if ((op as AddFundEntry).paidBy == "bob") refusal else repository.dispatch(op) }
+            refused shouldBe refusal
+            form.payers shouldBe listOf("bob", "carol")
+            band(repository).fundEntries shouldHaveSize 1
+            form.save { repository.dispatch(it) }.shouldBeNull()
+            band(repository).fundEntries shouldHaveSize 3
+        }
 
-    @Test
-    fun aRefundTakesTheCostsOutstandingAmountAndNameUnlessTypedOver() = runTest {
-        val repository = repository()
-        val form = form(repository, refund = "c1")
-        assertFalse(form.incoming)
-        assertEquals("40.00", form.amount)
-        assertEquals("Cable", form.description)
-        assertTrue(form.ready)
-        assertNull(repository.dispatch(AddCost("c2", "carol", Money.parse("15"), today, description = "Strings")))
-        form.pickCost(band(repository), "c2")
-        assertEquals("15.00", form.amount)
-        assertEquals("Strings", form.description, "the name filled in follows the cost picked")
-        form.description = "Carol's strings"
-        form.pickCost(band(repository), "c1")
-        assertEquals("40.00", form.amount)
-        assertEquals("Carol's strings", form.description, "what the user typed stays")
-        form.pickCost(band(repository), "c2")
-        assertNull(form.save { repository.dispatch(it) })
-        val entry = band(repository).fundEntries.single()
-        assertEquals(Money.parse("-15"), entry.amount)
-        assertEquals("c2", entry.costId)
-    }
+        expect("a refund takes the cost's outstanding amount and name unless typed over") {
+            val repository = repository(coroutineTestScope)
+            val form = form(repository, refund = "c1")
+            form.incoming shouldBe false
+            form.amount shouldBe "40.00"
+            form.description shouldBe "Cable"
+            form.ready shouldBe true
+            repository.dispatch(AddCost("c2", "carol", Money.parse("15"), today, description = "Strings")).shouldBeNull()
+            form.pickCost(band(repository), "c2")
+            form.amount shouldBe "15.00"
+            withClue("the name filled in follows the cost picked") { form.description shouldBe "Strings" }
+            form.description = "Carol's strings"
+            form.pickCost(band(repository), "c1")
+            form.amount shouldBe "40.00"
+            withClue("what the user typed stays") { form.description shouldBe "Carol's strings" }
+            form.pickCost(band(repository), "c2")
+            form.save { repository.dispatch(it) }.shouldBeNull()
+            val entry = band(repository).fundEntries.single()
+            entry.amount shouldBe Money.parse("-15")
+            entry.costId shouldBe "c2"
+        }
 
-    @Test
-    fun aRefundNeedsACost() = runTest {
-        val repository = repository()
-        val form = form(repository)
-        form.incoming = false
-        form.amount = "10"
-        form.description = "Something"
-        assertFalse(form.ready)
-        assertEquals(listOf("c1"), form.pendingCosts(band(repository)).map { it.id })
-        form.pickCost(band(repository), "c1")
-        assertTrue(form.ready)
-    }
+        expect("a refund needs a cost") {
+            val repository = repository(coroutineTestScope)
+            val form = form(repository)
+            form.incoming = false
+            form.amount = "10"
+            form.description = "Something"
+            form.ready shouldBe false
+            form.pendingCosts(band(repository)).map { it.id } shouldBe listOf("c1")
+            form.pickCost(band(repository), "c1")
+            form.ready shouldBe true
+        }
 
-    @Test
-    fun editingSendsOnlyTheChangedFields() = runTest {
-        val repository = repository()
-        assertNull(repository.dispatch(AddFundEntry("e1", today, "Fee", Money.parse("50"), paidBy = "bob")))
-        val form = form(repository, initialId = "e1")
-        assertFalse(form.isNew)
-        assertEquals("50.00", form.amount)
-        assertEquals(listOf("bob"), form.payers)
-        form.choosePeople(band(repository), setOf("carol"))
-        val sent = mutableListOf<Operation>()
-        assertNull(
+        expect("editing sends only the changed fields") {
+            val repository = repository(coroutineTestScope)
+            repository.dispatch(AddFundEntry("e1", today, "Fee", Money.parse("50"), paidBy = "bob")).shouldBeNull()
+            val form = form(repository, initialId = "e1")
+            form.isNew shouldBe false
+            form.amount shouldBe "50.00"
+            form.payers shouldBe listOf("bob")
+            form.choosePeople(band(repository), setOf("carol"))
+            val sent = mutableListOf<Operation>()
             form.save {
                 sent += it
                 repository.dispatch(it)
-            },
-        )
-        val update = assertIs<UpdateFundEntry>(sent.single())
-        assertEquals("carol", assertNotNull(update.paidBy).value)
-        assertNull(update.amount)
-        assertNull(update.description)
-        assertNull(update.date)
-    }
-}
+            }.shouldBeNull()
+            val update = sent.single().shouldBeInstanceOf<UpdateFundEntry>()
+            update.paidBy.shouldNotBeNull().value shouldBe "carol"
+            update.amount.shouldBeNull()
+            update.description.shouldBeNull()
+            update.date.shouldBeNull()
+        }
+    })

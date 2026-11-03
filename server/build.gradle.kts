@@ -26,7 +26,8 @@ dependencies {
     implementation(libs.crac)
     // The AWS SDK logs through SLF4J: a no-op binding, so it neither logs nor warns about a missing binding.
     runtimeOnly(libs.slf4j.nop)
-    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
 }
 
 tasks.test {

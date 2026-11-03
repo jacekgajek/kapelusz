@@ -14,167 +14,156 @@ import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.UpdateCost
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.ExpectSpec
+import io.kotest.engine.coroutines.coroutineTestScope
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
 
 /** The cost form's rules, without a screen: what it offers, what Save sends, what survives a rotation. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class CostViewModelTest {
-    private val today = LocalDate(2026, 10, 31)
-    private var nextId = 0
+class CostViewModelTest :
+    ExpectSpec({
+        coroutineTestScope = true
+        val today = LocalDate(2026, 10, 31)
+        var nextId = 0
 
-    @BeforeTest
-    fun useTestMain() = Dispatchers.setMain(UnconfinedTestDispatcher())
+        beforeTest { Dispatchers.setMain(UnconfinedTestDispatcher()) }
+        afterTest { Dispatchers.resetMain() }
 
-    @AfterTest
-    fun reset() = Dispatchers.resetMain()
+        fun ready(repository: BandRepository) = repository.state.value.shouldBeInstanceOf<BandState.Ready>()
 
-    /** Alice (owner, the user) and Bob; a gig Alice and Bob play, and an archived-free second event for Alice only. */
-    private suspend fun TestScope.band(): BandRepository {
-        val repository = BandRepository(InMemoryStore(), this, { "id${nextId++}" })
-        repository.load("user-alice")
-        repository.createBand("Band", "PLN", "Alice")
-        assertNull(repository.dispatch(AddMember("bob", "Bob")))
-        assertNull(repository.dispatch(CreateEvent("gig", "Gig", LocalDate(2026, 9, 13))))
-        assertNull(repository.dispatch(AddParticipant("gig", me(repository))))
-        assertNull(repository.dispatch(AddParticipant("gig", "bob")))
-        assertNull(repository.dispatch(CreateEvent("solo", "Solo", LocalDate(2026, 10, 1))))
-        assertNull(repository.dispatch(AddParticipant("solo", me(repository))))
-        return repository
-    }
+        fun me(repository: BandRepository) = ready(repository).me!!.id
 
-    private fun me(repository: BandRepository) = assertIs<BandState.Ready>(repository.state.value).me!!.id
+        /** Alice (owner, the user) and Bob; a gig Alice and Bob play, and an archived-free second event for Alice only. */
+        suspend fun band(scope: CoroutineScope): BandRepository {
+            val repository = BandRepository(InMemoryStore(), scope, { "id${nextId++}" })
+            repository.load("user-alice")
+            repository.createBand("Band", "PLN", "Alice")
+            repository.dispatch(AddMember("bob", "Bob")).shouldBeNull()
+            repository.dispatch(CreateEvent("gig", "Gig", LocalDate(2026, 9, 13))).shouldBeNull()
+            repository.dispatch(AddParticipant("gig", me(repository))).shouldBeNull()
+            repository.dispatch(AddParticipant("gig", "bob")).shouldBeNull()
+            repository.dispatch(CreateEvent("solo", "Solo", LocalDate(2026, 10, 1))).shouldBeNull()
+            repository.dispatch(AddParticipant("solo", me(repository))).shouldBeNull()
+            return repository
+        }
 
-    private fun ready(repository: BandRepository) = assertIs<BandState.Ready>(repository.state.value)
+        class Recorder(private val repository: BandRepository) {
+            val ops = mutableListOf<Operation>()
+            fun dispatch(op: Operation) = repository.dispatch(op).also { ops += op }
+        }
 
-    private class Recorder(private val repository: BandRepository) {
-        val ops = mutableListOf<Operation>()
-        fun dispatch(op: Operation) = repository.dispatch(op).also { ops += op }
-    }
+        fun form(
+            repository: BandRepository,
+            route: CostRoute,
+            recorder: Recorder = Recorder(repository),
+            handle: SavedStateHandle = SavedStateHandle(),
+        ) = CostViewModel(route, repository.state, recorder::dispatch, { _, _ -> }, emptyList(), handle, today) { it.toString() }
 
-    private fun form(
-        repository: BandRepository,
-        route: CostRoute,
-        recorder: Recorder = Recorder(repository),
-        handle: SavedStateHandle = SavedStateHandle(),
-    ) = CostViewModel(route, repository.state, recorder::dispatch, { _, _ -> }, emptyList(), handle, today) { it.toString() }
+        expect("a new cost is the user's own today and saves once the amount is typed") {
+            val repository = band(coroutineTestScope)
+            val form = form(repository, CostRoute())
+            form.draft.payerId shouldBe me(repository)
+            form.draft.date shouldBe today
+            withClue("no amount yet") { form.state.canSave shouldBe false }
+            withClue("her events, newest first") { form.state.events shouldBe listOf(null, "solo", "gig") }
+            form.amount("12.50")
+            form.category(CostCategory.TRAVEL)
+            form.event("gig")
+            form.state.canSave shouldBe true
+            val outcome = form.save().shouldBeInstanceOf<CostOutcome.Added>()
+            outcome.forOther shouldBe false
+            val cost = ready(repository).band.cost(outcome.costId)!!
+            cost.amount shouldBe Money.parse("12.50")
+            cost.eventId shouldBe "gig"
+            cost.category shouldBe CostCategory.TRAVEL
+            withClue("once only: a second tap must not add it again") { form.save().shouldBeNull() }
+        }
 
-    @Test
-    fun aNewCostIsTheUsersOwnTodayAndSavesOnceTheAmountIsTyped() = runTest {
-        val repository = band()
-        val form = form(repository, CostRoute())
-        assertEquals(me(repository), form.draft.payerId)
-        assertEquals(today, form.draft.date)
-        assertFalse(form.state.canSave, "no amount yet")
-        assertEquals(listOf(null, "solo", "gig"), form.state.events, "her events, newest first")
-        form.amount("12.50")
-        form.category(CostCategory.TRAVEL)
-        form.event("gig")
-        assertTrue(form.state.canSave)
-        val outcome = assertIs<CostOutcome.Added>(form.save())
-        assertFalse(outcome.forOther)
-        val cost = ready(repository).band.cost(outcome.costId)!!
-        assertEquals(Money.parse("12.50"), cost.amount)
-        assertEquals("gig", cost.eventId)
-        assertEquals(CostCategory.TRAVEL, cost.category)
-        assertNull(form.save(), "once only: a second tap must not add it again")
-    }
+        expect("a lead may pay for someone else and is told so") {
+            val repository = band(coroutineTestScope)
+            val form = form(repository, CostRoute())
+            form.state.payers.map { it.id } shouldBe listOf(me(repository), "bob")
+            form.payer("bob")
+            form.amount("5")
+            form.save().shouldBeInstanceOf<CostOutcome.Added>().forOther shouldBe true
+        }
 
-    @Test
-    fun aLeadMayPayForSomeoneElseAndIsToldSo() = runTest {
-        val repository = band()
-        val form = form(repository, CostRoute())
-        assertEquals(listOf(me(repository), "bob"), form.state.payers.map { it.id })
-        form.payer("bob")
-        form.amount("5")
-        assertTrue(assertIs<CostOutcome.Added>(form.save()).forOther)
-    }
+        expect("another payer drops an event they are not in") {
+            val repository = band(coroutineTestScope)
+            val form = form(repository, CostRoute())
+            form.event("solo")
+            form.payer("bob")
+            withClue("Bob does not play Solo") { form.draft.eventId.shouldBeNull() }
+            form.state.events shouldBe listOf(null, "gig")
+        }
 
-    @Test
-    fun anotherPayerDropsAnEventTheyAreNotIn() = runTest {
-        val repository = band()
-        val form = form(repository, CostRoute())
-        form.event("solo")
-        form.payer("bob")
-        assertNull(form.draft.eventId, "Bob does not play Solo")
-        assertEquals(listOf(null, "gig"), form.state.events)
-    }
+        expect("opened from an event the event is fixed and only its players paid") {
+            val repository = band(coroutineTestScope)
+            val form = form(repository, CostRoute(forEventId = "solo"))
+            form.state.forEvent?.id shouldBe "solo"
+            form.draft.eventId shouldBe "solo"
+            withClue("nothing to choose") { form.state.events.shouldBeEmpty() }
+            form.state.payers.map { it.id } shouldBe listOf(me(repository))
+        }
 
-    @Test
-    fun openedFromAnEventTheEventIsFixedAndOnlyItsPlayersPaid() = runTest {
-        val repository = band()
-        val form = form(repository, CostRoute(forEventId = "solo"))
-        assertEquals("solo", form.state.forEvent?.id)
-        assertEquals("solo", form.draft.eventId)
-        assertEquals(emptyList(), form.state.events, "nothing to choose")
-        assertEquals(listOf(me(repository)), form.state.payers.map { it.id })
-    }
+        expect("editing sends only what changed since the form opened") {
+            val repository = band(coroutineTestScope)
+            repository.dispatch(AddCost("c1", me(repository), Money.parse("20"), today, "gig", CostCategory.FOOD, "Pizza")).shouldBeNull()
+            val recorder = Recorder(repository)
+            val form = form(repository, CostRoute("c1"), recorder)
+            form.draft.amountText shouldBe "20.00"
+            form.state.isNew shouldBe false
+            form.description("Pizza and drinks")
+            form.save().shouldBeInstanceOf<CostOutcome.Updated>()
+            val sent = recorder.ops.single().shouldBeInstanceOf<UpdateCost>()
+            sent.description?.value shouldBe "Pizza and drinks"
+            withClue("untouched fields are not sent, so another device's change to them survives") { sent.amount.shouldBeNull() }
+            sent.date.shouldBeNull()
+            sent.category.shouldBeNull()
+        }
 
-    @Test
-    fun editingSendsOnlyWhatChangedSinceTheFormOpened() = runTest {
-        val repository = band()
-        assertNull(repository.dispatch(AddCost("c1", me(repository), Money.parse("20"), today, "gig", CostCategory.FOOD, "Pizza")))
-        val recorder = Recorder(repository)
-        val form = form(repository, CostRoute("c1"), recorder)
-        assertEquals("20.00", form.draft.amountText)
-        assertFalse(form.state.isNew)
-        form.description("Pizza and drinks")
-        assertIs<CostOutcome.Updated>(form.save())
-        val sent = assertIs<UpdateCost>(recorder.ops.single())
-        assertEquals("Pizza and drinks", sent.description?.value)
-        assertNull(sent.amount, "untouched fields are not sent, so another device's change to them survives")
-        assertNull(sent.date)
-        assertNull(sent.category)
-    }
+        expect("a change made elsewhere while the form is open is not overwritten") {
+            val repository = band(coroutineTestScope)
+            repository.dispatch(AddCost("c1", me(repository), Money.parse("20"), today, description = "Pizza")).shouldBeNull()
+            val recorder = Recorder(repository)
+            val form = form(repository, CostRoute("c1"), recorder)
+            // Another device corrected the amount meanwhile (synced in while the form was open).
+            repository.dispatch(UpdateCost("c1", amount = Change(Money.parse("30")))).shouldBeNull()
+            form.description("Pizza and drinks")
+            form.save().shouldBeInstanceOf<CostOutcome.Updated>()
+            val sent = recorder.ops.single().shouldBeInstanceOf<UpdateCost>()
+            withClue("the untouched amount is not sent, so the correction survives") { sent.amount.shouldBeNull() }
+            ready(repository).band.cost("c1")!!.amount shouldBe Money.parse("30")
+            ready(repository).band.cost("c1")!!.description shouldBe "Pizza and drinks"
+        }
 
-    @Test
-    fun aChangeMadeElsewhereWhileTheFormIsOpenIsNotOverwritten() = runTest {
-        val repository = band()
-        assertNull(repository.dispatch(AddCost("c1", me(repository), Money.parse("20"), today, description = "Pizza")))
-        val recorder = Recorder(repository)
-        val form = form(repository, CostRoute("c1"), recorder)
-        // Another device corrected the amount meanwhile (synced in while the form was open).
-        assertNull(repository.dispatch(UpdateCost("c1", amount = Change(Money.parse("30")))))
-        form.description("Pizza and drinks")
-        assertIs<CostOutcome.Updated>(form.save())
-        val sent = assertIs<UpdateCost>(recorder.ops.single())
-        assertNull(sent.amount, "the untouched amount is not sent, so the correction survives")
-        assertEquals(Money.parse("30"), ready(repository).band.cost("c1")!!.amount)
-        assertEquals("Pizza and drinks", ready(repository).band.cost("c1")!!.description)
-    }
+        expect("deleting asks first then goes back") {
+            val repository = band(coroutineTestScope)
+            repository.dispatch(AddCost("c1", me(repository), Money.parse("20"), today)).shouldBeNull()
+            val form = form(repository, CostRoute("c1"))
+            form.state.canDelete shouldBe true
+            form.askDelete()
+            form.dialog shouldBe CostDialog.CONFIRM_DELETE
+            form.delete().shouldBeInstanceOf<CostOutcome.Deleted>()
+            form.dialog.shouldBeNull()
+            ready(repository).band.cost("c1").shouldBeNull()
+        }
 
-    @Test
-    fun deletingAsksFirstThenGoesBack() = runTest {
-        val repository = band()
-        assertNull(repository.dispatch(AddCost("c1", me(repository), Money.parse("20"), today)))
-        val form = form(repository, CostRoute("c1"))
-        assertTrue(form.state.canDelete)
-        form.askDelete()
-        assertEquals(CostDialog.CONFIRM_DELETE, form.dialog)
-        assertIs<CostOutcome.Deleted>(form.delete())
-        assertNull(form.dialog)
-        assertNull(ready(repository).band.cost("c1"))
-    }
-
-    @Test
-    fun aCostThatIsGoneIsNotFound() = runTest {
-        val form = form(band(), CostRoute("nope"))
-        assertTrue(form.state.notFound)
-        form.amount("5")
-        assertFalse(form.state.canSave)
-    }
-}
+        expect("a cost that is gone is not found") {
+            val form = form(band(coroutineTestScope), CostRoute("nope"))
+            form.state.notFound shouldBe true
+            form.amount("5")
+            form.state.canSave shouldBe false
+        }
+    })
