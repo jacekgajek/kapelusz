@@ -1,6 +1,5 @@
 package com.jacekgajek.kapelusz.app.ui
 
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import com.jacekgajek.kapelusz.app.resetTo
@@ -113,8 +112,7 @@ class AppNavigator(private val navController: NavHostController) :
      * would pop the list too and leave a blank screen.
      */
     override fun back() {
-        val shown = navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == true
-        if (navController.previousBackStackEntry != null && shown) navController.popBackStack()
+        if (navController.previousBackStackEntry != null) navController.popBackStack()
     }
 
     companion object {

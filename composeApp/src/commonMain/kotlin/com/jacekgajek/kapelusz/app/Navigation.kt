@@ -25,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -175,7 +174,7 @@ internal fun Navigation(runtime: AppRuntime, state: BandState.Ready, navControll
                     screen,
                     page,
                     // Only from the list while it is on screen, so a double tap does not open the page twice.
-                    onOpenPage = { if (entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) navController.navigate(SettingsRoute(it.name)) },
+                    onOpenPage = { navController.navigate(SettingsRoute(it.name)) },
                     onOpenMembers = navigator::members,
                     onBack = navigator::back,
                 )
