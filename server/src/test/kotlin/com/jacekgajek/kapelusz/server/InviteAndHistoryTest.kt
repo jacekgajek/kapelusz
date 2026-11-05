@@ -402,6 +402,8 @@ class InviteCreateFailureTest :
             val invites = Invites(ContestedCodesStore(inner)) { 1_000 }
             shouldThrow<ApiError> { invites.create("band", "m-bob", Role.MEMBER, "alice") }.status shouldBe 409
             invites.loadCodes("band").shouldBeEmpty()
-            inner.list(StorageKeys.invite("")).shouldBeEmpty()
+            // The folder every invite is stored under, taken from the key of one.
+            val invitesPrefix = StorageKeys.invite("x").substringBefore("x")
+            withClue("no invite blob left") { inner.list(invitesPrefix).shouldBeEmpty() }
         }
     })
