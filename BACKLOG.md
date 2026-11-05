@@ -59,10 +59,12 @@ of P1–P2 unless money is wrong.
 1. **P2·M** ⚠ `bands/BandRepository.kt` (`dispatch`: `locals.getValue` then `as BandState.Ready`): `readLocal` sets
    `currentBandId` and `Unreadable` together, so a dispatch from a still-visible screen in that window throws;
    `Changes.dispatch` does not guard.
-2. **P3·H** `bands/BandStore.kt` (`flush`, `writeChanged`; a race on one device between two accounts sharing a band): the user is read once per flush and the band objects live;
-   a flush suspended in `write()` can carry on after `load(newUser)` and, for a band id both users have, write the
-   new user's band under the old user's key. Same family: `remove`, `BandRepository.loseAccess` and `startOver` run
-   outside `writeLock`, so a write in flight can re-create a removed file.
+2. **P3·H** `bands/BandStore.kt` (`flush`, `writeChanged`; a race on one device between two accounts sharing a
+   band): the user is read once per flush and the band objects live; a flush suspended in `write()` can carry on
+   after `load(newUser)` and, for a band id both users have, write the new user's band under the old user's key. At
+   stake: the old user's unsent changes to that band; the server's copy is untouched. Same family: `remove`,
+   `BandRepository.loseAccess` and `startOver` run outside `writeLock`, so a write in flight can re-create a removed
+   file.
 3. **P3·M** `attachments/AttachmentUploads.kt` (`store.read(fileKey)` then `put`): the whole base64 file is held in
    memory for the upload. No byte-size cap was found anywhere (only `MAX_ATTACHMENTS` per cost), so a large file is
    bounded by nothing but the picker.
