@@ -12,6 +12,7 @@ import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
+import com.jacekgajek.kapelusz.model.Vat
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.Operation
@@ -31,12 +32,14 @@ class HoldingForm(
     val parties: List<String>,
     amountText: (Money) -> String,
     initialDrafts: List<PreparedFile> = emptyList(),
+    /** The band's last VAT breakdown: the rate and the split offered when VAT is switched on. */
+    defaultVat: Vat? = null,
 ) {
     val isNew: Boolean get() = initial == null
 
     var partyId by mutableStateOf(defaultParty)
 
-    val amount = AmountEntry(initial?.amount, initial?.vat, amountText)
+    val amount = AmountEntry(initial?.amount, initial?.vat, amountText, defaultVat)
     var source by mutableStateOf(initial?.source ?: if (defaultParty == ORGANISER) IncomeSource.CONTRACT else IncomeSource.HAT)
     var note by mutableStateOf(initial?.note.orEmpty())
 
@@ -73,6 +76,7 @@ class HoldingForm(
                     amount = Change(gross).takeIf { gross != initial.amount },
                     source = Change(source).takeIf { source != initial.source },
                     note = Change(note.ifBlank { null }).takeIf { note.trim() != initial.note.orEmpty() },
+                    vat = Change(vat).takeIf { vat != initial.vat },
                 ),
             )
         }

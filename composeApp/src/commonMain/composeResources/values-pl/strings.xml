@@ -359,7 +359,9 @@
     <string name="awaited_welched_text">Kwota %1$s znika z przychodu, a udziały zostaną przeliczone.</string>
     <string name="receive_awaited_title">Otrzymana zapłata</string>
     <string name="received_by">Kto otrzymał</string>
-    <string name="receive_awaited_hint">Najwyżej %1$s. Reszta dalej czeka na zapłatę.</string>
+    <string name="receive_awaited_hint">Część? Najpierw zmień kwotę zapłaty.</string>
+    <string name="receive_awaited_whole">Otrzymane w całości: %1$s</string>
+    <string name="vat_summary">netto %1$s · VAT %2$d %%</string>
     <string name="total_awaited">w tym jeszcze niezapłacone</string>
     <string name="share_awaited">Jeszcze niezapłacone: %1$s</string>
     <string name="status_awaiting">Czeka na zapłatę</string>

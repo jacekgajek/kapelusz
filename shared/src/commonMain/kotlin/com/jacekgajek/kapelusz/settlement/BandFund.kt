@@ -38,8 +38,8 @@ object BandFund {
     /** Money the event has actually moved into the fund so far (negative: out of it): transfers and fees paid to it. */
     fun moved(event: Event): Money = transferred(event.transfers) + heldBy(event)
 
-    /** A fee paid straight to the band's account: the fund collected it for the event. */
-    private fun heldBy(event: Event): Money = event.holdings.filter { it.partyId == BAND_FUND }.sumOfMoney { it.amount }
+    /** A fee paid straight to the band's account: the fund collected it for the event, as the settlement counts it. */
+    private fun heldBy(event: Event): Money = event.holdings.filter { it.partyId == BAND_FUND }.sumOfMoney { it.settled }
 
     private fun transferred(transfers: List<Transfer>): Money = transfers.map {
         when (BAND_FUND) {

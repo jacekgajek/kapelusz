@@ -18,19 +18,36 @@ import com.jacekgajek.kapelusz.settlement.VatMath.netOf
  * [valid], so how it is entered can change without them.
  */
 @Stable
-class AmountEntry(initialGross: Money?, initialVat: Vat?, private val text: (Money) -> String) {
-    var withVat by mutableStateOf(initialVat != null)
-    var split by mutableStateOf(initialVat?.split ?: VatSplitMode.NET)
+class AmountEntry(initialGross: Money?, initialVat: Vat?, private val text: (Money) -> String, defaultVat: Vat? = null) {
+    private var vatOn by mutableStateOf(initialVat != null)
+
+    /** Switched on, the rate and the split offered are the band's last ([defaultVat]), and the figure not typed follows the one typed. */
+    var withVat: Boolean
+        get() = vatOn
+        set(value) {
+            vatOn = value
+            if (value) derive()
+        }
+    var split by mutableStateOf((initialVat ?: defaultVat)?.split ?: VatSplitMode.NET)
     var grossText by mutableStateOf(initialGross?.let(text) ?: "")
         private set
     var netText by mutableStateOf(initialVat?.net?.let(text) ?: "")
         private set
-    var vatText by mutableStateOf(initialVat?.rate?.toString() ?: "")
+    var vatText by mutableStateOf((initialVat ?: defaultVat)?.rate?.toString() ?: "")
         private set
+
+    /** The figure the user typed last: it stays, and the other follows, when the rate changes. */
     private var lastTyped by mutableStateOf(BaseFigure.GROSS)
+
+    private enum class BaseFigure { GROSS, NET }
 
     fun typeVat(input: String) {
         vatText = input
+        derive()
+    }
+
+    /** The figure not typed, from the one typed and the rate, once both are there. */
+    private fun derive() {
         when (lastTyped) {
             BaseFigure.GROSS -> gross?.let { g -> vatRate?.let { v -> netText = text(netOf(g, v)) } }
             BaseFigure.NET -> net?.let { n -> vatRate?.let { v -> grossText = text(grossOf(n, v)) } }
@@ -74,10 +91,4 @@ class AmountEntry(initialGross: Money?, initialVat: Vat?, private val text: (Mon
 
     /** Whether what was typed makes an amount: a gross, and [withVat] its breakdown. */
     val valid: Boolean by derivedStateOf { gross != null && (!withVat || vat != null) }
-}
-
-enum class BaseFigure {
-    // reused for plain amount
-    GROSS,
-    NET,
 }

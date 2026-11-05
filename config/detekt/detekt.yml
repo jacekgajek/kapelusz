@@ -31,6 +31,8 @@ complexity:
     active: false
   CyclomaticComplexMethod:
     allowedComplexity: 20
+  ComplexCondition:
+    allowedConditions: 5
 Compose:
   active: true
   CompositionLocalAllowlist:

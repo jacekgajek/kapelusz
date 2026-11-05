@@ -11,24 +11,23 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.integer_invalid
 import org.jetbrains.compose.resources.stringResource
 
-/** Decimal input for amounts; [onValid] receives the parsed amount or null when the text is not a valid amount. */
+/** A whole, non-negative number, e.g. a VAT rate; marked invalid while [text] is anything else. */
 @Composable
 fun IntegerField(
     text: String,
     onText: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    allowNegative: Boolean = false,
 ) {
     val parsed = text.toIntOrNull()
-    val invalid = text.isNotBlank() && (parsed == null || (!allowNegative && parsed < 0))
+    val invalid = text.isNotBlank() && (parsed == null || parsed < 0)
     OutlinedTextField(
         value = text,
         onValueChange = onText,
         label = { Text(label) },
         isError = invalid,
         supportingText = if (invalid) ({ Text(stringResource(Res.string.integer_invalid)) }) else null,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true,
         modifier = modifier.fillMaxWidth(),
     )

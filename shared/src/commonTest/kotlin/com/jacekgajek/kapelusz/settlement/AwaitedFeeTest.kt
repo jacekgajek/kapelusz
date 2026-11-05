@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.BAND_FUND
+import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.IncomeSource.CONTRACT
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.ORGANISER
@@ -55,21 +56,22 @@ class AwaitedFeeTest :
             scenario.settle("gig").status shouldBe EventStatus.SETTLED
         }
 
-        expect("part of the fee can come and the contract follows the last part") {
+        expect("the fee comes whole, with its contract; for part of it the fee is changed first") {
             val scenario = gig().apply(
                 AddAttachment(AttachmentOwner.OfHolding("gig", "fee"), Attachment("contract", AttachmentKind.PDF, "contract.pdf", 1_000)),
             )
+            scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("1000"))).reason shouldBe RejectionReason.INVALID_AMOUNT
+            scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("3001"))).reason shouldBe RejectionReason.INVALID_AMOUNT
+
+            // An instalment: the fee is cut to it, received, and the rest recorded as a new fee.
+            scenario.apply(UpdateHolding("gig", "fee", amount = Change(pln("1000"))))
             scenario.apply(ReceiveAwaited("gig", "fee", "first", "carol", pln("1000")))
             val event = scenario.band.event("gig")!!
-            event.awaited shouldBe pln("2000")
-            withClue("still with what is awaited") {
-                event.holdings.single { it.id == "fee" }.attachments.map { it.id } shouldBe listOf("contract")
+            event.awaited shouldBe pln("0")
+            withClue("the contract goes with the money") {
+                event.holdings.single { it.id == "first" }.attachments.map { it.id } shouldBe listOf("contract")
             }
-            scenario.rejected(ReceiveAwaited("gig", "fee", "x", "carol", pln("2001"))).reason shouldBe RejectionReason.INVALID_AMOUNT
-            scenario.apply(ReceiveAwaited("gig", "fee", "rest", "carol", pln("2000")))
-            val after = scenario.band.event("gig")!!
-            after.awaited shouldBe pln("0")
-            after.holdings.single { it.id == "rest" }.attachments.map { it.id } shouldBe listOf("contract")
+            scenario.apply(AddHolding("gig", "rest", ORGANISER, pln("2000"), IncomeSource.CONTRACT))
             withClue("income unchanged by the arrival") { scenario.settle("gig").income shouldBe pln("5000") }
         }
 
@@ -102,11 +104,11 @@ class AwaitedFeeTest :
                 ReceiveAwaited("gig", "fee", "x", BAND_FUND, pln("1")),
                 bob,
             ).reason shouldBe RejectionReason.ROLE_REQUIRED
-            scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("1")), bob)
             scenario.rejected(
-                ReceiveAwaited("gig", "fee", "x", "carol", pln("1")),
+                ReceiveAwaited("gig", "fee", "x", "carol", pln("3000")),
                 alice,
             ).reason shouldBe RejectionReason.ARTIST_HOLDS_NO_MONEY
+            scenario.apply(ReceiveAwaited("gig", "fee", "by-bob", "bob", pln("3000")), bob)
             scenario.apply(AddHolding("gig", "f2", ORGANISER, pln("100"), CONTRACT), alice)
             withClue("the lead to remind") {
                 scenario.band.event("gig")!!.holdings.single { it.id == "f2" }.recordedBy shouldBe "alice"

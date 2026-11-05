@@ -359,7 +359,9 @@
     <string name="awaited_welched_text">%1$s is removed from the income, and the shares are worked out again.</string>
     <string name="receive_awaited_title">Planned payment received</string>
     <string name="received_by">Received by</string>
-    <string name="receive_awaited_hint">Up to %1$s. Any rest stays awaited.</string>
+    <string name="receive_awaited_hint">Part of it: change the fee first.</string>
+    <string name="receive_awaited_whole">Received whole: %1$s</string>
+    <string name="vat_summary">net %1$s · VAT %2$d %%</string>
     <string name="total_awaited">of which not paid yet</string>
     <string name="share_awaited">Not paid yet: %1$s</string>
     <string name="status_awaiting">Awaiting payment</string>

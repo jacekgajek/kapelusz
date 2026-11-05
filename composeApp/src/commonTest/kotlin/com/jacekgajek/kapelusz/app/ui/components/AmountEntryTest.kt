@@ -11,7 +11,10 @@ import io.kotest.matchers.shouldBe
 /** An amount as typed in a form: what it comes to. */
 class AmountEntryTest :
     ExpectSpec({
-        fun entry(initial: Money? = null, vat: Vat? = null) = AmountEntry(initial, vat, text = { it.toString() })
+        fun entry(initial: Money? = null, vat: Vat? = null, default: Vat? = null): AmountEntry {
+            val text: (Money) -> String = { it.toString() }
+            return AmountEntry(initial, vat, text, defaultVat = default)
+        }
 
         expect("starts from the amount given, as text") {
             val entry = entry(Money.parse("12.50"))
@@ -82,5 +85,18 @@ class AmountEntryTest :
             entry.vatText shouldBe "23"
             entry.split shouldBe VatSplitMode.GROSS
             entry.vat shouldBe Vat(Money.parse("1000"), 23, VatSplitMode.GROSS)
+        }
+
+        expect("a new amount opens plain, and switching VAT on offers the band's last rate and split") {
+            val entry = entry(default = Vat(Money.parse("500"), 8, VatSplitMode.GROSS))
+            entry.withVat shouldBe false
+            entry.typeGross("108")
+            entry.valid shouldBe true
+
+            entry.withVat = true
+            entry.vatText shouldBe "8"
+            entry.split shouldBe VatSplitMode.GROSS
+            withClue("the net follows the gross typed before the switch") { entry.netText shouldBe "100.00" }
+            entry.vat shouldBe Vat(Money.parse("100"), 8, VatSplitMode.GROSS)
         }
     })

@@ -23,8 +23,9 @@ data class AddHolding(
 ) : HoldingOp
 
 /**
- * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, in full or [amount] of it:
- * that much becomes [partyId]'s collected money, as entry [receivedId]; the rest stays awaited.
+ * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, whole: it becomes [partyId]'s collected money,
+ * as entry [receivedId], with its VAT breakdown and files. [amount]: the fee as the sender saw it; a fee changed
+ * meanwhile is refused, to be looked at again. Part of a fee: change the fee first.
  */
 @Serializable
 @SerialName("ReceiveAwaited")
@@ -34,7 +35,6 @@ data class ReceiveAwaited(
     val receivedId: Id,
     val partyId: Id,
     val amount: Money,
-    val vat: Vat? = null,
 ) : HoldingOp
 
 @Serializable

@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
+import com.jacekgajek.kapelusz.model.Vat
 
 /** What is open over an event's collected money: one dialog at a time, with its form. Owned by the event's screen model. */
 @Stable
@@ -15,21 +16,32 @@ class CollectedDialogs(private val eventId: String) {
     var open by mutableStateOf<CollectedDialog?>(null)
         private set
 
-    /** A new entry held by [defaultParty] (one of [parties]), with [drafts]: files shared to the app for it. */
-    fun addEntry(defaultParty: String, parties: List<String>, amountText: (Money) -> String, drafts: List<PreparedFile> = emptyList()) {
-        open = CollectedDialog.Entry(HoldingForm(eventId, initial = null, defaultParty, parties, amountText, drafts))
+    /**
+     * A new entry held by [defaultParty] (one of [parties]), with [drafts]: files shared to the app for it.
+     * [defaultVat]: the band's last VAT breakdown, offered when VAT is switched on.
+     */
+    fun addEntry(
+        defaultParty: String,
+        parties: List<String>,
+        amountText: (Money) -> String,
+        drafts: List<PreparedFile> = emptyList(),
+        defaultVat: Vat? = null,
+    ) {
+        open = CollectedDialog.Entry(HoldingForm(eventId, initial = null, defaultParty, parties, amountText, drafts, defaultVat))
     }
 
     /** A fee the organiser still owes. */
-    fun addAwaited(amountText: (Money) -> String) = addEntry(ORGANISER, listOf(ORGANISER), amountText)
-
-    fun editEntry(holding: Holding, parties: List<String>, amountText: (Money) -> String) {
-        open = CollectedDialog.Entry(HoldingForm(eventId, holding, holding.partyId, parties, amountText))
+    fun addAwaited(amountText: (Money) -> String, defaultVat: Vat? = null) {
+        addEntry(ORGANISER, listOf(ORGANISER), amountText, defaultVat = defaultVat)
     }
 
-    /** An awaited fee came in: who got it, from [parties] ([me] first), and how much of it. */
-    fun receive(awaited: Holding, parties: List<String>, me: String?, amountText: (Money) -> String) {
-        open = CollectedDialog.Receive(ReceiveForm(eventId, awaited, parties, me, amountText))
+    fun editEntry(holding: Holding, parties: List<String>, amountText: (Money) -> String, defaultVat: Vat? = null) {
+        open = CollectedDialog.Entry(HoldingForm(eventId, holding, holding.partyId, parties, amountText, defaultVat = defaultVat))
+    }
+
+    /** An awaited fee came in, whole: who got it, from [parties] ([me] first). */
+    fun receive(awaited: Holding, parties: List<String>, me: String?) {
+        open = CollectedDialog.Receive(ReceiveForm(eventId, awaited, parties, me))
     }
 
     /** An awaited fee that will never come. */
