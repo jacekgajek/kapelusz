@@ -35,6 +35,7 @@ import com.jacekgajek.kapelusz.view.BandView
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.maps.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -190,6 +191,23 @@ class SettleTogetherTest :
             }
         }
 
+        // A pair's amount never exceeds what its artists were paid too much, so no leftover is left to place.
+        expect("two overpaid artists in a pair split a surplus into their own deltas") {
+            val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+            scenario.apply(SetMemberRole("bob", Role.ARTIST))
+            scenario.apply(SetMemberRole("carol", Role.ARTIST))
+            scenario.apply(AddHolding("gig", "h", "alice", pln("400"), DOOR))
+            scenario.apply(RecordTransfer("gig", "t", "alice", "bob", pln("200"), together = true))
+            scenario.apply(AddCost("daves", "dave", pln("40"), DATE, incurredForEventId = "gig"))
+            scenario.apply(SetRefund("gig", "daves", pln("40")))
+            val settlement = scenario.settle("gig")
+            val amount = pln("20")
+
+            val parts = SettleTogether.split(scenario.band, settlement, "bob", "dave", amount)
+            parts.sumOf { it.amount.minor } shouldBe amount.minor
+            parts.forEach { part -> part.amount.minor shouldBeLessThanOrEqualTo settlement.line(part.from)!!.delta.minor }
+        }
+
         expect("an artist in a pair sees no transfer their partner receives") {
             val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
             scenario.apply(SetMemberRole("carol", Role.ARTIST))
@@ -274,6 +292,17 @@ class SettleTogetherTest :
             isUndoable(AcceptSettleTogether("bob", "carol")) shouldBe false
             isUndoable(StopSettlingTogether("bob", "carol")) shouldBe false
             isUndoable(InviteToSettleTogether("bob", "carol")) shouldBe false
+        }
+
+        expect("ending a pair stamps the events it keeps settled") {
+            val scenario = band().pair().event("gig", "Alice", "Bob", "Carol", "Dave")
+            scenario.apply(AddHolding("gig", "h", "bob", pln("400"), DOOR))
+            scenario.apply(SettleSuggestions("gig"))
+            val before = scenario.band.event("gig")!!.updatedAt
+
+            scenario.apply(StopSettlingTogether("bob", "carol"), scenario.userFor("bob", Role.MEMBER))
+            scenario.band.event("gig")!!.settledTogether shouldBe listOf(listOf("bob", "carol"))
+            withClue("stamped by the operation") { scenario.band.event("gig")!!.updatedAt shouldBe before + 1 }
         }
 
         expect("a pair is one party on settlement") {

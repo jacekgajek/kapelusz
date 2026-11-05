@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.engine.account
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.BandPart
 import com.jacekgajek.kapelusz.history.OpEnvelope
+import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddCost
@@ -17,6 +18,7 @@ import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetRefund
+import com.jacekgajek.kapelusz.ops.SetWeight
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UpdateEvent
@@ -57,6 +59,19 @@ class UndoTest :
             val undoRename = scenario.recorded(UpdateEvent("gig", name = Change("Big gig")))
             scenario.apply(UpdateEvent("gig", location = Change("Klub")))
             scenario.rejected(undoRename).reason shouldBe RejectionReason.CHANGED_SINCE
+        }
+
+        // An operation that changes nothing must not stamp the event (Shared 3).
+        expect("a no-op after a change does not block its undo") {
+            val scenario = Scenario("Alice", "Bob").event("gig", "Alice", "Bob")
+            val undoWeight = scenario.recorded(SetWeight("gig", "bob", 200))
+            val stamped = scenario.band.event("gig")!!.updatedAt
+
+            scenario.apply(SetWeight("gig", "bob", 200))
+            scenario.band.event("gig")!!.updatedAt shouldBe stamped
+
+            scenario.apply(undoWeight)
+            scenario.band.event("gig")!!.participant("bob")!!.weight shouldBe DEFAULT_WEIGHT
         }
 
         expect("refused when later changes rely on it") {

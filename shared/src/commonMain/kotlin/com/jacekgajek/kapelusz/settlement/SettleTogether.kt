@@ -43,7 +43,7 @@ object SettleTogether {
      * viewer. Nothing else changes. A pair ending keeps the events it settled together as they were
      * [before] the change, while it still counted.
      */
-    fun tidy(band: Band, before: Band = band): Band {
+    fun tidy(band: Band, before: Band = band, timestamp: Long = 0): Band {
         val byId = band.members.associateBy { it.id }
         val members = band.members.map { member ->
             val partner = member.settlesWith?.let { byId[it] }
@@ -60,14 +60,17 @@ object SettleTogether {
         }
         if (members == band.members) return band
         val ended = band.members.filter { it.settlesWith != null && members.first { m -> m.id == it.id }.settlesWith == null }
-        return ended.fold(band) { result, member -> keepSettled(result, member.id, member.settlesWith!!, before) }.copy(members = members)
+        val kept = ended.fold(band) { result, member ->
+            keepSettled(result, member.id, member.settlesWith!!, timestamp, before)
+        }
+        return kept.copy(members = members)
     }
 
     /**
      * Before the pair of [a] and [b] ends: the events they settled together keep them together, so ending
-     * a pair never reopens a settled event.
+     * a pair never reopens a settled event. Those events changed, so they are stamped with [timestamp].
      */
-    fun keepSettled(band: Band, a: Id, b: Id, before: Band = band): Band {
+    fun keepSettled(band: Band, a: Id, b: Id, timestamp: Long, before: Band = band): Band {
         val pair = listOf(a, b).sorted()
         val settled = before.events
             .filter { event -> partners(before, event)[a] == b && SettlementCalculator.settle(before, event).status == EventStatus.SETTLED }
@@ -77,7 +80,7 @@ object SettleTogether {
                 if (event.id !in settled || pair in event.settledTogether) {
                     event
                 } else {
-                    event.copy(settledTogether = event.settledTogether + listOf(pair))
+                    event.copy(settledTogether = event.settledTogether + listOf(pair), updatedAt = timestamp)
                 }
             },
         )
@@ -149,8 +152,10 @@ object SettleTogether {
                     left -= part
                     id to part
                 }.toMutableList()
-                val payer = parts.indexOfFirst { !Artists.isArtist(band, it.first) }.coerceAtLeast(0)
-                parts[payer] = parts[payer].first to parts[payer].second + left
+                // The leftover is the non-artist's. Two artists leave none: a pair's amount never exceeds
+                // their merged delta, and each holds only their own positive delta.
+                val payer = parts.indexOfFirst { !Artists.isArtist(band, it.first) }
+                if (payer >= 0) parts[payer] = parts[payer].first to parts[payer].second + left
                 parts
             }
         }

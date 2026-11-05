@@ -14,7 +14,7 @@ import com.jacekgajek.kapelusz.settlement.SettleTogether
 
 /** Settling together: invitations and pairs. Pure state transitions and their validation; see [Reducer]. */
 internal object PairReducer {
-    fun apply(band: Band, op: PairOp): Band = when (op) {
+    fun apply(band: Band, op: PairOp, ctx: OpContext): Band = when (op) {
         is InviteToSettleTogether -> {
             val from = band.member(op.fromMemberId).orNotFound { "Member ${op.fromMemberId}" }
             val to = band.member(op.toMemberId).orNotFound { "Member ${op.toMemberId}" }
@@ -36,7 +36,7 @@ internal object PairReducer {
 
         is StopSettlingTogether -> {
             conflictIf(band.member(op.memberId)?.settlesWith != op.partnerId, RejectionReason.NOT_FOUND) { "${op.memberId} does not settle with ${op.partnerId}" }
-            SettleTogether.keepSettled(band, op.memberId, op.partnerId)
+            SettleTogether.keepSettled(band, op.memberId, op.partnerId, ctx.timestamp)
                 .updateMember(op.memberId) { it.copy(settlesWith = null) }.updateMember(op.partnerId) { it.copy(settlesWith = null) }
         }
     }

@@ -49,7 +49,7 @@ object Reducer {
         val result = when (op) {
             is BandOp -> BandReducer.apply(band, op, ctx)
             is RosterOp -> RosterReducer.apply(band, op, ctx)
-            is PairOp -> PairReducer.apply(band, op)
+            is PairOp -> PairReducer.apply(band, op, ctx)
             is LineupOp -> LineupReducer.apply(band, op, ctx)
             is HoldingOp -> HoldingReducer.apply(band, op, ctx)
             is TransferOp -> TransferReducer.apply(band, op, ctx)
@@ -67,9 +67,12 @@ object Reducer {
             RejectionReason.NO_TREASURER,
         ) { "Choose a treasurer before using the band fund" }
         // Archiving, unlinking or a role change can end a pair or an invitation; an undo is checked instead.
-        val tidied = if (op is Undo) result else SettleTogether.tidy(result, band)
+        val tidied = if (op is Undo) result else SettleTogether.tidy(result, band, ctx.timestamp)
         return op.eventId
             ?.takeIf { op !is DeleteEvent }
+            // Only a real change is stamped: an operation that changes nothing (the same weight again) would
+            // otherwise make an earlier change on the event look changed since, and its undo refused.
+            ?.takeIf { eventId -> band.event(eventId) != tidied.event(eventId) }
             ?.let { eventId -> tidied.updateEvent(eventId) { it.copy(updatedAt = ctx.timestamp) } }
             ?: tidied
     }
