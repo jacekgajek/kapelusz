@@ -102,6 +102,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.event.EventFields
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventFieldsState
 import com.jacekgajek.kapelusz.app.ui.screens.event.PlaceLookup
 import com.jacekgajek.kapelusz.app.ui.screens.event.rememberPlaceLookup
+import com.jacekgajek.kapelusz.app.ui.screens.event.templateAgenda
 import com.jacekgajek.kapelusz.app.ui.text.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.text.setTimes
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors
@@ -397,7 +398,7 @@ private fun NewEventDialog(band: Band, places: PlaceLookup?, onDismiss: () -> Un
                 date = today(),
                 location = "",
                 // The band's agenda template, to fill in now or later.
-                agenda = band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) },
+                agenda = templateAgenda(band),
             ),
         )
     }

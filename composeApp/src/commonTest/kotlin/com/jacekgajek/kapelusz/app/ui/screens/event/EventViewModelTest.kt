@@ -106,4 +106,16 @@ class EventViewModelTest :
             collected.takeCollectedFiles().shouldNotBeNull().shouldBeEmpty()
             withClue("once: the dialog opened with them") { collected.takeCollectedFiles().shouldBeNull() }
         }
+
+        expect("the details editor opens with the event and closes") {
+            val repository = repository(coroutineTestScope)
+            val screen = EventViewModel("gig", repository.state)
+            screen.details.shouldBeNull()
+
+            screen.editDetails()
+            screen.details.shouldNotBeNull().opened.id shouldBe "gig"
+
+            screen.dismissDetails()
+            screen.details.shouldBeNull()
+        }
     })

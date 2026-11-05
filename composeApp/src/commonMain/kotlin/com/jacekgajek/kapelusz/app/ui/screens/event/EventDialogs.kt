@@ -40,54 +40,24 @@ import com.jacekgajek.kapelusz.app.generated.unarchive
 import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.ui.components.Actions
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
-import com.jacekgajek.kapelusz.app.util.newId
-import com.jacekgajek.kapelusz.model.AgendaTime
-import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
-import com.jacekgajek.kapelusz.ops.Change
 import com.jacekgajek.kapelusz.ops.DeleteEvent
-import com.jacekgajek.kapelusz.ops.SetEventAgenda
 import com.jacekgajek.kapelusz.ops.SetEventArchived
-import com.jacekgajek.kapelusz.ops.UpdateEvent
 import com.jacekgajek.kapelusz.settlement.Settlement
 import com.jacekgajek.kapelusz.text.EventLinks
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun EditDetailsDialog(band: Band, event: Event, actions: Actions, places: PlaceLookup?, onDismiss: () -> Unit) {
-    // Compared with the event as it was when the dialog opened: only what the user changed is sent.
-    val opened = remember { event }
-    var fields by remember {
-        mutableStateOf(
-            EventFieldsState(
-                name = event.name,
-                date = event.date,
-                location = event.location.orEmpty(),
-                // Events from before agenda times get the band's template, all unset.
-                agenda = event.agenda.ifEmpty { band.effectiveAgendaTemplate.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) } },
-            ),
-        )
-    }
+fun EditDetailsDialog(form: EventDetailsForm, actions: Actions, places: PlaceLookup?, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.edit_details)) },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) { EventFields(fields, places) { fields = it } } },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) { EventFields(form.fields, places) { form.fields = it } } },
         confirmButton = {
-            TextButton(enabled = fields.name.isNotBlank(), onClick = {
-                val update = UpdateEvent(
-                    event.id,
-                    name = Change(fields.name).takeIf { fields.name.trim() != opened.name },
-                    date = Change(fields.date).takeIf { fields.date != opened.date },
-                    location = Change(fields.location.ifBlank { null }).takeIf { fields.location.trim() != opened.location.orEmpty() },
-                )
-                var saved = true
-                if (listOf(update.name, update.date, update.location).any { it != null }) saved = actions.run(update)
-                val agenda = fields.agenda
-                if (agenda != opened.agenda && !(opened.agenda.isEmpty() && agenda.all { it.time == null })) saved = actions.run(SetEventAgenda(event.id, agenda)) && saved
+            TextButton(enabled = form.ready, onClick = {
                 // Refused (the snackbar says why): the dialog stays, with what the user typed.
-                if (saved) onDismiss()
+                if (form.save(actions::run)) onDismiss()
             }) { Text(stringResource(Res.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },

@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.intents.Carry
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.settings.EventTab
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.Settlement
@@ -23,10 +24,6 @@ import kotlinx.coroutines.launch
  */
 class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Carry? = null) : ViewModel() {
     private var ready by mutableStateOf(bands.value as? BandState.Ready)
-
-    init {
-        viewModelScope.launch { bands.collect { ready = it as? BandState.Ready } }
-    }
 
     /** Artists see only their own events and pages. */
     val artist: Boolean by derivedStateOf { ready?.let { it.band.isArtist(it.userId) } ?: false }
@@ -42,8 +39,31 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Ca
     /** The gig, its money, and who gets what; artists get the gig and their own money. */
     val tabs: List<EventTab> by derivedStateOf { if (artist) listOf(EventTab.GIG, EventTab.MONEY) else EventTab.entries }
 
-    /** The When and where editor. */
-    var editing by mutableStateOf(false)
+    /** The When and where editor, while open. */
+    var details by mutableStateOf<EventDetailsForm?>(null)
+        private set
+
+    /** Opens the editor on the event as it is now; nothing when it is gone. */
+    fun editDetails() {
+        val event = event ?: return
+        val band = ready?.band ?: return
+        details = EventDetailsForm(event, band)
+    }
+
+    fun dismissDetails() {
+        details = null
+    }
+
+    // After the cells above: the collector reads them, and runs at once under an unconfined dispatcher.
+    init {
+        viewModelScope.launch {
+            bands.collect {
+                ready = it as? BandState.Ready
+                // Gone meanwhile (deleted, hidden from an artist): the editor would reopen on a stale event.
+                if (event == null) details = null
+            }
+        }
+    }
 
     /** The dialogs over the collected money. */
     val collected = CollectedDialogs(eventId)
