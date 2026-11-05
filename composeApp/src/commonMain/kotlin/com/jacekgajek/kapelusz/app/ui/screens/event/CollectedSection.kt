@@ -41,22 +41,33 @@ import com.jacekgajek.kapelusz.app.generated.collected_money
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_entry_title
 import com.jacekgajek.kapelusz.app.generated.delete_files_too
+import com.jacekgajek.kapelusz.app.generated.gross
+import com.jacekgajek.kapelusz.app.generated.net
 import com.jacekgajek.kapelusz.app.generated.note_optional
 import com.jacekgajek.kapelusz.app.generated.organiser
 import com.jacekgajek.kapelusz.app.generated.receive_awaited
 import com.jacekgajek.kapelusz.app.generated.receive_awaited_hint
 import com.jacekgajek.kapelusz.app.generated.receive_awaited_title
+import com.jacekgajek.kapelusz.app.generated.receive_awaited_whole
 import com.jacekgajek.kapelusz.app.generated.received_by
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
+import com.jacekgajek.kapelusz.app.generated.vat_mode_net
+import com.jacekgajek.kapelusz.app.generated.vat_rate
+import com.jacekgajek.kapelusz.app.generated.vat_split_gross
+import com.jacekgajek.kapelusz.app.generated.vat_split_net
+import com.jacekgajek.kapelusz.app.generated.vat_summary
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.components.Choice
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.IntegerField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SegmentedChoice
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.resolved
@@ -67,6 +78,8 @@ import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Vat
+import com.jacekgajek.kapelusz.model.VatSplitMode
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
@@ -86,15 +99,18 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
     SectionTitle(stringResource(Res.string.collected_money))
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
     event.holdings.forEach { holding ->
-        val edit = { dialogs.editEntry(holding, allowedParties, amountText) }
+        val edit = { dialogs.editEntry(holding, allowedParties, amountText, context.defaultVat) }
         Row(
             Modifier.fillMaxWidth().clickable(enabled = context.can.editHolding(event, holding), onClick = edit).padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
                 Text(if (holding.awaited) organiser else partyName(context.band, event, holding.partyId, fund))
+                // Source, note, "awaited", and the VAT breakdown of a gross with VAT in it.
+                val vat = holding.vat?.let { stringResource(Res.string.vat_summary, formatMoney(it.net, context.currency, lang), it.rate) }
+                val awaited = stringResource(Res.string.awaited_payment).takeIf { holding.awaited }
                 Text(
-                    listOfNotNull(holding.source.label(), holding.note, stringResource(Res.string.awaited_payment).takeIf { holding.awaited }).joinToString(" · "),
+                    listOfNotNull(holding.source.label(), holding.note, awaited, vat).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (holding.awaited) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                 )
@@ -102,6 +118,7 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
             MoneyText(holding.amount)
             if (context.can.editHolding(event, holding)) EditButton(onClick = edit)
         }
+
         // A fee the organiser still owes: paid (whoever got it takes it over), or never paid (it goes).
         // Laid out like Refund here under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
@@ -111,7 +128,7 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
                         Text(stringResource(Res.string.awaited_welched), color = MaterialTheme.colorScheme.error)
                     }
                 }
-                OutlinedButton(onClick = { dialogs.receive(holding, receiveParties, context.me?.id, amountText) }) {
+                OutlinedButton(onClick = { dialogs.receive(holding, receiveParties, context.me?.id) }) {
                     Text(stringResource(Res.string.receive_awaited))
                 }
             }
@@ -133,13 +150,13 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
     // A sync may have taken away whom the user can record for (removed from the event, a role changed): nothing to add.
     val defaultParty = context.me?.id?.takeIf { it in allowedParties } ?: allowedParties.firstOrNull()
     if (defaultParty != null) {
-        TextButton(onClick = { dialogs.addEntry(defaultParty, allowedParties, amountText) }) {
+        TextButton(onClick = { dialogs.addEntry(defaultParty, allowedParties, amountText, defaultVat = context.defaultVat) }) {
             Icon(Icons.Default.Add, null)
             Text(stringResource(Res.string.add_money), Modifier.padding(start = 8.dp))
         }
     }
     if (context.can.recordAwaited(event)) {
-        TextButton(onClick = { dialogs.addAwaited(amountText) }) {
+        TextButton(onClick = { dialogs.addAwaited(amountText, context.defaultVat) }) {
             Icon(Icons.Default.Schedule, null)
             Text(stringResource(Res.string.add_awaited), Modifier.padding(start = 8.dp))
         }
@@ -147,7 +164,8 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
     // Photos or PDFs shared to Kapelusz for new received money here: the new entry's dialog, with them.
     // Shared while it was open already: it starts again with them, rather than taking only what still fits.
     LaunchedEffect(Unit) {
-        context.takeCollectedFiles()?.let { files -> defaultParty?.let { dialogs.addEntry(it, allowedParties, amountText, files) } }
+        val files = context.takeCollectedFiles() ?: return@LaunchedEffect
+        defaultParty?.let { dialogs.addEntry(it, allowedParties, amountText, files, context.defaultVat) }
     }
     val close = dialogs::dismiss
     when (val open = dialogs.open) {
@@ -176,7 +194,7 @@ private fun WelchedDialog(context: EventContext, holding: Holding, onDismiss: ()
     val files = holding.attachments.size
     ConfirmDialog(
         title = stringResource(Res.string.awaited_welched_title),
-        text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)) +
+        text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.settled, context.currency, language)) +
             // Its files (the contract) go with it, for good.
             files.takeIf { it > 0 }?.let { " " + stringResource(Res.string.delete_files_too, it) }.orEmpty(),
         confirmLabel = stringResource(Res.string.awaited_welched),
@@ -208,8 +226,26 @@ private fun HoldingDialog(context: EventContext, form: HoldingForm, onDismiss: (
                         partyName(context.band, event, it, "")
                     }
                 }
-                MoneyField(form.amount.text, { form.amount.text = it }, stringResource(Res.string.amount))
+                val amount = form.amount
+                val vatModeChoices = listOf(
+                    Choice(false, stringResource(Res.string.amount)),
+                    Choice(true, stringResource(Res.string.vat_mode_net)),
+                )
+                SegmentedChoice(vatModeChoices, amount.withVat, { amount.withVat = it })
+                if (amount.withVat) {
+                    val splitChoices = listOf(
+                        Choice(VatSplitMode.GROSS, stringResource(Res.string.vat_split_gross)),
+                        Choice(VatSplitMode.NET, stringResource(Res.string.vat_split_net)),
+                    )
+                    SegmentedChoice(splitChoices, amount.split, { amount.split = it })
+                    MoneyField(amount.grossText, { amount.typeGross(it) }, stringResource(Res.string.gross))
+                    IntegerField(amount.vatText, { amount.typeVat(it) }, stringResource(Res.string.vat_rate), validRange = 1..100)
+                    MoneyField(amount.netText, { amount.typeNet(it) }, stringResource(Res.string.net))
+                } else {
+                    MoneyField(amount.grossText, { amount.typeGross(it) }, stringResource(Res.string.amount))
+                }
                 Dropdown(form.source, IncomeSource.entries, { form.source = it }, stringResource(Res.string.source)) { it.label() }
+
                 OutlinedTextField(
                     form.note,
                     { form.note = it },
@@ -267,7 +303,9 @@ private fun HoldingDialog(context: EventContext, form: HoldingForm, onDismiss: (
     }
 }
 
-/** "Received…" on an awaited fee: who got it, and how much of it. [awaited]: the fee as the band has it now. */
+/**
+ * "Received…" on an awaited fee: who got it.
+ */
 @Composable
 private fun ReceiveDialog(context: EventContext, form: ReceiveForm, awaited: Holding, onDismiss: () -> Unit) {
     val event = context.event
@@ -280,17 +318,25 @@ private fun ReceiveDialog(context: EventContext, form: ReceiveForm, awaited: Hol
                 Dropdown(form.partyId, form.parties, { form.partyId = it }, stringResource(Res.string.received_by)) {
                     partyName(context.band, event, it, fund)
                 }
-                MoneyField(form.amount.text, { form.amount.text = it }, stringResource(Res.string.amount))
-                val of = formatMoney(awaited.amount, context.currency, language)
-                Text(stringResource(Res.string.receive_awaited_hint, of), style = MaterialTheme.typography.bodySmall)
+                // Whole: the fee as it is now (changed meanwhile: the band refuses it, and it is looked at again).
+                Text(stringResource(Res.string.receive_awaited_whole, formatMoney(awaited.amount, context.currency, language)))
+                awaited.vat?.let { VatSummary(it, context.currency) }
+                Text(stringResource(Res.string.receive_awaited_hint), style = MaterialTheme.typography.bodySmall)
                 DialogNotice(context.actions)
             }
         },
         confirmButton = {
-            TextButton(enabled = form.ready, onClick = { if (form.save(context.actions::run)) onDismiss() }) {
+            TextButton(onClick = { if (form.save(context.actions::run)) onDismiss() }) {
                 Text(stringResource(Res.string.save))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
     )
+}
+
+/** The net and the rate of a gross with VAT in it, in small print. */
+@Composable
+fun VatSummary(vat: Vat, currency: String) {
+    val net = formatMoney(vat.net, currency, language)
+    Text(stringResource(Res.string.vat_summary, net, vat.rate), style = MaterialTheme.typography.bodySmall)
 }

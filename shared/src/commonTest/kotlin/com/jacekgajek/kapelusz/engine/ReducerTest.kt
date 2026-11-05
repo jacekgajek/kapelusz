@@ -2,16 +2,19 @@ package com.jacekgajek.kapelusz.engine
 
 import com.jacekgajek.kapelusz.DATE
 import com.jacekgajek.kapelusz.Scenario
-import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Guest
+import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.IncomeSource.DOOR
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Refund
 import com.jacekgajek.kapelusz.model.RejectionCode
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.model.Vat
+import com.jacekgajek.kapelusz.model.VatSplitMode
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddParticipant
@@ -20,6 +23,7 @@ import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteCost
 import com.jacekgajek.kapelusz.ops.DeleteEvent
 import com.jacekgajek.kapelusz.ops.DeleteMember
+import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.RenameBand
@@ -29,6 +33,7 @@ import com.jacekgajek.kapelusz.ops.SetRefund
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import com.jacekgajek.kapelusz.ops.UpdateHolding
 import com.jacekgajek.kapelusz.pln
 import com.jacekgajek.kapelusz.rules.Actor
 import io.kotest.assertions.withClue
@@ -42,6 +47,38 @@ class ReducerTest :
     ExpectSpec({
 
         fun gig() = Scenario("Alice", "Bob", "Carol").event("gig", "Alice", "Bob")
+
+        expect("an edit keeps gross, net and rate fitting, or takes the VAT off") {
+            val fee = Vat(pln("1000"), 23, VatSplitMode.NET)
+            val scenario = gig().apply(AddHolding("gig", "h", "alice", pln("1230"), IncomeSource.CONTRACT, vat = fee))
+
+            withClue("a new gross alone no longer fits the net") {
+                scenario.rejected(UpdateHolding("gig", "h", amount = Change(pln("2000")))).reason shouldBe RejectionReason.INVALID_AMOUNT
+            }
+            scenario.rejected(UpdateHolding("gig", "h", vat = Change(fee.copy(rate = 8)))).reason shouldBe RejectionReason.INVALID_AMOUNT
+
+            scenario.apply(UpdateHolding("gig", "h", amount = Change(pln("2460")), vat = Change(fee.copy(net = pln("2000")))))
+            scenario.band.event("gig")!!.holdings.single().vat shouldBe fee.copy(net = pln("2000"))
+
+            scenario.apply(UpdateHolding("gig", "h", vat = Change(null)))
+            scenario.band.event("gig")!!.holdings.single().vat.shouldBeNull()
+        }
+
+        expect("an awaited fee with VAT is received whole, breakdown and all") {
+            val fee = Vat(pln("1000"), 23, VatSplitMode.NET)
+            val scenario = gig().apply(AddHolding("gig", "fee", ORGANISER, pln("1230"), IncomeSource.CONTRACT, vat = fee))
+
+            withClue("part of it: the fee is changed first") {
+                scenario.rejected(ReceiveAwaited("gig", "fee", "part", "alice", pln("500"))).reason shouldBe RejectionReason.INVALID_AMOUNT
+            }
+
+            scenario.apply(ReceiveAwaited("gig", "fee", "paid", "alice", pln("1230")))
+            val paid = scenario.band.event("gig")!!.holdings.single()
+            paid.id shouldBe "paid"
+            paid.partyId shouldBe "alice"
+            paid.amount shouldBe pln("1230")
+            paid.vat shouldBe fee
+        }
 
         expect("cost incurred for event is pre-included only for participants") {
             val scenario = gig()
@@ -180,13 +217,13 @@ class ReducerTest :
 
         expect("a member's cost does not reopen a settled or archived event") {
             val scenario = gig().apply(
-                com.jacekgajek.kapelusz.ops.AddHolding(
-                    "gig",
-                    "h",
-                    "alice",
-                    pln("100"),
-                    com.jacekgajek.kapelusz.model.IncomeSource.HAT,
-                    null,
+                AddHolding(
+                    eventId = "gig",
+                    holdingId = "h",
+                    partyId = "alice",
+                    amount = pln("100"),
+                    source = com.jacekgajek.kapelusz.model.IncomeSource.HAT,
+                    note = null,
                 ),
             )
                 .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
@@ -196,19 +233,19 @@ class ReducerTest :
             scenario.apply(AddCost("later", "bob", pln("20"), DATE))
             // Archived events are read-only: not even a cost can be assigned to one.
             scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason shouldBe
-                com.jacekgajek.kapelusz.model.RejectionReason.ARCHIVED_EVENT
+                RejectionReason.ARCHIVED_EVENT
         }
 
         expect("a member's amount change does not raise the refund of a settled event") {
             val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
                 .apply(
-                    com.jacekgajek.kapelusz.ops.AddHolding(
-                        "gig",
-                        "h",
-                        "alice",
-                        pln("100"),
-                        com.jacekgajek.kapelusz.model.IncomeSource.HAT,
-                        null,
+                    AddHolding(
+                        eventId = "gig",
+                        holdingId = "h",
+                        partyId = "alice",
+                        amount = pln("100"),
+                        source = com.jacekgajek.kapelusz.model.IncomeSource.HAT,
+                        note = null,
                     ),
                 )
                 .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))

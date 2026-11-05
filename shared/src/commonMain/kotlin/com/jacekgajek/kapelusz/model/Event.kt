@@ -42,13 +42,13 @@ data class Event(
     fun participant(partyId: Id): Participant? = participants.firstOrNull { it.partyId == partyId }
     fun guest(id: Id): Guest? = guests.firstOrNull { it.id == id }
     fun refundOf(costId: Id): Refund? = refunds.firstOrNull { it.costId == costId }
-    val income: Money get() = holdings.sumOfMoney { it.amount }
+    val income: Money get() = holdings.sumOfMoney { it.settled }
 
     /** What goes to the band fund (negative: comes from it): the fixed [fundAmount], or [fundPercent] of the profit. */
     val fund: Money get() = fundPercent?.let { FundCut.ofProfit(it, income - refunds.sumOfMoney { r -> r.amount }) } ?: fundAmount
 
     /** Part of [income] the organiser still owes. */
-    val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.amount }
+    val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.settled }
 }
 
 /**
@@ -153,13 +153,29 @@ data class Holding(
     val attachments: List<Attachment> = emptyList(),
     /** Who recorded it; for an awaited fee ([ORGANISER]), the lead reminded to chase it. */
     val recordedBy: Id? = null,
+    /** The net and the VAT rate (a whole percent) when [amount] is a gross with VAT in it. */
+    val vat: Vat? = null,
 ) {
     val awaited: Boolean get() = partyId == ORGANISER
+
+    /** What the band splits: the net when the VAT is not the band's money, otherwise all of it. */
+    val settled: Money get() = vat?.takeIf { it.split == VatSplitMode.NET }?.net ?: amount
+}
+
+/** Which figure of a gross with VAT in it the band splits: the net (the VAT stays with the holder, for the tax office) or all of it. */
+@Serializable
+enum class VatSplitMode {
+    GROSS,
+    NET,
 }
 
 /** Part of a cost repaid out of this event's income. At most one per cost per event. */
 @Serializable
 data class Refund(val costId: Id, val amount: Money)
+
+/** The VAT in a holding's gross: the [net], the [rate] as a whole percent, and which figure the band [split]s. */
+@Serializable
+data class Vat(val net: Money, val rate: Int, val split: VatSplitMode)
 
 /** Money handed from one party to another; [from]/[to] are participant ids or [BAND_FUND]. */
 @Serializable

@@ -171,7 +171,7 @@ object SettlementCalculator {
             PartyLine(
                 partyId = partyId,
                 weight = event.participant(partyId)?.weight ?: 0,
-                collected = event.holdings.filter { it.partyId == partyId }.sumOfMoney { it.amount },
+                collected = event.holdings.filter { it.partyId == partyId }.sumOfMoney { it.settled },
                 sent = event.transfers.filter { it.from == partyId }.sumOfMoney { it.amount },
                 received = event.transfers.filter { it.to == partyId }.sumOfMoney { it.amount },
                 share = share,

@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.jacekgajek.kapelusz.app.generated.Res
-import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.amount_invalid
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.theme.MoneyColors

@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Vat
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -17,11 +18,14 @@ data class AddHolding(
     val amount: Money,
     val source: IncomeSource,
     val note: String? = null,
+    /** The net and the VAT rate (a whole percent) when [amount] is a gross with VAT in it. */
+    val vat: Vat? = null,
 ) : HoldingOp
 
 /**
- * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, in full or [amount] of it:
- * that much becomes [partyId]'s collected money, as entry [receivedId]; the rest stays awaited.
+ * An awaited fee ([com.jacekgajek.kapelusz.model.ORGANISER]) came in, whole: it becomes [partyId]'s collected money,
+ * as entry [receivedId], with its VAT breakdown and files. [amount]: the fee as the sender saw it; a fee changed
+ * meanwhile is refused, to be looked at again. Part of a fee: change the fee first.
  */
 @Serializable
 @SerialName("ReceiveAwaited")
@@ -41,6 +45,7 @@ data class UpdateHolding(
     val amount: Change<Money>? = null,
     val source: Change<IncomeSource>? = null,
     val note: Change<String?>? = null,
+    val vat: Change<Vat?>? = null,
 ) : HoldingOp
 
 @Serializable

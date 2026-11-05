@@ -43,26 +43,30 @@ the end of the section they belong to, dated.
 12. **Durability.** Bucket versioning for 30 days, a daily AWS Backup kept a year in a vault (the lock is optional and
     not yet applied), an API role that cannot delete versions, `scripts/restore-s3.sh` for a point-in-time restore
     ([DISASTER_RECOVERY.md](DISASTER_RECOVERY.md)).
+13. **Concurrent edits are not engineered for** (2026-11-05). A band has a handful of users, and in practice the one
+    waiting for money is the one who settles it, so two phones editing the same entry within a sync round is rare and
+    its cost is a refused operation and a snackbar. A dialog keeps the snapshot it opened on; the reducer refuses a
+    stale write. No reconciling, re-reading or "changed meanwhile" messages beyond that, in code or in review.
 
 ## Platform and delivery
 
-13. **One Lambda**, Java 21 on arm64, SnapStart with CRaC priming, no frameworks and no DI, a jar under 15 MB (Firebase
+14. **One Lambda**, Java 21 on arm64, SnapStart with CRaC priming, no frameworks and no DI, a jar under 15 MB (Firebase
     and Places over plain HTTP, no SDKs), a pooled S3 client, reserved concurrency as a cost cap, API Gateway HTTP API
     with throttling (the infrastructure settings live in the owner's Terraform repository), a membership check before
     any work, one timing line per request.
-14. **No new paid AWS services, no infrastructure change when avoidable.** Keys live in the data bucket rather than
+15. **No new paid AWS services, no infrastructure change when avoidable.** Keys live in the data bucket rather than
     Parameter Store; scheduled deletions run as an hourly sweep on requests; link cards through CloudFront behaviours.
     Terraform lives in a separate repository and is applied by the owner.
-15. **Delivery.** One workflow: pull requests run the tests; on `main` the release builds run after the tests, then
+16. **Delivery.** One workflow: pull requests run the tests; on `main` the release builds run after the tests, then
     `scripts/deploy.sh` publishes the Lambda, uploads the web app wasm-first with hashed names, invalidates CloudFront,
     uploads the Play bundle to closed testing and smoke-checks. Actions are pinned to hashes. Android comes from Google
     Play only, since 2026-10-27. The deploy job is paused since 2026-10-31, for the refactoring; it resumes by
     uncommenting it in `ci.yml`.
-16. **Local development mirrors production** through `localServer/`: the same `Api`, files instead of S3 and DynamoDB,
+17. **Local development mirrors production** through `localServer/`: the same `Api`, files instead of S3 and DynamoDB,
     local presigned links, a development sign-in that only works against loopback hosts, fake Places and Geocoding, no
     Firebase. A release build with the development sign-in on fails on purpose.
     ([LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md))
-17. **Wiring by hand**: `AppRuntime` and `Api` build their objects in dependency order; no DI framework. The toolchain
+18. **Wiring by hand**: `AppRuntime` and `Api` build their objects in dependency order; no DI framework. The toolchain
     stays at what the IDE supports.
 
 ## The refactoring (2026-10-31)
@@ -86,5 +90,5 @@ Taken before the whole-app restructuring of 2026-10-31.
 
 ## Process
 
-18. **Work process.** A branch per piece of work from `main`, implement, an independent review, fix, push, a pull
+19. **Work process.** A branch per piece of work from `main`, implement, an independent review, fix, push, a pull
     request, merge on green CI; never stacked pull requests. (REFACTORING.md)

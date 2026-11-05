@@ -10,6 +10,8 @@ import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
+import com.jacekgajek.kapelusz.model.Vat
+import com.jacekgajek.kapelusz.model.VatSplitMode
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.AddParticipant
@@ -83,7 +85,7 @@ class HoldingFormTest :
             form.source shouldBe IncomeSource.HAT
             form.ready shouldBe false
 
-            form.amount.text = "150"
+            form.amount.typeGross("150")
             form.ready shouldBe true
 
             form.partyId = "bob"
@@ -106,7 +108,7 @@ class HoldingFormTest :
             form.choosesParty shouldBe false
             form.source shouldBe IncomeSource.CONTRACT
 
-            form.amount.text = "2000"
+            form.amount.typeGross("2000")
             form.save(run(repository), Attached().attach) shouldBe true
             holding(repository).awaited shouldBe true
         }
@@ -119,7 +121,7 @@ class HoldingFormTest :
         expect("a refusal keeps the files for a retry") {
             val repository = repository(coroutineTestScope)
             val form = form(repository, drafts = listOf(PreparedFile(AttachmentKind.PDF, "contract.pdf", 10, "")))
-            form.amount.text = "150"
+            form.amount.typeGross("150")
             val attached = Attached()
             // The band refused it (e.g. the server's limit), which the snackbar told: nothing was added.
             form.save({ false }, attached.attach) shouldBe false
@@ -133,11 +135,11 @@ class HoldingFormTest :
             val form = form(repository, initial = holding(repository), defaultParty = "bob")
             form.isNew shouldBe false
             form.choosesParty shouldBe false
-            form.amount.text shouldBe "150.00"
+            form.amount.grossText shouldBe "150.00"
             form.source shouldBe IncomeSource.DOOR
             form.note shouldBe "round one"
 
-            form.amount.text = "175"
+            form.amount.typeGross("175")
             form.note = "round one "
             val sent = mutableListOf<Operation>()
             form.save({ sent.add(it) && repository.dispatch(it) == null }, Attached().attach) shouldBe true
@@ -146,6 +148,30 @@ class HoldingFormTest :
                 sent.single() shouldBe UpdateHolding("gig", "h1", amount = Change(Money.parse("175")))
             }
             holding(repository).amount shouldBe Money.parse("175")
+        }
+
+        expect("an edit sets VAT on an entry, and takes it off again") {
+            val repository = repository(coroutineTestScope)
+            repository.dispatch(AddHolding("gig", "h1", "bob", Money.parse("1230"), IncomeSource.CONTRACT)).shouldBeNull()
+            val form = form(repository, initial = holding(repository), defaultParty = "bob")
+            form.amount.withVat shouldBe false
+
+            form.amount.withVat = true
+            form.amount.typeVat("23")
+            withClue("the net follows the gross typed before") { form.amount.netText shouldBe "1000.00" }
+            val sent = mutableListOf<Operation>()
+            form.save({ sent.add(it) && repository.dispatch(it) == null }, Attached().attach) shouldBe true
+            val vat = Vat(Money.parse("1000"), 23, VatSplitMode.NET)
+            sent.single() shouldBe UpdateHolding("gig", "h1", vat = Change(vat))
+            holding(repository).vat shouldBe vat
+
+            val again = form(repository, initial = holding(repository), defaultParty = "bob")
+            again.amount.withVat shouldBe true
+            again.amount.withVat = false
+            sent.clear()
+            again.save({ sent.add(it) && repository.dispatch(it) == null }, Attached().attach) shouldBe true
+            sent.single() shouldBe UpdateHolding("gig", "h1", vat = Change(null))
+            holding(repository).vat.shouldBeNull()
         }
 
         expect("delete removes an existing entry and is nothing for a new one") {

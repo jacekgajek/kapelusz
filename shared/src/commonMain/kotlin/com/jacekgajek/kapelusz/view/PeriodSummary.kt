@@ -190,7 +190,7 @@ suspend fun periodSummary(
                 val recorded = transfer.recordedAt.takeIf { it > 0 }?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date }
                 Triple(recorded ?: event.date, amount, FundSource.Events)
             }
-            transfers + event.holdings.filter { it.partyId == BAND_FUND }.map { Triple(event.date, it.amount, FundSource.Events) }
+            transfers + event.holdings.filter { it.partyId == BAND_FUND }.map { Triple(event.date, it.settled, FundSource.Events) }
         } + band.fundEntries.map { entry ->
             // Paid in by someone, or a refund of someone's cost.
             val who = (entry.paidBy ?: entry.costId?.let { band.cost(it)?.memberId })?.let { band.member(it) }

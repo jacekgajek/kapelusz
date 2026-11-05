@@ -115,6 +115,13 @@
     <string name="attachment_removed">Usunięto %1$s</string>
     <string name="more">Więcej</string>
     <string name="amount">Kwota</string>
+    <string name="vat_mode_net">Netto + VAT</string>
+    <string name="vat_split_gross">Dzielimy brutto</string>
+    <string name="vat_split_net">Dzielimy netto</string>
+    <string name="gross">Brutto</string>
+    <string name="net">Netto</string>
+    <string name="vat_rate">VAT (%)</string>
+    <string name="integer_invalid">Wpisz liczbę całkowitą, np. 23</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>
     <string name="edit_details">Edytuj szczegóły</string>
     <string name="event_not_found">To wydarzenie już nie istnieje.</string>
@@ -352,7 +359,9 @@
     <string name="awaited_welched_text">Kwota %1$s znika z przychodu, a udziały zostaną przeliczone.</string>
     <string name="receive_awaited_title">Otrzymana zapłata</string>
     <string name="received_by">Kto otrzymał</string>
-    <string name="receive_awaited_hint">Najwyżej %1$s. Reszta dalej czeka na zapłatę.</string>
+    <string name="receive_awaited_hint">Część? Najpierw zmień kwotę zapłaty.</string>
+    <string name="receive_awaited_whole">Otrzymane w całości: %1$s</string>
+    <string name="vat_summary">netto %1$s · VAT %2$d %</string>
     <string name="total_awaited">w tym jeszcze niezapłacone</string>
     <string name="share_awaited">Jeszcze niezapłacone: %1$s</string>
     <string name="status_awaiting">Czeka na zapłatę</string>
