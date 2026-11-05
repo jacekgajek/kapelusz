@@ -112,7 +112,7 @@ class EventViewModelTest :
             val screen = EventViewModel("gig", repository.state)
             screen.details.shouldBeNull()
 
-            screen.editDetails(band(repository).event("gig")!!, band(repository))
+            screen.editDetails()
             screen.details.shouldNotBeNull().opened.id shouldBe "gig"
 
             screen.dismissDetails()

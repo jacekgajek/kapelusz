@@ -282,7 +282,7 @@ fun EventScreen(
                             item(key = section.name) {
                                 when (section) {
                                     EventSection.WHEN -> {
-                                        val edit = { screen.editDetails(event, state.band) }
+                                        val edit = { screen.editDetails() }
                                         WhenAndWhere(context, onEdit = edit.takeIf { context.can.editEvent(event) })
                                     }
 

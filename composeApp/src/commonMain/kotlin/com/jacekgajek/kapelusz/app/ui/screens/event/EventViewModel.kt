@@ -25,10 +25,6 @@ import kotlinx.coroutines.launch
 class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Carry? = null) : ViewModel() {
     private var ready by mutableStateOf(bands.value as? BandState.Ready)
 
-    init {
-        viewModelScope.launch { bands.collect { ready = it as? BandState.Ready } }
-    }
-
     /** Artists see only their own events and pages. */
     val artist: Boolean by derivedStateOf { ready?.let { it.band.isArtist(it.userId) } ?: false }
 
@@ -47,12 +43,26 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Ca
     var details by mutableStateOf<EventDetailsForm?>(null)
         private set
 
-    fun editDetails(event: Event, band: Band) {
+    /** Opens the editor on the event as it is now; nothing when it is gone. */
+    fun editDetails() {
+        val event = event ?: return
+        val band = ready?.band ?: return
         details = EventDetailsForm(event, band)
     }
 
     fun dismissDetails() {
         details = null
+    }
+
+    // After the cells above: the collector reads them, and runs at once under an unconfined dispatcher.
+    init {
+        viewModelScope.launch {
+            bands.collect {
+                ready = it as? BandState.Ready
+                // Gone meanwhile (deleted, hidden from an artist): the editor would reopen on a stale event.
+                if (event == null) details = null
+            }
+        }
     }
 
     /** The dialogs over the collected money. */

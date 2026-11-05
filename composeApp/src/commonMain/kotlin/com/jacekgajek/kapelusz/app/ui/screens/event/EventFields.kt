@@ -67,6 +67,7 @@ import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.effectiveAgendaTemplate
 import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.text.Places
 import kotlinx.coroutines.delay
@@ -109,6 +110,12 @@ data class EventFieldsState(
     val location: String,
     val agenda: List<AgendaTime>,
 )
+
+/** The band's agenda template as an event's times, all unset: for a new event, or one from before agenda times. */
+fun templateAgenda(band: Band): List<AgendaTime> {
+    val template = band.effectiveAgendaTemplate
+    return template.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) }
+}
 
 /**
  * The fields of the create and edit dialogs: name, date, location with Paste from Maps, and

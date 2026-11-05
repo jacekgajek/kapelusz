@@ -27,17 +27,11 @@ class EventDetailsForm(val opened: Event, band: Band) {
             name = opened.name,
             date = opened.date,
             location = opened.location.orEmpty(),
-            agenda = opened.agenda.ifEmpty { fromTemplate(band) },
+            agenda = opened.agenda.ifEmpty { templateAgenda(band) },
         ),
     )
 
     val ready: Boolean by derivedStateOf { fields.name.isNotBlank() }
-
-    /** The band's template, all unset: for an event from before agenda times. */
-    private fun fromTemplate(band: Band): List<AgendaTime> {
-        val template = band.effectiveAgendaTemplate
-        return template.map { AgendaTime(newId(), it.kind, it.label, fromTemplate = true) }
-    }
 
     /**
      * What Save sends: the details that changed, then the agenda if it did. Template rows that got no time are not a
@@ -53,7 +47,7 @@ class EventDetailsForm(val opened: Event, band: Band) {
         val agenda = fields.agenda
         val agendaChanged = agenda != opened.agenda && !(opened.agenda.isEmpty() && agenda.all { it.time == null })
         return listOfNotNull(
-            update.takeIf { listOf(it.name, it.date, it.location).any { change -> change != null } },
+            update.takeIf { it != UpdateEvent(opened.id) },
             SetEventAgenda(opened.id, agenda).takeIf { agendaChanged },
         )
     }
