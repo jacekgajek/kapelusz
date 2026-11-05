@@ -40,13 +40,14 @@ class IntentInboxTest :
             withClue("files handed to a form earlier must not turn up there later") { inbox.takeCarry(forgotten).shouldBeNull() }
         }
 
-        expect("signing out drops what was resolved for the user and keeps links") {
+        expect("signing out drops what was resolved for the user and their shared files, and keeps links") {
             val inbox = IntentInbox()
             val resolved = AppIntent.OpenEvent("e2", bandId = "b1", section = EventSection.FILES)
             val held = inbox.hold(Carry.NewCollected(emptyList()))
             listOf(join, resolved, share).forEach(inbox::offer)
+
             inbox.signedOut()
-            inbox.pending.value shouldBe listOf(join, share)
+            withClue("the files are the one who shared them's, not the next user's") { inbox.pending.value shouldBe listOf(join) }
             inbox.takeCarry(held).shouldBeNull()
             val later = IntentInbox()
             later.offer(link)
