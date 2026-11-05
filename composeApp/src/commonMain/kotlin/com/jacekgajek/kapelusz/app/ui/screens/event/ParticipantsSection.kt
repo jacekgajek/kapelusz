@@ -21,7 +21,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +61,7 @@ import com.jacekgajek.kapelusz.app.ui.components.RemoveButton
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.ShareEditor
 import com.jacekgajek.kapelusz.app.ui.components.ShareMode
+import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.formerMemberNamed
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.rememberShareEditorState
@@ -78,7 +78,6 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddParticipant
-import com.jacekgajek.kapelusz.ops.ChangeLineup
 import com.jacekgajek.kapelusz.ops.RemoveParticipant
 import com.jacekgajek.kapelusz.ops.SetFixedShare
 import com.jacekgajek.kapelusz.ops.SetWeight
@@ -96,7 +95,6 @@ fun ParticipantsSection(context: EventContext) {
     var dialog by remember { mutableStateOf<ParticipantsDialog?>(null) }
     // Who may invite members without the app.
     val canInvite = context.can.manageRoster()
-    var copying by remember { mutableStateOf<ChangeLineup?>(null) }
     // Members, then guests, each alphabetical.
     val order = SettlementCalculator.partyOrder(band, event)
     val crowded = order.size > Crowd.THRESHOLD
@@ -177,7 +175,10 @@ fun ParticipantsSection(context: EventContext) {
     when (val open = dialog) {
         ParticipantsDialog.ChoosingSource -> StartFromDialog(context, onDismiss = { dialog = null }) { source ->
             dialog = null
-            copying = Lineup.change(band, event, Lineup.startFrom(band, event, source) { newId() })
+            // Nothing to change (null): nothing to run.
+            Lineup.change(band, event, Lineup.startFrom(band, event, source) { newId() })?.let { op ->
+                context.actions.runWithUndo(op, UiMessage.Text(Res.string.lineup_changed, listOf(op.add.size, op.remove.size)))
+            }
         }
 
         ParticipantsDialog.Picking -> LineupPicker(context, readOnly = !canManage, onDismiss = { dialog = null })
@@ -194,14 +195,6 @@ fun ParticipantsSection(context: EventContext) {
         }
 
         null -> Unit
-    }
-    // Applied at once, with Undo (its message needs the counts, hence here rather than in the click).
-    copying?.let { op ->
-        val message = stringResource(Res.string.lineup_changed, op.add.size, op.remove.size)
-        LaunchedEffect(op) {
-            context.actions.runWithUndo(op, message)
-            copying = null
-        }
     }
 }
 
