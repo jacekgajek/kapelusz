@@ -294,7 +294,7 @@ fun EventScreen(
 
                                     EventSection.TOTALS -> Totals(context)
 
-                                    EventSection.COLLECTED -> CollectedSection(context)
+                                    EventSection.COLLECTED -> CollectedSection(context, screen.collected)
 
                                     EventSection.REFUNDS -> RefundsSection(context, onAddCost = { onAddCost(eventId) }, onOpenCost = onOpenCost)
 
