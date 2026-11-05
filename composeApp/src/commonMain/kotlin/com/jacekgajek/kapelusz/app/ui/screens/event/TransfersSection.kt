@@ -76,7 +76,6 @@ import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
 import com.jacekgajek.kapelusz.app.ui.components.TransferParties
 import com.jacekgajek.kapelusz.app.ui.components.UiMessage
 import com.jacekgajek.kapelusz.app.ui.components.language
-import com.jacekgajek.kapelusz.app.ui.components.parseMoney
 import com.jacekgajek.kapelusz.app.ui.components.payeeName
 import com.jacekgajek.kapelusz.app.ui.components.resolved
 import com.jacekgajek.kapelusz.app.ui.components.settleLabel
@@ -84,7 +83,6 @@ import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.format.formatMoneyInput
 import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
@@ -99,10 +97,11 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
+fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?, dialogs: TransfersDialogs) {
     val event = context.event
     val settlement = context.settlement
-    var dialog by remember { mutableStateOf<TransfersDialog?>(null) }
+    val lang = language
+    val amountText: (Money) -> String = { formatMoneyInput(it, lang) }
 
     if (settlement.canSettle && settlement.suggestions.isNotEmpty()) {
         SectionTitle(stringResource(Res.string.to_settle))
@@ -129,7 +128,8 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
     }
     val canHandOver = handOverOf(context).senders.isNotEmpty()
     if (canHandOver && event.holdings.isNotEmpty() && settlement.status != EventStatus.SETTLED) {
-        OutlinedButton(onClick = { dialog = TransfersDialog.HandingOver }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        val handOver = { dialogs.handOver(handOverOf(context), context.me?.id, amountText) }
+        OutlinedButton(onClick = handOver, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Icon(Icons.Default.SwapHoriz, null)
             Text(stringResource(Res.string.hand_over), Modifier.padding(start = 8.dp))
         }
@@ -145,7 +145,7 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
     if (event.transfers.isNotEmpty() && showRecorded) {
         val fundLabel = stringResource(Res.string.band_fund)
         event.transfers.forEach { transfer ->
-            val remove = { dialog = TransfersDialog.Removing(transfer) }
+            val remove = { dialogs.remove(transfer) }
             val removable = context.can.removeTransfer(event, transfer)
             Row(
                 Modifier.fillMaxWidth().clickable(enabled = removable, onClick = remove).padding(vertical = 8.dp),
@@ -163,11 +163,12 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
         }
     }
 
-    when (val open = dialog) {
-        TransfersDialog.HandingOver -> HandOverDialog(context, onDismiss = { dialog = null })
+    when (val open = dialogs.open) {
+        is TransfersDialog.HandingOver -> HandOverDialog(context, open.form, onDismiss = dialogs::dismiss)
 
         is TransfersDialog.Removing -> {
-            val transfer = open.transfer
+            // Removed meanwhile (e.g. on another phone): nothing left to remove.
+            val transfer = resolved(event.transfers.firstOrNull { it.id == open.transfer.id }, dialogs::dismiss) ?: return
             val fundLabel = stringResource(Res.string.band_fund)
             ConfirmDialog(
                 title = stringResource(Res.string.remove_transfer_title),
@@ -179,18 +180,12 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?) {
                 ),
                 confirmLabel = stringResource(Res.string.remove),
                 onConfirm = { context.actions.run(RemoveTransfer(event.id, transfer.id)) },
-                onDismiss = { dialog = null },
+                onDismiss = dialogs::dismiss,
             )
         }
 
         null -> Unit
     }
-}
-
-/** What is open over the transfers: one at a time. */
-private sealed interface TransfersDialog {
-    data object HandingOver : TransfersDialog
-    data class Removing(val transfer: Transfer) : TransfersDialog
 }
 
 @Composable
@@ -278,24 +273,14 @@ private fun handOverOf(context: EventContext) = HandOver(context.view, context.e
 
 /** Manual transfer, e.g. one holder handing all collected money to another who then pays everyone. */
 @Composable
-private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
+private fun HandOverDialog(context: EventContext, form: HandOverForm, onDismiss: () -> Unit) {
     val event = context.event
-    val settlement = context.settlement
     val fundLabel = stringResource(Res.string.band_fund)
-    val handOver = handOverOf(context)
-    val senders = handOver.senders
     val lang = language
-    val defaultFrom = context.me?.id?.takeIf { it in senders } ?: senders.firstOrNull()
-    // A sync may have left nobody to hand over from or to (e.g. the user was removed from the event).
-    val defaults = defaultFrom?.let { from -> handOver.recipients(from).firstOrNull()?.let { from to it } }
-    val (firstFrom, firstTo) = resolved(defaults, onDismiss) ?: return
-    var from by remember { mutableStateOf(firstFrom) }
-    var to by remember { mutableStateOf(firstTo) }
-    var amount by remember { mutableStateOf(handOver.amount(from).takeIf { it.isPositive }?.let { formatMoneyInput(it, lang) } ?: "") }
-    var note by remember { mutableStateOf("") }
-    // At most what the sender holds (an artist: owes back): a hand-over passes on money, it doesn't make any up.
-    val held = handOver.amount(from)
-    val parsed = parseMoney(amount)?.takeIf { it.isPositive && it <= held }
+    // A sync may have left nobody to hand over from (e.g. the user was removed from the event).
+    // Gone meanwhile (the sender left the event, or holds nothing now): nothing left to hand over.
+    val live = handOverOf(context)
+    resolved(live.amount(form.from).takeIf { it.isPositive }, onDismiss) ?: return
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -303,37 +288,45 @@ private fun HandOverDialog(context: EventContext, onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.hand_over_hint), style = MaterialTheme.typography.bodySmall)
-                Dropdown(from, senders, {
-                    from = it
-                    if (to !in handOver.recipients(it)) to = handOver.recipients(it).firstOrNull() ?: to
-                    handOver.amount(it).takeIf { held -> held.isPositive }?.let { held -> amount = formatMoneyInput(held, lang) }
-                }, stringResource(Res.string.hand_over_from)) { partyName(context.band, event, it, fundLabel) }
-                Dropdown(to, handOver.recipients(from), { to = it }, stringResource(Res.string.hand_over_to)) {
+                Dropdown(form.from, form.senders, { form.sender(it) }, stringResource(Res.string.hand_over_from)) {
+                    partyName(context.band, event, it, fundLabel)
+                }
+                Dropdown(form.to, form.recipients, { form.to = it }, stringResource(Res.string.hand_over_to)) {
                     partyName(context.band, event, it, fundLabel)
                 }
                 // The recipient's BLIK number and account, if given, when the user hands over their own money.
-                Payees.forHandOver(context.band, to).firstOrNull()?.takeIf { BlikPhone.pays(context.band, null, context.me?.id, from) }?.let { payee ->
+                val pays = BlikPhone.pays(context.band, null, context.me?.id, form.from)
+                Payees.forHandOver(context.band, form.to).firstOrNull()?.takeIf { pays }?.let { payee ->
                     PaymentKind.entries.forEach { kind -> PaymentRow(kind, stringResource(kind.title), kind.of(payee), payeeName(payee)) }
                 }
-                MoneyField(amount, { amount = it }, stringResource(Res.string.amount))
-                Text(stringResource(Res.string.hand_over_max, formatMoney(held, context.currency, lang)), style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(note, { note = it }, label = { Text(stringResource(Res.string.note_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                MoneyField(form.amount.grossText, { form.amount.typeGross(it) }, stringResource(Res.string.amount))
+                val max = formatMoney(form.held, context.currency, lang)
+                Text(stringResource(Res.string.hand_over_max, max), style = MaterialTheme.typography.bodySmall)
+                val noteLabel = stringResource(Res.string.note_optional)
+                OutlinedTextField(
+                    form.note,
+                    { form.note = it },
+                    label = { Text(noteLabel) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 DialogNotice(context.actions)
             }
         },
         confirmButton = {
-            TextButton(enabled = parsed != null && from != to, onClick = {
+            TextButton(enabled = form.ready, onClick = {
+                val op = form.operation()
                 // Recorded with Undo in the snackbar, as Settle is.
                 val recorded = UiMessage.Text(
                     Res.string.transfer_recorded,
                     listOf(
-                        partyName(context.band, event, from, fundLabel),
-                        partyName(context.band, event, to, fundLabel),
-                        formatMoney(parsed!!, context.currency, lang),
+                        partyName(context.band, event, op.from, fundLabel),
+                        partyName(context.band, event, op.to, fundLabel),
+                        formatMoney(op.amount, context.currency, lang),
                     ),
                 )
                 onDismiss()
-                context.actions.runWithUndo(RecordTransfer(event.id, newId(), from, to, parsed, note.ifBlank { null }), recorded)
+                context.actions.runWithUndo(op, recorded)
             }) { Text(stringResource(Res.string.hand_over)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
