@@ -21,13 +21,17 @@ import com.jacekgajek.kapelusz.ops.SetMemberRole
 import com.jacekgajek.kapelusz.ops.Undo
 import com.jacekgajek.kapelusz.ops.UnlinkUser
 import com.jacekgajek.kapelusz.server.auth.VerifiedUser
+import com.jacekgajek.kapelusz.server.invites.Invites
 import com.jacekgajek.kapelusz.server.store.BlobStore
+import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
 import com.jacekgajek.kapelusz.server.store.InMemoryHistoryStore
 import com.jacekgajek.kapelusz.server.store.InviteCodes
 import com.jacekgajek.kapelusz.server.store.JoinAttempts
+import com.jacekgajek.kapelusz.server.store.PreconditionFailed
 import com.jacekgajek.kapelusz.server.store.StorageKeys
 import com.jacekgajek.kapelusz.server.store.StoredInvite
 import com.jacekgajek.kapelusz.server.store.joinAttempts
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -379,5 +383,25 @@ class InviteAndHistoryTest :
             )) {
                 withClue(bad) { Api.isGooglePhoto(bad) shouldBe false }
             }
+        }
+    })
+
+/** A store where the band's list of invite codes always changes meanwhile, so updating it runs out of attempts. */
+private class ContestedCodesStore(private val inner: BlobStore) : BlobStore by inner {
+    override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String {
+        if (key == StorageKeys.bandInvites("band")) throw PreconditionFailed()
+        return inner.put(key, content, ifMatch, ifNoneMatch)
+    }
+}
+
+class InviteCreateFailureTest :
+    ExpectSpec({
+
+        expect("a create that cannot list its code leaves no invite behind") {
+            val inner = InMemoryBlobStore()
+            val invites = Invites(ContestedCodesStore(inner)) { 1_000 }
+            shouldThrow<ApiError> { invites.create("band", "m-bob", Role.MEMBER, "alice") }.status shouldBe 409
+            invites.loadCodes("band").shouldBeEmpty()
+            inner.list(StorageKeys.invite("")).shouldBeEmpty()
         }
     })
