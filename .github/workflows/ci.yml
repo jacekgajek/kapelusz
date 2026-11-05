@@ -37,7 +37,9 @@ jobs:
 
   deploy:
     needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Paused for the refactoring series (2026-11-05): nothing ships from main until it is done.
+    # Restore: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
