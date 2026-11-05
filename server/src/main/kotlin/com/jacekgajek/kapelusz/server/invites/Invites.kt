@@ -36,7 +36,11 @@ internal class Invites(private val store: BlobStore, private val clock: () -> Lo
             store.put(StorageKeys.invite(info.code), encode(StoredInvite.serializer(), StoredInvite(info, createdBy)), ifNoneMatch = true)
             info
         }
-        updateCodes(bandId) { it + info.code }
+        // An invite that is not listed cannot be revoked, so a failed create leaves none, whatever failed; the delete
+        // may fail too, and then the first failure is still the one to report.
+        runCatching { updateCodes(bandId) { it + info.code } }
+            .onFailure { runCatching { store.delete(StorageKeys.invite(info.code)) } }
+            .getOrThrow()
         return info
     }
 
