@@ -5,7 +5,8 @@ fixes it or a decision that it stays. Grouped by module, ordered by priority wit
 see. File pointers are to the code as it is today and will drift; the symbol names are the stable part.
 
 Priorities: **P1** data lost or money wrong · **P2** a failure a user meets · **P3** a silent misbehaviour or a risk
-to reliability · **P4** performance · **P5** cosmetic, hygiene, tests.
+to reliability · **P4** performance · **P5** cosmetic, hygiene, tests. 🌊 marks an obscure sync edge case: it needs a
+sync or a second device to land at the wrong moment (DECISIONS.md 13).
 
 Noticed during the refactoring of 2026-10-31 and left alone on purpose (REFACTORING.md, decision 12). Re-checked on
 2026-11-05 after the post-refactoring series (PRs #190–#194): all 59 hold; one moved with the event editor's form, four
@@ -21,7 +22,7 @@ of P1–P2 unless money is wrong.
    `RosterScreen.kt` (the add-member dialog) + `AttachmentsSection.kt` (the rename dialog): a refused `AddMember` or
    rename loses the typed text. A snackbar says why, and a taken name is blocked before the dialog closes; other
    refusals (permissions, a change made meanwhile) still lose it.
-3. **P2** ⚠ `CostViewModel.kt` (`takeOnlyPayer`, `canSave`; `pruneEvent` prunes only the event): nothing prunes
+3. **P2** ⚠ 🌊 `CostViewModel.kt` (`takeOnlyPayer`, `canSave`; `pruneEvent` prunes only the event): nothing prunes
    `payerId` when the payer list shrinks; a payer no longer offered stays selected and `AddCost` is sent for them
    (shown refused). Blank only if the member is gone.
 4. **P3** `event/HistorySection.kt` passes `context.me?.userId.orEmpty()` where the band history passes
@@ -46,7 +47,7 @@ of P1–P2 unless money is wrong.
 11. **P5** `event/EventScreen.kt` (`tabs.associateWith { rememberLazyListState() }`): a composable called in a loop.
     Harmless today, as an artist's tab list is a prefix of the full one, but fragile if tabs are ever reordered or
     inserted.
-12. **P5** `AttachmentsSection.kt`: `viewable` computed twice (the tap index from one snapshot, the viewer list from
+12. **P5** 🌊 `AttachmentsSection.kt`: `viewable` computed twice (the tap index from one snapshot, the viewer list from
     the next); a wrong index needs a sync landing between tap and recomposition, so low impact.
 13. **P5** `components/WebInstallHint.kt` (`dismissedThisVisit`): process-global state that survives sign-out;
     cleared when the event list opens, so visible only between a sign-out and the next sign-in.
@@ -69,7 +70,7 @@ of P1–P2 unless money is wrong.
 5. **P3** `bands/EventLinkOpener.kt` (`sync.syncAll()`) + `sync/SyncEngine.kt` (`backgroundShown`): the foreground
    event-link flow hides `NEEDS_SIGN_IN`, returns false, and `IntentRouter` shows "offline" instead of "sign in
    again"; the loop is not blocked either, as `syncAll` sends `RoundDone` only for `UPDATE_REQUIRED`.
-6. **P3** `sync/SyncEngine.kt` (`bandChanged`: a bare `scope.launch` with no `Job`): `stop()` cancels only
+6. **P3** 🌊 `sync/SyncEngine.kt` (`bandChanged`: a bare `scope.launch` with no `Job`): `stop()` cancels only
    `roundJob`, so a message arriving just before `onBackground` runs a round with the Android app off screen.
 7. **P3** `androidMain/.../sync/SyncMessaging.android.kt` (`onNewToken` → `AndroidAppRuntime.get`) +
    `devices/DeviceRegistration.kt` (gated on a user and bands): in a process the service just created, the session
@@ -91,14 +92,14 @@ of P1–P2 unless money is wrong.
 1. **P2** ⚠ `settlement/SettleTogether.kt` (`split`: the leftover goes to the first non-artist, index 0 when both are
    artists): `validateArtistsPaid` (`engine/TransferReducer.kt`) then refuses the whole transfer; a pair of two
    artists can never settle a surplus (`canPair` allows two artists).
-2. **P3** ⚠ `settlement/SettleTogether.kt` (`tidy`, `keepsInvite`: an invitation stays only if the invitee has exactly
+2. **P3** ⚠ 🌊 `settlement/SettleTogether.kt` (`tidy`, `keepsInvite`: an invitation stays only if the invitee has exactly
    one): two concurrent invitations to the same person cancel both silently.
 3. **P3** `engine/Reducer.kt` (the `updatedAt` stamp for every op with an `eventId`, no change check) +
    `engine/Undo.kt` (compares the whole event): a no-op operation (e.g. the same weight again, `LineupReducer`) blocks
    a later undo of an earlier change on that event with `CHANGED_SINCE`.
 4. **P3** `settlement/SettleTogether.kt` (`keepSettled`): does not stamp `updatedAt`; the generic stamp in
    `engine/Reducer.kt` covers only the op's own event, and `Undo` never stamps.
-5. **P3** `engine/Engine.kt` (`REMEMBERED_REJECTIONS = 20`, per client): more than 20 rejected ops in one lost
+5. **P3** 🌊 `engine/Engine.kt` (`REMEMBERED_REJECTIONS = 20`, per client): more than 20 rejected ops in one lost
    response come back as plain duplicates with no reason.
 6. **P4** `engine/TransferReducer.kt` (`settleSuggestions`): the event is settled once up front and once per
    suggestion; `settlement/SettlementCalculator.kt`: `parties` computed twice (`mergePairs` inside `settle` and the
@@ -153,7 +154,7 @@ of P1–P2 unless money is wrong.
 14. **P5** `devices/DeviceHandlers.kt` (`register`: `inBand` from `bandIds.isNotEmpty()`, no existence check): a
     stale band id left by a failed `removeBandFromUser` keeps registrations accepted for a user who left their last
     band (the record is otherwise cleaned eagerly).
-15. **P5** `bands/BandChanged.kt` (the sync message before `removeBandFromUser`, intentional): a device that reacts
+15. **P5** 🌊 `bands/BandChanged.kt` (the sync message before `removeBandFromUser`, intentional): a device that reacts
     at once can still ask `GET /me` before the band is gone from the user's list; `UserHandlers.me` filters out bands
     whose member is archived or missing, so the window shows nothing today.
 
