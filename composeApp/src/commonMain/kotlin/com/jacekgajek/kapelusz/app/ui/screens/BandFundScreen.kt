@@ -110,15 +110,11 @@ import com.jacekgajek.kapelusz.app.util.today
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.CostCategory
-import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
-import com.jacekgajek.kapelusz.ops.AddFundEntry
-import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.CostLedger
-import kotlinx.datetime.LocalDate
+import com.jacekgajek.kapelusz.settlement.FundRow
 import org.jetbrains.compose.resources.stringResource
 
 /** The band fund ("Kasa zespołowa"): balance, contributions from events, and manual entries. */
@@ -141,9 +137,9 @@ fun BandFundScreen(
     val messages = rememberMessages()
     val actions = rememberActions(changes, messages, undos = null)
     val can = session.can
-    val canEdit = band.treasurerMemberId != null && can.allowed(AddFundEntry("probe", today(), "probe", Money(1)))
+    val canEdit = can.addFundEntry()
     // Leads only: refunding a cost decides about it; the treasurer records money paid in.
-    val refundsCosts = can.allowed(AddFundEntry("probe", today(), "probe", Money(-1), costId = "probe"))
+    val refundsCosts = can.refundCostFromFund()
     val settings by preferences.settings.collectAsState()
     val lang = language
     // What a refund is called when the cost has no description: its category, else "Cost" (as in the cost lists).
@@ -186,8 +182,7 @@ fun BandFundScreen(
         }
         // One list, by date: events' money first on a day, entries in the order they were added.
         val rows = remember(band, settings.fundOldestFirst) {
-            val all = band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
-                band.fundEntries.map { FundRow.OfEntry(it) }
+            val all = BandFund.allEntries(band)
             val byDate = if (settings.fundOldestFirst) compareBy<FundRow> { it.date } else compareByDescending { it.date }
             // Stable: entries on a day stay in the order they were added.
             all.sortedWith(byDate.thenBy { if (it is FundRow.OfEvent) 0 else 1 })
@@ -258,7 +253,7 @@ fun BandFundScreen(
 
                     is FundRow.OfEntry -> {
                         val entry = row.entry
-                        val editable = canEdit && can.allowed(UpdateFundEntry(entry.id))
+                        val editable = can.editFundEntry(entry)
                         val edit = { entries.edit(band, entry, me, today(), amountText, costName) }
                         Row(
                             Modifier.fillMaxWidth().clickable(enabled = editable, onClick = edit).padding(vertical = 8.dp),
@@ -307,22 +302,6 @@ fun BandFundScreen(
 
 /** An outlined field's label sits above its box: a button beside it moves down by as much, to the box's middle. */
 private val FIELD_LABEL_INSET = 8.dp
-
-/** A row of the band fund's list: an event's money for the fund, or an entry. */
-private sealed interface FundRow {
-    val date: LocalDate
-    val key: String
-
-    data class OfEvent(val event: Event) : FundRow {
-        override val date get() = event.date
-        override val key get() = "event-${event.id}"
-    }
-
-    data class OfEntry(val entry: FundEntry) : FundRow {
-        override val date get() = entry.date
-        override val key get() = "entry-${entry.id}"
-    }
-}
 
 /** The entry dialog over a [FundEntryForm]: fields, the people and cost pickers, Save, Delete for an existing entry. */
 @Composable

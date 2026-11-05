@@ -481,7 +481,7 @@ private fun MemberDialog(
                     HorizontalDivider()
                     InviteSection(form, band, view, invitesFailed, actions)
                 }
-                MemberActions(form, member, band, can, actions)
+                MemberActions(form, member, can, actions)
                 DialogNotice(actions)
             }
         },
@@ -492,7 +492,7 @@ private fun MemberDialog(
 
 /** What a leader may do to a member besides editing: unlink their account, make them the owner, archive, delete. */
 @Composable
-private fun MemberActions(form: MemberForm, member: Member, band: Band, can: Capabilities, actions: Actions) {
+private fun MemberActions(form: MemberForm, member: Member, can: Capabilities, actions: Actions) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val isOwner = member.role == Role.OWNER
         val isMe = form.isMe(member)
@@ -510,7 +510,7 @@ private fun MemberActions(form: MemberForm, member: Member, band: Band, can: Cap
             }
         }
         // Only who left no trace; anyone else is moved to the former members above.
-        if (!isOwner && !isMe && can.allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)) {
+        if (can.deleteMember(member)) {
             TextButton(
                 onClick = { form.ask(MemberQuestion.ConfirmDelete) },
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),

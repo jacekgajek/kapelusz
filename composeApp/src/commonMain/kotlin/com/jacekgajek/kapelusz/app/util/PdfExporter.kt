@@ -21,7 +21,8 @@ import com.jacekgajek.kapelusz.app.generated.collected_empty
 import com.jacekgajek.kapelusz.app.generated.collected_money
 import com.jacekgajek.kapelusz.app.generated.details
 import com.jacekgajek.kapelusz.app.generated.event_files
-import com.jacekgajek.kapelusz.app.generated.fund_balance
+import com.jacekgajek.kapelusz.app.generated.fund_balance_on
+import com.jacekgajek.kapelusz.app.generated.fund_change
 import com.jacekgajek.kapelusz.app.generated.fund_entry_outside
 import com.jacekgajek.kapelusz.app.generated.fund_entry_refund_to
 import com.jacekgajek.kapelusz.app.generated.organiser
@@ -51,16 +52,21 @@ import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.app.ui.text.formatAgendaTime
 import com.jacekgajek.kapelusz.app.ui.text.labelRes
 import com.jacekgajek.kapelusz.app.ui.text.setTimes
+import com.jacekgajek.kapelusz.dateFilter
 import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.settlement.BandFund
+import com.jacekgajek.kapelusz.settlement.FundRow
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import com.jacekgajek.kapelusz.view.BandView
 import com.jacekgajek.kapelusz.view.partyName
+import kotlin.time.Duration.Companion.days
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import org.jetbrains.compose.resources.ResourceEnvironment
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
@@ -74,7 +80,29 @@ object PdfExporter {
     /** Rows a section may have and still be kept on one page: a longer one would not fit and is left to flow on. */
     private const val KEEP_LINES = 25
 
-    class PdfGenerateOptions(val events: Boolean, val bandFund: Boolean, val eventsOnSeparatePages: Boolean)
+    class PdfGenerateOptions(
+        val events: Boolean,
+        val bandFund: Boolean,
+        val eventsOnSeparatePages: Boolean,
+        /** The dates to cover, both inclusive; none for everything. */
+        val from: LocalDate? = null,
+        val to: LocalDate? = null,
+    )
+
+    /** What a report covers: the events and the fund's rows within the dates asked, by date, and the fund's balance over them. */
+    class Export(band: Band, options: PdfGenerateOptions) {
+        val events by lazy { band.events.filter { dateFilter(it.date, options.from, options.to) }.sortedBy { it.date } }
+        val fundRows by lazy { BandFund.allEntries(band).filter { dateFilter(it.date, options.from, options.to) }.sortedBy { it.date } }
+
+        /** In the fund before the period: everything dated before its start; nothing when the report has no start. */
+        val opening: Money by lazy { options.from?.let { BandFund.balance(band, to = it - DatePeriod(days = 1)) } ?: Money.ZERO }
+
+        /** What the period's rows add up to. */
+        val balance: Money by lazy { BandFund.balance(band, options.from, options.to) }
+
+        /** In the fund at the period's end: the opening plus the change, so a row on the last day counts. */
+        val closing: Money by lazy { opening + balance }
+    }
 
     suspend fun generatePdf(
         view: BandView,
@@ -84,6 +112,7 @@ object PdfExporter {
         today: LocalDate,
     ): PdfDocument {
         val text = Texts(environment, language, view.band.currency)
+        val export = Export(view.band, options)
         val report = Report(
             title = text(Res.string.app_name),
             band = view.band.name,
@@ -91,19 +120,20 @@ object PdfExporter {
             eventsTitle = text(Res.string.pdf_events).takeIf { options.events },
             noEvents = text(Res.string.pdf_no_events),
             headings = Headings.of(text),
-            events = if (options.events) view.band.events.sortedBy { it.date }.map { eventPage(view, it, text) } else emptyList(),
+            events = if (options.events) export.events.map { eventPage(view, it, text) } else emptyList(),
             eventsOnSeparatePages = options.eventsOnSeparatePages,
             fundReport = if (options.bandFund) {
+                val closingAmount = text.money(export.closing)
                 FundReport(
                     title = text(Res.string.band_fund),
-                    balanceTitle = text(Res.string.fund_balance),
-                    balance = text.money(BandFund.balance(view.band)),
-                    entries = run {
-                        // What the balance counts: money an event has moved, not a cut it has yet to hand over.
-                        val all = view.band.events.filter { !BandFund.moved(it).isZero }.map { FundRow.OfEvent(it) } +
-                            view.band.fundEntries.map { FundRow.OfEntry(it) }
-                        all.sortedBy { it.date }.map { fundEntryPage(view, it, text) }
+                    // A dated report reads like a statement: the balance before it, its rows, the change, the balance after.
+                    opening = options.from?.let { from ->
+                        val dayBefore = from.minus(DatePeriod(days = 1))
+                        Line(text(Res.string.fund_balance_on, formatDate(dayBefore, language)), amount = text.money(export.opening))
                     },
+                    entries = export.fundRows.map { fundEntryPage(view, it, text) },
+                    change = Line(text(Res.string.fund_change), amount = text.money(export.balance)).takeIf { options.from != null },
+                    closing = Line(text(Res.string.fund_balance_on, formatDate(options.to ?: today, language)), amount = closingAmount),
                 )
             } else {
                 null
@@ -147,17 +177,6 @@ object PdfExporter {
                 date = formatDate(row.date, text.language),
             )
     }
-    private sealed interface FundRow {
-        val date: LocalDate
-
-        data class OfEvent(val event: Event) : FundRow {
-            override val date get() = event.date
-        }
-
-        data class OfEntry(val entry: FundEntry) : FundRow {
-            override val date get() = entry.date
-        }
-    }
 
     private suspend fun eventPage(view: BandView, event: Event, text: Texts): EventPage {
         val band = view.band
@@ -171,6 +190,7 @@ object PdfExporter {
                 shareText(text.environment, text.language, participant.weight, participant.fixedShare, participant.percent, text.currency),
             )
         }
+
         val times = event.setTimes().map { time ->
             val label = time.kind?.let { text(it.labelRes()) } ?: time.label.orEmpty()
             "$label ${formatAgendaTime(time)}"
@@ -266,19 +286,12 @@ object PdfExporter {
                     font = Fonts.bold
                 }
                 spacer(height = 5.dp)
-                row {
-                    weighted(1f) {
-                        text(fund.balanceTitle) {
-                            fontSize = 16.sp
-                        }
-                    }
-                    text(fund.balance) {
-                        fontSize = 16.sp
-                        font = Fonts.bold
-                    }
-                }
+                fund.opening?.let { line(it) }
                 spacer(height = 5.dp)
                 fund.entries.forEachIndexed { index, page -> fundEntry(index, page) }
+                spacer(height = 8.dp)
+                fund.change?.let { line(it) }
+                line(fund.closing, bold = true)
             }
         }
     }
@@ -534,9 +547,12 @@ object PdfExporter {
 
     private class FundReport(
         val title: String,
-        val balanceTitle: String,
-        val balance: String,
+        /** The balance before the period; null for a report without a start. */
+        val opening: Line?,
         val entries: List<FundEntryPage>,
+        /** What the rows add up to; null without a start, when it would only repeat [closing]. */
+        val change: Line?,
+        val closing: Line,
     )
 
     private class FundEntryPage(

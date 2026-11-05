@@ -181,7 +181,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
                         {
                             actions.run(CancelBandDeletion)
                             Unit
-                        }.takeIf { session.can.allowed(CancelBandDeletion) },
+                        }.takeIf { session.can.cancelBandDeletion() },
                     )
                 }
             }
