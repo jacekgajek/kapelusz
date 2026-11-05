@@ -45,6 +45,9 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Ca
     /** The When and where editor. */
     var editing by mutableStateOf(false)
 
+    /** The dialogs over the collected money. */
+    val collected = CollectedDialogs(eventId)
+
     /** Files shared to this event that were attached: shown once in a snackbar with Undo, then forgotten. */
     var attached by mutableStateOf(carry as? Carry.Attached)
         private set

@@ -6,9 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 
 /**
- * Returns [current], what a dialog was opened for as the band has it now; null when a sync took it away meanwhile, and then the dialog
- * closes itself ([onDismiss], once) instead of showing something stale. At the call
- * site: `val cost = resolved(band.cost(id), onDismiss) ?: return`.
+ * Closes a dialog whose subject has disappeared.
+ *
+ * A dialog opens on something the band had at the time, e.g. a cost or a collected entry. A sync while it is open
+ * may remove that thing. The dialog looks it up again on each recomposition and passes the result as [current]:
+ * when it is null, [onDismiss] is called once and the dialog must draw nothing; otherwise it is returned unchanged.
+ *
+ * Usage: `val cost = resolved(band.cost(id), onDismiss) ?: return`
  */
 @Composable
 fun <T : Any> resolved(current: T?, onDismiss: () -> Unit): T? {

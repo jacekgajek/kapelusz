@@ -24,8 +24,11 @@ data object SettleRoute
 data object FundRoute
 
 /**
- * An event; at one of its [section]s when given (e.g. where shared files went, or the refund a cost is in), with what
- * the inbox holds for it under [carryId] (files shared to the app).
+ * The screen of one event.
+ *
+ * [section]: scrolls to that section once when opened, e.g. to Refunds from a cost's screen, or to where files shared
+ * to the app have gone. [carryId]: files shared to the app for this event (a receipt for a new cost, a contract for
+ * received money) wait in the intent inbox under this id; the screen takes them once, when its model is created.
  */
 @Serializable
 @SerialName("event")
