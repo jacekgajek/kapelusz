@@ -48,7 +48,7 @@ data class Event(
     val fund: Money get() = fundPercent?.let { FundCut.ofProfit(it, income - refunds.sumOfMoney { r -> r.amount }) } ?: fundAmount
 
     /** Part of [income] the organiser still owes. */
-    val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.amount }
+    val awaited: Money get() = holdings.filter { it.awaited }.sumOfMoney { it.settled }
 }
 
 /**

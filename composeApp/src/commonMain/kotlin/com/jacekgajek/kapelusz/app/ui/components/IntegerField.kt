@@ -11,16 +11,17 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.integer_invalid
 import org.jetbrains.compose.resources.stringResource
 
-/** A whole, non-negative number, e.g. a VAT rate; marked invalid while [text] is anything else. */
+/** A whole number, e.g. a VAT rate; marked invalid while [text] is invalid or out of range. */
 @Composable
 fun IntegerField(
     text: String,
     onText: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    validRange: IntRange = Int.MIN_VALUE..Int.MAX_VALUE,
 ) {
     val parsed = text.toIntOrNull()
-    val invalid = text.isNotBlank() && (parsed == null || parsed < 0)
+    val invalid = text.isNotBlank() && (parsed == null || parsed !in validRange)
     OutlinedTextField(
         value = text,
         onValueChange = onText,

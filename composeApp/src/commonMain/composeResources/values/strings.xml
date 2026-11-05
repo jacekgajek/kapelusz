@@ -361,7 +361,7 @@
     <string name="received_by">Received by</string>
     <string name="receive_awaited_hint">Part of it: change the fee first.</string>
     <string name="receive_awaited_whole">Received whole: %1$s</string>
-    <string name="vat_summary">net %1$s · VAT %2$d %%</string>
+    <string name="vat_summary">net %1$s · VAT %2$d %</string>
     <string name="total_awaited">of which not paid yet</string>
     <string name="share_awaited">Not paid yet: %1$s</string>
     <string name="status_awaiting">Awaiting payment</string>

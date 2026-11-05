@@ -57,13 +57,13 @@ class AmountEntry(initialGross: Money?, initialVat: Vat?, private val text: (Mon
     fun typeGross(input: String) {
         lastTyped = BaseFigure.GROSS
         grossText = input
-        gross?.let { validGross -> vatRate?.let { v -> netText = text(netOf(validGross, v)) } }
+        derive()
     }
 
     fun typeNet(input: String) {
         lastTyped = BaseFigure.NET
         netText = input
-        net?.let { validNet -> vatRate?.let { v -> grossText = text(grossOf(validNet, v)) } }
+        derive()
     }
 
     /** What was typed, when it is money and more than nothing. */

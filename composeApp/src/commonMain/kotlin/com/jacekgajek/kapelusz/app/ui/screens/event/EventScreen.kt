@@ -142,8 +142,8 @@ class EventContext(
     val currency: String get() = band.currency
     val defaultVat get() = view.band.events
         .sortedByDescending { it.date }
-        .find { it.holdings.any { it.vat != null } }
-        ?.holdings?.find { it.vat != null }?.vat
+        .firstNotNullOfOrNull { it.holdings.find { it.vat != null } }
+        ?.vat
 }
 
 @Composable

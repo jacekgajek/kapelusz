@@ -194,7 +194,7 @@ private fun WelchedDialog(context: EventContext, holding: Holding, onDismiss: ()
     val files = holding.attachments.size
     ConfirmDialog(
         title = stringResource(Res.string.awaited_welched_title),
-        text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.amount, context.currency, language)) +
+        text = stringResource(Res.string.awaited_welched_text, formatMoney(holding.settled, context.currency, language)) +
             // Its files (the contract) go with it, for good.
             files.takeIf { it > 0 }?.let { " " + stringResource(Res.string.delete_files_too, it) }.orEmpty(),
         confirmLabel = stringResource(Res.string.awaited_welched),
@@ -238,9 +238,9 @@ private fun HoldingDialog(context: EventContext, form: HoldingForm, onDismiss: (
                         Choice(VatSplitMode.NET, stringResource(Res.string.vat_split_net)),
                     )
                     SegmentedChoice(splitChoices, amount.split, { amount.split = it })
-                    MoneyField(amount.netText, { amount.typeNet(it) }, stringResource(Res.string.net))
-                    IntegerField(amount.vatText, { amount.typeVat(it) }, stringResource(Res.string.vat_rate))
                     MoneyField(amount.grossText, { amount.typeGross(it) }, stringResource(Res.string.gross))
+                    IntegerField(amount.vatText, { amount.typeVat(it) }, stringResource(Res.string.vat_rate), validRange = 1..100)
+                    MoneyField(amount.netText, { amount.typeNet(it) }, stringResource(Res.string.net))
                 } else {
                     MoneyField(amount.grossText, { amount.typeGross(it) }, stringResource(Res.string.amount))
                 }
@@ -303,7 +303,9 @@ private fun HoldingDialog(context: EventContext, form: HoldingForm, onDismiss: (
     }
 }
 
-/** "Received…" on an awaited fee: who got it, and how much of it. [awaited]: the fee as the band has it now. */
+/**
+ * "Received…" on an awaited fee: who got it.
+ */
 @Composable
 private fun ReceiveDialog(context: EventContext, form: ReceiveForm, awaited: Holding, onDismiss: () -> Unit) {
     val event = context.event
