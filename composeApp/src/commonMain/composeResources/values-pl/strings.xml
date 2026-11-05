@@ -115,6 +115,13 @@
     <string name="attachment_removed">Usunięto %1$s</string>
     <string name="more">Więcej</string>
     <string name="amount">Kwota</string>
+    <string name="vat_mode_net">Netto + VAT</string>
+    <string name="vat_split_gross">Dzielimy brutto</string>
+    <string name="vat_split_net">Dzielimy netto</string>
+    <string name="gross">Brutto</string>
+    <string name="net">Netto</string>
+    <string name="vat_rate">VAT (%)</string>
+    <string name="integer_invalid">Wpisz liczbę całkowitą, np. 23</string>
     <string name="note_optional">Notatka (opcjonalnie)</string>
     <string name="edit_details">Edytuj szczegóły</string>
     <string name="event_not_found">To wydarzenie już nie istnieje.</string>

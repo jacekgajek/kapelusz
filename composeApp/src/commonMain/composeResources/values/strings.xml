@@ -115,6 +115,13 @@
     <string name="attachment_removed">Removed %1$s</string>
     <string name="more">More</string>
     <string name="amount">Amount</string>
+    <string name="vat_mode_net">Net + VAT</string>
+    <string name="vat_split_gross">Split the gross</string>
+    <string name="vat_split_net">Split the net</string>
+    <string name="gross">Gross</string>
+    <string name="net">Net</string>
+    <string name="vat_rate">VAT (%)</string>
+    <string name="integer_invalid">Enter a whole number like 23</string>
     <string name="note_optional">Note (optional)</string>
     <string name="edit_details">Edit details</string>
     <string name="event_not_found">This event no longer exists.</string>

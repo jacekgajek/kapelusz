@@ -61,7 +61,7 @@ class ReceiveFormTest :
             val repository = repository(coroutineTestScope)
             val form = form(repository)
             form.partyId shouldBe me(repository)
-            form.amount.text shouldBe "2000.00"
+            form.amount.grossText shouldBe "2000.00"
             form.ready shouldBe true
 
             form.partyId = "bob"
@@ -82,11 +82,11 @@ class ReceiveFormTest :
             val repository = repository(coroutineTestScope)
             val form = form(repository)
 
-            form.amount.text = "2000.01"
+            form.amount.typeGross("2000.01")
             form.ready shouldBe false
             shouldThrow<IllegalStateException> { form.save(run(repository)) }
 
-            form.amount.text = "0"
+            form.amount.typeGross("0")
             form.ready shouldBe false
         }
 
@@ -94,7 +94,7 @@ class ReceiveFormTest :
             val repository = repository(coroutineTestScope)
             val form = form(repository)
 
-            form.amount.text = "500"
+            form.amount.typeGross("500")
             form.ready shouldBe true
             form.save(run(repository)) shouldBe true
 

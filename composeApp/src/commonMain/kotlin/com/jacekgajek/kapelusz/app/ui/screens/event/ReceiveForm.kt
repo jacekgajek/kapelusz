@@ -26,7 +26,7 @@ class ReceiveForm(
 ) {
     var partyId by mutableStateOf(me?.takeIf { it in parties } ?: parties.first())
 
-    val amount = AmountEntry(awaited.amount, amountText)
+    val amount = AmountEntry(awaited.amount, awaited.vat, amountText)
 
     /** No more than was awaited can come in. */
     val ready: Boolean by derivedStateOf { amount.gross?.let { it <= awaited.amount } ?: false }

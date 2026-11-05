@@ -3,6 +3,7 @@ package com.jacekgajek.kapelusz.ops
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.Vat
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -17,6 +18,8 @@ data class AddHolding(
     val amount: Money,
     val source: IncomeSource,
     val note: String? = null,
+    /** The net and the VAT rate (a whole percent) when [amount] is a gross with VAT in it. */
+    val vat: Vat? = null,
 ) : HoldingOp
 
 /**
@@ -31,6 +34,7 @@ data class ReceiveAwaited(
     val receivedId: Id,
     val partyId: Id,
     val amount: Money,
+    val vat: Vat? = null,
 ) : HoldingOp
 
 @Serializable
@@ -41,6 +45,7 @@ data class UpdateHolding(
     val amount: Change<Money>? = null,
     val source: Change<IncomeSource>? = null,
     val note: Change<String?>? = null,
+    val vat: Change<Vat?>? = null,
 ) : HoldingOp
 
 @Serializable

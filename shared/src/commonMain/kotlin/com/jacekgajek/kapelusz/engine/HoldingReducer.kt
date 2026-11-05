@@ -3,7 +3,6 @@ package com.jacekgajek.kapelusz.engine
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Holding
-import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.ops.AddHolding
@@ -12,6 +11,7 @@ import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.ops.UpdateHolding
 import com.jacekgajek.kapelusz.rules.Artists
+import com.jacekgajek.kapelusz.settlement.VatMath
 
 /** Money received for an event, and fees awaited from the organiser. Pure state transitions and their validation; see [Reducer]. */
 internal object HoldingReducer {
@@ -22,7 +22,18 @@ internal object HoldingReducer {
             invalidIf(op.partyId != ORGANISER && event.participant(op.partyId) == null, RejectionReason.NOT_A_PARTICIPANT) { "Only participants can hold event money" }
             invalidIf(Artists.isArtist(band, op.partyId), RejectionReason.ARTIST_HOLDS_NO_MONEY) { "Artists do not hold event money" }
             validatePositive(op.amount, "Holding amount")
-            event.copy(holdings = event.holdings + Holding(op.holdingId, op.partyId, op.amount, op.source, op.note.blankToNull(), recordedBy = ctx.memberId))
+            invalidIf(op.vat != null && !VatMath.matches(op.amount, op.vat.net, op.vat.rate), RejectionReason.INVALID_AMOUNT) { "Gross, Net and VAT rate don't match" }
+            event.copy(
+                holdings = event.holdings + Holding(
+                    id = op.holdingId,
+                    partyId = op.partyId,
+                    amount = op.amount,
+                    source = op.source,
+                    note = op.note.blankToNull(),
+                    recordedBy = ctx.memberId,
+                    vat = op.vat,
+                ),
+            )
         }
 
         is UpdateHolding -> band.updateEvent(op.eventId) { event ->
@@ -35,6 +46,7 @@ internal object HoldingReducer {
                         amount = op.amount?.value ?: holding.amount,
                         source = op.source?.value ?: holding.source,
                         note = if (op.note != null) op.note.value.blankToNull() else holding.note,
+                        vat = op.vat?.value ?: holding.vat,
                     )
                 },
             )
@@ -55,7 +67,16 @@ internal object HoldingReducer {
             val full = op.amount == awaited.amount
             // Its files (the contract) go with the money once all of it is in.
             // Still the lead's record: who received it can't then remove it, or its contract.
-            val received = Holding(op.receivedId, op.partyId, op.amount, awaited.source, awaited.note, if (full) awaited.attachments else emptyList(), awaited.recordedBy ?: ctx.memberId)
+            val received = Holding(
+                id = op.receivedId,
+                partyId = op.partyId,
+                amount = op.amount,
+                source = awaited.source,
+                note = awaited.note,
+                attachments = if (full) awaited.attachments else emptyList(),
+                recordedBy = awaited.recordedBy ?: ctx.memberId,
+                vat = awaited.vat,
+            )
             val rest = if (full) emptyList() else listOf(awaited.copy(amount = awaited.amount - op.amount))
             event.copy(holdings = event.holdings.flatMap { if (it.id == awaited.id) rest + received else listOf(it) })
         }

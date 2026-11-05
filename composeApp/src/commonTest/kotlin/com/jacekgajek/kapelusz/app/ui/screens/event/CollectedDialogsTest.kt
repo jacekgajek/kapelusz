@@ -85,13 +85,13 @@ class CollectedDialogsTest :
             val text: (Money) -> String = { it.toString() }
             dialogs.addEntry(alice, listOf(alice), text)
             val first = dialogs.open.shouldBeInstanceOf<CollectedDialog.Entry>().form
-            first.amount.text = "150"
+            first.amount.typeGross("150")
 
             val contract = PreparedFile(AttachmentKind.PDF, "contract.pdf", 10, "")
             dialogs.addEntry(alice, listOf(alice), text, drafts = listOf(contract))
             val second = dialogs.open.shouldBeInstanceOf<CollectedDialog.Entry>().form
             second shouldNotBe first
             second.drafts shouldBe listOf(contract)
-            withClue("what was typed before does not carry over") { second.amount.text shouldBe "" }
+            withClue("what was typed before does not carry over") { second.amount.grossText shouldBe "" }
         }
     })

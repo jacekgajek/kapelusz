@@ -41,6 +41,8 @@ import com.jacekgajek.kapelusz.app.generated.collected_money
 import com.jacekgajek.kapelusz.app.generated.delete
 import com.jacekgajek.kapelusz.app.generated.delete_entry_title
 import com.jacekgajek.kapelusz.app.generated.delete_files_too
+import com.jacekgajek.kapelusz.app.generated.gross
+import com.jacekgajek.kapelusz.app.generated.net
 import com.jacekgajek.kapelusz.app.generated.note_optional
 import com.jacekgajek.kapelusz.app.generated.organiser
 import com.jacekgajek.kapelusz.app.generated.receive_awaited
@@ -49,14 +51,22 @@ import com.jacekgajek.kapelusz.app.generated.receive_awaited_title
 import com.jacekgajek.kapelusz.app.generated.received_by
 import com.jacekgajek.kapelusz.app.generated.save
 import com.jacekgajek.kapelusz.app.generated.source
+import com.jacekgajek.kapelusz.app.generated.vat_mode_net
+import com.jacekgajek.kapelusz.app.generated.vat_rate
+import com.jacekgajek.kapelusz.app.generated.vat_split_gross
+import com.jacekgajek.kapelusz.app.generated.vat_split_net
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
+import com.jacekgajek.kapelusz.app.ui.components.Choice
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
 import com.jacekgajek.kapelusz.app.ui.components.DialogNotice
 import com.jacekgajek.kapelusz.app.ui.components.Dropdown
 import com.jacekgajek.kapelusz.app.ui.components.EditButton
+import com.jacekgajek.kapelusz.app.ui.components.IntegerField
+import com.jacekgajek.kapelusz.app.ui.components.LocalCurrency
 import com.jacekgajek.kapelusz.app.ui.components.MoneyField
 import com.jacekgajek.kapelusz.app.ui.components.MoneyText
 import com.jacekgajek.kapelusz.app.ui.components.SectionTitle
+import com.jacekgajek.kapelusz.app.ui.components.SegmentedChoice
 import com.jacekgajek.kapelusz.app.ui.components.label
 import com.jacekgajek.kapelusz.app.ui.components.language
 import com.jacekgajek.kapelusz.app.ui.components.resolved
@@ -67,6 +77,7 @@ import com.jacekgajek.kapelusz.model.AttachmentOwner
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
+import com.jacekgajek.kapelusz.model.VatSplitMode
 import com.jacekgajek.kapelusz.ops.RemoveHolding
 import com.jacekgajek.kapelusz.view.partyName
 import org.jetbrains.compose.resources.stringResource
@@ -99,9 +110,21 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
                     color = if (holding.awaited) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                 )
             }
-            MoneyText(holding.amount)
+
+            holding.vat?.let { vat ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    listOf(
+                        stringResource(Res.string.gross),
+                        formatMoney(holding.amount, LocalCurrency.current, language),
+                        stringResource(Res.string.net),
+                        formatMoney(vat.net, LocalCurrency.current, language),
+                        stringResource(Res.string.vat_rate), vat.rate.toString()
+                    ).joinToString(" · ")
+                }
+            } ?: MoneyText(holding.amount)
             if (context.can.editHolding(event, holding)) EditButton(onClick = edit)
         }
+
         // A fee the organiser still owes: paid (whoever got it takes it over), or never paid (it goes).
         // Laid out like Refund here under a waiting cost.
         if (holding.awaited && receiveParties.isNotEmpty()) {
@@ -208,8 +231,26 @@ private fun HoldingDialog(context: EventContext, form: HoldingForm, onDismiss: (
                         partyName(context.band, event, it, "")
                     }
                 }
-                MoneyField(form.amount.text, { form.amount.text = it }, stringResource(Res.string.amount))
+                val amount = form.amount
+                val vatModeChoices = listOf(
+                    Choice(false, stringResource(Res.string.amount)),
+                    Choice(true, stringResource(Res.string.vat_mode_net)),
+                )
+                SegmentedChoice(vatModeChoices, amount.withVat, { amount.withVat = it })
+                if (amount.withVat) {
+                    val splitChoices = listOf(
+                        Choice(VatSplitMode.GROSS, stringResource(Res.string.vat_split_gross)),
+                        Choice(VatSplitMode.NET, stringResource(Res.string.vat_split_net)),
+                    )
+                    SegmentedChoice(splitChoices, amount.split, { amount.split = it })
+                    MoneyField(amount.grossText, { amount.typeGross(it) }, stringResource(Res.string.gross))
+                    MoneyField(amount.netText, { amount.typeNet(it) }, stringResource(Res.string.net))
+                    IntegerField(amount.vatText, { amount.typeVat(it) }, stringResource(Res.string.vat_rate))
+                } else {
+                    MoneyField(amount.grossText, { amount.typeGross(it) }, stringResource(Res.string.amount))
+                }
                 Dropdown(form.source, IncomeSource.entries, { form.source = it }, stringResource(Res.string.source)) { it.label() }
+
                 OutlinedTextField(
                     form.note,
                     { form.note = it },
@@ -280,7 +321,7 @@ private fun ReceiveDialog(context: EventContext, form: ReceiveForm, awaited: Hol
                 Dropdown(form.partyId, form.parties, { form.partyId = it }, stringResource(Res.string.received_by)) {
                     partyName(context.band, event, it, fund)
                 }
-                MoneyField(form.amount.text, { form.amount.text = it }, stringResource(Res.string.amount))
+                MoneyField(form.amount.grossText, { form.amount.typeGross(it) }, stringResource(Res.string.amount))
                 val of = formatMoney(awaited.amount, context.currency, language)
                 Text(stringResource(Res.string.receive_awaited_hint, of), style = MaterialTheme.typography.bodySmall)
                 DialogNotice(context.actions)

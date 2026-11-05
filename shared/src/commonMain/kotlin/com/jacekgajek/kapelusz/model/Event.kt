@@ -153,13 +153,24 @@ data class Holding(
     val attachments: List<Attachment> = emptyList(),
     /** Who recorded it; for an awaited fee ([ORGANISER]), the lead reminded to chase it. */
     val recordedBy: Id? = null,
+    /** The net and the VAT rate (a whole percent) when [amount] is a gross with VAT in it. */
+    val vat: Vat? = null,
 ) {
     val awaited: Boolean get() = partyId == ORGANISER
+}
+
+@Serializable
+enum class VatSplitMode {
+    GROSS,
+    NET,
 }
 
 /** Part of a cost repaid out of this event's income. At most one per cost per event. */
 @Serializable
 data class Refund(val costId: Id, val amount: Money)
+
+@Serializable
+data class Vat(val net: Money, val rate: Int, val split: VatSplitMode)
 
 /** Money handed from one party to another; [from]/[to] are participant ids or [BAND_FUND]. */
 @Serializable

@@ -36,7 +36,7 @@ class HoldingForm(
 
     var partyId by mutableStateOf(defaultParty)
 
-    val amount = AmountEntry(initial?.amount, amountText)
+    val amount = AmountEntry(initial?.amount, initial?.vat, amountText)
     var source by mutableStateOf(initial?.source ?: if (defaultParty == ORGANISER) IncomeSource.CONTRACT else IncomeSource.HAT)
     var note by mutableStateOf(initial?.note.orEmpty())
 
@@ -49,7 +49,7 @@ class HoldingForm(
     /** The holder is chosen only for a new entry by a participant: the awaited fee is the organiser's. */
     val choosesParty: Boolean get() = isNew && partyId != ORGANISER
 
-    val ready: Boolean by derivedStateOf { amount.gross != null }
+    val ready: Boolean by derivedStateOf { amount.valid }
 
     /**
      * Saves with [run] (true when it went through): a new entry, then its [drafts] with [attach]; or only the
@@ -57,11 +57,12 @@ class HoldingForm(
      */
     fun save(run: (Operation) -> Boolean, attach: (holdingId: String, List<PreparedFile>) -> Unit): Boolean {
         val gross = amount.gross
-        check(gross != null) { "Save is offered only when the form is ready" }
+        check(gross != null && amount.valid) { "Save is offered only when the form is ready" }
         val initial = initial
+        val vat = amount.vat
         return if (initial == null) {
             val id = newId()
-            val ok = run(AddHolding(eventId, id, partyId, gross, source, note.ifBlank { null }))
+            val ok = run(AddHolding(eventId, id, partyId, gross, source, note.ifBlank { null }, vat = vat))
             if (ok) attach(id, drafts)
             ok
         } else {

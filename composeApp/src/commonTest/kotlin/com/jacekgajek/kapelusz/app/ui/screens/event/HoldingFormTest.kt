@@ -83,7 +83,7 @@ class HoldingFormTest :
             form.source shouldBe IncomeSource.HAT
             form.ready shouldBe false
 
-            form.amount.text = "150"
+            form.amount.typeGross("150")
             form.ready shouldBe true
 
             form.partyId = "bob"
@@ -106,7 +106,7 @@ class HoldingFormTest :
             form.choosesParty shouldBe false
             form.source shouldBe IncomeSource.CONTRACT
 
-            form.amount.text = "2000"
+            form.amount.typeGross("2000")
             form.save(run(repository), Attached().attach) shouldBe true
             holding(repository).awaited shouldBe true
         }
@@ -119,7 +119,7 @@ class HoldingFormTest :
         expect("a refusal keeps the files for a retry") {
             val repository = repository(coroutineTestScope)
             val form = form(repository, drafts = listOf(PreparedFile(AttachmentKind.PDF, "contract.pdf", 10, "")))
-            form.amount.text = "150"
+            form.amount.typeGross("150")
             val attached = Attached()
             // The band refused it (e.g. the server's limit), which the snackbar told: nothing was added.
             form.save({ false }, attached.attach) shouldBe false
@@ -133,11 +133,11 @@ class HoldingFormTest :
             val form = form(repository, initial = holding(repository), defaultParty = "bob")
             form.isNew shouldBe false
             form.choosesParty shouldBe false
-            form.amount.text shouldBe "150.00"
+            form.amount.grossText shouldBe "150.00"
             form.source shouldBe IncomeSource.DOOR
             form.note shouldBe "round one"
 
-            form.amount.text = "175"
+            form.amount.typeGross("175")
             form.note = "round one "
             val sent = mutableListOf<Operation>()
             form.save({ sent.add(it) && repository.dispatch(it) == null }, Attached().attach) shouldBe true

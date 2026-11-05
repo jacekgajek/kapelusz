@@ -180,13 +180,13 @@ class ReducerTest :
 
         expect("a member's cost does not reopen a settled or archived event") {
             val scenario = gig().apply(
-                com.jacekgajek.kapelusz.ops.AddHolding(
-                    "gig",
-                    "h",
-                    "alice",
-                    pln("100"),
-                    com.jacekgajek.kapelusz.model.IncomeSource.HAT,
-                    null,
+                AddHolding(
+                    eventId = "gig",
+                    holdingId = "h",
+                    partyId = "alice",
+                    amount = pln("100"),
+                    source = com.jacekgajek.kapelusz.model.IncomeSource.HAT,
+                    note = null,
                 ),
             )
                 .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
@@ -196,19 +196,19 @@ class ReducerTest :
             scenario.apply(AddCost("later", "bob", pln("20"), DATE))
             // Archived events are read-only: not even a cost can be assigned to one.
             scenario.rejected(UpdateCost("later", incurredForEventId = Change("gig"))).reason shouldBe
-                com.jacekgajek.kapelusz.model.RejectionReason.ARCHIVED_EVENT
+                RejectionReason.ARCHIVED_EVENT
         }
 
         expect("a member's amount change does not raise the refund of a settled event") {
             val scenario = gig().apply(AddCost("c", "bob", pln("40"), DATE, incurredForEventId = "gig"))
                 .apply(
-                    com.jacekgajek.kapelusz.ops.AddHolding(
-                        "gig",
-                        "h",
-                        "alice",
-                        pln("100"),
-                        com.jacekgajek.kapelusz.model.IncomeSource.HAT,
-                        null,
+                    AddHolding(
+                        eventId = "gig",
+                        holdingId = "h",
+                        partyId = "alice",
+                        amount = pln("100"),
+                        source = com.jacekgajek.kapelusz.model.IncomeSource.HAT,
+                        note = null,
                     ),
                 )
                 .apply(com.jacekgajek.kapelusz.ops.SettleSuggestions("gig"))
