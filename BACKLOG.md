@@ -96,8 +96,8 @@ of P1–P2 unless money is wrong.
 1. **P2·H** ⚠ `settlement/SettleTogether.kt` (`split`: the leftover goes to the first non-artist, index 0 when both are
    artists): `validateArtistsPaid` (`engine/TransferReducer.kt`) then refuses the whole transfer; a pair of two
    artists can never settle a surplus (`canPair` allows two artists).
-2. **P3·M** ⚠ 🌊 `settlement/SettleTogether.kt` (`tidy`, `keepsInvite`: an invitation stays only if the invitee has exactly
-   one): two concurrent invitations to the same person cancel both silently.
+2. **P3·M** ⚠ 🌊 `settlement/SettleTogether.kt` (`tidy`, `keepsInvite`: an invitation stays only if the invitee has
+   exactly one): two concurrent invitations to the same person cancel both silently.
 3. **P3·M** `engine/Reducer.kt` (the `updatedAt` stamp for every op with an `eventId`, no change check) +
    `engine/Undo.kt` (compares the whole event): a no-op operation (e.g. the same weight again, `LineupReducer`) blocks
    a later undo of an earlier change on that event with `CHANGED_SINCE`.
