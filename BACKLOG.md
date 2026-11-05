@@ -13,8 +13,8 @@ obscure sync edge case: it needs a sync or a second device to land at the wrong 
 Noticed during the refactoring of 2026-10-31 and left alone on purpose (REFACTORING.md, decision 12). Re-checked on
 2026-11-05 after the post-refactoring series (PRs #190–#194): all 59 hold; one moved with the event editor's form, four
 descriptions are corrected below. Decision 13 (concurrent edits are not engineered for) takes the sync-race items out
-of P1–P2 unless money is wrong. Decided the same day: eight are being fixed and leave this file with their pull
-requests; the other 51 are accepted as they are and stay listed below for the record.
+of P1–P2 unless money is wrong. Decided the same day: seven are being fixed and leave this file with their pull
+requests; the other 52 are accepted as they are and stay listed below for the record.
 
 # Being fixed
 
@@ -40,13 +40,10 @@ requests; the other 51 are accepted as they are and stay listed below for the re
 
 ## Shared
 
-1. **P2·H** ⚠ `settlement/SettleTogether.kt` (`split`: the leftover goes to the first non-artist, index 0 when both are
-   artists): `validateArtistsPaid` (`engine/TransferReducer.kt`) then refuses the whole transfer; a pair of two
-   artists can never settle a surplus (`canPair` allows two artists).
-2. **P3·M** `engine/Reducer.kt` (the `updatedAt` stamp for every op with an `eventId`, no change check) +
+1. **P3·M** `engine/Reducer.kt` (the `updatedAt` stamp for every op with an `eventId`, no change check) +
    `engine/Undo.kt` (compares the whole event): a no-op operation (e.g. the same weight again, `LineupReducer`) blocks
    a later undo of an earlier change on that event with `CHANGED_SINCE`.
-3. **P3·L** `settlement/SettleTogether.kt` (`keepSettled`): does not stamp `updatedAt`; the generic stamp in
+2. **P3·L** `settlement/SettleTogether.kt` (`keepSettled`): does not stamp `updatedAt`; the generic stamp in
    `engine/Reducer.kt` covers only the op's own event, and `Undo` never stamps.
 
 ## Server
@@ -125,24 +122,29 @@ reason that is new.
 
 ## Shared
 
-1. **P3·M** ⚠ 🌊 `settlement/SettleTogether.kt` (`tidy`, `keepsInvite`: an invitation stays only if the invitee has
+1. **P5·L** `settlement/SettleTogether.kt` (`split`: the leftover goes to the first non-artist, index 0 when both are
+   artists): `validateArtistsPaid` (`engine/TransferReducer.kt`) then refuses the whole transfer; a pair of two
+   artists can never settle a surplus (`canPair` allows two artists).
+   Not reproducible (2026-11-05, PR #196): a pair's suggested amount is its merged delta, never more than its
+   artists' overpayments, so the leftover is zero for two artists; `split` now says so, with a direct test.
+2. **P3·M** ⚠ 🌊 `settlement/SettleTogether.kt` (`tidy`, `keepsInvite`: an invitation stays only if the invitee has
    exactly one): two concurrent invitations to the same person cancel both silently.
-2. **P3·L** 🌊 `engine/Engine.kt` (`REMEMBERED_REJECTIONS = 20`, per client): more than 20 rejected ops in one lost
+3. **P3·L** 🌊 `engine/Engine.kt` (`REMEMBERED_REJECTIONS = 20`, per client): more than 20 rejected ops in one lost
    response come back as plain duplicates with no reason.
-3. **P4·M** `engine/TransferReducer.kt` (`settleSuggestions`): the event is settled once up front and once per
+4. **P4·M** `engine/TransferReducer.kt` (`settleSuggestions`): the event is settled once up front and once per
    suggestion; `settlement/SettlementCalculator.kt`: `parties` computed twice (`mergePairs` inside `settle` and the
    lazy `Settlement.parties`).
-4. **P5·L** `engine/RosterReducer.kt`: "not yourself; leave the band instead" reported as `MEMBER_HAS_HISTORY`;
+5. **P5·L** `engine/RosterReducer.kt`: "not yourself; leave the band instead" reported as `MEMBER_HAS_HISTORY`;
    `engine/PairReducer.kt`: a missing pair or invitation reported with code `CONFLICT` and reason `NOT_FOUND`, while a
    true not-found has code `NOT_FOUND`.
-5. **P5·L** `settlement/SettlementCalculator.kt` (`restShares`, `byPercent`): with percentages at exactly 100 %
+6. **P5·L** `settlement/SettlementCalculator.kt` (`restShares`, `byPercent`): with percentages at exactly 100 %
    including the fund's, rounding leftovers go to participants only; the fund never gets its leftover grosze
    (probably intended; worth a comment).
-6. **P5·M** `engine/Limits.kt`: relies on `!==` list identity; a reducer branch that returns the same list skips the
+7. **P5·M** `engine/Limits.kt`: relies on `!==` list identity; a reducer branch that returns the same list skips the
    limit checks, one that rebuilds an equal list runs them. Documented only by a comment.
-7. **P5·L** `engine/Limits.kt` (`ID`) and `engine/AttachmentReducer.kt`: the same id pattern written twice; they check
+8. **P5·L** `engine/Limits.kt` (`ID`) and `engine/AttachmentReducer.kt`: the same id pattern written twice; they check
     different ids and both reject with `INVALID_INPUT`, so mostly cosmetic.
-8. **P5·M** `rules/Viewers.kt` (`mayBecome` looks at unsettled events only) + `rules/Permissions.kt` (own `AddHolding`
+9. **P5·M** `rules/Viewers.kt` (`mayBecome` looks at unsettled events only) + `rules/Permissions.kt` (own `AddHolding`
     needs `MEMBER`): a viewer who took part in a settled event is refused by role, consistent but a hole in "viewers
     take no part"; `validateNotViewer` runs only when participants are added or an event is created.
 
