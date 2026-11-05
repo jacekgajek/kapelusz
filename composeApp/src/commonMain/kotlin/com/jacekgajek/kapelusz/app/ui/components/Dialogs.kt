@@ -64,13 +64,16 @@ fun ConfirmDialog(title: String, text: String?, confirmLabel: String, onConfirm:
     )
 }
 
-/** Dialog with a single text field, e.g. for names; [error] says why a text can't be taken (e.g. a name in use). */
+/**
+ * Dialog with a single text field, e.g. for names; [error] says why a text can't be taken (e.g. a name in use).
+ * [onConfirm] gets the trimmed text: true when it went through (the dialog closes), false to stay open with the text.
+ */
 @Composable
 fun TextInputDialog(
     title: String,
     label: String,
     initial: String,
-    onConfirm: (String) -> Unit,
+    onConfirm: (String) -> Boolean,
     onDismiss: () -> Unit,
     error: @Composable (String) -> String? = { null },
     /** Whether OK is possible besides [error]: e.g. not while [below] offers something else. */
@@ -99,8 +102,7 @@ fun TextInputDialog(
         },
         confirmButton = {
             TextButton(enabled = text.isNotBlank() && problem == null && allowed(text), onClick = {
-                onConfirm(text.trim())
-                onDismiss()
+                if (onConfirm(text.trim())) onDismiss()
             }) {
                 Text(stringResource(Res.string.ok))
             }

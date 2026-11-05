@@ -230,7 +230,11 @@ fun AttachmentsSection(
             title = stringResource(Res.string.attachment_rename),
             label = stringResource(Res.string.attachment_file_name),
             initial = attachment.fileName.orEmpty(),
-            onConfirm = { name -> if (name != attachment.fileName) owner?.let { actions.show(fileStore.rename(it, attachment.id, name)) } },
+            onConfirm = { name ->
+                // Nothing to do for an unchanged name or no owner: just close.
+                val target = owner
+                if (name == attachment.fileName || target == null) true else actions.show(fileStore.rename(target, attachment.id, name))
+            },
             onDismiss = { renaming = null },
         )
     }

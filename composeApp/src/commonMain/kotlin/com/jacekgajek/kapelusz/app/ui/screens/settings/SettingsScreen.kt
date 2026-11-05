@@ -344,7 +344,10 @@ fun SettingsScreen(
                     title,
                     title,
                     band.name,
-                    onConfirm = { if (it != band.name) band.onRename(it) },
+                    onConfirm = {
+                        if (it != band.name) band.onRename(it)
+                        true
+                    },
                     onDismiss = screen::dismiss,
                 )
             }
