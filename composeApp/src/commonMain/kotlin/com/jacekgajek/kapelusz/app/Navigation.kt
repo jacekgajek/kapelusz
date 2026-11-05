@@ -78,6 +78,7 @@ import com.jacekgajek.kapelusz.app.ui.screens.RosterScreen
 import com.jacekgajek.kapelusz.app.ui.screens.RosterViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.SettleScreen
 import com.jacekgajek.kapelusz.app.ui.screens.SummaryScreen
+import com.jacekgajek.kapelusz.app.ui.screens.SummaryViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.costViewModel
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventScreen
 import com.jacekgajek.kapelusz.app.ui.screens.event.EventViewModel
@@ -191,7 +192,7 @@ internal fun Navigation(runtime: AppRuntime, state: BandState.Ready, navControll
                 }
                 RosterScreen(session, navigator, roster, openMember = entry.toRoute<RosterRoute>().memberId)
             }
-            composable<SummaryRoute> { SummaryScreen(session, navigator) }
+            composable<SummaryRoute> { entry -> SummaryScreen(session, navigator, entry.screenViewModel { SummaryViewModel() }) }
             composable<PlayedRoute> { PlayedScreen(session, navigator) }
             composable<HistoryRoute> { entry ->
                 if (artist) {

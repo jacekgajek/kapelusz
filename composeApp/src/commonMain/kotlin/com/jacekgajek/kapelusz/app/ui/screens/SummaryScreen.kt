@@ -65,6 +65,7 @@ import com.jacekgajek.kapelusz.app.generated.pdf_each_event_on_separate_page
 import com.jacekgajek.kapelusz.app.generated.pdf_export
 import com.jacekgajek.kapelusz.app.generated.pdf_export_events
 import com.jacekgajek.kapelusz.app.generated.pdf_export_failed
+import com.jacekgajek.kapelusz.app.generated.pdf_export_range
 import com.jacekgajek.kapelusz.app.generated.pdf_generate
 import com.jacekgajek.kapelusz.app.generated.played_places
 import com.jacekgajek.kapelusz.app.generated.played_title
@@ -140,7 +141,7 @@ import org.jetbrains.compose.resources.stringResource
 /** What a period brought: you, the band, costs by category, members. Nothing to tap but invites. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SummaryScreen(session: BandSession, nav: SummaryNav) {
+fun SummaryScreen(session: BandSession, nav: SummaryNav, screen: SummaryViewModel) {
     val state = session.state
     val preferences = session.settings
     val onBack: () -> Unit = nav::back
@@ -162,14 +163,11 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
         }
     }
     val played = remember(band, state.me, from, to, today) { PlayedPlaces.played(band, state.me, from, to, today) }
-    var choosingRange by remember { mutableStateOf(false) }
-    var showPdfExportDialog by remember { mutableStateOf(false) }
     // Strings in the PDF as in the app, whatever language it is set to.
     val resources = rememberResourceEnvironment()
     val lang = language
     val platform = LocalPlatform.current
     val sharePdf = platform.sharing.rememberOpen()
-    var inviting by remember { mutableStateOf<Member?>(null) }
     val canInvite = session.can.manageRoster()
     fun choose(period: SummaryPeriod) = preferences.update { it.withSummaryPeriod(band.id, period) }
 
@@ -196,7 +194,7 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
                         val custom = period as? SummaryPeriod.Custom
                         FilterChip(
                             selected = custom != null,
-                            onClick = { choosingRange = true },
+                            onClick = screen::chooseRange,
                             label = {
                                 Text(custom?.let { formatDate(it.from, language) + " – " + formatDate(it.to, language) } ?: stringResource(Res.string.summary_custom))
                             },
@@ -210,30 +208,36 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 }
             } else {
-                summaryContent(summary, canSeeOthersDetails, band.currency, state.me?.id, canInvite) { inviting = it }
+                summaryContent(summary, canSeeOthersDetails, band.currency, state.me?.id, canInvite, screen::invite)
             }
             // Where the period's concerts were, by their locations (Google may merge a few later).
             if (played.isNotEmpty()) {
                 whereWePlayed(played, onOpenPlayed)
             }
             if (canSeeOthersDetails) {
-                pdfExport { showPdfExportDialog = true }
+                pdfExport(screen::export)
             }
         }
     }
 
-    if (choosingRange) {
-        val custom = period as? SummaryPeriod.Custom
-        DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = { start, end -> choose(SummaryPeriod.Custom(start, end)) }, onDismiss = { choosingRange = false })
-    }
-    if (showPdfExportDialog) {
-        PdfExportDialog(period, today, onDismiss = { showPdfExportDialog = false }) { options ->
+    when (val open = screen.dialog) {
+        SummaryDialog.ChoosingRange -> {
+            val custom = period as? SummaryPeriod.Custom
+            val onRange = { start: LocalDate, end: LocalDate -> choose(SummaryPeriod.Custom(start, end)) }
+            DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = onRange, onDismiss = screen::dismiss)
+        }
+
+        is SummaryDialog.Exporting -> PdfExportDialog(open.form, period, today, onDismiss = screen::dismiss) { options ->
             val pdf = withContext(Dispatchers.Default) { PdfExporter.generatePdf(state.view, options, resources, lang, today) }
             sharePdf(pdf.toByteArray(), "kapelusz_export.pdf")
         }
-    }
-    inviting?.let { member ->
-        InviteMemberDialog(member.name, onInvite = { onInviteMember(member.id) }, onDismiss = { inviting = null })
+
+        is SummaryDialog.Inviting -> {
+            val member = open.member
+            InviteMemberDialog(member.name, onInvite = { onInviteMember(member.id) }, onDismiss = screen::dismiss)
+        }
+
+        null -> Unit
     }
 }
 
@@ -255,16 +259,17 @@ private fun LazyListScope.pdfExport(
 }
 
 @Composable
-private fun PdfExportDialog(period: SummaryPeriod, today: LocalDate, onDismiss: () -> Unit, onGenerate: suspend (PdfExporter.PdfGenerateOptions) -> Unit) {
+private fun PdfExportDialog(
+    form: PdfExportForm,
+    period: SummaryPeriod,
+    today: LocalDate,
+    onDismiss: () -> Unit,
+    onGenerate: suspend (PdfExporter.PdfGenerateOptions) -> Unit,
+) {
     // Open while the PDF is made, with a spinner on Generate; a failure is said here.
     val task = rememberTask()
-    var events by remember { mutableStateOf(true) }
-    var bandFund by remember { mutableStateOf(true) }
-    var eventsOnSeparatePages by remember { mutableStateOf(true) }
 
     val (from, to) = period.range(today)
-
-    val valid = events || bandFund
 
     AlertDialog(
         onDismissRequest = { if (!task.working) onDismiss() },
@@ -272,23 +277,23 @@ private fun PdfExportDialog(period: SummaryPeriod, today: LocalDate, onDismiss: 
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (from != null && to != null) {
-                    Text("Eksportowanie zakresu od " + formatDate(from, language) + " do " + formatDate(to, language))
+                    Text(stringResource(Res.string.pdf_export_range, formatDate(from, language), formatDate(to, language)))
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .toggleable(value = events, role = Role.Switch, onValueChange = { on -> events = on }),
+                        .toggleable(value = form.events, role = Role.Switch, onValueChange = { on -> form.events = on }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(stringResource(Res.string.pdf_export_events), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = events, onCheckedChange = null)
+                    Switch(checked = form.events, onCheckedChange = null)
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
                         .toggleable(
-                            value = eventsOnSeparatePages,
-                            enabled = events,
+                            value = form.eventsOnSeparatePages,
+                            enabled = form.events,
                             role = Role.Switch,
-                            onValueChange = { on -> eventsOnSeparatePages = on },
+                            onValueChange = { on -> form.eventsOnSeparatePages = on },
                         ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -298,15 +303,20 @@ private fun PdfExportDialog(period: SummaryPeriod, today: LocalDate, onDismiss: 
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                    Switch(checked = eventsOnSeparatePages, enabled = events, onCheckedChange = null, modifier = Modifier.height(8.dp))
+                    Switch(
+                        checked = form.eventsOnSeparatePages,
+                        enabled = form.events,
+                        onCheckedChange = null,
+                        modifier = Modifier.height(8.dp),
+                    )
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .toggleable(value = bandFund, role = Role.Switch, onValueChange = { on -> bandFund = on }),
+                        .toggleable(value = form.bandFund, role = Role.Switch, onValueChange = { on -> form.bandFund = on }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(stringResource(Res.string.band_fund), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = bandFund, onCheckedChange = null)
+                    Switch(checked = form.bandFund, onCheckedChange = null)
                 }
                 if (task.failed) Text(stringResource(Res.string.pdf_export_failed), color = MaterialTheme.colorScheme.error)
             }
@@ -314,11 +324,11 @@ private fun PdfExportDialog(period: SummaryPeriod, today: LocalDate, onDismiss: 
         confirmButton = {
             BusyButton(
                 {
-                    onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund, eventsOnSeparatePages, from, to))
+                    onGenerate(form.options(from, to))
                     onDismiss()
                 },
                 task = task,
-                enabled = valid,
+                enabled = form.valid,
                 kind = ButtonKind.TEXT,
             ) { Text(stringResource(Res.string.pdf_generate)) }
         },
