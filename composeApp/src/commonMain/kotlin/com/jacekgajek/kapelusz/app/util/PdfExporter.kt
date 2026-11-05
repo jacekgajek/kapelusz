@@ -92,7 +92,7 @@ object PdfExporter {
     /** What a report covers: the events and the fund's rows within the dates asked, by date, and the fund's balance over them. */
     class Export(band: Band, options: PdfGenerateOptions) {
         val events by lazy { band.events.filter { dateFilter(it.date, options.from, options.to) }.sortedBy { it.date } }
-        val fundRows by lazy { BandFund.allEntries(band).filter { dateFilter(it.date, options.from, options.to) }.sortedBy { it.date } }
+        val fundRows by lazy { BandFund.movements(band).filter { dateFilter(it.date, options.from, options.to) }.sortedBy { it.date } }
 
         /** In the fund before the period: everything dated before its start; nothing when the report has no start. */
         val opening: Money by lazy { options.from?.let { BandFund.balance(band, to = it - DatePeriod(days = 1)) } ?: Money.ZERO }

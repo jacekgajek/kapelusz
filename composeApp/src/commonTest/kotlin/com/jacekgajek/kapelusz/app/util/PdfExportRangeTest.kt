@@ -7,6 +7,7 @@ import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Participant
+import com.jacekgajek.kapelusz.model.sumOfMoney
 import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
@@ -15,6 +16,7 @@ import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.SetFundAmount
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.rules.Actor
+import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.FundRow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ExpectSpec
@@ -40,7 +42,7 @@ class PdfExportRangeTest :
 
         /**
          * Three events a month apart, the middle one handing 100 to the fund; three fund entries on the same dates,
-         * 10, 20 and 30. Alice is the treasurer.
+         * 10, 20 and 30; in April an event whose cut of 100 is not handed over yet. Alice is the treasurer.
          */
         val band = Band.create("b", "Band", "PLN", "alice", "Alice", "u-alice").apply(
             AddMember("bob", "Bob"),
@@ -53,12 +55,21 @@ class PdfExportRangeTest :
             AddFundEntry("f-jan", LocalDate(2026, 1, 10), "January dues", pln("10"), paidBy = "bob"),
             AddFundEntry("f-feb", LocalDate(2026, 2, 10), "February dues", pln("20"), paidBy = "bob"),
             AddFundEntry("f-mar", LocalDate(2026, 3, 10), "March dues", pln("30"), paidBy = "bob"),
+            CreateEvent("apr", "April", LocalDate(2026, 4, 10), participants = listOf(Participant("alice"), Participant("bob"))),
+            SetFundAmount("apr", pln("100")),
         )
+
+        /** What a row shows as its amount. */
+        fun FundRow.amount(): Money = when (this) {
+            is FundRow.OfEvent -> BandFund.moved(event)
+            is FundRow.OfEntry -> entry.amount
+        }
 
         expect("no dates: everything, by date") {
             val export = PdfExporter.Export(band, options(from = null, to = null))
-            export.events.map { it.id } shouldBe listOf("jan", "feb", "mar")
+            export.events.map { it.id } shouldBe listOf("jan", "feb", "mar", "apr")
             export.fundRows.map { it.key } shouldBe listOf("entry-f-jan", "event-feb", "entry-f-feb", "entry-f-mar")
+            withClue("the rows add up to the balance") { export.fundRows.sumOfMoney { it.amount() } shouldBe export.balance }
             withClue("the whole fund: 100 from February and the three entries") { export.balance shouldBe pln("160") }
             withClue("no start: nothing before it") { export.opening shouldBe Money.ZERO }
             export.closing shouldBe pln("160")
@@ -71,6 +82,7 @@ class PdfExportRangeTest :
             withClue("February's 100 from the event and its 20 entry, nothing from the months around") {
                 export.balance shouldBe pln("120")
             }
+            export.fundRows.sumOfMoney { it.amount() } shouldBe export.balance
             withClue("January's 10 was in the fund before") { export.opening shouldBe pln("10") }
             withClue("the statement adds up") { export.closing shouldBe pln("130") }
         }
@@ -105,8 +117,12 @@ class PdfExportRangeTest :
             export.closing shouldBe pln("160")
         }
 
-        expect("an event's row is in the fund only once it is for the fund") {
+        expect("an event is a row only once its money has moved: a cut not handed over is not in the statement") {
             val rows = PdfExporter.Export(band, options(from = null, to = null)).fundRows.filterIsInstance<FundRow.OfEvent>()
             rows.map { it.event.id } shouldBe listOf("feb")
+            val april = PdfExporter.Export(band, options(from = LocalDate(2026, 4, 1), to = LocalDate(2026, 4, 30)))
+            april.fundRows.shouldBeEmpty()
+            april.balance shouldBe Money.ZERO
+            withClue("the fund's own list still reminds of it") { BandFund.allEntries(band).any { it.key == "event-apr" } shouldBe true }
         }
     })

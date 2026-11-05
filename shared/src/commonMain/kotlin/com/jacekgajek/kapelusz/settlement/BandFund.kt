@@ -64,10 +64,15 @@ object BandFund {
             }
         }.sum()
 
-    /**
-     * All changes to band fund, both manual entries and to/from events
-     */
+    /** What the fund's list shows: events with a cut for it, handed over or not, and the entries. */
     fun allEntries(band: Band) = band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
+        band.fundEntries.map { FundRow.OfEntry(it) }
+
+    /**
+     * What a statement shows: events that moved money (a fee paid to it, a cut handed over) and the entries. Their
+     * amounts ([moved] for an event, the entry's for an entry) add up to [balance] over the same dates.
+     */
+    fun movements(band: Band) = band.events.filter { !moved(it).isZero }.map { FundRow.OfEvent(it) } +
         band.fundEntries.map { FundRow.OfEntry(it) }
 }
 
