@@ -40,7 +40,7 @@ fun HistorySection(context: EventContext, session: BandSession) {
     var shown by remember(context.event.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val history = remember(context.event.id) {
-        HistoryState(session.bands, session::syncNow, context.band.id, context.me?.userId.orEmpty(), context.me?.id, scope)
+        HistoryState(session.bands, session::syncNow, context.band.id, session.userId, context.me?.id, scope)
     }
     // Folded like Recorded transfers; loaded only once opened (it needs the server).
     CollapsibleHeader(stringResource(Res.string.history), shown) { shown = !shown }

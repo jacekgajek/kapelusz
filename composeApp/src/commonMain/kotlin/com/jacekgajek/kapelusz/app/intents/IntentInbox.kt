@@ -39,9 +39,12 @@ class IntentInbox {
 
     fun takeCarry(id: String): Carry? = carries.remove(id)
 
-    /** What was resolved for the user who signed out goes; a link not resolved yet waits for the next user. */
+    /**
+     * What was resolved for the user who signed out goes, and so do their shared files, which are theirs to attach;
+     * a link not resolved yet waits for the next user.
+     */
     fun signedOut() {
         carries.clear()
-        _pending.update { list -> list.filterNot { it is AppIntent.OpenEvent && it.bandId != null } }
+        _pending.update { list -> list.filterNot { (it is AppIntent.OpenEvent && it.bandId != null) || it is AppIntent.ShareFiles } }
     }
 }

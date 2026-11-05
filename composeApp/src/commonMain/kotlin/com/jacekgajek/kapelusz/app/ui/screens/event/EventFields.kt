@@ -192,7 +192,10 @@ fun EventFields(state: EventFieldsState, places: PlaceLookup?, onState: (EventFi
             title = stringResource(Res.string.agenda_add_time),
             label = stringResource(Res.string.agenda_label),
             initial = "",
-            onConfirm = { label -> picking = AgendaTime(newId(), label = label.take(AgendaTime.MAX_LABEL)) },
+            onConfirm = { label ->
+                picking = AgendaTime(newId(), label = label.take(AgendaTime.MAX_LABEL))
+                true
+            },
             onDismiss = { addingCustom = false },
         )
     }
