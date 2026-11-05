@@ -57,7 +57,6 @@ import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.app.ui.format.formatMoney
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
-import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.sumOfMoney
 import com.jacekgajek.kapelusz.settlement.CostLedger
 import com.jacekgajek.kapelusz.settlement.CostStatus
@@ -112,10 +111,8 @@ fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean)
     val messages = rememberMessages()
     val can = session.can
     var filter by rememberSaveable { mutableStateOf(CostFilter.PENDING) }
-    val isLead = state.me?.role?.atLeast(Role.LEAD) == true
     // A viewer sees everything, costs included, and has none of their own to switch to.
-    val viewer = state.me?.role == Role.VIEWER
-    val showAll = viewer || (isLead && everyone)
+    val showAll = can.viewer || (can.seeOthersCosts() && everyone)
     val mine = band.costs.filter { showAll || it.memberId == state.me?.id }.sortedByDescending { it.date }
     val statuses = state.view.costStatuses
     val shown = mine.filter { filter.matches(statuses.status(it)) }
@@ -148,7 +145,7 @@ fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean)
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
-            if (isLead) {
+            if (can.seeOthersCosts()) {
                 item {
                     val filters = listOf(
                         Choice(false, stringResource(Res.string.filter_mine)),

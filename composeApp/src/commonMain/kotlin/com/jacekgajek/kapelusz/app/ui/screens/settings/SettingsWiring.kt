@@ -72,12 +72,12 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
             onDelete = suspend {
                 membership.deleteBand()
                 onBandGone()
-            }.takeIf { me?.role == Role.OWNER },
+            }.takeIf { can.deleteBand() },
             deletionNotice = band.deletion?.let {
                 { BandDeletionNotice(band, { dispatch(CancelBandDeletion) }.takeIf { can.cancelBandDeletion() }) }
             },
             // The secret menu, for the band's leaders.
-            rawData = suspend { rawStateApi.rawState(band.id) }.takeIf { me?.role?.atLeast(Role.LEAD) == true },
+            rawData = suspend { rawStateApi.rawState(band.id) }.takeIf { can.seeRawData() },
         ),
         fund = BandFundSettings(
             treasurer = band.treasurerMemberId,

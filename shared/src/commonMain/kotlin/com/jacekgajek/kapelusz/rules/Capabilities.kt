@@ -54,12 +54,14 @@ import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import kotlinx.datetime.LocalDate
 
 /**
- * What the current user may do, for showing only the actions that would be accepted. Every answer comes from the
- * shared [Permissions] (the same rules the server enforces), asked with a representative operation.
+ * What the current user may do, for showing only the actions that would be accepted. An answer comes from the shared
+ * [Permissions] (the same rules the server enforces), asked with a representative operation; the few that are not
+ * about an operation (a lookup, a menu, the API's delete) mirror the role the server checks and say so.
  */
 class Capabilities(private val band: Band, private val userId: String) {
     private val actor = Actor.User(userId)
     private val meId: Id? = band.memberOfUser(userId)?.id
+    private val role: Role? = band.memberOfUser(userId)?.role
 
     fun allowed(op: Operation): Boolean = Permissions.isAllowed(band, actor, op)
 
@@ -115,10 +117,26 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun attachTo(owner: AttachmentOwner) = allowed(AddAttachment(owner, PROBE_ATTACHMENT))
     fun detachFrom(owner: AttachmentOwner) = allowed(RemoveAttachment(owner, PROBE))
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
-    fun seeOthersDetails() = band.memberOfUser(userId)?.role?.atLeast(Role.MEMBER) ?: false
-    fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
-    fun addFundEntry() = band.treasurerMemberId != null && allowed(AddFundEntry("probe", PROBE_DATE, "probe", Money(1)))
-    fun refundCostFromFund() = allowed(AddFundEntry("probe", PROBE_DATE, "probe", Money(1), costId = "1"))
+    fun seeOthersDetails() = role?.atLeast(Role.MEMBER) ?: false
+
+    /** Sees everything and does nothing: no money, no costs of their own, so no "mine" to switch to. */
+    val viewer: Boolean get() = role == Role.VIEWER
+
+    /** May switch from one's own costs to everyone's: leads. */
+    fun seeOthersCosts() = role?.atLeast(Role.LEAD) == true
+
+    /** Place lookups for the event editor; the server refuses others (PlacesHandlers). */
+    fun searchPlaces() = role?.atLeast(Role.LEAD) == true
+
+    /** The settings' secret menu, for the band's leaders (the raw-state API checks the same). */
+    fun seeRawData() = role?.atLeast(Role.LEAD) == true
+
+    /** Asking the server to delete the band; the owner only, as the API enforces. */
+    fun deleteBand() = role == Role.OWNER
+
+    fun transferOwnership() = role == Role.OWNER && allowed(TransferOwnership(PROBE))
+    fun addFundEntry() = band.treasurerMemberId != null && allowed(AddFundEntry(PROBE, PROBE_DATE, PROBE, Money(1)))
+    fun refundCostFromFund() = allowed(AddFundEntry(PROBE, PROBE_DATE, PROBE, Money(1), costId = "1"))
     fun editFundEntry(entry: FundEntry) = addFundEntry() && allowed(UpdateFundEntry(entry.id))
 
     /** The event's money to or from the fund: leads, while the fund is on and the event open. */

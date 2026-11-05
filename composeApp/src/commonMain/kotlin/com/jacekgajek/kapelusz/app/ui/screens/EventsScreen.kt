@@ -275,7 +275,7 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
     if (events.creating) {
         NewEventDialog(
             band,
-            places = rememberPlaceLookup(session.placesApi, band, state.userId),
+            places = rememberPlaceLookup(session.placesApi, band, session.can),
             onDismiss = { events.creating = false },
             onCreate = { fields ->
                 val eventId = newId()
