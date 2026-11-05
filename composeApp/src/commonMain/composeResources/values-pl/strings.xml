@@ -780,6 +780,7 @@
     <string name="map_satellite">Satelita</string>
     <!-- PDF export on Summary -->
     <string name="pdf_export">Eksport do PDF</string>
+    <string name="pdf_export_range">Od %1$s do %2$s</string>
     <string name="pdf_export_events">Szczegóły wydarzeń</string>
     <string name="pdf_generate">Generuj</string>
     <string name="pdf_each_event_on_separate_page">Każde wydarzenie na osobnej stronie</string>

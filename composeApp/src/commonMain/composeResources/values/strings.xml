@@ -756,6 +756,7 @@
     <string name="map_satellite">Satellite</string>
     <!-- PDF export on Summary -->
     <string name="pdf_export">Export to PDF</string>
+    <string name="pdf_export_range">From %1$s to %2$s</string>
     <string name="pdf_export_events">Event details</string>
     <string name="pdf_generate">Generate</string>
     <string name="pdf_export_failed">Could not make the PDF. Try again.</string>
