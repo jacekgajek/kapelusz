@@ -23,7 +23,6 @@ import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetBankAccount
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
-import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
 import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.rules.isArtist
@@ -51,10 +50,12 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
     val appSettings by preferences.settings.collectAsState()
     val stillDefault = remember(band) { BandFund.stillDefault(state.view).map { it.id to it.name } }
 
+    // One's own BLIK phone and bank account are edited together or not at all.
+    val payable = me?.takeIf { can.setPayment(it) }
     return Settings(
         band = BandSettings(
             name = band.name,
-            onRename = { name: String -> dispatch(RenameBand(name)) }.takeIf { can.allowed(RenameBand("probe")) },
+            onRename = { name: String -> dispatch(RenameBand(name)) }.takeIf { can.renameBand() },
             memberCount = band.members.count { !it.archived },
             otherMembers = band.members.count { it.userId != null && it.userId != state.userId },
             onLeave = suspend {
@@ -73,7 +74,7 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
                 onBandGone()
             }.takeIf { me?.role == Role.OWNER },
             deletionNotice = band.deletion?.let {
-                { BandDeletionNotice(band, { dispatch(CancelBandDeletion) }.takeIf { can.allowed(CancelBandDeletion) }) }
+                { BandDeletionNotice(band, { dispatch(CancelBandDeletion) }.takeIf { can.cancelBandDeletion() }) }
             },
             // The secret menu, for the band's leaders.
             rawData = suspend { rawStateApi.rawState(band.id) }.takeIf { me?.role?.atLeast(Role.LEAD) == true },
@@ -83,32 +84,32 @@ fun settingsFor(session: BandSession, onBandGone: () -> Unit, dispatch: (Operati
             treasurerName = band.treasurerMemberId?.let { band.member(it)?.name },
             // Artists hold no money and viewers record no transfers: neither can hold the fund.
             treasurerOptions = band.members.filter { !it.archived && it.role != Role.ARTIST && it.role != Role.VIEWER }.sortedByName { it.name }.map { it.id to it.name },
-            onTreasurer = { id: String -> dispatch(SetTreasurer(id)) }.takeIf { can.allowed(SetTreasurer("probe")) },
-            onDisable = { dispatch(DisableBandFund) }.takeIf { can.allowed(DisableBandFund) && BandFund.canDisable(band) },
+            onTreasurer = { id: String -> dispatch(SetTreasurer(id)) }.takeIf { can.setTreasurer() },
+            onDisable = { dispatch(DisableBandFund) }.takeIf { can.disableFund() },
             balance = formatMoney(BandFund.balance(band), band.currency, language),
             default = band.fundDefault,
             defaultSetting = FundDefaultSetting(stillDefault) { cut, events -> dispatch(SetFundDefault(cut, events)) }
-                .takeIf { can.allowed(SetFundDefault(null)) },
+                .takeIf { can.setFundDefault() },
             currency = band.currency,
             blikPhone = band.fundBlikPhone,
             bankAccount = band.fundBankAccount,
-            onPayment = { kind: PaymentKind, value: String? -> dispatch(fundPaymentOp(kind, value)) }.takeIf { can.allowed(SetFundBlikPhone(null)) },
+            onPayment = { kind: PaymentKind, value: String? -> dispatch(fundPaymentOp(kind, value)) }.takeIf { can.setFundPayment() },
         ),
         personal = PersonalSettings(
             language = appSettings.language,
             onLanguage = { code -> preferences.update { it.copy(language = code) } },
             calendar = { change -> if (change == null) calendarApi.calendar() else calendarApi.changeCalendar(change) },
             blikPhone = me?.blikPhone,
-            onBlikPhone = me?.let { member -> { phone: String? -> dispatch(SetBlikPhone(member.id, phone)) }.takeIf { can.allowed(SetBlikPhone(member.id, null)) } },
+            onBlikPhone = payable?.let { member -> { phone: String? -> dispatch(SetBlikPhone(member.id, phone)) } },
             bankAccount = me?.bankAccount,
-            onBankAccount = me?.let { member -> { account: String? -> dispatch(SetBankAccount(member.id, account)) }.takeIf { can.allowed(SetBankAccount(member.id, null)) } },
+            onBankAccount = payable?.let { member -> { account: String? -> dispatch(SetBankAccount(member.id, account)) } },
             account = session?.let { it.email ?: it.name },
             picture = me?.pictureUrl,
             onSignOut = account::signOutInBackground,
             onSignOutEverywhere = account::signOutEverywhere,
         ),
         agenda = AgendaSettings(band.effectiveAgendaTemplate, band.agendaTemplate != null) { items: List<AgendaTemplateItem> -> dispatch(SetAgendaTemplate(items)) }
-            .takeIf { can.allowed(SetAgendaTemplate(emptyList())) },
+            .takeIf { can.editAgendaTemplate() },
         artist = band.isArtist(state.userId),
     )
 }

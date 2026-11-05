@@ -7,10 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -128,6 +131,7 @@ import com.jacekgajek.kapelusz.view.periodSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.rememberResourceEnvironment
@@ -223,7 +227,7 @@ fun SummaryScreen(session: BandSession, nav: SummaryNav) {
         DateRangeDialog(custom?.from ?: from, custom?.to ?: to, onRange = { start, end -> choose(SummaryPeriod.Custom(start, end)) }, onDismiss = { choosingRange = false })
     }
     if (showPdfExportDialog) {
-        PdfExportDialog(onDismiss = { showPdfExportDialog = false }) { options ->
+        PdfExportDialog(period, today, onDismiss = { showPdfExportDialog = false }) { options ->
             val pdf = withContext(Dispatchers.Default) { PdfExporter.generatePdf(state.view, options, resources, lang, today) }
             sharePdf(pdf.toByteArray(), "kapelusz_export.pdf")
         }
@@ -251,12 +255,14 @@ private fun LazyListScope.pdfExport(
 }
 
 @Composable
-private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: suspend (PdfExporter.PdfGenerateOptions) -> Unit) {
+private fun PdfExportDialog(period: SummaryPeriod, today: LocalDate, onDismiss: () -> Unit, onGenerate: suspend (PdfExporter.PdfGenerateOptions) -> Unit) {
     // Open while the PDF is made, with a spinner on Generate; a failure is said here.
     val task = rememberTask()
     var events by remember { mutableStateOf(true) }
     var bandFund by remember { mutableStateOf(true) }
     var eventsOnSeparatePages by remember { mutableStateOf(true) }
+
+    val (from, to) = period.range(today)
 
     val valid = events || bandFund
 
@@ -265,6 +271,9 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: suspend (PdfExpor
         title = { Text(stringResource(Res.string.pdf_export)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (from != null && to != null) {
+                    Text("Eksportowanie zakresu od " + formatDate(from, language) + " do " + formatDate(to, language))
+                }
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
                         .toggleable(value = events, role = Role.Switch, onValueChange = { on -> events = on }),
@@ -272,14 +281,6 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: suspend (PdfExpor
                 ) {
                     Text(stringResource(Res.string.pdf_export_events), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = events, onCheckedChange = null)
-                }
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 16.dp)
-                        .toggleable(value = bandFund, role = Role.Switch, onValueChange = { on -> bandFund = on }),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(stringResource(Res.string.band_fund), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = bandFund, onCheckedChange = null)
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(top = 16.dp)
@@ -291,12 +292,21 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: suspend (PdfExpor
                         ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Spacer(Modifier.width(20.dp))
                     Text(
                         text = stringResource(Res.string.pdf_each_event_on_separate_page),
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                    Switch(checked = eventsOnSeparatePages, enabled = events, onCheckedChange = null)
+                    Switch(checked = eventsOnSeparatePages, enabled = events, onCheckedChange = null, modifier = Modifier.height(8.dp))
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp)
+                        .toggleable(value = bandFund, role = Role.Switch, onValueChange = { on -> bandFund = on }),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(Res.string.band_fund), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = bandFund, onCheckedChange = null)
                 }
                 if (task.failed) Text(stringResource(Res.string.pdf_export_failed), color = MaterialTheme.colorScheme.error)
             }
@@ -304,7 +314,7 @@ private fun PdfExportDialog(onDismiss: () -> Unit, onGenerate: suspend (PdfExpor
         confirmButton = {
             BusyButton(
                 {
-                    onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund, eventsOnSeparatePages))
+                    onGenerate(PdfExporter.PdfGenerateOptions(events, bandFund, eventsOnSeparatePages, from, to))
                     onDismiss()
                 },
                 task = task,

@@ -762,5 +762,7 @@
     <string name="pdf_each_event_on_separate_page">Put events on separate pages</string>
     <string name="pdf_events">Events</string>
     <string name="pdf_no_events">No events yet.</string>
+    <string name="fund_balance_on">Balance on %1$s</string>
+    <string name="fund_change">Change over the period</string>
     <string name="pdf_generated_on">Generated on %1$s</string>
 </resources>

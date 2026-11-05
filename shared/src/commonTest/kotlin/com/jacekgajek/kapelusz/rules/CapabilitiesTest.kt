@@ -3,13 +3,13 @@ package com.jacekgajek.kapelusz.rules
 import com.jacekgajek.kapelusz.engine.ApplyResult
 import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.SetTreasurer
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -54,6 +54,39 @@ class CapabilitiesTest :
             member.manageRoster() shouldBe false
             lead.transferOwnership() shouldBe false
             Capabilities(band, "u-owner").transferOwnership() shouldBe true
+        }
+
+        expect("the band's settings and its fund are the leads'") {
+            val lead = Capabilities(band, "u-lead")
+            val member = Capabilities(band, "u-member")
+            lead.renameBand() shouldBe true
+            member.renameBand() shouldBe false
+            lead.setTreasurer() shouldBe true
+            lead.setFundDefault() shouldBe true
+            lead.setFundPayment() shouldBe true
+            lead.editAgendaTemplate() shouldBe true
+            member.editAgendaTemplate() shouldBe false
+            withClue("one's own payment details") { member.setPayment(band.member("member")!!) shouldBe true }
+            member.setPayment(band.member("lead")!!) shouldBe false
+
+            withClue("the fund is off: nothing to add") {
+                lead.addFundEntry() shouldBe false
+                lead.setEventFund(event) shouldBe false
+            }
+            val withFund = band.apply(SetTreasurer("lead"))
+            Capabilities(withFund, "u-lead").addFundEntry() shouldBe true
+            Capabilities(withFund, "u-lead").setEventFund(withFund.event("e")!!) shouldBe true
+            withClue("empty, so it may be turned off") { Capabilities(withFund, "u-lead").disableFund() shouldBe true }
+            Capabilities(withFund, "u-member").setEventFund(withFund.event("e")!!) shouldBe false
+        }
+
+        expect("deleting a member: leads, never the owner or themselves, only who left no trace") {
+            val lead = Capabilities(band, "u-lead")
+            lead.deleteMember(band.member("viewer")!!) shouldBe true
+            lead.deleteMember(band.member("owner")!!) shouldBe false
+            lead.deleteMember(band.member("lead")!!) shouldBe false
+            withClue("in an event: a trace") { lead.deleteMember(band.member("member")!!) shouldBe false }
+            Capabilities(band, "u-member").deleteMember(band.member("viewer")!!) shouldBe false
         }
 
         // "Add cost" in an event: a lead adds for any participant, a member only when taking part themselves.

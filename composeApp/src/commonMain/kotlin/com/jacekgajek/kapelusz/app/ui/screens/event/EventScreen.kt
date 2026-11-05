@@ -396,7 +396,7 @@ private fun Totals(context: EventContext) {
             AmountRow(stringResource(Res.string.total_income), s.income)
             // Part of the income is a fee the organiser has not paid yet.
             if (event.awaited.isPositive) AmountRow(stringResource(Res.string.total_awaited), event.awaited)
-            val canSetFund = !event.archived && context.band.treasurerMemberId != null && context.can.allowed(SetFundAmount(event.id, Money(1)))
+            val canSetFund = context.can.setEventFund(event)
             if (!s.fundAmount.isZero || event.fundPercent != null || canSetFund) {
                 // Shown as what it does to the amount to share: money to the fund is taken off, money from it is added.
                 AmountRow(

@@ -1,13 +1,16 @@
 package com.jacekgajek.kapelusz.settlement
 
+import com.jacekgajek.kapelusz.dateFilter
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.isOn
 import com.jacekgajek.kapelusz.model.sum
 import com.jacekgajek.kapelusz.model.sumOfMoney
+import kotlinx.datetime.LocalDate
 
 /** Band fund ("Kasa zespołowa") totals. */
 object BandFund {
@@ -15,7 +18,9 @@ object BandFund {
     /**
      * Money the fund actually has: recorded event transfers to/from the fund, fees paid straight to it and manual entries.
      */
-    fun balance(band: Band): Money = transferredFromEvents(band) + band.events.sumOfMoney(::heldBy) + band.fundEntries.sumOfMoney { it.amount }
+    fun balance(band: Band, from: LocalDate? = null, to: LocalDate? = null): Money = transferredFromEvents(band, from, to) +
+        band.events.filter { dateFilter(it.date, from, to) }.sumOfMoney(::heldBy) +
+        band.fundEntries.filter { dateFilter(it.date, from, to) }.sumOfMoney { it.amount }
 
     /** Fund amounts promised by events whose transfers are not recorded yet. */
     fun notHandedOver(band: Band): Money = band.events.sumOfMoney { it.fund - heldBy(it) } - transferredFromEvents(band)
@@ -49,11 +54,40 @@ object BandFund {
         }
     }.sum()
 
-    private fun transferredFromEvents(band: Band): Money = band.events.flatMap { it.transfers }.map {
-        when (BAND_FUND) {
-            it.to -> it.amount
-            it.from -> -it.amount
-            else -> Money.ZERO
-        }
-    }.sum()
+    private fun transferredFromEvents(band: Band, from: LocalDate? = null, to: LocalDate? = null): Money = band.events
+        .filter { dateFilter(it.date, from, to) }
+        .flatMap { it.transfers }.map {
+            when (BAND_FUND) {
+                it.to -> it.amount
+                it.from -> -it.amount
+                else -> Money.ZERO
+            }
+        }.sum()
+
+    /** What the fund's list shows: events with a cut for it, handed over or not, and the entries. */
+    fun allEntries(band: Band) = band.events.filter { !it.fund.isZero }.map { FundRow.OfEvent(it) } +
+        band.fundEntries.map { FundRow.OfEntry(it) }
+
+    /**
+     * What a statement shows: events that moved money (a fee paid to it, a cut handed over) and the entries. Their
+     * amounts ([moved] for an event, the entry's for an entry) add up to [balance] over the same dates.
+     */
+    fun movements(band: Band) = band.events.filter { !moved(it).isZero }.map { FundRow.OfEvent(it) } +
+        band.fundEntries.map { FundRow.OfEntry(it) }
+}
+
+/** A row of the band fund's list: an event's money for the fund, or an entry. */
+sealed interface FundRow {
+    val date: LocalDate
+    val key: String
+
+    data class OfEvent(val event: Event) : FundRow {
+        override val date get() = event.date
+        override val key get() = "event-${event.id}"
+    }
+
+    data class OfEntry(val entry: FundEntry) : FundRow {
+        override val date get() = entry.date
+        override val key get() = "entry-${entry.id}"
+    }
 }

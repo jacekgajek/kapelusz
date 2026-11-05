@@ -8,33 +8,48 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.DEFAULT_WEIGHT
 import com.jacekgajek.kapelusz.model.Event
+import com.jacekgajek.kapelusz.model.FundEntry
 import com.jacekgajek.kapelusz.model.Holding
 import com.jacekgajek.kapelusz.model.Id
 import com.jacekgajek.kapelusz.model.IncomeSource
+import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
+import com.jacekgajek.kapelusz.ops.AddFundEntry
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.ops.DeleteCost
+import com.jacekgajek.kapelusz.ops.DeleteMember
+import com.jacekgajek.kapelusz.ops.DisableBandFund
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.ReceiveAwaited
 import com.jacekgajek.kapelusz.ops.RecordTransfer
 import com.jacekgajek.kapelusz.ops.RemoveAttachment
 import com.jacekgajek.kapelusz.ops.RemoveTransfer
+import com.jacekgajek.kapelusz.ops.RenameBand
+import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
+import com.jacekgajek.kapelusz.ops.SetBlikPhone
 import com.jacekgajek.kapelusz.ops.SetEventArchived
+import com.jacekgajek.kapelusz.ops.SetFundAmount
+import com.jacekgajek.kapelusz.ops.SetFundBlikPhone
+import com.jacekgajek.kapelusz.ops.SetFundDefault
 import com.jacekgajek.kapelusz.ops.SetMemberShare
 import com.jacekgajek.kapelusz.ops.SetRefund
+import com.jacekgajek.kapelusz.ops.SetTreasurer
 import com.jacekgajek.kapelusz.ops.SettleSuggestions
 import com.jacekgajek.kapelusz.ops.TransferOwnership
 import com.jacekgajek.kapelusz.ops.UpdateCost
 import com.jacekgajek.kapelusz.ops.UpdateEvent
+import com.jacekgajek.kapelusz.ops.UpdateFundEntry
 import com.jacekgajek.kapelusz.ops.UpdateHolding
+import com.jacekgajek.kapelusz.settlement.BandFund
 import com.jacekgajek.kapelusz.settlement.SettlementCalculator
 import kotlinx.datetime.LocalDate
 
@@ -102,6 +117,29 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
     fun seeOthersDetails() = band.memberOfUser(userId)?.role?.atLeast(Role.MEMBER) ?: false
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
+    fun addFundEntry() = band.treasurerMemberId != null && allowed(AddFundEntry("probe", PROBE_DATE, "probe", Money(1)))
+    fun refundCostFromFund() = allowed(AddFundEntry("probe", PROBE_DATE, "probe", Money(1), costId = "1"))
+    fun editFundEntry(entry: FundEntry) = addFundEntry() && allowed(UpdateFundEntry(entry.id))
+
+    /** The event's money to or from the fund: leads, while the fund is on and the event open. */
+    fun setEventFund(event: Event) = open(event) && band.treasurerMemberId != null && allowed(SetFundAmount(event.id, Money(1)))
+
+    /** Only who left no trace, and never the owner or yourself; anyone else is archived instead. */
+    fun deleteMember(member: Member) = member.role != Role.OWNER && member.id != meId && allowed(DeleteMember(member.id)) && MemberDeletion.possible(band, member.id)
+    fun renameBand() = allowed(RenameBand(PROBE))
+    fun cancelBandDeletion() = allowed(CancelBandDeletion)
+    fun setTreasurer() = allowed(SetTreasurer(PROBE))
+
+    /** Turning the fund off: leads, once it holds nothing and no event owes it or expects money from it. */
+    fun disableFund() = allowed(DisableBandFund) && BandFund.canDisable(band)
+    fun setFundDefault() = allowed(SetFundDefault(null))
+
+    /** The fund's BLIK phone or bank account; one probe stands for both. */
+    fun setFundPayment() = allowed(SetFundBlikPhone(null))
+
+    /** [member]'s own BLIK phone or bank account; one probe stands for both. */
+    fun setPayment(member: Member) = allowed(SetBlikPhone(member.id, null))
+    fun editAgendaTemplate() = allowed(SetAgendaTemplate(emptyList()))
 
     /** Archived events are read-only until restored. */
     private fun open(event: Event) = !event.archived
