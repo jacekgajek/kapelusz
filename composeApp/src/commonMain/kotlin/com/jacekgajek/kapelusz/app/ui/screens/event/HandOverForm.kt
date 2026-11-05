@@ -31,10 +31,11 @@ class HandOverForm private constructor(
     val amount = AmountEntry(handOver.amount(firstFrom).takeIf { it.isPositive }, null, amountText)
     var note by mutableStateOf("")
 
-    val senders: List<Id> get() = handOver.senders
+    /** As the band was when the form opened; a sync that changes them closes the dialog (its guard). */
+    val senders: List<Id> = handOver.senders
 
     /** Whom [from] may hand over to. */
-    val recipients: List<Id> get() = handOver.recipients(from)
+    val recipients: List<Id> by derivedStateOf { handOver.recipients(from) }
 
     /** At most what the sender holds (an artist: owes back): a hand-over passes on money, it doesn't make any up. */
     val held: Money get() = handOver.amount(from)
@@ -44,7 +45,8 @@ class HandOverForm private constructor(
     /** Another sender: a recipient they may not give to is replaced, and what they hold is offered as the amount. */
     fun sender(id: Id) {
         from = id
-        if (to !in recipients) to = recipients.firstOrNull() ?: to
+        val recipients = recipients
+        if (to !in recipients) to = recipients.first()
         held.takeIf { it.isPositive }?.let { amount.typeGross(amountText(it)) }
     }
 
@@ -56,11 +58,10 @@ class HandOverForm private constructor(
     }
 
     companion object {
-        /** The form, or null when there is nobody to hand over from or to (e.g. a sync removed the user from the event). */
+        /** The form, or null when nobody holds money to hand over (a sender always has someone to give to). */
         fun open(eventId: Id, handOver: HandOver, me: Id?, amountText: (Money) -> String): HandOverForm? {
             val from = me?.takeIf { it in handOver.senders } ?: handOver.senders.firstOrNull() ?: return null
-            val to = handOver.recipients(from).firstOrNull() ?: return null
-            return HandOverForm(eventId, handOver, from, to, amountText)
+            return HandOverForm(eventId, handOver, from, handOver.recipients(from).first(), amountText)
         }
     }
 }

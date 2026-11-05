@@ -167,7 +167,8 @@ fun TransfersSection(context: EventContext, shareSettlement: (() -> Unit)?, dial
         is TransfersDialog.HandingOver -> HandOverDialog(context, open.form, onDismiss = dialogs::dismiss)
 
         is TransfersDialog.Removing -> {
-            val transfer = open.transfer
+            // Removed meanwhile (e.g. on another phone): nothing left to remove.
+            val transfer = resolved(event.transfers.firstOrNull { it.id == open.transfer.id }, dialogs::dismiss) ?: return
             val fundLabel = stringResource(Res.string.band_fund)
             ConfirmDialog(
                 title = stringResource(Res.string.remove_transfer_title),
@@ -277,8 +278,9 @@ private fun HandOverDialog(context: EventContext, form: HandOverForm, onDismiss:
     val fundLabel = stringResource(Res.string.band_fund)
     val lang = language
     // A sync may have left nobody to hand over from (e.g. the user was removed from the event).
+    // Gone meanwhile (the sender left the event, or holds nothing now): nothing left to hand over.
     val live = handOverOf(context)
-    if (resolved(live.senders.firstOrNull(), onDismiss) == null) return
+    resolved(live.amount(form.from).takeIf { it.isPositive }, onDismiss) ?: return
 
     AlertDialog(
         onDismissRequest = onDismiss,
