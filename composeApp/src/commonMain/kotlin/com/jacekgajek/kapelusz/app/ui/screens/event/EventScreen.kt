@@ -282,7 +282,7 @@ fun EventScreen(
                             item(key = section.name) {
                                 when (section) {
                                     EventSection.WHEN -> {
-                                        val edit = { screen.editing = true }
+                                        val edit = { screen.editDetails(event, state.band) }
                                         WhenAndWhere(context, onEdit = edit.takeIf { context.can.editEvent(event) })
                                     }
 
@@ -316,9 +316,9 @@ fun EventScreen(
                 }
             }
         }
-        if (screen.editing) {
+        screen.details?.let { form ->
             val places = rememberPlaceLookup(session.placesApi, state.band, session.can)
-            EditDetailsDialog(state.band, event, actions, places, onDismiss = { screen.editing = false })
+            EditDetailsDialog(form, actions, places, onDismiss = screen::dismissDetails)
         }
     }
 }

@@ -10,6 +10,7 @@ import com.jacekgajek.kapelusz.app.bands.BandState
 import com.jacekgajek.kapelusz.app.intents.Carry
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.settings.EventTab
+import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.Event
 import com.jacekgajek.kapelusz.rules.isArtist
 import com.jacekgajek.kapelusz.settlement.Settlement
@@ -42,8 +43,17 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Ca
     /** The gig, its money, and who gets what; artists get the gig and their own money. */
     val tabs: List<EventTab> by derivedStateOf { if (artist) listOf(EventTab.GIG, EventTab.MONEY) else EventTab.entries }
 
-    /** The When and where editor. */
-    var editing by mutableStateOf(false)
+    /** The When and where editor, while open. */
+    var details by mutableStateOf<EventDetailsForm?>(null)
+        private set
+
+    fun editDetails(event: Event, band: Band) {
+        details = EventDetailsForm(event, band)
+    }
+
+    fun dismissDetails() {
+        details = null
+    }
 
     /** The dialogs over the collected money. */
     val collected = CollectedDialogs(eventId)
