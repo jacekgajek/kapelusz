@@ -206,6 +206,11 @@ class SettleTogetherTest :
             val parts = SettleTogether.split(scenario.band, settlement, "bob", "dave", amount)
             parts.sumOf { it.amount.minor } shouldBe amount.minor
             parts.forEach { part -> part.amount.minor shouldBeLessThanOrEqualTo settlement.line(part.from)!!.delta.minor }
+
+            withClue("typed above what the two owe: refused, as artists hold nothing to make it up with") {
+                scenario.rejected(RecordTransfer("gig", "x", "bob", "dave", pln("21"), together = true)).reason shouldBe
+                    RejectionReason.ARTIST_HOLDS_NO_MONEY
+            }
         }
 
         expect("an artist in a pair sees no transfer their partner receives") {

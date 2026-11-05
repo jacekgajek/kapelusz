@@ -43,7 +43,7 @@ object SettleTogether {
      * viewer. Nothing else changes. A pair ending keeps the events it settled together as they were
      * [before] the change, while it still counted.
      */
-    fun tidy(band: Band, before: Band = band, timestamp: Long = 0): Band {
+    fun tidy(band: Band, before: Band = band, timestamp: Long): Band {
         val byId = band.members.associateBy { it.id }
         val members = band.members.map { member ->
             val partner = member.settlesWith?.let { byId[it] }
@@ -152,10 +152,11 @@ object SettleTogether {
                     left -= part
                     id to part
                 }.toMutableList()
-                // The leftover is the non-artist's. Two artists leave none: a pair's amount never exceeds
-                // their merged delta, and each holds only their own positive delta.
-                val payer = parts.indexOfFirst { !Artists.isArtist(band, it.first) }
-                if (payer >= 0) parts[payer] = parts[payer].first to parts[payer].second + left
+                // The leftover is the non-artist's. A suggestion leaves two artists none (their amount is their
+                // merged delta); a hand-typed transfer above what they owe lands it on the first, whom
+                // validateArtistsPaid then refuses: artists hold no money to make the rest up with.
+                val payer = parts.indexOfFirst { !Artists.isArtist(band, it.first) }.coerceAtLeast(0)
+                parts[payer] = parts[payer].first to parts[payer].second + left
                 parts
             }
         }

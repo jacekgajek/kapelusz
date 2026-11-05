@@ -29,7 +29,7 @@ internal object PairReducer {
                 .updateMember(op.fromMemberId) { it.copy(settlesWith = op.toMemberId) }
                 .updateMember(op.toMemberId) { it.copy(settlesWith = op.fromMemberId) }
                 // Both still may settle together.
-                .also { conflictIf(SettleTogether.tidy(it) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
+                .also { conflictIf(SettleTogether.tidy(it, timestamp = ctx.timestamp) != it, RejectionReason.CANNOT_SETTLE_TOGETHER) { "They cannot settle together" } }
         }
 
         is DeclineSettleTogether -> band.dropInvite(op.fromMemberId, op.toMemberId)
