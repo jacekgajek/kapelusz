@@ -117,7 +117,7 @@ internal object Undoing {
         band.members.filter { member -> band.members.any { it !== member && it.name.trim().equals(member.name.trim(), ignoreCase = true) } }
             .forEach { add("name ${it.name.trim().lowercase()}") }
         // A pair or invitation that no longer holds, e.g. one partner settling with someone else since.
-        if (SettleTogether.tidy(band) != band) add("settling together")
+        if (SettleTogether.tidy(band, timestamp = 0) != band) add("settling together") // compared, never kept
         // The fund is off only when it is empty and every event handed over its part (as DisableBandFund requires).
         if (band.treasurerMemberId == null && !BandFund.canDisable(band)) add("band fund in use without a treasurer")
         for (event in band.events) {
