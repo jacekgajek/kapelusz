@@ -48,6 +48,9 @@ class EventViewModel(val eventId: String, bands: StateFlow<BandState>, carry: Ca
     /** The dialogs over the collected money. */
     val collected = CollectedDialogs(eventId)
 
+    /** The dialogs over the transfers. */
+    val transfers = TransfersDialogs(eventId)
+
     /** Files shared to this event that were attached: shown once in a snackbar with Undo, then forgotten. */
     var attached by mutableStateOf(carry as? Carry.Attached)
         private set

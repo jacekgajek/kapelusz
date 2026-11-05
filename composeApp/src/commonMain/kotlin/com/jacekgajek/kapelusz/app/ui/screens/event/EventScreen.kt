@@ -306,7 +306,7 @@ fun EventScreen(
 
                                     EventSection.SUMMARY -> SummarySection(context)
 
-                                    EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement)
+                                    EventSection.TO_SETTLE -> TransfersSection(context, shareSettlement, screen.transfers)
 
                                     EventSection.HISTORY -> HistorySection(context, session)
                                 }
