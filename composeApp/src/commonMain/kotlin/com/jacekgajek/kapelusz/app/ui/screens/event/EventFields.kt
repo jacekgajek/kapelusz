@@ -67,7 +67,7 @@ import com.jacekgajek.kapelusz.app.util.newId
 import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AgendaTime
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Role
+import com.jacekgajek.kapelusz.rules.Capabilities
 import com.jacekgajek.kapelusz.text.Places
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -96,9 +96,9 @@ class PlaceLookup(private val api: PlacesApi, private val bandId: String, privat
 
 /** Place lookups for the band's event dialogs; null for who cannot edit events. */
 @Composable
-fun rememberPlaceLookup(api: PlacesApi, band: Band, userId: String): PlaceLookup? {
+fun rememberPlaceLookup(api: PlacesApi, band: Band, can: Capabilities): PlaceLookup? {
     val lang = language
-    val allowed = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) == true
+    val allowed = can.searchPlaces()
     return remember(api, band.id, lang, allowed) { if (allowed) PlaceLookup(api, band.id, lang) else null }
 }
 

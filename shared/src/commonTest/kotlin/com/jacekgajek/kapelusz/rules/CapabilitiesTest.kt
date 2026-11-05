@@ -89,6 +89,34 @@ class CapabilitiesTest :
             Capabilities(band, "u-member").deleteMember(band.member("viewer")!!) shouldBe false
         }
 
+        expect("roles decide what is seen: costs of others, places, raw data, deleting the band") {
+            val owner = Capabilities(band, "u-owner")
+            owner.seeOthersCosts() shouldBe true
+            owner.searchPlaces() shouldBe true
+            owner.seeRawData() shouldBe true
+            owner.deleteBand() shouldBe true
+
+            val lead = Capabilities(band, "u-lead")
+            lead.seeOthersCosts() shouldBe true
+            lead.searchPlaces() shouldBe true
+            lead.seeRawData() shouldBe true
+            lead.deleteBand() shouldBe false
+
+            val member = Capabilities(band, "u-member")
+            member.viewer shouldBe false
+            member.seeOthersCosts() shouldBe false
+            member.searchPlaces() shouldBe false
+            member.seeRawData() shouldBe false
+            member.deleteBand() shouldBe false
+
+            val viewer = Capabilities(band, "u-viewer")
+            viewer.viewer shouldBe true
+            withClue("viewers have no costs of their own") { viewer.seeOthersCosts() shouldBe true }
+            viewer.searchPlaces() shouldBe false
+            viewer.seeRawData() shouldBe false
+            viewer.deleteBand() shouldBe false
+        }
+
         // "Add cost" in an event: a lead adds for any participant, a member only when taking part themselves.
         expect("adding a cost in an event needs someone in it") {
             val other = band.apply(CreateEvent("o", "Other gig", LocalDate(2026, 9, 14), participants = listOf(Participant("owner"))))

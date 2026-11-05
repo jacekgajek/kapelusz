@@ -116,9 +116,25 @@ class Capabilities(private val band: Band, private val userId: String) {
     fun detachFrom(owner: AttachmentOwner) = allowed(RemoveAttachment(owner, PROBE))
     fun manageRoster() = allowed(AddMember(PROBE, PROBE))
     fun seeOthersDetails() = band.memberOfUser(userId)?.role?.atLeast(Role.MEMBER) ?: false
+
+    /** Sees everything and does nothing: no money, no costs of their own. */
+    val viewer: Boolean get() = band.memberOfUser(userId)?.role == Role.VIEWER
+
+    /** Everyone's costs, not only one's own: leads, and viewers who have none. */
+    fun seeOthersCosts() = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) == true || viewer
+
+    /** Place lookups for the event editor; the server refuses others (PlacesHandlers). */
+    fun searchPlaces() = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) ?: false
+
+    /** The settings' secret menu, for the band's leaders. */
+    fun seeRawData() = band.memberOfUser(userId)?.role?.atLeast(Role.LEAD) ?: false
+
+    /** Asking the server to delete the band; the owner only, as the API enforces. */
+    fun deleteBand() = band.memberOfUser(userId)?.role == Role.OWNER
+
     fun transferOwnership() = band.memberOfUser(userId)?.role == Role.OWNER && allowed(TransferOwnership(PROBE))
-    fun addFundEntry() = band.treasurerMemberId != null && allowed(AddFundEntry("probe", PROBE_DATE, "probe", Money(1)))
-    fun refundCostFromFund() = allowed(AddFundEntry("probe", PROBE_DATE, "probe", Money(1), costId = "1"))
+    fun addFundEntry() = band.treasurerMemberId != null && allowed(AddFundEntry(PROBE, PROBE_DATE, PROBE, Money(1)))
+    fun refundCostFromFund() = allowed(AddFundEntry(PROBE, PROBE_DATE, PROBE, Money(1), costId = "1"))
     fun editFundEntry(entry: FundEntry) = addFundEntry() && allowed(UpdateFundEntry(entry.id))
 
     /** The event's money to or from the fund: leads, while the fund is on and the event open. */

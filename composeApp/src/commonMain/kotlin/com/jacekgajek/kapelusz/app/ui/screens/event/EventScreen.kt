@@ -317,7 +317,7 @@ fun EventScreen(
             }
         }
         if (screen.editing) {
-            val places = rememberPlaceLookup(session.placesApi, state.band, state.userId)
+            val places = rememberPlaceLookup(session.placesApi, state.band, session.can)
             EditDetailsDialog(state.band, event, actions, places, onDismiss = { screen.editing = false })
         }
     }
