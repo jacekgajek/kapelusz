@@ -111,7 +111,7 @@ class CapabilitiesTest :
 
             val viewer = Capabilities(band, "u-viewer")
             viewer.viewer shouldBe true
-            withClue("viewers have no costs of their own") { viewer.seeOthersCosts() shouldBe true }
+            withClue("a viewer sees everyone's anyway, so there is no switch for them") { viewer.seeOthersCosts() shouldBe false }
             viewer.searchPlaces() shouldBe false
             viewer.seeRawData() shouldBe false
             viewer.deleteBand() shouldBe false
