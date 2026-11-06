@@ -142,7 +142,12 @@ private fun SheetHeader(shared: SharedFiles, event: ShareEvent?, severalBands: B
             }
         }
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(event?.event?.name ?: stringResource(Res.string.share_title), style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                event?.event?.name ?: stringResource(Res.string.share_title),
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (event != null) {
                 Text(
                     listOfNotNull(formatDate(event.event.date, language), event.band.name.takeIf { severalBands }).joinToString(" · "),
@@ -193,7 +198,12 @@ private fun Skipped(shared: SharedFiles) {
 /** A section's heading: smaller and in the primary colour, so it doesn't read as a choice. */
 @Composable
 private fun Heading(text: String) {
-    Text(text, Modifier.padding(top = 16.dp, bottom = 4.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    Text(
+        text,
+        Modifier.padding(top = 16.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable
@@ -203,7 +213,8 @@ private fun EventChoices(events: List<ShareEvent>, severalBands: Boolean, onChoo
         if (item.upcoming && events.getOrNull(index - 1)?.upcoming != true) Heading(stringResource(Res.string.share_upcoming))
         val event = item.event
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onChoose(item) }.padding(vertical = 8.dp, horizontal = 4.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onChoose(item) }
+                .padding(vertical = 8.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DateBlock(event.date)
@@ -211,7 +222,13 @@ private fun EventChoices(events: List<ShareEvent>, severalBands: Boolean, onChoo
                 Text(event.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val details = listOfNotNull(item.band.name.takeIf { severalBands }, event.location).joinToString(" · ")
                 if (details.isNotEmpty()) {
-                    Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        details,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -223,13 +240,29 @@ private fun EventChoices(events: List<ShareEvent>, severalBands: Boolean, onChoo
 @Composable
 private fun DateBlock(date: LocalDate) {
     Column(
-        Modifier.width(48.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.secondaryContainer).padding(vertical = 4.dp),
+        Modifier.width(48.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(date.day.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-        Text(formatMonthShort(date, language), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(
+            date.day.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        Text(
+            formatMonthShort(date, language),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
         // Past years' events would look like this year's.
-        if (date.year != today().year) Text(date.year.toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        if (date.year != today().year) {
+            Text(
+                date.year.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
     }
 }
 
@@ -256,13 +289,16 @@ private fun TargetChoices(chosen: ShareEvent, userId: String, shared: SharedFile
                     is ShareTarget.NewCollected -> Icons.Default.Payments to Res.string.share_new_collected
                     else -> Icons.Default.AttachFile to Res.string.share_event_files
                 }
-                NewTile(icon, stringResource(label), room(target), enabled && target.room >= needed, Modifier.weight(1f).fillMaxHeight()) { onChoose(target) }
+                NewTile(
+                    icon = icon,
+                    label = stringResource(label),
+                    problem = room(target),
+                    enabled = enabled && target.room >= needed,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                ) { onChoose(target) }
             }
         }
     }
-    val fund = stringResource(Res.string.band_fund)
-    val organiser = stringResource(Res.string.organiser)
-    val costLabel = stringResource(Res.string.share_cost)
     val costs = targets.filterIsInstance<ShareTarget.ExistingCost>()
     // Existing costs and received money under their own headings: "Bob · 100 zł" could be either.
     if (costs.isNotEmpty()) Heading(stringResource(Res.string.share_existing_costs))
@@ -270,7 +306,7 @@ private fun TargetChoices(chosen: ShareEvent, userId: String, shared: SharedFile
         val cost = target.cost
         ExistingRow(
             icon = cost.category.icon(),
-            title = cost.description ?: cost.category?.label() ?: costLabel,
+            title = cost.description ?: cost.category?.label() ?: stringResource(Res.string.share_cost),
             subtitle = band.member(cost.memberId)?.name,
             amount = formatMoney(cost.amount, band.currency, language),
             problem = room(target),
@@ -283,9 +319,13 @@ private fun TargetChoices(chosen: ShareEvent, userId: String, shared: SharedFile
         val holding = target.holding
         ExistingRow(
             icon = Icons.Default.Payments,
-            title = if (holding.awaited) organiser else partyName(band, event, holding.partyId, fund),
+            title = if (holding.awaited) {
+                stringResource(Res.string.organiser)
+            } else {
+                partyName(band, event, holding.partyId, stringResource(Res.string.band_fund))
+            },
             subtitle = listOfNotNull(holding.source.label(), holding.note).joinToString(" · "),
-            amount = formatMoney(holding.amount, band.currency, language),
+            amount = formatMoney(holding.settled, band.currency, language),
             problem = room(target),
             enabled = enabled && target.room >= needed,
         ) { onChoose(target) }
@@ -303,21 +343,41 @@ private fun NewTile(icon: ImageVector, label: String, problem: String?, enabled:
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
-        Column(Modifier.padding(horizontal = 8.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             // Dimmed when it has no room, but not why (below): that is the point of showing it.
             val dim = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)
             Icon(icon, null, dim.size(28.dp))
             Text(label, dim, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
-            if (problem != null) Text(problem, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+            if (problem != null) {
+                Text(
+                    problem,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
 
 /** An existing cost or received money, like on the event's Money page; the clip at the end says the files go there. */
 @Composable
-private fun ExistingRow(icon: ImageVector, title: String, subtitle: String?, amount: String, problem: String?, enabled: Boolean, onClick: () -> Unit) {
+private fun ExistingRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    amount: String,
+    problem: String?,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick).padding(vertical = 8.dp, horizontal = 4.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Dimmed when it has no room, but not why (under the name): that is the point of showing it.

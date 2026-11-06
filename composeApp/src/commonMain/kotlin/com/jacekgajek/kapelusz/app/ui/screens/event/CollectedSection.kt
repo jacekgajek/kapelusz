@@ -56,7 +56,8 @@ import com.jacekgajek.kapelusz.app.generated.vat_mode_net
 import com.jacekgajek.kapelusz.app.generated.vat_rate
 import com.jacekgajek.kapelusz.app.generated.vat_split_gross
 import com.jacekgajek.kapelusz.app.generated.vat_split_net
-import com.jacekgajek.kapelusz.app.generated.vat_summary
+import com.jacekgajek.kapelusz.app.generated.vat_summary_gross
+import com.jacekgajek.kapelusz.app.generated.vat_summary_net
 import com.jacekgajek.kapelusz.app.platform.PreparedFile
 import com.jacekgajek.kapelusz.app.ui.components.Choice
 import com.jacekgajek.kapelusz.app.ui.components.ConfirmDialog
@@ -92,9 +93,7 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
     val amountText: (Money) -> String = { formatMoneyInput(it, lang) }
     val allowedParties = context.can.holdingParties(event)
     val receiveParties = context.can.receiveParties(event)
-    val organiser = stringResource(Res.string.organiser)
     // A fee paid straight to the band's account is held by the fund.
-    val fund = stringResource(Res.string.band_fund)
 
     SectionTitle(stringResource(Res.string.collected_money))
     if (event.holdings.isEmpty()) Text(stringResource(Res.string.collected_empty), style = MaterialTheme.typography.bodyMedium)
@@ -105,9 +104,21 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(if (holding.awaited) organiser else partyName(context.band, event, holding.partyId, fund))
-                // Source, note, "awaited", and the VAT breakdown of a gross with VAT in it.
-                val vat = holding.vat?.let { stringResource(Res.string.vat_summary, formatMoney(it.net, context.currency, lang), it.rate) }
+                Text(
+                    if (holding.awaited) {
+                        stringResource(Res.string.organiser)
+                    } else {
+                        partyName(context.band, event, holding.partyId, stringResource(Res.string.band_fund))
+                    },
+                )
+                // Source, note, "awaited", and the VAT breakdown.
+                val vat = holding.vat?.let {
+                    if (it.split == VatSplitMode.GROSS) {
+                        stringResource(Res.string.vat_summary_net, formatMoney(it.net, context.currency, lang), it.rate)
+                    } else {
+                        stringResource(Res.string.vat_summary_gross, formatMoney(holding.amount, context.currency, lang), it.rate)
+                    }
+                }
                 val awaited = stringResource(Res.string.awaited_payment).takeIf { holding.awaited }
                 Text(
                     listOfNotNull(holding.source.label(), holding.note, awaited, vat).joinToString(" · "),
@@ -115,7 +126,7 @@ fun CollectedSection(context: EventContext, dialogs: CollectedDialogs) {
                     color = if (holding.awaited) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                 )
             }
-            MoneyText(holding.amount)
+            MoneyText(holding.settled)
             if (context.can.editHolding(event, holding)) EditButton(onClick = edit)
         }
 
@@ -338,5 +349,5 @@ private fun ReceiveDialog(context: EventContext, form: ReceiveForm, awaited: Hol
 @Composable
 fun VatSummary(vat: Vat, currency: String) {
     val net = formatMoney(vat.net, currency, language)
-    Text(stringResource(Res.string.vat_summary, net, vat.rate), style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(Res.string.vat_summary_net, net, vat.rate), style = MaterialTheme.typography.bodySmall)
 }
