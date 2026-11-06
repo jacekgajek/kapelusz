@@ -147,3 +147,26 @@ Calendar apps that insist on HTTPS won't subscribe to it. You can still open the
 
 `./gradlew :localServer:test` covers sign-in, sessions surviving a restart, the file store's conditional writes,
 history order, made-up places, and presigned uploads and downloads. It runs as part of `./gradlew check`.
+
+## End-to-end tests
+
+The real app runs in a browser and talks to the local server: the real `App`, the browser's own storage, a real
+HTTP client, the server's own code. The tests use only what is on screen. The harness is in
+`composeApp/src/wasmJsTest/.../e2e/` (`E2e.kt`: the on/off switch, the app's runtime, a new user for every test).
+The specs go next to it. They take minutes, so they are not part of `check` and CI. The *End-to-end* workflow runs
+them every night, when started by hand, and on pull requests with the `e2e` label.
+
+```sh
+./gradlew :composeApp:wasmJsBrowserTest -Pe2e
+```
+
+`-Pe2e` does three things: builds the app for `http://localhost:8787` with development sign-in, starts `localServer`
+in memory for this build, and tells the test page about it. Without the flag the end-to-end specs are skipped.
+
+The flag changes the whole build, like `scripts/local-dev.sh` does. Run only this task with it; any other app built in
+the same command would talk to the local server too. The port must be free: if a local-dev server is on it, the run
+stops before it writes anything into that server's files. The server's output is in
+`composeApp/build/e2e/local-server.log`.
+
+Every test signs in as its own user, so the tests share one browser and one server without seeing each other. The
+tests check English strings: Karma starts Chrome in `en-US`.

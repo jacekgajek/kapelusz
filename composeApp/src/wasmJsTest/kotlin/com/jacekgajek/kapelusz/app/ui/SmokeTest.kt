@@ -3,12 +3,7 @@
 package com.jacekgajek.kapelusz.app.ui
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.printToString
 import androidx.navigation.NavController
 import com.jacekgajek.kapelusz.api.BandSummary
 import com.jacekgajek.kapelusz.app.App
@@ -23,6 +18,7 @@ import com.jacekgajek.kapelusz.app.platform.LocalPlatform
 import com.jacekgajek.kapelusz.app.runtime.AppRuntime
 import com.jacekgajek.kapelusz.app.storage.InMemoryStore
 import com.jacekgajek.kapelusz.app.testing.FakeServer
+import com.jacekgajek.kapelusz.app.testing.awaitText
 import com.jacekgajek.kapelusz.app.testing.composeUiTest
 import com.jacekgajek.kapelusz.app.ui.screens.SignInScreen
 import com.jacekgajek.kapelusz.engine.ApplyResult
@@ -34,9 +30,6 @@ import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.rules.Actor
 import io.kotest.core.spec.style.ExpectSpec
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 
 private const val USER = "alice"
@@ -63,19 +56,6 @@ private fun runtime(server: FakeServer, band: Band?): AppRuntime {
         values[BandStore.bandKey(USER, band.id)] = KapeluszJson.encodeToString(LocalBand.serializer(), local)
     }
     return AppRuntime(FakePlatform(store = InMemoryStore(values)), http = server.client)
-}
-
-/**
- * Strings come over the network on the web, and the app's own work runs on the browser's loop: a real wait lets both
- * happen. The strings are English ones: Karma starts Chrome in `en-US` (karma.config.d/ui-tests.js).
- */
-private suspend fun ComposeUiTest.awaitText(text: String) {
-    repeat(200) {
-        waitForIdle()
-        if (onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()) return
-        withContext(Dispatchers.Default) { delay(50) }
-    }
-    throw AssertionError("no '$text' in: " + onRoot().printToString())
 }
 
 /**
