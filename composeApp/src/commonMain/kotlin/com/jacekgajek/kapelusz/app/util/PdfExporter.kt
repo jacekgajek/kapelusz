@@ -220,9 +220,9 @@ object PdfExporter {
                 val awaited = text(Res.string.awaited_payment).takeIf { holding.awaited }
                 val about = listOfNotNull(text(holding.source.labelRes()), holding.note, awaited, holding.attachments.namesOrNull())
                 Line(
-                    if (holding.awaited) text(Res.string.organiser) else partyName(band, event, holding.partyId, fund),
-                    about.joinToString(" · "),
-                    text.money(holding.amount),
+                    label = if (holding.awaited) text(Res.string.organiser) else partyName(band, event, holding.partyId, fund),
+                    detail = about.joinToString(" · "),
+                    amount = text.money(holding.settled),
                 )
             },
             refunds = event.refunds.mapNotNull { refund ->
