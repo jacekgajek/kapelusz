@@ -4,8 +4,8 @@ package com.jacekgajek.kapelusz.app.testing
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.runComposeUiTest
 import kotlin.js.Promise
@@ -30,5 +30,8 @@ internal suspend fun ComposeUiTest.awaitText(text: String, seconds: Int = 10) {
         if (onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()) return
         withContext(Dispatchers.Default) { delay(50) }
     }
-    throw AssertionError("no '$text' in: " + onRoot().printToString())
+    throw AssertionError("no '$text' in: " + screen())
 }
+
+/** Everything on screen, for a failure message. An open dialog is a second root next to the app's. */
+internal fun ComposeUiTest.screen(): String = onAllNodes(isRoot()).printToString(maxDepth = Int.MAX_VALUE)

@@ -13,7 +13,11 @@ config.client = Object.assign({}, config.client, { mocha: Object.assign({}, (con
 Object.values(config.customLaunchers || {}).forEach(launcher => { launcher.flags = (launcher.flags || []).concat("--lang=en-US"); });
 // 4. End-to-end specs (-Pe2e, LOCAL_DEVELOPMENT.md): the page reads the local server's address from Karma's client config
 //    (window.__karma__.config). Without it the specs are skipped. A whole scenario needs more time than a smoke test.
+//    KAPELUSZ_E2E_SPEC names the one spec to run (-Pe2e.spec).
 const e2eApi = process.env.KAPELUSZ_E2E_API;
 if (e2eApi) {
-    config.client = Object.assign({}, config.client, { kapeluszE2eApi: e2eApi, mocha: Object.assign({}, config.client.mocha, { timeout: 300000 }) });
+    const e2e = { kapeluszE2eApi: e2eApi, kapeluszE2eSpec: process.env.KAPELUSZ_E2E_SPEC || null };
+    config.client = Object.assign({}, config.client, e2e, { mocha: Object.assign({}, config.client.mocha, { timeout: 300000 }) });
+    // A step may wait 30 s without a word. Karma would give up on a silent browser after 30 s.
+    config.browserNoActivityTimeout = 600000;
 }

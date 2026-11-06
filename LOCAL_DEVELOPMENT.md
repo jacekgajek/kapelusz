@@ -152,13 +152,21 @@ history order, made-up places, and presigned uploads and downloads. It runs as p
 
 The real app runs in a browser and talks to the local server: the real `App`, the browser's own storage, a real
 HTTP client, the server's own code. The tests use only what is on screen. The harness is in
-`composeApp/src/wasmJsTest/.../e2e/` (`E2e.kt`: the on/off switch, the app's runtime, a new user for every test).
-The specs go next to it. They take minutes, so they are not part of `check` and CI. The *End-to-end* workflow runs
-them every night, when started by hand, and on pull requests with the `e2e` label.
+`composeApp/src/wasmJsTest/.../e2e/`: `E2e.kt` (the on/off switch, the app's runtime, a new user for every test) and
+`Screen.kt` (`see`, `tap`, `type`: the test works with the words on screen, which are string resources). A spec is a
+story: sign in, create the band, and so on (`FirstEventTest`). They take minutes, so they are not part of `check` and
+CI. The *End-to-end* workflow runs them every night, when started by hand, and on pull requests with the `e2e` label.
 
 ```sh
-./gradlew :composeApp:wasmJsBrowserTest -Pe2e
+./gradlew :composeApp:wasmJsBrowserTest -Pe2e                         # all
+./gradlew :composeApp:wasmJsBrowserTest -Pe2e -Pe2e.spec=FirstEvent   # one spec, by part of its class name
 ```
+
+`VatRateTest` fails on purpose, for now. It checks a rule the app does not have, to show what a failure looks like.
+
+When a step finds nothing, the test fails with: the steps so far (how to get there by hand), the words on screen at
+that moment with what each field holds, the command to rerun this one spec, and last the semantics tree. The test
+report is in `composeApp/build/reports/tests/wasmJsBrowserTest/`.
 
 `-Pe2e` does three things: builds the app for `http://localhost:8787` with development sign-in, starts `localServer`
 in memory for this build, and tells the test page about it. Without the flag the end-to-end specs are skipped.

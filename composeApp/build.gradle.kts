@@ -206,6 +206,11 @@ kotlin {
                 // The end-to-end specs run only when the local server is there. karma.config.d/ui-tests.js passes this to the page.
                 if (e2e) {
                     environment("KAPELUSZ_E2E_API", e2eApiUrl)
+                    // One spec by (part of) its class name, e.g. -Pe2e.spec=VatRateTest. The other specs are skipped.
+                    val spec = providers.gradleProperty("e2e.spec")
+                    spec.orNull?.let { environment("KAPELUSZ_E2E_SPEC", it) }
+                    // Gradle does not treat the environment as an input. Another spec, or none, must be a new run.
+                    inputs.property("e2eSpec", spec.orElse(""))
                     dependsOn(localServerClasspath)
                     usesService(localServer)
                     doFirst(StartLocalServer(localServer))
