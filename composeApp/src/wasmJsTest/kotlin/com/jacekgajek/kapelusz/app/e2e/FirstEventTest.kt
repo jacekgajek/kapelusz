@@ -36,7 +36,6 @@ class FirstEventTest :
             tap(Res.string.create)
 
             // The event opens on its line-up. Each member not in it has a chip. A tap on the chip adds Alice.
-            tap("Jazz Night")
             tap("Alice")
 
             tap(Res.string.tab_money)

@@ -37,7 +37,8 @@ fun AmountRow(
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = style)
         MoneyText(amount, bold = bold, colored = colored)
-        if (onEdit != null) EditButton(onClick = onEdit)
+        // Named after the row: the screen may have other edit buttons.
+        if (onEdit != null) EditButton(what = label, onClick = onEdit)
         trailing()
     }
 }

@@ -161,9 +161,10 @@ fun BandFundScreen(
         topBar = { TabTopBar(stringResource(Res.string.tab_fund)) },
         floatingActionButton = {
             if (canEdit) {
+                // Material hides the text of this button from accessibility. The icon's description names the button instead.
                 ExtendedFloatingActionButton(
                     onClick = { entries.add(band, me, refundsCosts, today(), amountText, costName) },
-                    icon = { Icon(Icons.Default.Add, null) },
+                    icon = { Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.fund_add_entry)) },
                     text = { Text(stringResource(Res.string.fund_add_entry)) },
                 )
             }
