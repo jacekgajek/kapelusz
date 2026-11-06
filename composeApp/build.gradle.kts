@@ -1,4 +1,6 @@
+import java.net.Socket
 import java.util.Properties
+import java.util.concurrent.TimeUnit
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -31,12 +33,18 @@ fun headlessChrome(): String? {
     return (onPath + playwright).firstOrNull { it.canExecute() }?.path
 }
 
+// The end-to-end tests (`-Pe2e`, LOCAL_DEVELOPMENT.md): the browser tests against a local server started for the run.
+// The whole build then compiles for that server with development sign-in, as a local-dev build does.
+val e2e = providers.gradleProperty("e2e").isPresent
+val e2ePort = 8787
+val e2eApiUrl = "http://localhost:$e2ePort"
+
 val generateAppConfig = tasks.register("generateAppConfig") {
-    val apiUrl = setting("KAPELUSZ_API_URL", "kapelusz.apiUrl")
+    val apiUrl = if (e2e) provider { e2eApiUrl } else setting("KAPELUSZ_API_URL", "kapelusz.apiUrl")
     val webClientId = setting("KAPELUSZ_GOOGLE_WEB_CLIENT_ID", "kapelusz.googleWebClientId")
     val webUrl = setting("KAPELUSZ_WEB_URL", "kapelusz.webUrl")
     // Sign-in as a made-up user, for the local server (LOCAL_DEVELOPMENT.md); never set for a release.
-    val devSignIn = setting("KAPELUSZ_DEV_SIGN_IN", "kapelusz.devSignIn").orElse("false").map { it.toBoolean() }
+    val devSignIn = if (e2e) provider { true } else setting("KAPELUSZ_DEV_SIGN_IN", "kapelusz.devSignIn").orElse("false").map { it.toBoolean() }
     // Without a key (local builds, unless set) there is no map to pick a place on.
     val mapsKey = setting("KAPELUSZ_GOOGLE_MAPS_ANDROID_KEY", "kapelusz.googleMapsAndroidKey").orElse("")
     val versionName = providers.gradleProperty("kapelusz.versionName")
@@ -89,6 +97,79 @@ val generateAppConfig = tasks.register("generateAppConfig") {
     }
 }
 
+/**
+ * The local server (localServer/) for the end-to-end tests: one process per build, in memory, started by the first test
+ * task that needs it and stopped when the build ends. Its output goes to [Params.log].
+ */
+abstract class LocalServerService :
+    BuildService<LocalServerService.Params>,
+    AutoCloseable {
+    interface Params : BuildServiceParameters {
+        val java: RegularFileProperty
+        val classpath: ConfigurableFileCollection
+        val port: Property<Int>
+        val log: RegularFileProperty
+    }
+
+    private var process: Process? = null
+
+    @Synchronized
+    fun start() {
+        if (process != null) return
+        val log = parameters.log.get().asFile.apply { parentFile.mkdirs() }
+        val port = parameters.port.get()
+        val started = ProcessBuilder(
+            parameters.java.get().asFile.path,
+            "-cp",
+            parameters.classpath.asPath,
+            "com.jacekgajek.kapelusz.local.LocalServerKt",
+            "--memory",
+        ).redirectErrorStream(true).redirectOutput(log).apply {
+            environment()["KAPELUSZ_LOCAL_PORT"] = port.toString()
+            environment()["WEB_URL"] = "http://localhost:$port"
+        }.start()
+        process = started
+        val deadline = System.currentTimeMillis() + 60_000
+        while (!listening(port)) {
+            check(started.isAlive) { "The local server stopped: ${log.readText().takeLast(2000)}" }
+            check(System.currentTimeMillis() < deadline) { "The local server did not listen on $port within a minute: ${log.readText().takeLast(2000)}" }
+            Thread.sleep(200)
+        }
+    }
+
+    private fun listening(port: Int) = runCatching { Socket("localhost", port).close() }.isSuccess
+
+    override fun close() {
+        process?.let {
+            it.destroy()
+            it.waitFor(10, TimeUnit.SECONDS)
+        }
+        process = null
+    }
+}
+
+/** Starts the local server before a task's work; a class of its own, which the configuration cache can store. */
+class StartLocalServer(private val service: Provider<LocalServerService>) : Action<Task> {
+    override fun execute(task: Task) = service.get().start()
+}
+
+val localServerClasspath = configurations.create("localServerClasspath") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    localServerClasspath(project(":localServer"))
+}
+
+val localServer = gradle.sharedServices.registerIfAbsent("kapeluszLocalServer", LocalServerService::class) {
+    // The path itself: the toolchain service's provider cannot be stored in the configuration cache.
+    parameters.java.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.target.get())) }.get().executablePath)
+    parameters.classpath.from(localServerClasspath)
+    parameters.port.set(e2ePort)
+    parameters.log.set(layout.buildDirectory.file("e2e/local-server.log"))
+}
+
 kotlin {
     jvmToolchain(libs.versions.jvm.target.get().toInt())
 
@@ -118,6 +199,13 @@ kotlin {
                 // The resources the screens under test read; served by karma.config.d/ui-tests.js.
                 dependsOn("wasmJsProcessResources")
                 environment("COMPOSE_TEST_RESOURCES", layout.buildDirectory.dir("processedResources/wasmJs/main").get().asFile.absolutePath)
+                // The end-to-end specs run only when the local server is there, which karma.config.d/ui-tests.js tells the page.
+                if (e2e) {
+                    environment("KAPELUSZ_E2E_API", e2eApiUrl)
+                    dependsOn(localServerClasspath)
+                    usesService(localServer)
+                    doFirst(StartLocalServer(localServer))
+                }
             }
         }
         binaries.executable()

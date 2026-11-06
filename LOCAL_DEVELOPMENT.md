@@ -147,3 +147,22 @@ Calendar apps that insist on HTTPS won't subscribe to it. You can still open the
 
 `./gradlew :localServer:test` covers sign-in, sessions surviving a restart, the file store's conditional writes,
 history order, made-up places, and presigned uploads and downloads. It runs as part of `./gradlew check`.
+
+## End-to-end tests
+
+The app's screens in a browser against the local server: the real `App`, the browser's own storage, a real HTTP
+client, and the server's own code, driven only through what is on screen (`composeApp/src/wasmJsTest/.../e2e/`).
+They take minutes, so they are not part of `check` and CI: the *End-to-end* workflow runs them nightly, on demand,
+and on a pull request labelled `e2e`.
+
+```sh
+./gradlew :composeApp:wasmJsBrowserTest -Pe2e
+```
+
+`-Pe2e` builds the app for `http://localhost:8787` with development sign-in (the same build as `scripts/local-dev.sh`
+would make, so give the flag to nothing else in that invocation), starts `localServer` in memory for the build, and
+tells the test page about it; without the flag the end-to-end specs are reported as skipped. The server's output is in
+`composeApp/build/e2e/local-server.log`. Every test signs in as a user of its own, so the tests share the one browser
+and the one server without seeing each other. The strings asserted on are the English ones: Karma starts Chrome in
+`en-US`.
+
