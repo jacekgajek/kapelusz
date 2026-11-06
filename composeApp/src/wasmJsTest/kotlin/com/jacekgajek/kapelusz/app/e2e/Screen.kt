@@ -23,18 +23,18 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 
 /**
- * What a user does on the screen, by the words on it. The test knows no composable, view model or operation, so a
- * refactor underneath changes no test. A word is a string resource, so a change of wording changes no test either.
+ * What a user does on the screen, by the words on it. The test knows no composable, view model or operation. So a
+ * refactor under the UI changes no test. A word is a string resource. So a change of wording changes no test either.
  *
- * Every step is recorded. A step that finds nothing fails with: the steps so far (how to get there by hand), the words
- * on screen at that moment (what the user sees instead), and last the whole semantics tree.
+ * Every step is recorded. A step that finds nothing fails with three things. The steps so far: how to get there by
+ * hand. The words on screen: what the user sees instead. And last, the whole semantics tree.
  */
 internal class Screen(private val ui: ComposeUiTest) {
     private val steps = mutableListOf<String>()
 
     suspend fun see(text: StringResource, seconds: Int = WAIT) = see(getString(text), seconds)
 
-    /** Waits until [text] is on screen, as a whole or as part of a longer text. */
+    /** Waits until [text] is on screen. It may be part of a longer text. */
     suspend fun see(text: String, seconds: Int = WAIT) {
         steps += "see '$text'"
         await(seconds, "nothing says '$text'") { ui.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
@@ -42,7 +42,7 @@ internal class Screen(private val ui: ComposeUiTest) {
 
     suspend fun tap(text: StringResource) = tap(getString(text))
 
-    /** Taps the one thing that says exactly [text], as text or as an icon's description: a button, a tab, a row, a choice. */
+    /** Taps the one thing that says exactly [text]. The text may be an icon's description. A button, a tab, a row, a choice. */
     suspend fun tap(text: String) {
         steps += "tap '$text'"
         one(hasText(text) or hasContentDescription(text), "nothing to tap says '$text'", "things say '$text', tap needs one").performClick()
@@ -51,18 +51,18 @@ internal class Screen(private val ui: ComposeUiTest) {
 
     suspend fun type(label: StringResource, value: String) = type(getString(label), value)
 
-    /** Types [value] into the field labelled [label]. The old content is replaced. */
+    /** Types [value] into the field with the label [label]. The old content is replaced. */
     suspend fun type(label: String, value: String) {
         steps += "type '$value' into '$label'"
-        // The field itself, not a choice or a heading with the same words.
+        // Only a field. Not a choice or a heading with the same words.
         val field = hasSetTextAction() and hasText(label)
         one(field, "no field labelled '$label'", "fields are labelled '$label', typing needs one").performTextReplacement(value)
         ui.waitForIdle()
     }
 
     /**
-     * The one node that [matcher] finds. Waits until there is exactly one: while a screen opens or closes, a word can be
-     * there twice for a moment. [none] and [several] are the failure messages for zero and for more than one.
+     * The one node that [matcher] finds. Waits until there is exactly one. While a screen opens or closes, a word can
+     * be there twice for a moment. [none] is the failure message for no node. [several] is the message for more than one.
      */
     private suspend fun one(matcher: SemanticsMatcher, none: String, several: String): SemanticsNodeInteraction {
         var count = 0
@@ -76,8 +76,8 @@ internal class Screen(private val ui: ComposeUiTest) {
     private suspend fun await(seconds: Int, problem: String, found: () -> Boolean) = await(seconds, { problem }, found)
 
     /**
-     * Waits until [found], up to [seconds]. On the web the strings load over the network and the app works on the
-     * browser's loop, so this is a real wait. Some steps include a server round trip, and a cold CI runner is slow.
+     * Waits until [found] is true, up to [seconds]. This is a real wait. On the web the strings load over the network,
+     * and the app works on the browser's loop. Some steps include a server round trip. A cold CI runner is slow.
      */
     private suspend fun await(seconds: Int, problem: () -> String, found: () -> Boolean) {
         repeat(seconds * 20) {
@@ -98,7 +98,7 @@ internal class Screen(private val ui: ComposeUiTest) {
         )
     }
 
-    /** The words on screen, one per line: texts, icon descriptions, and the content of fields. */
+    /** The words on screen, one per line. Texts, icon descriptions and the content of fields. */
     private fun words(roots: List<SemanticsNode>): String {
         val lines = mutableListOf<String>()
         fun walk(node: SemanticsNode) {

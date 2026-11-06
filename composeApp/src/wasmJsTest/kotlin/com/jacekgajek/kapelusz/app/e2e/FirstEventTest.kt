@@ -16,12 +16,12 @@ import com.jacekgajek.kapelusz.app.generated.tab_money
 import com.jacekgajek.kapelusz.app.generated.your_name
 import io.kotest.core.spec.style.ExpectSpec
 
-/** A new user's first evening with the app: sign in, create a band and an event, record the money it brought. */
+/** A new user's first evening with the app. Sign in, create a band and an event, record the money. */
 class FirstEventTest :
     ExpectSpec({
         e2e("a new user signs in, creates a band and an event, and records the money received") {
             val user = freshUser("Alice")
-            // The development sign-in: type a name, then tap the button that signs in as that name.
+            // The development sign-in. Type a name, then tap the button that signs in as that name.
             type("Test user (local server)", user)
             tap("Sign in as $user")
 
@@ -35,7 +35,7 @@ class FirstEventTest :
             type(Res.string.event_name, "Jazz Night")
             tap(Res.string.create)
 
-            // The event opens on its line-up. There is a chip for each member not in it yet; a tap adds Alice.
+            // The event opens on its line-up. Each member not in it has a chip. A tap on the chip adds Alice.
             tap("Jazz Night")
             tap("Alice")
 

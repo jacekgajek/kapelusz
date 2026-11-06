@@ -17,8 +17,8 @@ import com.jacekgajek.kapelusz.app.generated.your_name
 import io.kotest.core.spec.style.ExpectSpec
 
 /**
- * A made-up rule, to see what a failing end-to-end test looks like: the VAT field accepts 23 % and refuses any other
- * rate. The app has no such rule (any rate from 1 to 100 is fine), so this test fails on purpose.
+ * A made-up rule, to see what a failing end-to-end test looks like. The rule: the VAT field accepts 23 % and refuses
+ * any other rate. The app has no such rule. Any rate from 1 to 100 is fine. So this test fails on purpose.
  */
 class VatRateTest :
     ExpectSpec({
