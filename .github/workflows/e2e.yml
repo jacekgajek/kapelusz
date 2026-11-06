@@ -10,18 +10,22 @@ on:
   pull_request:
     types: [labeled, synchronize]
 
-concurrency:
-  group: e2e-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
 
 jobs:
   e2e:
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
+    # Any label fires `labeled`: only the e2e one starts a run, and a push to a labelled pull request restarts it.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'e2e') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # On the job, not the workflow: a skipped job never cancels a running one.
+    concurrency:
+      group: e2e-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 

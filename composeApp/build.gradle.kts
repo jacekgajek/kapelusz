@@ -118,6 +118,8 @@ abstract class LocalServerService :
         if (process != null) return
         val log = parameters.log.get().asFile.apply { parentFile.mkdirs() }
         val port = parameters.port.get()
+        // Another server there (e.g. scripts/local-dev.sh server, on files) would take the tests' writes.
+        check(!listening(port)) { "Something already listens on localhost:$port; the end-to-end tests need the port for their own server" }
         val started = ProcessBuilder(
             parameters.java.get().asFile.path,
             "-cp",
@@ -142,7 +144,7 @@ abstract class LocalServerService :
     override fun close() {
         process?.let {
             it.destroy()
-            it.waitFor(10, TimeUnit.SECONDS)
+            if (!it.waitFor(10, TimeUnit.SECONDS)) it.destroyForcibly()
         }
         process = null
     }
@@ -194,6 +196,8 @@ kotlin {
             testTask {
                 val chrome = headlessChrome()
                 enabled = chrome != null
+                // Skipped silently elsewhere; an end-to-end run without a browser would pass having tested nothing.
+                check(!e2e || chrome != null) { "No Chrome for the end-to-end tests: install one or set CHROME_BIN" }
                 useKarma { useChromeHeadlessNoSandbox() }
                 if (chrome != null) environment("CHROME_BIN", chrome)
                 // The resources the screens under test read; served by karma.config.d/ui-tests.js.

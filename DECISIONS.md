@@ -93,6 +93,5 @@ Taken before the whole-app restructuring of 2026-10-31.
 19. **Work process.** A branch per piece of work from `main`, implement, an independent review, fix, push, a pull
     request, merge on green CI; never stacked pull requests. (REFACTORING.md)
 20. **End-to-end tests.** The app's screens in a browser against the local server, driven only through what is on
-    screen, so that a refactor underneath changes no test. Outside CI: a nightly workflow, on demand, and on a pull
+    screen, so that a refactor underneath changes no test; the harness first, the scenarios after it. Outside CI: a nightly workflow, on demand, and on a pull
     request labelled `e2e`. (2026-11-06, LOCAL_DEVELOPMENT.md "End-to-end tests")
-
