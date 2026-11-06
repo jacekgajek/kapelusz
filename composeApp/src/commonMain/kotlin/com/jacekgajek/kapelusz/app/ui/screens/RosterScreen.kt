@@ -184,9 +184,11 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
         topBar = { BackTopBar(stringResource(Res.string.menu_roster), nav::back) },
         floatingActionButton = {
             if (isAdmin) {
+                // Material hides the text of this button from accessibility.
+                // The icon's description names the button instead.
                 ExtendedFloatingActionButton(
                     onClick = roster::add,
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    icon = { Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.add_member)) },
                     text = { Text(stringResource(Res.string.add_member)) },
                 )
             }

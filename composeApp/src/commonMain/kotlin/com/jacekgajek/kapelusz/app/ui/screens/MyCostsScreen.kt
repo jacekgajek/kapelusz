@@ -123,9 +123,11 @@ fun MyCostsScreen(session: BandSession, everyone: Boolean, onEveryone: (Boolean)
         topBar = { TabTopBar(stringResource(Res.string.tab_my_costs)) },
         floatingActionButton = {
             if (can.addCost()) {
+                // Material hides the text of this button from accessibility.
+                // The icon's description names the button instead.
                 ExtendedFloatingActionButton(
                     onClick = { onOpenCost(null) },
-                    icon = { Icon(Icons.Default.Add, null) },
+                    icon = { Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.add_cost)) },
                     text = { Text(stringResource(Res.string.add_cost)) },
                 )
             }
