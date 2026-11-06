@@ -162,8 +162,6 @@ CI. The *End-to-end* workflow runs them every night, when started by hand, and o
 ./gradlew :composeApp:wasmJsBrowserTest -Pe2e -Pe2e.spec=FirstEvent   # one spec, by part of its class name
 ```
 
-`VatRateTest` fails on purpose, for now. It checks a rule the app does not have, to show what a failure looks like.
-
 When a step finds nothing, the test fails with: the steps so far (how to get there by hand), the words on screen at
 that moment with what each field holds, the command to rerun this one spec, and last the semantics tree. The test
 report is in `composeApp/build/reports/tests/wasmJsBrowserTest/`.
