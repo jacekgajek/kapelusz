@@ -153,9 +153,12 @@ history order, made-up places, and presigned uploads and downloads. It runs as p
 The real app runs in a browser and talks to the local server: the real `App`, the browser's own storage, a real
 HTTP client, the server's own code. The tests use only what is on screen. The harness is in
 `composeApp/src/wasmJsTest/.../e2e/`: `E2e.kt` (the on/off switch, the app's runtime, a new user for every test) and
-`Screen.kt` (`see`, `tap`, `type`: the test works with the words on screen, which are string resources). A spec is a
-story: sign in, create the band, and so on (`FirstEventTest`). They take minutes, so they are not part of `check` and
-CI. The *End-to-end* workflow runs them every night, when started by hand, and on pull requests with the `e2e` label.
+`Screen.kt` (`see`, `tap`, `type`, `pick`, `read`: the test works with the words on screen, which are string
+resources) and `Flows.kt` (the steps many specs share: sign in, create a band, invite a member, join). A spec is a
+story: a first event, a bandmate who joins, a settlement from each side, two members who settle together, the band
+fund, a viewer, a band set to be deleted, the PDF export. Another user is another sign-in in the same browser. They
+take minutes, so they are not part of `check` and CI. The *End-to-end* workflow runs them every night, when started by
+hand, and on pull requests with the `e2e` label.
 
 ```sh
 ./gradlew :composeApp:wasmJsBrowserTest -Pe2e                         # all

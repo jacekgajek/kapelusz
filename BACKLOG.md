@@ -52,6 +52,27 @@ requests; the other 52 are accepted as they are and stay listed below for the re
    retries the invite stays valid for 72 h but is missing from the band's code list, so `list`, `revokeFor` and
    `delete` never see it.
 
+# Found by the end-to-end tests (2026-11-06)
+
+Seen while the first scenarios were written (`composeApp/src/wasmJsTest/.../e2e/`). The tests work around them; none
+is fixed. Not yet decided.
+
+## App core (`composeApp/.../app/{bands,auth,sync,runtime,attachments,devices,settings,storage,intents}`)
+
+1. **P3·M** ⚠ `sync/SyncEngine.kt` (`DEBOUNCE`, 1 s) + `ui/screens/RosterViewModel.kt`: the invite requests go to the
+   server before the pending changes do. Opening Band members right after creating the band asks for its invites and
+   gets 404; creating an invite right after adding the member gets 404 "No such member" and the dialog says "That did
+   not work. Check your connection". A push of what is pending before an invite call would do.
+2. **P3·M** ⚠ `ui/screens/RosterViewModel.kt` (the invites load in `init`): the invites are loaded once. After a failed
+   load the screen says "Invites need a connection to the server" and does not try again while it stays open; the
+   user has to leave and come back.
+3. **P3·L** ⚠ the sync status in the top bar (`sync/SyncState.kt`) says "Saved on the server" while a change still
+   waits in the push debounce, and before a new band's `POST /bands` went out. The user has no sign that something is
+   not on the server yet.
+4. **P3·M** ⚠ `auth/Account.kt` (`signOut` calls `sync.stop()` first): signing out within a second of a change leaves
+   it unpushed. It is kept on the device for that user and goes out at their next sign-in there, but until then the
+   other members do not see it. A push before the stop, when online, would do.
+
 # Accepted (2026-11-05)
 
 Known, understood, and left as is: too rare, too cheap to live with, or not worth the code. Re-decide only with a
