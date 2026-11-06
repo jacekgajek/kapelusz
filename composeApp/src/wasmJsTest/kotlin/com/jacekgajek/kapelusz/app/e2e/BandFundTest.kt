@@ -6,6 +6,8 @@ import com.jacekgajek.kapelusz.app.generated.amount
 import com.jacekgajek.kapelusz.app.generated.confirm
 import com.jacekgajek.kapelusz.app.generated.description
 import com.jacekgajek.kapelusz.app.generated.fund_add_entry
+import com.jacekgajek.kapelusz.app.generated.fund_entry_from
+import com.jacekgajek.kapelusz.app.generated.fund_entry_refund_to
 import com.jacekgajek.kapelusz.app.generated.fund_in
 import com.jacekgajek.kapelusz.app.generated.fund_out
 import com.jacekgajek.kapelusz.app.generated.fund_refund_cost
@@ -39,8 +41,8 @@ class BandFundTest :
             tap(Res.string.ok)
             type(Res.string.description, "Membership fees")
             tap(Res.string.save)
-            see("from Alice")
-            see("from Bob")
+            see(text(Res.string.fund_entry_from, "Alice"))
+            see(text(Res.string.fund_entry_from, "Bob"))
             see("100.00")
 
             // Bob paid 60 for the band. The fund refunds it.
@@ -56,7 +58,7 @@ class BandFundTest :
             tap(Res.string.fund_refund_cost)
             pick("60.00")
             tap(Res.string.save)
-            see("refund to Bob")
+            see(text(Res.string.fund_entry_refund_to, "Bob"))
             see("40.00")
         }
 

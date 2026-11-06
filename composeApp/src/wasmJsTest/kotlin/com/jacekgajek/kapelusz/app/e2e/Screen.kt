@@ -77,7 +77,7 @@ internal class Screen(private val ui: ComposeUiTest) {
         steps += "tap '$text'"
         // Only something enabled. A tap on a disabled button does nothing, and the test would not know.
         val says = (hasText(text) or hasContentDescription(text)) and hasClickAction() and isEnabled()
-        one(says, "nothing to tap says '$text'", "things say '$text', tap needs one").inView().performClick()
+        one({ says }, "nothing to tap says '$text'", "things say '$text', tap needs one").inView().performClick()
         ui.waitForIdle()
     }
 
@@ -86,12 +86,15 @@ internal class Screen(private val ui: ComposeUiTest) {
 
     suspend fun missing(text: StringResource) = missing(getString(text))
 
-    /** Checks that nothing on screen says [text]. Waits a moment first, so a late screen is not an empty screen. */
-    suspend fun missing(text: String) {
-        steps += "check nothing says '$text'"
-        wait(2, "the screen is complete")
+    /** Checks that nothing says [text] for a few seconds. A late screen is not an empty screen. */
+    suspend fun missing(text: String, seconds: Int = 3) {
+        steps += "check nothing says '$text' for $seconds s"
         val says = hasText(text, substring = true) or hasContentDescription(text, substring = true)
-        if (ui.onAllNodes(says).fetchSemanticsNodes().isNotEmpty()) fail("something says '$text', and nothing should")
+        repeat(seconds * 20) {
+            ui.waitForIdle()
+            if (ui.onAllNodes(says).fetchSemanticsNodes().isNotEmpty()) fail("something says '$text', and nothing should")
+            withContext(Dispatchers.Default) { delay(50) }
+        }
     }
 
     /** A string resource with its arguments filled in, for a step. */
@@ -99,10 +102,15 @@ internal class Screen(private val ui: ComposeUiTest) {
 
     suspend fun pick(text: StringResource) = pick(getString(text))
 
-    /** Taps the item with [text] in the newest popup: an open menu, or an open dropdown. [text] may be part of the item. */
+    /**
+     * Taps the item with [text] in the newest popup: an open menu, or an open dropdown. The item that says exactly
+     * [text] wins. Otherwise [text] may be part of the item, like an amount in a cost's line.
+     */
     suspend fun pick(text: String) {
         steps += "pick '$text'"
-        val item = hasText(text, substring = true) and inNewestRoot()
+        val exact = { hasText(text) and inNewestRoot() }
+        val part = { hasText(text, substring = true) and inNewestRoot() }
+        val item = if (ui.onAllNodes(exact()).fetchSemanticsNodes().size == 1) exact else part
         one(item, "no '$text' in the open menu", "items say '$text', pick needs one").inView().performClick()
         ui.waitForIdle()
     }
@@ -114,7 +122,8 @@ internal class Screen(private val ui: ComposeUiTest) {
         steps += "type '$value' into '$label'"
         // Only a field. Not a choice or a heading with the same words.
         val field = hasSetTextAction() and hasText(label)
-        one(field, "no field labelled '$label'", "fields are labelled '$label', typing needs one").inView().performTextReplacement(value)
+        val node = one({ field }, "no field labelled '$label'", "fields are labelled '$label', typing needs one")
+        node.inView().performTextReplacement(value)
         ui.waitForIdle()
     }
 
@@ -133,13 +142,13 @@ internal class Screen(private val ui: ComposeUiTest) {
      * The one node that [matcher] finds. Waits until there is exactly one. While a screen opens or closes, a word can
      * be there twice for a moment. [none] is the failure message for no node. [several] is the message for more than one.
      */
-    private suspend fun one(matcher: SemanticsMatcher, none: String, several: String): SemanticsNodeInteraction {
+    private suspend fun one(matcher: () -> SemanticsMatcher, none: String, several: String): SemanticsNodeInteraction {
         var count = 0
         await(WAIT, { if (count == 0) none else "$count $several" }) {
-            count = ui.onAllNodes(matcher).fetchSemanticsNodes().size
+            count = ui.onAllNodes(matcher()).fetchSemanticsNodes().size
             count == 1
         }
-        return ui.onAllNodes(matcher)[0]
+        return ui.onAllNodes(matcher())[0]
     }
 
     /**
@@ -152,12 +161,17 @@ internal class Screen(private val ui: ComposeUiTest) {
         return this
     }
 
-    /** A node in the root that opened last. A menu or a dropdown is a root of its own, after the app's root. */
-    private fun inNewestRoot(): SemanticsMatcher = SemanticsMatcher("in the newest root") { node ->
-        val newest = ui.onAllNodes(isRoot()).fetchSemanticsNodes().lastOrNull() ?: return@SemanticsMatcher false
-        var up: SemanticsNode? = node
-        while (up != null && up.id != newest.id) up = up.parent
-        up != null
+    /**
+     * A node in the root that opened last. A menu or a dropdown is a root of its own, after the app's root. The roots
+     * are read once, when the matcher is made; [one] makes it again on every try.
+     */
+    private fun inNewestRoot(): SemanticsMatcher {
+        val newest = ui.onAllNodes(isRoot()).fetchSemanticsNodes().lastOrNull()?.id
+        return SemanticsMatcher("in the newest root") { node ->
+            var up: SemanticsNode? = node
+            while (up != null && up.id != newest) up = up.parent
+            up != null
+        }
     }
 
     private suspend fun await(seconds: Int, problem: String, found: () -> Boolean) = await(seconds, { problem }, found)

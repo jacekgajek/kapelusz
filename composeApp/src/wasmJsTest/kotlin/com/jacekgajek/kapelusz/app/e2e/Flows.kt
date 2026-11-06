@@ -57,7 +57,7 @@ internal suspend fun Screen.createBand(name: String, me: String) {
     type(Res.string.your_name, me)
     tap(Res.string.create_band)
     see(Res.string.events_empty)
-    // The band members screen asks the server for invites. Wait until the band is on the server.
+    // The sync status. It can say "saved" a moment early (BACKLOG.md, found by the end-to-end tests, 3).
     see(Res.string.sync_synced)
 }
 
@@ -72,7 +72,8 @@ internal suspend fun Screen.createEvent(name: String) {
 /** Adds a member on the band members screen and returns their invite code. Starts and ends on the events list. */
 internal suspend fun Screen.inviteMember(name: String): String {
     // The band members screen asks the server for invites once. Right after the band was created, the server may
-    // not have the band yet. Then the screen says so and does not ask again. Open it again until it has them.
+    // not have the band yet. Then the screen says so and does not ask again (BACKLOG.md, found by the end-to-end
+    // tests, 1 and 2). Open it again until it has them.
     for (attempt in 1..5) {
         tap(Res.string.settings)
         pick(Res.string.menu_roster)
@@ -83,7 +84,8 @@ internal suspend fun Screen.inviteMember(name: String): String {
     type(Res.string.member_name, name)
     tap(Res.string.ok)
     // The invite is created on the server, so the server must know the new member first. The app pushes a change
-    // about a second after it was made. The sync status does not show that short wait.
+    // about a second after it was made. The sync status does not show that short wait (BACKLOG.md, found by the
+    // end-to-end tests, 1 and 3).
     wait(3, "the new member is pushed to the server")
     // The new member has no account yet. Their row opens a dialog with an invite to create. The role stays Member.
     tap(name)

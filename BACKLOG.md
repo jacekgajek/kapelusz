@@ -70,8 +70,8 @@ is fixed. Not yet decided.
    waits in the push debounce, and before a new band's `POST /bands` went out. The user has no sign that something is
    not on the server yet.
 4. **P3·M** ⚠ `auth/Account.kt` (`signOut` calls `sync.stop()` first): signing out within a second of a change leaves
-   it unpushed. It is kept on the device for that user and goes out at their next sign-in there, but until then the
-   other members do not see it. A push before the stop, when online, would do.
+   it unpushed, and the other members do not see it. The band stays on the device for that user; whether the change
+   goes out at their next sign-in there was not checked. A push before the stop, when online, would do.
 
 # Accepted (2026-11-05)
 

@@ -161,7 +161,8 @@ fun EventsScreen(session: BandSession, settings: AppSettings, nav: TabNav, event
         topBar = { TabTopBar(band.name.ifBlank { stringResource(Res.string.tab_events) }) },
         floatingActionButton = {
             if (session.can.createEvent()) {
-                // Material hides the text of this button from accessibility. The icon's description names the button instead.
+                // Material hides the text of this button from accessibility.
+                // The icon's description names the button instead.
                 ExtendedFloatingActionButton(
                     onClick = { events.creating = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.new_event)) },

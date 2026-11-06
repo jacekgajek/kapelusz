@@ -31,9 +31,11 @@ class BandDeletedTest :
             type(text(Res.string.delete_band_type_name, "Night Owls"), "Night Owls")
             tap(Res.string.delete_band_confirm)
             see(Res.string.band_deletion_keep)
+            wait(3, "the deletion is pushed to the server before signing out")
             signOut()
 
-            // Bob is no leader, so he cannot keep the band. He is told who asked and when it goes.
+            // Bob is no leader, so he cannot keep the band. He is told who asked and when it goes. The notice is one
+            // string with a name and a date in it, so a part of it is checked.
             signIn(bob)
             see("Night Owls")
             see("Alice asked to delete this band")
