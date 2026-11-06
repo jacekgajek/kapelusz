@@ -33,8 +33,8 @@ fun headlessChrome(): String? {
     return (onPath + playwright).firstOrNull { it.canExecute() }?.path
 }
 
-// The end-to-end tests (`-Pe2e`, LOCAL_DEVELOPMENT.md): the browser tests against a local server started for the run.
-// The whole build then compiles for that server with development sign-in, as a local-dev build does.
+// End-to-end tests (-Pe2e, LOCAL_DEVELOPMENT.md): the browser tests run against a local server started for this build.
+// The whole build is then compiled for that server, with development sign-in, like a local-dev build.
 val e2e = providers.gradleProperty("e2e").isPresent
 val e2ePort = 8787
 val e2eApiUrl = "http://localhost:$e2ePort"
@@ -98,8 +98,8 @@ val generateAppConfig = tasks.register("generateAppConfig") {
 }
 
 /**
- * The local server (localServer/) for the end-to-end tests: one process per build, in memory, started by the first test
- * task that needs it and stopped when the build ends. Its output goes to [Params.log].
+ * The local server (localServer/) for the end-to-end tests. One process per build, in memory. The first test task that
+ * needs it starts it; it stops when the build ends. Its output goes to [Params.log].
  */
 abstract class LocalServerService :
     BuildService<LocalServerService.Params>,
@@ -118,7 +118,7 @@ abstract class LocalServerService :
         if (process != null) return
         val log = parameters.log.get().asFile.apply { parentFile.mkdirs() }
         val port = parameters.port.get()
-        // Another server there (e.g. scripts/local-dev.sh server, on files) would take the tests' writes.
+        // If another server is already on this port (e.g. scripts/local-dev.sh server), the tests would write into it.
         check(!listening(port)) { "Something already listens on localhost:$port; the end-to-end tests need the port for their own server" }
         val started = ProcessBuilder(
             parameters.java.get().asFile.path,
@@ -150,7 +150,7 @@ abstract class LocalServerService :
     }
 }
 
-/** Starts the local server before a task's work; a class of its own, which the configuration cache can store. */
+/** Starts the local server before a task runs. A named class: the configuration cache cannot store a build script lambda. */
 class StartLocalServer(private val service: Provider<LocalServerService>) : Action<Task> {
     override fun execute(task: Task) = service.get().start()
 }
@@ -165,7 +165,7 @@ dependencies {
 }
 
 val localServer = gradle.sharedServices.registerIfAbsent("kapeluszLocalServer", LocalServerService::class) {
-    // The path itself: the toolchain service's provider cannot be stored in the configuration cache.
+    // The path, not the provider: the configuration cache cannot store the toolchain provider.
     parameters.java.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.target.get())) }.get().executablePath)
     parameters.classpath.from(localServerClasspath)
     parameters.port.set(e2ePort)
@@ -196,14 +196,14 @@ kotlin {
             testTask {
                 val chrome = headlessChrome()
                 enabled = chrome != null
-                // Skipped silently elsewhere; an end-to-end run without a browser would pass having tested nothing.
+                // Without Chrome this task is normally skipped. An end-to-end run without Chrome would pass without testing anything.
                 check(!e2e || chrome != null) { "No Chrome for the end-to-end tests: install one or set CHROME_BIN" }
                 useKarma { useChromeHeadlessNoSandbox() }
                 if (chrome != null) environment("CHROME_BIN", chrome)
                 // The resources the screens under test read; served by karma.config.d/ui-tests.js.
                 dependsOn("wasmJsProcessResources")
                 environment("COMPOSE_TEST_RESOURCES", layout.buildDirectory.dir("processedResources/wasmJs/main").get().asFile.absolutePath)
-                // The end-to-end specs run only when the local server is there, which karma.config.d/ui-tests.js tells the page.
+                // The end-to-end specs run only when the local server is there. karma.config.d/ui-tests.js passes this to the page.
                 if (e2e) {
                     environment("KAPELUSZ_E2E_API", e2eApiUrl)
                     dependsOn(localServerClasspath)

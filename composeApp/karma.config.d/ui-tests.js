@@ -11,8 +11,8 @@ if (resources) {
 config.client = Object.assign({}, config.client, { mocha: Object.assign({}, (config.client || {}).mocha, { timeout: 60000 }) });
 // 3. English strings whatever the machine's language: the tests assert on them.
 Object.values(config.customLaunchers || {}).forEach(launcher => { launcher.flags = (launcher.flags || []).concat("--lang=en-US"); });
-// 4. The end-to-end specs (`-Pe2e`, LOCAL_DEVELOPMENT.md): the page learns the local server's address through Karma's
-//    client config (`window.__karma__.config`); without it the specs are skipped. A whole scenario takes longer than a smoke test.
+// 4. End-to-end specs (-Pe2e, LOCAL_DEVELOPMENT.md): the page reads the local server's address from Karma's client config
+//    (window.__karma__.config). Without it the specs are skipped. A whole scenario needs more time than a smoke test.
 const e2eApi = process.env.KAPELUSZ_E2E_API;
 if (e2eApi) {
     config.client = Object.assign({}, config.client, { kapeluszE2eApi: e2eApi, mocha: Object.assign({}, config.client.mocha, { timeout: 300000 }) });

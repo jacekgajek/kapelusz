@@ -1,8 +1,8 @@
 name: End-to-end
 
-# The app's screens in a browser against the local server (LOCAL_DEVELOPMENT.md, "End-to-end tests"): nightly, on
-# demand, and on a pull request labelled `e2e`. Not part of CI: a scenario takes minutes, and a failure here is read by
-# a person, not by the merge button.
+# The end-to-end tests: the app in a browser, talking to the local server (LOCAL_DEVELOPMENT.md, "End-to-end tests").
+# Runs every night, when started by hand, and on pull requests with the `e2e` label. Not part of CI: it takes minutes,
+# and a person reads the result, not the merge button.
 on:
   schedule:
     - cron: '0 3 * * *'
@@ -15,14 +15,14 @@ permissions:
 
 jobs:
   e2e:
-    # Any label fires `labeled`: only the e2e one starts a run, and a push to a labelled pull request restarts it.
+    # Every label fires "labeled". Run only for the e2e label, and again on every push to a pull request that has it.
     if: >-
       github.event_name != 'pull_request' ||
       (github.event.action == 'labeled' && github.event.label.name == 'e2e') ||
       (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # On the job, not the workflow: a skipped job never cancels a running one.
+    # Concurrency on the job, not the workflow: a skipped job must not cancel a running one.
     concurrency:
       group: e2e-${{ github.ref }}
       cancel-in-progress: true
@@ -36,8 +36,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
-      # Headless Chrome is on the runner image. -Pe2e builds the app for the local server, starts it, and turns the
-      # end-to-end specs on; the other browser tests run too.
+      # Chrome is on the runner image. -Pe2e builds the app for the local server, starts the server and enables the
+      # end-to-end specs. The other browser tests run too.
       - name: End-to-end tests
         run: ./gradlew :composeApp:wasmJsBrowserTest -Pe2e
 

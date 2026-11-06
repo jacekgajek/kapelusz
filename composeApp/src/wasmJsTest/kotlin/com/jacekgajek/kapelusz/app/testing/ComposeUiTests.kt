@@ -20,9 +20,9 @@ internal suspend fun composeUiTest(block: suspend ComposeUiTest.() -> Unit) {
 }
 
 /**
- * Strings come over the network on the web, and the app's own work runs on the browser's loop: a real wait lets both
- * happen. The strings are English ones: Karma starts Chrome in `en-US` (karma.config.d/ui-tests.js). Up to [seconds],
- * which an end-to-end step, with a server round trip in it, may need more of than a smoke test.
+ * Waits until [text] is on screen, up to [seconds]. On the web the strings load over the network and the app works on
+ * the browser's loop, so this is a real wait. The strings are English: Karma starts Chrome in `en-US`
+ * (karma.config.d/ui-tests.js). An end-to-end step with a server round trip needs more time than a smoke test.
  */
 internal suspend fun ComposeUiTest.awaitText(text: String, seconds: Int = 10) {
     repeat(seconds * 20) {
