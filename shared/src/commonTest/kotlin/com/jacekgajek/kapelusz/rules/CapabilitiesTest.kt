@@ -52,8 +52,10 @@ class CapabilitiesTest :
             viewer.addCost() shouldBe false
             withClue("leaders manage the band's members") { lead.manageRoster() shouldBe true }
             member.manageRoster() shouldBe false
-            lead.transferOwnership() shouldBe false
-            Capabilities(band, "u-owner").transferOwnership() shouldBe true
+            listOfNotNull(band.member("lead"), band.member("member"), band.member("viewer")).forEach {
+                lead.transferOwnershipTo(it) shouldBe false
+            }
+            Capabilities(band, "u-owner").transferOwnershipTo(band.member("lead")!!) shouldBe true
         }
 
         expect("the band's settings and its fund are the leads'") {

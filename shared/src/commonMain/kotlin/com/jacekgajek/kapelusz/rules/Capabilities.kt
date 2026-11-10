@@ -134,7 +134,8 @@ class Capabilities(private val band: Band, private val userId: String) {
     /** Asking the server to delete the band; the owner only, as the API enforces. */
     fun deleteBand() = role == Role.OWNER
 
-    fun transferOwnership() = role == Role.OWNER && allowed(TransferOwnership(PROBE))
+    fun transferOwnershipTo(member: Member) = role == Role.OWNER && allowed(TransferOwnership(PROBE)) &&
+        member.userId != null && member.role == Role.LEAD
     fun addFundEntry() = band.treasurerMemberId != null && allowed(AddFundEntry(PROBE, PROBE_DATE, PROBE, Money(1)))
     fun refundCostFromFund() = allowed(AddFundEntry(PROBE, PROBE_DATE, PROBE, Money(1), costId = "1"))
     fun editFundEntry(entry: FundEntry) = addFundEntry() && allowed(UpdateFundEntry(entry.id))
