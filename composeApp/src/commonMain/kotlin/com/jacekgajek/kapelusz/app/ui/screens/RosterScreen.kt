@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -139,11 +140,8 @@ import com.jacekgajek.kapelusz.model.Participant
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.Role
 import com.jacekgajek.kapelusz.ops.AddMember
-import com.jacekgajek.kapelusz.ops.DeleteMember
 import com.jacekgajek.kapelusz.ops.SetMemberShare
-import com.jacekgajek.kapelusz.rules.Artists
 import com.jacekgajek.kapelusz.rules.Capabilities
-import com.jacekgajek.kapelusz.rules.MemberDeletion
 import com.jacekgajek.kapelusz.settlement.MemberShares
 import com.jacekgajek.kapelusz.view.BandView
 import kotlin.time.Instant
@@ -199,20 +197,10 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
                 item { Text(stringResource(Res.string.invites_unavailable), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
             }
             if (searchable) item(key = "search") { NameSearchField(query, { roster.query = it }, Modifier.padding(16.dp, 8.dp)) }
-            for (group in RoleGroup.entries) {
-                val members = active.filter { group.has(it) }
-                if (members.isEmpty()) continue
-                item(key = "group-${group.name}") { GroupTitle(stringResource(group.title, members.size)) }
-                items(members, key = { it.id }) { member ->
-                    MemberRow(
-                        member,
-                        roster.inviteOf(member.id),
-                        band.currency,
-                        onClick = open(member),
-                        isMyPartner = me != null && member.id == me.settlesWith,
-                        namesOnly = namesOnly,
-                    )
-                }
+            if (namesOnly) {
+                flatMemberItems(active, roster, band, open, me)
+            } else {
+                groupedMemberItems(active, roster, band, open, me)
             }
             if (searchable && query.isNotBlank() && active.isEmpty() && (archived.isEmpty() || namesOnly)) {
                 item(key = "no-match") { Text(stringResource(Res.string.search_people_none, query.trim()), Modifier.padding(16.dp)) }
@@ -272,6 +260,48 @@ fun RosterScreen(session: BandSession, nav: BackNav, roster: RosterViewModel, op
         }
 
         null -> Unit
+    }
+}
+
+private fun LazyListScope.groupedMemberItems(
+    active: List<Member>,
+    roster: RosterViewModel,
+    band: Band,
+    open: (Member) -> (() -> Unit)?,
+    me: Member?,
+) {
+    for (group in RoleGroup.entries) {
+        val members = active.filter { group.has(it) }
+        if (members.isEmpty()) continue
+        item(key = "group-${group.name}") { GroupTitle(stringResource(group.title, members.size)) }
+        items(members, key = { it.id }) { member ->
+            MemberRow(
+                member,
+                roster.inviteOf(member.id),
+                band.currency,
+                onClick = open(member),
+                isMyPartner = me != null && member.id == me.settlesWith,
+            )
+        }
+    }
+}
+
+private fun LazyListScope.flatMemberItems(
+    active: List<Member>,
+    roster: RosterViewModel,
+    band: Band,
+    open: (Member) -> (() -> Unit)?,
+    me: Member?,
+) {
+    items(active, key = { it.id }) { member ->
+        MemberRow(
+            member,
+            roster.inviteOf(member.id),
+            band.currency,
+            onClick = open(member),
+            isMyPartner = me != null && member.id == me.settlesWith,
+            namesOnly = true,
+        )
     }
 }
 
@@ -443,7 +473,6 @@ private fun MemberDialog(
     onDismiss: () -> Unit,
 ) {
     val isOwner = member.role == Role.OWNER
-    val isMe = form.isMe(member)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(member.name) },
@@ -502,7 +531,7 @@ private fun MemberActions(form: MemberForm, member: Member, can: Capabilities, a
         if (member.userId != null && !isOwner && !isMe) {
             OutlinedButton(onClick = { form.ask(MemberQuestion.ConfirmUnlink) }) { Text(stringResource(Res.string.unlink)) }
         }
-        if (can.transferOwnership() && member.userId != null && member.role == Role.LEAD) {
+        if (can.transferOwnershipTo(member)) {
             OutlinedButton(onClick = { form.ask(MemberQuestion.ConfirmOwner) }) { Text(stringResource(Res.string.make_owner)) }
         }
         // Not yourself: an archived member can do nothing in the band, so you could not undo it.
@@ -522,7 +551,6 @@ private fun MemberActions(form: MemberForm, member: Member, can: Capabilities, a
 }
 
 /** The invite of a member without an account: the code shown with its ways to pass it on, or the role and Create. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InviteSection(form: MemberForm, band: Band, view: BandView, invitesFailed: Boolean, actions: Actions) {
     val scope = rememberCoroutineScope()
