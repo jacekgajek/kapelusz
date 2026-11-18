@@ -23,7 +23,13 @@ data class BandRow(
     /** When the band will be deleted, if its owner asked for that. */
     val deleteAt: Long? = null,
     val unreadable: Boolean,
+    /** The members with an account, so the page can say whose device a sync failure is. */
+    val accounts: List<AccountRow>,
 )
+
+/** A member's account: the user id and the member's name in this band. */
+@Serializable
+data class AccountRow(val userId: String, val name: String)
 
 /** A deleted band: only its name, who deleted it and when are kept. */
 @Serializable
@@ -36,7 +42,11 @@ data class BandDetails(
     val name: String,
     val currency: String,
     val etag: String,
+    /** The size of the band's file, which is what the size limit counts. */
     val bytes: Long,
+    /** The attachment files stored for the band, and their size together. */
+    val attachments: Int,
+    val attachmentBytes: Long,
     val modified: Long,
     val deletion: DeletionRow? = null,
     val members: List<MemberRow>,
@@ -66,3 +76,34 @@ data class MemberRow(
 /** An Android device of a member. Not [fresh]: unseen for so long that it gets no sync messages any more. */
 @Serializable
 data class DeviceRow(val lastSeen: Long, val fresh: Boolean)
+
+/**
+ * The devices that could not sync in the last [days] days, the latest failure first. Not [available]: this server
+ * has no request log to read. [unidentified] are the failures nobody can be named for, e.g. a refused sign-in.
+ */
+@Serializable
+data class SyncFailureList(
+    val available: Boolean,
+    val days: Int,
+    val devices: List<FailingDevice>,
+    val unidentified: FailingDevice? = null,
+)
+
+/**
+ * A device and its failed requests. [installation] is null for the web app: all of a user's browsers are one device
+ * here. [appVersion] is the version code of the latest failure.
+ */
+@Serializable
+data class FailingDevice(
+    val userId: String? = null,
+    val installation: String? = null,
+    val appVersion: String? = null,
+    val count: Int,
+    val first: Long,
+    val last: Long,
+    val kinds: List<FailureKind>,
+)
+
+/** Failures of one kind: the HTTP status and the API's error code. [request] is the latest one, e.g. `POST /bands/b1/ops`. */
+@Serializable
+data class FailureKind(val status: Int, val error: String? = null, val count: Int, val last: Long, val request: String)

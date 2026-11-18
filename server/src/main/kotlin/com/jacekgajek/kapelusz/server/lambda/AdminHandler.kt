@@ -7,6 +7,8 @@ import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
 import com.jacekgajek.kapelusz.server.admin.AdminApi
 import com.jacekgajek.kapelusz.server.admin.AdminConfig
+import com.jacekgajek.kapelusz.server.admin.CloudWatchRequestLog
+import com.jacekgajek.kapelusz.server.admin.RequestLog
 import com.jacekgajek.kapelusz.server.auth.GoogleTokenVerifier
 import com.jacekgajek.kapelusz.server.auth.TokenVerifier
 import com.jacekgajek.kapelusz.server.malformedQuery
@@ -22,8 +24,9 @@ import software.amazon.awssdk.regions.Region
 /**
  * The admin panel's Lambda entry point: its own function, with its own address and role. The app's API is [Handler].
  *
- * It is set up by three variables: `DATA_BUCKET`, `ADMIN_GOOGLE_CLIENT_ID` (the panel's own OAuth client, not the
- * app's) and `ADMIN_USER_IDS` (Google user ids, comma-separated). Without the last two nobody gets in.
+ * It is set up by `DATA_BUCKET`, `ADMIN_GOOGLE_CLIENT_ID` (the panel's own OAuth client, not the app's) and
+ * `ADMIN_USER_IDS` (Google user ids, comma-separated); without the last two nobody gets in. `API_LOG_GROUP` names the
+ * API Lambda's log group, where the panel finds the devices that could not sync.
  */
 class AdminHandler : RequestStreamHandler {
 
@@ -69,6 +72,9 @@ class AdminHandler : RequestStreamHandler {
             store = S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data", region),
             googleClientId = System.getenv("ADMIN_GOOGLE_CLIENT_ID"),
             userIds = System.getenv("ADMIN_USER_IDS"),
+            // The API Lambda's log group; without it the panel shows no sync failures.
+            requestLog = System.getenv("API_LOG_GROUP")?.takeIf { it.isNotBlank() }
+                ?.let { CloudWatchRequestLog(it, CloudWatchRequestLog.defaultClient(region)) },
         )
 
         /**
@@ -80,6 +86,7 @@ class AdminHandler : RequestStreamHandler {
             store: BlobStore,
             googleClientId: String?,
             userIds: String?,
+            requestLog: RequestLog? = null,
             verifier: (Set<String>) -> TokenVerifier = ::GoogleTokenVerifier,
         ): AdminApi {
             val clientId = googleClientId?.trim().orEmpty()
@@ -88,6 +95,7 @@ class AdminHandler : RequestStreamHandler {
                 store = store,
                 verifier = if (clientId.isEmpty()) TokenVerifier { null } else verifier(setOf(clientId)),
                 config = AdminConfig(adminUserIds = if (clientId.isEmpty()) emptySet() else admins, googleClientId = clientId),
+                requestLog = requestLog,
             )
         }
     }

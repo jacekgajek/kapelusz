@@ -16,7 +16,10 @@ object StorageKeys {
     fun bandPrefix(bandId: String) = "bands/${safe(bandId)}/"
     fun bandInvites(bandId: String) = "${bandPrefix(bandId)}invites.json"
     fun deleted(bandId: String) = "${bandPrefix(bandId)}deleted.json"
-    fun attachment(bandId: String, attachment: Attachment) = "${bandPrefix(bandId)}attachments/${safe(attachment.id)}.${attachment.kind.extension}"
+    fun attachment(bandId: String, attachment: Attachment) = "${attachmentsPrefix(bandId)}${safe(attachment.id)}.${attachment.kind.extension}"
+
+    /** The band's attachment files. */
+    fun attachmentsPrefix(bandId: String) = "${bandPrefix(bandId)}attachments/"
 
     /** The band's history; an entry's name (its id in [com.jacekgajek.kapelusz.api.HistoryEntry]) is the rest of its key. */
 

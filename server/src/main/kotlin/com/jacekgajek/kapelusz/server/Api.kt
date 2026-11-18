@@ -83,18 +83,21 @@ class Api(
     private val linkPages = LinkPages(webIndex, bands, pointers)
     private val bandHandlers = BandHandlers(store, clock, config.maxBandBytes, bands, records, log, changed)
 
-    /** [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time. */
-    fun handle(request: HttpRequest, sweep: Boolean = true): HttpResponse = try {
+    /**
+     * [sweep] false while priming a SnapStart snapshot: nothing deleted, and no messaging key read, at publish time.
+     * [signedInAs] is told the user's id once the request is known to be theirs, for the request log.
+     */
+    fun handle(request: HttpRequest, sweep: Boolean = true, signedInAs: (String) -> Unit = {}): HttpResponse = try {
         // Bands whose time to be deleted has come, hourly: a failure there is not this request's.
         if (sweep) runCatching { deletions.sweep() }
-        route(request)
+        route(request, signedInAs)
     } catch (e: ApiError) {
         error(e.status, e.code, e.message.orEmpty())
     } catch (e: SerializationException) {
         error(400, ApiErrors.BAD_REQUEST, e.message.orEmpty())
     }
 
-    private fun route(request: HttpRequest): HttpResponse = when {
+    private fun route(request: HttpRequest, signedInAs: (String) -> Unit): HttpResponse = when {
         // CORS preflight: the catch-all API Gateway route forwards it here. Browsers send it without credentials and
         // need a 2xx answer; API Gateway adds the CORS headers.
         request.method == "OPTIONS" -> HttpResponse(204)
@@ -108,7 +111,7 @@ class Api(
         !appSupported(request.query[ApiErrors.APP_VERSION_PARAMETER]) ->
             throw ApiError(426, ApiErrors.UPDATE_REQUIRED, "This version of the app is too old; update it")
 
-        else -> signedIn(request)
+        else -> signedIn(request, signedInAs)
     }
 
     private fun calendarFeed(request: HttpRequest): HttpResponse {
@@ -124,8 +127,9 @@ class Api(
     }
 
     /** The API proper: every other request needs a signed-in user. */
-    private fun signedIn(request: HttpRequest): HttpResponse {
+    private fun signedIn(request: HttpRequest, signedInAs: (String) -> Unit): HttpResponse {
         val user = authenticate(request)
+        signedInAs(user.userId)
         val installation = request.query[ApiErrors.INSTALLATION_PARAMETER]?.takeIf { DeviceHandlers.INSTALLATION_ID.matches(it) }
             ?.let { SenderDevice(user.userId, it) }
         return router.handle(request) { params -> Call(request, user, params, installation) }

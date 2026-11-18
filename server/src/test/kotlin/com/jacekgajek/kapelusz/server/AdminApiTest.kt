@@ -7,10 +7,14 @@ import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.BandDeletion
 import com.jacekgajek.kapelusz.ops.AddMember
 import com.jacekgajek.kapelusz.ops.CreateEvent
+import com.jacekgajek.kapelusz.server.admin.AccountRow
 import com.jacekgajek.kapelusz.server.admin.AdminApi
 import com.jacekgajek.kapelusz.server.admin.AdminConfig
 import com.jacekgajek.kapelusz.server.admin.BandDetails
 import com.jacekgajek.kapelusz.server.admin.BandList
+import com.jacekgajek.kapelusz.server.admin.InMemoryRequestLog
+import com.jacekgajek.kapelusz.server.admin.RequestLogUnavailable
+import com.jacekgajek.kapelusz.server.admin.SyncFailureList
 import com.jacekgajek.kapelusz.server.auth.TokenVerifier
 import com.jacekgajek.kapelusz.server.auth.VerifiedUser
 import com.jacekgajek.kapelusz.server.lambda.AdminHandler
@@ -35,17 +39,24 @@ import kotlinx.serialization.KSerializer
  * The admin panel beside the app's API, on the same store. Tokens are user ids; "root" is the one admin. A token
  * that starts with "bad" is one the verifier refuses.
  */
-private class AdminFixture(admins: Set<String> = setOf("root"), clientId: String? = "client-1.apps.googleusercontent.com") : ApiHarness() {
+private class AdminFixture(
+    admins: Set<String> = setOf("root"),
+    clientId: String? = "client-1.apps.googleusercontent.com",
+    hasLog: Boolean = true,
+) : ApiHarness() {
+    /** The API's failed requests, as its handler would note them. */
+    val log = InMemoryRequestLog({ now })
     val admin = AdminApi(
         store,
         verifier = { token -> if (token.startsWith("bad")) null else VerifiedUser(token, null, null) },
         config = AdminConfig(admins, clientId),
         clock = { now },
+        requestLog = log.takeIf { hasLog },
     )
 
     fun admin(path: String, user: String? = "root", method: String = "GET"): HttpResponse {
         val authorization = listOfNotNull(user?.let { "authorization" to "Bearer $it" }).toMap()
-        return admin.handle(HttpRequest(method, path, authorization))
+        return admin.handle(HttpRequest(method, path.substringBefore('?'), authorization, query = parseQuery(path.substringAfter('?', ""))))
     }
 
     /** Alice's band with Bob (joined, with a phone), Carol (not linked) and one event. */
@@ -183,7 +194,7 @@ class AdminApiTest :
             fun bands(api: AdminApi, user: String) = api.handle(HttpRequest("GET", "/api/bands", mapOf("authorization" to "Bearer $user")))
 
             expect("tokens are checked for the panel's own client only, and the listed users get in") {
-                val api = AdminHandler.adminApi(InMemoryBlobStore(), " client-1 ", " root , second ,", anyone)
+                val api = AdminHandler.adminApi(InMemoryBlobStore(), " client-1 ", " root , second ,", verifier = anyone)
 
                 audiences.last() shouldBe setOf("client-1")
                 bands(api, "root").status shouldBe 200
@@ -195,7 +206,7 @@ class AdminApiTest :
                 val made = audiences.size
 
                 for (clientId in listOf(null, "", "  ")) {
-                    val api = AdminHandler.adminApi(InMemoryBlobStore(), clientId, "root", anyone)
+                    val api = AdminHandler.adminApi(InMemoryBlobStore(), clientId, "root", verifier = anyone)
                     bands(api, "root").status shouldBe 403
                     api.handle(HttpRequest("GET", "/")).body!! shouldContain """<meta name="sign-in" content="none">"""
                 }
@@ -204,7 +215,7 @@ class AdminApiTest :
 
             expect("without user ids nobody gets in") {
                 for (userIds in listOf(null, "", " , ")) {
-                    bands(AdminHandler.adminApi(InMemoryBlobStore(), "client-1", userIds, anyone), "root").status shouldBe 403
+                    bands(AdminHandler.adminApi(InMemoryBlobStore(), "client-1", userIds, verifier = anyone), "root").status shouldBe 403
                 }
             }
         }
@@ -361,6 +372,111 @@ class AdminApiTest :
             }
         }
 
+        context("a band's attachments") {
+            expect("are counted, and their size is given beside the size of the band's file") {
+                val fixture = AdminFixture()
+                fixture.setup()
+
+                fixture.store.put("bands/band1/attachments/a1.jpg", "x".repeat(700))
+                fixture.store.put("bands/band1/attachments/a2.pdf", "y".repeat(300))
+                fixture.store.put("bands/band10/attachments/other.jpg", "another band's")
+                // A file a client uploaded: the store in memory keeps only its name.
+                fixture.store.files += "bands/band1/attachments/a3.jpg"
+
+                val band = fixture.admin("/api/bands/band1").parsed(BandDetails.serializer(), fixture)
+                band.attachments shouldBe 3
+                band.attachmentBytes shouldBe 1000
+                band.bytes shouldBe fixture.stored().content.toByteArray().size.toLong()
+            }
+
+            expect("are none in so many words when there are none") {
+                val fixture = AdminFixture()
+                fixture.setup()
+
+                val body = fixture.admin("/api/bands/band1").body!!
+
+                body shouldContain "\"attachments\":0"
+                body shouldContain "\"attachmentBytes\":0"
+            }
+        }
+
+        context("the devices that could not sync") {
+            fun AdminFixture.failures(query: String = "") = admin("/api/sync-failures$query").parsed(SyncFailureList.serializer(), this)
+
+            expect("are the app's failed sync requests of the last days, per device") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.log.record(RequestLine("POST", "/bands/band1/ops", 409, 5, "bob", "install-1", "250", ApiErrors.BUSY))
+                fixture.log.record(RequestLine("POST", "/bands/band1/ops", 200, 5, "bob", "install-1", "250"))
+                fixture.log.record(RequestLine("POST", "/bands/band1/leave", 409, 5, "alice", null, "250", ApiErrors.OWNER_CANNOT_LEAVE))
+
+                fixture.now += 2 * DAY
+
+                fixture.log.record(RequestLine("GET", "/me", 426, 5, null, null, "11", ApiErrors.UPDATE_REQUIRED))
+
+                val list = fixture.failures()
+                list.available shouldBe true
+                list.days shouldBe 3
+                list.devices.single().let {
+                    it.userId shouldBe "bob"
+                    it.installation shouldBe "install-1"
+                    it.kinds.single().error shouldBe ApiErrors.BUSY
+                }
+                list.unidentified!!.kinds.single().status shouldBe 426
+
+                fixture.failures("?days=1").devices.shouldBeEmpty()
+            }
+
+            expect("go back 14 days at most, and 3 when the days make no sense") {
+                val fixture = AdminFixture()
+                fixture.log.record(RequestLine("GET", "/me", 500, 5, "bob", null, "250", ApiErrors.INTERNAL))
+
+                fixture.now += 13 * DAY
+
+                fixture.failures("?days=99").let {
+                    it.days shouldBe 14
+                    it.devices.size shouldBe 1
+                }
+                fixture.failures("?days=0").days shouldBe 1
+                fixture.failures("?days=many").days shouldBe 3
+            }
+
+            expect("say so when this server keeps no request log") {
+                val list = AdminFixture(hasLog = false).failures()
+
+                list.available shouldBe false
+                list.devices.shouldBeEmpty()
+            }
+
+            expect("answer 'try later' when the log cannot be read, not a server error") {
+                val fixture = AdminFixture()
+                val broken = AdminApi(fixture.store, { VerifiedUser(it, null, null) }, AdminConfig(setOf("root"), "client-1")) { _, _ ->
+                    throw RequestLogUnavailable("The log query took too long")
+                }
+
+                val answer = broken.handle(HttpRequest("GET", "/api/sync-failures", mapOf("authorization" to "Bearer root")))
+
+                answer.status shouldBe 503
+                answer.body!! shouldContain "took too long"
+            }
+
+            expect("are for admins only") {
+                val fixture = AdminFixture()
+
+                fixture.admin("/api/sync-failures", user = "alice").status shouldBe 403
+                fixture.admin("/api/sync-failures", user = null).status shouldBe 401
+            }
+
+            expect("can be named: the band list gives each band's accounts") {
+                val fixture = AdminFixture()
+                fixture.setup()
+
+                val accounts = fixture.admin("/api/bands").parsed(BandList.serializer(), fixture).bands.single().accounts
+
+                accounts shouldContainExactly listOf(AccountRow("alice", "Alice"), AccountRow("bob", "Bob"))
+            }
+        }
+
         context("the raw data") {
             expect("is the band's file exactly as stored, with its ETag, also when it is not a band") {
                 val fixture = AdminFixture()
@@ -386,12 +502,15 @@ class AdminApiTest :
                 fixture.setup()
                 val before = fixture.store.objects.toMap()
 
-                listOf("/", "/api/bands", "/api/bands/band1", "/api/bands/band1/raw").forEach { fixture.admin(it).status shouldBe 200 }
+                val routes = listOf("/", "/api/bands", "/api/bands/band1", "/api/bands/band1/raw", "/api/sync-failures")
+                routes.forEach { fixture.admin(it).status shouldBe 200 }
 
                 fixture.store.objects.toMap() shouldBe before
             }
         }
     })
+
+private const val DAY = 24 * 3600 * 1000L
 
 /** The error code of a refusal. */
 private fun HttpResponse.code(): String = KapeluszJson.decodeFromString(ErrorResponse.serializer(), body!!).error

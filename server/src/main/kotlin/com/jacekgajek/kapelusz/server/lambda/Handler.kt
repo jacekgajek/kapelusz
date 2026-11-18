@@ -16,6 +16,7 @@ import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.server.Api
 import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
+import com.jacekgajek.kapelusz.server.RequestLine
 import com.jacekgajek.kapelusz.server.ServerConfig
 import com.jacekgajek.kapelusz.server.auth.GoogleTokenVerifier
 import com.jacekgajek.kapelusz.server.decode
@@ -105,39 +106,49 @@ class Handler : RequestStreamHandler {
         val start = System.nanoTime()
         s3Timer.reset()
         dbTimer.reset()
-        var line = "?"
-        var status = "-"
+        // What the log says of a request that broke before it was answered, and of one that was.
+        var unanswered = "?"
+        var answered: RequestLine? = null
         try {
             val event = KapeluszJson.decodeFromString(ApiGatewayRequest.serializer(), input.readBytes().decodeToString())
             // Calendar feed paths and invite codes (also in join links) are secrets: never log them.
-            val path = event.rawPath.replace(Regex("^/calendar/.*"), "/calendar/…").replace(Regex("/invites/[^/]+"), "/invites/…")
-                .replace(Regex("^/join/.*"), "/join/…")
-            line = "${event.requestContext.http.method} $path"
-            val response = handle(event, path)
-            status = response.status.toString()
+            val path = RequestLine.withoutSecrets(event.rawPath)
+            unanswered = "${event.requestContext.http.method} $path"
+            var userId: String? = null
+            val request = request(event)
+            val response = answer(request, path) { userId = it }
+            // Who it was and how it ended: the admin panel reads the failed ones back (RequestLine). Noted before the
+            // answer is written, so a failure to write it still leaves the status in the log.
+            answered = RequestLine.of(request ?: HttpRequest(event.requestContext.http.method, event.rawPath), path, response, 0, userId)
             respond(output, gatewayResponse(response, event.headers.entries.firstOrNull { it.key.equals("accept-encoding", true) }?.value))
         } finally {
             // One line per request: where the time goes (V5 history latency).
-            println("TIMING $line $status ${(System.nanoTime() - start) / 1_000_000}ms ${s3Timer.summary()} ${dbTimer.summary()}")
+            val millis = (System.nanoTime() - start) / 1_000_000
+            val timers = "${s3Timer.summary()} ${dbTimer.summary()}"
+            println(answered?.copy(millis = millis)?.format(timers) ?: "TIMING $unanswered - ${millis}ms $timers")
         }
     }
 
-    private fun handle(event: ApiGatewayRequest, path: String): HttpResponse {
-        val body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it }
+    /** The request in [event]; null when its query string is malformed. */
+    private fun request(event: ApiGatewayRequest): HttpRequest? {
         val query = try {
             parseQuery(event.rawQueryString)
         } catch (ignored: IllegalArgumentException) {
-            return malformedQuery()
+            return null
         }
-        val request = HttpRequest(
+        return HttpRequest(
             method = event.requestContext.http.method,
             path = event.rawPath,
             headers = event.headers.mapKeys { it.key.lowercase() },
-            body = body,
+            body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it },
             query = query,
         )
+    }
+
+    private fun answer(request: HttpRequest?, path: String, signedInAs: (String) -> Unit): HttpResponse {
+        if (request == null) return malformedQuery()
         return try {
-            api.handle(request)
+            api.handle(request, signedInAs = signedInAs)
         } catch (e: Exception) {
             unhandled(request.method, path, e)
         }
