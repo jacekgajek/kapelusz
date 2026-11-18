@@ -20,6 +20,11 @@ dependencies {
         exclude(group = "software.amazon.awssdk", module = "apache-client")
         exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
     }
+    // The admin panel reads the API's request log (failed syncs) with Logs Insights.
+    implementation(libs.aws.cloudwatchlogs) {
+        exclude(group = "software.amazon.awssdk", module = "apache-client")
+        exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
+    }
     implementation(libs.aws.url.connection.client)
     implementation(libs.nimbus.jose.jwt)
     // The CRaC API: Handler primes the Lambda before its SnapStart snapshot is taken.

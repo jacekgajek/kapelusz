@@ -46,7 +46,9 @@ class AdminApi(
     private val store: BlobStore,
     private val verifier: TokenVerifier,
     private val config: AdminConfig,
-    clock: () -> Long = System::currentTimeMillis,
+    private val clock: () -> Long = System::currentTimeMillis,
+    /** The API's request log, for the devices that could not sync. Null: there is none to read. */
+    private val requestLog: RequestLog? = null,
 ) {
     private val devices = DeviceRegistry(store, clock)
     private val page = AdminPage(config.googleClientId)
@@ -75,6 +77,7 @@ class AdminApi(
             Route("GET", "api/bands") { bands() },
             Route("GET", "api/bands/{bandId}", ::band),
             Route("GET", "api/bands/{bandId}/raw", ::raw),
+            Route("GET", "api/sync-failures", ::syncFailures),
         ),
     )
 
@@ -110,7 +113,7 @@ class AdminApi(
     private fun row(entry: BlobEntry): BandRow {
         val id = bandIdOf(entry.key)
         val band = runCatching { read(entry.key) }.getOrNull()?.second
-            ?: return BandRow(id, members = 0, linked = 0, events = 0, bytes = entry.size, modified = entry.modified, unreadable = true)
+            ?: return BandRow(id, null, 0, 0, 0, entry.size, entry.modified, unreadable = true, accounts = emptyList())
         return BandRow(
             id = id,
             name = band.name,
@@ -121,6 +124,7 @@ class AdminApi(
             modified = entry.modified,
             deleteAt = band.deletion?.deleteAt,
             unreadable = false,
+            accounts = band.members.filter { !it.archived }.mapNotNull { member -> member.userId?.let { AccountRow(it, member.name) } },
         )
     }
 
@@ -129,11 +133,35 @@ class AdminApi(
         return DeletedRow(bandIdOf(entry.key), deleted.name, deleted.deletedBy, deleted.deletedAt)
     }
 
+    /** The devices that could not sync in the last `days` days (1 to [MAX_DAYS], [DEFAULT_DAYS] when not said). */
+    private fun syncFailures(call: Call): HttpResponse {
+        val days = (call.query("days")?.toIntOrNull() ?: DEFAULT_DAYS).coerceIn(1, MAX_DAYS)
+        val now = clock()
+        val list = when (val log = requestLog) {
+            null -> SyncFailureList(available = false, days = days, devices = emptyList())
+            else -> SyncFailures.grouped(failed(log, now - days * DAY_MILLIS, now), days)
+        }
+        return ok(SyncFailureList.serializer(), list)
+    }
+
+    /** The failed requests in [log]; a log that cannot be read just now is "try later", not this server's error. */
+    private fun failed(log: RequestLog, since: Long, until: Long): List<LoggedRequest> {
+        val read = runCatching { log.failed(since, until) }
+        return read.getOrElse { e ->
+            if (e !is RequestLogUnavailable) throw e
+            System.err.println("The request log could not be read: $e")
+            throw ApiError(503, ApiErrors.BUSY, "The request log could not be read: ${e.message}")
+        }
+    }
+
     /** One band: its members with their devices, and how much is in it. */
     private fun band(call: Call): HttpResponse {
         val bandId = call.param("bandId")
         val key = StorageKeys.band(bandId)
-        val entry = store.entries(key).firstOrNull { it.key == key } ?: throw notFound("No such band")
+        // Everything stored for the band: its file, and the attachment files beside it.
+        val stored = store.entries(StorageKeys.bandPrefix(bandId))
+        val entry = stored.firstOrNull { it.key == key } ?: throw notFound("No such band")
+        val attachments = stored.filter { it.key.startsWith(StorageKeys.attachmentsPrefix(bandId)) }
         val (etag, band) = read(key) ?: throw ApiError(422, UNREADABLE, "The band's file cannot be read as a band; see the raw data")
         val details = BandDetails(
             id = bandId,
@@ -141,6 +169,8 @@ class AdminApi(
             currency = band.currency,
             etag = etag,
             bytes = entry.size,
+            attachments = attachments.size,
+            attachmentBytes = attachments.sumOf { it.size },
             modified = entry.modified,
             deletion = band.deletion?.let { DeletionRow(band.member(it.requestedBy)?.name, it.requestedAt, it.deleteAt) },
             members = band.members.map { member ->
@@ -197,6 +227,11 @@ class AdminApi(
         const val STATE = "/state.json"
         const val DELETED = "/deleted.json"
         const val READERS = 16
+
+        /** How far back sync failures are looked for: the API's log is kept 14 days. */
+        const val MAX_DAYS = 14
+        const val DEFAULT_DAYS = 3
+        const val DAY_MILLIS = 24 * 3600 * 1000L
 
         /** The band's file is there but is not a band. */
         const val UNREADABLE = "unreadable"

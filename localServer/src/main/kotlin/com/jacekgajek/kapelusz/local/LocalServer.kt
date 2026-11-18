@@ -3,9 +3,11 @@ package com.jacekgajek.kapelusz.local
 import com.jacekgajek.kapelusz.server.Api
 import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
+import com.jacekgajek.kapelusz.server.RequestLine
 import com.jacekgajek.kapelusz.server.ServerConfig
 import com.jacekgajek.kapelusz.server.admin.AdminApi
 import com.jacekgajek.kapelusz.server.admin.AdminConfig
+import com.jacekgajek.kapelusz.server.admin.InMemoryRequestLog
 import com.jacekgajek.kapelusz.server.links.FileWebIndex
 import com.jacekgajek.kapelusz.server.links.NoWebIndex
 import com.jacekgajek.kapelusz.server.malformedQuery
@@ -55,8 +57,11 @@ class LocalServer(
         config = ServerConfig(webUrl = webUrl),
     )
 
+    /** The API's failed requests, kept in memory while the server runs: what CloudWatch holds for the Lambda. */
+    private val requestLog = InMemoryRequestLog()
+
     /** The admin panel, with the development sign-in instead of Google's (no client id). */
-    private val admin = AdminApi(store, DevTokenVerifier(), AdminConfig(admins, googleClientId = null))
+    private val admin = AdminApi(store, DevTokenVerifier(), AdminConfig(admins, googleClientId = null), requestLog = requestLog)
 
     /** The uploads and downloads of the file store; in memory, presigned links lead nowhere (no attachments). */
     private val files = fileStore?.let(::FileRoutes)
@@ -99,13 +104,21 @@ class LocalServer(
 
                 path.startsWith("$ADMIN/") -> Reply.of(admin.handle(request(exchange, query).copy(path = path.removePrefix(ADMIN))))
 
-                else -> Reply.of(api.handle(request(exchange, query)))
+                else -> Reply.of(logged(request(exchange, query)))
             }
         } catch (e: Exception) {
             Reply.of(unhandled(method, path, e))
         }
         println("$method $path ${response.status}")
         send(exchange, response, method)
+    }
+
+    /** The API's answer to [request], noted in the request log as the Lambda's handler notes it. */
+    private fun logged(request: HttpRequest): HttpResponse {
+        var userId: String? = null
+        val response = api.handle(request) { userId = it }
+        requestLog.record(RequestLine.of(request, RequestLine.withoutSecrets(request.path), response, 0, userId))
+        return response
     }
 
     private fun request(exchange: HttpExchange, query: Map<String, String>) = HttpRequest(

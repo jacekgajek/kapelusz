@@ -157,10 +157,15 @@ lambda/       the API Gateway adapters: Handler (the API, with SnapStart priming
 - Configuration (`ServerConfig`) and environment variables are read in exactly two places: `lambda/Handler` and
   `localServer`'s `main`. Tests build `Api` with in-memory stores and defaults.
 - The admin panel is a second entry point in the same jar, not a part of `Api`. `AdminApi` serves one hand-written
-  page and the routes under `api/` that the page reads: the band list, one band, its raw file. It runs as its own
+  page and the routes under `api/` that the page reads: the band list, one band, its raw file, and the devices
+  that could not sync. It runs as its own
   Lambda (`lambda/AdminHandler`) at its own address, with a role that only reads. It takes Google tokens of its own
   OAuth client, from the user ids on its list, and nothing else. It never loads a band through `BandAccess`, which
   deletes a band whose time has come. Locally it is under `/admin/` on the local server.
+- The request log is the one line the API Lambda prints per request (`RequestLine`: method, path, status, time, and
+  the user, installation, app version and error code). The admin panel reads the failed ones back with a Logs
+  Insights query (`CloudWatchRequestLog`) and groups them per device (`SyncFailures`). The line is written and
+  parsed by the same class. The local server keeps its failed requests in memory instead.
 
 ## 5. Tests, and where to look
 

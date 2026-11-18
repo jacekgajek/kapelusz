@@ -23,8 +23,11 @@ class InMemoryBlobStore(private val clock: () -> Long = System::currentTimeMilli
         return etag
     }
 
-    override fun entries(prefix: String): List<BlobEntry> = objects.entries.filter { it.key.startsWith(prefix) }
-        .map { (key, blob) -> BlobEntry(key, blob.content.toByteArray().size.toLong(), written[key] ?: 0) }.sortedBy { it.key }
+    // Uploaded files are only names here, so they have no size.
+    override fun entries(prefix: String): List<BlobEntry> {
+        val stored = objects.entries.map { (key, blob) -> BlobEntry(key, blob.content.toByteArray().size.toLong(), written[key] ?: 0) }
+        return (stored + files.map { BlobEntry(it, 0, 0) }).filter { it.key.startsWith(prefix) }.sortedBy { it.key }
+    }
 
     // Like S3, uploaded files are listed together with JSON objects.
     override fun list(prefix: String): List<String> = (objects.keys + files).filter { it.startsWith(prefix) }.sorted()
