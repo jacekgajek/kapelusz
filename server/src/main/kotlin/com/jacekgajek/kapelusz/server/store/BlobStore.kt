@@ -2,6 +2,9 @@ package com.jacekgajek.kapelusz.server.store
 
 data class Blob(val content: String, val etag: String)
 
+/** An object as a listing shows it: its size in bytes and when it was last written, in epoch millis. */
+data class BlobEntry(val key: String, val size: Long, val modified: Long)
+
 /** A presigned request: the URL plus the headers the client must send exactly as signed. */
 data class PresignedRequest(val url: String, val headers: Map<String, String>)
 
@@ -25,6 +28,9 @@ interface BlobStore {
 
     /** Keys under [prefix], in lexicographic order. */
     fun list(prefix: String): List<String>
+
+    /** The objects under [prefix] with their size and time, in key order. For the admin panel. */
+    fun entries(prefix: String): List<BlobEntry>
 
     fun exists(key: String): Boolean
 

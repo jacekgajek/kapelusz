@@ -139,7 +139,8 @@ store/        BlobStore (S3, files, memory), HistoryStore (DynamoDB, files, memo
 auth/         token verification (Google), sessions and their revocation
 users/ bands/ history/ invites/ attachments/ calendar/ places/ links/ devices/ messaging/
               one package per resource: a records or access class over the store, and the handlers over it
-lambda/       the API Gateway adapter and SnapStart priming
+admin/        the admin panel: AdminApi (its own routes and sign-in) and its one page, resources/admin/index.html
+lambda/       the API Gateway adapters: Handler (the API, with SnapStart priming) and AdminHandler (the admin panel)
 ```
 
 - A request is authenticated, then matched against the route table; the handler gets a `Call` (request, user, path
@@ -155,6 +156,11 @@ lambda/       the API Gateway adapter and SnapStart priming
   device is left out. No user-facing notifications.
 - Configuration (`ServerConfig`) and environment variables are read in exactly two places: `lambda/Handler` and
   `localServer`'s `main`. Tests build `Api` with in-memory stores and defaults.
+- The admin panel is a second entry point in the same jar, not a part of `Api`. `AdminApi` serves one hand-written
+  page and the routes under `api/` that the page reads: the band list, one band, its raw file. It runs as its own
+  Lambda (`lambda/AdminHandler`) at its own address, with a role that only reads. It takes Google tokens of its own
+  OAuth client, from the user ids on its list, and nothing else. It never loads a band through `BandAccess`, which
+  deletes a band whose time has come. Locally it is under `/admin/` on the local server.
 
 ## 5. Tests, and where to look
 

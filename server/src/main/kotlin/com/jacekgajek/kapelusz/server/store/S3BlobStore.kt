@@ -65,6 +65,9 @@ class S3BlobStore(
     override fun list(prefix: String): List<String> = s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
         .contents().map { it.key() }.sorted()
 
+    override fun entries(prefix: String): List<BlobEntry> = s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
+        .contents().map { BlobEntry(it.key(), it.size(), it.lastModified().toEpochMilli()) }.sortedBy { it.key }
+
     override fun exists(key: String): Boolean = try {
         s3.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build())
         true

@@ -4,6 +4,8 @@ import com.jacekgajek.kapelusz.server.Api
 import com.jacekgajek.kapelusz.server.HttpRequest
 import com.jacekgajek.kapelusz.server.HttpResponse
 import com.jacekgajek.kapelusz.server.ServerConfig
+import com.jacekgajek.kapelusz.server.admin.AdminApi
+import com.jacekgajek.kapelusz.server.admin.AdminConfig
 import com.jacekgajek.kapelusz.server.links.FileWebIndex
 import com.jacekgajek.kapelusz.server.links.NoWebIndex
 import com.jacekgajek.kapelusz.server.malformedQuery
@@ -27,6 +29,8 @@ import kotlin.io.path.readBytes
  * Google's, and made-up places. No sync messages (Firebase needs Google): the apps sync every 30 seconds instead.
  * Event link cards need the web app's `index.html` ([webApp]); without it they are 404. Listens on the loopback only;
  * the emulator reaches it as `10.0.2.2`.
+ *
+ * The admin panel is under `/admin/`, on the same data. It lets the development users in [admins] in.
  */
 class LocalServer(
     dataDir: Path,
@@ -35,12 +39,14 @@ class LocalServer(
     inMemory: Boolean = false,
     webApp: Path? = null,
     webUrl: String = ServerConfig.WEB_URL,
+    admins: Set<String> = setOf(DEFAULT_ADMIN),
 ) {
     /** The address the current request came to, for presigned URLs that lead back to this server. */
     private val requestBase = ThreadLocal.withInitial { "http://localhost:$port" }
     private val fileStore = if (inMemory) null else FileBlobStore(dataDir.resolve("bucket")) { requestBase.get() }
+    private val store = fileStore ?: InMemoryBlobStore()
     private val api = Api(
-        fileStore ?: InMemoryBlobStore(),
+        store,
         if (inMemory) InMemoryHistoryStore() else FileHistoryStore(dataDir.resolve("history")),
         DevTokenVerifier(),
         placeSearch = OfflinePlaceSearch(),
@@ -48,6 +54,9 @@ class LocalServer(
         webIndex = webApp?.let(::FileWebIndex) ?: NoWebIndex,
         config = ServerConfig(webUrl = webUrl),
     )
+
+    /** The admin panel, with the development sign-in instead of Google's (no client id). */
+    private val admin = AdminApi(store, DevTokenVerifier(), AdminConfig(admins, googleClientId = null))
 
     /** The uploads and downloads of the file store; in memory, presigned links lead nowhere (no attachments). */
     private val files = fileStore?.let(::FileRoutes)
@@ -84,6 +93,11 @@ class LocalServer(
 
                 files != null && path.startsWith(FileRoutes.PREFIX) ->
                     files.handle(method, path.removePrefix(FileRoutes.PREFIX), query, exchange.requestBody.readBytes())
+
+                // The page's addresses are relative, so they need the slash at the end.
+                path == ADMIN -> Reply(302, headers = mapOf("location" to "$ADMIN/"))
+
+                path.startsWith("$ADMIN/") -> Reply.of(admin.handle(request(exchange, query).copy(path = path.removePrefix(ADMIN))))
 
                 else -> Reply.of(api.handle(request(exchange, query)))
             }
@@ -179,10 +193,19 @@ fun main(args: Array<String>) {
     val port = System.getenv("KAPELUSZ_LOCAL_PORT")?.toIntOrNull() ?: DEFAULT_PORT
     val webApp = System.getenv("KAPELUSZ_LOCAL_WEB")?.takeIf { it.isNotBlank() }?.let { Path.of(it).toAbsolutePath().normalize() }
     val webUrl = System.getenv("WEB_URL") ?: ServerConfig.WEB_URL
+    val admins = System.getenv("KAPELUSZ_LOCAL_ADMINS")?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
+        ?: setOf(DEFAULT_ADMIN)
     if (!inMemory) Files.createDirectories(dataDir)
-    LocalServer(dataDir, port, inMemory = inMemory, webApp = webApp, webUrl = webUrl).start()
+    LocalServer(dataDir, port, inMemory = inMemory, webApp = webApp, webUrl = webUrl, admins = admins).start()
     val data = if (inMemory) "in memory" else "in $dataDir"
     println("Kapelusz local API on http://localhost:$port (emulator: http://10.0.2.2:$port), data $data")
+    println("Admin panel on http://localhost:$port$ADMIN/ for ${admins.joinToString()}")
 }
 
 const val DEFAULT_PORT = 8787
+
+/** Where the admin panel is on the local server. In production it has its own address. */
+const val ADMIN = "/admin"
+
+/** The development user that may use the local admin panel, unless `KAPELUSZ_LOCAL_ADMINS` names others. */
+const val DEFAULT_ADMIN = "dev-admin"

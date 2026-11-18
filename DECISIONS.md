@@ -69,6 +69,15 @@ the end of the section they belong to, dated.
 18. **Wiring by hand**: `AppRuntime` and `Api` build their objects in dependency order; no DI framework. The toolchain
     stays at what the IDE supports.
 
+19. **The admin panel is apart from the app** (2026-11-18). A second Lambda with the same jar and its own handler,
+    on `admin.kapelusz.jacekgajek.com` behind its own HTTP API, with a role that only reads bands and devices. The
+    sign-in is Google's with the panel's own OAuth client and a list of user ids, so a token given to the app never
+    opens the panel; no sessions. The page is one hand-written HTML file served by that Lambda: no build step, no
+    framework. Not a path on the app's domain: CloudFront there answers errors with the app's page, and the two
+    would share an origin. It costs nothing at this scale, which is why it may be new infrastructure despite 15.
+    It does not edit a band's JSON: a repair will be restoring an older version of the file (planned), and what it
+    shows of sync trouble will come from the API's request log (planned).
+
 ## The refactoring (2026-10-31)
 
 Taken before the whole-app restructuring of 2026-10-31.
@@ -90,8 +99,8 @@ Taken before the whole-app restructuring of 2026-10-31.
 
 ## Process
 
-19. **Work process.** A branch per piece of work from `main`, implement, an independent review, fix, push, a pull
+20. **Work process.** A branch per piece of work from `main`, implement, an independent review, fix, push, a pull
     request, merge on green CI; never stacked pull requests. (REFACTORING.md)
-20. **End-to-end tests.** The app's screens in a browser against the local server, driven only through what is on
+21. **End-to-end tests.** The app's screens in a browser against the local server, driven only through what is on
     screen, so that a refactor underneath changes no test; the harness first, the scenarios after it. Outside CI: a nightly workflow, on demand, and on a pull
     request labelled `e2e`. (2026-11-06, LOCAL_DEVELOPMENT.md "End-to-end tests")

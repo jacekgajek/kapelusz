@@ -13,6 +13,7 @@ import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import java.net.URI
 import java.net.URLEncoder
@@ -83,6 +84,29 @@ class LocalServerTest :
                 }
                 withClue("the web app may call it") { state.headers().firstValue("access-control-allow-origin").orElse(null) shouldBe "*" }
                 withClue("not Bob's band") { send("GET", "/bands/b1/state", signIn("bob")).statusCode() shouldBe 404 }
+            }
+        }
+
+        expect("the admin panel is under /admin/, for the development admin only") {
+            withLocal {
+                val session = signIn("alice")
+                val band = CreateBandRequest("b1", "Band", "PLN", "m1", "Alice")
+                send("POST", "/bands", session, KapeluszJson.encodeToString(CreateBandRequest.serializer(), band)).statusCode() shouldBe 200
+
+                val page = send("GET", "/admin/", "")
+                val bands = send("GET", "/admin/api/bands", devToken("admin"))
+
+                page.statusCode() shouldBe 200
+                page.body() shouldContain """<meta name="sign-in" content="dev">"""
+                send("GET", "/admin", "").statusCode() shouldBe 302
+                bands.statusCode() shouldBe 200
+                bands.body() shouldContain "\"name\":\"Band\""
+                withClue("the band's owner is not an admin") {
+                    send("GET", "/admin/api/bands", devToken("alice")).statusCode() shouldBe 403
+                }
+                withClue("a session of the app is not an admin's token") {
+                    send("GET", "/admin/api/bands", session).statusCode() shouldBe 401
+                }
             }
         }
 

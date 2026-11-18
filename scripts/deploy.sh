@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploys the API (Lambda) and the web app (S3 + CloudFront). Used by the deploy job of .github/workflows/ci.yml and
+# Deploys the API (Lambda), the admin panel (a second Lambda, the same jar) and the web app (S3 + CloudFront). Used by the deploy job of .github/workflows/ci.yml and
 # locally:
 #   AWS_PROFILE=... WEB_BUCKET=jacekgajek-art-split-web CLOUDFRONT_DISTRIBUTION_ID=... scripts/deploy.sh
 # Set SKIP_BUILD=1 to deploy already built artifacts. With ANDROID_UPLOAD_KEYSTORE_PATH (and
@@ -14,6 +14,9 @@ cd "$(dirname "$0")/.."
 : "${WEB_BUCKET:?WEB_BUCKET is required}"
 : "${CLOUDFRONT_DISTRIBUTION_ID:?CLOUDFRONT_DISTRIBUTION_ID is required}"
 FUNCTION_NAME="${FUNCTION_NAME:-art-split-api}"
+# The admin panel: the same jar in its own function, with its own address.
+ADMIN_FUNCTION_NAME="${ADMIN_FUNCTION_NAME:-kapelusz-admin}"
+ADMIN_URL="${KAPELUSZ_ADMIN_URL:-https://admin.kapelusz.jacekgajek.com}"
 JAR=server/build/libs/server-all.jar
 DIST=composeApp/build/dist/wasmJs/productionExecutable
 
@@ -91,6 +94,25 @@ if [[ -n "${KAPELUSZ_VERSION_CODE:-}" ]]; then
 fi
 aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" >/dev/null
 
+# The admin panel, last: the app is fully out before it, and its upload failing never leaves the app half deployed.
+# It runs the newest code, without versions or an alias: nothing switches traffic, it has one user.
+# Not there (or not for this role to see): skipped. There but the upload fails: said aloud, and the deploy fails at
+# the end, after the app's smoke checks.
+ADMIN_DEPLOYED=0
+ADMIN_FAILED=0
+if aws lambda get-function-configuration --function-name "$ADMIN_FUNCTION_NAME" >/dev/null 2>&1; then
+  echo "== Admin panel: uploading $JAR to $ADMIN_FUNCTION_NAME"
+  if aws lambda update-function-code --function-name "$ADMIN_FUNCTION_NAME" --zip-file "fileb://$JAR" >/dev/null &&
+    aws lambda wait function-updated --function-name "$ADMIN_FUNCTION_NAME"; then
+    ADMIN_DEPLOYED=1
+  else
+    ADMIN_FAILED=1
+    echo "== Admin panel: UPLOAD FAILED, it keeps its old code" >&2
+  fi
+else
+  echo "== Admin panel: SKIPPED, no function $ADMIN_FUNCTION_NAME for this role" >&2
+fi
+
 # Smoke check: the API answers (401 without a sign-in) and the website serves the app. A few tries:
 # CloudFront takes a moment to drop the old files.
 API_URL="${KAPELUSZ_API_URL:-$(sed -n 's/^kapelusz.apiUrl=//p' gradle.properties)}"
@@ -112,6 +134,11 @@ check "${WEB_URL%/}/" 200 html
 check "${WEB_URL%/}/composeApp.js" 200 javascript
 check "${WEB_URL%/}/sw.js" 200 javascript
 check "${WEB_URL%/}/manifest.json" 200 json
+# The admin panel serves its page, and gives no data without a sign-in.
+if [[ "$ADMIN_DEPLOYED" == 1 ]]; then
+  check "${ADMIN_URL%/}/" 200 html
+  check "${ADMIN_URL%/}/api/bands" 401
+fi
 # The single-page app answers missing pages with 200 too: the policy is told apart by its own text.
 check_policy() { # url
   for _ in 1 2 3 4 5 6; do
@@ -125,4 +152,8 @@ check_policy() { # url
 }
 check_policy "${WEB_URL%/}/privacy-policy"
 check_policy "${WEB_URL%/}/privacy-policy/pl"
+if [[ "$ADMIN_FAILED" == 1 ]]; then
+  echo "The app is deployed; the admin panel is not (see above)." >&2
+  exit 1
+fi
 echo "== Done"
