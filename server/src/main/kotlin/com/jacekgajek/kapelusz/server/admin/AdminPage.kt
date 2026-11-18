@@ -5,16 +5,16 @@ import java.security.SecureRandom
 import java.util.Base64
 
 /**
- * The admin panel's one page: `admin/index.html` from the jar, with the way to sign in put in.
+ * The admin panel's one page. It is `admin/index.html` from the jar. The way to sign in is filled in before it is sent.
  *
- * The page's script and styles are inline, so each answer carries a fresh nonce: the browser runs only the script
- * that has it. Google's sign-in script is the only thing loaded from elsewhere.
+ * The page's script and styles are inside the page. Each answer has a new nonce, and the browser runs only the
+ * script that carries it. The only script from another site is Google's sign-in.
  */
 internal class AdminPage(googleClientId: String?) {
-    /** Put into the page's HTML, so only what a client id is made of gets through. */
+    /** The client id goes into the page's HTML. So only the characters of a client id are allowed. */
     private val clientId = googleClientId.orEmpty().also { require(CLIENT_ID_SHAPE.matches(it)) { "Not a Google client id" } }
 
-    /** How the page signs in: with Google, with the local server's development users, or not at all. */
+    /** How the page signs in. With Google, with the local server's development users, or not at all. */
     private val signIn = when {
         googleClientId == null -> "dev"
         googleClientId.isEmpty() -> "none"
@@ -41,7 +41,7 @@ internal class AdminPage(googleClientId: String?) {
             "form-action 'none'",
             "frame-ancestors 'none'",
         ).joinToString("; "),
-        // Google's sign-in opens a window that must be able to answer this page.
+        // Google's sign-in opens a window. That window must be able to send its answer back to this page.
         "cross-origin-opener-policy" to "same-origin-allow-popups",
         "referrer-policy" to "no-referrer",
     )

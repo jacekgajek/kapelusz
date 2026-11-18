@@ -84,6 +84,7 @@ object WireFixtures {
         """{"type":"DisableBandFund"}""",
         """{"type":"ScheduleBandDeletion","deletion":{"requestedBy":"alice","requestedAt":1000,"deleteAt":2000}}""",
         """{"type":"CancelBandDeletion"}""",
+        """{"type":"RestoreBand","stateOf":1000}""",
         """{"type":"SetFundBlikPhone","phone":"600123456"}""",
         """{"type":"SetFundBankAccount","account":"PL61109010140000071219812874"}""",
         """{"type":"TransferOwnership","toMemberId":"bob"}""",

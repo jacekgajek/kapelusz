@@ -5,6 +5,11 @@ data class Blob(val content: String, val etag: String)
 /** An object as a listing shows it: its size in bytes and when it was last written, in epoch millis. */
 data class BlobEntry(val key: String, val size: Long, val modified: Long)
 
+/**
+ * One copy of an object. The bucket keeps every copy for 30 days. [latest]: this copy is the object as stored now.
+ */
+data class BlobVersion(val id: String, val modified: Long, val size: Long, val latest: Boolean)
+
 /** A presigned request: the URL plus the headers the client must send exactly as signed. */
 data class PresignedRequest(val url: String, val headers: Map<String, String>)
 
@@ -33,6 +38,12 @@ interface BlobStore {
     fun entries(prefix: String): List<BlobEntry>
 
     fun exists(key: String): Boolean
+
+    /** The copies of the object at [key], newest first, at most [limit]. Empty for a store that keeps no copies. */
+    fun versions(key: String, limit: Int): List<BlobVersion> = emptyList()
+
+    /** The copy [versionId] of the object at [key]. Null when there is no such copy. The ETag is the copy's own. */
+    fun getVersion(key: String, versionId: String): Blob? = null
 
     /**
      * A URL to upload a file of exactly [contentLength] bytes to [key]. It only creates the object: an existing file

@@ -47,9 +47,10 @@ class LocalServer(
     private val requestBase = ThreadLocal.withInitial { "http://localhost:$port" }
     private val fileStore = if (inMemory) null else FileBlobStore(dataDir.resolve("bucket")) { requestBase.get() }
     private val store = fileStore ?: InMemoryBlobStore()
+    private val history = if (inMemory) InMemoryHistoryStore() else FileHistoryStore(dataDir.resolve("history"))
     private val api = Api(
         store,
-        if (inMemory) InMemoryHistoryStore() else FileHistoryStore(dataDir.resolve("history")),
+        history,
         DevTokenVerifier(),
         placeSearch = OfflinePlaceSearch(),
         geocodeCache = InMemoryGeocodeCache(),
@@ -61,7 +62,7 @@ class LocalServer(
     private val requestLog = InMemoryRequestLog()
 
     /** The admin panel, with the development sign-in instead of Google's (no client id). */
-    private val admin = AdminApi(store, DevTokenVerifier(), AdminConfig(admins, googleClientId = null), requestLog = requestLog)
+    private val admin = AdminApi(store, DevTokenVerifier(), AdminConfig(admins, googleClientId = null), requestLog = requestLog, historyStore = history)
 
     /** The uploads and downloads of the file store; in memory, presigned links lead nowhere (no attachments). */
     private val files = fileStore?.let(::FileRoutes)

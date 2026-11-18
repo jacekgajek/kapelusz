@@ -24,6 +24,7 @@ import com.jacekgajek.kapelusz.server.ok
 import com.jacekgajek.kapelusz.server.store.BlobEntry
 import com.jacekgajek.kapelusz.server.store.BlobStore
 import com.jacekgajek.kapelusz.server.store.DeletedBand
+import com.jacekgajek.kapelusz.server.store.HistoryStore
 import com.jacekgajek.kapelusz.server.store.PreconditionFailed
 import com.jacekgajek.kapelusz.server.store.ScheduledDeletions
 import com.jacekgajek.kapelusz.server.store.StorageKeys
@@ -33,33 +34,43 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import kotlinx.serialization.SerializationException
 
-/**
- * What a deployment decides about the admin panel.
- */
+/** The settings of the admin panel. Each place that runs the panel sets them. */
 data class AdminConfig(
-    /** The Google user ids that may use the panel. Empty: nobody may. */
+    /** The Google user ids that may use the panel. If empty, nobody may. */
     val adminUserIds: Set<String>,
-    /** The OAuth client the page signs in with. Empty: not set up, nobody can sign in. Null: the local server's development sign-in. */
+    /**
+     * The OAuth client that the page signs in with.
+     * Empty means the panel is not set up, and nobody can sign in.
+     * Null means the local server, with its development sign-in.
+     */
     val googleClientId: String?,
-    /** The largest band file, so the page can show how full a band is. */
+    /** The largest size a band's file may have. The page uses it to show how full a band is. */
     val maxBandBytes: Int = Api.MAX_BAND_BYTES,
 )
 
 /**
- * The admin panel: one page and the few routes it reads. It is a separate entry point from [Api], with its own
- * Lambda, address and sign-in; the app's API has none of these routes.
+ * The admin panel. It serves one page, and the routes that the page calls.
  *
- * It reads, with one exception: it can ask for a band nobody has changed for a long time to be deleted
- * ([scheduleDeletion]). It never loads a band through `BandAccess`, because that deletes a band whose time has come.
+ * It is separate from [Api]. It has its own Lambda, its own address and its own sign-in. The app's API has none of
+ * these routes.
+ *
+ * It reads. There are two exceptions:
+ * - It can ask for a band to be deleted, if nobody has changed the band for a long time ([scheduleDeletion]).
+ * - It can put a band back as it was at an earlier time ([Restores]).
+ *
+ * It never loads a band through `BandAccess`. That would delete a band whose time has come.
  */
 class AdminApi(
     private val store: BlobStore,
     private val verifier: TokenVerifier,
     private val config: AdminConfig,
     private val clock: () -> Long = System::currentTimeMillis,
-    /** The API's request log, for the devices that could not sync. Null: there is none to read. */
+    /** The API's request log. The panel finds the devices that could not sync in it. Null: there is no log. */
     private val requestLog: RequestLog? = null,
+    /** The bands' history. A restore adds an entry to it. Null: this server keeps no history. */
+    historyStore: HistoryStore? = null,
 ) {
+    private val restores = Restores(store, clock, historyStore)
     private val devices = DeviceRegistry(store, clock)
     private val page = AdminPage(config.googleClientId)
 
@@ -69,12 +80,12 @@ class AdminApi(
         } catch (e: ApiError) {
             error(e.status, e.code, e.message.orEmpty())
         }
-        // The same on every answer; what an answer sets itself stays.
+        // Every answer gets these headers. A header the answer already has is kept.
         return response.copy(headers = ALWAYS + response.headers)
     }
 
     private fun route(request: HttpRequest): HttpResponse {
-        // The page itself is public: it holds no data, and signing in happens on it.
+        // The page needs no sign-in. It holds no data. The sign-in happens on it.
         if (request.method == "GET" && request.path.trim('/').isEmpty()) return page.response()
         if (!request.path.startsWith("/api/")) throw notFound("No such page")
         val user = authenticate(request)
@@ -89,19 +100,25 @@ class AdminApi(
             Route("GET", "api/bands/{bandId}/raw", ::raw),
             Route("GET", "api/sync-failures", ::syncFailures),
             Route("POST", "api/bands/{bandId}/delete", ::scheduleDeletion),
+            // Restore: list the copies of a band's file, preview one, put one back.
+            Route("GET", "api/bands/{bandId}/versions") { ok(VersionList.serializer(), restores.versions(it.param("bandId"))) },
+            Route("GET", "api/bands/{bandId}/restore", ::restorePreview),
+            Route("POST", "api/bands/{bandId}/restore") {
+                ok(RestoreDone.serializer(), restores.restore(it.param("bandId"), it.body(RestoreRequest.serializer()), it.user))
+            },
         ),
     )
 
-    /** A valid token is not enough: its user must be on the list. */
+    /** The user of the request. A valid token is not enough. The user must also be on the list of admins. */
     private fun authenticate(request: HttpRequest): VerifiedUser {
         val admins = config.adminUserIds
         val token = request.header("authorization")?.removePrefix("Bearer ")?.trim()
-        // A panel with no admins never looks at a token.
+        // When there are no admins, the token is not even checked.
         val user = token?.takeIf { admins.isNotEmpty() }?.let(verifier::verify)
         throw when {
             token == null -> ApiError(401, ApiErrors.UNAUTHORIZED, "Missing bearer token")
 
-            // The same words as for a user who is not on the list: whether the panel is set up is nobody's business.
+            // The same answer as for a user who is not an admin. An outsider must not learn that the panel is not set up.
             admins.isEmpty() -> ApiError(403, ApiErrors.FORBIDDEN, "Not an admin")
 
             user == null -> ApiError(401, ApiErrors.UNAUTHORIZED, "Invalid or expired token")
@@ -112,10 +129,10 @@ class AdminApi(
         }
     }
 
-    /** Every band, and what is left of the deleted ones. */
+    /** The list of all bands. Also the deleted bands, of which only a small record is left. */
     private fun bands(): HttpResponse {
         val entries = store.entries(BANDS)
-        // The attachment files are in the same listing: their sizes, added up per band.
+        // The listing also has the attachment files. Their sizes are added up for each band.
         val attached = entries.filter { ATTACHMENTS in it.key }.groupingBy { bandIdOf(it.key) }.fold(0L) { sum, file -> sum + file.size }
         val rows = inParallel(entries.filter { it.key.endsWith(STATE) }, ::row)
             .map { it.copy(attachmentBytes = attached[it.id] ?: 0) }
@@ -124,7 +141,7 @@ class AdminApi(
         return ok(BandList.serializer(), BandList(rows, deleted.sortedByDescending { it.deletedAt }, config.maxBandBytes))
     }
 
-    /** A band that cannot be read, for whatever reason, is still in the list: one bad file must not hide the others. */
+    /** One band's row. A band that cannot be read still gets a row. One bad file must not hide the other bands. */
     private fun row(entry: BlobEntry): BandRow {
         val id = bandIdOf(entry.key)
         val band = runCatching { read(entry.key) }.getOrNull()?.second
@@ -136,7 +153,7 @@ class AdminApi(
             linked = band.members.count { !it.archived && it.userId != null },
             events = band.events.size,
             bytes = entry.size,
-            // Filled in by the list, which has the sizes of all bands' files at hand.
+            // Set later by the list. Only the list knows the sizes of the attachment files.
             attachmentBytes = 0,
             modified = entry.modified,
             deleteAt = band.deletion?.deleteAt,
@@ -150,7 +167,7 @@ class AdminApi(
         return DeletedRow(bandIdOf(entry.key), deleted.name, deleted.deletedBy, deleted.deletedAt)
     }
 
-    /** The devices that could not sync in the last `days` days (1 to [MAX_DAYS], [DEFAULT_DAYS] when not said). */
+    /** The devices that could not sync in the last `days` days. From 1 to [MAX_DAYS]. Without `days`: [DEFAULT_DAYS]. */
     private fun syncFailures(call: Call): HttpResponse {
         val days = (call.query("days")?.toIntOrNull() ?: DEFAULT_DAYS).coerceIn(1, MAX_DAYS)
         val now = clock()
@@ -161,7 +178,7 @@ class AdminApi(
         return ok(SyncFailureList.serializer(), list)
     }
 
-    /** The failed requests in [log]; a log that cannot be read just now is "try later", not this server's error. */
+    /** The failed requests in [log]. If the log cannot be read right now, the answer is "try later", not a server error. */
     private fun failed(log: RequestLog, since: Long, until: Long): List<LoggedRequest> {
         val read = runCatching { log.failed(since, until) }
         return read.getOrElse { e ->
@@ -171,11 +188,11 @@ class AdminApi(
         }
     }
 
-    /** One band: its members with their devices, and how much is in it. */
+    /** One band's page: its members, their devices, and how much the band holds. */
     private fun band(call: Call): HttpResponse {
         val bandId = call.param("bandId")
         val key = StorageKeys.band(bandId)
-        // Everything stored for the band: its file, and the attachment files beside it.
+        // All files stored for the band: its own file and its attachment files.
         val stored = store.entries(StorageKeys.bandPrefix(bandId))
         val entry = stored.firstOrNull { it.key == key } ?: throw notFound("No such band")
         val attachments = stored.filter { it.key.startsWith(StorageKeys.attachmentsPrefix(bandId)) }
@@ -212,15 +229,22 @@ class AdminApi(
         return ok(BandDetails.serializer(), details)
     }
 
-    /** Nobody has changed the band's file for [STALE_DAYS] days: only such a band may be deleted from the panel. */
+    private fun restorePreview(call: Call): HttpResponse {
+        val versionId = call.query("version") ?: throw ApiError(400, ApiErrors.BAD_REQUEST, "Which copy?")
+        return ok(RestorePreview.serializer(), restores.preview(call.param("bandId"), versionId))
+    }
+
+    /** True when nobody changed the band's file for [STALE_DAYS] days. Only such a band can be deleted from the panel. */
     private fun stale(entry: BlobEntry) = clock() - entry.modified >= STALE_DAYS * DAY_MILLIS
 
     /**
-     * Asks for a [stale] band to be deleted, the way its owner would: it goes a week later, the members see that in
-     * the app, and a leader can keep it. The deleting itself is the API's, when the time has come.
+     * Asks for a [stale] band to be deleted. It works like the owner's own request.
      *
-     * This is the panel's one write: the band's file, with the deletion asked for in it, and the list of bands waiting.
-     * It leaves no entry in the band's history and sends no sync message; the members' apps see it at their next sync.
+     * The band is deleted a week later. Until then the members see a notice in the app, and a leader can keep the
+     * band. The API does the deleting when the week is over. The panel deletes nothing itself.
+     *
+     * Two things are written: the band's file, now with the deletion request in it, and the list of bands waiting.
+     * No entry is added to the band's history. No sync message is sent. The apps see the change at their next sync.
      */
     private fun scheduleDeletion(call: Call): HttpResponse {
         val bandId = call.param("bandId")
@@ -228,9 +252,10 @@ class AdminApi(
         val (etag, band) = deletable(key)
         val now = clock()
         val scheduled = scheduled(band, now)
-        // The list first. If the band's file is then not written, the list has one band too many; when its time
-        // comes the API sees the band is to be kept and takes it off. The other way round, a band could wait for a
-        // deletion that never comes.
+        // The list is written first, on purpose.
+        // If the band's file is then not written, the list has one band too many. That is harmless. When the time
+        // comes, the API sees that the band is not to be deleted, and takes it off the list.
+        // In the other order, the band could have a deletion request that the API never finds.
         wait(bandId, now + BandDeletion.DELAY_MS)
         try {
             store.put(key, encode(Band.serializer(), scheduled), ifMatch = etag)
@@ -242,12 +267,12 @@ class AdminApi(
     }
 
     /**
-     * Puts [bandId] onto the list of bands waiting to be deleted, so the API's hourly sweep finds it, also when
-     * nobody opens the band again.
+     * Puts [bandId] on the list of bands waiting to be deleted. The API checks this list every hour. So the band is
+     * found even if nobody opens it again.
      *
-     * The list may not be there yet: the API writes it at the first deletion anyone asks for. The panel's role is
-     * told "forbidden" then, not "not found", so a read that fails is taken as "none yet" and the list is created.
-     * If it is there after all, the create is refused and the first failure stands.
+     * The list may not exist yet. The API creates it at the first deletion request. For a missing list, S3 tells the
+     * panel "forbidden", not "not found". So a failed read is taken to mean "no list yet", and the list is created.
+     * If the list does exist, the create is refused. Then the first failure is thrown.
      */
     private fun wait(bandId: String, deleteAt: Long) {
         val list = store.scheduledDeletions()
@@ -256,9 +281,9 @@ class AdminApi(
         }
     }
 
-    /** The band at [key] with its ETag, when the panel may ask for its deletion; refused otherwise. */
+    /** The band at [key] and its ETag, if the panel may ask for its deletion. Otherwise the request is refused. */
     private fun deletable(key: String): Pair<String, Band> {
-        // The file first, then its time: a change in between shows in the time, a later one fails the write.
+        // The file is read first, then its time. A change between the two shows in the time. A later change fails the write.
         val loaded = listed(key)?.let { read(key) }
         val entry = listed(key)
         throw when {
@@ -269,10 +294,10 @@ class AdminApi(
         }
     }
 
-    /** The object at [key] as the listing shows it; null when there is none. */
+    /** The listing's entry for the object at [key]. Null when there is no such object. */
     private fun listed(key: String): BlobEntry? = store.entries(key).firstOrNull { it.key == key }
 
-    /** [band] with its deletion asked for at [now], by the shared rules, so nothing the app would refuse gets in. */
+    /** [band] with a deletion request made at [now]. The shared rules apply it, so the app would accept the result too. */
     private fun scheduled(band: Band, now: Long): Band {
         val op = ScheduleBandDeletion(BandDeletion(SUPPORT, now, now + BandDeletion.DELAY_MS))
         return when (val result = Engine.apply(band, Actor.System, op, "admin-delete-$now", now)) {
@@ -283,7 +308,7 @@ class AdminApi(
 
     private fun conflict(message: String) = ApiError(409, ApiErrors.CONFLICT, message)
 
-    /** The user's Android devices. Their tokens stay on the server. */
+    /** The user's Android devices. Their tokens are not sent to the page. */
     private fun devicesOf(userId: String): List<DeviceRow> = runCatching { devices.stored(userId) }.getOrDefault(emptyList())
         .sortedByDescending { it.lastSeen }
         .map { DeviceRow(it.lastSeen, devices.fresh(it)) }
@@ -291,7 +316,7 @@ class AdminApi(
     /** The band's file exactly as stored. */
     private fun raw(call: Call): HttpResponse {
         val key = StorageKeys.band(call.param("bandId"))
-        // Looked up in the listing first: the panel's role may not be told by S3 that an object is missing.
+        // The listing is checked first. For a missing object, S3 tells the panel "forbidden", not "not found".
         val blob = store.entries(key).firstOrNull { it.key == key }?.let { store.get(key) } ?: throw notFound("No such band")
         return HttpResponse(200, blob.content, mapOf("content-type" to "application/json; charset=utf-8", "etag" to blob.etag))
     }
@@ -320,26 +345,27 @@ class AdminApi(
         const val ATTACHMENTS = "/attachments/"
         const val READERS = 16
 
-        /** How far back sync failures are looked for: the API's log is kept 14 days. */
+        /** The most days of sync failures the panel shows. The API's log is kept for 14 days. */
         const val MAX_DAYS = 14
         const val DEFAULT_DAYS = 3
         const val DAY_MILLIS = 24 * 3600 * 1000L
 
-        /** Two months without a change: the band may be deleted from the panel. */
+        /** After this many days without a change, a band can be deleted from the panel. About two months. */
         const val STALE_DAYS = 60
 
         /**
-         * Who asked, in a deletion asked for from the panel. It is no member's id. The app then names nobody and
-         * says the band was not used for a long time; the API names the owner when it deletes the band.
+         * The requester in a deletion request made from the panel. It is not the id of any member.
+         * The app then names nobody. It says the band was not used for a long time.
+         * When the API deletes the band, it names the owner.
          */
         const val SUPPORT = "support"
 
-        /** The band's file is there but is not a band. */
+        /** The error code for a band's file that exists but is not a band. */
         const val UNREADABLE = "unreadable"
 
         /**
-         * On every answer. Band data must not stay in a browser's or a proxy's cache; the browser must not guess a
-         * type; and it must come back over HTTPS only.
+         * Headers on every answer. They say three things. Do not keep this in any cache. Do not guess the content
+         * type. Use HTTPS only.
          */
         val ALWAYS = mapOf(
             "cache-control" to "no-store",
@@ -347,10 +373,10 @@ class AdminApi(
             "strict-transport-security" to "max-age=31536000",
         )
 
-        /** Bands are read several at a time: the list needs every band's file. One pool for the process. */
+        /** Threads for reading several bands at once. The list needs every band's file. The whole process shares them. */
         val readers = Executors.newFixedThreadPool(READERS) { task -> Thread(task, "admin-reader").apply { isDaemon = true } }
 
-        /** `bands/{id}/state.json` gives `{id}`. */
+        /** The band id in a key. For `bands/{id}/state.json` it is `{id}`. */
         fun bandIdOf(key: String) = key.removePrefix(BANDS).substringBefore('/')
     }
 }

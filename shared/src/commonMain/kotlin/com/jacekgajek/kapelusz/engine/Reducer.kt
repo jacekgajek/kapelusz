@@ -17,6 +17,7 @@ import com.jacekgajek.kapelusz.ops.HoldingOp
 import com.jacekgajek.kapelusz.ops.LineupOp
 import com.jacekgajek.kapelusz.ops.Operation
 import com.jacekgajek.kapelusz.ops.PairOp
+import com.jacekgajek.kapelusz.ops.RestoreBand
 import com.jacekgajek.kapelusz.ops.RosterOp
 import com.jacekgajek.kapelusz.ops.SetEventArchived
 import com.jacekgajek.kapelusz.ops.TransferOp
@@ -60,6 +61,7 @@ object Reducer {
             is AttachmentOp -> AttachmentReducer.apply(band, op)
             is Undo -> Undoing.apply(band, op)
             is UnknownOperation -> reject(RejectionCode.INVALID, RejectionReason.INVALID_INPUT, "Unknown operation")
+            is RestoreBand -> reject(RejectionCode.INVALID, RejectionReason.INVALID_INPUT, "A band is restored by support, not by a change")
         }
         // While the fund is off, a change may not leave it holding or owing money: that needs a treasurer.
         conflictIf(

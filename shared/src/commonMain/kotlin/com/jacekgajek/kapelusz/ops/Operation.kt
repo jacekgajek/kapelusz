@@ -93,6 +93,18 @@ sealed interface AttachmentOp : Operation {
 data class UnknownOperation(override val eventId: Id? = null) : Operation
 
 /**
+ * Support put the band back as it was at [stateOf] (epoch millis).
+ *
+ * This is only an entry in the band's history. The server writes it, so the members see what happened. No app
+ * sends it, and it is never applied: a restore replaces the band's whole file.
+ */
+@Serializable
+@SerialName("RestoreBand")
+data class RestoreBand(val stateOf: Long) : Operation {
+    override val eventId: Id? get() = null
+}
+
+/**
  * Undoes the operation [undoneOpId] ([original]) by putting back what it touched ([change]). [entry] names the
  * history entry it is in; the server takes [original] and [change] from there, so a client cannot make them up.
  */

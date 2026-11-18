@@ -536,6 +536,8 @@
     <string name="band_deletion_notice_unused_leader">This band has not been used for a long time. It will be deleted for everyone on %1$s, unless a leader keeps it.</string>
     <string name="band_deletion_keep">Keep the band</string>
     <string name="h_schedule_deletion">Asked to delete the band; it goes on %1$s</string>
+    <string name="h_restore_band">Restored the band to how it was on %1$s</string>
+    <string name="history_support">Support</string>
     <string name="h_cancel_deletion">Kept the band: it won’t be deleted</string>
     <string name="delete_band">Delete band</string>
     <string name="delete_band_title">Delete %1$s?</string>

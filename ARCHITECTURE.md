@@ -166,6 +166,13 @@ lambda/       the API Gateway adapters: Handler (the API, with SnapStart priming
   the same `ScheduleBandDeletion` into the band's file that the owner's request does, through the shared `Engine`,
   and the band onto the list of bands waiting. The API deletes it a week later, unless a leader keeps it. The
   panel itself can delete nothing.
+- The panel's repair for a band that went wrong is putting it back from one of the copies the bucket's versioning
+  keeps of its file for 30 days (`admin/Restores`). It never edits a band's data by hand. The content is the
+  copy's; the sync bookkeeping (`lastSeq`, `recentRejections`) and a deletion asked for stay as they are now. The
+  write is refused unless the file is still the one the admin looked at (its ETag) and the band's name was typed.
+  Afterwards the members' band lists and the events' link pointers are brought in line, a `RestoreBand` entry goes
+  into the band's history, and a record is kept at `bands/{id}/restores/`. `RestoreBand` is only ever a history
+  entry: the reducer refuses it from anyone.
 - The request log is the one line the API Lambda prints per request (`RequestLine`: method, path, status, time, and
   the user, installation, app version and error code). The admin panel reads the failed ones back with a Logs
   Insights query (`CloudWatchRequestLog`) and groups them per device (`SyncFailures`). The line is written and

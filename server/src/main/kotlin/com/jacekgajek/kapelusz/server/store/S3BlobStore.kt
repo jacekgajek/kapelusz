@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier
@@ -67,6 +68,22 @@ class S3BlobStore(
 
     override fun entries(prefix: String): List<BlobEntry> = s3.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build())
         .contents().map { BlobEntry(it.key(), it.size(), it.lastModified().toEpochMilli()) }.sortedBy { it.key }
+
+    override fun versions(key: String, limit: Int): List<BlobVersion> = s3.listObjectVersionsPaginator(ListObjectVersionsRequest.builder().bucket(bucket).prefix(key).build())
+        .versions().asSequence()
+        // S3 lists by prefix. Without this, "state.json" would also bring "state.json.bak".
+        .filter { it.key() == key }
+        .take(limit)
+        .map { BlobVersion(it.versionId(), it.lastModified().toEpochMilli(), it.size(), it.isLatest) }
+        .toList()
+
+    override fun getVersion(key: String, versionId: String): Blob? = try {
+        val response = s3.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).versionId(versionId).build())
+        Blob(response.asUtf8String(), response.response().eTag())
+    } catch (e: S3Exception) {
+        // 404: no such copy. 400: not a valid copy id. Any other error is a real failure.
+        if (e.statusCode() == 404 || e.statusCode() == 400) null else throw e
+    }
 
     override fun exists(key: String): Boolean = try {
         s3.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build())

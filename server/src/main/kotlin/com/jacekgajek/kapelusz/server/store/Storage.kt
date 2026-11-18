@@ -18,6 +18,11 @@ object StorageKeys {
     fun deleted(bandId: String) = "${bandPrefix(bandId)}deleted.json"
     fun attachment(bandId: String, attachment: Attachment) = "${attachmentsPrefix(bandId)}${safe(attachment.id)}.${attachment.kind.extension}"
 
+    /** Where the records of a band's restores are kept ([RestoreRecord]). */
+    fun restoresPrefix(bandId: String) = "${bandPrefix(bandId)}restores/"
+
+    fun restore(bandId: String, at: Long) = "${restoresPrefix(bandId)}$at.json"
+
     /** The band's attachment files. */
     fun attachmentsPrefix(bandId: String) = "${bandPrefix(bandId)}attachments/"
 
@@ -103,3 +108,21 @@ data class StoredDevice(val installationId: String, val token: String, val lastS
 /** `users/{userId}-devices.json`: the user's devices. */
 @Serializable
 data class StoredDevices(val devices: List<StoredDevice> = emptyList())
+
+/**
+ * The record of one restore, stored as `bands/{id}/restores/{at}.json`.
+ *
+ * It says who put the band back ([by]) and when ([at]). [versionId] is the copy that was put back; that copy was
+ * written at [stateOf]. [replacedVersionId] is the copy that was replaced. Putting it back undoes the restore.
+ */
+@Serializable
+data class RestoreRecord(
+    val at: Long,
+    val by: String,
+    val versionId: String,
+    val stateOf: Long,
+    val replacedVersionId: String? = null,
+    val replacedEtag: String,
+    /** The records beside the band that could not be updated: band lists, link pointers, the history entry. */
+    val problems: List<String> = emptyList(),
+)

@@ -58,6 +58,7 @@ import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.RenameGuest
 import com.jacekgajek.kapelusz.ops.RenameMember
+import com.jacekgajek.kapelusz.ops.RestoreBand
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetBankAccount
@@ -122,6 +123,7 @@ object WireSamples {
         DisableBandFund,
         ScheduleBandDeletion(BandDeletion("alice", 1_000L, 2_000L)),
         CancelBandDeletion,
+        RestoreBand(1_000L),
         SetFundBlikPhone("600123456"),
         SetFundBankAccount(IBAN),
         TransferOwnership("bob"),
