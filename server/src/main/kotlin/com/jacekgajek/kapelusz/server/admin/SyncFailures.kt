@@ -4,12 +4,12 @@ import com.jacekgajek.kapelusz.api.ApiErrors
 import com.jacekgajek.kapelusz.server.RequestLine
 
 /**
- * Which failed requests mean "this device could not sync", and the failures put together per device.
+ * Decides which failed requests mean "this device could not sync". Also groups those failures by device.
  *
- * Only what the server saw can be here. A device that is offline, or whose app crashed, sends nothing.
+ * It only knows what the server saw. A device that is offline sends nothing. Neither does an app that crashed.
  */
 internal object SyncFailures {
-    /** What a sync round asks for: create, push, upload, pull, the band list, a new session. */
+    /** The requests of one sync round. Create, push, upload, pull, the band list, a new session. */
     private val SYNC_ROUTES = listOf(
         "POST" to Regex("/bands"),
         "POST" to Regex("/bands/[^/]+/ops"),
@@ -20,9 +20,10 @@ internal object SyncFailures {
     )
 
     /**
-     * Refusals that are the normal end of something, and that the app handles by itself: the band is gone for this
-     * user (the app drops it), a file was uploaded already or its cost is gone (the upload is done with), and the
-     * place search is down (no part of a sync).
+     * Refusals that are normal. The app deals with them by itself, so they are not failures.
+     * - The band is gone for this user. The app drops it.
+     * - The file was uploaded before, or its cost is gone. The upload is finished either way.
+     * - The place search is down. It is not part of a sync.
      */
     private val EXPECTED = setOf(
         ApiErrors.BAND_NOT_FOUND,
@@ -39,20 +40,22 @@ internal object SyncFailures {
     private const val UPDATE_REQUIRED = 426
 
     /**
-     * A request of the app that failed in a way that stops its sync. Any server error and any "update required"
-     * count; otherwise only the requests a sync round makes. A refusal of something the user tried (a wrong invite
-     * code, leaving as the owner) is not a sync failure.
+     * True when [line] is a request of the app that failed and stopped its sync.
+     *
+     * Every server error counts. Every "update required" counts. Other refusals count only for the requests of a
+     * sync round. A refusal of something the user tried does not count. A wrong invite code is an example.
      */
     fun counts(line: RequestLine): Boolean = when {
         line.status < RequestLine.FAILED -> false
 
-        // Not the app at all: it always sends its version. Bots and wrong addresses end here.
+        // This is not the app. The app always sends its version. Bots and wrong addresses end here.
         line.appVersion == null && line.userId == null -> false
 
         line.error in EXPECTED -> false
 
-        // A token that ran out: the app gets a new one and asks again, many times a day. Only when getting the new
-        // one is refused (POST /session) is the device stuck. "Signed out everywhere" has its own error code.
+        // The token ran out. This is normal, many times a day. The app gets a new token and asks again.
+        // The device is stuck only when the new token is refused too. That is the request POST /session.
+        // "Signed out everywhere" is another case. It has its own error code.
         line.status == UNAUTHORIZED && line.error == ApiErrors.UNAUTHORIZED && !SESSION.matches(line.path) -> false
 
         line.status >= SERVER_ERROR || line.status == UPDATE_REQUIRED -> true
@@ -61,9 +64,13 @@ internal object SyncFailures {
     }
 
     /**
-     * [requests] per device, the one that failed last first. A device is a user's installation; the web app has no
-     * installation, so all of a user's browsers are one. Requests with neither are [SyncFailureList.unidentified]:
-     * a sign-in that was refused for good, or an app too old to be let in, so nobody knows whose it was.
+     * Groups [requests] by device. The device that failed last comes first.
+     *
+     * A device is one installation of one user. The web app has no installation. So all browsers of a user count
+     * as one device.
+     *
+     * Some requests have neither a user nor an installation. They go to [SyncFailureList.unidentified]. Examples
+     * are a refused sign-in, and an app too old to be let in. Nobody knows whose they were.
      */
     fun grouped(requests: List<LoggedRequest>, days: Int): SyncFailureList {
         val (known, unknown) = requests.filter { counts(it.line) }.partition { it.line.userId != null || it.line.installation != null }

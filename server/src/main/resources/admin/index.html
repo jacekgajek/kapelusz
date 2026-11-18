@@ -58,6 +58,9 @@
   details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
   summary { padding: 8px 10px; cursor: pointer; }
   details .inner { padding: 0 10px 10px; }
+  details + details { margin-top: 8px; }
+  ul { margin: 0 0 10px; padding-left: 20px; }
+  .notice p { margin: 0 0 8px; }
   pre { margin: 8px 0 0; padding: 10px; max-height: 70vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 12px/1.4 ui-monospace, monospace; }
   .hidden { display: none; }
   .bad { color: var(--bad); }
@@ -78,24 +81,27 @@
 <main id="main"></main>
 <script nonce="{{NONCE}}">
 'use strict';
-// The admin panel. It reads, with one exception: asking for a band unchanged for two months to be deleted.
-// Everything shown comes from the routes under api/.
-// The front page shows the devices that could not sync, then the bands. A band's page shows its members and data.
-// Text is always put in with textContent, never as HTML: band and member names are written by users.
+// The admin panel. It reads. There are two exceptions:
+// - It can ask for a band to be deleted, if the band was not changed for two months.
+// - It can put a band back as it was at an earlier time.
+// All data on the page comes from the routes under api/.
+// The front page shows the devices that could not sync, and then the bands.
+// A band's page shows its members and its data.
+// Text is always set with textContent, never as HTML. Users write the band and member names.
 
 const clientId = document.querySelector('meta[name="google-client-id"]').content;
-/** google, dev (the local server) or none (the panel is not set up). */
+/** How to sign in. "google", "dev" for the local server, or "none" when the panel is not set up. */
 const signInWith = document.querySelector('meta[name="sign-in"]').content;
 const main = document.getElementById('main');
 const who = document.getElementById('who');
 const signOutButton = document.getElementById('signout');
 
-/** The sign-in token. Kept in memory only, so closing the tab signs out. */
+/** The sign-in token. It is kept in memory only. Closing the tab signs out. */
 let token = null;
 
 // ---- small helpers ----
 
-/** Makes an element. props: class, text, href, title, type; children are appended. */
+/** Makes an element. props can be class, text, or any attribute. The children are added to it. */
 function el(tag, props, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(props || {})) {
@@ -150,9 +156,11 @@ class Refused extends Error {
   }
 }
 
-/** Asks api/<path>. Paths are relative, so the page also works under a prefix (the local server's /admin/). */
-async function ask(path, method) {
-  const response = await fetch('api/' + path, { method, headers: { authorization: 'Bearer ' + token }, cache: 'no-store' });
+/** Sends a request to api/<path>. The path is relative. So the page also works under /admin/ on the local server. */
+async function ask(path, method, body) {
+  const headers = { authorization: 'Bearer ' + token };
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  const response = await fetch('api/' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store' });
   if (!response.ok) {
     let message = response.statusText;
     try { message = (await response.json()).message || message; } catch (ignored) { /* not JSON */ }
@@ -161,13 +169,13 @@ async function ask(path, method) {
   return response;
 }
 
-/** Reads api/<path>: JSON, or the text as it is. */
+/** Reads api/<path>. Gives the JSON, or the plain text when asText is set. */
 async function api(path, asText) {
   const response = await ask(path, 'GET');
   return asText ? response.text() : response.json();
 }
 
-/** Asks a yes-or-no question in a dialog. Yes only by its button: closing the dialog any other way is a no. */
+/** Asks a yes-or-no question in a dialog. Only the Yes button means yes. Closing the dialog in any other way means no. */
 function yesOrNo(question, detail) {
   return new Promise(resolve => {
     const yes = el('button', { type: 'button', class: 'danger', text: 'Yes, delete' });
@@ -189,7 +197,7 @@ function failed(e) {
     signIn('Your sign-in has expired. Sign in again.');
   } else if (e instanceof Refused && e.status === 403) {
     token = null;
-    // Or Google would hand the same account back at once, and the page would be refused again.
+    // Without this, Google would give the same account again at once. The page would be refused again.
     if (window.google) google.accounts.id.disableAutoSelect();
     signIn('This account may not use the admin panel.');
   } else {
@@ -222,7 +230,7 @@ function signIn(message) {
   else show(el('p', { class: 'notice bad', text: 'The admin panel is not set up: it has no Google client id.' }));
 }
 
-/** The name in a Google token, for the header. The server checks the token; this only reads it. */
+/** The name in a Google token. It is shown in the header. The token itself is checked by the server, not here. */
 function nameIn(jwt) {
   try {
     const payload = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -235,7 +243,7 @@ function nameIn(jwt) {
 
 let googleLoaded = null;
 
-/** Loads Google's sign-in script and sets it up, once. */
+/** Loads Google's sign-in script and sets it up. This happens once. */
 function loadGoogle() {
   googleLoaded = googleLoaded || new Promise((resolve, reject) => {
     const script = el('script', { src: 'https://accounts.google.com/gsi/client' });
@@ -262,7 +270,7 @@ function googleSignIn(note) {
   }).catch(e => show(el('p', { class: 'notice bad', text: e.message })));
 }
 
-/** The local server only: it takes unsigned tokens of dev- users. The real panel never offers this. */
+/** The sign-in of the local server. It makes an unsigned token for a dev- user. The real panel never shows this. */
 function devSignIn(note) {
   const input = el('input', { type: 'text', value: 'admin', 'aria-label': 'Development user' });
   const button = el('button', { type: 'button', text: 'Sign in' });
@@ -284,16 +292,16 @@ function devSignIn(note) {
 
 // ---- sync failures ----
 
-/** How many days back the failures are looked for. */
+/** How many days of failures are shown. */
 let failureDays = 3;
 
-/** The failures as last loaded, kept so a band's page can mark its members without asking again. */
+/** The failures from the last load. A band's page uses them to mark its members, without loading again. */
 let failures = null;
 
-/** Counts the loads, so an answer that comes after a newer one was asked for is dropped. */
+/** The number of loads so far. With it, an answer that arrives after a newer request is dropped. */
 let failureLoads = 0;
 
-/** Loads the failures of the chosen days; null when a newer load has started meanwhile. */
+/** Loads the failures for the chosen days. Gives null when a newer load started in the meantime. */
 async function loadFailures() {
   const load = ++failureLoads;
   const data = await api('sync-failures?days=' + failureDays);
@@ -309,7 +317,7 @@ function failureKinds(device) {
   ));
 }
 
-/** Whose device it is: the member's name in each band they are in. */
+/** Says whose device it is. It gives the member's name in each band they are in. */
 function ownerOf(device, bands) {
   if (!device.userId) return el('span', { class: 'muted', text: 'unknown user' });
   const places = [];
@@ -333,7 +341,7 @@ function failureRow(device, bands) {
   );
 }
 
-/** Fills [section] with the devices that could not sync. Loaded apart from the bands: the log query takes seconds. */
+/** Fills the section with the devices that could not sync. It loads apart from the bands, because the log query takes seconds. */
 async function failuresInto(section, bands) {
   const days = el('select', { 'aria-label': 'Days' }, [1, 3, 7, 14].map(n => el('option', { value: n, text: n === 1 ? 'last day' : 'last ' + n + ' days', selected: n === failureDays ? '' : null })));
   days.addEventListener('change', () => {
@@ -439,7 +447,7 @@ function rawSection(bandId) {
     loaded = true;
     try {
       const text = await api('bands/' + encodeURIComponent(bandId) + '/raw', true);
-      // Shown indented when it is JSON; as it is when it is not (a broken file must still be readable).
+      // JSON is shown indented. Anything else is shown as it is. A broken file must still be readable.
       try { pre.textContent = JSON.stringify(JSON.parse(text), null, 2); } catch (ignored) { pre.textContent = text; }
       note.textContent = 'Holds BLIK and bank numbers.';
     } catch (e) {
@@ -459,8 +467,8 @@ function rawSection(bandId) {
 }
 
 /**
- * A place for the member's "sync failures" mark. It is filled when the failures are known: at once when the front
- * page loaded them, later when this page was opened first and has to ask.
+ * A place for the member's "sync failures" mark. It is filled once the failures are known.
+ * That is at once when the front page loaded them. It is later when this page was opened first.
  */
 function failureMark(member) {
   const mark = el('span');
@@ -474,7 +482,7 @@ function failureMark(member) {
 
 let failuresAsked = null;
 
-/** Asks for the failures once, for a band page opened before the front page. Never fails: no mark is the result. */
+/** Loads the failures once, for a band's page that was opened before the front page. It never fails. Then there is just no mark. */
 function failuresKnown() {
   failuresAsked = failuresAsked || loadFailures().catch(() => null);
   return failuresAsked;
@@ -487,9 +495,9 @@ async function bandView(bandId) {
   try {
     band = await api('bands/' + encodeURIComponent(bandId));
   } catch (e) {
-    // The file is there but is not a band: its raw data can still be read.
+    // The file exists but is not a band. Its raw data can still be shown.
     if (!(e instanceof Refused) || e.status !== 422) throw e;
-    show(back, el('p', { class: 'notice bad', text: e.message }), rawSection(bandId));
+    show(back, el('p', { class: 'notice bad', text: e.message }), rawSection(bandId), restoreSection(bandId));
     return;
   }
   const members = band.members.map(member => el('tr', null,
@@ -523,11 +531,131 @@ async function bandView(bandId) {
     table([{ text: 'Name' }, { text: 'Role' }, { text: 'Account' }, { text: 'Android devices' }], members),
     el('h2', { text: 'Data' }),
     rawSection(bandId),
+    restoreSection(bandId),
     deleteSection(band),
   );
 }
 
-/** The button that asks for the band to be deleted. Only for a band nobody changed for two months. */
+// ---- restore: putting a band back as it was ----
+
+/** One line that says what a restore does to members, events and so on. Null when it changes none of them. */
+function diffLine(label, part) {
+  const bits = [];
+  if (part.back) bits.push(part.back + ' come back' + (part.backNames.length ? ' (' + part.backNames.join(', ') + ')' : ''));
+  if (part.gone) bits.push(part.gone + ' disappear' + (part.goneNames.length ? ' (' + part.goneNames.join(', ') + ')' : ''));
+  if (part.changed) bits.push(part.changed + ' go back to how they were');
+  return bits.length ? el('li', { text: label + ': ' + bits.join('; ') + '.' }) : null;
+}
+
+/** Shows what the restore would change. The admin must type the band's name before the button works. */
+function restorePanel(bandId, preview, done) {
+  const lines = [
+    diffLine('Members', preview.members),
+    diffLine('Events', preview.events),
+    diffLine('Costs', preview.costs),
+    diffLine('Fund entries', preview.fundEntries),
+    preview.settingsChange ? el('li', { text: 'The band\'s own settings go back to how they were (name, fund, agenda).' }) : null,
+    preview.gainAccess.length ? el('li', { class: 'bad', text: 'Get into the band again: ' + preview.gainAccess.join(', ') + '.' }) : null,
+    preview.loseAccess.length ? el('li', { class: 'bad', text: 'Lose the band: ' + preview.loseAccess.join(', ') + '.' }) : null,
+    preview.missingFiles ? el('li', { class: 'bad', text: preview.missingFiles + ' attachments come back without their file. The files were deleted and are not put back.' }) : null,
+    preview.deleteAt ? el('li', { class: 'bad', text: 'The band is still to be deleted on ' + when(preview.deleteAt) + '. A restore does not change that.' }) : null,
+  ].filter(Boolean);
+  const typed = el('input', { type: 'text', 'aria-label': 'The band\'s name', autocomplete: 'off' });
+  const button = el('button', { type: 'button', class: 'danger', text: 'Put this copy back', disabled: '' });
+  const note = el('span', { class: 'small' });
+  // True while the request is on its way. Typing must not turn the button on again then.
+  let sending = false;
+  typed.addEventListener('input', () => { button.disabled = sending || typed.value.trim() !== preview.name.trim(); });
+  button.addEventListener('click', async () => {
+    sending = true;
+    button.disabled = true;
+    try {
+      const answer = await (await ask('bands/' + encodeURIComponent(bandId) + '/restore', 'POST', {
+        versionId: preview.versionId, etag: preview.currentEtag, name: typed.value,
+      })).json();
+      done(answer.problems);
+    } catch (e) {
+      if (e instanceof Refused && (e.status === 401 || e.status === 403)) return failed(e);
+      sending = false;
+      button.disabled = false;
+      note.className = 'small bad';
+      note.textContent = 'Not put back: ' + e.message + '. Click "Look…" again to see the band as it is now.';
+    }
+  });
+  return el('div', { class: 'notice' },
+    el('p', null, el('strong', { text: 'Putting back the band as it was on ' + when(preview.stateOf) })),
+    preview.currentReadable ? null : el('p', { class: 'bad', text: 'What is stored now cannot be read as a band, so there is nothing to compare with. The copy is taken whole.' }),
+    lines.length ? el('ul', null, lines) : el('p', { class: 'muted', text: preview.currentReadable ? 'Nothing the members see differs from now.' : '' }),
+    el('p', { class: 'muted small', text: 'Everything changed after that time is lost. The members see in the history that support put the band back. Attachment files and invites are left as they are.' }),
+    el('p', null, 'To go on, type the band\'s name: ', el('strong', { text: preview.name })),
+    el('div', { class: 'row' }, typed, button, note),
+  );
+}
+
+/** The list of copies of the band's file. Each can be looked at and put back. It loads when it is opened. */
+function restoreSection(bandId) {
+  const body = el('div', { class: 'inner' }, el('p', { class: 'muted', text: 'Loading…' }));
+  const details = el('details', null, el('summary', { text: 'Earlier copies (the last 30 days)' }), body);
+  const path = 'bands/' + encodeURIComponent(bandId);
+
+  const load = async () => {
+    const data = await api(path + '/versions');
+    const panel = el('div');
+    const look = async (version, button) => {
+      button.disabled = true;
+      try {
+        const preview = await api(path + '/restore?version=' + encodeURIComponent(version.id));
+        panel.replaceChildren(restorePanel(bandId, preview, problems => {
+          const said = problems.length
+            ? el('p', { class: 'notice bad', text: 'The band is put back, but these could not be written: ' + problems.join('; ') + '.' })
+            : el('p', { class: 'notice' }, tag('ok', 'ok'), ' The band is put back.');
+          bandView(bandId).then(() => main.prepend(said)).catch(failed);
+        }));
+        panel.scrollIntoView({ block: 'nearest' });
+      } catch (e) {
+        if (e instanceof Refused && (e.status === 401 || e.status === 403)) return failed(e);
+        panel.replaceChildren(el('p', { class: 'notice bad', text: 'This copy cannot be put back: ' + e.message }));
+      } finally {
+        button.disabled = false;
+      }
+    };
+    const rows = data.versions.map(version => {
+      const button = version.latest ? null : el('button', { type: 'button', text: 'Look…' });
+      if (button) button.addEventListener('click', () => look(version, button));
+      return el('tr', null,
+        el('td', null, when(version.modified), ' ', version.latest ? tag('stored now', 'ok') : null),
+        el('td', { class: 'num', text: size(version.bytes) }),
+        el('td', { class: 'num' }, button),
+      );
+    });
+    const made = data.restores.map(restore => el('li', {
+      text: when(restore.at) + ': put back as it was on ' + when(restore.stateOf) +
+        (restore.problems.length ? ' (not written: ' + restore.problems.join('; ') + ')' : ''),
+    }));
+    body.replaceChildren(...[
+      el('p', { class: 'muted small', text: 'A copy is kept of every change to the band\'s file. Putting one back replaces the band as it is now.' }),
+      table([{ text: 'Written' }, { text: 'Size', num: true }, { text: '', num: true }], rows),
+      data.more ? el('p', { class: 'muted small', text: 'Older copies are not listed.' }) : null,
+      panel,
+      made.length ? el('p', { class: 'small', text: 'Restores made:' }) : null,
+      made.length ? el('ul', { class: 'small' }, made) : null,
+    ].filter(Boolean));
+  };
+
+  let loaded = false;
+  details.addEventListener('toggle', () => {
+    if (!details.open || loaded) return;
+    loaded = true;
+    load().catch(e => {
+      if (e instanceof Refused && (e.status === 401 || e.status === 403)) return failed(e);
+      loaded = false;
+      body.replaceChildren(el('p', { class: 'notice bad', text: 'Could not load: ' + e.message }));
+    });
+  });
+  return details;
+}
+
+/** The button that asks for the band's deletion. It is shown only for a band not changed for two months. */
 function deleteSection(band) {
   if (band.deletion) return null;
   const heading = el('h2', { text: 'Delete' });
@@ -563,7 +691,7 @@ function deleteSection(band) {
 // ---- routing ----
 
 function route() {
-  // A question left open belongs to the page that asked it.
+  // An open question belongs to the page that asked it. So it is closed when the page changes.
   document.querySelectorAll('dialog').forEach(dialog => dialog.close());
   if (!token) return signIn();
   const band = /^#\/band\/([A-Za-z0-9_-]+)$/.exec(location.hash);

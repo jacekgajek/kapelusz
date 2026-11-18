@@ -35,6 +35,7 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.history
 import com.jacekgajek.kapelusz.app.generated.history_empty
 import com.jacekgajek.kapelusz.app.generated.history_newer_version
+import com.jacekgajek.kapelusz.app.generated.history_support
 import com.jacekgajek.kapelusz.app.generated.history_unavailable
 import com.jacekgajek.kapelusz.app.generated.history_undone
 import com.jacekgajek.kapelusz.app.generated.load_more
@@ -60,6 +61,7 @@ import com.jacekgajek.kapelusz.app.util.nowMillis
 import com.jacekgajek.kapelusz.history.BandChange
 import com.jacekgajek.kapelusz.history.OpEnvelope
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.ops.RestoreBand
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -170,7 +172,12 @@ fun UndoConfirmation(history: HistoryState, band: Band, actions: Actions) {
 
 @Composable
 fun HistoryRow(band: Band, line: HistoryLine, undone: Boolean = false, onUndo: (() -> Unit)? = null, onRedo: (() -> Unit)? = null) {
-    val who = line.entry.memberId?.let { band.member(it)?.name } ?: "?"
+    val who = when {
+        // No member did this. Support put the band back.
+        line.envelope?.op is RestoreBand -> stringResource(Res.string.history_support)
+
+        else -> line.entry.memberId?.let { band.member(it)?.name } ?: "?"
+    }
     val time = Instant.fromEpochMilliseconds(line.entry.at).toLocalDateTime(TimeZone.currentSystemDefault())
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         HistoryText(band, line, who, time, undone, Modifier.weight(1f))

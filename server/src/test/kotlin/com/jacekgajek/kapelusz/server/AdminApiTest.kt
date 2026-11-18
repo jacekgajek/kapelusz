@@ -14,6 +14,7 @@ import com.jacekgajek.kapelusz.server.admin.AdminConfig
 import com.jacekgajek.kapelusz.server.admin.BandDetails
 import com.jacekgajek.kapelusz.server.admin.BandList
 import com.jacekgajek.kapelusz.server.admin.InMemoryRequestLog
+import com.jacekgajek.kapelusz.server.admin.RequestLog
 import com.jacekgajek.kapelusz.server.admin.RequestLogUnavailable
 import com.jacekgajek.kapelusz.server.admin.SyncFailureList
 import com.jacekgajek.kapelusz.server.auth.TokenVerifier
@@ -472,9 +473,9 @@ class AdminApiTest :
 
             expect("answer 'try later' when the log cannot be read, not a server error") {
                 val fixture = AdminFixture()
-                val broken = AdminApi(fixture.store, { VerifiedUser(it, null, null) }, AdminConfig(setOf("root"), "client-1")) { _, _ ->
-                    throw RequestLogUnavailable("The log query took too long")
-                }
+                val unreadable = RequestLog { _, _ -> throw RequestLogUnavailable("The log query took too long") }
+                val config = AdminConfig(setOf("root"), "client-1")
+                val broken = AdminApi(fixture.store, { VerifiedUser(it, null, null) }, config, requestLog = unreadable)
 
                 val answer = broken.handle(HttpRequest("GET", "/api/sync-failures", mapOf("authorization" to "Bearer root")))
 

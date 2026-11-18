@@ -14,6 +14,9 @@ import com.jacekgajek.kapelusz.server.auth.TokenVerifier
 import com.jacekgajek.kapelusz.server.malformedQuery
 import com.jacekgajek.kapelusz.server.parseQuery
 import com.jacekgajek.kapelusz.server.store.BlobStore
+import com.jacekgajek.kapelusz.server.store.CallTimer
+import com.jacekgajek.kapelusz.server.store.DynamoHistoryStore
+import com.jacekgajek.kapelusz.server.store.HistoryStore
 import com.jacekgajek.kapelusz.server.store.S3BlobStore
 import com.jacekgajek.kapelusz.server.unhandled
 import java.io.InputStream
@@ -22,11 +25,17 @@ import java.util.Base64
 import software.amazon.awssdk.regions.Region
 
 /**
- * The admin panel's Lambda entry point: its own function, with its own address and role. The app's API is [Handler].
+ * Where the admin panel's Lambda starts. It is its own function, with its own address and role. The app's API
+ * starts in [Handler].
  *
- * It is set up by `DATA_BUCKET`, `ADMIN_GOOGLE_CLIENT_ID` (the panel's own OAuth client, not the app's) and
- * `ADMIN_USER_IDS` (Google user ids, comma-separated); without the last two nobody gets in. `API_LOG_GROUP` names the
- * API Lambda's log group, where the panel finds the devices that could not sync.
+ * It reads these variables:
+ * - `DATA_BUCKET`: the bucket with the bands' data.
+ * - `ADMIN_GOOGLE_CLIENT_ID`: the panel's own OAuth client. It is not the app's client.
+ * - `ADMIN_USER_IDS`: the Google user ids of the admins, separated by commas.
+ * - `API_LOG_GROUP`: the API Lambda's log group. The panel finds the devices that could not sync there.
+ * - `HISTORY_TABLE`: the table of the bands' history. A restore adds an entry to it.
+ *
+ * Without the client id or without user ids, nobody gets in.
  */
 class AdminHandler : RequestStreamHandler {
 
@@ -60,7 +69,7 @@ class AdminHandler : RequestStreamHandler {
             body = event.body?.let { if (event.isBase64Encoded) Base64.getDecoder().decode(it).decodeToString() else it },
             query = query,
         )
-        // An error nobody caught is logged and answered as a 500; anything worse than an exception goes on up.
+        // An exception that nobody caught is logged and answered with a 500. Anything worse than an exception is thrown on.
         return runCatching { api.handle(request) }.getOrElse { e ->
             if (e is Exception) unhandled(request.method, request.path, e) else throw e
         }
@@ -72,21 +81,27 @@ class AdminHandler : RequestStreamHandler {
             store = S3BlobStore(System.getenv("DATA_BUCKET") ?: "jacekgajek-art-split-data", region),
             googleClientId = System.getenv("ADMIN_GOOGLE_CLIENT_ID"),
             userIds = System.getenv("ADMIN_USER_IDS"),
-            // The API Lambda's log group; without it the panel shows no sync failures.
+            // The bands' history table. A restore adds an entry there, for the members to see.
+            historyStore = System.getenv("HISTORY_TABLE")?.takeIf { it.isNotBlank() }
+                ?.let { DynamoHistoryStore(it, CallTimer("db"), DynamoHistoryStore.defaultClient(region)) },
+            // The API Lambda's log group. Without it the panel shows no sync failures.
             requestLog = System.getenv("API_LOG_GROUP")?.takeIf { it.isNotBlank() }
                 ?.let { CloudWatchRequestLog(it, CloudWatchRequestLog.defaultClient(region)) },
         )
 
         /**
-         * The panel as the environment sets it up: [googleClientId] is the only audience a token may have, and
-         * [userIds] (comma-separated) are the admins. Without a client id no token is taken at all, whatever
-         * [userIds] says: a verifier with no audience must not mean "any audience".
+         * Builds the panel from the values of the environment.
+         *
+         * A token must be made for [googleClientId] and for no other client. [userIds] are the admins, separated by
+         * commas. Without a client id, no token is accepted at all, whatever [userIds] says. A verifier with no
+         * client must never mean "any client".
          */
         fun adminApi(
             store: BlobStore,
             googleClientId: String?,
             userIds: String?,
             requestLog: RequestLog? = null,
+            historyStore: HistoryStore? = null,
             verifier: (Set<String>) -> TokenVerifier = ::GoogleTokenVerifier,
         ): AdminApi {
             val clientId = googleClientId?.trim().orEmpty()
@@ -96,6 +111,7 @@ class AdminHandler : RequestStreamHandler {
                 verifier = if (clientId.isEmpty()) TokenVerifier { null } else verifier(setOf(clientId)),
                 config = AdminConfig(adminUserIds = if (clientId.isEmpty()) emptySet() else admins, googleClientId = clientId),
                 requestLog = requestLog,
+                historyStore = historyStore,
             )
         }
     }

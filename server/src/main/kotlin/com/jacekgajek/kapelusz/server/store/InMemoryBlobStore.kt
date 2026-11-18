@@ -10,6 +10,9 @@ class InMemoryBlobStore(private val clock: () -> Long = System::currentTimeMilli
     /** When each object was last written. */
     private val written = ConcurrentHashMap<String, Long>()
 
+    /** Every copy written of each object, oldest first. A bucket with versioning keeps them the same way. */
+    private val copies = ConcurrentHashMap<String, List<Pair<BlobVersion, Blob>>>()
+
     override fun get(key: String): Blob? = objects[key]
 
     @Synchronized
@@ -18,10 +21,17 @@ class InMemoryBlobStore(private val clock: () -> Long = System::currentTimeMilli
         if (ifNoneMatch && current != null) throw PreconditionFailed()
         if (ifMatch != null && current?.etag != ifMatch) throw PreconditionFailed()
         val etag = "\"${UUID.randomUUID()}\""
-        objects[key] = Blob(content, etag)
+        val blob = Blob(content, etag)
+        objects[key] = blob
         written[key] = clock()
+        val version = BlobVersion("v${copies[key].orEmpty().size + 1}", clock(), content.toByteArray().size.toLong(), latest = true)
+        copies[key] = copies[key].orEmpty().map { (old, kept) -> old.copy(latest = false) to kept } + (version to blob)
         return etag
     }
+
+    override fun versions(key: String, limit: Int): List<BlobVersion> = copies[key].orEmpty().map { it.first }.asReversed().take(limit)
+
+    override fun getVersion(key: String, versionId: String): Blob? = copies[key].orEmpty().firstOrNull { it.first.id == versionId }?.second
 
     // Uploaded files are only names here, so they have no size.
     override fun entries(prefix: String): List<BlobEntry> {

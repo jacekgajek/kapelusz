@@ -16,6 +16,7 @@ import com.jacekgajek.kapelusz.ops.DeclineSettleTogether
 import com.jacekgajek.kapelusz.ops.InviteToSettleTogether
 import com.jacekgajek.kapelusz.ops.LinkUser
 import com.jacekgajek.kapelusz.ops.Operation
+import com.jacekgajek.kapelusz.ops.RestoreBand
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.SetBankAccount
 import com.jacekgajek.kapelusz.ops.SetBlikPhone
@@ -36,7 +37,7 @@ import com.jacekgajek.kapelusz.settlement.SettleTogether
 fun isUndoable(op: Operation): Boolean = when (op) {
     is LinkUser, is UnlinkUser, is TransferOwnership, is SetBlikPhone, is SetBankAccount, is ScheduleBandDeletion, is CancelBandDeletion,
     is InviteToSettleTogether, is CancelSettleTogether, is AcceptSettleTogether, is DeclineSettleTogether, is StopSettlingTogether,
-    is UnknownOperation,
+    is UnknownOperation, is RestoreBand,
     -> false
 
     is Undo -> isUndoable(op.original)

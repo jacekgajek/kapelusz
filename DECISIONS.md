@@ -75,7 +75,9 @@ the end of the section they belong to, dated.
     opens the panel; no sessions. The page is one hand-written HTML file served by that Lambda: no build step, no
     framework. Not a path on the app's domain: CloudFront there answers errors with the app's page, and the two
     would share an origin. It costs nothing at this scale, which is why it may be new infrastructure despite 15.
-    It does not edit a band's JSON: a repair will be restoring an older version of the file (planned).
+    It does not edit a band's JSON. A repair is putting the band back from a stored copy of its file, after a
+    look at what that would change and the band's name typed; the members see it in the band's history. Chosen
+    over an editor because a copy was once a valid band, and a hand-edited file may never have been.
     "A device could not sync" is what the server saw: the failed requests of a sync round in the API's request log,
     read with Logs Insights, 14 days back at most. Nothing is written on the request path for it, and nothing is
     pushed to the operator. A device that is offline shows nothing; the app does not report on itself.

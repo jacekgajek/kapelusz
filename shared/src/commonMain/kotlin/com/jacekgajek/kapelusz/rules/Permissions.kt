@@ -42,6 +42,7 @@ import com.jacekgajek.kapelusz.ops.RemoveTransfer
 import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.RenameMember
+import com.jacekgajek.kapelusz.ops.RestoreBand
 import com.jacekgajek.kapelusz.ops.RosterOp
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
@@ -107,6 +108,9 @@ object Permissions {
 
         // Never applied; the reducer refuses it for anyone.
         is UnknownOperation -> Role.OWNER
+
+        // Only the server writes it, into the history. The reducer refuses it from anyone.
+        is RestoreBand -> Role.OWNER
 
         is BandOp -> bandRole(band, me, op)
 

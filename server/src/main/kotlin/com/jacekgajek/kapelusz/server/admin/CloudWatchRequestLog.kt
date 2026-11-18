@@ -8,15 +8,16 @@ import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient
 import software.amazon.awssdk.services.cloudwatchlogs.model.QueryStatus
 import software.amazon.awssdk.services.cloudwatchlogs.model.ResultField
 
-/** The log query did not finish, or CloudWatch gave it up. */
+/** The log could not be read. The query did not finish, or CloudWatch stopped or refused it. */
 class RequestLogUnavailable(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 /**
- * The API Lambda's log group, read with Logs Insights. A query is started and then asked for until it is done,
- * which takes a few seconds; after [patienceMillis] it is stopped and given up.
+ * The request log in CloudWatch. It reads the API Lambda's log group with Logs Insights.
  *
- * The query only picks the lines of failed requests. They are read with [RequestLine.parse], the same code that
- * wrote them.
+ * A query is started. Then its result is asked for until the query is done. That takes a few seconds. After
+ * [patienceMillis] the query is stopped, and reading fails.
+ *
+ * The query picks only the lines of failed requests. [RequestLine.parse] reads them. The same class wrote them.
  */
 class CloudWatchRequestLog(
     private val logGroup: String,
@@ -26,7 +27,7 @@ class CloudWatchRequestLog(
     private val pause: (Long) -> Unit = Thread::sleep,
 ) : RequestLog {
 
-    /** CloudWatch refusing or failing is "the log cannot be read just now" too, like a query that never ends. */
+    /** The failed requests. An error from CloudWatch also means "the log cannot be read right now". */
     override fun failed(since: Long, until: Long): List<LoggedRequest> = try {
         query(since, until)
     } catch (e: SdkException) {
@@ -35,17 +36,17 @@ class CloudWatchRequestLog(
 
     private fun query(since: Long, until: Long): List<LoggedRequest> {
         val queryId = logs.startQuery {
-            // Logs Insights counts in seconds; the end is rounded up so the newest lines are in.
+            // Logs Insights takes seconds. The end is rounded up, so the newest lines are included.
             it.logGroupName(logGroup).startTime(since / SECOND).endTime(until / SECOND + 1).queryString(QUERY).limit(LIMIT)
         }.queryId()
         return runCatching { results(queryId) }.getOrElse { e ->
-            // Given up, so it must not go on running (and being paid for) on CloudWatch's side.
+            // Reading was given up. The query is stopped, so it does not keep running and costing money.
             runCatching { logs.stopQuery { it.queryId(queryId) } }
             throw e
         }
     }
 
-    /** Asks for the query's rows until it is done, or the patience runs out. */
+    /** Asks for the query's rows until the query is done. Gives up when the patience runs out. */
     private fun results(queryId: String): List<LoggedRequest> {
         val deadline = clock() + patienceMillis
         while (true) {
@@ -63,7 +64,7 @@ class CloudWatchRequestLog(
         }
     }
 
-    /** A result row as a request; null when the line is not one this code wrote (an older format). */
+    /** One result row as a request. Null when the line is in an older format. */
     private fun request(row: List<ResultField>): LoggedRequest? {
         val at = row.firstOrNull { it.field() == "at" }?.value()?.toDoubleOrNull()?.toLong() ?: return null
         val line = row.firstOrNull { it.field() == "@message" }?.value()?.let(RequestLine::parse) ?: return null
@@ -72,15 +73,17 @@ class CloudWatchRequestLog(
 
     companion object {
         /**
-         * The lines of requests answered with a 4xx or 5xx, newest first. Not those of nobody at all (no user, no
-         * installation, no app version): scanners knocking, which would fill the rows a query may give.
+         * Picks the lines of requests that got a 4xx or 5xx answer, newest first.
+         *
+         * Lines with no user, no installation and no app version are left out. Those are scanners trying
+         * addresses. There can be many, and a query gives only a limited number of rows.
          */
         const val QUERY = "fields toMillis(@timestamp) as at, @message" +
             """ | filter @message like /^TIMING \S+ \S+ [45]\d\d /""" +
             """ | filter @message not like / user=- install=- app=- /""" +
             " | sort @timestamp desc"
 
-        /** The most rows a query gives. A band-sized API fails far less often than this in two weeks. */
+        /** The most rows one query gives. An API of this size fails far less often than this in two weeks. */
         const val LIMIT = 10_000
         private const val SECOND = 1000L
         private const val POLL_MILLIS = 400L

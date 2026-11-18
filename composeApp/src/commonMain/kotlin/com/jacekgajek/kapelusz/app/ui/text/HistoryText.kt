@@ -51,6 +51,7 @@ import com.jacekgajek.kapelusz.app.generated.h_rename_attachment
 import com.jacekgajek.kapelusz.app.generated.h_rename_band
 import com.jacekgajek.kapelusz.app.generated.h_rename_guest
 import com.jacekgajek.kapelusz.app.generated.h_rename_member
+import com.jacekgajek.kapelusz.app.generated.h_restore_band
 import com.jacekgajek.kapelusz.app.generated.h_restore_event
 import com.jacekgajek.kapelusz.app.generated.h_restore_member
 import com.jacekgajek.kapelusz.app.generated.h_schedule_deletion
@@ -121,6 +122,7 @@ import com.jacekgajek.kapelusz.ops.RenameAttachment
 import com.jacekgajek.kapelusz.ops.RenameBand
 import com.jacekgajek.kapelusz.ops.RenameGuest
 import com.jacekgajek.kapelusz.ops.RenameMember
+import com.jacekgajek.kapelusz.ops.RestoreBand
 import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
 import com.jacekgajek.kapelusz.ops.SetAgendaTemplate
 import com.jacekgajek.kapelusz.ops.SetEventAgenda
@@ -251,6 +253,11 @@ fun describe(op: Operation, band: Band, change: BandChange? = null, by: Id? = nu
         is ChangeLineup -> stringResource(Res.string.h_change_lineup, event(op.eventId), op.add.size, op.remove.size)
 
         is UnknownOperation -> stringResource(Res.string.h_unknown_kind)
+
+        is RestoreBand -> stringResource(
+            Res.string.h_restore_band,
+            formatDate(Instant.fromEpochMilliseconds(op.stateOf).toLocalDateTime(TimeZone.currentSystemDefault()).date, lang),
+        )
 
         is AddHolding -> if (op.partyId == ORGANISER) {
             stringResource(Res.string.h_add_awaited, money(op.amount), event(op.eventId))
