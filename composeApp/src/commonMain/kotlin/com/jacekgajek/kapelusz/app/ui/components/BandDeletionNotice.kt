@@ -20,6 +20,8 @@ import com.jacekgajek.kapelusz.app.generated.Res
 import com.jacekgajek.kapelusz.app.generated.band_deletion_keep
 import com.jacekgajek.kapelusz.app.generated.band_deletion_notice
 import com.jacekgajek.kapelusz.app.generated.band_deletion_notice_leader
+import com.jacekgajek.kapelusz.app.generated.band_deletion_notice_unused
+import com.jacekgajek.kapelusz.app.generated.band_deletion_notice_unused_leader
 import com.jacekgajek.kapelusz.app.ui.format.formatDate
 import com.jacekgajek.kapelusz.model.Band
 import kotlin.time.Instant
@@ -34,7 +36,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun BandDeletionNotice(band: Band, onKeep: (() -> Unit)?, modifier: Modifier = Modifier) {
     val deletion = band.deletion ?: return
-    val by = band.member(deletion.requestedBy)?.name.orEmpty()
+    // Asked for by no member: by support, for a band left unused. Then there is nobody to name.
+    val by = band.member(deletion.requestedBy)?.name
     val on = formatDate(Instant.fromEpochMilliseconds(deletion.deleteAt).toLocalDateTime(TimeZone.currentSystemDefault()).date, language)
     Card(
         modifier.fillMaxWidth(),
@@ -43,7 +46,14 @@ fun BandDeletionNotice(band: Band, onKeep: (() -> Unit)?, modifier: Modifier = M
         Row(Modifier.padding(16.dp, 12.dp, 16.dp, if (onKeep != null) 4.dp else 12.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Default.DeleteForever, null, Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
-                Text(stringResource(if (onKeep != null) Res.string.band_deletion_notice_leader else Res.string.band_deletion_notice, by, on))
+                Text(
+                    when {
+                        by == null && onKeep != null -> stringResource(Res.string.band_deletion_notice_unused_leader, on)
+                        by == null -> stringResource(Res.string.band_deletion_notice_unused, on)
+                        onKeep != null -> stringResource(Res.string.band_deletion_notice_leader, by, on)
+                        else -> stringResource(Res.string.band_deletion_notice, by, on)
+                    },
+                )
                 if (onKeep != null) {
                     TextButton(onClick = onKeep, modifier = Modifier.align(Alignment.End)) { Text(stringResource(Res.string.band_deletion_keep)) }
                 }
