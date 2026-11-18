@@ -6,6 +6,7 @@ import com.jacekgajek.kapelusz.history.KapeluszJson
 import com.jacekgajek.kapelusz.model.Band
 import com.jacekgajek.kapelusz.model.BandDeletion
 import com.jacekgajek.kapelusz.ops.AddMember
+import com.jacekgajek.kapelusz.ops.CancelBandDeletion
 import com.jacekgajek.kapelusz.ops.CreateEvent
 import com.jacekgajek.kapelusz.server.admin.AccountRow
 import com.jacekgajek.kapelusz.server.admin.AdminApi
@@ -22,6 +23,8 @@ import com.jacekgajek.kapelusz.server.store.Blob
 import com.jacekgajek.kapelusz.server.store.BlobStore
 import com.jacekgajek.kapelusz.server.store.DeletedBand
 import com.jacekgajek.kapelusz.server.store.InMemoryBlobStore
+import com.jacekgajek.kapelusz.server.store.PreconditionFailed
+import com.jacekgajek.kapelusz.server.store.ScheduledDeletions
 import com.jacekgajek.kapelusz.server.store.StorageKeys
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ExpectSpec
@@ -159,7 +162,7 @@ class AdminApiTest :
                 answer.headers["cache-control"] shouldBe "no-store"
             }
 
-            expect("the admin only reads: no other method has a route") {
+            expect("the admin cannot change a band or its data: those paths have no other method") {
                 val fixture = AdminFixture()
                 fixture.setup()
 
@@ -474,6 +477,188 @@ class AdminApiTest :
                 val accounts = fixture.admin("/api/bands").parsed(BandList.serializer(), fixture).bands.single().accounts
 
                 accounts shouldContainExactly listOf(AccountRow("alice", "Alice"), AccountRow("bob", "Bob"))
+            }
+        }
+
+        context("deleting a band nobody changed for two months") {
+            fun AdminFixture.delete(bandId: String = "band1", user: String? = "root") = admin("/api/bands/$bandId/delete", user, "POST")
+            fun AdminFixture.band() = KapeluszJson.decodeFromString(Band.serializer(), stored().content)
+            fun AdminFixture.waiting() = store.get(StorageKeys.SCHEDULED_DELETIONS)
+                ?.let { KapeluszJson.decodeFromString(ScheduledDeletions.serializer(), it.content).bands }
+
+            expect("is refused while the band is younger than that, and nothing is written") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                val before = fixture.store.objects.toMap()
+
+                fixture.now += 59 * DAY
+
+                fixture.admin("/api/bands/band1").parsed(BandDetails.serializer(), fixture).stale shouldBe false
+                fixture.delete().let {
+                    it.status shouldBe 409
+                    it.body!! shouldContain "last 60 days"
+                }
+                fixture.store.objects.toMap() shouldBe before
+            }
+
+            expect("asks for the deletion a week on, as support, and puts the band on the list of bands waiting") {
+                val fixture = AdminFixture()
+                fixture.setup()
+
+                fixture.now += 60 * DAY
+
+                fixture.admin("/api/bands/band1").parsed(BandDetails.serializer(), fixture).stale shouldBe true
+
+                val asked = fixture.now
+                fixture.delete().status shouldBe 204
+
+                fixture.band().deletion shouldBe BandDeletion("support", asked, asked + BandDeletion.DELAY_MS)
+                fixture.band().members.size shouldBe 3
+                fixture.waiting() shouldBe mapOf("band1" to asked + BandDeletion.DELAY_MS)
+                fixture.admin("/api/bands/band1").parsed(BandDetails.serializer(), fixture).let {
+                    it.stale shouldBe false
+                    it.deletion!!.bySupport shouldBe true
+                    it.deletion!!.deleteAt shouldBe asked + BandDeletion.DELAY_MS
+                }
+            }
+
+            expect("is the app's own deletion from there: a leader can keep the band") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.now += 60 * DAY
+                fixture.delete().status shouldBe 204
+
+                fixture.pushed("alice", CancelBandDeletion)
+
+                fixture.band().deletion.shouldBeNull()
+
+                fixture.now += 8 * DAY
+                fixture.call("GET", "/me", "alice").status shouldBe 200
+
+                fixture.store.get(StorageKeys.band("band1")).shouldNotBeNull()
+            }
+
+            expect("and the API deletes the band when the week is over, also when nobody opens it") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.createBand("dave", "band2", "Zebra")
+                fixture.now += 60 * DAY
+                fixture.delete().status shouldBe 204
+
+                fixture.now += BandDeletion.DELAY_MS + 1
+                fixture.call("GET", "/me", "dave").status shouldBe 200
+
+                fixture.store.get(StorageKeys.band("band1")).shouldBeNull()
+                fixture.store.get(StorageKeys.band("band2")).shouldNotBeNull()
+                val list = fixture.admin("/api/bands").parsed(BandList.serializer(), fixture)
+                list.bands.map { it.id } shouldContainExactly listOf("band2")
+                list.deleted.single().let {
+                    it.name shouldBe "Night Owls"
+                    it.deletedBy shouldBe "Alice"
+                }
+            }
+
+            expect("is refused for a band already to be deleted, and for one that is not there") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.now += 60 * DAY
+                fixture.delete().status shouldBe 204
+                val first = fixture.band().deletion
+
+                fixture.now += 61 * DAY
+
+                fixture.delete().status shouldBe 409
+                fixture.band().deletion shouldBe first
+                fixture.delete("nope").status shouldBe 404
+            }
+
+            expect("makes the list of bands waiting when there is none yet, which S3 tells the panel as 'forbidden'") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.now += 60 * DAY
+                val asS3 = object : BlobStore by fixture.store {
+                    override fun get(key: String): Blob? {
+                        check(key != StorageKeys.SCHEDULED_DELETIONS || fixture.store.exists(key)) { "403 Forbidden" }
+                        return fixture.store.get(key)
+                    }
+                }
+                val admin = AdminApi(asS3, { VerifiedUser(it, null, null) }, AdminConfig(setOf("root"), "client-1"), { fixture.now })
+                val delete = HttpRequest("POST", "/api/bands/band1/delete", mapOf("authorization" to "Bearer root"))
+
+                admin.handle(delete).status shouldBe 204
+
+                fixture.waiting()!!.keys shouldBe setOf("band1")
+                fixture.band().deletion.shouldNotBeNull()
+            }
+
+            expect("adds to a list that is there, and keeps the bands already waiting") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.store.put(StorageKeys.SCHEDULED_DELETIONS, """{"bands":{"other":123}}""")
+                fixture.now += 60 * DAY
+
+                fixture.delete().status shouldBe 204
+
+                fixture.waiting()!!.keys shouldBe setOf("other", "band1")
+            }
+
+            expect("asks for nothing when the list cannot be written: the band's file stays as it was") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.now += 60 * DAY
+                val broken = object : BlobStore by fixture.store {
+                    override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String {
+                        check(key != StorageKeys.SCHEDULED_DELETIONS) { "S3 is down for this one" }
+                        return fixture.store.put(key, content, ifMatch, ifNoneMatch)
+                    }
+                }
+                val admin = AdminApi(broken, { VerifiedUser(it, null, null) }, AdminConfig(setOf("root"), "client-1"), { fixture.now })
+
+                shouldThrow<IllegalStateException> {
+                    admin.handle(HttpRequest("POST", "/api/bands/band1/delete", mapOf("authorization" to "Bearer root")))
+                }
+
+                fixture.band().deletion.shouldBeNull()
+            }
+
+            expect("is refused when the band changes at that very moment") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.now += 60 * DAY
+                val contested = object : BlobStore by fixture.store {
+                    override fun put(key: String, content: String, ifMatch: String?, ifNoneMatch: Boolean): String {
+                        if (key == StorageKeys.band("band1")) throw PreconditionFailed()
+                        return fixture.store.put(key, content, ifMatch, ifNoneMatch)
+                    }
+                }
+                val admin = AdminApi(contested, { VerifiedUser(it, null, null) }, AdminConfig(setOf("root"), "client-1"), { fixture.now })
+
+                val answer = admin.handle(HttpRequest("POST", "/api/bands/band1/delete", mapOf("authorization" to "Bearer root")))
+
+                answer.status shouldBe 409
+                answer.body!! shouldContain "changed just now"
+                fixture.band().deletion.shouldBeNull()
+
+                // The list has the band now, though nothing was asked for. When its time comes, the API finds the
+                // band is to be kept, takes it off the list and deletes nothing.
+                fixture.waiting()!!.keys shouldBe setOf("band1")
+
+                fixture.now += BandDeletion.DELAY_MS + 1
+                fixture.call("GET", "/me", "alice").status shouldBe 200
+
+                fixture.waiting()!!.keys.shouldBeEmpty()
+                fixture.store.get(StorageKeys.band("band1")).shouldNotBeNull()
+            }
+
+            expect("is for admins only: not the band's owner, not without a sign-in") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.now += 60 * DAY
+
+                fixture.delete(user = "alice").status shouldBe 403
+                fixture.delete(user = null).status shouldBe 401
+
+                fixture.band().deletion.shouldBeNull()
             }
         }
 

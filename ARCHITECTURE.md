@@ -159,9 +159,13 @@ lambda/       the API Gateway adapters: Handler (the API, with SnapStart priming
 - The admin panel is a second entry point in the same jar, not a part of `Api`. `AdminApi` serves one hand-written
   page and the routes under `api/` that the page reads: the band list, one band, its raw file, and the devices
   that could not sync. It runs as its own
-  Lambda (`lambda/AdminHandler`) at its own address, with a role that only reads. It takes Google tokens of its own
+  Lambda (`lambda/AdminHandler`) at its own address, with a narrow role. It takes Google tokens of its own
   OAuth client, from the user ids on its list, and nothing else. It never loads a band through `BandAccess`, which
   deletes a band whose time has come. Locally it is under `/admin/` on the local server.
+- The panel's one write is asking for a band to be deleted, and only a band nobody changed for 60 days. It puts
+  the same `ScheduleBandDeletion` into the band's file that the owner's request does, through the shared `Engine`,
+  and the band onto the list of bands waiting. The API deletes it a week later, unless a leader keeps it. The
+  panel itself can delete nothing.
 - The request log is the one line the API Lambda prints per request (`RequestLine`: method, path, status, time, and
   the user, installation, app version and error code). The admin panel reads the failed ones back with a Logs
   Insights query (`CloudWatchRequestLog`) and groups them per device (`SyncFailures`). The line is written and

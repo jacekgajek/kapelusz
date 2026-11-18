@@ -49,6 +49,8 @@ data class BandDetails(
     val attachmentBytes: Long,
     val modified: Long,
     val deletion: DeletionRow? = null,
+    /** Unchanged for so long that the panel may ask for it to be deleted. */
+    val stale: Boolean,
     val members: List<MemberRow>,
     /** The name of the member who holds the band fund. */
     val treasurer: String? = null,
@@ -60,7 +62,14 @@ data class BandDetails(
 )
 
 @Serializable
-data class DeletionRow(val requestedBy: String?, val requestedAt: Long, val deleteAt: Long)
+data class DeletionRow(
+    /** The name of the member who asked; null when it was no member. */
+    val requestedBy: String?,
+    val requestedAt: Long,
+    val deleteAt: Long,
+    /** Asked for from this panel. */
+    val bySupport: Boolean,
+)
 
 /** A member. [userId] is null when nobody has joined as this member. */
 @Serializable

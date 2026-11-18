@@ -532,6 +532,8 @@
     <string name="band_was_deleted">Zespół %1$s został usunięty. Nie ma go już na tym urządzeniu.</string>
     <string name="band_deletion_notice">%1$s chce usunąć ten zespół. Zostanie usunięty dla wszystkich dnia %2$s.</string>
     <string name="band_deletion_notice_leader">%1$s chce usunąć ten zespół. Zostanie usunięty dla wszystkich dnia %2$s, chyba że któryś lider go zachowa.</string>
+    <string name="band_deletion_notice_unused">Ten zespół od dawna nie był używany. Zostanie usunięty dla wszystkich dnia %1$s.</string>
+    <string name="band_deletion_notice_unused_leader">Ten zespół od dawna nie był używany. Zostanie usunięty dla wszystkich dnia %1$s, chyba że któryś lider go zachowa.</string>
     <string name="band_deletion_keep">Zachowaj zespół</string>
     <string name="h_schedule_deletion">Zlecono usunięcie zespołu (nastąpi %1$s)</string>
     <string name="h_cancel_deletion">Zachowano zespół: nie zostanie usunięty</string>

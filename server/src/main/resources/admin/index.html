@@ -60,6 +60,13 @@
   details .inner { padding: 0 10px 10px; }
   pre { margin: 8px 0 0; padding: 10px; max-height: 70vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 12px/1.4 ui-monospace, monospace; }
   .hidden { display: none; }
+  .bad { color: var(--bad); }
+  button.danger { border-color: var(--bad); color: var(--bad); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row.end { justify-content: flex-end; }
+  dialog { max-width: 420px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); padding: 16px; }
+  dialog::backdrop { background: rgba(0, 0, 0, .45); }
+  dialog p { margin: 0 0 10px; }
 </style>
 </head>
 <body>
@@ -71,7 +78,8 @@
 <main id="main"></main>
 <script nonce="{{NONCE}}">
 'use strict';
-// The admin panel. It only reads. Everything shown comes from the routes under api/.
+// The admin panel. It reads, with one exception: asking for a band unchanged for two months to be deleted.
+// Everything shown comes from the routes under api/.
 // The front page shows the devices that could not sync, then the bands. A band's page shows its members and data.
 // Text is always put in with textContent, never as HTML: band and member names are written by users.
 
@@ -142,15 +150,37 @@ class Refused extends Error {
   }
 }
 
-/** Reads api/<path>. Paths are relative, so the page also works under a prefix (the local server's /admin/). */
-async function api(path, asText) {
-  const response = await fetch('api/' + path, { headers: { authorization: 'Bearer ' + token }, cache: 'no-store' });
+/** Asks api/<path>. Paths are relative, so the page also works under a prefix (the local server's /admin/). */
+async function ask(path, method) {
+  const response = await fetch('api/' + path, { method, headers: { authorization: 'Bearer ' + token }, cache: 'no-store' });
   if (!response.ok) {
     let message = response.statusText;
     try { message = (await response.json()).message || message; } catch (ignored) { /* not JSON */ }
     throw new Refused(response.status, message);
   }
+  return response;
+}
+
+/** Reads api/<path>: JSON, or the text as it is. */
+async function api(path, asText) {
+  const response = await ask(path, 'GET');
   return asText ? response.text() : response.json();
+}
+
+/** Asks a yes-or-no question in a dialog. Yes only by its button: closing the dialog any other way is a no. */
+function yesOrNo(question, detail) {
+  return new Promise(resolve => {
+    const yes = el('button', { type: 'button', class: 'danger', text: 'Yes, delete' });
+    const no = el('button', { type: 'button', text: 'No' });
+    const dialog = el('dialog', null, el('p', { text: question }), el('p', { class: 'muted small', text: detail }), el('div', { class: 'row end' }, no, yes));
+    let answer = false;
+    yes.addEventListener('click', () => { answer = true; dialog.close(); });
+    no.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => { dialog.remove(); resolve(answer); });
+    document.body.append(dialog);
+    dialog.showModal();
+    no.focus();
+  });
 }
 
 function failed(e) {
@@ -469,7 +499,7 @@ async function bandView(bandId) {
     el('h2', { text: band.name }),
     band.deletion ? el('p', {
       class: 'notice warn',
-      text: 'Will be deleted on ' + when(band.deletion.deleteAt) + ', asked by ' + (band.deletion.requestedBy || 'a former member') + ' on ' + when(band.deletion.requestedAt) + '.',
+      text: 'Will be deleted on ' + when(band.deletion.deleteAt) + ', asked by ' + (band.deletion.bySupport ? 'support (this panel)' : band.deletion.requestedBy || 'a former member') + ' on ' + when(band.deletion.requestedAt) + '. A leader can keep it in the app.',
     }) : null,
     el('dl', { class: 'facts' },
       fact('Members', band.members.filter(m => !m.archived).length),
@@ -489,12 +519,48 @@ async function bandView(bandId) {
     table([{ text: 'Name' }, { text: 'Role' }, { text: 'Account' }, { text: 'Android devices' }], members),
     el('h2', { text: 'Data' }),
     rawSection(bandId),
+    deleteSection(band),
   );
+}
+
+/** The button that asks for the band to be deleted. Only for a band nobody changed for two months. */
+function deleteSection(band) {
+  if (band.deletion) return null;
+  const heading = el('h2', { text: 'Delete' });
+  if (!band.stale) {
+    return [heading, el('p', { class: 'muted', text: 'Only a band unchanged for two months can be deleted here. This one changed ' + ago(band.modified) + '.' })];
+  }
+  const button = el('button', { type: 'button', class: 'danger', text: 'Delete this band…' });
+  const note = el('span', { class: 'small' });
+  button.addEventListener('click', async () => {
+    const sure = await yesOrNo(
+      'Delete "' + band.name + '"?',
+      'It is deleted for everyone in 7 days. Until then its members see that in the app, and a leader can keep it.',
+    );
+    if (!sure) return;
+    button.disabled = true;
+    try {
+      await ask('bands/' + encodeURIComponent(band.id) + '/delete', 'POST');
+      bandView(band.id).catch(failed);
+    } catch (e) {
+      if (e instanceof Refused && (e.status === 401 || e.status === 403)) return failed(e);
+      button.disabled = false;
+      note.className = 'small bad';
+      note.textContent = 'Not deleted: ' + e.message;
+    }
+  });
+  return [
+    heading,
+    el('p', { class: 'muted', text: 'Unchanged since ' + when(band.modified) + '. For bands left behind, like the ones test accounts make.' }),
+    el('div', { class: 'row' }, button, note),
+  ];
 }
 
 // ---- routing ----
 
 function route() {
+  // A question left open belongs to the page that asked it.
+  document.querySelectorAll('dialog').forEach(dialog => dialog.close());
   if (!token) return signIn();
   const band = /^#\/band\/([A-Za-z0-9_-]+)$/.exec(location.hash);
   const view = band ? bandView(band[1]) : listView();

@@ -43,7 +43,8 @@ open class ApiHarness(
     protected val webIndex: WebIndex = NoWebIndex,
     protected val messageSender: MessageSender = NoopMessageSender,
 ) {
-    val store = InMemoryBlobStore()
+    /** Its objects are written at the harness's time ([now]), so a test can let them grow old. */
+    val store = InMemoryBlobStore { this.now }
     val history = InMemoryHistoryStore()
 
     /** The server's clock, in epoch milliseconds. */

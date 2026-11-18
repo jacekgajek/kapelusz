@@ -532,6 +532,8 @@
     <string name="band_was_deleted">%1$s was deleted. It is no longer on this device.</string>
     <string name="band_deletion_notice">%1$s asked to delete this band. It will be deleted for everyone on %2$s.</string>
     <string name="band_deletion_notice_leader">%1$s asked to delete this band. It will be deleted for everyone on %2$s, unless a leader keeps it.</string>
+    <string name="band_deletion_notice_unused">This band has not been used for a long time. It will be deleted for everyone on %1$s.</string>
+    <string name="band_deletion_notice_unused_leader">This band has not been used for a long time. It will be deleted for everyone on %1$s, unless a leader keeps it.</string>
     <string name="band_deletion_keep">Keep the band</string>
     <string name="h_schedule_deletion">Asked to delete the band; it goes on %1$s</string>
     <string name="h_cancel_deletion">Kept the band: it won’t be deleted</string>

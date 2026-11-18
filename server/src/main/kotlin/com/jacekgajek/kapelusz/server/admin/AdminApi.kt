@@ -1,7 +1,12 @@
 package com.jacekgajek.kapelusz.server.admin
 
 import com.jacekgajek.kapelusz.api.ApiErrors
+import com.jacekgajek.kapelusz.engine.ApplyResult
+import com.jacekgajek.kapelusz.engine.Engine
 import com.jacekgajek.kapelusz.model.Band
+import com.jacekgajek.kapelusz.model.BandDeletion
+import com.jacekgajek.kapelusz.ops.ScheduleBandDeletion
+import com.jacekgajek.kapelusz.rules.Actor
 import com.jacekgajek.kapelusz.server.Api
 import com.jacekgajek.kapelusz.server.ApiError
 import com.jacekgajek.kapelusz.server.Call
@@ -13,13 +18,17 @@ import com.jacekgajek.kapelusz.server.auth.TokenVerifier
 import com.jacekgajek.kapelusz.server.auth.VerifiedUser
 import com.jacekgajek.kapelusz.server.decode
 import com.jacekgajek.kapelusz.server.devices.DeviceRegistry
+import com.jacekgajek.kapelusz.server.encode
 import com.jacekgajek.kapelusz.server.error
 import com.jacekgajek.kapelusz.server.ok
 import com.jacekgajek.kapelusz.server.store.BlobEntry
 import com.jacekgajek.kapelusz.server.store.BlobStore
 import com.jacekgajek.kapelusz.server.store.DeletedBand
+import com.jacekgajek.kapelusz.server.store.PreconditionFailed
+import com.jacekgajek.kapelusz.server.store.ScheduledDeletions
 import com.jacekgajek.kapelusz.server.store.StorageKeys
 import com.jacekgajek.kapelusz.server.store.inviteCodes
+import com.jacekgajek.kapelusz.server.store.scheduledDeletions
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import kotlinx.serialization.SerializationException
@@ -40,7 +49,8 @@ data class AdminConfig(
  * The admin panel: one page and the few routes it reads. It is a separate entry point from [Api], with its own
  * Lambda, address and sign-in; the app's API has none of these routes.
  *
- * It only reads. It never loads a band through `BandAccess`, because that deletes a band whose time has come.
+ * It reads, with one exception: it can ask for a band nobody has changed for a long time to be deleted
+ * ([scheduleDeletion]). It never loads a band through `BandAccess`, because that deletes a band whose time has come.
  */
 class AdminApi(
     private val store: BlobStore,
@@ -78,6 +88,7 @@ class AdminApi(
             Route("GET", "api/bands/{bandId}", ::band),
             Route("GET", "api/bands/{bandId}/raw", ::raw),
             Route("GET", "api/sync-failures", ::syncFailures),
+            Route("POST", "api/bands/{bandId}/delete", ::scheduleDeletion),
         ),
     )
 
@@ -172,7 +183,10 @@ class AdminApi(
             attachments = attachments.size,
             attachmentBytes = attachments.sumOf { it.size },
             modified = entry.modified,
-            deletion = band.deletion?.let { DeletionRow(band.member(it.requestedBy)?.name, it.requestedAt, it.deleteAt) },
+            deletion = band.deletion?.let {
+                DeletionRow(band.member(it.requestedBy)?.name, it.requestedAt, it.deleteAt, bySupport = it.requestedBy == SUPPORT)
+            },
+            stale = band.deletion == null && stale(entry),
             members = band.members.map { member ->
                 MemberRow(
                     id = member.id,
@@ -191,6 +205,77 @@ class AdminApi(
         )
         return ok(BandDetails.serializer(), details)
     }
+
+    /** Nobody has changed the band's file for [STALE_DAYS] days: only such a band may be deleted from the panel. */
+    private fun stale(entry: BlobEntry) = clock() - entry.modified >= STALE_DAYS * DAY_MILLIS
+
+    /**
+     * Asks for a [stale] band to be deleted, the way its owner would: it goes a week later, the members see that in
+     * the app, and a leader can keep it. The deleting itself is the API's, when the time has come.
+     *
+     * This is the panel's one write: the band's file, with the deletion asked for in it, and the list of bands waiting.
+     * It leaves no entry in the band's history and sends no sync message; the members' apps see it at their next sync.
+     */
+    private fun scheduleDeletion(call: Call): HttpResponse {
+        val bandId = call.param("bandId")
+        val key = StorageKeys.band(bandId)
+        val (etag, band) = deletable(key)
+        val now = clock()
+        val scheduled = scheduled(band, now)
+        // The list first. If the band's file is then not written, the list has one band too many; when its time
+        // comes the API sees the band is to be kept and takes it off. The other way round, a band could wait for a
+        // deletion that never comes.
+        wait(bandId, now + BandDeletion.DELAY_MS)
+        try {
+            store.put(key, encode(Band.serializer(), scheduled), ifMatch = etag)
+        } catch (ignored: PreconditionFailed) {
+            throw conflict("The band was changed just now")
+        }
+        println("ADMIN ${call.user.userId} asked for band $bandId to be deleted")
+        return HttpResponse(204)
+    }
+
+    /**
+     * Puts [bandId] onto the list of bands waiting to be deleted, so the API's hourly sweep finds it, also when
+     * nobody opens the band again.
+     *
+     * The list may not be there yet: the API writes it at the first deletion anyone asks for. The panel's role is
+     * told "forbidden" then, not "not found", so a read that fails is taken as "none yet" and the list is created.
+     * If it is there after all, the create is refused and the first failure stands.
+     */
+    private fun wait(bandId: String, deleteAt: Long) {
+        val list = store.scheduledDeletions()
+        runCatching { list.update { stored -> ScheduledDeletions(stored?.bands.orEmpty() + (bandId to deleteAt)) } }.onFailure { unread ->
+            runCatching { list.create(ScheduledDeletions(mapOf(bandId to deleteAt))) }.onFailure { throw unread }
+        }
+    }
+
+    /** The band at [key] with its ETag, when the panel may ask for its deletion; refused otherwise. */
+    private fun deletable(key: String): Pair<String, Band> {
+        // The file first, then its time: a change in between shows in the time, a later one fails the write.
+        val loaded = listed(key)?.let { read(key) }
+        val entry = listed(key)
+        throw when {
+            loaded == null || entry == null -> notFound("No such band")
+            loaded.second.deletion != null -> conflict("The band is already to be deleted")
+            !stale(entry) -> conflict("The band was changed in the last $STALE_DAYS days")
+            else -> return loaded
+        }
+    }
+
+    /** The object at [key] as the listing shows it; null when there is none. */
+    private fun listed(key: String): BlobEntry? = store.entries(key).firstOrNull { it.key == key }
+
+    /** [band] with its deletion asked for at [now], by the shared rules, so nothing the app would refuse gets in. */
+    private fun scheduled(band: Band, now: Long): Band {
+        val op = ScheduleBandDeletion(BandDeletion(SUPPORT, now, now + BandDeletion.DELAY_MS))
+        return when (val result = Engine.apply(band, Actor.System, op, "admin-delete-$now", now)) {
+            is ApplyResult.Applied -> result.band
+            is ApplyResult.Rejected -> throw conflict(result.rejection.message)
+        }
+    }
+
+    private fun conflict(message: String) = ApiError(409, ApiErrors.CONFLICT, message)
 
     /** The user's Android devices. Their tokens stay on the server. */
     private fun devicesOf(userId: String): List<DeviceRow> = runCatching { devices.stored(userId) }.getOrDefault(emptyList())
@@ -232,6 +317,15 @@ class AdminApi(
         const val MAX_DAYS = 14
         const val DEFAULT_DAYS = 3
         const val DAY_MILLIS = 24 * 3600 * 1000L
+
+        /** Two months without a change: the band may be deleted from the panel. */
+        const val STALE_DAYS = 60
+
+        /**
+         * Who asked, in a deletion asked for from the panel. It is no member's id. The app then names nobody and
+         * says the band was not used for a long time; the API names the owner when it deletes the band.
+         */
+        const val SUPPORT = "support"
 
         /** The band's file is there but is not a band. */
         const val UNREADABLE = "unreadable"

@@ -70,7 +70,7 @@ the end of the section they belong to, dated.
     stays at what the IDE supports.
 
 19. **The admin panel is apart from the app** (2026-11-18). A second Lambda with the same jar and its own handler,
-    on `admin.kapelusz.jacekgajek.com` behind its own HTTP API, with a role that only reads bands and devices. The
+    on `admin.kapelusz.jacekgajek.com` behind its own HTTP API, with a narrow role of its own. The
     sign-in is Google's with the panel's own OAuth client and a list of user ids, so a token given to the app never
     opens the panel; no sessions. The page is one hand-written HTML file served by that Lambda: no build step, no
     framework. Not a path on the app's domain: CloudFront there answers errors with the app's page, and the two
@@ -79,6 +79,9 @@ the end of the section they belong to, dated.
     "A device could not sync" is what the server saw: the failed requests of a sync round in the API's request log,
     read with Logs Insights, 14 days back at most. Nothing is written on the request path for it, and nothing is
     pushed to the operator. A device that is offline shows nothing; the app does not report on itself.
+    Its one write: it may ask for a band unchanged for 60 days to be deleted (test accounts leave such bands
+    behind). That is the owner's own request, with the usual week in which a leader can keep the band, and the API
+    does the deleting; the panel's role can delete nothing. Asked from the band's page, after a yes or no.
 
 ## The refactoring (2026-10-31)
 
