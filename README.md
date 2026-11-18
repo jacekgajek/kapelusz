@@ -14,7 +14,7 @@ hands over how much to whom. Shared by the whole band and synced through a small
 - `shared/` — the data model, operations, permissions and settlement rules, used by the apps and the server alike.
 - `composeApp/` — the app (Compose Multiplatform) for Android and the web (Wasm).
 - `androidApp/` — the Android application shell.
-- `server/` — the API (AWS Lambda, Java 21, SnapStart); data in S3.
+- `server/` — the API (AWS Lambda, Java 21, SnapStart); data in S3. Also the admin panel, a second Lambda from the same jar.
 - `localServer/` — the same API on this machine, with files instead of S3 and DynamoDB, for development offline
   ([LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)).
 - `scripts/deploy.sh` — deploys API and website, and builds the bundle for Google Play (run by CI after a merge to
@@ -59,7 +59,7 @@ e.g. for a test API. The version name is `kapelusz.versionName`. The version cod
 
 CI (`.github/workflows/ci.yml`) tests every pull request and push to `main`. On `main`, once the tests pass, its
 deploy job (paused since 2026-10-31 for the refactoring, see `ci.yml`) runs `scripts/deploy.sh`: it builds the release artefacts once (the Play bundle, the production web bundle,
-the server jar) and uploads the API to Lambda and the web app to S3 and CloudFront. The version code is CI's run
+the server jar) and uploads the API and the admin panel to Lambda and the web app to S3 and CloudFront. The version code is CI's run
 number plus 10 (since the first Play bundle, 231, went up by hand). AWS access uses GitHub OIDC; the keys come from
 the repository's secrets (the app signing key only for its fingerprint, in `assetlinks.json`). Running
 `scripts/deploy.sh` by hand is described at its top.

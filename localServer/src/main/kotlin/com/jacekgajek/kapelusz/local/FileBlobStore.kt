@@ -1,6 +1,7 @@
 package com.jacekgajek.kapelusz.local
 
 import com.jacekgajek.kapelusz.server.store.Blob
+import com.jacekgajek.kapelusz.server.store.BlobEntry
 import com.jacekgajek.kapelusz.server.store.BlobStore
 import com.jacekgajek.kapelusz.server.store.PreconditionFailed
 import com.jacekgajek.kapelusz.server.store.PresignedRequest
@@ -72,6 +73,11 @@ class FileBlobStore(root: Path, private val baseUrl: () -> String) : BlobStore {
                 .filter { it.startsWith(prefix) }
                 .sorted().toList()
         }
+    }
+
+    override fun entries(prefix: String): List<BlobEntry> = list(prefix).map { key ->
+        val path = path(key)
+        BlobEntry(key, Files.size(path), Files.getLastModifiedTime(path).toMillis())
     }
 
     override fun exists(key: String): Boolean = path(key).isRegularFile()

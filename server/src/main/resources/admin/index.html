@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="google-client-id" content="{{CLIENT_ID}}">
+<meta name="sign-in" content="{{SIGN_IN}}">
+<title>Pass the Hat admin</title>
+<style nonce="{{NONCE}}">
+  :root {
+    color-scheme: light dark;
+    --bg: #fafafa; --panel: #fff; --text: #1c1c1e; --muted: #6b6b70; --line: #dedee3;
+    --accent: #2a5db0; --warn: #a15c00; --bad: #b3261e; --ok: #2e7d32;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151517; --panel: #1f1f22; --text: #ececee; --muted: #9a9aa2; --line: #34343a;
+      --accent: #8ab4f8; --warn: #f0b35a; --bad: #f2867f; --ok: #81c784;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; flex: 1; }
+  header h1 a { color: inherit; text-decoration: none; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  h2 { font-size: 18px; margin: 24px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  a { color: var(--accent); }
+  button, input { font: inherit; }
+  button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
+  input { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .mono { font-family: ui-monospace, monospace; font-size: 13px; overflow-wrap: anywhere; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .tag { display: inline-block; padding: 0 6px; border: 1px solid currentColor; border-radius: 10px; font-size: 12px; white-space: nowrap; }
+  .tag.warn { color: var(--warn); }
+  .tag.bad { color: var(--bad); }
+  .tag.ok { color: var(--ok); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0; }
+  .facts div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .facts dt { font-size: 12px; color: var(--muted); }
+  .facts dd { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+  .notice { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin: 0 0 12px; }
+  .notice.bad { border-color: var(--bad); color: var(--bad); }
+  .notice.warn { border-color: var(--warn); color: var(--warn); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  summary { padding: 8px 10px; cursor: pointer; }
+  details .inner { padding: 0 10px 10px; }
+  pre { margin: 8px 0 0; padding: 10px; max-height: 70vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 12px/1.4 ui-monospace, monospace; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="#/">Pass the Hat admin</a></h1>
+  <span id="who" class="muted small"></span>
+  <button id="signout" class="hidden" type="button">Sign out</button>
+</header>
+<main id="main"></main>
+<script nonce="{{NONCE}}">
+'use strict';
+// The admin panel. It only reads. Everything shown comes from the routes under api/.
+// Text is always put in with textContent, never as HTML: band and member names are written by users.
+
+const clientId = document.querySelector('meta[name="google-client-id"]').content;
+/** google, dev (the local server) or none (the panel is not set up). */
+const signInWith = document.querySelector('meta[name="sign-in"]').content;
+const main = document.getElementById('main');
+const who = document.getElementById('who');
+const signOutButton = document.getElementById('signout');
+
+/** The sign-in token. Kept in memory only, so closing the tab signs out. */
+let token = null;
+
+// ---- small helpers ----
+
+/** Makes an element. props: class, text, href, title, type; children are appended. */
+function el(tag, props, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props || {})) {
+    if (value == null) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) {
+    if (child != null) node.append(child);
+  }
+  return node;
+}
+
+function show(...nodes) {
+  main.replaceChildren(...nodes.flat().filter(Boolean));
+}
+
+function when(millis) {
+  return millis ? new Date(millis).toLocaleString() : '';
+}
+
+function ago(millis) {
+  const days = Math.floor((Date.now() - millis) / 86400000);
+  if (days <= 0) return 'today';
+  return days === 1 ? 'yesterday' : days + ' days ago';
+}
+
+function size(bytes) {
+  return bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? (bytes / 1024).toFixed(1) + ' kB' : (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+function tag(text, kind) {
+  return el('span', { class: 'tag ' + (kind || ''), text });
+}
+
+function table(headers, rows) {
+  const head = el('tr', null, headers.map(h => el('th', { text: h.text, class: h.num ? 'num' : null })));
+  return el('div', { class: 'scroll' }, el('table', null, el('thead', null, head), el('tbody', null, rows)));
+}
+
+function fact(label, value) {
+  return el('div', null, el('dt', { text: label }), el('dd', { text: String(value) }));
+}
+
+// ---- talking to the server ----
+
+class Refused extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/** Reads api/<path>. Paths are relative, so the page also works under a prefix (the local server's /admin/). */
+async function api(path, asText) {
+  const response = await fetch('api/' + path, { headers: { authorization: 'Bearer ' + token }, cache: 'no-store' });
+  if (!response.ok) {
+    let message = response.statusText;
+    try { message = (await response.json()).message || message; } catch (ignored) { /* not JSON */ }
+    throw new Refused(response.status, message);
+  }
+  return asText ? response.text() : response.json();
+}
+
+function failed(e) {
+  if (e instanceof Refused && e.status === 401) {
+    token = null;
+    signIn('Your sign-in has expired. Sign in again.');
+  } else if (e instanceof Refused && e.status === 403) {
+    token = null;
+    // Or Google would hand the same account back at once, and the page would be refused again.
+    if (window.google) google.accounts.id.disableAutoSelect();
+    signIn('This account may not use the admin panel.');
+  } else {
+    show(el('p', { class: 'notice bad', text: 'Could not load: ' + e.message }));
+  }
+}
+
+// ---- sign-in ----
+
+function signedIn(newToken, name) {
+  token = newToken;
+  who.textContent = name || '';
+  signOutButton.classList.remove('hidden');
+  route();
+}
+
+function signOut() {
+  token = null;
+  who.textContent = '';
+  signOutButton.classList.add('hidden');
+  if (window.google) google.accounts.id.disableAutoSelect();
+  signIn();
+}
+
+function signIn(message) {
+  signOutButton.classList.add('hidden');
+  const note = message ? el('p', { class: 'notice warn', text: message }) : null;
+  if (signInWith === 'google') googleSignIn(note);
+  else if (signInWith === 'dev') devSignIn(note);
+  else show(el('p', { class: 'notice bad', text: 'The admin panel is not set up: it has no Google client id.' }));
+}
+
+/** The name in a Google token, for the header. The server checks the token; this only reads it. */
+function nameIn(jwt) {
+  try {
+    const payload = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(decodeURIComponent(escape(atob(payload))));
+    return claims.email || claims.name || '';
+  } catch (ignored) {
+    return '';
+  }
+}
+
+let googleLoaded = null;
+
+/** Loads Google's sign-in script and sets it up, once. */
+function loadGoogle() {
+  googleLoaded = googleLoaded || new Promise((resolve, reject) => {
+    const script = el('script', { src: 'https://accounts.google.com/gsi/client' });
+    script.onload = () => {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        auto_select: true,
+        callback: answer => signedIn(answer.credential, nameIn(answer.credential)),
+      });
+      resolve();
+    };
+    script.onerror = () => reject(new Error('Google sign-in did not load'));
+    document.head.append(script);
+  });
+  return googleLoaded;
+}
+
+function googleSignIn(note) {
+  const button = el('div');
+  show(note, el('h2', { text: 'Sign in' }), el('p', { class: 'muted', text: 'Only the accounts on the admin list get in.' }), button);
+  loadGoogle().then(() => {
+    google.accounts.id.renderButton(button, { theme: 'outline', size: 'large' });
+    google.accounts.id.prompt();
+  }).catch(e => show(el('p', { class: 'notice bad', text: e.message })));
+}
+
+/** The local server only: it takes unsigned tokens of dev- users. The real panel never offers this. */
+function devSignIn(note) {
+  const input = el('input', { type: 'text', value: 'admin', 'aria-label': 'Development user' });
+  const button = el('button', { type: 'button', text: 'Sign in' });
+  const encode = object => btoa(JSON.stringify(object)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  button.addEventListener('click', () => {
+    const name = input.value.trim().toLowerCase();
+    const now = Math.floor(Date.now() / 1000);
+    signedIn(encode({ alg: 'none' }) + '.' + encode({ sub: 'dev-' + name, name, iat: now, exp: now + 3600 }) + '.', 'dev-' + name);
+  });
+  show(
+    note,
+    el('h2', { text: 'Development sign-in' }),
+    el('p', { class: 'muted', text: 'This is the local server. Sign in as dev-<name>.' }),
+    el('div', { class: 'row' }, input, button),
+  );
+}
+
+// ---- the band list ----
+
+async function listView() {
+  show(el('p', { class: 'muted', text: 'Loading bands…' }));
+  const data = await api('bands');
+  const rows = data.bands.map(band => {
+    const marks = [];
+    if (band.unreadable) marks.push(tag('unreadable', 'bad'));
+    if (band.deleteAt) marks.push(tag('deletes ' + new Date(band.deleteAt).toLocaleDateString(), 'warn'));
+    if (band.bytes > data.maxBandBytes * 0.8) marks.push(tag('nearly full', 'warn'));
+    return el('tr', null,
+      el('td', null, el('a', { href: '#/band/' + encodeURIComponent(band.id), text: band.name || band.id }), ' ', marks),
+      el('td', { class: 'num', text: band.unreadable ? '' : band.members + ' (' + band.linked + ' linked)' }),
+      el('td', { class: 'num', text: band.unreadable ? '' : band.events }),
+      el('td', { class: 'num', text: size(band.bytes) + ' · ' + Math.round(band.bytes * 100 / data.maxBandBytes) + '%' }),
+      el('td', { class: 'num', text: when(band.modified), title: ago(band.modified) }),
+    );
+  });
+  const nodes = [
+    el('h2', { text: 'Bands (' + data.bands.length + ')' }),
+    data.bands.length
+      ? table([{ text: 'Band' }, { text: 'Members', num: true }, { text: 'Events', num: true }, { text: 'Size', num: true }, { text: 'Last changed', num: true }], rows)
+      : el('p', { class: 'muted', text: 'No bands.' }),
+  ];
+  if (data.deleted.length) {
+    nodes.push(
+      el('h2', { text: 'Deleted bands (' + data.deleted.length + ')' }),
+      el('p', { class: 'muted small', text: 'Only the name stays. Bringing one back is a manual restore (DISASTER_RECOVERY.md).' }),
+      table([{ text: 'Band' }, { text: 'Deleted by' }, { text: 'When', num: true }, { text: 'Id' }], data.deleted.map(band => el('tr', null,
+        el('td', { text: band.name }),
+        el('td', { text: band.deletedBy }),
+        el('td', { class: 'num', text: when(band.deletedAt) }),
+        el('td', { class: 'mono', text: band.id }),
+      ))),
+    );
+  }
+  show(nodes);
+}
+
+// ---- one band ----
+
+function deviceList(member) {
+  if (!member.userId) return el('span', { class: 'muted', text: '—' });
+  if (!member.devices.length) return el('span', { class: 'muted', text: 'none (web only, or signed out)' });
+  return member.devices.map(device => el('div', { class: 'small' },
+    'seen ' + ago(device.lastSeen) + ' ', device.fresh ? null : tag('stale', 'warn'),
+  ));
+}
+
+function rawSection(bandId) {
+  const pre = el('pre', { text: 'Loading…' });
+  const copy = el('button', { type: 'button', text: 'Copy' });
+  const note = el('span', { class: 'muted small' });
+  const details = el('details', null, el('summary', { text: 'Raw JSON (state.json as stored)' }), el('div', { class: 'inner' }, el('div', { class: 'row' }, copy, note), pre));
+  let loaded = false;
+  details.addEventListener('toggle', async () => {
+    if (!details.open || loaded) return;
+    loaded = true;
+    try {
+      const text = await api('bands/' + encodeURIComponent(bandId) + '/raw', true);
+      // Shown indented when it is JSON; as it is when it is not (a broken file must still be readable).
+      try { pre.textContent = JSON.stringify(JSON.parse(text), null, 2); } catch (ignored) { pre.textContent = text; }
+      note.textContent = 'Holds BLIK and bank numbers.';
+    } catch (e) {
+      loaded = false;
+      pre.textContent = 'Could not load: ' + e.message;
+    }
+  });
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(pre.textContent);
+      note.textContent = 'Copied.';
+    } catch (ignored) {
+      note.textContent = 'Could not copy; select the text instead.';
+    }
+  });
+  return details;
+}
+
+async function bandView(bandId) {
+  show(el('p', { class: 'muted', text: 'Loading band…' }));
+  const back = el('p', null, el('a', { href: '#/', text: '← All bands' }));
+  let band;
+  try {
+    band = await api('bands/' + encodeURIComponent(bandId));
+  } catch (e) {
+    // The file is there but is not a band: its raw data can still be read.
+    if (!(e instanceof Refused) || e.status !== 422) throw e;
+    show(back, el('p', { class: 'notice bad', text: e.message }), rawSection(bandId));
+    return;
+  }
+  const members = band.members.map(member => el('tr', null,
+    el('td', null, member.name, ' ', member.archived ? tag('archived') : null),
+    el('td', { text: member.userId ? member.role : '' }),
+    el('td', null, member.userId ? el('span', { class: 'mono', text: member.userId }) : el('span', { class: 'muted', text: 'not linked' })),
+    el('td', null, deviceList(member)),
+  ));
+  show(
+    back,
+    el('h2', { text: band.name }),
+    band.deletion ? el('p', {
+      class: 'notice warn',
+      text: 'Will be deleted on ' + when(band.deletion.deleteAt) + ', asked by ' + (band.deletion.requestedBy || 'a former member') + ' on ' + when(band.deletion.requestedAt) + '.',
+    }) : null,
+    el('dl', { class: 'facts' },
+      fact('Members', band.members.filter(m => !m.archived).length),
+      fact('Events', band.events),
+      fact('Costs', band.costs),
+      fact('Fund entries', band.fundEntries),
+      fact('Invite codes', band.inviteCodes),
+      fact('Currency', band.currency),
+      fact('Fund holder', band.treasurer || '—'),
+      fact('Size', size(band.bytes)),
+      fact('Last changed', when(band.modified)),
+    ),
+    el('p', { class: 'muted small' }, 'Id ', el('span', { class: 'mono', text: band.id }), ' · ETag ', el('span', { class: 'mono', text: band.etag })),
+    el('h2', { text: 'Members' }),
+    table([{ text: 'Name' }, { text: 'Role' }, { text: 'Account' }, { text: 'Android devices' }], members),
+    el('h2', { text: 'Data' }),
+    rawSection(bandId),
+  );
+}
+
+// ---- routing ----
+
+function route() {
+  if (!token) return signIn();
+  const band = /^#\/band\/([A-Za-z0-9_-]+)$/.exec(location.hash);
+  const view = band ? bandView(band[1]) : listView();
+  view.catch(failed);
+}
+
+window.addEventListener('hashchange', route);
+signOutButton.addEventListener('click', signOut);
+route();
+</script>
+</body>
+</html>

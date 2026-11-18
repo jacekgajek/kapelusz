@@ -17,6 +17,7 @@ calendar). Only what reaches out of the machine is replaced:
 | Google Places and Geocoding         | made up: the typed text becomes a place in Kraków; every address gets a fixed spot nearby   |
 | Firebase sync messages              | none: the app on screen checks for changes every 30 seconds, and on returning to it       |
 | Event link cards (`/e/…`)           | none, unless `KAPELUSZ_LOCAL_WEB` names the web app's built `index.html` to put them in     |
+| The admin panel's own Lambda        | `http://localhost:8787/admin/` on the local server, for `dev-admin` (`KAPELUSZ_LOCAL_ADMINS`) |
 
 The data stays in `.local-data/` (ignored by git) between runs. Delete the folder to start afresh. Another
 place can be set with `KAPELUSZ_LOCAL_DATA` (a relative path is taken from the repository's root), and another port
