@@ -115,7 +115,11 @@ class AdminApi(
     /** Every band, and what is left of the deleted ones. */
     private fun bands(): HttpResponse {
         val entries = store.entries(BANDS)
-        val rows = inParallel(entries.filter { it.key.endsWith(STATE) }, ::row).sortedBy { it.name?.lowercase() }
+        // The attachment files are in the same listing: their sizes, added up per band.
+        val attached = entries.filter { ATTACHMENTS in it.key }.groupingBy { bandIdOf(it.key) }.fold(0L) { sum, file -> sum + file.size }
+        val rows = inParallel(entries.filter { it.key.endsWith(STATE) }, ::row)
+            .map { it.copy(attachmentBytes = attached[it.id] ?: 0) }
+            .sortedBy { it.name?.lowercase() }
         val deleted = inParallel(entries.filter { it.key.endsWith(DELETED) }, ::deletedRow).filterNotNull()
         return ok(BandList.serializer(), BandList(rows, deleted.sortedByDescending { it.deletedAt }, config.maxBandBytes))
     }
@@ -124,7 +128,7 @@ class AdminApi(
     private fun row(entry: BlobEntry): BandRow {
         val id = bandIdOf(entry.key)
         val band = runCatching { read(entry.key) }.getOrNull()?.second
-            ?: return BandRow(id, null, 0, 0, 0, entry.size, entry.modified, unreadable = true, accounts = emptyList())
+            ?: return BandRow(id, null, 0, 0, 0, entry.size, 0, entry.modified, unreadable = true, accounts = emptyList())
         return BandRow(
             id = id,
             name = band.name,
@@ -132,6 +136,8 @@ class AdminApi(
             linked = band.members.count { !it.archived && it.userId != null },
             events = band.events.size,
             bytes = entry.size,
+            // Filled in by the list, which has the sizes of all bands' files at hand.
+            attachmentBytes = 0,
             modified = entry.modified,
             deleteAt = band.deletion?.deleteAt,
             unreadable = false,
@@ -311,6 +317,7 @@ class AdminApi(
         const val BANDS = "bands/"
         const val STATE = "/state.json"
         const val DELETED = "/deleted.json"
+        const val ATTACHMENTS = "/attachments/"
         const val READERS = 16
 
         /** How far back sync failures are looked for: the API's log is kept 14 days. */

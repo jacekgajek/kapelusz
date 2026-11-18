@@ -387,7 +387,11 @@ async function listView() {
       el('td', null, el('a', { href: '#/band/' + encodeURIComponent(band.id), text: band.name || band.id }), ' ', marks),
       el('td', { class: 'num', text: band.unreadable ? '' : band.members + ' (' + band.linked + ' linked)' }),
       el('td', { class: 'num', text: band.unreadable ? '' : band.events }),
-      el('td', { class: 'num', text: size(band.bytes) + ' · ' + Math.round(band.bytes * 100 / data.maxBandBytes) + '%' }),
+      el('td', {
+        class: 'num',
+        text: size(band.bytes + band.attachmentBytes),
+        title: size(band.bytes) + ' of data (' + Math.round(band.bytes * 100 / data.maxBandBytes) + '% of the limit), ' + size(band.attachmentBytes) + ' of attachments',
+      }),
       el('td', { class: 'num', text: when(band.modified), title: ago(band.modified) }),
     );
   });
