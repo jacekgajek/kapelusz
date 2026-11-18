@@ -18,7 +18,10 @@ data class BandRow(
     /** Members with an account. */
     val linked: Int,
     val events: Int,
+    /** The size of the band's file, which is what the size limit counts. */
     val bytes: Long,
+    /** The size of the band's attachment files together. */
+    val attachmentBytes: Long,
     val modified: Long,
     /** When the band will be deleted, if its owner asked for that. */
     val deleteAt: Long? = null,

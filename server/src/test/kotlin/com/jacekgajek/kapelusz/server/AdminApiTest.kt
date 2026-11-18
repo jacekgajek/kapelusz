@@ -392,6 +392,24 @@ class AdminApiTest :
                 band.bytes shouldBe fixture.stored().content.toByteArray().size.toLong()
             }
 
+            expect("are in the size the band list gives too, each band with its own") {
+                val fixture = AdminFixture()
+                fixture.setup()
+                fixture.createBand("dave", "band10", "Zebra")
+
+                fixture.store.put("bands/band1/attachments/a1.jpg", "x".repeat(700))
+                fixture.store.put("bands/band1/attachments/a2.pdf", "y".repeat(300))
+                fixture.store.put("bands/band10/attachments/other.jpg", "z".repeat(50))
+
+                val rows = fixture.admin("/api/bands").parsed(BandList.serializer(), fixture).bands
+                rows.single { it.id == "band1" }.let {
+                    it.attachmentBytes shouldBe 1000
+                    it.bytes shouldBe fixture.stored().content.toByteArray().size.toLong()
+                }
+                rows.single { it.id == "band10" }.attachmentBytes shouldBe 50
+                fixture.admin("/api/bands").body!! shouldContain "\"attachmentBytes\":1000"
+            }
+
             expect("are none in so many words when there are none") {
                 val fixture = AdminFixture()
                 fixture.setup()
@@ -400,6 +418,7 @@ class AdminApiTest :
 
                 body shouldContain "\"attachments\":0"
                 body shouldContain "\"attachmentBytes\":0"
+                fixture.admin("/api/bands").body!! shouldContain "\"attachmentBytes\":0"
             }
         }
 
