@@ -10,7 +10,7 @@ const val PLAY_TESTING = "https://play.google.com/apps/testing/com.jacekgajek.ka
  * Whether anyone can install the app from [PLAY_LISTING]. False during the closed test, where the listing is "not
  * found" for everyone but the testers: the web then links to joining the test. Set to true at the production release.
  */
-const val PLAY_PUBLIC = false
+const val PLAY_PUBLIC = true
 
 /** Where the web's "Get the app" goes: the listing, or joining the test until it is public. */
 val PLAY_INSTALL = if (PLAY_PUBLIC) PLAY_LISTING else PLAY_TESTING
