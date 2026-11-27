@@ -8,13 +8,7 @@ import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import kotlin.io.encoding.Base64
 import kotlin.js.JsString
 import kotlin.js.Promise
-import kotlin.js.unsafeCast
-import kotlinx.browser.document
-import kotlinx.browser.window
 import kotlinx.coroutines.await
-import org.w3c.dom.ElementCreationOptions
-import org.w3c.dom.HTMLAnchorElement
-import org.w3c.dom.url.URL
 
 // Web Share API where available (phones), otherwise the clipboard. Resolves to "shared", "copied" or "failed".
 @Suppress("unused")
@@ -47,16 +41,20 @@ object WebSharing : Sharing {
     }
 }
 
-private fun downloadBase64(base64: String, name: String, mime: String) {
-    val url = URL.createObjectURL(byteBlob(base64, mime))
-    val anchor = document.createElement("a", ElementCreationOptions(null)).unsafeCast<HTMLAnchorElement>()
-    anchor.href = url
-    anchor.download = name
-    document.body?.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    window.setTimeout({
-        URL.revokeObjectURL(url)
-        null
-    }, 10_000)
-}
+@Suppress("unused")
+// language=javascript
+private fun downloadBase64(base64: String, name: String, mime: String): Unit = js(
+    """(() => {
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+        })()""",
+)
