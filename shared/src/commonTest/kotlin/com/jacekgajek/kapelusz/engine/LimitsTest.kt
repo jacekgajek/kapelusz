@@ -3,10 +3,16 @@ package com.jacekgajek.kapelusz.engine
 import com.jacekgajek.kapelusz.DATE
 import com.jacekgajek.kapelusz.Scenario
 import com.jacekgajek.kapelusz.engine.Limits
+import com.jacekgajek.kapelusz.model.Attachment
+import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.AttachmentOwner
+import com.jacekgajek.kapelusz.model.Cost
 import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.RejectionReason
+import com.jacekgajek.kapelusz.model.allAttachments
 import com.jacekgajek.kapelusz.model.sum
+import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddGuest
 import com.jacekgajek.kapelusz.ops.AddHolding
@@ -86,5 +92,53 @@ class LimitsTest :
             val file = com.jacekgajek.kapelusz.model.Attachment("a1", com.jacekgajek.kapelusz.model.AttachmentKind.IMAGE, "r.jpg", 10)
             scenario.apply(com.jacekgajek.kapelusz.ops.AddAttachment("c1", file))
             scenario.rejected(com.jacekgajek.kapelusz.ops.AddAttachment("c2", file)).reason shouldBe RejectionReason.DUPLICATE_ID
+        }
+
+        expect("attachment files across the band cannot exceed the byte budget") {
+            val scenario = Scenario("Alice").event("gig", "Alice")
+                .apply(AddCost("c1", "alice", Money(100), DATE))
+                .apply(AddCost("c2", "alice", Money(100), DATE))
+                .apply(AddCost("c3", "alice", Money(100), DATE))
+            val maxPdfBytes = AttachmentKind.PDF.maxBytes
+            val sizes = List(19) { maxPdfBytes } + (Limits.MAX_STORAGE_BYTES - 19 * maxPdfBytes)
+
+            sizes.forEachIndexed { index, sizeBytes ->
+                val owner = if (index < 10) {
+                    AttachmentOwner.OfCost("c${1 + index / 5}")
+                } else {
+                    AttachmentOwner.OfEvent("gig")
+                }
+                scenario.apply(AddAttachment(owner, Attachment("a$index", AttachmentKind.PDF, sizeBytes = sizeBytes)))
+            }
+            scenario.band.allAttachments().sumOf { it.sizeBytes ?: 0L } shouldBe Limits.MAX_STORAGE_BYTES
+
+            scenario.rejected(
+                AddAttachment(AttachmentOwner.OfCost("c3"), Attachment("over", AttachmentKind.PDF, sizeBytes = 1)),
+            ).reason shouldBe RejectionReason.LIMIT_REACHED
+        }
+
+        expect("the attachment byte budget uses a wide sum for legacy over-limit bands") {
+            val costs = (0 until 42).map { costIndex ->
+                Cost(
+                    id = "c$costIndex",
+                    memberId = "alice",
+                    amount = Money(100),
+                    date = DATE,
+                    attachments = List(5) { attachmentIndex ->
+                        Attachment("a${costIndex}_$attachmentIndex", AttachmentKind.PDF, sizeBytes = AttachmentKind.PDF.maxBytes)
+                    },
+                )
+            }
+            val before = Scenario("Alice").band.copy(costs = costs)
+            val addedCost = Cost(
+                id = "c42",
+                memberId = "alice",
+                amount = Money(100),
+                date = DATE,
+                attachments = listOf(Attachment("a42_0", AttachmentKind.PDF, sizeBytes = 1)),
+            )
+            val after = before.copy(costs = before.costs + addedCost)
+
+            Limits.violation(before, after)?.reason shouldBe RejectionReason.LIMIT_REACHED
         }
     })
