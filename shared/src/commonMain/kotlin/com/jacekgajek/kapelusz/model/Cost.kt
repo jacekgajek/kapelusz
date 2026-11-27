@@ -71,9 +71,9 @@ data class Attachment(
 
 @Serializable
 enum class AttachmentKind(val contentType: String, val extension: String, val maxBytes: Long) {
-    /** Compressed on the device (longest edge 1600 px, JPEG), so well below the limit. */
-    IMAGE("image/jpeg", "jpg", 3L * 1024 * 1024),
-    PDF("application/pdf", "pdf", 10L * 1024 * 1024),
+    /** Compressed on the device (longest edge 1600 px, JPEG) to keep uploads smaller. */
+    IMAGE("image/jpeg", "jpg", 1L * 1024 * 1024),
+    PDF("application/pdf", "pdf", 1L * 1024 * 1024),
 }
 
 /**

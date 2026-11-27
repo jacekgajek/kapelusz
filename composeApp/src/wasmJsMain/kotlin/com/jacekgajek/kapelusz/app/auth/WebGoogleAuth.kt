@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.auth
 
 import androidx.compose.foundation.layout.Box
@@ -19,7 +21,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.jacekgajek.kapelusz.app.AppConfig
 import com.jacekgajek.kapelusz.app.ui.components.language
+import com.jacekgajek.kapelusz.catching
 import kotlin.js.Promise
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.await
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
@@ -27,6 +31,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 // Google Identity Services (https://accounts.google.com/gsi/client). The button is a real DOM element placed over the
 // Compose canvas, because Google requires its own rendered button for the sign-in flow.
 
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun gisInit(clientId: String): Promise<JsAny?> = js(
     """(globalThis.kapeluszGis ??= new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -47,8 +52,10 @@ private fun gisInit(clientId: String): Promise<JsAny?> = js(
     }))""",
 )
 
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun setCredentialCallback(callback: (String) -> Unit): Unit = js("{ globalThis.artSplitOnCredential = callback; }")
 
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun showButton(left: Double, top: Double, width: Double, locale: String): Unit = js(
     """{
         let host = document.getElementById('kapelusz-google-button');
@@ -65,10 +72,13 @@ private fun showButton(left: Double, top: Double, width: Double, locale: String)
     }""",
 )
 
+// language=javascript
 private fun hideButton(): Unit = js("{ document.getElementById('kapelusz-google-button')?.remove(); }")
 
+// language=javascript
 private fun promptSilently(): Unit = js("{ google.accounts.id.prompt(); }")
 
+// language=javascript
 private fun disableAutoSelect(): Unit = js("{ if (globalThis.google) google.accounts.id.disableAutoSelect(); }")
 
 object WebGoogleAuth : GoogleAuth {
@@ -80,7 +90,7 @@ object WebGoogleAuth : GoogleAuth {
     }
 
     /** FedCM / One Tap auto re-authentication for a returning user; null if Google wants interaction. */
-    override suspend fun refresh(): String? = withTimeoutOrNull(15_000) {
+    override suspend fun refresh(): String? = withTimeoutOrNull(15.seconds) {
         // Also needed when the sign-in button was never shown in this page (the user was already signed in).
         init()
         suspendCancellableCoroutine { continuation ->
@@ -113,10 +123,10 @@ internal fun WebSignInButton(onIdToken: (String) -> Unit, onError: (String) -> U
     var ready by remember { mutableStateOf(false) }
     var bounds by remember { mutableStateOf<Rect?>(null) }
     LaunchedEffect(Unit) {
-        try {
+        catching {
             WebGoogleAuth.init()
             ready = true
-        } catch (e: Throwable) {
+        }.onFailure { e ->
             errorCallback(e.message ?: "Google sign-in is unavailable")
         }
     }

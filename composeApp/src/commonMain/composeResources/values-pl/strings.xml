@@ -493,7 +493,7 @@
     <string name="fund_default_apply_text">Poprzednie ustawienie ma jeszcze %1$d z nich: %2$s.</string>
     <string name="h_set_fund_percent">Ustawiono do kasy zespołowej %1$s zysku w: %2$s</string>
     <string name="h_set_fund_default">Ustawiono domyślną kwotę do kasy zespołowej w nowych wydarzeniach na: %1$s</string>
-    <string name="reject_attachment_too_large">Plik jest za duży (zdjęcia do 3 MB, PDF do 10 MB).</string>
+    <string name="reject_attachment_too_large">Plik jest za duży (zdjęcia i pliki PDF do 1 MiB).</string>
     <string name="attachments">Załączniki</string>
     <string name="attachment_add_file">Załącz</string>
     <string name="attachment_take_photo">Zrób zdjęcie</string>
@@ -506,7 +506,7 @@
     <string name="attachment_uploading">wysyłanie</string>
     <string name="attachment_waiting_for_save">zostanie dołączony po zapisaniu</string>
     <string name="attachment_not_available">Jeszcze niedostępny: plik nie został wysłany.</string>
-    <string name="attachment_too_large">Plik jest za duży (PDF do 10 MB).</string>
+    <string name="attachment_too_large">Plik jest za duży (zdjęcia i pliki PDF do 1 MiB).</string>
     <string name="attachment_unsupported">Można dołączać tylko zdjęcia i pliki PDF.</string>
     <string name="attachment_failed">Nie udało się odczytać pliku.</string>
     <string name="attachment_remove_title">Usunąć załącznik?</string>

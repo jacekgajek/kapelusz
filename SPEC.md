@@ -452,7 +452,7 @@ single netted total.
 ## 15. Attachments and files
 
 - Receipts on costs (≤ 5), files on received-money entries (≤ 5), files on events (≤ 10); images compressed on device
-  (orientation applied, 1600 px, JPEG ~80, EXIF dropped, ≤ 3 MB), PDFs as-is ≤ 10 MB; renamable; file type falls back to
+  (orientation applied, 1600 px, JPEG ~80, EXIF dropped, ≤ 1 MiB), PDFs as-is ≤ 1 MiB; renamable; file type falls back to
   the extension when the provider gives no MIME.
 - Who: entry files follow who may edit the entry; event files leaders; artists don't see entry files but do see event
   files; a cost's owner may add/rename files on a locked cost.

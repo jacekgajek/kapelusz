@@ -1,19 +1,14 @@
 package com.jacekgajek.kapelusz.engine
 
+import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.BAND_FUND
 import com.jacekgajek.kapelusz.model.Band
-import com.jacekgajek.kapelusz.model.Cost
-import com.jacekgajek.kapelusz.model.Event
-import com.jacekgajek.kapelusz.model.Guest
 import com.jacekgajek.kapelusz.model.Id
-import com.jacekgajek.kapelusz.model.Member
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.ORGANISER
-import com.jacekgajek.kapelusz.model.Refund
 import com.jacekgajek.kapelusz.model.Rejection
 import com.jacekgajek.kapelusz.model.RejectionCode
 import com.jacekgajek.kapelusz.model.RejectionReason
-import com.jacekgajek.kapelusz.model.Transfer
 import com.jacekgajek.kapelusz.model.allAttachments
 
 /**
@@ -33,11 +28,15 @@ object Limits {
     const val MAX_FUND_ENTRIES = 5000
 
     /**
-     * Attachments in a band: with images of up to 3 MB and PDFs of up to 10 MB, a bounded amount of storage. 5000: a
+     * Attachments in a band: with files of up to 1 MiB each, a bounded amount of storage. 5000: a
      * band with 40 gigs a year and a few receipts each reaches 1000 in under ten years. Each
      * one is 100–250 bytes of state, so 5000 stay well inside the band's size cap.
      */
     const val MAX_BAND_ATTACHMENTS = 5000
+
+    /** Uploaded files in a band, summed across costs, collected entries and event files. */
+    const val MAX_STORAGE_MIB = 200
+    const val MAX_STORAGE_BYTES = MAX_STORAGE_MIB * 1024 * 1024L
     const val MAX_PARTIES_PER_EVENT = 200
     const val MAX_ITEMS_PER_EVENT = 500
 
@@ -52,7 +51,11 @@ object Limits {
      */
     fun violation(before: Band, after: Band): Rejection? {
         if (after.name != before.name) text(after.name, MAX_NAME, "Band name")?.let { return it }
-        if (after.fundDefault != before.fundDefault) after.fundDefault?.amount?.let { amount(it, "Band fund default")?.let { r -> return r } }
+        if (after.fundDefault != before.fundDefault) {
+            after.fundDefault?.amount?.let {
+                amount(it, "Band fund default")?.let { r -> return r }
+            }
+        }
         count(before.members.size, after.members.size, MAX_MEMBERS, "members")?.let { return it }
         count(before.events.size, after.events.size, MAX_EVENTS, "events")?.let { return it }
         count(before.costs.size, after.costs.size, MAX_COSTS, "costs")?.let { return it }
@@ -60,6 +63,7 @@ object Limits {
         // Files cost storage: a budget per band, checked only when attachments change.
         if (after.costs !== before.costs || after.events !== before.events) {
             count(before.allAttachments().size, after.allAttachments().size, MAX_BAND_ATTACHMENTS, "attachments")?.let { return it }
+            storage(before.allAttachments().sizeInBytes(), after.allAttachments().sizeInBytes())?.let { return it }
         }
         // Untouched lists are the same object (the reducer copies only what changes): nothing to look at.
         if (after.members !== before.members) members(before, after)?.let { return it }
@@ -68,6 +72,8 @@ object Limits {
         if (after.fundEntries !== before.fundEntries) fundEntries(before, after)?.let { return it }
         return null
     }
+
+    private fun List<Attachment>.sizeInBytes(): Long = sumOf { it.sizeBytes ?: 0L }
 
     private fun members(before: Band, after: Band): Rejection? {
         val old = before.members.associateBy { it.id }
@@ -180,10 +186,32 @@ object Limits {
     private fun text(value: String, max: Int, what: String): Rejection? = if (value.length > max) invalid("$what is longer than $max characters") else null
 
     /** Either sign: fund amounts and entries can be negative. */
-    private fun amount(value: Money, what: String): Rejection? = if (value.minor > MAX_AMOUNT || value.minor < -MAX_AMOUNT) Rejection(RejectionCode.INVALID, "$what is too large", RejectionReason.INVALID_AMOUNT) else null
+    private fun amount(value: Money, what: String): Rejection? = if (value.minor > MAX_AMOUNT || value.minor < -MAX_AMOUNT) {
+        Rejection(
+            RejectionCode.INVALID,
+            "$what is too large",
+            RejectionReason.INVALID_AMOUNT,
+        )
+    } else {
+        null
+    }
 
     /** Only growth past a limit counts: a band above it from before can still shrink. */
-    private fun count(before: Int, after: Int, max: Int, what: String): Rejection? = if (after > max && after > before) Rejection(RejectionCode.CONFLICT, "At most $max $what", RejectionReason.LIMIT_REACHED) else null
+    private fun count(before: Int, after: Int, max: Int, what: String): Rejection? = if (after > max && after > before) {
+        Rejection(RejectionCode.CONFLICT, "At most $max $what", RejectionReason.LIMIT_REACHED)
+    } else {
+        null
+    }
+
+    private fun storage(before: Long, after: Long): Rejection? = if (after > MAX_STORAGE_BYTES && after > before) {
+        Rejection(
+            RejectionCode.CONFLICT,
+            "Storage limit reached ($MAX_STORAGE_MIB MiB)",
+            RejectionReason.LIMIT_REACHED,
+        )
+    } else {
+        null
+    }
 
     private fun invalid(message: String) = Rejection(RejectionCode.INVALID, message, RejectionReason.INVALID_INPUT)
 }

@@ -1,95 +1,151 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import com.jacekgajek.kapelusz.app.jsObject
 import com.jacekgajek.kapelusz.app.util.runSuspendCatching
+import com.jacekgajek.kapelusz.catching
 import com.jacekgajek.kapelusz.model.AttachmentKind
+import kotlin.coroutines.resume
+import kotlin.js.JsAny
 import kotlin.js.Promise
+import kotlin.js.toJsNumber
+import kotlin.js.unsafeCast
+import kotlinx.browser.document
+import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.w3c.dom.CanvasRenderingContext2D
+import org.w3c.dom.ElementCreationOptions
+import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.ImageBitmap
+import org.w3c.fetch.Headers
+import org.w3c.fetch.RequestInit
+import org.w3c.fetch.Response
+import org.w3c.files.Blob
+import org.w3c.files.File
+import org.w3c.files.FileReader
 
-/** What the JS picker resolves to: either [error] or a prepared file. */
-private external interface PickedJs : JsAny {
-    val error: String?
-    val kind: String
-    val name: String
-    val size: Int
-    val base64: String
+/** A narrowed FileReader view used only after calling readAsDataURL(). */
+private external interface DataUrlFileReader : JsAny {
+    val result: String?
 }
 
 // Opens the browser's file chooser (phones offer the camera there too) and prepares the chosen file: a PDF as it is,
 // an image re-encoded through a canvas (orientation applied, longest edge 1600 px, JPEG 0.8), which drops EXIF/GPS.
-// Several files can be chosen; resolves to one result each, in order, or null when the user cancels. The file content
-// stays base64 on the JS side of the boundary.
-private fun pickAndPrepare(): Promise<JsArray<PickedJs>?> = js(
-    """new Promise((resolve) => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*,application/pdf';
-  input.multiple = true;
-  input.style.display = 'none';
-  document.body.appendChild(input);
-  const done = (value) => { input.remove(); resolve(value); };
-  const toBase64 = (blob) => new Promise((ok, fail) => {
-    const reader = new FileReader();
-    reader.onload = () => ok(String(reader.result).split(',')[1] || '');
-    reader.onerror = () => fail(reader.error);
-    reader.readAsDataURL(blob);
-  });
-  input.addEventListener('cancel', () => done(null));
-  const prepare = async (file) => {
-    try {
-      if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
-        if (file.size > 10485760) return { error: 'too_large' };
-        return { kind: 'PDF', name: file.name, size: file.size, base64: await toBase64(file) };
-      }
-      if (!file.type.startsWith('image/')) return { error: 'unsupported' };
-      let bitmap;
-      try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { return { error: 'unsupported' }; }
-      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      bitmap.close();
-      const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', 0.8));
-      if (!blob) return { error: 'failed' };
-      return { kind: 'IMAGE', name: file.name.replace(/\.[^.]*$/, '') + '.jpg', size: blob.size, base64: await toBase64(blob) };
-    } catch (e) {
-      return { error: 'failed' };
-    }
-  };
-  input.addEventListener('change', async () => {
-    const files = input.files ? Array.from(input.files) : [];
-    if (files.length === 0) { done(null); return; }
-    // One after another: a canvas per photo at once would need that much more memory.
-    const results = [];
-    for (const file of files) results.push(await prepare(file));
-    done(results);
-  });
-  input.click();
-})""",
-)
+// Several files can be chosen; returns one result each, in order, or null when the user cancels. File content is read
+// only after the file chooser returns and stays in Kotlin as a base64 string from then on.
+// Process sequentially: decoding several full-resolution photos at once would use substantially more memory.
+private suspend fun pickAndPrepare(): List<PickResult>? = chooseFiles()?.map { file -> prepare(file) }
 
-private fun toResult(picked: PickedJs): PickResult = when (picked.error) {
-    null -> {
-        val kind = AttachmentKind.valueOf(picked.kind)
-        if (picked.size > kind.maxBytes) {
-            PickResult.TooLarge
-        } else {
-            PickResult.Picked(PreparedFile(kind, picked.name, picked.size.toLong(), picked.base64))
-        }
+private suspend fun chooseFiles(): List<File>? = suspendCancellableCoroutine { continuation ->
+    val input = document.createElement("input", ElementCreationOptions(null)).unsafeCast<HTMLInputElement>()
+    input.type = "file"
+    input.accept = "image/*,application/pdf"
+    input.multiple = true
+    input.style.display = "none"
+    document.body?.appendChild(input)
+
+    fun finish(files: List<File>?) {
+        input.onchange = null
+        input.oncancel = null
+        input.remove()
+        if (continuation.isActive) continuation.resume(files)
     }
 
-    "too_large" -> PickResult.TooLarge
-
-    "unsupported" -> PickResult.Unsupported
-
-    else -> PickResult.Failed
+    continuation.invokeOnCancellation { input.remove() }
+    input.oncancel = { finish(null) }
+    input.onchange = {
+        val selected = input.files
+        finish(
+            selected?.let { fileList ->
+                (0 until fileList.length).mapNotNull { fileList.item(it) }
+            }?.takeIf { it.isNotEmpty() },
+        )
+    }
+    // Keep this synchronous with the original click event, since browsers block delayed file-picker requests.
+    input.click()
 }
+
+private suspend fun prepare(file: File): PickResult = catching {
+    when {
+        file.type == "application/pdf" || file.name.endsWith(".pdf", ignoreCase = true) -> handlePdf(file)
+        file.type.startsWith("image/") -> handleImage(file)
+        else -> PickResult.Unsupported
+    }
+}.getOrElse { PickResult.Failed }
+
+private suspend fun handleImage(file: File): PickResult = catching {
+    createOrientedBitmap(file).await<ImageBitmap>()
+}.map { bitmap ->
+    bitmap.use { decoded ->
+        val scale = minOf(1.0, 1600.0 / maxOf(decoded.width, decoded.height))
+        val canvas = document.createElement("canvas", ElementCreationOptions(null)).unsafeCast<HTMLCanvasElement>()
+        canvas.width = maxOf(1, (decoded.width * scale).toInt())
+        canvas.height = maxOf(1, (decoded.height * scale).toInt())
+        val context = canvasContext(canvas) ?: error("Canvas 2D is unavailable")
+        context.drawImage(decoded, 0.0, 0.0, canvas.width.toDouble(), canvas.height.toDouble())
+        canvas.toJpeg()
+    } ?: error("Failed to build JPEG")
+}.map { blob ->
+    val size = blob.size.toDouble().toLong()
+    if (size > AttachmentKind.IMAGE.maxBytes) {
+        PickResult.TooLarge
+    } else {
+        val fileName = file.name.substringBeforeLast('.', file.name) + ".jpg"
+        PickResult.Picked(PreparedFile(AttachmentKind.IMAGE, fileName, size, blob.readAsBase64()))
+    }
+}.getOrElse { PickResult.Unsupported }
+
+private suspend fun handlePdf(file: File): PickResult = file.size.toDouble().toLong().let { size ->
+    if (size > AttachmentKind.PDF.maxBytes) {
+        PickResult.TooLarge
+    } else {
+        PickResult.Picked(PreparedFile(AttachmentKind.PDF, file.name, size, file.readAsBase64()))
+    }
+}
+
+// The generated enum bindings omit "from-image", which is required to apply EXIF orientation before drawing.
+@Suppress("UNUSED_PARAMETER") // language=javascript
+private fun createOrientedBitmap(file: File): Promise<ImageBitmap> = js("createImageBitmap(file, { imageOrientation: 'from-image' })")
+
+private suspend fun Blob.readAsBase64(): String = suspendCancellableCoroutine { continuation ->
+    val reader = FileReader()
+    reader.onload = {
+        val dataUrl = reader.unsafeCast<DataUrlFileReader>().result
+        if (continuation.isActive) continuation.resume(dataUrl?.substringAfter(',', "").orEmpty())
+    }
+    reader.onerror = {
+        if (continuation.isActive) continuation.resumeWith(Result.failure(IllegalStateException("File read failed")))
+    }
+    continuation.invokeOnCancellation { reader.abort() }
+    reader.readAsDataURL(this)
+}
+
+private suspend fun ImageBitmap.use(block: suspend (ImageBitmap) -> Blob?): Blob? = try {
+    block(this)
+} finally {
+    close()
+}
+
+private suspend fun HTMLCanvasElement.toJpeg(): Blob? = suspendCancellableCoroutine { continuation ->
+    toBlob(
+        { blob -> if (continuation.isActive) continuation.resume(blob) },
+        "image/jpeg",
+        0.8.toJsNumber(),
+    )
+}
+
+// The generated DOM binding exposes getContext() as a broad RenderingContext union.
+@Suppress("UNUSED_PARAMETER") // language=javascript
+private fun canvasContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D? = js("canvas.getContext('2d')")
 
 @Composable
 internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): AttachmentPicker {
@@ -100,10 +156,9 @@ internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): 
             override fun pickFile() {
                 // Undispatched: the chooser must open while the click is still being handled.
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                    val picked = runSuspendCatching { pickAndPrepare().await<JsArray<PickedJs>?>() }
-                        .getOrElse { null.also { callback.value(listOf(PickResult.Failed)) } }
-                        ?: return@launch
-                    callback.value((0 until picked.length).mapNotNull { picked[it] }.map(::toResult))
+                    runSuspendCatching { pickAndPrepare() }
+                        .onSuccess { it?.let(callback.value) }
+                        .onFailure { callback.value(listOf(PickResult.Failed)) }
                 }
             }
 
@@ -112,32 +167,26 @@ internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): 
     }
 }
 
-private fun putBase64(url: String, headersJson: String, base64: String): Promise<JsNumber> = js(
-    """(() => {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return fetch(url, { method: 'PUT', headers: JSON.parse(headersJson), body: bytes }).then((r) => r.status, () => -1);
-})()""",
-)
+internal suspend fun putFile(url: String, headers: Map<String, String>, base64: String): Int = catching {
+    val bytes = decodeBase64(base64)
+    val requestHeaders = Headers(jsObject<JsAny>()).apply { headers.forEach { (key, value) -> set(key, value) } }
+    val request = jsObject<RequestInit>().apply {
+        method = "PUT"
+        this.headers = requestHeaders
+        body = bytes
+    }
+    window.fetch(url, request).await<Response>().status.toInt()
+}.getOrElse { -1 }
 
-internal suspend fun putFile(url: String, headers: Map<String, String>, base64: String): Int {
-    val json = headers.entries.joinToString(",", "{", "}") { (key, value) -> "${jsonString(key)}:${jsonString(value)}" }
-    return putBase64(url, json, base64).await<JsNumber>().toInt()
-}
-
-private fun jsonString(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-
-private fun openBlankWindow(): JsAny? = js("window.open('about:blank', '_blank')")
+private fun openBlankWindow() = window.open("about:blank", "_blank", "")
 
 // Without the blank window (a popup blocker took it), opening the URL directly is the best remaining option.
-private fun navigateWindow(target: JsAny?, url: String) {
-    js("if (target && !target.closed) { target.location.href = url; } else { window.open(url, '_blank'); }")
-}
+private fun navigateWindow(target: org.w3c.dom.Window?, url: String) = target
+    ?.takeUnless { it.closed }
+    ?.let { it.location.href = url }
+    ?: window.open(url, "_blank", "")
 
-private fun closeWindow(target: JsAny?) {
-    js("if (target) target.close()")
-}
+private fun closeWindow(target: org.w3c.dom.Window?) = target?.close()
 
 @Composable
 internal fun rememberWebUrlOpener(): (resolve: suspend () -> String?) -> Unit {

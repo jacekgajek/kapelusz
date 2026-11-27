@@ -61,7 +61,7 @@ internal fun rememberAndroidAttachmentPicker(onResult: (List<PickResult>) -> Uni
             override fun pickFile() {
                 try {
                     files.launch(arrayOf("image/*", "application/pdf"))
-                } catch (e: ActivityNotFoundException) {
+                } catch (_: ActivityNotFoundException) {
                     callback.value(listOf(PickResult.Failed))
                 }
             }
@@ -71,7 +71,7 @@ internal fun rememberAndroidAttachmentPicker(onResult: (List<PickResult>) -> Uni
                 photoPath = file.path
                 try {
                     camera.launch(FileProvider.getUriForFile(context, "${context.packageName}.files", file))
-                } catch (e: ActivityNotFoundException) {
+                } catch (_: ActivityNotFoundException) {
                     photoPath = null
                     callback.value(listOf(PickResult.Failed))
                 }
@@ -126,9 +126,9 @@ private suspend fun prepare(context: Context, uri: Uri, photo: Boolean = false, 
 
             else -> PickResult.Unsupported
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         PickResult.Failed
-    } catch (e: OutOfMemoryError) {
+    } catch (_: OutOfMemoryError) {
         PickResult.TooLarge
     }
 }

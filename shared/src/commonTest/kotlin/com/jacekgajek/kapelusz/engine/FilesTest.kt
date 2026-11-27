@@ -66,6 +66,21 @@ class FilesTest :
             scenario.rejected(AddAttachment(entry, pdf("one-more"))).reason shouldBe RejectionReason.TOO_MANY_ATTACHMENTS
         }
 
+        expect("image and PDF files cannot exceed their per-file byte limits") {
+            val scenario = gig()
+            val imageLimit = AttachmentKind.IMAGE.maxBytes
+            val pdfLimit = AttachmentKind.PDF.maxBytes
+
+            scenario.apply(AddAttachment(gigFiles, Attachment("image", AttachmentKind.IMAGE, sizeBytes = imageLimit)))
+            scenario.rejected(
+                AddAttachment(gigFiles, Attachment("large-image", AttachmentKind.IMAGE, sizeBytes = imageLimit + 1)),
+            ).reason shouldBe RejectionReason.ATTACHMENT_TOO_LARGE
+            scenario.apply(AddAttachment(entry, Attachment("pdf", AttachmentKind.PDF, sizeBytes = pdfLimit)))
+            scenario.rejected(
+                AddAttachment(entry, Attachment("large-pdf", AttachmentKind.PDF, sizeBytes = pdfLimit + 1)),
+            ).reason shouldBe RejectionReason.ATTACHMENT_TOO_LARGE
+        }
+
         expect("long device names are shortened and archived events are read-only") {
             val scenario = gig()
             scenario.apply(AddAttachment(gigFiles, pdf("long", "x".repeat(500))))
