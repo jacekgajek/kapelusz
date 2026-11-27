@@ -43,7 +43,7 @@ private fun pickAndPrepare(): Promise<JsArray<PickedJs>?> = js(
   const prepare = async (file) => {
     try {
       if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
-        if (file.size > 10485760) return { error: 'too_large' };
+        if (file.size > 1048576) return { error: 'too_large' };
         return { kind: 'PDF', name: file.name, size: file.size, base64: await toBase64(file) };
       }
       if (!file.type.startsWith('image/')) return { error: 'unsupported' };

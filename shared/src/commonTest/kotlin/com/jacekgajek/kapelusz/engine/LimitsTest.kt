@@ -2,7 +2,6 @@ package com.jacekgajek.kapelusz.engine
 
 import com.jacekgajek.kapelusz.DATE
 import com.jacekgajek.kapelusz.Scenario
-import com.jacekgajek.kapelusz.engine.Limits
 import com.jacekgajek.kapelusz.model.Attachment
 import com.jacekgajek.kapelusz.model.AttachmentKind
 import com.jacekgajek.kapelusz.model.AttachmentOwner
@@ -11,7 +10,6 @@ import com.jacekgajek.kapelusz.model.IncomeSource
 import com.jacekgajek.kapelusz.model.Money
 import com.jacekgajek.kapelusz.model.RejectionReason
 import com.jacekgajek.kapelusz.model.allAttachments
-import com.jacekgajek.kapelusz.model.sum
 import com.jacekgajek.kapelusz.ops.AddAttachment
 import com.jacekgajek.kapelusz.ops.AddCost
 import com.jacekgajek.kapelusz.ops.AddGuest
@@ -71,14 +69,14 @@ class LimitsTest :
             scenario.rejected(AddGuest("gig", "bob", "Bob?")).reason shouldBe RejectionReason.DUPLICATE_ID
             // Notes longer than today's limit (from before it): other changes to the event still work.
             val long = scenario.band.copy(events = scenario.band.events.map { it.copy(notes = "n".repeat(Limits.MAX_NOTES + 10)) })
-            val applied = com.jacekgajek.kapelusz.engine.Engine.apply(
+            val applied = Engine.apply(
                 long,
                 com.jacekgajek.kapelusz.rules.Actor.System,
                 AddHolding("gig", "h", "alice", Money(100), IncomeSource.HAT, null),
                 "op",
                 1,
             )
-            applied.shouldBeInstanceOf<com.jacekgajek.kapelusz.engine.ApplyResult.Applied>()
+            applied.shouldBeInstanceOf<ApplyResult.Applied>()
         }
 
         expect("negative amounts are bounded too") {
@@ -89,31 +87,31 @@ class LimitsTest :
 
         expect("attachment ids are unique in the whole band") {
             val scenario = Scenario("Alice").apply(AddCost("c1", "alice", Money(100), DATE)).apply(AddCost("c2", "alice", Money(100), DATE))
-            val file = com.jacekgajek.kapelusz.model.Attachment("a1", com.jacekgajek.kapelusz.model.AttachmentKind.IMAGE, "r.jpg", 10)
-            scenario.apply(com.jacekgajek.kapelusz.ops.AddAttachment("c1", file))
-            scenario.rejected(com.jacekgajek.kapelusz.ops.AddAttachment("c2", file)).reason shouldBe RejectionReason.DUPLICATE_ID
+            val file = Attachment("a1", AttachmentKind.IMAGE, "r.jpg", 10)
+            scenario.apply(AddAttachment("c1", file))
+            scenario.rejected(AddAttachment("c2", file)).reason shouldBe RejectionReason.DUPLICATE_ID
         }
 
         expect("attachment files across the band cannot exceed the byte budget") {
             val scenario = Scenario("Alice").event("gig", "Alice")
-                .apply(AddCost("c1", "alice", Money(100), DATE))
-                .apply(AddCost("c2", "alice", Money(100), DATE))
-                .apply(AddCost("c3", "alice", Money(100), DATE))
+            (1..39).forEach { costId ->
+                scenario.apply(AddCost("c$costId", "alice", Money(100), DATE))
+            }
             val maxPdfBytes = AttachmentKind.PDF.maxBytes
-            val sizes = List(19) { maxPdfBytes } + (Limits.MAX_STORAGE_BYTES - 19 * maxPdfBytes)
+            val sizes = List(200) { maxPdfBytes }
 
             sizes.forEachIndexed { index, sizeBytes ->
                 val owner = if (index < 10) {
-                    AttachmentOwner.OfCost("c${1 + index / 5}")
-                } else {
                     AttachmentOwner.OfEvent("gig")
+                } else {
+                    AttachmentOwner.OfCost("c${1 + (index - 10) / 5}")
                 }
                 scenario.apply(AddAttachment(owner, Attachment("a$index", AttachmentKind.PDF, sizeBytes = sizeBytes)))
             }
             scenario.band.allAttachments().sumOf { it.sizeBytes ?: 0L } shouldBe Limits.MAX_STORAGE_BYTES
 
             scenario.rejected(
-                AddAttachment(AttachmentOwner.OfCost("c3"), Attachment("over", AttachmentKind.PDF, sizeBytes = 1)),
+                AddAttachment(AttachmentOwner.OfCost("c39"), Attachment("over", AttachmentKind.PDF, sizeBytes = 1)),
             ).reason shouldBe RejectionReason.LIMIT_REACHED
         }
 

@@ -81,7 +81,7 @@ class AttachmentTest :
                 pushed("alice", RemoveAttachment("c1", "a1"))
                 store.exists("bands/band1/attachments/a1.jpg") shouldBe false
 
-                pushed("alice", AddAttachment("c1", Attachment("a2", AttachmentKind.PDF, "invoice.pdf", 2_000_000)))
+                pushed("alice", AddAttachment("c1", Attachment("a2", AttachmentKind.PDF, "invoice.pdf", AttachmentKind.PDF.maxBytes)))
                 store.files += "bands/band1/attachments/a2.pdf"
                 pushed("alice", DeleteCost("c1"))
                 withClue("deleting the cost deletes its files") { store.exists("bands/band1/attachments/a2.pdf") shouldBe false }
