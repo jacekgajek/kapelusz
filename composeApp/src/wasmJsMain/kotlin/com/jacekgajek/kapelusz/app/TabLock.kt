@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app
 
 import kotlin.js.Promise
@@ -5,6 +7,7 @@ import kotlinx.coroutines.await
 
 // Web Locks API: the page holding "kapelusz-active-tab" is the only one using the stored data. Two tabs would share
 // one device id and overwrite each other's saved bands, silently losing changes.
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun requestTabLock(steal: Boolean, onLost: () -> Unit): Promise<JsBoolean> = js(
     """(!navigator.locks) ? Promise.resolve(true) : new Promise((resolve) => {
         navigator.locks.request('kapelusz-active-tab', steal ? { steal: true } : { ifAvailable: true }, (lock) => {
@@ -15,6 +18,7 @@ private fun requestTabLock(steal: Boolean, onLost: () -> Unit): Promise<JsBoolea
     })""",
 )
 
+// language=javascript
 private fun reloadPage(): Unit = js("{ window.location.reload(); }")
 
 object TabLock {

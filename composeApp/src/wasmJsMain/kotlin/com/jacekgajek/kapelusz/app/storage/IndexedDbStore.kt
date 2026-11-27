@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.storage
 
 import kotlin.js.Promise
@@ -9,6 +11,7 @@ import kotlinx.coroutines.await
  * background, or when site data is cleared): the operation then reconnects once instead of failing until a reload. A
  * transaction the browser aborts (e.g. storage full, reported only as an abort) fails instead of never finishing.
  */
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun idb(op: String, key: String, value: String?): Promise<JsAny?> = js(
     """(() => {
         const open = () => (globalThis.kapeluszDb ??= new Promise((resolve, reject) => {

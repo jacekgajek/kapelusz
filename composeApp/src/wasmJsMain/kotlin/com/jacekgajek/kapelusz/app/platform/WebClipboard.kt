@@ -1,22 +1,27 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.jacekgajek.kapelusz.app.util.runSuspendCatching
+import com.jacekgajek.kapelusz.catching
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.Promise
 import kotlinx.coroutines.await
 
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun copyToClipboard(text: String): Promise<JsBoolean> = js("navigator.clipboard.writeText(text).then(() => true, () => false)")
 
 // The browser asks the user once whether the site may read the clipboard.
+// language=javascript
 private fun readClipboard(): Promise<JsString?> = js("navigator.clipboard.readText().then((t) => t, () => null)")
 
 /**
  * Writes the image to the clipboard as a PNG, the one image type browsers accept there (a JPEG is redrawn first).
  * The clipboard is asked at once with a promise of the image, so it still counts as the tap (Safari requires that).
  */
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun copyImageJs(base64: String, type: String): Promise<JsAny?> = js(
     """(() => {
         const png = (async () => {
@@ -52,13 +57,12 @@ object WebClipboard : Clipboard {
         { runSuspendCatching { readClipboard().await<JsString?>()?.toString() }.getOrNull() }
     }
 
-    @OptIn(ExperimentalEncodingApi::class)
     @Composable
     override fun rememberCopyImage(): suspend (bytes: ByteArray, fileName: String) -> Boolean = remember {
         { bytes, _ ->
             val png = bytes.size > 4 && bytes[0] == 0x89.toByte() && bytes[1] == 'P'.code.toByte()
             val copied = copyImageJs(Base64.encode(bytes), if (png) "image/png" else "image/jpeg")
-            runCatching { (copied.await<JsAny?>() as? JsBoolean)?.toBoolean() == true }.getOrDefault(false)
+            catching { (copied.await<JsAny?>() as? JsBoolean)?.toBoolean() == true }.getOrDefault(false)
         }
     }
 }

@@ -73,10 +73,8 @@ data class Attachment(
 enum class AttachmentKind(val contentType: String, val extension: String, val maxBytes: Long) {
     /** Compressed on the device (longest edge 1600 px, JPEG) to keep uploads smaller. */
     IMAGE("image/jpeg", "jpg", 1L * 1024 * 1024),
-    PDF("application/pdf", "pdf", PDF_MAX_BYTES),
+    PDF("application/pdf", "pdf", 1L * 1024 * 1024),
 }
-
-const val PDF_MAX_BYTES = 1L * 1024 * 1024
 
 /**
  * Manual band fund entry: money paid in by [paidBy] (a member; null: from outside the band), or,

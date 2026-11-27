@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app
 
 import androidx.compose.material3.Surface
@@ -24,6 +26,7 @@ import com.jacekgajek.kapelusz.app.runtime.AppState
 import com.jacekgajek.kapelusz.app.ui.screens.OtherTabScreen
 import com.jacekgajek.kapelusz.app.ui.theme.KapeluszTheme
 import com.jacekgajek.kapelusz.text.EventLinks
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
@@ -38,9 +41,11 @@ private const val JOIN_CODE_KEY = "kapelusz-join-code"
 private const val EVENT_LINK_KEY = "kapelusz-event-link"
 
 // Whether the tab is hidden (another tab in front, the window minimised, the phone locked): not in Kotlin's bindings.
+// language=javascript
 private fun documentHidden(): Boolean = js("document.hidden")
 
 // The running build, for smoke tests of a deploy: `kapeluszVersion` in the browser console.
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun exposeVersion(label: String) {
     js("globalThis.kapeluszVersion = label")
 }
@@ -94,7 +99,7 @@ fun main() {
                             scope.launch {
                                 TabLock.acquire(steal = true)
                                 // Give the other tab a moment to finish its last write before reading the data.
-                                delay(1500)
+                                delay(1500.milliseconds)
                                 runtime.load()
                                 // Opened or restored in the background: no looking for news until it is shown.
                                 if (documentHidden()) runtime.onHidden()
@@ -124,10 +129,8 @@ private suspend fun forgetScreenWhenSignedOut(runtime: AppRuntime) {
 }
 
 /** An event link (`/e/<eventId>`): taken once, the address reset to the app root like a join link. */
-private fun takeEventLinkFromUrl(): String? {
-    val eventId = EventLinks.eventId(window.location.pathname) ?: return null
+private fun takeEventLinkFromUrl(): String? = EventLinks.eventId(window.location.pathname)?.also {
     window.history.replaceState(null, "", "/" + window.location.hash)
-    return eventId
 }
 
 /**
@@ -155,7 +158,7 @@ private fun fallbackFontsReady(): Boolean {
     val symbols by preloadFont(Res.font.fallback_symbols)
     var timedOut by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(3000)
+        delay(3000.milliseconds)
         timedOut = true
     }
     // Ready once registered, not merely downloaded: registering runs after the frame that sees a font arrive, and text

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
@@ -6,6 +8,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.intl.Locale
 
 /** Read by the `navigator.languages` override installed in index.html. */
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun setCustomLocale(locale: String?): Unit = js("{ window.__customLocale = locale; }")
 
 private val LocalLocale = staticCompositionLocalOf { Locale.current }

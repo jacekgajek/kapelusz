@@ -6,15 +6,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import com.jacekgajek.kapelusz.app.jsObject
 import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.catching
 import com.jacekgajek.kapelusz.model.AttachmentKind
-import com.jacekgajek.kapelusz.model.PDF_MAX_BYTES
 import kotlin.coroutines.resume
+import kotlin.js.JsAny
 import kotlin.js.Promise
 import kotlin.js.toJsNumber
 import kotlin.js.unsafeCast
 import kotlinx.browser.document
+import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
@@ -24,6 +26,9 @@ import org.w3c.dom.ElementCreationOptions
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.ImageBitmap
+import org.w3c.fetch.Headers
+import org.w3c.fetch.RequestInit
+import org.w3c.fetch.Response
 import org.w3c.files.Blob
 import org.w3c.files.File
 import org.w3c.files.FileReader
@@ -37,11 +42,8 @@ private external interface DataUrlFileReader : JsAny {
 // an image re-encoded through a canvas (orientation applied, longest edge 1600 px, JPEG 0.8), which drops EXIF/GPS.
 // Several files can be chosen; returns one result each, in order, or null when the user cancels. File content is read
 // only after the file chooser returns and stays in Kotlin as a base64 string from then on.
-private suspend fun pickAndPrepare(): List<PickResult>? {
-    val files = chooseFiles() ?: return null
-    // Process sequentially: decoding several full-resolution photos at once would use substantially more memory.
-    return files.map { file -> prepare(file) }
-}
+// Process sequentially: decoding several full-resolution photos at once would use substantially more memory.
+private suspend fun pickAndPrepare(): List<PickResult>? = chooseFiles()?.map { file -> prepare(file) }
 
 private suspend fun chooseFiles(): List<File>? = suspendCancellableCoroutine { continuation ->
     val input = document.createElement("input", ElementCreationOptions(null)).unsafeCast<HTMLInputElement>()
@@ -102,9 +104,8 @@ private suspend fun handleImage(file: File): PickResult = catching {
     }
 }.getOrElse { PickResult.Unsupported }
 
-private suspend fun handlePdf(file: File): PickResult {
-    val size = file.size.toDouble().toLong()
-    return if (size > PDF_MAX_BYTES) {
+private suspend fun handlePdf(file: File): PickResult = file.size.toDouble().toLong().let { size ->
+    if (size > AttachmentKind.PDF.maxBytes) {
         PickResult.TooLarge
     } else {
         PickResult.Picked(PreparedFile(AttachmentKind.PDF, file.name, size, file.readAsBase64()))
@@ -112,6 +113,7 @@ private suspend fun handlePdf(file: File): PickResult {
 }
 
 // The generated enum bindings omit "from-image", which is required to apply EXIF orientation before drawing.
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun createOrientedBitmap(file: File): Promise<ImageBitmap> = js("createImageBitmap(file, { imageOrientation: 'from-image' })")
 
 private suspend fun Blob.readAsBase64(): String = suspendCancellableCoroutine { continuation ->
@@ -141,7 +143,8 @@ private suspend fun HTMLCanvasElement.toJpeg(): Blob? = suspendCancellableCorout
     )
 }
 
-// The generated DOM binding exposes getContext() as a broad RenderingContext union; narrow its result here.
+// The generated DOM binding exposes getContext() as a broad RenderingContext union.
+@Suppress("UNUSED_PARAMETER") // language=javascript
 private fun canvasContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D? = js("canvas.getContext('2d')")
 
 @Composable
@@ -153,10 +156,9 @@ internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): 
             override fun pickFile() {
                 // Undispatched: the chooser must open while the click is still being handled.
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                    val picked = runSuspendCatching { pickAndPrepare() }
-                        .getOrElse { null.also { callback.value(listOf(PickResult.Failed)) } }
-                        ?: return@launch
-                    callback.value(picked)
+                    runSuspendCatching { pickAndPrepare() }
+                        .onSuccess { it?.let(callback.value) }
+                        .onFailure { callback.value(listOf(PickResult.Failed)) }
                 }
             }
 
@@ -165,33 +167,26 @@ internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): 
     }
 }
 
-// language="JavaScript"
-private fun putBase64(url: String, headersJson: String, base64: String): Promise<JsNumber> = js(
-    """(() => {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return fetch(url, { method: 'PUT', headers: JSON.parse(headersJson), body: bytes }).then((r) => r.status, () => -1);
-})()""",
-)
+internal suspend fun putFile(url: String, headers: Map<String, String>, base64: String): Int = catching {
+    val bytes = decodeBase64(base64)
+    val requestHeaders = Headers(jsObject<JsAny>()).apply { headers.forEach { (key, value) -> set(key, value) } }
+    val request = jsObject<RequestInit>().apply {
+        method = "PUT"
+        this.headers = requestHeaders
+        body = bytes
+    }
+    window.fetch(url, request).await<Response>().status.toInt()
+}.getOrElse { -1 }
 
-internal suspend fun putFile(url: String, headers: Map<String, String>, base64: String): Int {
-    val json = headers.entries.joinToString(",", "{", "}") { (key, value) -> "${jsonString(key)}:${jsonString(value)}" }
-    return putBase64(url, json, base64).await<JsNumber>().toInt()
-}
-
-private fun jsonString(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-
-private fun openBlankWindow(): JsAny? = js("window.open('about:blank', '_blank')")
+private fun openBlankWindow() = window.open("about:blank", "_blank", "")
 
 // Without the blank window (a popup blocker took it), opening the URL directly is the best remaining option.
-private fun navigateWindow(target: JsAny?, url: String) {
-    js("if (target && !target.closed) { target.location.href = url; } else { window.open(url, '_blank'); }")
-}
+private fun navigateWindow(target: org.w3c.dom.Window?, url: String) = target
+    ?.takeUnless { it.closed }
+    ?.let { it.location.href = url }
+    ?: window.open(url, "_blank", "")
 
-private fun closeWindow(target: JsAny?) {
-    js("if (target) target.close()")
-}
+private fun closeWindow(target: org.w3c.dom.Window?) = target?.close()
 
 @Composable
 internal fun rememberWebUrlOpener(): (resolve: suspend () -> String?) -> Unit {

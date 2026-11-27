@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalTestApi::class)
+@file:OptIn(ExperimentalTestApi::class, ExperimentalWasmJsInterop::class)
 
 package com.jacekgajek.kapelusz.app.e2e
 
@@ -11,13 +11,14 @@ import com.jacekgajek.kapelusz.app.runtime.AppRuntime
 import com.jacekgajek.kapelusz.app.settings.SettingsRepository
 import com.jacekgajek.kapelusz.app.testing.composeUiTest
 import io.kotest.core.spec.style.scopes.ExpectSpecRootScope
-import io.kotest.core.test.TestScope
 import kotlin.random.Random
 
 /** The local server's address. Karma puts it in its client config (karma.config.d/ui-tests.js). Null without it. */
+// language=javascript
 private fun karmaE2eApi(): JsString? = js("window.__karma__?.config?.kapeluszE2eApi || null")
 
 /** The one spec to run (`-Pe2e.spec`). Null means all. */
+// language=javascript
 private fun karmaE2eSpec(): JsString? = js("window.__karma__?.config?.kapeluszE2eSpec || null")
 
 /**

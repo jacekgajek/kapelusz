@@ -8,6 +8,7 @@ import com.jacekgajek.kapelusz.app.auth.WebGoogleAuth
 import com.jacekgajek.kapelusz.app.auth.WebSignInButton
 import com.jacekgajek.kapelusz.app.storage.IndexedDbStore
 import com.jacekgajek.kapelusz.app.storage.KeyValueStore
+import kotlinx.browser.window
 
 /** The web app's [Platform]: the browser. */
 class WebPlatform : Platform {
@@ -53,5 +54,5 @@ class WebPlatform : Platform {
 }
 
 private fun reloadPage() {
-    js("window.location.reload()")
+    window.location.reload()
 }
