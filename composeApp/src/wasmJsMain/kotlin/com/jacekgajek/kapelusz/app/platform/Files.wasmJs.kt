@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package com.jacekgajek.kapelusz.app.platform
 
 import androidx.compose.runtime.Composable
@@ -6,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import com.jacekgajek.kapelusz.app.util.runSuspendCatching
 import com.jacekgajek.kapelusz.model.AttachmentKind
+import com.jacekgajek.kapelusz.model.PDF_MAX_BYTES
 import kotlin.js.Promise
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.await
@@ -24,6 +27,7 @@ private external interface PickedJs : JsAny {
 // an image re-encoded through a canvas (orientation applied, longest edge 1600 px, JPEG 0.8), which drops EXIF/GPS.
 // Several files can be chosen; resolves to one result each, in order, or null when the user cancels. The file content
 // stays base64 on the JS side of the boundary.
+// language="JavaScript"
 private fun pickAndPrepare(): Promise<JsArray<PickedJs>?> = js(
     """new Promise((resolve) => {
   const input = document.createElement('input');
@@ -43,7 +47,7 @@ private fun pickAndPrepare(): Promise<JsArray<PickedJs>?> = js(
   const prepare = async (file) => {
     try {
       if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
-        if (file.size > 1048576) return { error: 'too_large' };
+        if (file.size > $PDF_MAX_BYTES) return { error: 'too_large' };
         return { kind: 'PDF', name: file.name, size: file.size, base64: await toBase64(file) };
       }
       if (!file.type.startsWith('image/')) return { error: 'unsupported' };
@@ -112,6 +116,7 @@ internal fun rememberWebAttachmentPicker(onResult: (List<PickResult>) -> Unit): 
     }
 }
 
+// language="JavaScript"
 private fun putBase64(url: String, headersJson: String, base64: String): Promise<JsNumber> = js(
     """(() => {
   const binary = atob(base64);
