@@ -42,6 +42,8 @@
   table { width: 100%; border-collapse: collapse; }
   th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  th button.sort { width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; text-transform: inherit; }
+  th button.sort:hover { color: var(--text); }
   tr:last-child td { border-bottom: 0; }
   .tag { display: inline-block; padding: 0 6px; border: 1px solid currentColor; border-radius: 10px; font-size: 12px; white-space: nowrap; }
   .tag.warn { color: var(--warn); }
@@ -138,8 +140,26 @@ function tag(text, kind) {
   return el('span', { class: 'tag ' + (kind || ''), text });
 }
 
-function table(headers, rows) {
-  const head = el('tr', null, headers.map(h => el('th', { text: h.text, class: h.num ? 'num' : null })));
+function table(headers, rows, sorting) {
+  const head = el('tr', null, headers.map(h => {
+    const th = el('th', { class: h.num ? 'num' : null });
+    if (sorting && h.key) {
+      const active = sorting.key === h.key;
+      th.setAttribute('aria-sort', active ? (sorting.direction === 1 ? 'ascending' : 'descending') : 'none');
+      const arrow = active ? (sorting.direction === 1 ? ' ↑' : ' ↓') : '';
+      const button = el('button', {
+        type: 'button',
+        class: 'sort',
+        text: h.text + arrow,
+        'aria-label': h.text + (active ? (sorting.direction === 1 ? ', sorted ascending' : ', sorted descending') : ', sort ascending'),
+      });
+      button.addEventListener('click', () => sorting.onSort(h.key));
+      th.append(button);
+    } else {
+      th.textContent = h.text;
+    }
+    return th;
+  }));
   return el('div', { class: 'scroll' }, el('table', null, el('thead', null, head), el('tbody', null, rows)));
 }
 
@@ -382,32 +402,82 @@ async function failuresInto(section, bands) {
   section.replaceChildren(...nodes);
 }
 
+let bandSort = { key: 'name', direction: 1 };
+
+function compareBandValues(a, b) {
+  if (a == null) return b == null ? 0 : 1;
+  if (b == null) return -1;
+  if (typeof a === 'string') return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+  return a - b;
+}
+
+function sortedBands(bands) {
+  const value = band => {
+    switch (bandSort.key) {
+      case 'name': return band.name || band.id;
+      case 'members': return band.unreadable ? null : band.members;
+      case 'events': return band.unreadable ? null : band.events;
+      case 'size': return band.bytes + band.attachmentBytes;
+      case 'modified': return band.modified;
+      default: return band.name || band.id;
+    }
+  };
+  return [...bands].sort((a, b) => {
+    const left = value(a);
+    const right = value(b);
+    if (left == null || right == null) return compareBandValues(left, right);
+    return bandSort.direction * compareBandValues(left, right);
+  });
+}
+
 async function listView() {
   show(el('p', { class: 'muted', text: 'Loading bands…' }));
   const data = await api('bands');
   const failureSection = el('section');
-  const rows = data.bands.map(band => {
-    const marks = [];
-    if (band.unreadable) marks.push(tag('unreadable', 'bad'));
-    if (band.deleteAt) marks.push(tag('deletes ' + new Date(band.deleteAt).toLocaleDateString(), 'warn'));
-    if (band.bytes > data.maxBandBytes * 0.8) marks.push(tag('nearly full', 'warn'));
-    return el('tr', null,
-      el('td', null, el('a', { href: '#/band/' + encodeURIComponent(band.id), text: band.name || band.id }), ' ', marks),
-      el('td', { class: 'num', text: band.unreadable ? '' : band.members + ' (' + band.linked + ' linked)' }),
-      el('td', { class: 'num', text: band.unreadable ? '' : band.events }),
-      el('td', {
-        class: 'num',
-        text: size(band.bytes + band.attachmentBytes),
-        title: size(band.bytes) + ' of data (' + Math.round(band.bytes * 100 / data.maxBandBytes) + '% of the limit), ' + size(band.attachmentBytes) + ' of attachments',
-      }),
-      el('td', { class: 'num', text: when(band.modified), title: ago(band.modified) }),
-    );
-  });
+  const bandsTable = el('div');
+  const renderBandsTable = () => {
+    const rows = sortedBands(data.bands).map(band => {
+      const marks = [];
+      if (band.unreadable) marks.push(tag('unreadable', 'bad'));
+      if (band.deleteAt) marks.push(tag('deletes ' + new Date(band.deleteAt).toLocaleDateString(), 'warn'));
+      if (band.bytes > data.maxBandBytes * 0.8) marks.push(tag('nearly full', 'warn'));
+      return el('tr', null,
+        el('td', null, el('a', { href: '#/band/' + encodeURIComponent(band.id), text: band.name || band.id }), ' ', marks),
+        el('td', { class: 'num', text: band.unreadable ? '' : band.members + ' (' + band.linked + ' linked)' }),
+        el('td', { class: 'num', text: band.unreadable ? '' : band.events }),
+        el('td', {
+          class: 'num',
+          text: size(band.bytes + band.attachmentBytes),
+          title: size(band.bytes) + ' of data (' + Math.round(band.bytes * 100 / data.maxBandBytes) + '% of the limit), ' + size(band.attachmentBytes) + ' of attachments',
+        }),
+        el('td', { class: 'num', text: when(band.modified), title: ago(band.modified) }),
+      );
+    });
+    bandsTable.replaceChildren(table([
+      { text: 'Band', key: 'name' },
+      { text: 'Members', num: true, key: 'members' },
+      { text: 'Events', num: true, key: 'events' },
+      { text: 'Size', num: true, key: 'size' },
+      { text: 'Last changed', num: true, key: 'modified' },
+    ], rows, {
+      key: bandSort.key,
+      direction: bandSort.direction,
+      onSort(key) {
+        if (bandSort.key === key) bandSort.direction *= -1;
+        else bandSort = { key, direction: 1 };
+        renderBandsTable();
+      },
+    }));
+  };
+  if (data.bands.length) renderBandsTable();
   const nodes = [
     failureSection,
-    el('h2', { text: 'Bands (' + data.bands.length + ')' }),
+    el('div', { class: 'row' },
+      el('h2', { text: 'Bands (' + data.bands.length + ')' }),
+      pageRefresh(() => listView()),
+    ),
     data.bands.length
-      ? table([{ text: 'Band' }, { text: 'Members', num: true }, { text: 'Events', num: true }, { text: 'Size', num: true }, { text: 'Last changed', num: true }], rows)
+      ? bandsTable
       : el('p', { class: 'muted', text: 'No bands.' }),
   ];
   if (data.deleted.length) {
@@ -424,6 +494,16 @@ async function listView() {
   }
   show(nodes);
   failuresInto(failureSection, data.bands);
+}
+
+function pageRefresh(refresh) {
+  const button = el('button', { type: 'button', text: 'Refresh', 'aria-label': 'Refresh this page' });
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Refreshing…';
+    try { await refresh(); } catch (e) { failed(e); }
+  });
+  return button;
 }
 
 // ---- one band ----
@@ -488,7 +568,26 @@ function failuresKnown() {
   return failuresAsked;
 }
 
-async function bandView(bandId) {
+function bandPageRefresh(bandId) {
+  return pageRefresh(() => {
+    const openSections = [...main.querySelectorAll('details')]
+      .filter(details => details.open)
+      .map(details => details.querySelector('summary')?.textContent)
+      .filter(Boolean);
+    failures = null;
+    failuresAsked = loadFailures().catch(() => null);
+    return bandView(bandId, openSections);
+  });
+}
+
+function restoreOpenSections(openSections) {
+  const open = new Set(openSections);
+  main.querySelectorAll('details').forEach(details => {
+    if (open.has(details.querySelector('summary')?.textContent)) details.open = true;
+  });
+}
+
+async function bandView(bandId, openSections = []) {
   show(el('p', { class: 'muted', text: 'Loading band…' }));
   const back = el('p', null, el('a', { href: '#/', text: '← All bands' }));
   let band;
@@ -497,7 +596,9 @@ async function bandView(bandId) {
   } catch (e) {
     // The file exists but is not a band. Its raw data can still be shown.
     if (!(e instanceof Refused) || e.status !== 422) throw e;
-    show(back, el('p', { class: 'notice bad', text: e.message }), rawSection(bandId), restoreSection(bandId));
+    show(back, el('div', { class: 'row' }, el('h2', { text: 'Band data' }), bandPageRefresh(bandId)),
+      el('p', { class: 'notice bad', text: e.message }), rawSection(bandId), restoreSection(bandId));
+    restoreOpenSections(openSections);
     return;
   }
   const members = band.members.map(member => el('tr', null,
@@ -508,7 +609,7 @@ async function bandView(bandId) {
   ));
   show(
     back,
-    el('h2', { text: band.name }),
+    el('div', { class: 'row' }, el('h2', { text: band.name }), bandPageRefresh(bandId)),
     band.deletion ? el('p', {
       class: 'notice warn',
       text: 'Will be deleted on ' + when(band.deletion.deleteAt) + ', asked by ' + (band.deletion.bySupport ? 'support (this panel)' : band.deletion.requestedBy || 'a former member') + ' on ' + when(band.deletion.requestedAt) + '. A leader can keep it in the app.',
@@ -534,6 +635,7 @@ async function bandView(bandId) {
     restoreSection(bandId),
     deleteSection(band),
   );
+  restoreOpenSections(openSections);
 }
 
 // ---- restore: putting a band back as it was ----
